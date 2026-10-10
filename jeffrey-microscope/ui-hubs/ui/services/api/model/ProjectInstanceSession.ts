@@ -24,6 +24,8 @@ export default class ProjectInstanceSession {
     public finishedAt?: number,
     public isActive?: boolean,
     /** Finished without producing any data (zero bytes) — e.g. a crash-looped container. */
-    public failed?: boolean
+    public failed?: boolean,
+    /** The hub finished this session because no heartbeat arrived within its startup grace. */
+    public heartbeatMissing: boolean = false
   ) {}
 }

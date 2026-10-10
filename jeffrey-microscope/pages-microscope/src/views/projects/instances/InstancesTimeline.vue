@@ -51,6 +51,10 @@
             <span class="legend-sw failed-block-sw"></span>
             failed (0 B)
           </span>
+          <span v-if="totalNoHeartbeatSessions > 0" class="legend-chip">
+            <span class="legend-sw no-heartbeat"></span>
+            no heartbeat
+          </span>
         </span>
         <span v-if="!loading" class="count-chip ms-auto">
           <i class="bi bi-box"></i>
@@ -62,6 +66,12 @@
           <template v-if="totalFailedSessions > 0">
             <span class="count-chip-sep">·</span>
             <span class="count-chip-failed"><strong>{{ totalFailedSessions }}</strong> failed</span>
+          </template>
+          <template v-if="totalNoHeartbeatSessions > 0">
+            <span class="count-chip-sep">·</span>
+            <span class="count-chip-no-heartbeat"
+              ><strong>{{ totalNoHeartbeatSessions }}</strong> no heartbeat</span
+            >
           </template>
         </span>
       </div>
@@ -84,7 +94,8 @@
             statusKey(instance.status),
             {
               expanded: expandedIds.has(instance.id),
-              'has-open-session': activeSessionByInstance.has(instance.id)
+              'has-open-session': activeSessionByInstance.has(instance.id),
+              'no-heartbeat': noHeartbeatInstanceIds.has(instance.id)
             }
           ]"
         >
@@ -121,6 +132,15 @@
               />
             </span>
             <div class="head-chips">
+              <Badge
+                v-if="noHeartbeatInstanceIds.has(instance.id)"
+                key-label="Heartbeat"
+                value="never"
+                variant="purple"
+                icon="bi bi-heartbreak"
+                :title="NO_HEARTBEAT_CHIP_TITLE"
+                size="xs"
+              />
               <router-link
                 :to="generateInstanceUrl(instance.id)"
                 class="head-chip head-chip-nav"
@@ -257,13 +277,9 @@
                   <span class="inline-drawer-id mono">{{ session.id }}</span>
                   <span
                     class="session-status-dot"
-                    :class="
-                      session.isActive
-                        ? 'session-status-dot--active'
-                        : 'session-status-dot--finished'
-                    "
-                    :title="session.isActive ? 'Active' : 'Finished'"
-                    :aria-label="session.isActive ? 'Active' : 'Finished'"
+                    :class="sessionStatus(session).dotClass"
+                    :title="sessionStatus(session).label"
+                    :aria-label="sessionStatus(session).label"
                   ></span>
                   <div class="drawer-actions">
                     <button
@@ -478,9 +494,9 @@
           <div class="timeline-tooltip-header">
             <span class="timeline-tooltip-hostname">Session</span>
             <Badge
-              :value="hoveredSession.session.isActive ? 'Active' : 'Finished'"
+              :value="sessionStatus(hoveredSession.session).label"
               size="xxs"
-              :variant="hoveredSession.session.isActive ? 'orange' : 'green'"
+              :variant="sessionStatus(hoveredSession.session).variant"
             />
           </div>
           <div class="timeline-tooltip-body">
@@ -512,6 +528,10 @@
                   FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration)
                 }}
               </span>
+            </div>
+            <div v-if="hoveredSession.session.heartbeatMissing" class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Heartbeat</span>
+              <span class="timeline-tooltip-value">never received</span>
             </div>
           </div>
         </div>
@@ -583,6 +603,7 @@ import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetai
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
 import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
+import type { Variant } from '@shared/types/ui';
 import { useNavigation } from '@/composables/useNavigation';
 import { splitTimelineSessions, type FailedSessionBlock } from './timelineFailedBlocks';
 import '@shared/styles/shared-components.css';
@@ -642,13 +663,64 @@ const timelineSplits = computed(() => {
   return splits;
 });
 
-const totalFailedSessions = computed(() => {
+function countSessions(predicate: (session: ProjectInstanceSession) => boolean): number {
   let count = 0;
   for (const sessions of instanceSessions.value.values()) {
-    count += sessions.filter(session => session.failed).length;
+    count += sessions.filter(predicate).length;
   }
   return count;
+}
+
+const totalFailedSessions = computed(() => countSessions(session => session.failed === true));
+
+// Sessions the hub finished because no heartbeat ever arrived — drawn purple
+const totalNoHeartbeatSessions = computed(() => countSessions(session => session.heartbeatMissing));
+
+const NO_HEARTBEAT_CHIP_TITLE =
+  'The newest session sent no heartbeat within the startup grace, so the hub finished it: ' +
+  'heartbeats are not configured or not emitted. The session list links to how to set them up.';
+
+function newestSession(instanceId: string): ProjectInstanceSession | undefined {
+  return getSessionsForInstance(instanceId).reduce<ProjectInstanceSession | undefined>(
+    (newest, session) => (!newest || session.createdAt > newest.createdAt ? session : newest),
+    undefined
+  );
+}
+
+/** Instances whose newest session ended without ever sending a heartbeat. */
+const noHeartbeatInstanceIds = computed(() => {
+  const ids = new Set<string>();
+  for (const instance of instances.value) {
+    if (newestSession(instance.id)?.heartbeatMissing) {
+      ids.add(instance.id);
+    }
+  }
+  return ids;
 });
+
+/** How a session's status reads in the drawer dot and the tooltip badge. */
+interface SessionStatusStyle {
+  label: string;
+  variant: Variant;
+  dotClass: string;
+}
+
+const SESSION_STATUS = {
+  noHeartbeat: {
+    label: 'No heartbeat',
+    variant: 'purple',
+    dotClass: 'session-status-dot--no-heartbeat'
+  },
+  active: { label: 'Active', variant: 'orange', dotClass: 'session-status-dot--active' },
+  finished: { label: 'Finished', variant: 'green', dotClass: 'session-status-dot--finished' }
+} satisfies Record<string, SessionStatusStyle>;
+
+function sessionStatus(session: ProjectInstanceSession): SessionStatusStyle {
+  if (session.heartbeatMissing) {
+    return SESSION_STATUS.noHeartbeat;
+  }
+  return session.isActive ? SESSION_STATUS.active : SESSION_STATUS.finished;
+}
 
 const hoveredSession = ref<{ session: ProjectInstanceSession; instanceId: string } | null>(null);
 const hoveredFailedBlock = ref<{ block: FailedSessionBlock; instanceId: string } | null>(null);
@@ -766,9 +838,14 @@ function statusKey(status: ProjectInstanceStatus): string {
 }
 
 function sessionBarClass(session: ProjectInstanceSession, idx: number): string[] {
-  const kind = session.isActive ? 'active' : 'finished';
-  const shade = idx % 2 === 0 ? 'strong' : 'light';
-  const classes = [`${kind}-${shade}`];
+  const classes: string[] = [];
+  if (session.heartbeatMissing) {
+    classes.push('no-heartbeat');
+  } else {
+    const kind = session.isActive ? 'active' : 'finished';
+    const shade = idx % 2 === 0 ? 'strong' : 'light';
+    classes.push(`${kind}-${shade}`);
+  }
   if (idx === 0) {classes.push('first');}
   return classes;
 }
@@ -1404,6 +1481,10 @@ onMounted(async () => {
   background-color: rgba(156, 163, 175, 0.04);
   border-left-color: var(--color-text-light);
 }
+/* The newest session ended without ever sending a heartbeat: a purple rail, status kept */
+.instance-card.no-heartbeat .instance-card-head {
+  border-left-color: var(--color-purple-border);
+}
 
 .instance-card.pending .instance-card-head:hover {
   background-color: rgba(59, 130, 246, 0.12);
@@ -1526,6 +1607,9 @@ onMounted(async () => {
 .instance-card.expired .instance-card-body {
   border-left-color: var(--color-text-light);
 }
+.instance-card.no-heartbeat .instance-card-body {
+  border-left-color: var(--color-purple-border);
+}
 .instance-card-body:hover {
   background-color: var(--color-bg-hover);
 }
@@ -1607,6 +1691,16 @@ onMounted(async () => {
 .session-bar.active-light {
   background: var(--color-amber);
   animation: session-pulse-active 2s ease-in-out infinite;
+}
+
+/* Finished because no heartbeat ever arrived: a quiet purple outline */
+.session-bar.no-heartbeat,
+.legend-sw.no-heartbeat {
+  background: var(--color-purple-bg);
+  border: 1px solid var(--color-purple-border);
+}
+.session-bar.no-heartbeat {
+  border-radius: var(--radius-xs);
 }
 
 @keyframes session-pulse-active {
@@ -2018,6 +2112,9 @@ onMounted(async () => {
 .session-status-dot--finished {
   background: var(--color-success);
 }
+.session-status-dot--no-heartbeat {
+  background: var(--color-purple-border);
+}
 
 .drawer-actions {
   display: inline-flex;
@@ -2132,6 +2229,10 @@ onMounted(async () => {
 .count-chip-failed,
 .count-chip-failed strong {
   color: var(--color-danger);
+}
+.count-chip-no-heartbeat,
+.count-chip-no-heartbeat strong {
+  color: var(--color-purple-text);
 }
 </style>
 

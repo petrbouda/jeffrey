@@ -157,7 +157,7 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
             // Only this session's directory, not every session of the project
             Set<String> failedSessionIds = lookups.repositoryManagerForProject(instance.projectId())
                     .findRecordingSessions(sessionId)
-                    .filter(RecordingSession::isFailedEmpty)
+                    .filter(InstanceGrpcService::isFailed)
                     .map(session -> Set.of(session.id()))
                     .orElse(Set.of());
 
@@ -172,14 +172,22 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
 
     /**
-     * IDs of the failed sessions among these — finished without producing any data, which only
-     * the files on the volume can say, so the sessions must have been loaded with them.
+     * IDs of the failed sessions among these. The sessions must have been loaded with their files.
      */
     private static Set<String> failedSessionIds(List<RecordingSession> sessions) {
         return sessions.stream()
-                .filter(RecordingSession::isFailedEmpty)
+                .filter(InstanceGrpcService::isFailed)
                 .map(RecordingSession::id)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * A failed session finished without producing any data, which only the files on the volume
+     * can say. A session the hub finished because it never sent a heartbeat is empty too, but it
+     * did not crash: it is reported as missing its heartbeat instead, never as failed.
+     */
+    private static boolean isFailed(RecordingSession session) {
+        return session.isFailedEmpty() && !session.heartbeatMissing();
     }
 
 }

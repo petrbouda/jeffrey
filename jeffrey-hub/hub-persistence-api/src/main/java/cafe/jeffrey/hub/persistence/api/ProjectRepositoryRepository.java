@@ -100,6 +100,15 @@ public interface ProjectRepositoryRepository {
     void markSessionFinished(String sessionId, Instant finishedAt);
 
     /**
+     * Mark a session as finished because no liveness file appeared within the startup grace —
+     * one statement, so a session is never left finished without the reason, or the reverse.
+     *
+     * @param sessionId  the session ID to mark as finished
+     * @param finishedAt the timestamp the session is taken to have ended at
+     */
+    void markSessionFinishedWithoutHeartbeat(String sessionId, Instant finishedAt);
+
+    /**
      * Mark a session as retained or release it again. A retained session is exempt
      * from every retention job, both age-based and quota-based.
      *

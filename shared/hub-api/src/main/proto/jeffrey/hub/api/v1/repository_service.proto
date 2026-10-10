@@ -142,6 +142,8 @@ message RecordingSession {
   repeated RepositoryFile files = 7;
   // Whether this session is exempt from retention jobs.
   bool retained = 8;
+  // Whether the session ended because it sent no heartbeat within the startup grace.
+  bool heartbeat_missing = 9;
 }
 
 // A single file within a session.

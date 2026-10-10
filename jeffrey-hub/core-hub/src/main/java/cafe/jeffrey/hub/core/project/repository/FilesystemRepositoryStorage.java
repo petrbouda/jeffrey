@@ -178,7 +178,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.finishedAt(),
                 session.status(),
                 _listRepositoryFiles(sessionPath),
-                session.retained());
+                session.retained(),
+                session.heartbeatMissing());
     }
 
     private RecordingSession createRecordingSession(SessionDetail detail, ProjectInstanceSessionInfo sessionInfo) {
@@ -201,7 +202,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 sessionInfo.finishedAt(),
                 recordingStatus,
                 repositoryFiles,
-                sessionInfo.retained());
+                sessionInfo.retained(),
+                sessionInfo.heartbeatMissing());
     }
 
     /**
@@ -257,8 +259,9 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * A session is recording until something finishes it — the heartbeat, the reconciler or the
-     * expiry job, each of which stamps {@code finishedAt}. That is the whole rule. It was once
+     * A session is recording until something finishes it — the heartbeat (including one that never
+     * arrived within the startup grace) or the reconciler when the instance's next session appears,
+     * each of which stamps {@code finishedAt}. That is the whole rule. It was once
      * read off the session's position instead, "only the project's newest session may be
      * active", which was true while a project had one instance and quietly false once it had
      * two: the older instance's live session came back FINISHED, reported no open chunk, and had

@@ -219,7 +219,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           </tr>
           <tr>
             <td>The session never ends</td>
-            <td>No heartbeat file — the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> is switched off (<code>JEFFREY_AGENT_ENABLED=false</code>) and the application does not carry the <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, liveness is switched off with <code>jeffrey.heartbeat.enabled=false</code>, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere. Such a session is closed when the instance's next session appears</td>
+            <td>No heartbeat file — the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> is switched off (<code>JEFFREY_AGENT_ENABLED=false</code>) and the application does not carry the <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, liveness is switched off with <code>jeffrey.heartbeat.enabled=false</code>, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere. Heartbeats are mandatory: past the detector's <code>startup-grace</code> such a session is finished at its start, marked as having sent no heartbeat</td>
             <td>Check the Provisioner's verdict line for <code>jeffrey_agent=true</code>. The Provisioner sets <code>heartbeat.dir</code>; a hand-set <code>jeffrey.heartbeat.dir</code> has to match the session path</td>
           </tr>
         </tbody>

@@ -30,7 +30,7 @@ const headings = [
   { id: 'session-detection', text: 'Session Detection', level: 2 },
   { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
-  { id: 'sessions-without-the-agent', text: 'Sessions That Report Nothing', level: 3 },
+  { id: 'sessions-without-heartbeats', text: 'Sessions Without Heartbeats', level: 3 },
   { id: 'jvm-crash-logs', text: 'JVM Crash Logs', level: 3 },
   { id: 'heartbeat-recovery', text: 'Hub Restart', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
@@ -132,7 +132,7 @@ onMounted(() => {
         </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
-        <p>A scheduled job periodically evaluates each active session and applies the following rules. A session is held to the heartbeat deadline only once it has written a liveness file — a heartbeat or the clean-exit marker; see <a href="#sessions-without-the-agent">Sessions That Report Nothing</a> for the rest.</p>
+        <p>A scheduled job periodically evaluates each active session and applies the following rules. Every session must report liveness: one that has written a liveness file — a heartbeat or the clean-exit marker — is held to the heartbeat deadline, and one that wrote none within the startup grace is finished, see <a href="#sessions-without-heartbeats">Sessions Without Heartbeats</a>.</p>
 
         <div class="detection-cases">
           <div class="detection-case finished-case">
@@ -166,22 +166,35 @@ onMounted(() => {
           <div class="detection-case skip-case">
             <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
             <div class="case-content">
-              <h4>No liveness file at all</h4>
-              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists. The JVM may still be starting, or nothing in it reports — the agent switched off and no library, or an application that switched liveness off — and the two look the same from the Hub. The session is <strong>left alone</strong>, however old it is, because finishing it would end a session the profiler may still be writing. There is no startup deadline.</p>
+              <h4>No liveness file yet</h4>
+              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists, and the Hub first saw the session less than the startup grace ago — <code>startup-grace</code>, 1 minute by default. The JVM may still be starting, so the session is <strong>left alone</strong>.</p>
+            </div>
+          </div>
+          <div class="detection-case finished-case">
+            <div class="case-indicator"><i class="bi bi-heartbreak"></i></div>
+            <div class="case-content">
+              <h4>No liveness file past the startup grace</h4>
+              <p>Every session must report liveness, and the agent writes its first heartbeat the moment the JVM starts. A session that wrote none within the startup grace is <strong>finished at its start</strong> and marked as having ended <strong>without a heartbeat</strong>: heartbeats are not configured or not emitted. Its instance becomes Finished when it was the last open one. Heartbeats are mandatory — a deployment that profiles with the agent switched off and without the library has its sessions finished this way, and their recordings are compressed and aged out like any finished session's.</p>
             </div>
           </div>
         </div>
 
-        <h3 id="sessions-without-the-agent">Sessions That Report Nothing</h3>
-        <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner writes into every session and attaches with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>. Nothing tells the Hub in advance whether a session will report: it learns it from the first liveness file that appears.</p>
-        <p>A session with the agent off and without the library, or with liveness switched off, writes no <code>.heartbeat/</code> files at all, so there is no signal to go stale, and the detector leaves it alone. Those sessions are finished instead when the instance's <strong>next session appears</strong> on shared storage: materializing a new session closes any unfinished predecessor of the same instance, at the clean-exit or last-heartbeat timestamp when one exists, otherwise at the next session's start.</p>
-        <p>The consequence is that the last session of an instance that never restarts stays Active until something else ends it, which is the honest answer — with nothing reporting, nothing on disk distinguishes a JVM that stopped from one that is simply quiet.</p>
+        <h3 id="sessions-without-heartbeats">Sessions Without Heartbeats</h3>
+        <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner writes into every session and attaches with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>.</p>
+        <p>In Microscope a session that ended without a heartbeat is drawn in purple and is never counted as a failed session: on the Instance Timeline it is a purple marker and its instance shows a <strong>Heartbeat: never</strong> chip; in the instance's session list it reads <em>Heartbeat: never received</em> and carries a note linking here.</p>
+        <p>To make sessions report a heartbeat:</p>
+        <ul>
+          <li>Keep the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> attached — the Provisioner attaches it by default; check the deployment does not set <code>JEFFREY_AGENT_ENABLED=false</code>.</li>
+          <li>Or, with the agent off, add <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> (or <code>jeffrey-heartbeat-spring-boot-starter</code>) to the application.</li>
+          <li>Make sure the application does not set <code>jeffrey.heartbeat.enabled=false</code>.</li>
+          <li>If the JVM never got as far as starting — a crash-looping pod, for example — check the container's previous logs; no configuration of heartbeats helps there.</li>
+        </ul>
 
         <h3 id="jvm-crash-logs">JVM Crash Logs</h3>
         <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>, or <code>hs-jvm-err.log</code> when the Provisioner named it) is left in the session directory. The Hub classifies it as a <em>HotSpot Error Log</em> and lists it beside the session's other files, where it can be downloaded or fetched by a coding agent. The Hub does not read the file and raises no event for it: the detector finishes the session on the heartbeat evidence alone, and whether a crashed session is worth keeping is a decision left to whoever investigates it — see <a href="#retained-sessions">Retained Sessions</a>.</p>
 
         <h3 id="heartbeat-recovery">Hub Restart</h3>
-        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file exists, the session is left alone until the instance's next session appears; if one exists but cannot be read, the session is left for the next sweep.</p>
+        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file exists past the startup grace, the session is finished at its start as having sent no heartbeat; if one exists but cannot be read, the session is left for the next sweep.</p>
 
         <DocsCallout type="info">
           <strong>Scheduler job:</strong> The Session Finished Detector job runs every 30 seconds by default on Jeffrey Hub to evaluate heartbeat staleness and detect finished sessions.

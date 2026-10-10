@@ -154,6 +154,7 @@ public final class ProtoMappers {
             builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
         session.files().forEach(file -> builder.addFiles(file(file)));
+        builder.setHeartbeatMissing(session.heartbeatMissing());
         return builder.build();
     }
 
@@ -213,7 +214,8 @@ public final class ProtoMappers {
                 .setRepositoryId(orEmpty(info.repositoryId()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setIsActive(info.finishedAt() == null)
-                .setFailed(failedSessionIds.contains(info.sessionId()));
+                .setFailed(failedSessionIds.contains(info.sessionId()))
+                .setHeartbeatMissing(info.heartbeatMissing());
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());
         }

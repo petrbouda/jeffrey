@@ -30,9 +30,10 @@ import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import Badge from '@shared/components/Badge.vue';
 import RecordingFileRow from '@hubs/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
-import type { Variant } from '@shared/types/ui';
+import type { TimelineBarItem, Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
+import MissingHeartbeatNote from '@hubs/components/MissingHeartbeatNote.vue';
 import {
   buildDisplayEntries,
   hasUnreportedSizes,
@@ -199,13 +200,34 @@ const failedSessionsCount = computed(() => {
   return props.sessions.filter(isFailedSession).length;
 });
 
-const headerBarText = computed(() => {
-  const base = `${props.headerText} (${props.sessions.length})`;
-  if (failedSessionsCount.value === 0) {
-    return base;
-  }
-  return `${base} · ${failedSessionsCount.value} failed`;
+// Finished by the hub for a missing heartbeat: shown purple with a setup note, never as failed
+const noHeartbeatSessionsCount = computed(() => {
+  return props.sessions.filter(session => session.heartbeatMissing).length;
 });
+
+const headerBarText = computed(() => {
+  let text = `${props.headerText} (${props.sessions.length})`;
+  if (failedSessionsCount.value > 0) {
+    text += ` · ${failedSessionsCount.value} failed`;
+  }
+  if (noHeartbeatSessionsCount.value > 0) {
+    text += ` · ${noHeartbeatSessionsCount.value} no heartbeat`;
+  }
+  return text;
+});
+
+// --- Timeline row (Started / Finished / Duration, plus Heartbeat when it never arrived) ---
+const NO_HEARTBEAT_ITEM: TimelineBarItem = {
+  key: 'heartbeat',
+  icon: 'bi bi-heartbreak',
+  tone: 'purple',
+  label: 'Heartbeat',
+  value: 'never received'
+};
+
+const getHeartbeatItems = (session: RecordingSession): TimelineBarItem[] => {
+  return session.heartbeatMissing ? [NO_HEARTBEAT_ITEM] : [];
+};
 
 const failedGroupSummary = (group: FailedSessionGroup): string => {
   const count = group.sessions.length;
@@ -298,30 +320,20 @@ const getSourcesCount = (session: RecordingSession): number => {
   return session.files.length;
 };
 
-const getSessionIconClass = (session: RecordingSession) => {
-  if (session.status === RecordingStatus.ACTIVE) {
-    return 'session-icon-active';
-  }
-  if (session.status === RecordingStatus.FINISHED) {
-    return 'session-icon-finished';
-  }
-  if (session.status === RecordingStatus.UNKNOWN) {
-    return 'session-icon-unknown';
-  }
-  return 'session-icon-unknown';
+/** Suffix of a session row's `session-*` and `session-icon-*` classes. */
+type SessionTone = 'no-heartbeat' | 'active' | 'finished' | 'unknown';
+
+const SESSION_TONE_BY_STATUS: Record<RecordingStatus, SessionTone> = {
+  [RecordingStatus.ACTIVE]: 'active',
+  [RecordingStatus.FINISHED]: 'finished',
+  [RecordingStatus.UNKNOWN]: 'unknown'
 };
 
-const getSessionStatusClass = (session: RecordingSession) => {
-  if (session.status === RecordingStatus.ACTIVE) {
-    return 'session-active';
+const sessionTone = (session: RecordingSession): SessionTone => {
+  if (session.heartbeatMissing) {
+    return 'no-heartbeat';
   }
-  if (session.status === RecordingStatus.FINISHED) {
-    return 'session-finished';
-  }
-  if (session.status === RecordingStatus.UNKNOWN) {
-    return 'session-unknown';
-  }
-  return `status-unknown session-${String(session.status).toLowerCase()}`;
+  return SESSION_TONE_BY_STATUS[session.status] ?? 'unknown';
 };
 
 // --- Selection ---
@@ -927,7 +939,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           <!-- Session header -->
       <div
         class="folder-row rounded"
-        :class="[getSessionStatusClass(session), { 'session-retained': session.retained }]"
+        :class="[`session-${sessionTone(session)}`, { 'session-retained': session.retained }]"
         @click="toggleSession(session.id)"
       >
         <!-- Retention flag: a pinned session is exempt from every retention job -->
@@ -944,7 +956,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <div class="session-identity">
           <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center">
-              <div class="session-icon-square me-3" :class="getSessionIconClass(session)">
+              <div class="session-icon-square me-3" :class="`session-icon-${sessionTone(session)}`">
                 <i
                   class="bi"
                   :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"
@@ -1049,7 +1061,11 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           :createdAt="session.createdAt"
           :finishedAt="session.finishedAt"
           :duration="session.duration"
+          :extra-items="getHeartbeatItems(session)"
         />
+
+        <!-- This session never reported a heartbeat: say so, and link to the setup docs -->
+        <MissingHeartbeatNote v-if="session.heartbeatMissing" />
       </div>
 
       <!-- Session recordings (shown when expanded) -->
@@ -1671,6 +1687,11 @@ code {
   border-left: 3px solid var(--color-purple);
 }
 
+/* Finished because no heartbeat ever arrived: purple, never grouped with the failed sessions */
+.folder-row.session-no-heartbeat {
+  border-left: 3px solid var(--color-purple-border);
+}
+
 /* Failed sessions — finished with zero bytes (prematurely killed process) */
 .failed-band {
   display: flex;
@@ -1948,6 +1969,11 @@ code {
 .session-icon-unknown {
   background-color: rgba(111, 66, 193, 0.12);
   color: var(--color-purple);
+}
+
+.session-icon-no-heartbeat {
+  background-color: var(--color-purple-bg);
+  color: var(--color-purple-text);
 }
 
 /* Session meta (matching instance-meta) */

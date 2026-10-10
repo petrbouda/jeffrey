@@ -30,7 +30,8 @@ public record InstanceSessionResponse(
         Long finishedAt,
         boolean isActive,
         Long duration,
-        boolean failed) {
+        boolean failed,
+        boolean heartbeatMissing) {
 
     public static InstanceSessionResponse from(ProjectInstanceSessionInfo info, Clock clock) {
         Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
@@ -43,6 +44,7 @@ public record InstanceSessionResponse(
                 InstantUtils.toEpochMilli(info.finishedAt()),
                 info.finishedAt() == null,
                 duration,
-                info.failed());
+                info.failed(),
+                info.heartbeatMissing());
     }
 }

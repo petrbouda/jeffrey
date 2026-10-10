@@ -22,6 +22,9 @@ import java.time.Instant;
 
 /**
  * One recording session as the hub knows it.
+ *
+ * @param heartbeatMissing the session ended because no heartbeat arrived within the startup grace —
+ *                         set by the session-finished detector as it finishes the session
  */
 public record ProjectInstanceSessionInfo(
         String sessionId,
@@ -32,10 +35,29 @@ public record ProjectInstanceSessionInfo(
         Instant originCreatedAt,
         Instant createdAt,
         Instant finishedAt,
-        boolean retained) {
+        boolean retained,
+        boolean heartbeatMissing) {
 
     public ProjectInstanceSessionInfo {
         RelativePath.require(relativeSessionPath, "relativeSessionPath");
+    }
+
+    /**
+     * A session that has not ended for a missing heartbeat — the state every session starts in.
+     */
+    public ProjectInstanceSessionInfo(
+            String sessionId,
+            String repositoryId,
+            String instanceId,
+            int order,
+            Path relativeSessionPath,
+            Instant originCreatedAt,
+            Instant createdAt,
+            Instant finishedAt,
+            boolean retained) {
+
+        this(sessionId, repositoryId, instanceId, order, relativeSessionPath,
+                originCreatedAt, createdAt, finishedAt, retained, false);
     }
 
     /**

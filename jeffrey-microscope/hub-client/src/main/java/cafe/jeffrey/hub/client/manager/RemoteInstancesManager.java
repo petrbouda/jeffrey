@@ -119,6 +119,7 @@ public class RemoteInstancesManager {
                         null,
                         InstantUtils.fromEpochMilli(response.createdAt()),
                         InstantUtils.fromEpochMilli(response.finishedAt()))
-                .withFailed(response.failed());
+                .withFailed(response.failed())
+                .withHeartbeatMissing(response.heartbeatMissing());
     }
 }

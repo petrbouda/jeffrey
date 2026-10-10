@@ -22,6 +22,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * @param heartbeatMissing the session ended because no heartbeat arrived within the startup grace
+ */
 public record RecordingSession(
         String id,
         String name,
@@ -30,7 +33,8 @@ public record RecordingSession(
         Instant finishedAt,
         RecordingStatus status,
         List<RepositoryFile> files,
-        boolean retained) {
+        boolean retained,
+        boolean heartbeatMissing) {
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -38,6 +42,22 @@ public record RecordingSession(
      */
     public RecordingSession {
         files = files == null ? List.of() : files;
+    }
+
+    /**
+     * A session that sent its heartbeat.
+     */
+    public RecordingSession(
+            String id,
+            String name,
+            String instanceId,
+            Instant createdAt,
+            Instant finishedAt,
+            RecordingStatus status,
+            List<RepositoryFile> files,
+            boolean retained) {
+
+        this(id, name, instanceId, createdAt, finishedAt, status, files, retained, false);
     }
 
     /**

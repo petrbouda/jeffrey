@@ -51,19 +51,33 @@
       </div>
       <span class="tl-main">{{ FormattingService.formatDurationInMillis2Units(duration) }}</span>
     </div>
+    <div v-for="item in extraItems" :key="item.key" class="tl-item">
+      <span class="tl-icon-badge" :class="`tl-icon-badge--${item.tone}`">
+        <i :class="item.icon"></i>
+      </span>
+      <div class="tl-info">
+        <span class="tl-label">{{ item.label }}</span>
+      </div>
+      <span class="tl-main" :class="`tl-main--${item.tone}`">{{ item.value }}</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import FormattingService from '@shared/services/FormattingService';
+import type { TimelineBarItem } from '@shared/types/ui';
 
 interface Props {
   createdAt: number;
   finishedAt?: number | null;
   duration: number;
+  /** Cells appended after Duration. */
+  extraItems?: TimelineBarItem[];
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  extraItems: () => []
+});
 </script>
 
 <style scoped>
@@ -117,6 +131,15 @@ defineProps<Props>();
 .tl-icon-badge--primary {
   background: rgba(59, 130, 246, 0.1);
   color: var(--color-accent-blue-dark);
+}
+
+.tl-icon-badge--purple {
+  background: var(--color-purple-bg);
+  color: var(--color-purple-text);
+}
+
+.tl-main--purple {
+  color: var(--color-purple-text);
 }
 
 .tl-label {

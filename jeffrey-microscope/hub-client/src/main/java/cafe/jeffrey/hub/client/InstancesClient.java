@@ -141,7 +141,8 @@ public class InstancesClient {
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.getIsActive(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
-                proto.getFailed());
+                proto.getFailed(),
+                proto.getHeartbeatMissing());
     }
 
 }

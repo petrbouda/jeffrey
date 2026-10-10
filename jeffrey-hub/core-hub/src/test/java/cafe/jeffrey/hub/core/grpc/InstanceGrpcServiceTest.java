@@ -443,6 +443,66 @@ class InstanceGrpcServiceTest {
             assertTrue(second.getFailed());
         }
 
+        /**
+         * A session that never sent a heartbeat is finished at its start with no data — but it is
+         * not a crash, so it is not failed: it is flagged as missing its heartbeat instead.
+         */
+        @Test
+        void sessionWithoutHeartbeat_isNotFailedAndCarriesTheFlag() throws Exception {
+            var platformRepositories = platformRepositoriesWithInstance();
+            when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
+                    new ProjectInstanceSessionInfo(
+                            "session-1", "repo-1", INSTANCE_ID, 0,
+                            Path.of("session-1"), null,
+                            FIXED_TIME, FIXED_TIME, false, true)
+            ));
+
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of(new RecordingSession(
+                    "session-1", "session-1", INSTANCE_ID, FIXED_TIME, FIXED_TIME, RecordingStatus.FINISHED,
+                    List.of(), false, true)));
+            var factory = repositoryManagerFactory(platformRepositories, repoManager);
+
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
+
+            InstanceSessionInfo session = stub.listInstanceSessions(
+                    ListInstanceSessionsRequest.newBuilder()
+                            .setInstanceId(INSTANCE_ID)
+                            .build())
+                    .getSessions(0);
+
+            assertFalse(session.getIsActive());
+            assertTrue(session.hasFinishedAt());
+            assertFalse(session.getFailed());
+            assertTrue(session.getHeartbeatMissing());
+        }
+
+        @Test
+        void sessionWithHeartbeat_isNotFlagged() throws Exception {
+            var platformRepositories = platformRepositoriesWithInstance();
+            when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
+                    ProjectInstanceSessionInfo.notRetained(
+                            "session-1", "repo-1", INSTANCE_ID, 0,
+                            Path.of("session-1"), null,
+                            FIXED_TIME, null)
+            ));
+
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of());
+            var factory = repositoryManagerFactory(platformRepositories, repoManager);
+
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
+
+            InstanceSessionInfo session = stub.listInstanceSessions(
+                    ListInstanceSessionsRequest.newBuilder()
+                            .setInstanceId(INSTANCE_ID)
+                            .build())
+                    .getSessions(0);
+
+            assertTrue(session.getIsActive());
+            assertFalse(session.getHeartbeatMissing());
+        }
+
         @Test
         void instanceNotFound_returnsNotFound() throws Exception {
             var platformRepositories = mock(HubPlatformRepositories.class);

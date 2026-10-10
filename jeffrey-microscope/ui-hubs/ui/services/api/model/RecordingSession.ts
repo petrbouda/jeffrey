@@ -28,6 +28,11 @@ export default class RecordingSession {
     public status: RecordingStatus,
     public duration: number,
     public files: RepositoryFile[],
-    public retained: boolean = false
+    public retained: boolean = false,
+    /**
+     * The hub finished this session because no heartbeat arrived within its startup grace.
+     * Such a session is FINISHED and usually empty, yet it is not a failed session.
+     */
+    public heartbeatMissing: boolean = false
   ) {}
 }

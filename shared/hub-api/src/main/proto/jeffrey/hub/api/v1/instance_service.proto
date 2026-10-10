@@ -145,4 +145,7 @@ message InstanceSessionInfo {
   // Whether this session failed: finished without producing any data (zero bytes),
   // typically a prematurely killed process (OOM kill, container healthcheck restart loop).
   bool failed = 6;
+  // Whether the session ended because it sent no heartbeat within the startup grace; such a session
+  // is not failed.
+  bool heartbeat_missing = 7;
 }

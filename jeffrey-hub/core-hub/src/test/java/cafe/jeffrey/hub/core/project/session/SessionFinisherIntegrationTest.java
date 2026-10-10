@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcProjectRepositoryRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -49,9 +50,12 @@ class SessionFinisherIntegrationTest {
     private static final String PROJECT_ID = "proj-001";
     private static final String WORKSPACE_ID = "ws-001";
     private static final String SESSION_ID = "session-001";
+    private static final String INSTANCE_ID = "inst-001";
     private static final Instant NOW = Instant.parse("2025-06-15T12:00:00Z");
 
     private static final Duration HEARTBEAT_THRESHOLD = Duration.ofMinutes(5);
+    private static final Duration STARTUP_GRACE = Duration.ofMinutes(1);
+    private static final SessionDeadlines DEADLINES = new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE);
     private static final Path SESSION_PATH = Path.of("/workspaces/ws-001/proj-001/session-2025-06-15");
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
@@ -194,7 +198,7 @@ class SessionFinisherIntegrationTest {
                 when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
                         .thenReturn(LivenessRead.reported(markerTimestamp));
 
-                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), HEARTBEAT_THRESHOLD);
+                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
 
                 assertTrue(result);
                 assertEquals(markerTimestamp, repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
@@ -218,7 +222,7 @@ class SessionFinisherIntegrationTest {
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(LivenessRead.reported(staleHeartbeat));
 
-                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), HEARTBEAT_THRESHOLD);
+                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
 
                 assertTrue(result);
 
@@ -240,7 +244,7 @@ class SessionFinisherIntegrationTest {
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(LivenessRead.reported(freshHeartbeat));
 
-                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), HEARTBEAT_THRESHOLD);
+                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
 
                 assertFalse(result);
 
@@ -250,54 +254,99 @@ class SessionFinisherIntegrationTest {
         }
 
         /**
-         * Nothing outside the application declares whether it reports liveness, so a session
-         * that never wrote a liveness file is either still starting up or carries no library —
-         * the two look the same, and finishing the second kind would end a session the profiler
-         * is still writing. It is closed by the instance's next session instead.
+         * Every session must report liveness. One that wrote no liveness file within the startup
+         * grace is finished at its start and marked as having ended without a heartbeat.
          */
         @Nested
         class NoHeartbeatFile {
 
-            @Test
-            void doesNotFinish_whenNothingEverReported(DataSource dataSource) throws SQLException {
-                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-                var clock = new MutableClock(NOW);
-                var repository = createRepository(clock, dataSource);
-                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
-
-                // Hours past any startup window, and still nothing written
+            private void nothingReported() {
                 when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
                         .thenReturn(LivenessRead.absent());
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(LivenessRead.absent());
-
-                boolean result = finisher.tryFinishFromHeartbeat(
-                        new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), HEARTBEAT_THRESHOLD);
-
-                assertFalse(result);
-                assertNull(repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
             }
 
             @Test
-            void isHeldToTheDeadline_onceTheFirstHeartbeatArrives(DataSource dataSource) throws SQLException {
+            void isLeftAlone_withinTheStartupGrace(DataSource dataSource) throws SQLException {
+                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+                // The fixture session was materialized at 08:00:01; half a grace later it may still be starting
+                var clock = new MutableClock(Instant.parse("2025-06-15T08:00:31Z"));
+                var repository = createRepository(clock, dataSource);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+                nothingReported();
+
+                boolean result = finisher.tryFinishFromHeartbeat(
+                        new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
+
+                assertFalse(result);
+                ProjectInstanceSessionInfo session = repository.findSessionById(SESSION_ID).orElseThrow();
+                assertNull(session.finishedAt());
+                assertFalse(session.heartbeatMissing());
+            }
+
+            @Test
+            void isFinishedAtItsStart_andMarkedAsMissingItsHeartbeat_pastTheGrace(DataSource dataSource)
+                    throws SQLException {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
                 var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+                nothingReported();
 
-                Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
+                ProjectInstanceSessionInfo sessionInfo = fixtureSession(repository);
+                boolean result = finisher.tryFinishFromHeartbeat(
+                        new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), DEADLINES);
+
+                assertTrue(result);
+                ProjectInstanceSessionInfo session = repository.findSessionById(SESSION_ID).orElseThrow();
+                assertEquals(sessionInfo.createdAt(), session.finishedAt());
+                assertTrue(session.heartbeatMissing());
+            }
+
+            @Test
+            void finishesTheInstance_whenItWasItsLastOpenSession(DataSource dataSource) throws SQLException {
+                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+                var clock = new MutableClock(NOW);
+                var repository = createRepository(clock, dataSource);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+                nothingReported();
+
+                finisher.tryFinishFromHeartbeat(
+                        new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
+
+                var instance = createHubPlatformRepositories(clock, dataSource)
+                        .newProjectInstanceRepository(PROJECT_ID)
+                        .find(INSTANCE_ID)
+                        .orElseThrow();
+                assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
+            }
+
+            @Test
+            void isHeldToTheDeadline_onceTheFirstHeartbeatArrivesWithinTheGrace(DataSource dataSource)
+                    throws SQLException {
+                TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
+                var clock = new MutableClock(Instant.parse("2025-06-15T08:00:31Z"));
+                var repository = createRepository(clock, dataSource);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
+
+                Instant firstHeartbeat = Instant.parse("2025-06-15T08:00:30Z");
                 when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
                         .thenReturn(LivenessRead.absent());
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(LivenessRead.absent())
-                        .thenReturn(LivenessRead.reported(staleHeartbeat));
+                        .thenReturn(LivenessRead.reported(firstHeartbeat));
 
-                ProjectInstanceSessionInfo sessionInfo = fixtureSession(repository);
+                assertFalse(finisher.tryFinishFromHeartbeat(
+                        new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES));
 
-                assertFalse(finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), HEARTBEAT_THRESHOLD));
-                assertTrue(finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), HEARTBEAT_THRESHOLD));
+                clock.advance(Duration.ofMinutes(10));
+                assertTrue(finisher.tryFinishFromHeartbeat(
+                        new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES));
 
-                assertEquals(staleHeartbeat, repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
+                ProjectInstanceSessionInfo session = repository.findSessionById(SESSION_ID).orElseThrow();
+                assertEquals(firstHeartbeat, session.finishedAt());
+                assertFalse(session.heartbeatMissing());
             }
         }
 
@@ -320,7 +369,7 @@ class SessionFinisherIntegrationTest {
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(LivenessRead.unreadable("the file could not be read"));
 
-                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), HEARTBEAT_THRESHOLD);
+                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
 
                 assertFalse(result);
                 assertNull(repository.findSessionById(SESSION_ID).orElseThrow().finishedAt(),
@@ -341,7 +390,7 @@ class SessionFinisherIntegrationTest {
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                         .thenReturn(LivenessRead.absent());
 
-                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), HEARTBEAT_THRESHOLD);
+                boolean result = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, fixtureSession(repository), SESSION_PATH), DEADLINES);
 
                 assertFalse(result);
                 assertNull(repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
@@ -363,8 +412,8 @@ class SessionFinisherIntegrationTest {
 
                 ProjectInstanceSessionInfo sessionInfo = fixtureSession(repository);
 
-                assertFalse(finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), HEARTBEAT_THRESHOLD));
-                assertTrue(finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), HEARTBEAT_THRESHOLD));
+                assertFalse(finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), DEADLINES));
+                assertTrue(finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, SESSION_PATH), DEADLINES));
 
                 assertEquals(staleHeartbeat, repository.findSessionById(SESSION_ID).orElseThrow().finishedAt());
             }
