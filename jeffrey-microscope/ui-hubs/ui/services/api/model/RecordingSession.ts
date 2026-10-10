@@ -17,6 +17,7 @@
 
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
+import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat.ts';
 
 export default class RecordingSession {
   constructor(
@@ -28,6 +29,11 @@ export default class RecordingSession {
     public status: RecordingStatus,
     public duration: number,
     public files: RepositoryFile[],
-    public retained: boolean = false
+    public retained: boolean = false,
+    /**
+     * Heartbeat state. `status` stays ACTIVE for an unfinished session whose heartbeats are
+     * `missing` (storage semantics); the UI must not render such a session as live.
+     */
+    public heartbeat: SessionHeartbeat = SessionHeartbeat.none()
   ) {}
 }

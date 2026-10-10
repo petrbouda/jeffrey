@@ -33,6 +33,9 @@ import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
 import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
+import type { TimelineBarItem } from '@shared/types/ui';
+import HeartbeatDiagnostics from '@hubs/components/HeartbeatDiagnostics.vue';
+import { recordedSpanMillis } from '@hubs/services/heartbeatDiagnosis.ts';
 import {
   buildDisplayEntries,
   hasUnreportedSizes,
@@ -199,13 +202,86 @@ const failedSessionsCount = computed(() => {
   return props.sessions.filter(isFailedSession).length;
 });
 
-const headerBarText = computed(() => {
-  const base = `${props.headerText} (${props.sessions.length})`;
-  if (failedSessionsCount.value === 0) {
-    return base;
-  }
-  return `${base} · ${failedSessionsCount.value} failed`;
+/**
+ * A session that never reported a heartbeat. Its storage status stays ACTIVE until the hub
+ * finishes it, so this — not the status — decides that it is not rendered as live.
+ */
+const isHeartbeatMissing = (session: RecordingSession): boolean => {
+  return session.heartbeat?.missing === true;
+};
+
+const noHeartbeatSessionsCount = computed(() => {
+  return props.sessions.filter(isHeartbeatMissing).length;
 });
+
+const headerBarText = computed(() => {
+  let text = `${props.headerText} (${props.sessions.length})`;
+  if (failedSessionsCount.value > 0) {
+    text += ` · ${failedSessionsCount.value} failed`;
+  }
+  if (noHeartbeatSessionsCount.value > 0) {
+    text += ` · ${noHeartbeatSessionsCount.value} no heartbeat`;
+  }
+  return text;
+});
+
+// --- Timeline row (Started / Finished / Duration / Heartbeat) ---
+const UNKNOWN_FINISH_LABEL = 'unknown';
+const NO_DURATION_TEXT = '—';
+
+/** Unfinished and silent: nothing says the JVM is still running, so its end is unknown. */
+const isOpenWithoutHeartbeat = (session: RecordingSession): boolean => {
+  return isHeartbeatMissing(session) && !session.finishedAt;
+};
+
+const getUnfinishedLabel = (session: RecordingSession): string | undefined => {
+  return isOpenWithoutHeartbeat(session) ? UNKNOWN_FINISH_LABEL : undefined;
+};
+
+/**
+ * Without heartbeats the time since the start is no duration of anything; what is known is how
+ * long the session demonstrably produced files.
+ */
+const getDurationText = (session: RecordingSession): string | undefined => {
+  if (!isOpenWithoutHeartbeat(session)) {
+    return undefined;
+  }
+  const span = recordedSpanMillis(session);
+  if (span === null) {
+    return NO_DURATION_TEXT;
+  }
+  return `Recorded ${FormattingService.formatDurationInMillis2Units(span)}`;
+};
+
+const getHeartbeatItems = (session: RecordingSession): TimelineBarItem[] => {
+  if (isHeartbeatMissing(session)) {
+    return [
+      {
+        key: 'heartbeat',
+        icon: 'bi bi-heartbreak',
+        tone: 'purple',
+        label: 'Heartbeat',
+        value: 'never received',
+        tintValue: true
+      }
+    ];
+  }
+  const lastHeartbeatAt = session.heartbeat?.lastHeartbeatAt ?? null;
+  if (!session.finishedAt && lastHeartbeatAt !== null) {
+    return [
+      {
+        key: 'heartbeat',
+        icon: 'bi bi-heart-pulse',
+        tone: 'success',
+        label: 'Heartbeat',
+        sub: FormattingService.formatTimestampUTC(lastHeartbeatAt),
+        value: FormattingService.formatRelativeTime(lastHeartbeatAt),
+        tintValue: true
+      }
+    ];
+  }
+  return [];
+};
 
 const failedGroupSummary = (group: FailedSessionGroup): string => {
   const count = group.sessions.length;
@@ -248,8 +324,8 @@ const initializeExpandedState = () => {
   const firstSessionId = sortedSessions.value.find(session => !isFailedSession(session))?.id ?? null;
 
   props.sessions.forEach(session => {
-    expandedSessions.value[session.id] =
-      session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
+    const isLive = session.status === RecordingStatus.ACTIVE && !isHeartbeatMissing(session);
+    expandedSessions.value[session.id] = isLive || session.id === firstSessionId;
 
     if (visibleFilesCount.value[session.id] === undefined) {
       visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
@@ -299,6 +375,9 @@ const getSourcesCount = (session: RecordingSession): number => {
 };
 
 const getSessionIconClass = (session: RecordingSession) => {
+  if (isHeartbeatMissing(session)) {
+    return 'session-icon-no-heartbeat';
+  }
   if (session.status === RecordingStatus.ACTIVE) {
     return 'session-icon-active';
   }
@@ -312,6 +391,9 @@ const getSessionIconClass = (session: RecordingSession) => {
 };
 
 const getSessionStatusClass = (session: RecordingSession) => {
+  if (isHeartbeatMissing(session)) {
+    return 'session-no-heartbeat';
+  }
   if (session.status === RecordingStatus.ACTIVE) {
     return 'session-active';
   }
@@ -1049,7 +1131,13 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           :createdAt="session.createdAt"
           :finishedAt="session.finishedAt"
           :duration="session.duration"
+          :unfinished-label="getUnfinishedLabel(session)"
+          :duration-text="getDurationText(session)"
+          :extra-items="getHeartbeatItems(session)"
         />
+
+        <!-- Why this session never reported a heartbeat, and what to change -->
+        <HeartbeatDiagnostics v-if="isHeartbeatMissing(session)" :session="session" />
       </div>
 
       <!-- Session recordings (shown when expanded) -->
@@ -1671,6 +1759,11 @@ code {
   border-left: 3px solid var(--color-purple);
 }
 
+/* No heartbeat: not live whatever the storage status says, so purple rather than amber */
+.folder-row.session-no-heartbeat {
+  border-left: 3px solid var(--color-purple-border);
+}
+
 /* Failed sessions — finished with zero bytes (prematurely killed process) */
 .failed-band {
   display: flex;
@@ -1948,6 +2041,11 @@ code {
 .session-icon-unknown {
   background-color: rgba(111, 66, 193, 0.12);
   color: var(--color-purple);
+}
+
+.session-icon-no-heartbeat {
+  background-color: var(--color-purple-bg);
+  color: var(--color-purple-text);
 }
 
 /* Session meta (matching instance-meta) */

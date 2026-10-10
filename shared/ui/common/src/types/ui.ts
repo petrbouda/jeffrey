@@ -67,3 +67,26 @@ export type SlowestRowAccent =
 
 /** Time-bar treatment of a {@link SlowestRowList} row: the brand ramp, or the failure ramp. */
 export type SlowestRowTone = 'default' | 'danger';
+
+/** Colour of a {@link TimelineBar} cell's icon badge (and, when asked, of its value). */
+export type TimelineBarTone = Extract<Variant, 'success' | 'danger' | 'primary' | 'purple'>;
+
+/**
+ * An extra cell a caller appends to {@link TimelineBar}'s Started / Finished / Duration row, so a
+ * page can add a fact of its own (e.g. a liveness signal) without the shared bar knowing its domain.
+ */
+export interface TimelineBarItem {
+  /** Stable key for the v-for. */
+  key: string;
+  /** Bootstrap icon class of the badge, e.g. `bi bi-activity`. */
+  icon: string;
+  tone: TimelineBarTone;
+  /** Small uppercase caption, e.g. "Heartbeat". */
+  label: string;
+  /** The cell's main value, right-aligned. */
+  value: string;
+  /** Optional secondary line under the caption. */
+  sub?: string;
+  /** Tint the main value with the tone as well, for a value that is itself the signal. */
+  tintValue?: boolean;
+}

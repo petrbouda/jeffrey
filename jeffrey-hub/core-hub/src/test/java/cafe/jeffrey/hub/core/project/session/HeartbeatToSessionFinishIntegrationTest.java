@@ -54,7 +54,6 @@ class HeartbeatToSessionFinishIntegrationTest {
     private static final String SESSION_ID_2 = "session-002";
     private static final String INSTANCE_ID = "inst-001";
     private static final String RECORDING_FILE = "profile-20250615-080000.jfr";
-    private static final String AGENT_JAR = ".jeffrey-agent.jar";
 
     private static final Instant NOW = Instant.parse("2025-06-15T12:00:00Z");
     private static final Duration HEARTBEAT_THRESHOLD = Duration.ofMinutes(5);
@@ -83,7 +82,7 @@ class HeartbeatToSessionFinishIntegrationTest {
 
     private static SessionFinisher createFinisher(MutableClock clock, DataSource dataSource) {
         return new SessionFinisher(
-                clock, new FileHeartbeatReader(), new SessionContentReader(), createHubPlatformRepositories(clock, dataSource));
+                clock, new FileHeartbeatReader(), createHubPlatformRepositories(clock, dataSource));
     }
 
     private static void writeHeartbeatFile(Path sessionDir, Instant timestamp) throws IOException {
@@ -330,18 +329,21 @@ class HeartbeatToSessionFinishIntegrationTest {
             boolean finished = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, sessionDir), DEADLINES);
 
             // Nothing ever reported, yet something recorded: the application carries no library or
-            // switched it off, and the session is closed when the instance's next one appears
+            // switched it off. Flagged, not live, and closed when the instance's next one appears
             assertFalse(finished);
-            assertNull(repoRepo.findSessionById(SESSION_ID).orElseThrow().finishedAt());
+            ProjectInstanceSessionInfo updated = repoRepo.findSessionById(SESSION_ID).orElseThrow();
+            assertNull(updated.finishedAt());
+            assertTrue(updated.heartbeatMissing());
         }
 
         /**
          * The last restart of a crash-looping pod that a rollout then deleted: the provisioner
-         * created the session and its hidden entries, the JVM never got as far as opening a
-         * recording or writing a heartbeat, and no next session will ever arrive to close it.
+         * created the session and its hidden entries, the JVM never got as far as writing a
+         * heartbeat, and no next session will ever arrive to close it. It is flagged rather than
+         * left looking live.
          */
         @Test
-        void orphanedEmptySession_finishedPastTheStartupGrace(
+        void orphanedEmptySession_flaggedPastTheStartupGrace(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
 
             TestUtils.executeSql(dataSource, "sql/e2e/insert-project-for-e2e.sql");
@@ -353,14 +355,16 @@ class HeartbeatToSessionFinishIntegrationTest {
             // Only what the provisioner leaves before the JVM starts, all of it hidden
             Path sessionDir = tempDir.resolve("session-2025-06-15");
             Files.createDirectories(sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR));
-            Files.writeString(sessionDir.resolve(AGENT_JAR), "");
+            Files.writeString(sessionDir.resolve(HeartbeatConstants.AGENT_JAR_FILE), "");
 
             ProjectInstanceSessionInfo sessionInfo = repoRepo.findSessionById(SESSION_ID).orElseThrow();
 
             boolean finished = finisher.tryFinishFromHeartbeat(new SessionRef(PROJECT_INFO, sessionInfo, sessionDir), DEADLINES);
 
-            assertTrue(finished);
-            assertEquals(sessionInfo.createdAt(), repoRepo.findSessionById(SESSION_ID).orElseThrow().finishedAt());
+            assertFalse(finished);
+            ProjectInstanceSessionInfo updated = repoRepo.findSessionById(SESSION_ID).orElseThrow();
+            assertTrue(updated.heartbeatMissing());
+            assertNull(updated.finishedAt());
         }
     }
 

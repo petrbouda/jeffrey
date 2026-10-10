@@ -100,6 +100,14 @@ public interface ProjectRepositoryRepository {
     void markSessionFinished(String sessionId, Instant finishedAt);
 
     /**
+     * Record whether a session's heartbeat is missing — no liveness file within the startup grace.
+     *
+     * @param sessionId        the session ID
+     * @param heartbeatMissing whether the session is taken as not reporting liveness
+     */
+    void setSessionHeartbeatMissing(String sessionId, boolean heartbeatMissing);
+
+    /**
      * Mark a session as retained or release it again. A retained session is exempt
      * from every retention job, both age-based and quota-based.
      *

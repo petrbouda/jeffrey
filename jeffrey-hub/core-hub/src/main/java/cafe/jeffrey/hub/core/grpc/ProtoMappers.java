@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.SessionFilter;
+import cafe.jeffrey.hub.api.v1.SessionHeartbeat;
 import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
@@ -35,7 +36,7 @@ import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Every domain-to-proto conversion of the hub's gRPC services, in one place, so that no
@@ -154,6 +155,17 @@ public final class ProtoMappers {
             builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
         session.files().forEach(file -> builder.addFiles(file(file)));
+        builder.setHeartbeat(heartbeat(session.heartbeat()));
+        return builder.build();
+    }
+
+    public static SessionHeartbeat heartbeat(cafe.jeffrey.hub.model.repository.SessionHeartbeat heartbeat) {
+        SessionHeartbeat.Builder builder = SessionHeartbeat.newBuilder()
+                .setMissing(heartbeat.missing())
+                .setAgentPresent(heartbeat.agentPresent());
+        if (heartbeat.lastHeartbeatAt() != null) {
+            builder.setLastHeartbeatAt(heartbeat.lastHeartbeatAt().toEpochMilli());
+        }
         return builder.build();
     }
 
@@ -177,11 +189,15 @@ public final class ProtoMappers {
     }
 
     /**
-     * @param failedSessionIds the sessions that finished without producing data — known only
-     *                         from the files on the volume, which is why the caller passes them
+     * @param walkedSessions the instance's sessions as loaded with their files, by id — whether one
+     *                       failed, its heartbeat and its newest file are known only from the volume,
+     *                       which is why the caller passes them; a session missing here is mapped
+     *                       from its row alone
      */
     public static InstanceInfo instance(
-            ProjectInstanceInfo info, List<ProjectInstanceSessionInfo> sessions, Set<String> failedSessionIds) {
+            ProjectInstanceInfo info,
+            List<ProjectInstanceSessionInfo> sessions,
+            Map<String, cafe.jeffrey.hub.model.repository.RecordingSession> walkedSessions) {
 
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(info.id())
@@ -202,20 +218,33 @@ public final class ProtoMappers {
             builder.setActiveSessionId(info.activeSessionId());
         }
         for (ProjectInstanceSessionInfo session : sessions) {
-            builder.addSessions(instanceSession(session, failedSessionIds));
+            builder.addSessions(instanceSession(session, walkedSessions.get(session.sessionId())));
         }
         return builder.build();
     }
 
-    public static InstanceSessionInfo instanceSession(ProjectInstanceSessionInfo info, Set<String> failedSessionIds) {
+    /**
+     * @param walked the same session loaded with its files, or {@code null} when it was not walked
+     */
+    public static InstanceSessionInfo instanceSession(
+            ProjectInstanceSessionInfo info, cafe.jeffrey.hub.model.repository.RecordingSession walked) {
+
+        cafe.jeffrey.hub.model.repository.SessionHeartbeat heartbeat = walked != null
+                ? walked.heartbeat()
+                : new cafe.jeffrey.hub.model.repository.SessionHeartbeat(info.heartbeatMissing(), null, false);
+
         InstanceSessionInfo.Builder builder = InstanceSessionInfo.newBuilder()
                 .setId(info.sessionId())
                 .setRepositoryId(orEmpty(info.repositoryId()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
-                .setIsActive(info.finishedAt() == null)
-                .setFailed(failedSessionIds.contains(info.sessionId()));
+                .setIsActive(info.finishedAt() == null && !info.heartbeatMissing())
+                .setFailed(walked != null && walked.isFailedEmpty())
+                .setHeartbeat(heartbeat(heartbeat));
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());
+        }
+        if (walked != null) {
+            walked.lastFileAt().ifPresent(at -> builder.setLastFileAt(at.toEpochMilli()));
         }
         return builder.build();
     }

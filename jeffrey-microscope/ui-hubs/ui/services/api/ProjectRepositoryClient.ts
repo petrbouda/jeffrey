@@ -20,6 +20,7 @@ import HttpUtils from '@shared/services/HttpUtils';
 import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 import RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics.ts';
+import SessionHeartbeat from '@hubs/services/api/model/SessionHeartbeat.ts';
 
 export default class ProjectRepositoryClient extends BasePlatformClient {
   constructor(hubId: string, workspaceId: string, projectId: string) {
@@ -27,7 +28,24 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
   }
 
   listRecordingSessions(): Promise<RecordingSession[]> {
-    return super.get<RecordingSession[]>('/sessions');
+    return super
+      .get<any[]>('/sessions')
+      .then(data => data.map(ProjectRepositoryClient.mapToRecordingSession));
+  }
+
+  private static mapToRecordingSession(data: any): RecordingSession {
+    return new RecordingSession(
+      data.id,
+      data.name,
+      data.instanceId,
+      data.createdAt,
+      data.finishedAt ?? null,
+      data.status,
+      data.duration ?? 0,
+      data.files ?? [],
+      data.retained === true,
+      SessionHeartbeat.fromJson(data.heartbeat)
+    );
   }
 
   getRepositoryStatistics(): Promise<RepositoryStatistics> {

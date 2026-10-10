@@ -51,6 +51,10 @@
             <span class="legend-sw failed-block-sw"></span>
             failed (0 B)
           </span>
+          <span v-if="totalNoHeartbeatSessions > 0" class="legend-chip">
+            <span class="legend-sw no-heartbeat-sw"></span>
+            no heartbeat
+          </span>
         </span>
         <span v-if="!loading" class="count-chip ms-auto">
           <i class="bi bi-box"></i>
@@ -62,6 +66,12 @@
           <template v-if="totalFailedSessions > 0">
             <span class="count-chip-sep">·</span>
             <span class="count-chip-failed"><strong>{{ totalFailedSessions }}</strong> failed</span>
+          </template>
+          <template v-if="totalNoHeartbeatSessions > 0">
+            <span class="count-chip-sep">·</span>
+            <span class="count-chip-no-heartbeat"
+              ><strong>{{ totalNoHeartbeatSessions }}</strong> no heartbeat</span
+            >
           </template>
         </span>
       </div>
@@ -81,7 +91,7 @@
           :key="instance.id"
           class="instance-card"
           :class="[
-            statusKey(instance.status),
+            cardStatusClass(instance),
             {
               expanded: expandedIds.has(instance.id),
               'has-open-session': activeSessionByInstance.has(instance.id)
@@ -96,7 +106,10 @@
               <i class="bi bi-box"></i>
             </span>
             <span class="head-name">{{ instance.instanceName }}</span>
+            <!-- A running instance whose open sessions never sent a heartbeat is not shown as
+                 Active: the "Heartbeat: never" chip below says what is going on instead. -->
             <Badge
+              v-if="!silentInstanceIds.has(instance.id)"
               :value="statusBadgeLabel(instance.status)"
               :variant="statusBadgeVariant(instance.status)"
               size="xxs"
@@ -121,6 +134,15 @@
               />
             </span>
             <div class="head-chips">
+              <Badge
+                v-if="heartbeatChips.get(instance.id)"
+                key-label="Heartbeat"
+                :value="heartbeatChips.get(instance.id)!.value"
+                :variant="heartbeatChips.get(instance.id)!.variant"
+                :icon="heartbeatChips.get(instance.id)!.icon"
+                :title="heartbeatChips.get(instance.id)!.title"
+                size="xs"
+              />
               <router-link
                 :to="generateInstanceUrl(instance.id)"
                 class="head-chip head-chip-nav"
@@ -257,13 +279,9 @@
                   <span class="inline-drawer-id mono">{{ session.id }}</span>
                   <span
                     class="session-status-dot"
-                    :class="
-                      session.isActive
-                        ? 'session-status-dot--active'
-                        : 'session-status-dot--finished'
-                    "
-                    :title="session.isActive ? 'Active' : 'Finished'"
-                    :aria-label="session.isActive ? 'Active' : 'Finished'"
+                    :class="sessionStatus(session).dotClass"
+                    :title="sessionStatus(session).label"
+                    :aria-label="sessionStatus(session).label"
                   ></span>
                   <div class="drawer-actions">
                     <button
@@ -305,9 +323,9 @@
                     <template v-if="session.finishedAt">
                       {{ FormattingService.formatTimestampUTC(session.finishedAt) }}
                     </template>
-                    <template v-else>Running</template>
+                    <template v-else>{{ unfinishedLabel(session) }}</template>
                     <span class="inline-drawer-meta-sep">·</span>
-                    {{ FormattingService.formatDurationInMillis2Units(session.duration) }}
+                    {{ sessionDurationLabel(session) }}
                   </span>
                   <button
                     type="button"
@@ -478,9 +496,9 @@
           <div class="timeline-tooltip-header">
             <span class="timeline-tooltip-hostname">Session</span>
             <Badge
-              :value="hoveredSession.session.isActive ? 'Active' : 'Finished'"
+              :value="sessionStatus(hoveredSession.session).label"
               size="xxs"
-              :variant="hoveredSession.session.isActive ? 'orange' : 'green'"
+              :variant="sessionStatus(hoveredSession.session).variant"
             />
           </div>
           <div class="timeline-tooltip-body">
@@ -502,16 +520,30 @@
                     FormattingService.formatTimestampUTC(hoveredSession.session.finishedAt)
                   }}</span>
                 </template>
-                <template v-else>Running</template>
+                <template v-else>{{ unfinishedLabel(hoveredSession.session) }}</template>
+              </span>
+            </div>
+            <div
+              v-if="hoveredSession.session.heartbeat.missing && hoveredSession.session.lastFileAt"
+              class="timeline-tooltip-row"
+            >
+              <span class="timeline-tooltip-label">Last file</span>
+              <span class="timeline-tooltip-value">
+                {{ FormattingService.formatRelativeTime(hoveredSession.session.lastFileAt) }}
+                <span class="timeline-tooltip-utc">{{
+                  FormattingService.formatTimestampUTC(hoveredSession.session.lastFileAt)
+                }}</span>
               </span>
             </div>
             <div class="timeline-tooltip-row">
               <span class="timeline-tooltip-label">Duration</span>
               <span class="timeline-tooltip-value">
-                {{
-                  FormattingService.formatDurationInMillis2Units(hoveredSession.session.duration)
-                }}
+                {{ sessionDurationLabel(hoveredSession.session) }}
               </span>
+            </div>
+            <div v-if="hoveredSession.session.heartbeat.missing" class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Heartbeat</span>
+              <span class="timeline-tooltip-value">never received</span>
             </div>
           </div>
         </div>
@@ -650,6 +682,134 @@ const totalFailedSessions = computed(() => {
   return count;
 });
 
+const NO_HEARTBEAT_CLASS = 'no-heartbeat';
+const UNKNOWN_FINISH_LABEL = 'unknown';
+const RUNNING_LABEL = 'Running';
+const NO_DURATION_TEXT = '—';
+
+// Sessions that never reported a heartbeat — drawn purple and never as live
+const totalNoHeartbeatSessions = computed(() => {
+  let count = 0;
+  for (const sessions of instanceSessions.value.values()) {
+    count += sessions.filter(session => session.heartbeat.missing).length;
+  }
+  return count;
+});
+
+function openSessions(instanceId: string): ProjectInstanceSession[] {
+  return getSessionsForInstance(instanceId).filter(session => !session.finishedAt);
+}
+
+function newestOpenSession(instanceId: string): ProjectInstanceSession | undefined {
+  return openSessions(instanceId).reduce<ProjectInstanceSession | undefined>(
+    (newest, session) => (!newest || session.createdAt > newest.createdAt ? session : newest),
+    undefined
+  );
+}
+
+/**
+ * Instances the hub reports as ACTIVE although every open session of theirs is silent. Nothing
+ * proves such a JVM is running, so the card drops the Active badge and its amber styling.
+ */
+const silentInstanceIds = computed(() => {
+  const ids = new Set<string>();
+  for (const instance of instances.value) {
+    if (instance.status !== 'ACTIVE') {
+      continue;
+    }
+    const open = openSessions(instance.id);
+    if (open.length > 0 && open.every(session => session.heartbeat.missing)) {
+      ids.add(instance.id);
+    }
+  }
+  return ids;
+});
+
+function cardStatusClass(instance: ProjectInstance): string {
+  if (silentInstanceIds.value.has(instance.id)) {
+    return NO_HEARTBEAT_CLASS;
+  }
+  return statusKey(instance.status);
+}
+
+interface HeartbeatChip {
+  value: string;
+  variant: 'purple' | 'green';
+  icon: string;
+  title: string;
+}
+
+/** The header chip, read off the instance's newest open session; absent when it says nothing. */
+const heartbeatChips = computed(() => {
+  const chips = new Map<string, HeartbeatChip>();
+  for (const instance of instances.value) {
+    const session = newestOpenSession(instance.id);
+    if (!session) {
+      continue;
+    }
+    if (session.heartbeat.missing) {
+      chips.set(instance.id, {
+        value: 'never',
+        variant: 'purple',
+        icon: 'bi bi-heartbreak',
+        title:
+          'No heartbeat arrived within the startup grace: heartbeats are not configured or ' +
+          'not emitted. Open the session list for a diagnosis.'
+      });
+    } else if (session.heartbeat.lastHeartbeatAt !== null) {
+      chips.set(instance.id, {
+        value: FormattingService.formatRelativeTime(session.heartbeat.lastHeartbeatAt),
+        variant: 'green',
+        icon: 'bi bi-heart-pulse',
+        title: `Last heartbeat at ${FormattingService.formatTimestampUTC(session.heartbeat.lastHeartbeatAt)}`
+      });
+    }
+  }
+  return chips;
+});
+
+type SessionStatusKind = 'noHeartbeat' | 'active' | 'finished';
+
+const SESSION_STATUS: Record<
+  SessionStatusKind,
+  { label: string; variant: 'purple' | 'orange' | 'green'; dotClass: string }
+> = {
+  noHeartbeat: {
+    label: 'No heartbeat',
+    variant: 'purple',
+    dotClass: 'session-status-dot--no-heartbeat'
+  },
+  active: { label: 'Active', variant: 'orange', dotClass: 'session-status-dot--active' },
+  finished: { label: 'Finished', variant: 'green', dotClass: 'session-status-dot--finished' }
+};
+
+function sessionStatus(session: ProjectInstanceSession) {
+  if (session.heartbeat.missing) {
+    return SESSION_STATUS.noHeartbeat;
+  }
+  return session.isActive ? SESSION_STATUS.active : SESSION_STATUS.finished;
+}
+
+/** What stands in for the finish time of an unfinished session. */
+function unfinishedLabel(session: ProjectInstanceSession): string {
+  return session.heartbeat.missing ? UNKNOWN_FINISH_LABEL : RUNNING_LABEL;
+}
+
+/**
+ * Duration of a session. An open session without heartbeats has no meaningful one — the time
+ * since its start says nothing about the JVM — so it reports how long it produced files.
+ */
+function sessionDurationLabel(session: ProjectInstanceSession): string {
+  if (!session.heartbeat.missing || session.finishedAt) {
+    return FormattingService.formatDurationInMillis2Units(session.duration);
+  }
+  if (session.lastFileAt === null) {
+    return NO_DURATION_TEXT;
+  }
+  const recorded = Math.max(0, session.lastFileAt - session.createdAt);
+  return `recorded ${FormattingService.formatDurationInMillis2Units(recorded)}`;
+}
+
 const hoveredSession = ref<{ session: ProjectInstanceSession; instanceId: string } | null>(null);
 const hoveredFailedBlock = ref<{ block: FailedSessionBlock; instanceId: string } | null>(null);
 const tooltipPosition = ref<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -702,10 +862,8 @@ function getSessionBarStyle(session: ProjectInstanceSession): Record<string, str
 
   const startPercent = Math.max(0, Math.min(((now - session.createdAt) / rangeMs) * 100, 100));
 
-  const endPercent =
-    session.isActive || !session.finishedAt
-      ? 0
-      : Math.max(0, Math.min(((now - session.finishedAt) / rangeMs) * 100, 100));
+  const end = sessionBarEnd(session);
+  const endPercent = end === null ? 0 : Math.max(0, Math.min(((now - end) / rangeMs) * 100, 100));
 
   const left = endPercent;
   const width = Math.max(startPercent - endPercent, 0.3);
@@ -714,6 +872,21 @@ function getSessionBarStyle(session: ProjectInstanceSession): Record<string, str
     left: `${left}%`,
     width: `${Math.min(width, 100 - left)}%`
   };
+}
+
+/**
+ * Where a session's bar ends (epoch millis), or null when it runs up to now. A session without
+ * heartbeats is not known to be running, so its bar stops at the last thing it is known to have
+ * done: its finish, else its newest file, else its start.
+ */
+function sessionBarEnd(session: ProjectInstanceSession): number | null {
+  if (session.heartbeat.missing) {
+    return session.finishedAt ?? session.lastFileAt ?? session.createdAt;
+  }
+  if (session.isActive || !session.finishedAt) {
+    return null;
+  }
+  return session.finishedAt;
 }
 
 function getFailedBlockStyle(block: FailedSessionBlock): Record<string, string> {
@@ -766,9 +939,14 @@ function statusKey(status: ProjectInstanceStatus): string {
 }
 
 function sessionBarClass(session: ProjectInstanceSession, idx: number): string[] {
-  const kind = session.isActive ? 'active' : 'finished';
-  const shade = idx % 2 === 0 ? 'strong' : 'light';
-  const classes = [`${kind}-${shade}`];
+  const classes: string[] = [];
+  if (session.heartbeat.missing) {
+    classes.push(NO_HEARTBEAT_CLASS);
+  } else {
+    const kind = session.isActive ? 'active' : 'finished';
+    const shade = idx % 2 === 0 ? 'strong' : 'light';
+    classes.push(`${kind}-${shade}`);
+  }
   if (idx === 0) {classes.push('first');}
   return classes;
 }
@@ -1404,6 +1582,10 @@ onMounted(async () => {
   background-color: rgba(156, 163, 175, 0.04);
   border-left-color: var(--color-text-light);
 }
+/* ACTIVE on the hub, but no open session ever sent a heartbeat: not shown as live */
+.instance-card.no-heartbeat .instance-card-head {
+  border-left-color: var(--color-purple-border);
+}
 
 .instance-card.pending .instance-card-head:hover {
   background-color: rgba(59, 130, 246, 0.12);
@@ -1416,6 +1598,9 @@ onMounted(async () => {
 }
 .instance-card.expired .instance-card-head:hover {
   background-color: rgba(156, 163, 175, 0.1);
+}
+.instance-card.no-heartbeat .instance-card-head:hover {
+  background-color: var(--color-bg-hover);
 }
 
 .head-iconbox {
@@ -1526,6 +1711,9 @@ onMounted(async () => {
 .instance-card.expired .instance-card-body {
   border-left-color: var(--color-text-light);
 }
+.instance-card.no-heartbeat .instance-card-body {
+  border-left-color: var(--color-purple-border);
+}
 .instance-card-body:hover {
   background-color: var(--color-bg-hover);
 }
@@ -1609,6 +1797,14 @@ onMounted(async () => {
   animation: session-pulse-active 2s ease-in-out infinite;
 }
 
+/* No heartbeat: a quiet purple outline, no pulse — nothing proves the JVM is running */
+.session-bar.no-heartbeat,
+.session-bar.no-heartbeat.first {
+  background: var(--color-purple-bg);
+  border: 1px solid var(--color-purple-border);
+  border-radius: var(--radius-xs);
+}
+
 @keyframes session-pulse-active {
   0%,
   100% {
@@ -1688,6 +1884,10 @@ onMounted(async () => {
 }
 .legend-sw.active-light {
   background: var(--color-amber);
+}
+.legend-sw.no-heartbeat-sw {
+  background: var(--color-purple-bg);
+  border: 1px solid var(--color-purple-border);
 }
 .legend-sw.failed-block-sw {
   background: repeating-linear-gradient(
@@ -2018,6 +2218,9 @@ onMounted(async () => {
 .session-status-dot--finished {
   background: var(--color-success);
 }
+.session-status-dot--no-heartbeat {
+  background: var(--color-purple-border);
+}
 
 .drawer-actions {
   display: inline-flex;
@@ -2132,6 +2335,10 @@ onMounted(async () => {
 .count-chip-failed,
 .count-chip-failed strong {
   color: var(--color-danger);
+}
+.count-chip-no-heartbeat,
+.count-chip-no-heartbeat strong {
+  color: var(--color-purple-text);
 }
 </style>
 

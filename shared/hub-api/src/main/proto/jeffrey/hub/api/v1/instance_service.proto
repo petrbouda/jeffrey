@@ -140,9 +140,14 @@ message InstanceSessionInfo {
   int64 created_at = 3;
   // Timestamp when the session finished, heartbeat went stale or JVM stopped (epoch millis).
   optional int64 finished_at = 4;
-  // Whether this session is currently active (streaming events).
+  // Whether this session is currently active (streaming events): unfinished, and not missing its
+  // heartbeat.
   bool is_active = 5;
   // Whether this session failed: finished without producing any data (zero bytes),
   // typically a prematurely killed process (OOM kill, container healthcheck restart loop).
   bool failed = 6;
+  // The session's liveness as its heartbeat reports it.
+  SessionHeartbeat heartbeat = 7;
+  // Timestamp of the newest file the session wrote (epoch millis); unset when it wrote none.
+  optional int64 last_file_at = 8;
 }

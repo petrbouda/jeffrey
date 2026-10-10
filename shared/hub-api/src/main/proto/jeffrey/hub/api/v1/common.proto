@@ -60,3 +60,15 @@ enum Severity {
   // Low severity — informational.
   SEVERITY_LOW = 4;
 }
+
+// A session's liveness as its heartbeat reports it.
+message SessionHeartbeat {
+  // No heartbeat arrived within the startup grace: heartbeats are not configured or not emitted,
+  // and the session is not taken as live.
+  bool missing = 1;
+  // Last heartbeat of a session that is still open (epoch millis); unset when there is none.
+  optional int64 last_heartbeat_at = 2;
+  // Whether the Jeffrey Agent jar was written into the session directory. Read only for a session
+  // whose heartbeat is missing, where it tells a switched-off agent from a JVM that never ran it.
+  bool agent_present = 3;
+}

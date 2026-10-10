@@ -23,9 +23,8 @@ import java.time.Duration;
  * The two deadlines the session-finished detector holds an unfinished session to.
  *
  * @param heartbeatThreshold how long after its last heartbeat a reporting session is taken as ended
- * @param startupGrace       how long after the hub first saw it a session may stay silent and empty
- *                           — no liveness file, no recorded file — before it is taken as never having
- *                           started
+ * @param startupGrace       how long after the hub first saw it a session may stay without a liveness
+ *                           file before its heartbeat is taken as missing
  */
 public record SessionDeadlines(Duration heartbeatThreshold, Duration startupGrace) {
 

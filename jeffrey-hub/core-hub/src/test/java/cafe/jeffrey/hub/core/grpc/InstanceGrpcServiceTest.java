@@ -35,6 +35,7 @@ import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.repository.SessionHeartbeat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -441,6 +442,47 @@ class InstanceGrpcServiceTest {
             assertTrue(second.hasFinishedAt());
             assertEquals(FIXED_TIME.plusSeconds(1200).toEpochMilli(), second.getFinishedAt());
             assertTrue(second.getFailed());
+        }
+
+        /**
+         * A session whose heartbeat never arrived is not live, whatever its row says about being
+         * unfinished, and carries what the volume says about it: the heartbeat flag, whether the
+         * agent was there, and when it last wrote a file.
+         */
+        @Test
+        void sessionMissingItsHeartbeat_isNotActiveAndCarriesTheHeartbeat() throws Exception {
+            var platformRepositories = platformRepositoriesWithInstance();
+            when(platformRepositories.findSessionsByInstanceId(INSTANCE_ID)).thenReturn(List.of(
+                    new ProjectInstanceSessionInfo(
+                            "session-1", "repo-1", INSTANCE_ID, 0,
+                            Path.of("session-1"), null,
+                            FIXED_TIME, null, false, true)
+            ));
+
+            Instant lastFile = FIXED_TIME.plusSeconds(900);
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.instanceSessions(INSTANCE_ID)).thenReturn(List.of(new RecordingSession(
+                    "session-1", "session-1", INSTANCE_ID, FIXED_TIME, null, RecordingStatus.ACTIVE,
+                    List.of(new RepositoryFile("chunk", "chunk", lastFile, 2048L, true, null)),
+                    false,
+                    new SessionHeartbeat(true, null, false))));
+            var factory = repositoryManagerFactory(platformRepositories, repoManager);
+
+            var stub = startServer(new InstanceGrpcService(platformRepositories, new GrpcLookups(platformRepositories, factory, null)));
+
+            InstanceSessionInfo session = stub.listInstanceSessions(
+                    ListInstanceSessionsRequest.newBuilder()
+                            .setInstanceId(INSTANCE_ID)
+                            .build())
+                    .getSessions(0);
+
+            assertFalse(session.getIsActive());
+            assertFalse(session.hasFinishedAt());
+            assertFalse(session.getFailed());
+            assertTrue(session.getHeartbeat().getMissing());
+            assertFalse(session.getHeartbeat().getAgentPresent());
+            assertFalse(session.getHeartbeat().hasLastHeartbeatAt());
+            assertEquals(lastFile.toEpochMilli(), session.getLastFileAt());
         }
 
         @Test

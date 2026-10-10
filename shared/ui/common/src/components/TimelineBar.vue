@@ -40,7 +40,7 @@
       <template v-if="finishedAt">
         <span class="tl-main">{{ FormattingService.formatRelativeTime(finishedAt) }}</span>
       </template>
-      <span v-else class="tl-main tl-running">Running...</span>
+      <span v-else class="tl-main tl-running">{{ unfinishedLabel }}</span>
     </div>
     <div class="tl-item">
       <span class="tl-icon-badge tl-icon-badge--primary">
@@ -49,21 +49,47 @@
       <div class="tl-info">
         <span class="tl-label">Duration</span>
       </div>
-      <span class="tl-main">{{ FormattingService.formatDurationInMillis2Units(duration) }}</span>
+      <span class="tl-main">{{
+        durationText ?? FormattingService.formatDurationInMillis2Units(duration)
+      }}</span>
+    </div>
+    <div v-for="item in extraItems" :key="item.key" class="tl-item">
+      <span class="tl-icon-badge" :class="`tl-icon-badge--${item.tone}`">
+        <i :class="item.icon"></i>
+      </span>
+      <div class="tl-info">
+        <span class="tl-label">{{ item.label }}</span>
+        <span v-if="item.sub" class="tl-sub">{{ item.sub }}</span>
+      </div>
+      <span class="tl-main" :class="{ [`tl-main--${item.tone}`]: item.tintValue }">{{
+        item.value
+      }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import FormattingService from '@shared/services/FormattingService';
+import type { TimelineBarItem } from '@shared/types/ui';
 
 interface Props {
   createdAt: number;
   finishedAt?: number | null;
   duration: number;
+  /** What the Finished cell says while there is no `finishedAt`. */
+  unfinishedLabel?: string;
+  /** Replaces the formatted `duration`, for a caller that knows the figure is not meaningful. */
+  durationText?: string;
+  /** Cells appended after Duration. */
+  extraItems?: TimelineBarItem[];
 }
 
-defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  finishedAt: null,
+  unfinishedLabel: 'Running...',
+  durationText: undefined,
+  extraItems: () => []
+});
 </script>
 
 <style scoped>
@@ -117,6 +143,27 @@ defineProps<Props>();
 .tl-icon-badge--primary {
   background: rgba(59, 130, 246, 0.1);
   color: var(--color-accent-blue-dark);
+}
+
+.tl-icon-badge--purple {
+  background: var(--color-purple-bg);
+  color: var(--color-purple-text);
+}
+
+.tl-main--success {
+  color: var(--color-success-hover);
+}
+
+.tl-main--danger {
+  color: var(--color-danger-hover);
+}
+
+.tl-main--primary {
+  color: var(--color-accent-blue-dark);
+}
+
+.tl-main--purple {
+  color: var(--color-purple-text);
 }
 
 .tl-label {
