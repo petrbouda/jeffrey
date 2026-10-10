@@ -213,6 +213,25 @@ class RecordingSessionTest {
         }
 
         @Test
+        void skipsAnEmptyChunk() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    recording("c1", CREATED_AT),
+                    new RepositoryFile("c2", "c2", CREATED_AT.plusSeconds(60), 0L, true, null));
+
+            assertEquals("c1", recordingSession.latestFinishedRecording().orElseThrow().name());
+        }
+
+        @Test
+        void isEmptyWhenEveryClosedChunkIsEmpty() {
+            RecordingSession recordingSession = session(
+                    FINISHED_AT,
+                    new RepositoryFile("c1", "c1", CREATED_AT, 0L, true, null));
+
+            assertTrue(recordingSession.latestFinishedRecording().isEmpty());
+        }
+
+        @Test
         void isEmptyWhenNoChunkHasBeenClosedYet() {
             RecordingSession recordingSession = session(null, recording("c1", CREATED_AT));
 

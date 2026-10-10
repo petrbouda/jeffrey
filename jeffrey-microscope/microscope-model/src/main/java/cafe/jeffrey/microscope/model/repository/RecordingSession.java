@@ -136,13 +136,19 @@ public record RecordingSession(
     }
 
     /**
-     * The newest recording chunk the profiler has closed, or empty when it has not closed one
-     * yet. This is the chunk that carries the session's one-shot configuration events, and —
-     * once the session is finished — its {@code jdk.Shutdown}.
+     * The newest recording chunk the profiler has closed with something in it, or empty when it
+     * has not closed one yet. This is the chunk that carries the session's one-shot configuration
+     * events, and — once the session is finished — its {@code jdk.Shutdown}.
+     *
+     * <p>An empty chunk is passed over, not returned: it is what a profiler stopped before its
+     * first event leaves behind — usually as the last chunk of a killed container — and the hub
+     * refuses to serve it. The chunk before it still carries the configuration events; the
+     * {@code jdk.Shutdown} a killed JVM never wrote is missing either way.
      */
     public Optional<RepositoryFile> latestFinishedRecording() {
-        List<RepositoryFile> finished = finishedRecordings();
-        return finished.isEmpty() ? Optional.empty() : Optional.of(finished.getLast());
+        return finishedRecordings().reversed().stream()
+                .filter(RepositoryFile::hasContent)
+                .findFirst();
     }
 }
 
