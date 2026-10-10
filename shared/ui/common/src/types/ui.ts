@@ -68,8 +68,8 @@ export type SlowestRowAccent =
 /** Time-bar treatment of a {@link SlowestRowList} row: the brand ramp, or the failure ramp. */
 export type SlowestRowTone = 'default' | 'danger';
 
-/** Colour of a {@link TimelineBar} cell's icon badge (and, when asked, of its value). */
-export type TimelineBarTone = Extract<Variant, 'success' | 'danger' | 'primary' | 'purple'>;
+/** Colour of a {@link TimelineBar} extra cell's icon badge and value. */
+export type TimelineBarTone = Extract<Variant, 'purple'>;
 
 /**
  * An extra cell a caller appends to {@link TimelineBar}'s Started / Finished / Duration row, so a
@@ -83,10 +83,6 @@ export interface TimelineBarItem {
   tone: TimelineBarTone;
   /** Small uppercase caption, e.g. "Heartbeat". */
   label: string;
-  /** The cell's main value, right-aligned. */
+  /** The cell's main value, right-aligned and tinted with the tone. */
   value: string;
-  /** Optional secondary line under the caption. */
-  sub?: string;
-  /** Tint the main value with the tone as well, for a value that is itself the signal. */
-  tintValue?: boolean;
 }

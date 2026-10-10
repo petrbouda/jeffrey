@@ -27,24 +27,7 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
   }
 
   listRecordingSessions(): Promise<RecordingSession[]> {
-    return super
-      .get<any[]>('/sessions')
-      .then(data => data.map(ProjectRepositoryClient.mapToRecordingSession));
-  }
-
-  private static mapToRecordingSession(data: any): RecordingSession {
-    return new RecordingSession(
-      data.id,
-      data.name,
-      data.instanceId,
-      data.createdAt,
-      data.finishedAt ?? null,
-      data.status,
-      data.duration ?? 0,
-      data.files ?? [],
-      data.retained === true,
-      data.heartbeatMissing === true
-    );
+    return super.get<RecordingSession[]>('/sessions');
   }
 
   getRepositoryStatistics(): Promise<RepositoryStatistics> {

@@ -52,7 +52,7 @@
             failed (0 B)
           </span>
           <span v-if="totalNoHeartbeatSessions > 0" class="legend-chip">
-            <span class="legend-sw no-heartbeat-sw"></span>
+            <span class="legend-sw no-heartbeat"></span>
             no heartbeat
           </span>
         </span>
@@ -91,10 +91,11 @@
           :key="instance.id"
           class="instance-card"
           :class="[
-            cardStatusClass(instance),
+            statusKey(instance.status),
             {
               expanded: expandedIds.has(instance.id),
-              'has-open-session': activeSessionByInstance.has(instance.id)
+              'has-open-session': activeSessionByInstance.has(instance.id),
+              'no-heartbeat': noHeartbeatInstanceIds.has(instance.id)
             }
           ]"
         >
@@ -602,6 +603,7 @@ import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetai
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
 import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
+import type { Variant } from '@shared/types/ui';
 import { useNavigation } from '@/composables/useNavigation';
 import { splitTimelineSessions, type FailedSessionBlock } from './timelineFailedBlocks';
 import '@shared/styles/shared-components.css';
@@ -661,27 +663,22 @@ const timelineSplits = computed(() => {
   return splits;
 });
 
-const totalFailedSessions = computed(() => {
+function countSessions(predicate: (session: ProjectInstanceSession) => boolean): number {
   let count = 0;
   for (const sessions of instanceSessions.value.values()) {
-    count += sessions.filter(session => session.failed).length;
+    count += sessions.filter(predicate).length;
   }
   return count;
-});
+}
 
-const NO_HEARTBEAT_CLASS = 'no-heartbeat';
+const totalFailedSessions = computed(() => countSessions(session => session.failed === true));
+
+// Sessions the hub finished because no heartbeat ever arrived — drawn purple
+const totalNoHeartbeatSessions = computed(() => countSessions(session => session.heartbeatMissing));
+
 const NO_HEARTBEAT_CHIP_TITLE =
   'The newest session sent no heartbeat within the startup grace, so the hub finished it: ' +
   'heartbeats are not configured or not emitted. The session list links to how to set them up.';
-
-// Sessions the hub finished because no heartbeat ever arrived — drawn purple
-const totalNoHeartbeatSessions = computed(() => {
-  let count = 0;
-  for (const sessions of instanceSessions.value.values()) {
-    count += sessions.filter(session => session.heartbeatMissing).length;
-  }
-  return count;
-});
 
 function newestSession(instanceId: string): ProjectInstanceSession | undefined {
   return getSessionsForInstance(instanceId).reduce<ProjectInstanceSession | undefined>(
@@ -701,21 +698,14 @@ const noHeartbeatInstanceIds = computed(() => {
   return ids;
 });
 
-/** The status tint of a card, plus a purple rail when its newest session missed its heartbeat. */
-function cardStatusClass(instance: ProjectInstance): string[] {
-  const classes = [statusKey(instance.status)];
-  if (noHeartbeatInstanceIds.value.has(instance.id)) {
-    classes.push(NO_HEARTBEAT_CLASS);
-  }
-  return classes;
+/** How a session's status reads in the drawer dot and the tooltip badge. */
+interface SessionStatusStyle {
+  label: string;
+  variant: Variant;
+  dotClass: string;
 }
 
-type SessionStatusKind = 'noHeartbeat' | 'active' | 'finished';
-
-const SESSION_STATUS: Record<
-  SessionStatusKind,
-  { label: string; variant: 'purple' | 'orange' | 'green'; dotClass: string }
-> = {
+const SESSION_STATUS = {
   noHeartbeat: {
     label: 'No heartbeat',
     variant: 'purple',
@@ -723,9 +713,9 @@ const SESSION_STATUS: Record<
   },
   active: { label: 'Active', variant: 'orange', dotClass: 'session-status-dot--active' },
   finished: { label: 'Finished', variant: 'green', dotClass: 'session-status-dot--finished' }
-};
+} satisfies Record<string, SessionStatusStyle>;
 
-function sessionStatus(session: ProjectInstanceSession) {
+function sessionStatus(session: ProjectInstanceSession): SessionStatusStyle {
   if (session.heartbeatMissing) {
     return SESSION_STATUS.noHeartbeat;
   }
@@ -850,7 +840,7 @@ function statusKey(status: ProjectInstanceStatus): string {
 function sessionBarClass(session: ProjectInstanceSession, idx: number): string[] {
   const classes: string[] = [];
   if (session.heartbeatMissing) {
-    classes.push(NO_HEARTBEAT_CLASS);
+    classes.push('no-heartbeat');
   } else {
     const kind = session.isActive ? 'active' : 'finished';
     const shade = idx % 2 === 0 ? 'strong' : 'light';
@@ -1705,9 +1695,11 @@ onMounted(async () => {
 
 /* Finished because no heartbeat ever arrived: a quiet purple outline */
 .session-bar.no-heartbeat,
-.session-bar.no-heartbeat.first {
+.legend-sw.no-heartbeat {
   background: var(--color-purple-bg);
   border: 1px solid var(--color-purple-border);
+}
+.session-bar.no-heartbeat {
   border-radius: var(--radius-xs);
 }
 
@@ -1790,10 +1782,6 @@ onMounted(async () => {
 }
 .legend-sw.active-light {
   background: var(--color-amber);
-}
-.legend-sw.no-heartbeat-sw {
-  background: var(--color-purple-bg);
-  border: 1px solid var(--color-purple-border);
 }
 .legend-sw.failed-block-sw {
   background: repeating-linear-gradient(

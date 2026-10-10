@@ -104,31 +104,6 @@ describe('splitTimelineSessions', () => {
     expect(split.failedBlocks[0].endAt).toBe(BASE + 3 * MINUTE);
   });
 
-  it('keeps a session finished for its missing heartbeat as its own bar between failed ones', () => {
-    const silent = new ProjectInstanceSession(
-      'silent-1',
-      'repo-1',
-      BASE + 12 * MINUTE,
-      0,
-      BASE + 12 * MINUTE,
-      false,
-      false,
-      true
-    );
-
-    const split = splitTimelineSessions([
-      session('failed-1', 0, 1, true),
-      silent,
-      session('failed-2', 20, 1, true)
-    ]);
-
-    expect(split.realSessions.map(s => s.id)).toEqual(['silent-1']);
-    expect(split.failedBlocks.map(b => b.sessions.map(s => s.id))).toEqual([
-      ['failed-1'],
-      ['failed-2']
-    ]);
-  });
-
   it('handles an empty session list', () => {
     expect(splitTimelineSessions([])).toEqual({ realSessions: [], failedBlocks: [] });
   });

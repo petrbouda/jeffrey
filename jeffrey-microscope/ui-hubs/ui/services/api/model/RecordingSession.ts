@@ -30,7 +30,7 @@ export default class RecordingSession {
     public files: RepositoryFile[],
     public retained: boolean = false,
     /**
-     * The hub finished this session because no heartbeat arrived within 1 minute of its start.
+     * The hub finished this session because no heartbeat arrived within its startup grace.
      * Such a session is FINISHED and usually empty, yet it is not a failed session.
      */
     public heartbeatMissing: boolean = false

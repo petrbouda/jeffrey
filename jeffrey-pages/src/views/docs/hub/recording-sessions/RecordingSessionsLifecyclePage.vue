@@ -30,7 +30,7 @@ const headings = [
   { id: 'session-detection', text: 'Session Detection', level: 2 },
   { id: 'heartbeat-mechanism', text: 'Heartbeat Mechanism', level: 3 },
   { id: 'finish-detection-logic', text: 'Finish Detection Logic', level: 3 },
-  { id: 'sessions-without-the-agent', text: 'Sessions Without Heartbeats', level: 3 },
+  { id: 'sessions-without-heartbeats', text: 'Sessions Without Heartbeats', level: 3 },
   { id: 'jvm-crash-logs', text: 'JVM Crash Logs', level: 3 },
   { id: 'heartbeat-recovery', text: 'Hub Restart', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
@@ -132,7 +132,7 @@ onMounted(() => {
         </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
-        <p>A scheduled job periodically evaluates each active session and applies the following rules. Every session must report liveness: one that has written a liveness file — a heartbeat or the clean-exit marker — is held to the heartbeat deadline, and one that wrote none within the startup grace is finished, see <a href="#sessions-without-the-agent">Sessions Without Heartbeats</a>.</p>
+        <p>A scheduled job periodically evaluates each active session and applies the following rules. Every session must report liveness: one that has written a liveness file — a heartbeat or the clean-exit marker — is held to the heartbeat deadline, and one that wrote none within the startup grace is finished, see <a href="#sessions-without-heartbeats">Sessions Without Heartbeats</a>.</p>
 
         <div class="detection-cases">
           <div class="detection-case finished-case">
@@ -179,7 +179,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <h3 id="sessions-without-the-agent">Sessions Without Heartbeats</h3>
+        <h3 id="sessions-without-heartbeats">Sessions Without Heartbeats</h3>
         <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner writes into every session and attaches with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>.</p>
         <p>In Microscope a session that ended without a heartbeat is drawn in purple and is never counted as a failed session: on the Instance Timeline it is a purple marker and its instance shows a <strong>Heartbeat: never</strong> chip; in the instance's session list it reads <em>Heartbeat: never received</em> and carries a note linking here.</p>
         <p>To make sessions report a heartbeat:</p>

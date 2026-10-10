@@ -16,7 +16,9 @@
   -->
 
 <script setup lang="ts">
-import { HEARTBEAT_SETUP_DOCS_URL } from '@hubs/services/heartbeatDocs.ts';
+/** Where Jeffrey Pages explains how to make a session report its heartbeat. */
+const HEARTBEAT_SETUP_DOCS_URL =
+  'https://www.jeffrey-analyst.cafe/docs/hub/recording-sessions/lifecycle#sessions-without-heartbeats';
 </script>
 
 <template>
@@ -25,9 +27,10 @@ import { HEARTBEAT_SETUP_DOCS_URL } from '@hubs/services/heartbeatDocs.ts';
     <div>
       <div class="heartbeat-note-title">No heartbeat received</div>
       <div>
-        This session sent no heartbeat within 1 minute of its start, so Jeffrey finished it. Every
-        profiled JVM must report a heartbeat — through the Jeffrey Agent the Provisioner attaches by
-        default, or the <code class="heartbeat-note-code">jeffrey-heartbeat</code> library.
+        This session sent no heartbeat within its startup grace (1 minute by default), so the hub
+        finished it. Every profiled JVM must report a heartbeat — through the Jeffrey Agent the
+        Provisioner attaches by default, or the
+        <code class="heartbeat-note-code">jeffrey-heartbeat</code> library.
       </div>
       <a
         class="heartbeat-note-link"
@@ -49,7 +52,7 @@ import { HEARTBEAT_SETUP_DOCS_URL } from '@hubs/services/heartbeatDocs.ts';
 
 .heartbeat-note-title {
   font-weight: var(--font-weight-semibold);
-  margin-bottom: 2px;
+  margin-bottom: var(--spacing-1);
 }
 
 .heartbeat-note-code {
@@ -60,8 +63,8 @@ import { HEARTBEAT_SETUP_DOCS_URL } from '@hubs/services/heartbeatDocs.ts';
 .heartbeat-note-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 4px;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-1);
   font-weight: var(--font-weight-semibold);
   color: inherit;
   text-decoration: underline;

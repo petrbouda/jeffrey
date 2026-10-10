@@ -57,11 +57,8 @@
       </span>
       <div class="tl-info">
         <span class="tl-label">{{ item.label }}</span>
-        <span v-if="item.sub" class="tl-sub">{{ item.sub }}</span>
       </div>
-      <span class="tl-main" :class="{ [`tl-main--${item.tone}`]: item.tintValue }">{{
-        item.value
-      }}</span>
+      <span class="tl-main" :class="`tl-main--${item.tone}`">{{ item.value }}</span>
     </div>
   </div>
 </template>
@@ -79,7 +76,6 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-  finishedAt: null,
   extraItems: () => []
 });
 </script>
@@ -140,18 +136,6 @@ withDefaults(defineProps<Props>(), {
 .tl-icon-badge--purple {
   background: var(--color-purple-bg);
   color: var(--color-purple-text);
-}
-
-.tl-main--success {
-  color: var(--color-success-hover);
-}
-
-.tl-main--danger {
-  color: var(--color-danger-hover);
-}
-
-.tl-main--primary {
-  color: var(--color-accent-blue-dark);
 }
 
 .tl-main--purple {
