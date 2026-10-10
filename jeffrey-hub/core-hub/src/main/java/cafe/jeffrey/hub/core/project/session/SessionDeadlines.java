@@ -29,11 +29,13 @@ import java.time.Duration;
 public record SessionDeadlines(Duration heartbeatThreshold, Duration startupGrace) {
 
     public SessionDeadlines {
-        if (heartbeatThreshold == null || heartbeatThreshold.isNegative() || heartbeatThreshold.isZero()) {
-            throw new IllegalArgumentException("heartbeatThreshold must be positive: " + heartbeatThreshold);
-        }
-        if (startupGrace == null || startupGrace.isNegative() || startupGrace.isZero()) {
-            throw new IllegalArgumentException("startupGrace must be positive: " + startupGrace);
+        requirePositive(heartbeatThreshold, "heartbeatThreshold");
+        requirePositive(startupGrace, "startupGrace");
+    }
+
+    private static void requirePositive(Duration duration, String name) {
+        if (duration == null || duration.isNegative() || duration.isZero()) {
+            throw new IllegalArgumentException(name + " must be positive: " + duration);
         }
     }
 }

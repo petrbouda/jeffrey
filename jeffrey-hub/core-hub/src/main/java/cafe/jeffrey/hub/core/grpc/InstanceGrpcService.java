@@ -30,7 +30,7 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImplBase {
@@ -54,20 +54,20 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
                     .newProjectInstanceRepository(projectId).findAll();
 
             Map<String, List<ProjectInstanceSessionInfo>> sessionsByInstanceId;
-            Map<String, RecordingSession> walkedSessions;
+            Set<String> failedSessionIds;
             if (request.getIncludeSessions()) {
                 sessionsByInstanceId = platformRepositories.findSessionsByProjectId(projectId).stream()
                         .collect(Collectors.groupingBy(ProjectInstanceSessionInfo::instanceId));
-                walkedSessions = byId(lookups.repositoryManagerForProject(projectId)
+                failedSessionIds = failedSessionIds(lookups.repositoryManagerForProject(projectId)
                         .listRecordingSessions(SessionDetail.WITH_FILES));
             } else {
                 sessionsByInstanceId = Map.of();
-                walkedSessions = Map.of();
+                failedSessionIds = Set.of();
             }
 
             List<InstanceInfo> instances = rawInstances.stream()
                     .map(info -> ProtoMappers.instance(
-                            info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), walkedSessions))
+                            info, sessionsByInstanceId.getOrDefault(info.id(), List.of()), failedSessionIds))
                     .toList();
 
             LOG.debug("Listed instances via gRPC: project_id={} count={} include_sessions={}",
@@ -87,7 +87,7 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
             LOG.debug("Fetched instance via gRPC: instance_id={}", request.getInstanceId());
 
             return GetInstanceResponse.newBuilder()
-                    .setInstance(ProtoMappers.instance(instance, List.of(), Map.of()))
+                    .setInstance(ProtoMappers.instance(instance, List.of(), Set.of()))
                     .build();
         });
     }
@@ -96,12 +96,12 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
     public void listInstanceSessions(ListInstanceSessionsRequest request, StreamObserver<ListInstanceSessionsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             ProjectInstanceInfo instance = lookups.instanceById(request.getInstanceId());
-            Map<String, RecordingSession> walkedSessions = byId(
+            Set<String> failedSessionIds = failedSessionIds(
                     lookups.repositoryManagerForProject(instance.projectId()).instanceSessions(instance.id()));
 
             List<InstanceSessionInfo> sessions = platformRepositories
                     .findSessionsByInstanceId(request.getInstanceId()).stream()
-                    .map(s -> ProtoMappers.instanceSession(s, walkedSessions.get(s.sessionId())))
+                    .map(s -> ProtoMappers.instanceSession(s, failedSessionIds))
                     .toList();
 
             LOG.debug("Listed instance sessions via gRPC: instance_id={} count={}",
@@ -122,16 +122,17 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
             List<ProjectInstanceSessionInfo> sessions = platformRepositories.findSessionsByInstanceId(instanceId);
 
-            // One walk of the instance's directories answers the statistics and every session's files
+            // One walk of the instance's directories answers both the statistics and the failed set
             List<RecordingSession> instanceSessions =
                     lookups.repositoryManagerForProject(info.projectId()).instanceSessions(instanceId);
             InstanceStats stats = InstanceStats.of(instanceSessions);
+            Set<String> failedSessionIds = failedSessionIds(instanceSessions);
 
             LOG.debug("Fetched instance detail via gRPC: instance_id={} sessions={} files={} total_size={}",
                     instanceId, sessions.size(), stats.fileCount(), stats.totalSizeBytes());
 
             return GetInstanceDetailResponse.newBuilder()
-                    .setInstance(ProtoMappers.instance(info, sessions, byId(instanceSessions)))
+                    .setInstance(ProtoMappers.instance(info, sessions, failedSessionIds))
                     .setStats(ProtoMappers.instanceStats(stats))
                     .build();
         });
@@ -154,26 +155,39 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
                             "Session not found in instance: instanceId=" + instanceId + " sessionId=" + sessionId));
 
             // Only this session's directory, not every session of the project
-            RecordingSession walked = lookups.repositoryManagerForProject(instance.projectId())
+            Set<String> failedSessionIds = lookups.repositoryManagerForProject(instance.projectId())
                     .findRecordingSessions(sessionId)
-                    .orElse(null);
+                    .filter(InstanceGrpcService::isFailed)
+                    .map(session -> Set.of(session.id()))
+                    .orElse(Set.of());
 
             LOG.debug("Fetched instance session detail via gRPC: instance_id={} session_id={}",
                     instanceId, sessionId);
 
             return GetInstanceSessionDetailResponse.newBuilder()
-                    .setSession(ProtoMappers.instanceSession(sessionInfo, walked))
+                    .setSession(ProtoMappers.instanceSession(sessionInfo, failedSessionIds))
                     .build();
         });
     }
 
 
     /**
-     * Sessions loaded with their files, by id — whether one failed is known only from the volume.
+     * IDs of the failed sessions among these. The sessions must have been loaded with their files.
      */
-    private static Map<String, RecordingSession> byId(List<RecordingSession> sessions) {
+    private static Set<String> failedSessionIds(List<RecordingSession> sessions) {
         return sessions.stream()
-                .collect(Collectors.toMap(RecordingSession::id, Function.identity(), (first, _) -> first));
+                .filter(InstanceGrpcService::isFailed)
+                .map(RecordingSession::id)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * A failed session finished without producing any data, which only the files on the volume
+     * can say. A session the hub finished because it never sent a heartbeat is empty too, but it
+     * did not crash: it is reported as missing its heartbeat instead, never as failed.
+     */
+    private static boolean isFailed(RecordingSession session) {
+        return session.isFailedEmpty() && !session.heartbeatMissing();
     }
 
 }

@@ -35,7 +35,7 @@ import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Every domain-to-proto conversion of the hub's gRPC services, in one place, so that no
@@ -178,14 +178,11 @@ public final class ProtoMappers {
     }
 
     /**
-     * @param walkedSessions the instance's sessions as loaded with their files, by id — whether one
-     *                       failed is known only from the volume; a session missing here is mapped
-     *                       from its row alone
+     * @param failedSessionIds the sessions that finished without producing data — known only
+     *                         from the files on the volume, which is why the caller passes them
      */
     public static InstanceInfo instance(
-            ProjectInstanceInfo info,
-            List<ProjectInstanceSessionInfo> sessions,
-            Map<String, cafe.jeffrey.hub.model.repository.RecordingSession> walkedSessions) {
+            ProjectInstanceInfo info, List<ProjectInstanceSessionInfo> sessions, Set<String> failedSessionIds) {
 
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(info.id())
@@ -206,24 +203,18 @@ public final class ProtoMappers {
             builder.setActiveSessionId(info.activeSessionId());
         }
         for (ProjectInstanceSessionInfo session : sessions) {
-            builder.addSessions(instanceSession(session, walkedSessions.get(session.sessionId())));
+            builder.addSessions(instanceSession(session, failedSessionIds));
         }
         return builder.build();
     }
 
-    /**
-     * @param walked the same session loaded with its files, or {@code null} when it was not walked
-     */
-    public static InstanceSessionInfo instanceSession(
-            ProjectInstanceSessionInfo info, cafe.jeffrey.hub.model.repository.RecordingSession walked) {
-
+    public static InstanceSessionInfo instanceSession(ProjectInstanceSessionInfo info, Set<String> failedSessionIds) {
         InstanceSessionInfo.Builder builder = InstanceSessionInfo.newBuilder()
                 .setId(info.sessionId())
                 .setRepositoryId(orEmpty(info.repositoryId()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setIsActive(info.finishedAt() == null)
-                // A session that never sent a heartbeat ended for that reason, not for crashing
-                .setFailed(walked != null && walked.isFailedEmpty() && !info.heartbeatMissing())
+                .setFailed(failedSessionIds.contains(info.sessionId()))
                 .setHeartbeatMissing(info.heartbeatMissing());
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());

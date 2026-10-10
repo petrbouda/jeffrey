@@ -33,8 +33,7 @@ import java.time.Clock;
 /**
  * How the hub keeps its rows in step with the volume: the reconciler that materialises what
  * the provisioner announced, the finisher that closes a session whose heartbeat stopped or never
- * started, and
- * the initializer that seeds a fresh hub with its default workspace at startup.
+ * started, and the initializer that seeds a fresh hub with its default workspace at startup.
  */
 @Configuration
 public class ReconciliationConfiguration {

@@ -118,10 +118,11 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
     //language=SQL
-    private static final String UPDATE_SESSION_HEARTBEAT_MISSING = """
+    private static final String UPDATE_SESSION_FINISHED_WITHOUT_HEARTBEAT = """
             UPDATE project_instance_sessions
-            SET heartbeat_missing = TRUE
+            SET finished_at = :finished_at, heartbeat_missing = TRUE
             WHERE session_id = :session_id
+            AND finished_at IS NULL
             AND repository_id IN (SELECT repository_id FROM repositories WHERE project_id = :project_id)""";
 
     private final String projectId;
@@ -282,13 +283,14 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     }
 
     @Override
-    public void markSessionHeartbeatMissing(String sessionId) {
+    public void markSessionFinishedWithoutHeartbeat(String sessionId, Instant finishedAt) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
-                .addValue("session_id", sessionId);
+                .addValue("session_id", sessionId)
+                .addValue("finished_at", finishedAt.atOffset(ZoneOffset.UTC));
 
-        databaseClient.update(
-                StatementLabel.UPDATE_SESSION_HEARTBEAT_MISSING, UPDATE_SESSION_HEARTBEAT_MISSING, paramSource);
+        databaseClient.update(StatementLabel.UPDATE_SESSION_FINISHED_WITHOUT_HEARTBEAT,
+                UPDATE_SESSION_FINISHED_WITHOUT_HEARTBEAT, paramSource);
     }
 
 

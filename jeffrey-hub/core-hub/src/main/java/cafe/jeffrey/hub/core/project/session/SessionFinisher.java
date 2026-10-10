@@ -58,17 +58,42 @@ public class SessionFinisher {
      * Marks a session as finished with an explicit finish time.
      */
     public void markFinished(SessionRef ref, Instant finishedAt) {
-        ProjectInfo projectInfo = ref.project();
-        ProjectInstanceSessionInfo sessionInfo = ref.session();
-        ProjectRepositoryRepository repositoryRepository =
-                platformRepositories.newProjectRepositoryRepository(projectInfo.id());
-
-        repositoryRepository.markSessionFinished(sessionInfo.sessionId(), finishedAt);
+        ProjectRepositoryRepository repositoryRepository = repositoryRepository(ref);
+        repositoryRepository.markSessionFinished(ref.session().sessionId(), finishedAt);
 
         LOG.info("Session marked as FINISHED: session_id={} project_id={} finished_at={}",
-                sessionInfo.sessionId(), projectInfo.id(), finishedAt);
+                ref.session().sessionId(), ref.project().id(), finishedAt);
 
-        // Check if instance should transition to FINISHED (last active session done)
+        afterFinished(ref, repositoryRepository, finishedAt);
+    }
+
+    /**
+     * Marks a session as finished at its start, because no heartbeat arrived within the startup
+     * grace. {@code createdAt} rather than {@code originCreatedAt}, because the timeline starts the
+     * session's bar there and a producer-clock timestamp could fall before it.
+     */
+    private void markFinishedWithoutHeartbeat(SessionRef ref) {
+        Instant finishedAt = ref.session().createdAt();
+        ProjectRepositoryRepository repositoryRepository = repositoryRepository(ref);
+        repositoryRepository.markSessionFinishedWithoutHeartbeat(ref.session().sessionId(), finishedAt);
+
+        LOG.info("Session sent no heartbeat within the startup grace, marked as FINISHED at its start: "
+                        + "session_id={} project_id={} finished_at={}",
+                ref.session().sessionId(), ref.project().id(), finishedAt);
+
+        afterFinished(ref, repositoryRepository, finishedAt);
+    }
+
+    /**
+     * What follows any finish: the instance becomes FINISHED with its last open session, and the
+     * finish is announced.
+     */
+    private void afterFinished(
+            SessionRef ref, ProjectRepositoryRepository repositoryRepository, Instant finishedAt) {
+
+        ProjectInfo projectInfo = ref.project();
+        ProjectInstanceSessionInfo sessionInfo = ref.session();
+
         List<ProjectInstanceSessionInfo> remaining =
                 repositoryRepository.findUnfinishedSessionsByInstanceId(sessionInfo.instanceId());
         if (remaining.isEmpty()) {
@@ -117,10 +142,8 @@ public class SessionFinisher {
      *   <li>no liveness file, and the hub saw the session less than the startup grace ago — left
      *   alone: the JVM may still be starting;</li>
      *   <li>no liveness file past the startup grace — heartbeats are not configured or not
-     *   emitted. Finished at {@code createdAt} and marked as having ended without a heartbeat, so
-     *   the UI can say how to turn heartbeats on. {@code createdAt} rather than
-     *   {@code originCreatedAt}, because the timeline starts the session's bar there and a
-     *   producer-clock timestamp could fall before it.</li>
+     *   emitted. Finished at its start and marked as having ended without a heartbeat, so the UI
+     *   can say how to turn heartbeats on.</li>
      * </ol>
      *
      * <p>The startup grace is measured against {@code createdAt} — the hub's own clock at
@@ -172,12 +195,11 @@ public class SessionFinisher {
         }
 
         // Case 5: no heartbeat past the grace — heartbeats are not configured or not emitted
-        platformRepositories.newProjectRepositoryRepository(ref.project().id())
-                .markSessionHeartbeatMissing(sessionInfo.sessionId());
-        LOG.info("Session sent no heartbeat within the startup grace, marking finished at its start: "
-                        + "session_id={} project_id={} created_at={}",
-                sessionInfo.sessionId(), ref.project().id(), sessionInfo.createdAt());
-        markFinished(ref, sessionInfo.createdAt());
+        markFinishedWithoutHeartbeat(ref);
         return true;
+    }
+
+    private ProjectRepositoryRepository repositoryRepository(SessionRef ref) {
+        return platformRepositories.newProjectRepositoryRepository(ref.project().id());
     }
 }
