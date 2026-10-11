@@ -204,8 +204,8 @@ public sealed interface JvmFeature {
      * same {@code -Djeffrey.heartbeat.dir} that {@link Heartbeat} writes for the library.
      *
      * <p>A {@code null} jar means the agent is switched off ({@code jeffrey-agent.enabled = false})
-     * or could not be written into the session, and renders nothing. The path is quoted because a
-     * session path may carry a space, as in {@link Heartbeat}.
+     * or the jar {@code jeffrey-agent.path} names is not there, and renders nothing. The path is
+     * quoted because it may carry a space, as a session path may in {@link Heartbeat}.
      */
     record JeffreyAgent(Path jar) implements JvmFeature {
 

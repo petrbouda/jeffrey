@@ -94,6 +94,15 @@ jobs:
         name: provisioner-jar
         path: ./build/build-provisioner/target/provisioner.jar
 
+    # Shipped beside the provisioner rather than inside it: jeffrey-jib bakes it into images as
+    # /opt/jeffrey/jeffrey-agent.jar, and anyone running the provisioner outside jeffrey-jib
+    # downloads it from the release and points jeffrey-agent.path at it.
+    - name: Upload jeffrey-agent.jar
+      uses: actions/upload-artifact@v7
+      with:
+        name: jeffrey-agent-jar
+        path: ./jeffrey-agent/target/jeffrey-agent.jar
+
   provisioner-native:
     needs: [version]
     uses: ./.github/workflows/release-provisioner.yml
@@ -109,7 +118,8 @@ jobs:
 
   docker-hub:
     # Does not need provisioner-native: the hub image is built with the jar flavour of
-    # jeffrey-jib, whose payload carries this release's provisioner.jar, not the native binaries.
+    # jeffrey-jib, whose payload carries this release's provisioner.jar and jeffrey-agent.jar, not
+    # the native binaries.
     needs: [version, build]
     uses: ./.github/workflows/release-hub.yml
     with:
@@ -141,6 +151,12 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: provisioner-jar
+        path: ./artifacts
+
+    - name: Download jeffrey-agent.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: jeffrey-agent-jar
         path: ./artifacts
 
     - name: Download native provisioner (amd64)

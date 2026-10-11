@@ -30,9 +30,9 @@ jeffrey-hub/                           HubApplication (core-hub: gRPC services, 
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        sql-builder, test (@DuckDBTest), hub-api (protos only), pending-index,
                                        ui/common (@shared: generic components, services, design tokens), ui/version
-jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; bundles jeffrey-agent and
-                                       attaches it with -javaagent unless jeffrey-agent.enabled=false
-jeffrey-agent/                         heartbeat-only Java agent (Java 21), shipped inside the provisioner; runs
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from
+                                       jeffrey-agent.path (like profiler-path) unless jeffrey-agent.enabled=false
+jeffrey-agent/                         heartbeat-only Java agent (Java 21), a release asset baked by jeffrey-jib; runs
                                        jeffrey-heartbeat-core shaded+relocated. Off → liveness only from the
                                        jeffrey-heartbeat library, which stands down while the agent reports
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
@@ -44,7 +44,7 @@ utilities/                             release root (jeffrey-utilities-parent + 
                                        tracing API on Java 21 + two span storages picked by ServiceLoader —
                                        jeffrey-tracing-scoped-value (ScopedValue, 25, opt-in) and
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
-jeffrey-jib/                           JIB extensions + provisioner payloads (release-jib.yml)
+jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler, agent (release-jib.yml)
 build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
 stubs/                                 jeffrey-hub-stub, outside the reactor (run-hub-stub.sh)
 ```

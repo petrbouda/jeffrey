@@ -64,7 +64,7 @@ onMounted(() => {
           provisioner build: <code>cafe.jeffrey-analyst:jeffrey-jib-maven-jar</code>,
           <code>jeffrey-jib-maven-native</code>, <code>jeffrey-jib-gradle-jar</code> and
           <code>jeffrey-jib-gradle-native</code>. A flavour is the extension plus the payload jar
-          carrying that provisioner build and async-profiler, so the dependency you declare is the
+          carrying that provisioner build, async-profiler and the Jeffrey Agent, so the dependency you declare is the
           whole configuration.
         </DocsCallout>
 
@@ -99,8 +99,8 @@ onMounted(() => {
           without profiling &mdash; see <a href="#runtime-kill-switch">Runtime Kill Switch</a>.</p>
 
         <DocsCallout type="info">
-          <strong>The image is self-contained.</strong> The extension takes the provisioner and
-          async-profiler out of the payload jar that arrived with the flavour you declared &mdash; an
+          <strong>The image is self-contained.</strong> The extension takes the provisioner,
+          async-profiler and the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> out of the payload jar that arrived with the flavour you declared &mdash; an
           ordinary plugin dependency, nothing is downloaded by the extension itself &mdash; and
           installs them under <code>/opt/jeffrey</code> in their own layer, only for the
           architectures the image targets. The shared volume is still needed &mdash; but only for the
@@ -215,7 +215,8 @@ onMounted(() => {
               <code>native</code> flavour is ~90&nbsp;MB &mdash; it carries both architectures so the
               same dependency serves single- and multi-platform builds &mdash; the <code>jar</code>
               flavour ~6&nbsp;MB. Pointing <code>profilerPath</code> at a library the base image
-              already provides keeps async-profiler out of the image, not out of the download.</div>
+              already provides keeps async-profiler out of the image, not out of the download, and
+              <code>agentPath</code> does the same for the agent jar.</div>
           </div>
         </div>
       </div>

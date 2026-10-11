@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -59,26 +60,36 @@ class InitExecutorTest {
 
     /** A run whose profiler-path library is in place, as jeffrey-jib bakes it. */
     private InitConfig config() throws IOException {
+        return config(Map.of());
+    }
+
+    /** As {@link #config()}, plus the variables a test adds on top. */
+    private InitConfig config(Map<String, String> extraEnv) throws IOException {
         profilerLibrary = tempDir.resolve("libasyncProfiler.so");
         if (Files.notExists(profilerLibrary)) {
             Files.createFile(profilerLibrary);
         }
-        return config(profilerLibrary);
+        return config(profilerLibrary, extraEnv);
     }
 
     private InitConfig config(Path profilerPath) {
+        return config(profilerPath, Map.of());
+    }
+
+    private InitConfig config(Path profilerPath, Map<String, String> extraEnv) {
         workspacesDir = tempDir.resolve("workspaces");
         argFile = tempDir.resolve("jvm.args");
         envFile = tempDir.resolve("jeffrey.env");
 
-        Map<String, String> env = Map.of(
+        Map<String, String> env = new HashMap<>(Map.of(
                 "JEFFREY_WORKSPACES_DIR", workspacesDir.toString(),
                 "JEFFREY_PROJECT_NAME", PROJECT_NAME,
                 "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
                 "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
                 "JEFFREY_ARG_FILE", argFile.toString(),
                 "JEFFREY_ENV_FILE", envFile.toString(),
-                "JEFFREY_PROFILER_PATH", profilerPath.toString());
+                "JEFFREY_PROFILER_PATH", profilerPath.toString()));
+        env.putAll(extraEnv);
 
         return InitConfig.fromEnvironment(env::get);
     }
@@ -217,38 +228,48 @@ class InitExecutorTest {
     @Nested
     class JeffreyAgent {
 
+        private Path agentJar;
+
+        /** A run whose jeffrey-agent.path jar is in place, as jeffrey-jib bakes it. */
         private InitConfig config(String agentEnabled) throws IOException {
-            InitConfig base = InitExecutorTest.this.config();
-            Map<String, String> env = Map.of(
-                    "JEFFREY_WORKSPACES_DIR", workspacesDir.toString(),
-                    "JEFFREY_PROJECT_NAME", PROJECT_NAME,
-                    "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
-                    "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
-                    "JEFFREY_ARG_FILE", argFile.toString(),
-                    "JEFFREY_PROFILER_PATH", base.getProfilerPath(),
-                    "JEFFREY_AGENT_ENABLED", agentEnabled);
-            return InitConfig.fromEnvironment(env::get);
+            agentJar = tempDir.resolve("jeffrey-agent.jar");
+            if (Files.notExists(agentJar)) {
+                Files.createFile(agentJar);
+            }
+            return config(agentEnabled, agentJar);
+        }
+
+        private InitConfig config(String agentEnabled, Path agentPath) throws IOException {
+            return InitExecutorTest.this.config(Map.of(
+                    "JEFFREY_AGENT_ENABLED", agentEnabled,
+                    "JEFFREY_AGENT_PATH", agentPath.toString()));
         }
 
         private List<String> agentOptions() throws IOException {
             return argFileOptions().stream().filter(option -> option.startsWith("-javaagent:")).toList();
         }
 
-        @Test
-        void attachesTheAgentWrittenIntoTheSession() throws Exception {
-            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.bundledUnder(tempDir.resolve("classes")))
-                    .execute(config("true"));
+        private List<String> sessionFiles() throws IOException {
+            try (Stream<Path> files = Files.list(sessionPath())) {
+                return files.map(path -> path.getFileName().toString()).toList();
+            }
+        }
 
-            Path agent = sessionPath().resolve(JeffreyAgentInstaller.SESSION_FILE);
-            assertTrue(Files.exists(agent), "the agent jar is written into the session");
-            assertEquals(List.of("-javaagent:" + agent), agentOptions());
+        /** Loaded from where the image keeps it, so nothing is copied into the session. */
+        @Test
+        void attachesTheAgentFromTheAgentPath() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config("true"));
+
+            assertEquals(List.of("-javaagent:" + agentJar), agentOptions());
+            List<String> sessionFiles = sessionFiles();
+            assertTrue(sessionFiles.stream().noneMatch(name -> name.endsWith(".jar")),
+                    () -> "no jar is written into the session: " + sessionFiles);
         }
 
         /** The agent reads the same directory the library would, so the argfile still names it. */
         @Test
         void keepsNamingTheHeartbeatDirectory() throws Exception {
-            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.bundledUnder(tempDir.resolve("classes")))
-                    .execute(config("true"));
+            new InitExecutor(Clock.systemUTC()).execute(config("true"));
 
             assertTrue(argFileOptions().contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="
                     + sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
@@ -257,20 +278,17 @@ class InitExecutorTest {
         /** Switched off, liveness is left to the jeffrey-heartbeat library the application carries. */
         @Test
         void leavesTheAgentOutWhenSwitchedOff() throws Exception {
-            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.bundledUnder(tempDir.resolve("classes")))
-                    .execute(config("false"));
+            new InitExecutor(Clock.systemUTC()).execute(config("false"));
 
             assertEquals(List.of(), agentOptions());
-            assertFalse(Files.exists(sessionPath().resolve(JeffreyAgentInstaller.SESSION_FILE)));
             assertTrue(argFileOptions().contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="
                     + sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)), "the library still needs the directory");
         }
 
-        /** A provisioner packaged without the agent still provisions the session. */
+        /** A missing jar would stop the JVM, so the session runs without the agent instead. */
         @Test
-        void provisionsWithoutTheAgentWhenItIsNotBundled() throws Exception {
-            new InitExecutor(Clock.systemUTC(), BundledAgentFixture.missingUnder(tempDir.resolve("classes")))
-                    .execute(config("true"));
+        void provisionsWithoutTheAgentWhenTheJarIsMissing() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config("true", tempDir.resolve("missing.jar")));
 
             assertEquals(List.of(), agentOptions());
             assertTrue(Files.exists(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)), "the session is still recorded");

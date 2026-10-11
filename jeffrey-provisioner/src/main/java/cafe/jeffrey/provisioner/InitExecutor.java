@@ -36,18 +36,14 @@ public class InitExecutor {
     private final Clock clock;
     private final LayoutProvisioner layoutProvisioner;
     private final AsyncProfilerResolver profilerResolver;
-    private final JeffreyAgentInstaller agentInstaller;
+    private final JeffreyAgentResolver agentResolver;
     private final OutputWriter outputWriter;
 
     public InitExecutor(Clock clock) {
-        this(clock, new JeffreyAgentInstaller());
-    }
-
-    InitExecutor(Clock clock, JeffreyAgentInstaller agentInstaller) {
         this.clock = clock;
         this.layoutProvisioner = new LayoutProvisioner();
         this.profilerResolver = new AsyncProfilerResolver();
-        this.agentInstaller = agentInstaller;
+        this.agentResolver = new JeffreyAgentResolver();
         this.outputWriter = new OutputWriter();
     }
 
@@ -75,7 +71,8 @@ public class InitExecutor {
         AsyncProfilerResolver.ResolvedProfiler profiler =
                 profilerResolver.resolve(config.getProfilerCommand(), config.getProfilerPath());
 
-        JvmFeature.JeffreyAgent agent = installAgent(config, session.layout());
+        JvmFeature.JeffreyAgent agent =
+                agentResolver.resolve(config.isJeffreyAgentEnabled(), config.getJeffreyAgentPath());
 
         String jvmOptions = JvmFeatures.of(config, profiler.feature(), agent)
                 .render(session.layout().session(), placeholders);
@@ -93,19 +90,5 @@ public class InitExecutor {
                     config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
                     config.getArgFilePath());
         }
-    }
-
-    /**
-     * Writes the agent into the session when it is switched on. Off, the session's liveness is left
-     * to the {@code jeffrey-heartbeat} library, which the application has to carry itself.
-     */
-    private JvmFeature.JeffreyAgent installAgent(InitConfig config, SessionLayout layout) {
-        if (!config.isJeffreyAgentEnabled()) {
-            LOG.info("Jeffrey agent DISABLED, liveness is reported only if the application carries jeffrey-heartbeat");
-            return JvmFeature.JeffreyAgent.disabled();
-        }
-        return agentInstaller.install(layout.session())
-                .map(JvmFeature.JeffreyAgent::new)
-                .orElseGet(JvmFeature.JeffreyAgent::disabled);
     }
 }

@@ -180,7 +180,7 @@ onMounted(() => {
         </div>
 
         <h3 id="sessions-without-heartbeats">Sessions Without Heartbeats</h3>
-        <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner writes into every session and attaches with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>.</p>
+        <p>Liveness comes from the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner attaches to every session with <code>-javaagent</code> unless the deployment sets <code>JEFFREY_AGENT_ENABLED=false</code>. With the agent off, it comes only from the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it. Either one is silenced by the application's own <code>jeffrey.heartbeat.enabled=false</code>.</p>
         <p>In Microscope a session that ended without a heartbeat is drawn in purple and is never counted as a failed session: on the Instance Timeline it is a purple marker and its instance shows a <strong>Heartbeat: never</strong> chip; in the instance's session list it reads <em>Heartbeat: never received</em> and carries a note linking here.</p>
         <p>To make sessions report a heartbeat:</p>
         <ul>

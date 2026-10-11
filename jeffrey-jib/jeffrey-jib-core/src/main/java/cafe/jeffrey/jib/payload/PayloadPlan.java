@@ -25,15 +25,18 @@ import java.util.Set;
  *
  * <p>The provisioner is not optional and so is not a field: it is Jeffrey's own binary, the
  * protocol it writes is the one Jeffrey Hub reads, and an image that carried someone else's copy
- * would drift from that protocol with nothing recording which one it had. Only async-profiler,
- * a third-party library an image may legitimately already ship, can be left out.
+ * would drift from that protocol with nothing recording which one it had. async-profiler and the
+ * Jeffrey agent are attached from a path, so an image that already ships either can leave it out.
  *
  * @param descriptor    the payload jar found on the class path, which decides the provisioner build
  * @param architectures the Linux architectures the build plan targets, in declaration order
  * @param bakeProfiler  false when the build configuration already names a profiler path; setting
  *                      {@code profilerPath} has always meant "use my async-profiler" and still does
+ * @param bakeAgent     false when the build configuration already names an agent path; setting
+ *                      {@code agentPath} means "use my jeffrey-agent.jar", as {@code profilerPath} does
  */
-public record PayloadPlan(PayloadDescriptor descriptor, Set<String> architectures, boolean bakeProfiler) {
+public record PayloadPlan(
+        PayloadDescriptor descriptor, Set<String> architectures, boolean bakeProfiler, boolean bakeAgent) {
 
     public PayloadPlan {
         if (descriptor == null) {

@@ -18,7 +18,8 @@
 package cafe.jeffrey.jib.payload;
 
 /**
- * The architecture-neutral provisioner jar, plus async-profiler for both Linux architectures.
+ * The architecture-neutral provisioner jar and Jeffrey agent jar, plus async-profiler for both
+ * Linux architectures.
  *
  * <p>This class carries no behaviour. It exists so the module publishes a non-empty sources and
  * javadoc jar, which Maven Central requires of every artifact; the payload itself travels beside it

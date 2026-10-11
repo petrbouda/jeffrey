@@ -69,7 +69,6 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 ├── .pending/<timestamp>_<uuid>        # provisioner-declared work, for the hub to notice
 └── <project-name>/<instance-id>/<session-id>/
     ├── profile-<timestamp>.jfr        # the durable chunks — traces live in these
-    ├── .jeffrey-agent.jar             # Jeffrey Agent, attached with -javaagent (default on)
     ├── .heartbeat/heartbeat           # epoch millis, rewritten every 5s
     ├── .heartbeat/finished            # clean-exit marker, written on shutdown
     └── .session-info.json`;

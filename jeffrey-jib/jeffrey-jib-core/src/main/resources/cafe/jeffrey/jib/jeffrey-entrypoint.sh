@@ -21,8 +21,8 @@
 # produced (java -cp <classpath> <MainClass>, or java -jar <app.jar>, etc.) with the argfile
 # inserted right after the java binary.
 #
-# The provisioner and async-profiler are baked into this image by the jeffrey-jib build
-# extension, under /opt/jeffrey. Nothing is fetched or waited for at container start.
+# The provisioner, async-profiler and the Jeffrey agent are baked into this image by the
+# jeffrey-jib build extension, under /opt/jeffrey. Nothing is fetched or waited for at container start.
 #
 # Runtime kill switch:
 #   JEFFREY_ENABLED  set to false|0|no|off (case-insensitive) to bypass profiling entirely
@@ -34,6 +34,7 @@
 #                             extension alongside the path; setting it by hand without a matching
 #                             binary only fails open.
 #   JEFFREY_PROFILER_PATH     libasyncProfiler.so, baked the same way
+#   JEFFREY_AGENT_PATH        jeffrey-agent.jar, baked the same way; read by the provisioner only
 #   JEFFREY_BASE_CONFIG       default /jeffrey/jeffrey-base.conf (optional — without the file,
 #                             the provisioner configures itself from JEFFREY_* env vars such as
 #                             JEFFREY_PROJECT_NAME and JEFFREY_WORKSPACE_REF_ID)

@@ -52,11 +52,11 @@ import java.util.Set;
  * wrapper runs {@code provisioner init} and then execs the original command with the
  * provisioner-produced argfile prepended.
  *
- * <p>It also bakes the binaries that run needs — the provisioner, and async-profiler unless the
- * image supplies its own — into a second layer under {@code /opt/jeffrey}. They come from the
- * payload jar the build put on the extension's class path by declaring a flavour of the extension
- * ({@code jeffrey-jib-maven-jar}, {@code jeffrey-jib-maven-native}, or the Gradle equivalents) as
- * the jib plugin dependency; nothing is downloaded by the extension itself. An image built this way
+ * <p>It also bakes the binaries that run needs — the provisioner, plus async-profiler and the
+ * Jeffrey agent unless the image supplies its own — into a second layer under
+ * {@code /opt/jeffrey}. They come from the payload jar the build put on the extension's class
+ * path by declaring a flavour of the extension ({@code jeffrey-jib-maven-jar},
+ * {@code jeffrey-jib-maven-native}, or the Gradle equivalents) as the jib plugin dependency; nothing is downloaded by the extension itself. An image built this way
  * is self-contained: it needs a shared volume for the recordings it writes, never to find its own
  * tooling.
  *
@@ -87,6 +87,8 @@ public final class JeffreyBuildPlanExtender {
     private static final String REMOVED_PROVISIONER_SOURCE = "provisionerSource";
     private static final String REMOVED_PAYLOAD_VERSION = "payloadVersion";
     private static final String LINUX_OS = "linux";
+    private static final String PROFILER_NAME = "async-profiler";
+    private static final String AGENT_NAME = "Jeffrey agent";
     private static final Set<String> SUPPORTED_ARCHITECTURES = Set.of("amd64", "arm64");
 
     private final Class<? extends JibPluginExtension> extensionClass;
@@ -180,28 +182,40 @@ public final class JeffreyBuildPlanExtender {
     /**
      * Installs the binaries the entrypoint needs from the payload jar on the class path. The
      * provisioner is always baked, and which build of it is decided by the flavour the build
-     * declared; only async-profiler can be left out, by a {@code profilerPath} saying the image
-     * already provides one.
+     * declared; async-profiler and the Jeffrey agent can be left out, by a {@code profilerPath} or
+     * {@code agentPath} saying the image already provides that file.
      */
     private PayloadInstallation installPayload(
             ContainerBuildPlan buildPlan,
             JeffreyJibConfig config,
             ExtensionLogger logger) throws JibPluginExtensionException {
 
-        boolean bakeProfiler = isBlank(config.getProfilerPath());
-        if (!bakeProfiler) {
-            logger.log(LogLevel.LIFECYCLE,
-                    "jeffrey-jib: using the async-profiler this image already provides, neither baked "
-                            + "nor version-checked: " + config.getProfilerPath());
-        }
+        boolean bakeProfiler = bakesOwnCopy(PROFILER_NAME, config.getProfilerPath(), logger);
+        boolean bakeAgent = bakesOwnCopy(AGENT_NAME, config.getAgentPath(), logger);
 
         try {
             PayloadDescriptor descriptor = PayloadDescriptor.discover(payloads);
-            PayloadPlan plan = new PayloadPlan(descriptor, linuxArchitectures(buildPlan), bakeProfiler);
+            PayloadPlan plan = new PayloadPlan(
+                    descriptor, linuxArchitectures(buildPlan), bakeProfiler, bakeAgent);
             return new PayloadInstaller(payloads, workDirectory, logger).install(plan);
         } catch (PayloadResolutionException e) {
             throw new JibPluginExtensionException(extensionClass, e.getMessage(), e);
         }
+    }
+
+    /**
+     * Whether the extension bakes its own copy of a binary the image may already carry. A path in
+     * the build configuration says it does, and the log names that path, since a supplied file has
+     * no provenance to print.
+     */
+    private static boolean bakesOwnCopy(String binary, String suppliedPath, ExtensionLogger logger) {
+        if (isBlank(suppliedPath)) {
+            return true;
+        }
+        logger.log(LogLevel.LIFECYCLE,
+                "jeffrey-jib: using the " + binary + " this image already provides, neither baked "
+                        + "nor version-checked: " + suppliedPath);
+        return false;
     }
 
     /**
@@ -244,6 +258,7 @@ public final class JeffreyBuildPlanExtender {
         putIfPresent(env, "JEFFREY_OVERRIDE_CONFIG", config.getOverrideConfig());
         putIfPresent(env, "JEFFREY_ARG_FILE", config.getArgFile());
         putIfPresent(env, "JEFFREY_PROFILER_PATH", config.getProfilerPath());
+        putIfPresent(env, "JEFFREY_AGENT_PATH", config.getAgentPath());
         putIfPresent(env, "JEFFREY_PROJECT_NAME", config.getProjectName());
         return env;
     }
@@ -266,9 +281,9 @@ public final class JeffreyBuildPlanExtender {
      *
      * <p>Recognised keys map one-to-one to the {@link JeffreyJibConfig} setters:
      * {@code enabled}, {@code jeffreyHome}, {@code baseConfig}, {@code overrideConfig},
-     * {@code argFile}, {@code profilerPath}, {@code projectName}. Null / empty values are ignored;
-     * unknown keys, and the removed {@code provisionerPath}, {@code provisionerSource} and
-     * {@code payloadVersion}, are logged at WARN and otherwise ignored.
+     * {@code argFile}, {@code profilerPath}, {@code agentPath}, {@code projectName}. Null / empty
+     * values are ignored; unknown keys, and the removed {@code provisionerPath},
+     * {@code provisionerSource} and {@code payloadVersion}, are logged at WARN and otherwise ignored.
      */
     public static void applyProperties(
             JeffreyJibConfig config,
@@ -302,6 +317,7 @@ public final class JeffreyBuildPlanExtender {
                                 + "equivalents) instead of the bare extension.");
                 case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
                 case JeffreyJibConfig.PROFILER_PATH -> config.setProfilerPath(value);
+                case JeffreyJibConfig.AGENT_PATH -> config.setAgentPath(value);
                 case JeffreyJibConfig.PROJECT_NAME -> config.setProjectName(value);
                 default -> logger.log(
                         LogLevel.WARN,

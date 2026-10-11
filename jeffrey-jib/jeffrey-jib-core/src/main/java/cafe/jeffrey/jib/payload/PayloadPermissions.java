@@ -29,8 +29,8 @@ public abstract class PayloadPermissions {
     public static final FilePermissions EXECUTABLE = FilePermissions.fromOctalString(EXECUTABLE_MODE);
 
     /**
-     * Everything else. The provisioner jar is read by a JVM and async-profiler is loaded with
-     * {@code dlopen}; neither needs the executable bit.
+     * Everything else. The provisioner and agent jars are read by a JVM and async-profiler is
+     * loaded with {@code dlopen}; none of them needs the executable bit.
      */
     public static final FilePermissions READABLE = FilePermissions.fromOctalString(READABLE_MODE);
 }

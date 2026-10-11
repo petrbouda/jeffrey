@@ -18,7 +18,8 @@
 package cafe.jeffrey.jib.payload;
 
 /**
- * The GraalVM-compiled provisioner and async-profiler, each for both Linux architectures.
+ * The GraalVM-compiled provisioner and async-profiler, each for both Linux architectures, plus
+ * the architecture-neutral Jeffrey agent jar.
  *
  * <p>This class carries no behaviour. It exists so the module publishes a non-empty sources and
  * javadoc jar, which Maven Central requires of every artifact; the payload itself travels beside it

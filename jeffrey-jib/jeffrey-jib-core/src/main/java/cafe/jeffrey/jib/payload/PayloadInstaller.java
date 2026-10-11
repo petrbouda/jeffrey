@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Takes the payloads a {@link PayloadPlan} asks for out of the payload jar on the class path and
@@ -45,6 +46,7 @@ public final class PayloadInstaller {
     private static final String ENV_PROVISIONER_PATH = "JEFFREY_PROVISIONER_PATH";
     private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
     private static final String ENV_PROFILER_PATH = "JEFFREY_PROFILER_PATH";
+    private static final String ENV_AGENT_PATH = "JEFFREY_AGENT_PATH";
     private static final String PROVENANCE_OPEN = " (";
     private static final String PROVENANCE_CLOSE = ")";
     private static final long BYTES_PER_MEGABYTE = 1024L * 1024L;
@@ -70,28 +72,49 @@ public final class PayloadInstaller {
         List<String> installed = new ArrayList<>();
         long totalBytes = 0;
         Map<String, String> environment = new LinkedHashMap<>();
+        Set<String> architectures = plan.architectures();
 
         PayloadSpec provisioner = descriptor.kind().spec();
-        for (PayloadRequest request : provisioner.requestsFor(plan.architectures())) {
-            totalBytes += add(layer, request, descriptor.provisionerProvenance(), installed);
-        }
-        environment.put(ENV_PROVISIONER_PATH, provisioner.envPath(plan.architectures()));
+        totalBytes += bake(layer, provisioner, architectures, descriptor.provisionerProvenance(), installed);
+        environment.put(ENV_PROVISIONER_PATH, provisioner.envPath(architectures));
         environment.put(ENV_PROVISIONER_KIND, descriptor.kind().kind());
 
         if (plan.bakeProfiler()) {
-            for (PayloadRequest request : Payloads.PROFILER.requestsFor(plan.architectures())) {
-                totalBytes += add(layer, request, descriptor.profilerProvenance(), installed);
-            }
-            environment.put(ENV_PROFILER_PATH, Payloads.PROFILER.envPath(plan.architectures()));
+            totalBytes += bake(
+                    layer, Payloads.PROFILER, architectures, descriptor.profilerProvenance(), installed);
+            environment.put(ENV_PROFILER_PATH, Payloads.PROFILER.envPath(architectures));
+        }
+
+        // Built from the same Jeffrey release as the provisioner, so it shares that provenance.
+        if (plan.bakeAgent()) {
+            totalBytes += bake(
+                    layer, Payloads.AGENT, architectures, descriptor.provisionerProvenance(), installed);
+            environment.put(ENV_AGENT_PATH, Payloads.AGENT.envPath(architectures));
         }
 
         // The provenance in parentheses is the only place a build log says which Jeffrey release
-        // and async-profiler an image actually carries: the payload jar's version is a jeffrey-jib
-        // release, and the mapping to the binaries inside it lives in the payload descriptor.
+        // (provisioner and agent) and async-profiler an image actually carries: the payload jar's
+        // version is a jeffrey-jib release, and the mapping to the binaries inside it lives in the
+        // payload descriptor.
         logger.log(LogLevel.LIFECYCLE,
                 "jeffrey-jib: baking " + installed.size() + " payload file(s) into the image layer '"
                         + LAYER_NAME + "' (" + totalBytes / BYTES_PER_MEGABYTE + " MB): " + installed);
         return new PayloadInstallation(layer.build(), environment);
+    }
+
+    /** Adds every file of one payload the targeted architectures need; returns their total size. */
+    private long bake(
+            FileEntriesLayer.Builder layer,
+            PayloadSpec spec,
+            Set<String> architectures,
+            String provenance,
+            List<String> installed) throws PayloadResolutionException {
+
+        long bytes = 0;
+        for (PayloadRequest request : spec.requestsFor(architectures)) {
+            bytes += add(layer, request, provenance, installed);
+        }
+        return bytes;
     }
 
     private long add(FileEntriesLayer.Builder layer, PayloadRequest request, String provenance, List<String> installed)

@@ -26,7 +26,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'on-by-default', text: 'On by Default', level: 2 },
-  { id: 'what-lands', text: 'What the Provisioner Writes', level: 2 },
+  { id: 'where-it-lives', text: 'Where the Jar Lives', level: 2 },
   { id: 'configuration', text: 'Configuration', level: 2 },
   { id: 'switching-off', text: 'Switching It Off', level: 2 },
   { id: 'coexistence', text: 'Alongside the Heartbeat Library', level: 2 },
@@ -55,28 +55,33 @@ onMounted(() => {
         <p>That is all it does. It touches no application bytecode, brings no dependency onto the application's class path, runs on Java 21 and newer, and logs through <code>System.Logger</code>, so its few lines follow whatever the JVM's logging is routed to.</p>
 
         <DocsCallout type="info">
-          The application needs no dependency and no code. The agent ships <strong>inside Jeffrey Provisioner</strong> — the jar and native builds, and therefore every <router-link to="/docs/jib">jeffrey-jib</router-link> image — so there is nothing separate to download.
+          The application needs no dependency and no code. Every <router-link to="/docs/jib">jeffrey-jib</router-link> image already carries the agent at <code>/opt/jeffrey/jeffrey-agent.jar</code>, next to the Provisioner and async-profiler, so there is nothing separate to download. Outside jeffrey-jib, take <code>jeffrey-agent.jar</code> from the Jeffrey release and point the Provisioner at it, as you do for async-profiler.
         </DocsCallout>
 
         <h2 id="on-by-default">On by Default</h2>
         <p>Every provisioned session reports liveness through the agent unless the deployment switches it off. The Hub then holds the session to the heartbeat deadline, and the <code>finished</code> marker closes it the moment the JVM exits. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
         <p>The Provisioner's INFO verdict line states the choice for every session as <code>jeffrey_agent=true</code> or <code>jeffrey_agent=false</code>.</p>
 
-        <h2 id="what-lands">What the Provisioner Writes</h2>
-        <p>At <code>init</code>, with the agent enabled, the Provisioner copies the bundled jar into the session directory as a hidden file — hidden so the Hub never lists it as a recording — and attaches it from the argfile:</p>
+        <h2 id="where-it-lives">Where the Jar Lives</h2>
+        <p>The agent is located exactly like async-profiler: the Provisioner is given a path, checks the file is there, and the JVM loads the jar from that path. Nothing is copied into the session, so the session directory holds only what the JVM writes.</p>
+        <ul>
+          <li><strong>jeffrey-jib images</strong> — the extension bakes <code>/opt/jeffrey/jeffrey-agent.jar</code> into the image, from the same Jeffrey release as the Provisioner, and sets <code>JEFFREY_AGENT_PATH</code> to it.</li>
+          <li><strong>Anywhere else</strong> — download <code>jeffrey-agent.jar</code> from the Jeffrey release and set <code>jeffrey-agent.path</code> (or <code>JEFFREY_AGENT_PATH</code>) to where you put it.</li>
+        </ul>
+        <p>At <code>init</code>, with the agent enabled, the argfile attaches it and names the directory its liveness files go to:</p>
+        <pre class="doc-code"><code>-Djeffrey.heartbeat.dir=&lt;session&gt;/.heartbeat
+-javaagent:/opt/jeffrey/jeffrey-agent.jar</code></pre>
         <pre class="doc-code"><code>&lt;session&gt;/
-├── .jeffrey-agent.jar           # the agent, written at init
 └── .heartbeat/                  # liveness files the agent writes
     ├── heartbeat
     └── finished</code></pre>
-        <pre class="doc-code"><code>-Djeffrey.heartbeat.dir=&lt;session&gt;/.heartbeat
--javaagent:&lt;session&gt;/.jeffrey-agent.jar</code></pre>
         <p>Both lines also reach <code>JDK_JAVA_OPTIONS</code> when <code>jdk-java-options</code> is on. The <code>-Djeffrey.heartbeat.dir</code> line is the one the Provisioner always wrote; the agent and the library read the same property.</p>
 
         <h2 id="configuration">Configuration</h2>
-        <p>One Provisioner setting decides whether the agent is attached. As with every other setting, the environment variable wins over the HOCON file.</p>
+        <p>Two Provisioner settings decide whether the agent is attached and from where. As with every other setting, the environment variable wins over the HOCON file.</p>
         <pre class="doc-code"><code>jeffrey-agent {
   enabled = true
+  path = "/opt/jeffrey/jeffrey-agent.jar"   # baked by jeffrey-jib; set it yourself elsewhere
 }</code></pre>
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
@@ -93,7 +98,13 @@ onMounted(() => {
                 <td><code>jeffrey-agent.enabled</code></td>
                 <td><code>JEFFREY_AGENT_ENABLED</code></td>
                 <td><code>true</code></td>
-                <td>Whether the Provisioner writes the agent into the session and attaches it with <code>-javaagent</code></td>
+                <td>Whether the Provisioner attaches the agent with <code>-javaagent</code></td>
+              </tr>
+              <tr>
+                <td><code>jeffrey-agent.path</code></td>
+                <td><code>JEFFREY_AGENT_PATH</code></td>
+                <td>—</td>
+                <td>The agent jar the JVM loads. Baked into the image by jeffrey-jib; set it yourself everywhere else. Unset, or naming a file that is not there, the session runs without the agent and a warning is logged</td>
               </tr>
             </tbody>
           </table>
@@ -139,7 +150,7 @@ onMounted(() => {
         </div>
 
         <h2 id="switching-off">Switching It Off</h2>
-        <p>Set <code>jeffrey-agent.enabled = false</code> in the Provisioner configuration, or <code>JEFFREY_AGENT_ENABLED=false</code> in the deployment. No jar is written and no <code>-javaagent</code> is added, and the Provisioner logs:</p>
+        <p>Set <code>jeffrey-agent.enabled = false</code> in the Provisioner configuration, or <code>JEFFREY_AGENT_ENABLED=false</code> in the deployment. No <code>-javaagent</code> is added, even in an image that carries the jar, and the Provisioner logs:</p>
         <pre class="doc-code"><code>Jeffrey agent DISABLED, liveness is reported only if the application carries jeffrey-heartbeat</code></pre>
         <p>Liveness then comes only from the application itself, through <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> or <code>jeffrey-heartbeat-spring-boot-starter</code>. With neither, the session writes no liveness files, and heartbeats are mandatory: past the startup grace the Hub finishes it at its start, marked as having sent no heartbeat, and Microscope shows how to turn heartbeats on.</p>
 
@@ -149,7 +160,7 @@ onMounted(() => {
         <h2 id="failure-behaviour">What Happens When It Cannot Report</h2>
         <p>Nothing fails your application, and nothing fails provisioning:</p>
         <ul>
-          <li><strong>The Provisioner build has no bundled agent, or the session directory refuses the file</strong> — the session is provisioned without the agent and a warning is logged; startup goes on.</li>
+          <li><strong>No agent path is configured, or the jar is not there</strong> — the session is provisioned without the agent and a warning is logged; startup goes on.</li>
           <li><strong>No heartbeat directory is resolved</strong> — the agent starts inert.</li>
           <li><strong>The heartbeat directory cannot be created</strong> — a warning is logged and the agent stays inert for this JVM.</li>
           <li><strong>A beat cannot be written</strong> — skipped; the next beat recovers on its own.</li>

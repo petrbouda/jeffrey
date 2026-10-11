@@ -66,6 +66,7 @@ class InitConfigTest {
 
             assertEquals("/tmp/jeffrey", config.getJeffreyHome());
             assertEquals("/tmp/asprof/libasyncProfiler.so", config.getProfilerPath());
+            assertEquals("/tmp/jeffrey-agent/jeffrey-agent.jar", config.getJeffreyAgentPath());
             assertNull(config.getProfilerCommand());
             assertEquals("uat", config.getWorkspaceRefId());
             assertEquals("test-project", config.getProjectName());
@@ -130,6 +131,7 @@ class InitConfigTest {
 
             assertNull(config.getWorkspacesDir());
             assertNull(config.getProfilerPath());
+            assertNull(config.getJeffreyAgentPath());
             assertNull(config.getProfilerCommand());
             assertNull(config.getRepositoryType());
             // Attributes are empty rather than null, so callers need no null check
@@ -959,6 +961,37 @@ class InitConfigTest {
                     name -> name.equals("JEFFREY_AGENT_ENABLED") ? "true" : null);
 
             assertTrue(config.isJeffreyAgentEnabled());
+        }
+
+        /** Located like the profiler: nothing is discovered on disk, so unset means no jar named. */
+        @Test
+        void hasNoPathByDefault() {
+            assertNull(InitConfig.fromEnvironment(MINIMAL_ENV::get).getJeffreyAgentPath());
+        }
+
+        /** jeffrey-jib bakes JEFFREY_AGENT_PATH into the image, as it bakes JEFFREY_PROFILER_PATH. */
+        @Test
+        void envNamesThePath() {
+            Map<String, String> env = new HashMap<>(MINIMAL_ENV);
+            env.put("JEFFREY_AGENT_PATH", "/opt/jeffrey/jeffrey-agent.jar");
+
+            assertEquals("/opt/jeffrey/jeffrey-agent.jar",
+                    InitConfig.fromEnvironment(env::get).getJeffreyAgentPath());
+        }
+
+        @Test
+        void envPathWinsOverHocon() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "jeffrey-agent { path = \"/from/the/file.jar\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_AGENT_PATH") ? "/from/the/env.jar" : null);
+
+            assertEquals("/from/the/env.jar", config.getJeffreyAgentPath());
         }
     }
 }
