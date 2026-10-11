@@ -49,7 +49,7 @@ onMounted(() => {
         <h2 id="overview">Overview</h2>
         <p><strong>jeffrey-heartbeat</strong> reports to a Jeffrey Hub that your JVM is alive, and tells it when the JVM stopped. It writes two files into the session directory: a timestamp it rewrites every few seconds, and a clean-exit marker on shutdown.</p>
         <p>That is the whole of it. It emits no events, instruments nothing, and brings one dependency: the SLF4J API it logs through.</p>
-        <p>A provisioned JVM does not need it: the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, bundled in the Provisioner and attached by default, writes the same files with no change to the application. The library is the alternative for a deployment that switches the agent off (<code>JEFFREY_AGENT_ENABLED=false</code>), and it is safe to carry alongside the agent: when the agent already reports, the library stays inert.</p>
+        <p>A provisioned JVM does not need it: the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, attached by the Provisioner by default, writes the same files with no change to the application. The library is the alternative for a deployment that switches the agent off (<code>JEFFREY_AGENT_ENABLED=false</code>), and it is safe to carry alongside the agent: when the agent already reports, the library stays inert.</p>
 
         <DocsCallout type="info">
           A provisioned application configures itself. Jeffrey Provisioner passes <code>-Djeffrey.heartbeat.dir</code> in the argfile the JVM starts with, and exports the matching <code>JEFFREY_HEARTBEAT_DIR</code> into its <code>.env</code> for a deployment that sources one — so on Spring Boot the whole integration is one dependency and no code.

@@ -224,7 +224,8 @@ onMounted(() => {
       <div class="docs-content">
         <p>Wiring the extension into a JIB build is one plugin dependency and one
           <code>pluginExtension</code> line. The dependency is a <em>flavour</em>: the extension for
-          your build tool plus a payload jar carrying one provisioner build and async-profiler, so
+          your build tool plus a payload jar carrying one provisioner build, async-profiler and the
+          Jeffrey Agent, so
           declaring it is the whole configuration. Everything else on
           <router-link to="/docs/jib/configuration">Configuration</router-link> is optional.</p>
 
@@ -253,7 +254,8 @@ onMounted(() => {
         </table>
 
         <p>Both flavours carry async-profiler for <code>linux/amd64</code> and
-          <code>linux/arm64</code>; the image gets only the architectures it targets. Declaring the
+          <code>linux/arm64</code>; the image gets only the architectures it targets. Both carry the
+          same architecture-neutral <code>jeffrey-agent.jar</code>. Declaring the
           bare <code>jeffrey-jib-maven</code> / <code>jeffrey-jib-gradle</code>, or both flavours at
           once, fails the build with a message naming the fix.</p>
 

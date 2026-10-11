@@ -63,9 +63,11 @@ class JeffreyBuildPlanExtenderTest {
 
     private static final List<String> NATIVE_FILES = List.of(
             "provisioner-linux-amd64", "provisioner-linux-arm64",
-            "libasyncProfiler-linux-amd64.so", "libasyncProfiler-linux-arm64.so");
+            "libasyncProfiler-linux-amd64.so", "libasyncProfiler-linux-arm64.so",
+            "jeffrey-agent.jar");
     private static final List<String> JAR_FILES = List.of(
-            "provisioner.jar", "libasyncProfiler-linux-amd64.so", "libasyncProfiler-linux-arm64.so");
+            "provisioner.jar", "libasyncProfiler-linux-amd64.so", "libasyncProfiler-linux-arm64.so",
+            "jeffrey-agent.jar");
 
     @TempDir
     private Path tempDir;
@@ -313,6 +315,7 @@ class JeffreyBuildPlanExtenderTest {
             config.setBaseConfig("/etc/jeffrey/base.conf");
             config.setOverrideConfig("/etc/jeffrey/override.conf");
             config.setProfilerPath("/opt/vendor/libasyncProfiler.so");
+            config.setAgentPath("/opt/vendor/jeffrey-agent.jar");
             config.setArgFile("/var/jeffrey/jvm.args");
             config.setProjectName("my-service");
 
@@ -322,15 +325,16 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("/etc/jeffrey/base.conf", env.get("JEFFREY_BASE_CONFIG"));
             assertEquals("/etc/jeffrey/override.conf", env.get("JEFFREY_OVERRIDE_CONFIG"));
             assertEquals("/opt/vendor/libasyncProfiler.so", env.get("JEFFREY_PROFILER_PATH"));
+            assertEquals("/opt/vendor/jeffrey-agent.jar", env.get("JEFFREY_AGENT_PATH"));
             assertEquals("/var/jeffrey/jvm.args", env.get("JEFFREY_ARG_FILE"));
             assertEquals("my-service", env.get("JEFFREY_PROJECT_NAME"));
 
-            // Naming a profiler path says the image already carries async-profiler, so that payload
-            // is not baked at all. The provisioner always is: it has no such property.
+            // Naming a profiler or agent path says the image already carries that file, so that
+            // payload is not baked at all. The provisioner always is: it has no such property.
             assertEquals(
                     Set.of("/opt/jeffrey/provisioner"),
                     entriesOf(layerNamed(extender.extend(input, config, logger), PAYLOAD_LAYER)).keySet(),
-                    "An explicit profilerPath must not bake an async-profiler payload");
+                    "An explicit profilerPath and agentPath must bake neither payload");
         }
 
         @Test
@@ -353,6 +357,7 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("/opt/jeffrey/provisioner", env.get("JEFFREY_PROVISIONER_PATH"));
             assertEquals("native", env.get("JEFFREY_PROVISIONER_KIND"));
             assertEquals("/opt/jeffrey/libasyncProfiler.so", env.get("JEFFREY_PROFILER_PATH"));
+            assertEquals("/opt/jeffrey/jeffrey-agent.jar", env.get("JEFFREY_AGENT_PATH"));
         }
 
         @Test
@@ -423,13 +428,14 @@ class JeffreyBuildPlanExtenderTest {
     class PayloadBaking {
 
         @Test
-        void bakesNativeProvisionerAndProfilerForSinglePlatform() throws Exception {
+        void bakesNativeProvisionerProfilerAndAgentForSinglePlatform() throws Exception {
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config(), logger);
 
             Map<String, String> entries = entriesOf(layerNamed(result, PAYLOAD_LAYER));
             assertEquals(
                     Map.of("/opt/jeffrey/provisioner", "755",
-                            "/opt/jeffrey/libasyncProfiler.so", "644"),
+                            "/opt/jeffrey/libasyncProfiler.so", "644",
+                            "/opt/jeffrey/jeffrey-agent.jar", "644"),
                     entries,
                     "A single-platform image gets unsuffixed names; only the provisioner is executable");
 
@@ -437,6 +443,7 @@ class JeffreyBuildPlanExtenderTest {
             assertEquals("/opt/jeffrey/provisioner", env.get("JEFFREY_PROVISIONER_PATH"));
             assertEquals("native", env.get("JEFFREY_PROVISIONER_KIND"));
             assertEquals("/opt/jeffrey/libasyncProfiler.so", env.get("JEFFREY_PROFILER_PATH"));
+            assertEquals("/opt/jeffrey/jeffrey-agent.jar", env.get("JEFFREY_AGENT_PATH"));
         }
 
         @Test
@@ -450,12 +457,15 @@ class JeffreyBuildPlanExtenderTest {
                     Set.of("/opt/jeffrey/provisioner-amd64",
                             "/opt/jeffrey/provisioner-arm64",
                             "/opt/jeffrey/libasyncProfiler-amd64.so",
-                            "/opt/jeffrey/libasyncProfiler-arm64.so"),
+                            "/opt/jeffrey/libasyncProfiler-arm64.so",
+                            "/opt/jeffrey/jeffrey-agent.jar"),
                     entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet());
 
             Map<String, String> env = result.getEnvironment();
             assertEquals("/opt/jeffrey/provisioner-{arch}", env.get("JEFFREY_PROVISIONER_PATH"));
             assertEquals("/opt/jeffrey/libasyncProfiler-{arch}.so", env.get("JEFFREY_PROFILER_PATH"));
+            // The agent is pure Java: one file for every architecture, so no placeholder.
+            assertEquals("/opt/jeffrey/jeffrey-agent.jar", env.get("JEFFREY_AGENT_PATH"));
         }
 
         @Test
@@ -467,11 +477,13 @@ class JeffreyBuildPlanExtenderTest {
             ContainerBuildPlan result =
                     extender.extend(planFor("amd64", "arm64").build(), config(), logger);
 
-            // The provisioner jar is the same file everywhere; only async-profiler stays per-arch.
+            // The provisioner and agent jars are the same file everywhere; only async-profiler
+            // stays per-arch.
             assertEquals(
                     Set.of("/opt/jeffrey/provisioner.jar",
                             "/opt/jeffrey/libasyncProfiler-amd64.so",
-                            "/opt/jeffrey/libasyncProfiler-arm64.so"),
+                            "/opt/jeffrey/libasyncProfiler-arm64.so",
+                            "/opt/jeffrey/jeffrey-agent.jar"),
                     entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet());
 
             Map<String, String> env = result.getEnvironment();
@@ -496,7 +508,7 @@ class JeffreyBuildPlanExtenderTest {
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config(), logger);
 
             assertEquals(
-                    List.of("provisioner-linux-amd64", "libasyncProfiler-linux-amd64.so"),
+                    List.of("provisioner-linux-amd64", "libasyncProfiler-linux-amd64.so", "jeffrey-agent.jar"),
                     layerNamed(result, PAYLOAD_LAYER).getEntries().stream()
                             .map(entry -> entry.getSourceFile().getFileName().toString())
                             .toList(),
@@ -511,10 +523,49 @@ class JeffreyBuildPlanExtenderTest {
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
 
             assertEquals(
-                    Set.of("/opt/jeffrey/provisioner"),
+                    Set.of("/opt/jeffrey/provisioner", "/opt/jeffrey/jeffrey-agent.jar"),
                     entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet(),
                     "Bring-your-own async-profiler must not also ship ours");
             assertEquals("/usr/lib/libasyncProfiler.so", result.getEnvironment().get("JEFFREY_PROFILER_PATH"));
+        }
+
+        @Test
+        void explicitAgentPathSkipsOnlyThatPayload() throws Exception {
+            JeffreyJibConfig config = config();
+            config.setAgentPath("/usr/lib/jeffrey-agent.jar");
+
+            ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
+
+            assertEquals(
+                    Set.of("/opt/jeffrey/provisioner", "/opt/jeffrey/libasyncProfiler.so"),
+                    entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet(),
+                    "Bring-your-own agent must not also ship ours");
+            assertEquals("/usr/lib/jeffrey-agent.jar", result.getEnvironment().get("JEFFREY_AGENT_PATH"));
+        }
+
+        @Test
+        void namesTheAgentTheImageSupplies() throws Exception {
+            JeffreyJibConfig config = config();
+            config.setAgentPath("/usr/lib/jeffrey-agent.jar");
+
+            extender.extend(planFor("amd64").build(), config, logger);
+
+            assertTrue(logger.messages.stream().anyMatch(m ->
+                            m.message.contains("Jeffrey agent this image already provides")
+                                    && m.message.contains("/usr/lib/jeffrey-agent.jar")),
+                    "A supplied agent has no provenance to print, so the log must name it: "
+                            + logger.messages);
+        }
+
+        @Test
+        void agentPathPropertySetsTheAgentPath() {
+            JeffreyJibConfig config = config();
+
+            JeffreyBuildPlanExtender.applyProperties(
+                    config, Map.of("agentPath", "/usr/lib/jeffrey-agent.jar"), logger);
+
+            assertEquals("/usr/lib/jeffrey-agent.jar", config.getAgentPath());
+            assertTrue(logger.messages.isEmpty(), "A known property is not warned about: " + logger.messages);
         }
 
         @Test
@@ -528,7 +579,7 @@ class JeffreyBuildPlanExtenderTest {
             ContainerBuildPlan result = extender.extend(planFor("amd64").build(), config, logger);
 
             assertEquals(
-                    Set.of("/opt/jeffrey/provisioner.jar"),
+                    Set.of("/opt/jeffrey/provisioner.jar", "/opt/jeffrey/jeffrey-agent.jar"),
                     entriesOf(layerNamed(result, PAYLOAD_LAYER)).keySet());
             Map<String, String> env = result.getEnvironment();
             assertEquals("/opt/jeffrey/provisioner.jar", env.get("JEFFREY_PROVISIONER_PATH"));
@@ -620,7 +671,8 @@ class JeffreyBuildPlanExtenderTest {
 
             assertTrue(logger.messages.stream().anyMatch(m ->
                             m.message.contains("/opt/jeffrey/provisioner (jeffrey v0.13.22)")
-                                    && m.message.contains("/opt/jeffrey/libasyncProfiler.so (async-profiler 4.1)")),
+                                    && m.message.contains("/opt/jeffrey/libasyncProfiler.so (async-profiler 4.1)")
+                                    && m.message.contains("/opt/jeffrey/jeffrey-agent.jar (jeffrey v0.13.22)")),
                     "Expected the provenance next to each install path; got: " + logger.messages);
         }
     }

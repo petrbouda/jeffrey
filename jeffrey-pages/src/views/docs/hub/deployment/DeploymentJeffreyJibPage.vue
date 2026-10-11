@@ -115,7 +115,7 @@ const moduleClient = `<plugin>
         the JVM starts and boots with the right async-profiler flags, the
         <code>-Djeffrey.heartbeat.dir</code> property and the
         <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that reports liveness. There is no Dockerfile and no shell script to
-        maintain; the provisioner and async-profiler are installed by the extension under
+        maintain; the provisioner, async-profiler and the agent are installed by the extension under
         <code>/opt/jeffrey</code>.
       </p>
 
@@ -251,7 +251,8 @@ const moduleClient = `<plugin>
       <h2 id="self-contained-image">A Self-Contained Image</h2>
       <p>
         The extension bakes everything the image needs to profile itself: the entrypoint wrapper at
-        <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner and async-profiler under
+        <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner, async-profiler and
+        <code>jeffrey-agent.jar</code> under
         <code>/opt/jeffrey</code>. The payload arrives with the flavour you declared, like any other
         plugin dependency, and the build log prints which Jeffrey release and async-profiler version
         that jeffrey-jib release bundles.

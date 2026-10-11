@@ -64,6 +64,7 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Flag("JEFFREY_PRINT_ENV", ConfigPaths.PRINT_ENV),
             new EnvBinding.Flag("JEFFREY_PROVISIONER_VERBOSE", ConfigPaths.PROVISIONER_VERBOSE),
             new EnvBinding.Flag("JEFFREY_AGENT_ENABLED", ConfigPaths.JEFFREY_AGENT_ENABLED),
+            new EnvBinding.Value("JEFFREY_AGENT_PATH", ConfigPaths.JEFFREY_AGENT_PATH),
             new EnvBinding.Flag("JEFFREY_PERF_COUNTERS", ConfigPaths.PERF_COUNTERS_ENABLED),
             new EnvBinding.Flag(ENV_TRACING_ENABLED, ConfigPaths.TRACING_ENABLED),
             new EnvBinding.Value("JEFFREY_TRACING_JFR_EVENT_SETTINGS", ConfigPaths.TRACING_JFR_EVENT_SETTINGS),

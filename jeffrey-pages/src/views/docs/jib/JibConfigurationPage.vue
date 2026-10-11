@@ -106,6 +106,12 @@ onMounted(() => {
                 <td>Explicit async-profiler path. Setting it declares that the image already provides the library, so the extension does not bake its own copy &mdash; see <a href="#custom-async-profiler">Using Your Own async-profiler</a>.</td>
               </tr>
               <tr>
+                <td><code>agentPath</code></td>
+                <td><code>JEFFREY_AGENT_PATH</code></td>
+                <td>baked: <code>/opt/jeffrey/jeffrey-agent.jar</code>, one file for every architecture</td>
+                <td>Explicit <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> path. Works exactly like <code>profilerPath</code>: setting it declares that the image already provides <code>jeffrey-agent.jar</code>, so the extension does not bake its own copy. The provisioner attaches the jar from this path with <code>-javaagent</code>; nothing is copied into the session.</td>
+              </tr>
+              <tr>
                 <td><code>projectName</code></td>
                 <td><code>JEFFREY_PROJECT_NAME</code></td>
                 <td>the Maven artifactId or Gradle project name</td>
@@ -136,8 +142,8 @@ onMounted(() => {
           extension records its choice in the image as <code>JEFFREY_PROVISIONER_KIND</code>. This is
           the only choice you have over the provisioner: its path is not configurable, because the
           layout it writes is the protocol Jeffrey Hub reads. The flavour's version is a jeffrey-jib
-          release, not a Jeffrey one; which Jeffrey release's provisioner and which async-profiler it
-          bundles is recorded in the payload and printed in the build log.
+          release, not a Jeffrey one; which Jeffrey release's provisioner and agent and which
+          async-profiler it bundles is recorded in the payload and printed in the build log.
         </DocsCallout>
 
         <h2 id="custom-async-profiler">Using Your Own async-profiler</h2>
@@ -145,8 +151,9 @@ onMounted(() => {
           &mdash; a version you have qualified, a build with custom patches, or one your base image
           already ships. Point <code>profilerPath</code> at it. That declares <em>this image already
           has that library</em>, so the extension does not bake its own copy and the
-          second one costs you nothing in image size. async-profiler is the only binary you can
-          substitute this way: the provisioner has no such property, because the session layout and
+          second one costs you nothing in image size. async-profiler and the Jeffrey Agent
+          (<code>agentPath</code>) are the binaries you can substitute this way: the provisioner has no
+          such property, because the session layout and
           workspace events it writes are the protocol Jeffrey Hub reads, and neither side
           version-checks it.</p>
 

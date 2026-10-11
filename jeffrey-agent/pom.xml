@@ -37,8 +37,9 @@
       runs, shaded in and relocated below. Nothing else, on purpose: the jar is appended to the
       system class path of every application it attaches to, so anything it brought along would be
       a version that application did not choose. It logs through System.Logger for the same reason.
-      The jar is not distributed on its own; jeffrey-provisioner embeds it and writes it out per
-      session.
+      Shipped as target/jeffrey-agent.jar: a release asset of every Jeffrey release, and the file
+      jeffrey-jib bakes into images as /opt/jeffrey/jeffrey-agent.jar. The provisioner attaches it
+      from wherever jeffrey-agent.path (JEFFREY_AGENT_PATH) points, exactly like async-profiler.
     -->
     <properties>
         <!-- Pinned: unlike the jar plugin, shade has no version in Maven's super-POM. -->
@@ -64,6 +65,7 @@
     </dependencies>
 
     <build>
+        <finalName>jeffrey-agent</finalName>
         <plugins>
             <!-- The oldest release a profiled application runs on, the same floor as the utilities. -->
             <plugin>
@@ -77,7 +79,7 @@
               The core goes into the agent jar under the agent's own package. Unrelocated it would
               sit on the system class path beside, and win parent-first delegation over, the copy an
               application carrying jeffrey-heartbeat ships — a profiler must never re-version the
-              thing it profiles. Replaces the main artifact, which is the jar the provisioner embeds.
+              thing it profiles. Replaces the main artifact, which is the jar every release ships.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

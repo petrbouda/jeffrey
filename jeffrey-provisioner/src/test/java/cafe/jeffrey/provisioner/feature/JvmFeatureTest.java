@@ -287,17 +287,17 @@ class JvmFeatureTest {
     class JeffreyAgent {
 
         @Test
-        void attachesTheJarWrittenIntoTheSession() {
-            assertEquals("-javaagent:\"/tmp/sessions/session-123/.jeffrey-agent.jar\"",
-                    render(new JvmFeature.JeffreyAgent(SESSION.resolve(".jeffrey-agent.jar"))));
+        void attachesTheJarTheAgentPathNames() {
+            assertEquals("-javaagent:\"/opt/jeffrey/jeffrey-agent.jar\"",
+                    render(new JvmFeature.JeffreyAgent(Path.of("/opt/jeffrey/jeffrey-agent.jar"))));
         }
 
-        /** The JVM reads the quoted option as one, however the session path is spelled. */
+        /** The JVM reads the quoted option as one, however the agent path is spelled. */
         @Test
-        void survivesASpaceInTheSessionPath() {
-            String option = render(new JvmFeature.JeffreyAgent(Path.of("/tmp/my sessions/.jeffrey-agent.jar")));
+        void survivesASpaceInTheAgentPath() {
+            String option = render(new JvmFeature.JeffreyAgent(Path.of("/opt/my tools/jeffrey-agent.jar")));
 
-            assertEquals(List.of("-javaagent:/tmp/my sessions/.jeffrey-agent.jar"), JvmOptions.split(option));
+            assertEquals(List.of("-javaagent:/opt/my tools/jeffrey-agent.jar"), JvmOptions.split(option));
         }
 
         @Test

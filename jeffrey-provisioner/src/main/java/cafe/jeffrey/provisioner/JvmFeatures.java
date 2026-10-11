@@ -39,7 +39,7 @@ public record JvmFeatures(List<JvmFeature> features) {
     /**
      * @param profiler the async-profiler agent, already resolved against the {@code profiler-path} library
      *                 since that decision needs the filesystem and logs its outcome
-     * @param agent    the Jeffrey agent, already written into the session when it is switched on
+     * @param agent    the Jeffrey agent, already resolved against the {@code jeffrey-agent.path} jar
      */
     public static JvmFeatures of(InitConfig config, JvmFeature.AsyncProfiler profiler, JvmFeature.JeffreyAgent agent) {
         return new JvmFeatures(List.of(

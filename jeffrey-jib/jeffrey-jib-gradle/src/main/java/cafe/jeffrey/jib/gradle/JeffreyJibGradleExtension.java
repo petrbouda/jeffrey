@@ -33,12 +33,13 @@ import java.util.Optional;
 /**
  * JIB Gradle plugin extension that wraps the image entrypoint so Jeffrey profiling is initialised
  * before the app starts, without forcing operators to override the container {@code command:} in
- * Kubernetes YAML, and bakes the provisioner and async-profiler into the image.
+ * Kubernetes YAML, and bakes the provisioner, async-profiler and the Jeffrey agent into the image.
  *
  * <p>Recommended consumer setup (Gradle, Kotlin DSL). The {@code buildscript} dependency is a
  * <em>flavour</em> of the extension — {@code jeffrey-jib-gradle-jar} or
  * {@code jeffrey-jib-gradle-native} — which brings this class and the payload jar carrying the
- * matching provisioner build plus async-profiler. The string {@code properties} DSL keeps
+ * matching provisioner build plus async-profiler and the Jeffrey agent. The string
+ * {@code properties} DSL keeps
  * {@link JeffreyJibConfig} off the build script's compile classpath:
  * <pre>{@code
  * buildscript {
@@ -73,6 +74,8 @@ import java.util.Optional;
  *       {@code /jeffrey/jeffrey-overrides.conf}.
  *   <li>{@code profilerPath} — the image already carries async-profiler; that payload is not
  *       baked.
+ *   <li>{@code agentPath} — the image already carries {@code jeffrey-agent.jar}; that payload is
+ *       not baked.
  *   <li>{@code argFile} — location of the generated JVM argfile, default {@code /tmp/jvm.args}.
  *   <li>{@code projectName} — Jeffrey project name baked as {@code JEFFREY_PROJECT_NAME};
  *       defaults to the Gradle project name. Pod-level env still overrides it.

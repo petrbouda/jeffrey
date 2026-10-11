@@ -45,6 +45,7 @@ public final class PayloadInstaller {
     private static final String ENV_PROVISIONER_PATH = "JEFFREY_PROVISIONER_PATH";
     private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
     private static final String ENV_PROFILER_PATH = "JEFFREY_PROFILER_PATH";
+    private static final String ENV_AGENT_PATH = "JEFFREY_AGENT_PATH";
     private static final String PROVENANCE_OPEN = " (";
     private static final String PROVENANCE_CLOSE = ")";
     private static final long BYTES_PER_MEGABYTE = 1024L * 1024L;
@@ -83,6 +84,14 @@ public final class PayloadInstaller {
                 totalBytes += add(layer, request, descriptor.profilerProvenance(), installed);
             }
             environment.put(ENV_PROFILER_PATH, Payloads.PROFILER.envPath(plan.architectures()));
+        }
+
+        // Built from the same Jeffrey release as the provisioner, so it shares that provenance.
+        if (plan.bakeAgent()) {
+            for (PayloadRequest request : Payloads.AGENT.requestsFor(plan.architectures())) {
+                totalBytes += add(layer, request, descriptor.provisionerProvenance(), installed);
+            }
+            environment.put(ENV_AGENT_PATH, Payloads.AGENT.envPath(plan.architectures()));
         }
 
         // The provenance in parentheses is the only place a build log says which Jeffrey release

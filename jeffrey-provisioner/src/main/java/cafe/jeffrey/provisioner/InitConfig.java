@@ -77,10 +77,11 @@ public class InitConfig {
                 instance-name = ""
             }
             attributes = {}
-            # On by default: the provisioner attaches the Jeffrey agent it carries, so a session
-            # reports liveness without the application doing anything. Switched off, liveness is
+            # On by default: the provisioner attaches the Jeffrey agent jar that path names (baked
+            # by jeffrey-jib as JEFFREY_AGENT_PATH), so a session reports liveness without the
+            # application doing anything. Switched off, or with no jar at path, liveness is
             # reported only if the application carries jeffrey-heartbeat itself.
-            jeffrey-agent { enabled = true }
+            jeffrey-agent { enabled = true, path = "" }
             perf-counters { enabled = false }
             # Lowers the JFR thresholds a span is read at. On by default: a provisioned JVM is one
             # being profiled on purpose, and the settings cost nothing in an application that emits
@@ -189,6 +190,7 @@ public class InitConfig {
     private final Map<String, String> attributes;
 
     private final boolean jeffreyAgentEnabled;
+    private final String jeffreyAgentPath;
     private final boolean perfCountersEnabled;
     private final boolean spanTracingEnabled;
     private final String tracingJfrEventSettings;
@@ -239,6 +241,10 @@ public class InitConfig {
                 resolved.getObject(ConfigPaths.ATTRIBUTES).unwrapped(), placeholders);
 
         this.jeffreyAgentEnabled = resolved.getBoolean(ConfigPaths.JEFFREY_AGENT_ENABLED);
+        // Located exactly like the profiler: baked into the image by jeffrey-jib, or named by
+        // whoever ships the agent jar themselves. Null when nothing names one (see JeffreyAgentResolver).
+        this.jeffreyAgentPath =
+                nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.JEFFREY_AGENT_PATH)));
         this.perfCountersEnabled = resolved.getBoolean(ConfigPaths.PERF_COUNTERS_ENABLED);
         this.spanTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
         this.tracingJfrEventSettings = valueOrDefault(
@@ -363,6 +369,11 @@ public class InitConfig {
      */
     public boolean isJeffreyAgentEnabled() {
         return jeffreyAgentEnabled;
+    }
+
+    /** The Jeffrey agent jar {@code jeffrey-agent.path} names, or {@code null} when nothing names one. */
+    public String getJeffreyAgentPath() {
+        return jeffreyAgentPath;
     }
 
     public boolean isPerfCountersEnabled() {

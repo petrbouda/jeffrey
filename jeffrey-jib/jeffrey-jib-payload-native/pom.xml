@@ -28,12 +28,13 @@
 
     <artifactId>jeffrey-jib-payload-native</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>The GraalVM provisioner and async-profiler, baked into application images by the jeffrey-jib-*-native flavours of the Jeffrey JIB extension.</description>
+    <description>The GraalVM provisioner, async-profiler and the Jeffrey agent, baked into application images by the jeffrey-jib-*-native flavours of the Jeffrey JIB extension.</description>
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <!--
       One jar carrying every binary the native flavour bakes, under jeffrey-payload/:
-      provisioner-linux-amd64, provisioner-linux-arm64, libasyncProfiler-linux-amd64.so, libasyncProfiler-linux-arm64.so.
+      provisioner-linux-amd64, provisioner-linux-arm64, libasyncProfiler-linux-amd64.so, libasyncProfiler-linux-arm64.so,
+      jeffrey-agent.jar.
       CI stages them into src/main/payload/jeffrey-payload/ before packaging; that directory is a
       resource root with filtering off, so nothing rewrites a binary. payload.properties, which the
       extension reads to learn what the jar carries and where it came from, lives in the ordinary
@@ -81,6 +82,7 @@
                                         <file>${payload.dir}/jeffrey-payload/provisioner-linux-arm64</file>
                                         <file>${payload.dir}/jeffrey-payload/libasyncProfiler-linux-amd64.so</file>
                                         <file>${payload.dir}/jeffrey-payload/libasyncProfiler-linux-arm64.so</file>
+                                        <file>${payload.dir}/jeffrey-payload/jeffrey-agent.jar</file>
                                     </files>
                                 </requireFilesExist>
                                 <!-- Recorded in payload.properties and printed by the extension at
