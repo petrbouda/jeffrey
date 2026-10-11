@@ -975,7 +975,8 @@ class InitConfigTest {
             Map<String, String> env = new HashMap<>(MINIMAL_ENV);
             env.put("JEFFREY_AGENT_PATH", "/opt/jeffrey/jeffrey-agent.jar");
 
-            assertEquals("/opt/jeffrey/jeffrey-agent.jar", InitConfig.fromEnvironment(env::get).getJeffreyAgentPath());
+            assertEquals("/opt/jeffrey/jeffrey-agent.jar",
+                    InitConfig.fromEnvironment(env::get).getJeffreyAgentPath());
         }
 
         @Test

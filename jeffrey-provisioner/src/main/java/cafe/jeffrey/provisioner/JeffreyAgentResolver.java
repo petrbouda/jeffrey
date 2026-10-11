@@ -59,7 +59,8 @@ public class JeffreyAgentResolver {
      */
     public JvmFeature.JeffreyAgent resolve(boolean enabled, String agentPath) {
         if (!enabled) {
-            LOG.info("Jeffrey agent DISABLED, liveness is reported only if the application carries jeffrey-heartbeat");
+            LOG.info("Jeffrey agent DISABLED, liveness is reported only if the application carries "
+                    + "jeffrey-heartbeat");
             return JvmFeature.JeffreyAgent.disabled();
         }
         if (agentPath == null || agentPath.isBlank()) {

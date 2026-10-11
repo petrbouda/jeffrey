@@ -83,7 +83,8 @@ class JeffreyAgentResolverTest {
         void attachesARegularFile() throws IOException {
             Path jar = Files.createFile(tempDir.resolve("jeffrey-agent.jar"));
 
-            assertEquals(new JvmFeature.JeffreyAgent(jar), new JeffreyAgentResolver().resolve(true, jar.toString()));
+            assertEquals(new JvmFeature.JeffreyAgent(jar),
+                    new JeffreyAgentResolver().resolve(true, jar.toString()));
         }
 
         @Test

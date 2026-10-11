@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -59,26 +60,36 @@ class InitExecutorTest {
 
     /** A run whose profiler-path library is in place, as jeffrey-jib bakes it. */
     private InitConfig config() throws IOException {
+        return config(Map.of());
+    }
+
+    /** As {@link #config()}, plus the variables a test adds on top. */
+    private InitConfig config(Map<String, String> extraEnv) throws IOException {
         profilerLibrary = tempDir.resolve("libasyncProfiler.so");
         if (Files.notExists(profilerLibrary)) {
             Files.createFile(profilerLibrary);
         }
-        return config(profilerLibrary);
+        return config(profilerLibrary, extraEnv);
     }
 
     private InitConfig config(Path profilerPath) {
+        return config(profilerPath, Map.of());
+    }
+
+    private InitConfig config(Path profilerPath, Map<String, String> extraEnv) {
         workspacesDir = tempDir.resolve("workspaces");
         argFile = tempDir.resolve("jvm.args");
         envFile = tempDir.resolve("jeffrey.env");
 
-        Map<String, String> env = Map.of(
+        Map<String, String> env = new HashMap<>(Map.of(
                 "JEFFREY_WORKSPACES_DIR", workspacesDir.toString(),
                 "JEFFREY_PROJECT_NAME", PROJECT_NAME,
                 "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
                 "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
                 "JEFFREY_ARG_FILE", argFile.toString(),
                 "JEFFREY_ENV_FILE", envFile.toString(),
-                "JEFFREY_PROFILER_PATH", profilerPath.toString());
+                "JEFFREY_PROFILER_PATH", profilerPath.toString()));
+        env.putAll(extraEnv);
 
         return InitConfig.fromEnvironment(env::get);
     }
@@ -229,17 +240,9 @@ class InitExecutorTest {
         }
 
         private InitConfig config(String agentEnabled, Path agentPath) throws IOException {
-            InitConfig base = InitExecutorTest.this.config();
-            Map<String, String> env = Map.of(
-                    "JEFFREY_WORKSPACES_DIR", workspacesDir.toString(),
-                    "JEFFREY_PROJECT_NAME", PROJECT_NAME,
-                    "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
-                    "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
-                    "JEFFREY_ARG_FILE", argFile.toString(),
-                    "JEFFREY_PROFILER_PATH", base.getProfilerPath(),
+            return InitExecutorTest.this.config(Map.of(
                     "JEFFREY_AGENT_ENABLED", agentEnabled,
-                    "JEFFREY_AGENT_PATH", agentPath.toString());
-            return InitConfig.fromEnvironment(env::get);
+                    "JEFFREY_AGENT_PATH", agentPath.toString()));
         }
 
         private List<String> agentOptions() throws IOException {

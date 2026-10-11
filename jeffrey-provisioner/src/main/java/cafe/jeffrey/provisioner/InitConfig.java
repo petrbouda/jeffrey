@@ -79,7 +79,7 @@ public class InitConfig {
             attributes = {}
             # On by default: the provisioner attaches the Jeffrey agent jar that path names (baked
             # by jeffrey-jib as JEFFREY_AGENT_PATH), so a session reports liveness without the
-            # application doing anything. Switched off, or with no jar at path, liveness is
+            # application doing anything. Switched off, or when path names no jar, liveness is
             # reported only if the application carries jeffrey-heartbeat itself.
             jeffrey-agent { enabled = true, path = "" }
             perf-counters { enabled = false }
@@ -242,7 +242,8 @@ public class InitConfig {
 
         this.jeffreyAgentEnabled = resolved.getBoolean(ConfigPaths.JEFFREY_AGENT_ENABLED);
         // Located exactly like the profiler: baked into the image by jeffrey-jib, or named by
-        // whoever ships the agent jar themselves. Null when nothing names one (see JeffreyAgentResolver).
+        // whoever ships the agent jar themselves. Null when nothing names one; the session then
+        // runs without the agent (see JeffreyAgentResolver).
         this.jeffreyAgentPath =
                 nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.JEFFREY_AGENT_PATH)));
         this.perfCountersEnabled = resolved.getBoolean(ConfigPaths.PERF_COUNTERS_ENABLED);
@@ -371,7 +372,7 @@ public class InitConfig {
         return jeffreyAgentEnabled;
     }
 
-    /** The Jeffrey agent jar {@code jeffrey-agent.path} names, or {@code null} when nothing names one. */
+    /** The agent jar {@code jeffrey-agent.path} names, or {@code null} when nothing names one. */
     public String getJeffreyAgentPath() {
         return jeffreyAgentPath;
     }
