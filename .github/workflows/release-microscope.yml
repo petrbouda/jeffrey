@@ -62,14 +62,24 @@ jobs:
         printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "${AUTH}" > ~/.docker/config.json
         chmod 600 ~/.docker/config.json
 
+    # `latest` follows plain X.Y.Z releases only; betas and suffixed builds (e.g. 0.14.5-hub-db-less)
+    # must not move it. Jib's tag set always includes the image tag, so repeating the version is a no-op.
+    - name: Resolve extra image tags
+      run: |
+        if [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "JIB_EXTRA_TAGS=latest" >> "$GITHUB_ENV"
+        else
+          echo "JIB_EXTRA_TAGS=${{ inputs.version }}" >> "$GITHUB_ENV"
+        fi
+
     - name: Build & push microscope
       run: |
         mvn -pl build/build-microscope-jib compile jib:build \
           -Djib.to.image=petrbouda/microscope:${{ inputs.version }} \
-          -Djib.to.tags=latest
+          -Djib.to.tags=${JIB_EXTRA_TAGS}
 
     - name: Build & push microscope-examples (with seed recordings)
       run: |
         mvn -pl build/build-microscope-examples-jib compile jib:build \
           -Djib.to.image=petrbouda/microscope-examples:${{ inputs.version }} \
-          -Djib.to.tags=latest
+          -Djib.to.tags=${JIB_EXTRA_TAGS}
