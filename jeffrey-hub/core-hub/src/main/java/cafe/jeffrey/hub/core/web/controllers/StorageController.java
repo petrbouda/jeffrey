@@ -24,12 +24,10 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.web.response.StorageOverviewResponse;
 
 /**
- * Read-only view of the hub's on-disk storage usage, served from
- * {@link StorageOverviewCache}. The cache is recomputed periodically by the
- * {@code StorageOverviewRefresherJob} (first tick at startup), so responses are
- * instant but may be up to one job period stale; {@code computedAtMillis} carries the
- * snapshot's age. To recompute on demand, run the refresher job from the Scheduler page —
- * manual runs are a generic scheduler capability rather than a per-endpoint one.
+ * Read-only view of the hub's on-disk storage usage, served from {@link StorageOverviewCache}.
+ * The project figures come from the last {@code ProjectRetentionJob} pass (first tick at startup),
+ * so they may be up to one period stale; {@code computedAtMillis} carries their age and is
+ * {@code 0} before the first pass. To recompute on demand, run that job from the Scheduler page.
  */
 @RestController
 @RequestMapping("/api/internal/storage")

@@ -18,10 +18,11 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
-import java.util.Map;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
+import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -38,9 +39,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,7 +58,11 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class ProjectStorageQuotaCleanerJobTest {
+/**
+ * The disk budget of a retention pass. Every session here is young and few, so the age windows
+ * and the per-instance cap never act and only the quota decides.
+ */
+class ProjectRetentionJobQuotaTest {
 
     private static final Instant NOW = Instant.parse("2026-02-20T12:00:00Z");
     private static final long MB = 1024L * 1024L;
@@ -72,27 +80,43 @@ class ProjectStorageQuotaCleanerJobTest {
     @Mock
     RepositoryManager repositoryManager;
 
-    private ProjectStorageQuotaCleanerJob job;
+    @Mock
+    ProjectInstanceRepository instanceRepository;
+
+    @Mock
+    StorageOverviewCache storageOverview;
+
+    private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", "ws-1", NOW, NOW, java.util.Map.of());
+                "proj-1", null, "my-project", "ws-1", NOW, NOW, Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
         when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
         when(projectManager.repositoryStorage()).thenReturn(storage);
+        when(projectManager.projectInstanceRepository()).thenReturn(instanceRepository);
 
-        job = new ProjectStorageQuotaCleanerJob(workspacesManager, config(BUDGET + ""));
+        job = job(BUDGET + "");
+    }
+
+    private ProjectRetentionJob job(String maxSize) {
+        return new ProjectRetentionJob(workspacesManager, config(maxSize), storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private static JobConfig config(String maxSize) {
-        return new JobConfig(true, Duration.ofMinutes(15), Map.of("max-size", maxSize));
+        return new JobConfig(true, Duration.ofMinutes(5), Map.of(
+                "session-retention", "3650d",
+                "active-session-file-retention", "3650d",
+                "max-sessions", "1000",
+                "max-size", maxSize,
+                "instance-retention", "14d"));
     }
 
     private void execute() {
-        job.executeOnRepository(projectManager, storage);
+        job.retain(projectManager);
     }
 
     /**
@@ -277,7 +301,7 @@ class ProjectStorageQuotaCleanerJobTest {
         void toleratesEmptyRepository() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
 
-            assertDoesNotThrow(ProjectStorageQuotaCleanerJobTest.this::execute);
+            assertDoesNotThrow(ProjectRetentionJobQuotaTest.this::execute);
         }
     }
 
@@ -286,14 +310,12 @@ class ProjectStorageQuotaCleanerJobTest {
 
         @Test
         void rejectsNonPositiveBudget() {
-            assertThrows(IllegalArgumentException.class,
-                    () -> new ProjectStorageQuotaCleanerJob(workspacesManager, config("0")));
+            assertThrows(IllegalArgumentException.class, () -> job("0"));
         }
 
         @Test
         void readsBinaryUnits() {
-            assertDoesNotThrow(() -> new ProjectStorageQuotaCleanerJob(workspacesManager, config("20G")));
+            assertDoesNotThrow(() -> job("20G"));
         }
-
     }
 }

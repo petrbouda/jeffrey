@@ -27,6 +27,9 @@ public record StorageOverviewResponse(
         long databaseSizeBytes,
         List<ProjectStorageResponse> projects) {
 
+    /** {@code computedAtMillis} before the first retention pass has measured any project. */
+    private static final long NOT_YET_COMPUTED = 0L;
+
     public static StorageOverviewResponse from(CachedOverview cached) {
         StorageOverview overview = cached.overview();
         List<ProjectStorageResponse> projects = overview.projects().stream()
@@ -34,7 +37,7 @@ public record StorageOverviewResponse(
                 .toList();
 
         return new StorageOverviewResponse(
-                cached.computedAt().toEpochMilli(),
+                cached.computedAt() == null ? NOT_YET_COMPUTED : cached.computedAt().toEpochMilli(),
                 overview.infrastructure().databaseBytes(),
                 projects);
     }

@@ -201,22 +201,19 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>
-        <p>Old sessions are reclaimed automatically by several Jeffrey Hub scheduler jobs, each covering a different granularity:</p>
+        <p>Old data is reclaimed automatically by the <strong>Project Retention</strong> job, every 5 minutes by default. Each pass lists a project's sessions once and applies these rules in order, each seeing what the previous one deleted:</p>
         <ul>
-          <li><strong>Instance Session Cleaner</strong> - Two independent age windows:
-            <ul>
-              <li><code>session-retention</code> (7 days by default) - Deletes whole finished sessions older than the window, measured from the session's start. It also caps each instance at <code>max-sessions</code> logical sessions (10 by default). The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
-              <li><code>active-session-file-retention</code> (7 days by default) - Trims finished chunks older than the window inside the <em>live</em> session, so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
-            </ul>
-          </li>
-          <li><strong>Storage Quota Cleaner</strong> - Caps total disk per project (20 GB by default). Age alone cannot bound disk usage, so when a project exceeds its budget this job reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
-          <li><strong>Expired Instance Cleaner</strong> - Deletes instances (including their directories on disk) once they have been EXPIRED past their retention (14 days by default).</li>
-          <li><strong>JFR Compression</strong> - LZ4-compresses finished JFR files to save storage space, every minute by default.</li>
+          <li><code>session-retention</code> (7 days by default) - Deletes whole finished sessions older than the window, measured from the session's start.</li>
+          <li><code>max-sessions</code> (10 by default) - Caps each instance at that many logical sessions; the oldest beyond the cap go even before the age window expires. The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
+          <li><code>active-session-file-retention</code> (7 days by default) - Trims finished chunks older than the window inside the <em>live</em> session, so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
+          <li><code>max-size</code> (20 GB by default) - Caps total disk per project. Age alone cannot bound disk usage, so when a project exceeds its budget the pass reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
+          <li><code>instance-retention</code> (14 days by default) - Deletes instances (including their directories on disk) once they have been EXPIRED that long, and PENDING instances that never streamed a session within it.</li>
         </ul>
+        <p>What a pass leaves is what the storage dashboard shows. Separately, the <strong>JFR Compression</strong> job LZ4-compresses finished JFR files to save storage space, every minute by default.</p>
 
         <h2 id="retained-sessions">Retained Sessions</h2>
         <p>
-          A session can be marked <strong>retained</strong>, which exempts it from every retention job above —
+          A session can be marked <strong>retained</strong>, which exempts it from every retention rule above —
           age-based and quota-based alike. This exists because the sessions worth keeping are usually the ones
           captured when something went wrong, and normal retention would eventually reclaim exactly that evidence.
         </p>

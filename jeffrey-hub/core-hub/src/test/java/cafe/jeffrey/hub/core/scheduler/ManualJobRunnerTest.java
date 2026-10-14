@@ -91,14 +91,14 @@ class ManualJobRunnerTest {
         void reportsOnlyJobsThatImplementTheInterface() {
             var runner = new ManualJobRunner(List.of(
                     new TriggerableJob(JobType.WORKSPACE_RECONCILER, "2 entities"),
-                    new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), new JobLocks(), FIXED_CLOCK);
+                    new ScheduledOnlyJob(JobType.REPOSITORY_JFR_COMPRESSION)), new JobLocks(), FIXED_CLOCK);
 
             assertEquals(Set.of(JobType.WORKSPACE_RECONCILER), runner.supportedTypes());
         }
 
         @Test
         void reportsNothingWhenNoJobOptedIn() {
-            var runner = new ManualJobRunner(List.of(new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), new JobLocks(), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(new ScheduledOnlyJob(JobType.REPOSITORY_JFR_COMPRESSION)), new JobLocks(), FIXED_CLOCK);
 
             assertTrue(runner.supportedTypes().isEmpty());
         }
@@ -125,20 +125,20 @@ class ManualJobRunnerTest {
         @Test
         void routesToTheRequestedJobOnly() {
             var reconciler = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "reconciled");
-            var storage = new TriggerableJob(JobType.STORAGE_OVERVIEW_REFRESHER, "refreshed");
-            var runner = new ManualJobRunner(List.of(reconciler, storage), new JobLocks(), FIXED_CLOCK);
+            var retention = new TriggerableJob(JobType.PROJECT_RETENTION, "retained");
+            var runner = new ManualJobRunner(List.of(reconciler, retention), new JobLocks(), FIXED_CLOCK);
 
-            assertEquals("refreshed", runner.run(JobType.STORAGE_OVERVIEW_REFRESHER).summary());
+            assertEquals("retained", runner.run(JobType.PROJECT_RETENTION).summary());
             assertEquals(0, reconciler.runs.get());
         }
 
         @Test
         void rejectsAJobThatDoesNotOfferAManualRun() {
-            var runner = new ManualJobRunner(List.of(new ScheduledOnlyJob(JobType.EXPIRED_INSTANCE_CLEANER)), new JobLocks(), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(new ScheduledOnlyJob(JobType.REPOSITORY_JFR_COMPRESSION)), new JobLocks(), FIXED_CLOCK);
 
             var e = assertThrows(ManualJobRunner.ManualRunNotSupportedException.class,
-                    () -> runner.run(JobType.EXPIRED_INSTANCE_CLEANER));
-            assertTrue(e.getMessage().contains("EXPIRED_INSTANCE_CLEANER"),
+                    () -> runner.run(JobType.REPOSITORY_JFR_COMPRESSION));
+            assertTrue(e.getMessage().contains("REPOSITORY_JFR_COMPRESSION"),
                     "The error should name the job that was asked for");
         }
 

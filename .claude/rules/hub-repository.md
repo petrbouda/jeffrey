@@ -50,3 +50,4 @@ once broken; the "why" says what went wrong. Do not re-derive these from the cod
 
 ### Scheduler
 - No descriptor hierarchy, no `JobContext`: a job reads its params from its `JobConfig` at construction and `execute()` takes nothing. Every job bean lives in `configuration/SchedulerConfiguration`; `JobLocks` is the one per-job lock the tick and `ManualJobRunner` both take.
+- Retention is **one pass per project** (`ProjectRetentionJob`): the sessions are listed once with their files and the sealed `RetentionRule`s run over that `ProjectRetentionPass` in order (age + cap, live trim, quota, stale instances), every deletion going through the pass so later rules and the storage figure see what is left. The storage overview is published from that pass into `StorageOverviewCache`; do not add a second walk of the repository for it, nor a separate cleaner job.

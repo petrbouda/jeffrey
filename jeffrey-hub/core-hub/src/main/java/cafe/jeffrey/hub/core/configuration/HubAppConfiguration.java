@@ -69,8 +69,6 @@ public class HubAppConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(HubAppConfiguration.class);
 
     private static final String DUCKDB_URL_PREFIX = "jdbc:duckdb:";
-    /** Also the file {@code HubStorageManager} measures for the storage dashboard. */
-    private static final String DATABASE_FILE_NAME = "jeffrey-data.db";
 
     @Bean
     public Clock applicationClock() {
@@ -84,7 +82,7 @@ public class HubAppConfiguration {
             Clock clock) {
 
         String resolvedUrl = StringUtils.isNullOrBlank(databaseUrl)
-                ? DUCKDB_URL_PREFIX + jeffreyDirs.homeDir().resolve(DATABASE_FILE_NAME)
+                ? DUCKDB_URL_PREFIX + jeffreyDirs.databaseFile()
                 : databaseUrl;
 
         return new DuckDBHubPersistenceProvider(resolvedUrl, clock);

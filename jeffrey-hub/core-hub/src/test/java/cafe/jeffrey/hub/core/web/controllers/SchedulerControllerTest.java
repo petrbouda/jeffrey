@@ -64,8 +64,8 @@ class SchedulerControllerTest {
             when(jobRegistry.all()).thenReturn(List.of(
                     new JobInfo(JobType.WORKSPACE_RECONCILER, JobType.ExecutionLevel.GLOBAL,
                             Duration.ofSeconds(5), Map.of(), true, true),
-                    new JobInfo(JobType.EXPIRED_INSTANCE_CLEANER, JobType.ExecutionLevel.PROJECT,
-                            Duration.ofHours(1), Map.of(), true, false)));
+                    new JobInfo(JobType.REPOSITORY_JFR_COMPRESSION, JobType.ExecutionLevel.PROJECT,
+                            Duration.ofMinutes(1), Map.of(), true, false)));
 
             assertThat(mvc().get().uri("/api/internal/scheduler/jobs"))
                     .hasStatusOk()
@@ -95,10 +95,10 @@ class SchedulerControllerTest {
 
         @Test
         void aJobWithoutAManualRunIsNotFound() {
-            when(manualJobRunner.run(JobType.EXPIRED_INSTANCE_CLEANER))
-                    .thenThrow(new ManualJobRunner.ManualRunNotSupportedException(JobType.EXPIRED_INSTANCE_CLEANER));
+            when(manualJobRunner.run(JobType.REPOSITORY_JFR_COMPRESSION))
+                    .thenThrow(new ManualJobRunner.ManualRunNotSupportedException(JobType.REPOSITORY_JFR_COMPRESSION));
 
-            assertThat(mvc().post().uri("/api/internal/scheduler/jobs/EXPIRED_INSTANCE_CLEANER/run"))
+            assertThat(mvc().post().uri("/api/internal/scheduler/jobs/REPOSITORY_JFR_COMPRESSION/run"))
                     .hasStatus(404);
         }
 

@@ -20,22 +20,16 @@ package cafe.jeffrey.hub.core.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.manager.storage.HubStorageManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 
 import java.time.Clock;
+import java.util.List;
 
 @Configuration
 public class StorageConfiguration {
 
     @Bean
-    public HubStorageManager storageManager(WorkspacesManager workspacesManager, HubJeffreyDirs jeffreyDirs) {
-        return new HubStorageManager(workspacesManager, jeffreyDirs);
-    }
-
-    @Bean
-    public StorageOverviewCache storageOverviewCache(HubStorageManager storageManager, Clock clock) {
-        return new StorageOverviewCache(storageManager, clock);
+    public StorageOverviewCache storageOverviewCache(HubJeffreyDirs jeffreyDirs, Clock clock) {
+        return new StorageOverviewCache(List.of(jeffreyDirs.databaseFile(), jeffreyDirs.databaseWalFile()), clock);
     }
 }

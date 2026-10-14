@@ -19,10 +19,7 @@ package cafe.jeffrey.hub.model.job;
 
 public enum JobType {
     WORKSPACE_RECONCILER(ExecutionLevel.GLOBAL),
-    STORAGE_OVERVIEW_REFRESHER(ExecutionLevel.GLOBAL),
-    PROJECT_INSTANCE_SESSION_CLEANER(ExecutionLevel.PROJECT),
-    PROJECT_STORAGE_QUOTA_CLEANER(ExecutionLevel.PROJECT),
-    EXPIRED_INSTANCE_CLEANER(ExecutionLevel.PROJECT),
+    PROJECT_RETENTION(ExecutionLevel.PROJECT),
     REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT),
     SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT);
 

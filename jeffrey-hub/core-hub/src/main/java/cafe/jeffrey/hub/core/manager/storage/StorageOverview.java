@@ -17,12 +17,18 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 /**
- * Snapshot of the hub's on-disk storage usage. All byte figures are computed from
- * the filesystem at the time of the call — the hub database stores no size columns.
+ * Snapshot of the hub's on-disk storage usage. Every byte figure comes from the filesystem; the
+ * hub database stores no size columns.
  */
 public record StorageOverview(
         InfrastructureUsage infrastructure,
@@ -47,5 +53,27 @@ public record StorageOverview(
             long totalSizeBytes,
             int totalFiles,
             long lastActivityTimeMillis) {
+
+        /** Measures a project from its sessions, loaded with their files. */
+        public static ProjectStorage measure(
+                WorkspaceInfo workspace, ProjectInfo project, List<RecordingSession> sessions) {
+
+            List<RepositoryFile> files = sessions.stream()
+                    .flatMap(session -> session.files().stream())
+                    .toList();
+            long totalSize = files.stream()
+                    .mapToLong(RepositoryFile::size)
+                    .sum();
+            long lastActivity = files.stream()
+                    .map(RepositoryFile::createdAt)
+                    .filter(Objects::nonNull)
+                    .mapToLong(Instant::toEpochMilli)
+                    .max()
+                    .orElse(0L);
+
+            return new ProjectStorage(
+                    workspace.id(), workspace.name(), project.id(), project.name(),
+                    totalSize, files.size(), lastActivity);
+        }
     }
 }

@@ -87,7 +87,7 @@ class SchedulerJobsPropertiesTest {
         void doesNotConfuseDistinctJobs() {
             var properties = propertiesWithJob("workspace-reconciler", Duration.ofSeconds(2));
 
-            assertFalse(properties.forType(JobType.EXPIRED_INSTANCE_CLEANER).enabled());
+            assertFalse(properties.forType(JobType.REPOSITORY_JFR_COMPRESSION).enabled());
         }
     }
 
