@@ -18,6 +18,7 @@
 package cafe.jeffrey.hub.client.manager;
 
 import cafe.jeffrey.hub.client.FileStreamClient;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
@@ -36,41 +37,43 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RemoteRepositoryManager implements RepositoryManager {
 
     private final TempDirProvider tempDirProvider;
-    private final ProjectInfo projectInfo;
+    private final ProjectScope scope;
+    private final RepositoryStatistics statistics;
     private final RepositoryClient repositoryClient;
     private final FileStreamClient fileStreamClient;
 
     public RemoteRepositoryManager(
             TempDirProvider tempDirProvider,
             ProjectInfo projectInfo,
+            RepositoryStatistics statistics,
             RepositoryClient repositoryClient,
             FileStreamClient fileStreamClient) {
 
         this.tempDirProvider = tempDirProvider;
-        this.projectInfo = projectInfo;
+        this.scope = ProjectScope.of(projectInfo);
+        this.statistics = statistics;
         this.repositoryClient = repositoryClient;
         this.fileStreamClient = fileStreamClient;
     }
 
     @Override
-    public List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter) {
-        return repositoryClient.recordingSessions(projectInfo.id(), filter).stream()
+    public List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter) {
+        return repositoryClient.recordingSessions(scope, filter).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }
 
     @Override
     public RecordingSession recordingSession(String sessionId) {
-        return RecordingSessionResponse.from(repositoryClient.recordingSession(sessionId));
+        return RecordingSessionResponse.from(repositoryClient.recordingSession(scope, sessionId));
     }
 
+    /**
+     * The figure the project arrived with, so no request walks the project's files for it.
+     */
     @Override
-    public RepositoryStatistics calculateRepositoryStatistics() {
-        // The bytes every file of every session occupies, summed over the listing the hub sends anyway
-        long totalSize = listRecordingSessions(true).stream()
-                .mapToLong(RecordingSession::totalSizeBytes)
-                .sum();
-        return new RepositoryStatistics(totalSize);
+    public RepositoryStatistics repositoryStatistics() {
+        return statistics;
     }
 
     /**
@@ -87,7 +90,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
         AtomicReference<Path> landed = new AtomicReference<>();
 
         try {
-            fileStreamClient.streamFile(sessionId, fileId, (inputStream, transferred) -> {
+            fileStreamClient.streamFile(scope, sessionId, fileId, (inputStream, transferred) -> {
                 Path target = tempDir.resolve(transferred.name());
                 Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
                 landed.set(target);
@@ -103,11 +106,11 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public void deleteRecordingSession(String recordingSessionId) {
-        repositoryClient.deleteSession(recordingSessionId);
+        repositoryClient.deleteSession(scope, recordingSessionId);
     }
 
     @Override
     public void setSessionRetained(String recordingSessionId, boolean retained) {
-        repositoryClient.setSessionRetained(recordingSessionId, retained);
+        repositoryClient.setSessionRetained(scope, recordingSessionId, retained);
     }
 }

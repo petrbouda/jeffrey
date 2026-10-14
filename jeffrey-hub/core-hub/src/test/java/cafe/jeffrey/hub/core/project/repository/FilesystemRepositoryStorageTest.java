@@ -17,13 +17,14 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
-import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,9 +33,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -42,15 +45,195 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class FilesystemRepositoryStorageTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
+    private static final Instant NOW = T0.plusSeconds(3600);
+    private static final String SESSION_ID = "session-1";
+    private static final ProjectInfo PROJECT_INFO = new ProjectInfo("project-1", "project", "ws", T0, Map.of());
+
+    private static Path projectDir(Path workspacesDir) {
+        return TestVolume.project(workspacesDir.resolve("ws"), PROJECT_INFO.id(), PROJECT_INFO.name(), T0);
+    }
+
+    private static Path sessionDir(Path workspacesDir) {
+        return TestVolume.session(TestVolume.instance(projectDir(workspacesDir), "instance", T0), SESSION_ID, T0);
+    }
+
+    /**
+     * The project with its one session, still recording (a heartbeat fresh at {@link #NOW}) when
+     * {@code finishedAt} is null, finished by its clean-exit marker otherwise.
+     */
+    private static FilesystemRepositoryStorage storage(Path workspacesDir, Instant finishedAt) {
+        Path session = sessionDir(workspacesDir);
+        if (finishedAt == null) {
+            TestVolume.heartbeat(session, NOW);
+        } else {
+            TestVolume.finished(session, finishedAt);
+        }
+        return new FilesystemRepositoryStorage(
+                PROJECT_INFO, projectDir(workspacesDir), TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC)));
+    }
+
+    /** The session directory's files as a reader sees them: dot-files are the volume's own bookkeeping. */
+    private static List<String> names(Path dir) throws IOException {
+        try (var entries = Files.list(dir)) {
+            return entries.map(path -> path.getFileName().toString())
+                    .filter(name -> !name.startsWith("."))
+                    .sorted()
+                    .toList();
+        }
+    }
 
     /** Long enough that LZ4 has something to do with it, short enough to read in a failure. */
     private static final String CHUNK_BODY = "a chunk of events, repeated so the frame compresses".repeat(20);
+
+    /**
+     * What the volume says about a project's sessions and instances, read at the moment of asking:
+     * markers name them, heartbeat files say whether they are still recording, and a
+     * {@code .retained} file pins one.
+     */
+    @Nested
+    class Listing {
+
+        private static final String INSTANCE = "pod-a";
+
+        @TempDir
+        Path workspacesDir;
+
+        private Path project;
+        private FilesystemRepositoryStorage storage;
+
+        @BeforeEach
+        void setUp() {
+            project = projectDir(workspacesDir);
+            storage = new FilesystemRepositoryStorage(
+                    PROJECT_INFO, project, TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC)));
+        }
+
+        private Path session(String instanceId, String sessionId, Instant createdAt) {
+            return TestVolume.session(TestVolume.instance(project, instanceId, T0), sessionId, createdAt);
+        }
+
+        @Test
+        void listsEverySessionNewestFirstByItsMarker() {
+            TestVolume.finished(session(INSTANCE, "s-old", T0), T0.plusSeconds(60));
+            TestVolume.heartbeat(session("pod-b", "s-new", T0.plusSeconds(120)), NOW);
+
+            List<RecordingSession> sessions = storage.listSessions(SessionDetail.HEADERS);
+
+            assertEquals(List.of("s-new", "s-old"), sessions.stream().map(RecordingSession::id).toList());
+            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.FINISHED),
+                    sessions.stream().map(RecordingSession::status).toList());
+            assertEquals("pod-b/s-new", sessions.getFirst().name());
+        }
+
+        /** A newer session in the same instance means the older one ended, even with a fresh beat. */
+        @Test
+        void aNewerSessionOfTheSameInstanceFinishesTheOlderOne() {
+            Path older = session(INSTANCE, "s-1", T0);
+            TestVolume.heartbeat(older, NOW);
+            TestVolume.heartbeat(session(INSTANCE, "s-2", T0.plusSeconds(600)), NOW);
+
+            List<RecordingSession> sessions = storage.listSessionsByInstanceId(INSTANCE, SessionDetail.HEADERS);
+
+            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.FINISHED),
+                    sessions.stream().map(RecordingSession::status).toList());
+            assertEquals(NOW, sessions.get(1).finishedAt());
+        }
+
+        @Test
+        void anInstanceTakesItsStatusAndFinishFromItsNewestSession() {
+            TestVolume.finished(session(INSTANCE, "s-1", T0), T0.plusSeconds(60));
+            TestVolume.finished(session(INSTANCE, "s-2", T0.plusSeconds(120)), T0.plusSeconds(300));
+
+            ProjectInstanceInfo instance = storage.instance(INSTANCE).orElseThrow();
+
+            assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
+            assertEquals(T0.plusSeconds(300), instance.finishedAt());
+            assertEquals(2, instance.sessionCount());
+        }
+
+        @Test
+        void anInstanceWithoutSessionsIsPending() {
+            TestVolume.instance(project, INSTANCE, T0);
+
+            ProjectInstanceInfo instance = storage.instance(INSTANCE).orElseThrow();
+
+            assertEquals(ProjectInstanceStatus.PENDING, instance.status());
+            assertEquals(0, instance.sessionCount());
+        }
+
+        @Test
+        void anUnknownInstanceIsEmpty() {
+            assertTrue(storage.instance("ghost").isEmpty());
+            assertTrue(storage.instance("../escape").isEmpty());
+        }
+
+        @Test
+        void aDirectoryWithoutItsMarkerIsNoSession() throws IOException {
+            TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
+            Files.createDirectories(project.resolve(INSTANCE).resolve("half-written"));
+
+            assertEquals(List.of("s-1"), storage.listSessions(SessionDetail.HEADERS).stream()
+                    .map(RecordingSession::id).toList());
+        }
+
+        @Test
+        void anInstanceIdThatIsNotOneDirectoryNamesNothing() {
+            TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
+
+            assertTrue(storage.listSessionsByInstanceId("../" + INSTANCE, SessionDetail.HEADERS).isEmpty());
+            assertTrue(storage.singleSession("../s-1", SessionDetail.HEADERS).isEmpty());
+        }
+
+        @Test
+        void theRetainedFlagIsAFileInTheSession() {
+            Path dir = session(INSTANCE, "s-1", T0);
+            TestVolume.finished(dir, T0.plusSeconds(60));
+
+            assertTrue(storage.setRetained("s-1", true));
+            assertTrue(Files.exists(dir.resolve(FilesystemRepositoryStorage.RETAINED_MARKER)));
+            assertTrue(storage.singleSession("s-1", SessionDetail.HEADERS).orElseThrow().retained());
+            assertTrue(storage.singleSession("s-1", SessionDetail.WITH_FILES).orElseThrow().files().isEmpty(),
+                    "the flag is no file of the session");
+
+            storage.setRetained("s-1", false);
+            assertFalse(storage.singleSession("s-1", SessionDetail.HEADERS).orElseThrow().retained());
+        }
+
+        @Nested
+        class Instances {
+
+            @Test
+            void withoutASessionIsPending() {
+                TestVolume.instance(project, INSTANCE, T0);
+
+                assertEquals(new ProjectInstanceInfo(
+                                INSTANCE, ProjectInstanceStatus.PENDING,
+                                T0, null, 0),
+                        storage.instances().getFirst());
+            }
+
+            @Test
+            void isActiveWhileASessionRecordsAndFinishedAtItsLastFinishAfterwards() {
+                TestVolume.finished(session(INSTANCE, "s-1", T0), T0.plusSeconds(60));
+                Path live = session(INSTANCE, "s-2", T0.plusSeconds(120));
+                TestVolume.heartbeat(live, NOW);
+
+                assertEquals(ProjectInstanceStatus.ACTIVE,
+                        storage.instances().getFirst().status());
+
+                TestVolume.finished(live, NOW.minusSeconds(5));
+
+                var instance = storage.instances().getFirst();
+                assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
+                assertEquals(NOW.minusSeconds(5), instance.finishedAt());
+                assertEquals(2, instance.sessionCount());
+            }
+        }
+    }
 
     @Nested
     class Describe {
@@ -62,9 +245,7 @@ class FilesystemRepositoryStorageTest {
 
         private FilesystemRepositoryStorage storage() {
             return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class),
-                    workspace,
-                    mock(ProjectRepositoryRepository.class));
+                    PROJECT_INFO, workspace, TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC)));
         }
 
         private Path sessionDir() throws IOException {
@@ -111,29 +292,15 @@ class FilesystemRepositoryStorageTest {
     @Nested
     class OneFile {
 
-        private static final String SESSION_ID = "session-1";
-        private static final String PROJECT = "project";
-        private static final String INSTANCE = "instance";
-
         @TempDir
         Path workspacesDir;
 
-        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
-
-        private Path sessionDir() throws IOException {
-            return Files.createDirectories(
-                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        private Path sessionDir() {
+            return FilesystemRepositoryStorageTest.sessionDir(workspacesDir);
         }
 
         private FilesystemRepositoryStorage storage(Instant finishedAt) {
-            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
-                    "repo-1", null, "ws", PROJECT)));
-            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
-                    SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, finishedAt, false)));
-
-            return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository);
+            return FilesystemRepositoryStorageTest.storage(workspacesDir, finishedAt);
         }
 
         private FilesystemRepositoryStorage finishedSession() {
@@ -262,29 +429,15 @@ class FilesystemRepositoryStorageTest {
     @Nested
     class CompressSession {
 
-        private static final String SESSION_ID = "session-1";
-        private static final String PROJECT = "project";
-        private static final String INSTANCE = "instance";
-
         @TempDir
         Path workspacesDir;
 
-        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
-
-        private Path sessionDir() throws IOException {
-            return Files.createDirectories(
-                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        private Path sessionDir() {
+            return FilesystemRepositoryStorageTest.sessionDir(workspacesDir);
         }
 
         private FilesystemRepositoryStorage storage(Instant finishedAt) {
-            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
-                    "repo-1", null, "ws", PROJECT)));
-            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
-                    SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, finishedAt, false)));
-
-            return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository);
+            return FilesystemRepositoryStorageTest.storage(workspacesDir, finishedAt);
         }
 
         private FilesystemRepositoryStorage finishedSession() {
@@ -297,12 +450,6 @@ class FilesystemRepositoryStorageTest {
 
         private static Path write(Path dir, String name) throws IOException {
             return Files.write(dir.resolve(name), CHUNK_BODY.getBytes(StandardCharsets.UTF_8));
-        }
-
-        private static List<String> names(Path dir) throws IOException {
-            try (var entries = Files.list(dir)) {
-                return entries.map(path -> path.getFileName().toString()).sorted().toList();
-            }
         }
 
         @Test
@@ -341,27 +488,19 @@ class FilesystemRepositoryStorageTest {
         /**
          * Two instances of one project record at once, so only one of the two live sessions is
          * the project's newest — and that must change nothing. Whether a session still holds a
-         * chunk open is a fact of the session ({@code finishedAt} is null), not of its place in
-         * the project's listing; read off the position, the older instance's live session came
-         * back FINISHED, reported no open chunk, and had the file its profiler was still writing
-         * compressed and deleted.
+         * chunk open is a fact of the session (its own heartbeat), not of its place in the
+         * project's listing.
          */
         @Test
         void everyUnfinishedSessionIsLiveWhateverItsPosition() throws IOException {
             Path older = sessionDir();
             write(older, "profile-20260220-120000.jfr");
             write(older, "profile-20260220-121000.jfr");
-            Path newer = Files.createDirectories(
-                    workspacesDir.resolve("ws").resolve(PROJECT).resolve("instance-2").resolve("session-2"));
-            write(newer, "profile-20260220-123000.jfr");
             FilesystemRepositoryStorage storage = liveSession();
-            when(repository.findAllSessions()).thenReturn(List.of(
-                    new ProjectInstanceSessionInfo(
-                            "session-2", "repo-1", "instance-2", Path.of("instance-2", "session-2"),
-                            T0.plusSeconds(1800), T0.plusSeconds(1800), null, false),
-                    new ProjectInstanceSessionInfo(
-                            SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
-                            T0, T0, null, false)));
+            Path newer = TestVolume.session(
+                    TestVolume.instance(projectDir(workspacesDir), "instance-2", T0), "session-2", T0.plusSeconds(1800));
+            TestVolume.heartbeat(newer, NOW);
+            write(newer, "profile-20260220-123000.jfr");
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);
 
@@ -468,29 +607,15 @@ class FilesystemRepositoryStorageTest {
     @Nested
     class DeleteRepositoryFiles {
 
-        private static final String SESSION_ID = "session-1";
-        private static final String PROJECT = "project";
-        private static final String INSTANCE = "instance";
-
         @TempDir
         Path workspacesDir;
 
-        private final ProjectRepositoryRepository repository = mock(ProjectRepositoryRepository.class);
-
-        private Path sessionDir() throws IOException {
-            return Files.createDirectories(
-                    workspacesDir.resolve("ws").resolve(PROJECT).resolve(INSTANCE).resolve(SESSION_ID));
+        private Path sessionDir() {
+            return FilesystemRepositoryStorageTest.sessionDir(workspacesDir);
         }
 
         private FilesystemRepositoryStorage storage() {
-            when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
-                    "repo-1", null, "ws", PROJECT)));
-            when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
-                    SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
-                    T0, T0, null, false)));
-
-            return new FilesystemRepositoryStorage(
-                    mock(ProjectInfo.class), workspacesDir, repository);
+            return FilesystemRepositoryStorageTest.storage(workspacesDir, null);
         }
 
         private static Path write(Path dir, String name) throws IOException {

@@ -19,21 +19,13 @@ package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
-import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 
 public interface RepositoryManager {
-
-    @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, RepositoryManager> {
-    }
 
     /**
      * Finds a recording session by its ID.
@@ -69,35 +61,22 @@ public interface RepositoryManager {
     List<RecordingSession> listInstanceSessions(String instanceId, RecordingSessionFilter filter);
 
     /**
-     * Create a new repository for the project.
+     * Deletes a session, and its instance's directory when that was the instance's last session.
      *
-     * @param projectRepository the repository information to create
-     */
-    void create(RepositoryInfo projectRepository);
-
-    /**
-     * Create a new project instance session.
-     *
-     * @param projectInstanceSessionInfo the project instance session to create
-     */
-    void createSession(ProjectInstanceSessionInfo projectInstanceSessionInfo);
-
-    Optional<RepositoryInfo> info();
-
-    /**
      * @return whether a session of that id existed and was deleted; {@code false} names a
      * session already gone, which a caller counting reclaimed bytes must not count
      */
     boolean deleteRecordingSession(String recordingSessionId);
 
     /**
-     * Marks a recording session as retained, exempting it from every retention job,
+     * Marks a recording session as retained, exempting it from every retention rule,
      * or releases it again so normal retention resumes.
      *
      * @param recordingSessionId the session to update
      * @param retained           true to exempt the session from retention, false to release it
+     * @return whether the project holds the session
      */
-    void setSessionRetained(String recordingSessionId, boolean retained);
+    boolean setSessionRetained(String recordingSessionId, boolean retained);
 
     /**
      * Looks up one file of a session for download, whatever kind it is: a recording chunk, a heap
@@ -106,6 +85,4 @@ public interface RepositoryManager {
      * @return the path to serve, or the named reason the file is not served
      */
     FileLookup file(String sessionId, String fileId);
-
-    void delete();
 }

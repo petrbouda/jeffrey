@@ -44,19 +44,18 @@ final class StubProtoMappers {
             case PENDING -> InstanceStatus.INSTANCE_STATUS_PENDING;
             case ACTIVE -> InstanceStatus.INSTANCE_STATUS_ACTIVE;
             case FINISHED -> InstanceStatus.INSTANCE_STATUS_FINISHED;
-            case EXPIRED -> InstanceStatus.INSTANCE_STATUS_EXPIRED;
         };
     }
 
-    static ProjectInfo projectInfo(StubDataset.Workspace workspace, StubDataset.Project project) {
+    static ProjectInfo projectInfo(StubDataset.Project project) {
         ProjectInfo.Builder builder = ProjectInfo.newBuilder()
                 .setId(project.id())
                 .setName(project.name())
                 .setCreatedAt(project.createdAt().toEpochMilli())
                 .setWorkspaceId(project.workspaceId())
-                .setWorkspaceReferenceId(workspace.referenceId())
                 .setStatus(recordingStatus(project.status()))
-                .setSessionCount(project.sessionCount());
+                .setSessionCount(project.sessionCount())
+                .setSizeBytes(project.sizeBytes());
         return builder.build();
     }
 
@@ -69,16 +68,24 @@ final class StubProtoMappers {
         if (instance.finishedAt() != null) {
             builder.setFinishedAt(instance.finishedAt().toEpochMilli());
         }
-        if (instance.expiringAt() != null) {
-            builder.setExpiringAt(instance.expiringAt().toEpochMilli());
-        }
-        if (instance.expiredAt() != null) {
-            builder.setExpiredAt(instance.expiredAt().toEpochMilli());
+        return builder.build();
+    }
+
+    /** A session with its files, as GetSession sends it. */
+    static RecordingSession recordingSession(StubDataset.Session session) {
+        RecordingSession.Builder builder = sessionBuilder(session);
+        for (StubDataset.File file : session.files()) {
+            builder.addFiles(repositoryFile(file));
         }
         return builder.build();
     }
 
-    static RecordingSession recordingSession(StubDataset.Session session) {
+    /** A session as a listing sends it: its file count and size, not its files. */
+    static RecordingSession sessionHeader(StubDataset.Session session) {
+        return sessionBuilder(session).build();
+    }
+
+    private static RecordingSession.Builder sessionBuilder(StubDataset.Session session) {
         RecordingSession.Builder builder = RecordingSession.newBuilder()
                 .setId(session.id())
                 .setName(session.name())
@@ -90,10 +97,9 @@ final class StubProtoMappers {
         if (session.finishedAt() != null) {
             builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
-        for (StubDataset.File file : session.files()) {
-            builder.addFiles(repositoryFile(file));
-        }
-        return builder.build();
+        return builder
+                .setFileCount(session.files().size())
+                .setSizeBytes(session.sizeBytes());
     }
 
     static RepositoryFile repositoryFile(StubDataset.File file) {

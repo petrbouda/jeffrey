@@ -19,15 +19,15 @@ package cafe.jeffrey.hub.core.manager.project;
 
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
+import cafe.jeffrey.hub.core.volume.ProjectDirectory;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
 import java.util.function.Function;
 
 /**
- * Hub-specific project manager — lean version without profile analysis,
- * recording management, or download capabilities. The hub is a pure collector.
+ * One project directory of a workspace. The hub only collects: no profile analysis, recording
+ * management or downloads of its own.
  */
 public interface ProjectManager {
 
@@ -42,19 +42,17 @@ public interface ProjectManager {
     }
 
     @FunctionalInterface
-    interface Factory extends Function<ProjectInfo, ProjectManager> {
+    interface Factory extends Function<ProjectDirectory, ProjectManager> {
     }
 
     RepositoryStorage repositoryStorage();
 
     RepositoryManager repositoryManager();
 
-
-    ProjectInstanceRepository projectInstanceRepository();
-
     ProjectInfo info();
 
     DetailedProjectInfo detailedInfo();
 
+    /** Deletes the project's directory with everything in it. */
     void delete();
 }

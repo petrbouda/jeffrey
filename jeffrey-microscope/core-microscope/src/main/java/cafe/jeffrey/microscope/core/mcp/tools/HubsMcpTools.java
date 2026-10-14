@@ -521,7 +521,7 @@ public class HubsMcpTools {
             String project = bounded(row.projectName(), DISPLAY_CHARS);
             Optional<DownloadedSessionIndex.LocalCopy> copy = local.find(row.ref());
             String ref = row.ref().encode();
-            int files = session.files() == null ? 0 : session.files().size();
+            int files = session.fileCount();
             table.row(hub, workspace, project, session.createdAt(), duration(session), session.status(), files,
                     ByteSizes.format(session.totalSizeBytes()), localColumn(copy), ref);
             sessions.add(new SessionRow(hub, workspace, project,

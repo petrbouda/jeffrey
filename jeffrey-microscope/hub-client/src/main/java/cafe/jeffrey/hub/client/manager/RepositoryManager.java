@@ -27,17 +27,19 @@ import java.util.List;
 public interface RepositoryManager {
 
     /**
-     * Lists every recording session of the project, newest first.
+     * Lists every recording session of the project, newest first, without their files.
      */
-    default List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return listRecordingSessions(withFiles, RecordingSessionFilter.ALL);
+    default List<RecordingSession> listRecordingSessions() {
+        return listRecordingSessions(RecordingSessionFilter.ALL);
     }
 
     /**
      * Lists the recording sessions that satisfy the filter, newest first. The filter is
-     * evaluated by the hub, so the response carries only the sessions asked for.
+     * evaluated by the hub, so the response carries only the sessions asked for. Each session
+     * carries its {@code SessionSize} but not its files: those come from
+     * {@link #recordingSession(String)}.
      */
-    List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter);
+    List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter);
 
     /**
      * The session as the hub currently has it, files included.
@@ -48,7 +50,10 @@ public interface RepositoryManager {
      */
     RecordingSession recordingSession(String sessionId);
 
-    RepositoryStatistics calculateRepositoryStatistics();
+    /**
+     * What the project occupies, as the hub's last retention pass measured it.
+     */
+    RepositoryStatistics repositoryStatistics();
 
     void deleteRecordingSession(String recordingSessionId);
 

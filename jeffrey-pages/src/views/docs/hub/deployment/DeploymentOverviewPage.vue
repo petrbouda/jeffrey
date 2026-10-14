@@ -81,7 +81,7 @@ onMounted(() => {
           <div class="release-icon"><i class="bi bi-cloud"></i></div>
           <div class="release-body">
             <h3>jeffrey-hub</h3>
-            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and reconciles the recordings the testapp pods write into it. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
+            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and serves the recordings the testapp pods write into it, reading the volume on every request. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
           </div>
         </div>
         <div class="release-tile tile-direct">
@@ -137,7 +137,7 @@ onMounted(() => {
 
         <div class="diagram-arrow-block">
           <div class="diagram-arrow up"><i class="bi bi-arrow-up"></i><small>gRPC ingestion</small></div>
-          <div class="diagram-arrow down"><i class="bi bi-arrow-down"></i><small>reconciles recordings</small></div>
+          <div class="diagram-arrow down"><i class="bi bi-arrow-down"></i><small>reads recordings</small></div>
         </div>
 
         <div class="cluster-pvc">

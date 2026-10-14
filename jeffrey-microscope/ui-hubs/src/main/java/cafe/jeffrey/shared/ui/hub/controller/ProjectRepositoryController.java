@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.InstantUtils;
@@ -86,7 +87,7 @@ public class ProjectRepositoryController {
                 status,
                 limit);
         var result = projectAccess.repositoryManager(hubId, workspaceId, projectId)
-                .listRecordingSessions(true, filter).stream()
+                .listRecordingSessions(filter).stream()
                 .map(s -> RecordingSessionResponse.from(s, clock))
                 .toList();
         LOG.debug("Listed repository sessions: projectId={} filter={} count={}", projectId, filter, result.size());
@@ -100,8 +101,24 @@ public class ProjectRepositoryController {
             @PathVariable("projectId") String projectId) {
         LOG.debug("Fetching repository statistics: projectId={}", projectId);
         RepositoryStatistics stats = projectAccess.repositoryManager(hubId, workspaceId, projectId)
-                .calculateRepositoryStatistics();
+                .repositoryStatistics();
         return RepositoryStatisticsResponse.from(stats);
+    }
+
+    /**
+     * One session with its files — what the session list fetches when a session is expanded, so
+     * the listing itself never carries every file of every session.
+     */
+    @GetMapping("/sessions/{sessionId}")
+    public RecordingSessionResponse getRepositorySession(
+            @PathVariable("hubId") String hubId,
+            @PathVariable("workspaceId") String workspaceId,
+            @PathVariable("projectId") String projectId,
+            @PathVariable("sessionId") String sessionId) {
+        LOG.debug("Fetching repository session: projectId={} sessionId={}", projectId, sessionId);
+        RecordingSession session = projectAccess.repositoryManager(hubId, workspaceId, projectId)
+                .recordingSession(sessionId);
+        return RecordingSessionResponse.from(session, clock);
     }
 
     @DeleteMapping("/sessions/{sessionId}")

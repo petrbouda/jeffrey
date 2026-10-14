@@ -147,11 +147,6 @@
             </tbody>
           </table>
         </div>
-
-        <div class="infra-note">
-          Infrastructure (outside projects):
-          database {{ formatBytes(overview?.databaseSizeBytes ?? 0) }}
-        </div>
       </section>
     </div>
   </div>
@@ -280,16 +275,8 @@ const lastActivity = (row: ProjectRow) => {
   return FormattingService.formatRelativeTime(row.lastActivityTimeMillis);
 };
 
-const projectsTotalBytes = computed(() => {
-  return workspaceRows.value.reduce((sum, row) => sum + row.totalSizeBytes, 0);
-});
-
 const totalUsedBytes = computed(() => {
-  if (!overview.value) {
-    return projectsTotalBytes.value;
-  }
-  return projectsTotalBytes.value
-      + overview.value.databaseSizeBytes;
+  return workspaceRows.value.reduce((sum, row) => sum + row.totalSizeBytes, 0);
 });
 
 const totalProjects = computed(() => {
@@ -301,10 +288,10 @@ const totalFiles = computed(() => {
 });
 
 const shareOfHubValue = (row: WorkspaceRow) => {
-  if (projectsTotalBytes.value === 0) {
+  if (totalUsedBytes.value === 0) {
     return 0;
   }
-  return (row.totalSizeBytes / projectsTotalBytes.value) * 100;
+  return (row.totalSizeBytes / totalUsedBytes.value) * 100;
 };
 
 const shareOfHubPct = (row: WorkspaceRow) => {
@@ -743,14 +730,5 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   min-width: 44px;
   text-align: right;
-}
-
-/* Infrastructure footnote */
-.infra-note {
-  margin: 10px 4px 0;
-  font-size: 0.74rem;
-  color: var(--color-slate-muted);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 </style>

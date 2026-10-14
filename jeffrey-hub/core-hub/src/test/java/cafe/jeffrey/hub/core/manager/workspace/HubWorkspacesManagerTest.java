@@ -17,106 +17,159 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import cafe.jeffrey.hub.persistence.api.WorkspacesRepository;
+import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
+import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.volume.TestVolume;
+import cafe.jeffrey.hub.core.volume.WorkspaceMarker;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.Optional;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Workspaces are directories under the workspaces root, named by their id, with the hub's
+ * {@code .workspace-info.json} for a name.
+ */
 class HubWorkspacesManagerTest {
 
-    private static final Instant FIXED_TIME = Instant.parse("2026-04-30T10:00:00Z");
-    private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_TIME, ZoneOffset.UTC);
+    private static final Instant NOW = Instant.parse("2026-01-15T10:00:00Z");
+    private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
-    private WorkspacesRepository repository;
-    private HubWorkspacesManager manager;
+    @TempDir
+    Path root;
 
-    @BeforeEach
-    void setUp() {
-        repository = mock(WorkspacesRepository.class);
-        WorkspaceManager.Factory factory = info -> mock(WorkspaceManager.class);
-        manager = new HubWorkspacesManager(FIXED_CLOCK, repository, factory);
+    private HubWorkspacesManager manager(boolean autoCreate) {
+        Clock clock = FIXED_CLOCK;
+        ProjectManager.Factory projectFactory = project -> new HubProjectManager(project, TestVolume.liveness(clock));
+        return new HubWorkspacesManager(root, clock, autoCreate,
+                workspace -> new HubWorkspaceManager(workspace, ws -> new HubProjectsManager(ws, projectFactory)));
+    }
+
+    private HubWorkspacesManager manager() {
+        return manager(false);
+    }
+
+    private static List<String> ids(List<WorkspaceManager> workspaces) {
+        return workspaces.stream().map(workspace -> workspace.info().id()).toList();
     }
 
     @Nested
     class Create {
 
         @Test
-        void persistsWorkspaceWhenIdAndNameAreUnique() {
-            when(repository.findByReferenceId("dev-pb")).thenReturn(Optional.empty());
-            when(repository.existsByName("Dev Workspace")).thenReturn(false);
-            when(repository.create(any())).thenAnswer(inv -> inv.getArgument(0));
+        void writesTheDirectoryAndItsMarker() {
+            WorkspaceInfo created = manager().create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", "Production"));
 
-            WorkspaceInfo created = manager.create(new WorkspacesManager.CreateWorkspaceRequest("dev-pb", "Dev Workspace"));
+            assertEquals(new WorkspaceInfo("prod-ws", "Production", NOW, WorkspaceStatus.AVAILABLE, 0), created);
+            assertTrue(Files.isRegularFile(root.resolve("prod-ws").resolve(WorkspaceMarker.FILE_NAME)));
+        }
 
-            assertEquals("dev-pb", created.referenceId());
-            assertEquals("Dev Workspace", created.name());
-            assertEquals(WorkspaceStatus.UNKNOWN, created.status());
-            verify(repository).create(any());
+        /** The provisioner may write into a reference id before anyone creates it; its projects stay. */
+        @Test
+        void adoptsADirectoryTheProvisionerAlreadyWroteInto() {
+            TestVolume.project(root.resolve("prod-ws"), "p-1", "orders", NOW);
+
+            WorkspaceInfo created = manager().create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", "Production"));
+
+            assertEquals(1, created.projectCount());
         }
 
         @Test
         void blankReferenceId_throwsIllegalArgumentException() {
-            var ex = assertThrows(IllegalArgumentException.class, () ->
-                    new WorkspacesManager.CreateWorkspaceRequest("   ", "Dev Workspace"));
-
-            assertTrue(ex.getMessage().toLowerCase().contains("reference id"));
-            verify(repository, never()).create(any());
+            assertThrows(IllegalArgumentException.class, () ->
+                    manager().create(new WorkspacesManager.CreateWorkspaceRequest("  ", "Name")));
         }
 
         @Test
         void invalidFormatReferenceId_throwsIllegalArgumentException() {
-            var ex = assertThrows(IllegalArgumentException.class, () ->
-                    new WorkspacesManager.CreateWorkspaceRequest("-leading-dash", "Dev Workspace"));
-
-            assertTrue(ex.getMessage().toLowerCase().contains("invalid"));
-            verify(repository, never()).create(any());
+            assertThrows(IllegalArgumentException.class, () ->
+                    manager().create(new WorkspacesManager.CreateWorkspaceRequest("../escape", "Name")));
         }
 
         @Test
         void blankName_throwsIllegalArgumentException() {
-            var ex = assertThrows(IllegalArgumentException.class, () ->
-                    manager.create(new WorkspacesManager.CreateWorkspaceRequest("dev-pb", "  ")));
-
-            assertTrue(ex.getMessage().contains("Name"));
-            verify(repository, never()).create(any());
+            assertThrows(IllegalArgumentException.class, () ->
+                    manager().create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", " ")));
         }
 
         @Test
         void duplicateReferenceId_throwsAlreadyExists() {
-            WorkspaceInfo existing = new WorkspaceInfo("ws-internal-1", "dev-pb", "Existing", FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
-            when(repository.findByReferenceId("dev-pb")).thenReturn(Optional.of(existing));
+            TestVolume.workspace(root, "prod-ws", "Production", NOW);
 
-            var ex = assertThrows(WorkspaceAlreadyExistsException.class, () ->
-                    manager.create(new WorkspacesManager.CreateWorkspaceRequest("dev-pb", "New Name")));
-
-            assertTrue(ex.getMessage().contains("dev-pb"));
-            verify(repository, never()).create(any());
+            assertThrows(WorkspaceAlreadyExistsException.class, () ->
+                    manager().create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", "Other")));
         }
 
         @Test
         void duplicateName_throwsAlreadyExists() {
-            when(repository.findByReferenceId("dev-pb")).thenReturn(Optional.empty());
-            when(repository.existsByName("Dev Workspace")).thenReturn(true);
+            TestVolume.workspace(root, "prod-ws", "Production", NOW);
 
-            var ex = assertThrows(WorkspaceAlreadyExistsException.class, () ->
-                    manager.create(new WorkspacesManager.CreateWorkspaceRequest("dev-pb", "Dev Workspace")));
+            assertThrows(WorkspaceAlreadyExistsException.class, () ->
+                    manager().create(new WorkspacesManager.CreateWorkspaceRequest("other-ws", "Production")));
+        }
+    }
 
-            assertTrue(ex.getMessage().contains("Dev Workspace"));
-            verify(repository, never()).create(any());
+    @Nested
+    class Listing {
+
+        @Test
+        void listsEveryWorkspaceWithItsMarkerAndSkipsDotDirectories() throws IOException {
+            TestVolume.workspace(root, "prod-ws", "Production", NOW);
+            TestVolume.workspace(root, "staging-ws", "Staging", NOW);
+            Files.createDirectories(root.resolve(".pending"));
+
+            assertEquals(List.of("prod-ws", "staging-ws"), ids(manager().findAll()));
+        }
+
+        @Test
+        void aDirectoryWithoutTheMarkerIsLeftOutUnlessAutoCreateIsOn() throws IOException {
+            Files.createDirectories(root.resolve("announced-ws"));
+
+            assertTrue(manager(false).findAll().isEmpty());
+            assertTrue(manager(false).findById("announced-ws").isEmpty());
+
+            WorkspaceInfo info = manager(true).findById("announced-ws").orElseThrow().info();
+            assertEquals("announced-ws", info.name(), "named by its id until someone creates it");
+        }
+
+        @Test
+        void countsTheProjectsInIt() {
+            Path workspace = TestVolume.workspace(root, "prod-ws", "Production", NOW);
+            TestVolume.project(workspace, "p-1", "orders", NOW);
+            TestVolume.project(workspace, "p-2", "payments", NOW);
+
+            assertEquals(2, manager().findById("prod-ws").orElseThrow().info().projectCount());
+        }
+
+        @Test
+        void anIdThatIsNoWorkspaceNameIsNotFound() {
+            assertTrue(manager().findById("../etc").isEmpty());
+            assertTrue(manager().findById("missing-ws").isEmpty());
+        }
+
+        @Test
+        void deleteTakesTheDirectory() {
+            Path workspace = TestVolume.workspace(root, "prod-ws", "Production", NOW);
+            TestVolume.project(workspace, "p-1", "orders", NOW);
+
+            manager().findById("prod-ws").orElseThrow().delete();
+
+            assertFalse(Files.exists(workspace));
         }
     }
 }

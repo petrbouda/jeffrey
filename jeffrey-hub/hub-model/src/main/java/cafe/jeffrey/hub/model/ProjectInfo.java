@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,22 @@ package cafe.jeffrey.hub.model;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * A project as its {@code .project-info.json} on the volume declares it.
+ *
+ * @param id          the provisioner's project id
+ * @param workspaceId the workspace directory the project lies in
+ * @param createdAt   when the provisioner created it
+ * @param attributes  the labels the provisioner was given
+ */
 public record ProjectInfo(
         String id,
-        String originId,
         String name,
         String workspaceId,
         Instant createdAt,
-        Instant originCreatedAt,
         Map<String, String> attributes) {
+
+    public ProjectInfo {
+        attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
+    }
 }

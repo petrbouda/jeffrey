@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.hub.client.manager;
 
+import cafe.jeffrey.hub.api.v1.GetInstanceRequest;
+import cafe.jeffrey.hub.api.v1.GetInstanceResponse;
 import cafe.jeffrey.hub.api.v1.GetSessionRequest;
 import cafe.jeffrey.hub.api.v1.GetSessionResponse;
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
@@ -28,7 +30,6 @@ import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
 import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
 import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
-import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.client.InstancesClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
@@ -41,6 +42,7 @@ import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
+import io.grpc.Status;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -67,21 +69,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class RemoteInstancesManagerTest {
 
+    private static final String WORKSPACE_ID = "ws-1";
     private static final String PROJECT_ID = "proj-1";
     private static final String LIVE_INSTANCE = "inst-live";
-    private static final String EXPIRED_INSTANCE = "inst-expired";
+    private static final String FINISHED_INSTANCE = "inst-finished";
     private static final Instant T0 = Instant.parse("2026-03-01T12:00:00Z");
 
     private static final ProjectInfo PROJECT =
-            new ProjectInfo(PROJECT_ID, PROJECT_ID, "demo", null, "ws-1", T0, null, Map.of());
+            new ProjectInfo(PROJECT_ID, PROJECT_ID, "demo", null, WORKSPACE_ID, T0, null, Map.of());
 
     /**
      * The live instance holds a finished session with one 1000-byte chunk and the session still
-     * recording; the expired one has nothing left. Narrowed listings answer for one instance.
+     * recording; the finished one has nothing left. Sessions arrive as a listing sends them: with
+     * their file count and size, never their files.
      */
     private static final class HubServices {
 
         private final AtomicReference<ListSessionsRequest> lastListing = new AtomicReference<>();
+        private final AtomicReference<GetInstanceRequest> lastInstanceRead = new AtomicReference<>();
 
         private final InstanceServiceGrpc.InstanceServiceImplBase instances =
                 new InstanceServiceGrpc.InstanceServiceImplBase() {
@@ -95,12 +100,29 @@ class RemoteInstancesManagerTest {
                                         .setCreatedAt(T0.toEpochMilli())
                                         .setSessionCount(2))
                                 .addInstances(InstanceInfo.newBuilder()
-                                        .setId(EXPIRED_INSTANCE)
-                                        .setStatus(InstanceStatus.INSTANCE_STATUS_EXPIRED)
+                                        .setId(FINISHED_INSTANCE)
+                                        .setStatus(InstanceStatus.INSTANCE_STATUS_FINISHED)
                                         .setCreatedAt(T0.toEpochMilli())
-                                        .setFinishedAt(T0.plusSeconds(60).toEpochMilli())
-                                        .setExpiringAt(T0.plusSeconds(120).toEpochMilli())
-                                        .setExpiredAt(T0.plusSeconds(180).toEpochMilli()))
+                                        .setFinishedAt(T0.plusSeconds(60).toEpochMilli()))
+                                .build());
+                        observer.onCompleted();
+                    }
+
+                    @Override
+                    public void getInstance(GetInstanceRequest request, StreamObserver<GetInstanceResponse> observer) {
+                        lastInstanceRead.set(request);
+                        if (!LIVE_INSTANCE.equals(request.getInstanceId())) {
+                            observer.onError(Status.NOT_FOUND.asRuntimeException());
+                            return;
+                        }
+                        observer.onNext(GetInstanceResponse.newBuilder()
+                                .setInstance(InstanceInfo.newBuilder()
+                                        .setId(LIVE_INSTANCE)
+                                        .setStatus(InstanceStatus.INSTANCE_STATUS_ACTIVE)
+                                        .setCreatedAt(T0.toEpochMilli())
+                                        .setSessionCount(2))
+                                .addSessions(liveSession())
+                                .addSessions(finishedSession())
                                 .build());
                         observer.onCompleted();
                     }
@@ -111,12 +133,10 @@ class RemoteInstancesManagerTest {
                     @Override
                     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> observer) {
                         lastListing.set(request);
-                        boolean everyInstance = !request.hasInstanceId();
-                        ListSessionsResponse.Builder response = ListSessionsResponse.newBuilder();
-                        if (everyInstance || LIVE_INSTANCE.equals(request.getInstanceId())) {
-                            response.addSessions(liveSession()).addSessions(finishedSession());
-                        }
-                        observer.onNext(response.build());
+                        observer.onNext(ListSessionsResponse.newBuilder()
+                                .addSessions(liveSession())
+                                .addSessions(finishedSession())
+                                .build());
                         observer.onCompleted();
                     }
 
@@ -143,12 +163,8 @@ class RemoteInstancesManagerTest {
                     .setCreatedAt(T0.toEpochMilli())
                     .setFinishedAt(T0.plusSeconds(30).toEpochMilli())
                     .setStatus(RecordingStatus.RECORDING_STATUS_FINISHED)
-                    .addFiles(RepositoryFile.newBuilder()
-                            .setId("profile-1")
-                            .setName("profile-1.jfr")
-                            .setCreatedAt(T0.toEpochMilli())
-                            .setSize(1000L)
-                            .setIsRecording(true))
+                    .setFileCount(1)
+                    .setSizeBytes(1000L)
                     .build();
         }
 
@@ -201,10 +217,9 @@ class RemoteInstancesManagerTest {
             List<ProjectInstanceInfo> instances = manager.findAll(false);
 
             assertEquals(2, instances.size());
-            ProjectInstanceInfo expired = instances.get(1);
-            assertEquals(ProjectInstanceStatus.EXPIRED, expired.status());
-            assertEquals(T0.plusSeconds(120), expired.expiringAt());
-            assertEquals(T0.plusSeconds(180), expired.expiredAt());
+            ProjectInstanceInfo finished = instances.get(1);
+            assertEquals(ProjectInstanceStatus.FINISHED, finished.status());
+            assertEquals(T0.plusSeconds(60), finished.finishedAt());
             assertTrue(instances.getFirst().sessions().isEmpty());
             assertNull(hub.lastListing.get(), "no session listing is asked for");
         }
@@ -224,10 +239,14 @@ class RemoteInstancesManagerTest {
     class Detail {
 
         @Test
-        void sumsTheInstanceFilesFromItsOwnListing() {
+        void sumsTheSizesItsSessionsArrivedWithFromOneInstanceRead() {
             InstanceDetailResponse detail = manager.detail(LIVE_INSTANCE).orElseThrow();
 
-            assertEquals(LIVE_INSTANCE, hub.lastListing.get().getInstanceId());
+            GetInstanceRequest sent = hub.lastInstanceRead.get();
+            assertEquals(WORKSPACE_ID, sent.getWorkspaceId());
+            assertEquals(PROJECT_ID, sent.getProjectId());
+            assertEquals(LIVE_INSTANCE, sent.getInstanceId());
+            assertNull(hub.lastListing.get(), "no project-wide listing is asked for");
             assertEquals(1, detail.stats().fileCount());
             assertEquals(1000L, detail.stats().totalSizeBytes());
             assertEquals(2, detail.instance().sessions().size());
@@ -237,6 +256,26 @@ class RemoteInstancesManagerTest {
         @Test
         void unknownInstanceHasNoDetail() {
             assertTrue(manager.detail("ghost").isEmpty());
+        }
+    }
+
+    @Nested
+    class Sessions {
+
+        @Test
+        void areTheInstancesOwnWithTheirSizeButNoFiles() {
+            var sessions = manager.sessions(LIVE_INSTANCE).orElseThrow();
+
+            assertEquals(List.of("session-live", "session-finished"),
+                    sessions.stream().map(session -> session.id()).toList());
+            assertEquals(1000L, sessions.get(1).totalSizeBytes());
+            assertEquals(1, sessions.get(1).fileCount());
+            assertTrue(sessions.get(1).files().isEmpty());
+        }
+
+        @Test
+        void ofAnUnknownInstanceAreEmpty() {
+            assertTrue(manager.sessions("ghost").isEmpty());
         }
     }
 
@@ -254,7 +293,7 @@ class RemoteInstancesManagerTest {
 
         @Test
         void aSessionOfAnotherInstanceIsNotFound() {
-            Optional<InstanceSessionDetailResponse> detail = manager.sessionDetail(EXPIRED_INSTANCE, "session-failed");
+            Optional<InstanceSessionDetailResponse> detail = manager.sessionDetail(FINISHED_INSTANCE, "session-failed");
 
             assertTrue(detail.isEmpty());
         }

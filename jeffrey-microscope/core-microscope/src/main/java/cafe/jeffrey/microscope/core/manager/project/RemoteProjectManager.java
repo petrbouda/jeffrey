@@ -25,8 +25,10 @@ import cafe.jeffrey.hub.client.manager.RepositoryManager;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.recordings.core.RemoteRecordingsDownloadManager;
@@ -36,6 +38,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final DetailedProjectInfo detailedProjectInfo;
+    private final RepositoryStatistics repositoryStatistics;
     private final HubClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
@@ -44,6 +47,7 @@ public class RemoteProjectManager implements ProjectManager {
     public RemoteProjectManager(
             MicroscopeJeffreyDirs jeffreyDirs,
             DetailedProjectInfo detailedProjectInfo,
+            RepositoryStatistics repositoryStatistics,
             HubClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager,
@@ -51,6 +55,7 @@ public class RemoteProjectManager implements ProjectManager {
 
         this.jeffreyDirs = jeffreyDirs;
         this.detailedProjectInfo = detailedProjectInfo;
+        this.repositoryStatistics = repositoryStatistics;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
@@ -88,6 +93,7 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteRepositoryManager(
                 jeffreyDirs::newTempDir,
                 detailedProjectInfo.projectInfo(),
+                repositoryStatistics,
                 remoteClients.repository(),
                 remoteClients.files());
     }
@@ -110,7 +116,6 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public void delete() {
-        remoteClients.projects().deleteProject(
-                detailedProjectInfo.projectInfo().id());
+        remoteClients.projects().deleteProject(ProjectScope.of(detailedProjectInfo.projectInfo()));
     }
 }

@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -112,7 +111,7 @@ class HubSessionScanTest {
 
     private static RepositoryManager repositoryWith(RecordingSession... sessions) {
         RepositoryManager repo = mock(RepositoryManager.class);
-        when(repo.listRecordingSessions(anyBoolean(), any())).thenReturn(List.of(sessions));
+        when(repo.listRecordingSessions(any())).thenReturn(List.of(sessions));
         return repo;
     }
 
@@ -255,7 +254,7 @@ class HubSessionScanTest {
         @Test
         void reportsAGrpcUnavailableFromOneProjectAsUnreachable() {
             RepositoryManager failing = mock(RepositoryManager.class);
-            when(failing.listRecordingSessions(anyBoolean(), any()))
+            when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.UNAVAILABLE.withDescription("connect refused").asRuntimeException());
             HubManager production = reachableHub("h-1", "production", "checkout", failing);
             when(hubsManager.findAll()).thenReturn(List.of(production));
@@ -270,7 +269,7 @@ class HubSessionScanTest {
         void doesNotReportANotFoundAsUnreachable() {
             // A hub that answered and said no is a different problem with a different next step.
             RepositoryManager failing = mock(RepositoryManager.class);
-            when(failing.listRecordingSessions(anyBoolean(), any()))
+            when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.NOT_FOUND.withDescription("project is gone").asRuntimeException());
             HubManager production = reachableHub("h-1", "production", "checkout", failing);
             when(hubsManager.findAll()).thenReturn(List.of(production));
@@ -284,7 +283,7 @@ class HubSessionScanTest {
         @Test
         void reportsADeadlineAsADeadlineRatherThanAnUnreachableHub() {
             RepositoryManager failing = mock(RepositoryManager.class);
-            when(failing.listRecordingSessions(anyBoolean(), any()))
+            when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.DEADLINE_EXCEEDED.withDescription("scan budget elapsed").asRuntimeException());
             HubManager production = reachableHub("h-1", "production", "checkout", failing);
             when(hubsManager.findAll()).thenReturn(List.of(production));
@@ -301,7 +300,7 @@ class HubSessionScanTest {
 
             RepositoryManager fastRepository = repositoryWith(session("fast-session", NOW));
             RepositoryManager slowRepository = mock(RepositoryManager.class);
-            when(slowRepository.listRecordingSessions(anyBoolean(), any())).thenAnswer(_ -> {
+            when(slowRepository.listRecordingSessions(any())).thenAnswer(_ -> {
                 Context.current().addListener(_ -> cancelled.countDown(), Runnable::run);
                 cancelled.await(5, TimeUnit.SECONDS);
                 throw Status.CANCELLED.withDescription("scan cancelled").asRuntimeException();
@@ -440,7 +439,7 @@ class HubSessionScanTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(NOW.minus(Duration.ofHours(1)), captor.getValue().activeFrom());
         }
 

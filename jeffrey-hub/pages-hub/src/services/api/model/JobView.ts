@@ -24,10 +24,8 @@ export type ExecutionLevel = 'GLOBAL' | 'PROJECT';
  * for every declared job type — extend this union when a new enum constant is added.
  */
 export type JobTypeName =
-    | 'WORKSPACE_RECONCILER'
     | 'PROJECT_RETENTION'
-    | 'REPOSITORY_JFR_COMPRESSION'
-    | 'SESSION_FINISHED_DETECTOR';
+    | 'REPOSITORY_JFR_COMPRESSION';
 
 export interface JobView {
     jobType: string;

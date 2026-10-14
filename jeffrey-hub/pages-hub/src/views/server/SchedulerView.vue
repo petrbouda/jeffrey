@@ -238,30 +238,22 @@ const runJob = async (jobType: string) => {
 };
 
 const displayNames: Record<JobTypeName, string> = {
-    WORKSPACE_RECONCILER: 'Workspace Reconciler',
     PROJECT_RETENTION: 'Project Retention',
-    REPOSITORY_JFR_COMPRESSION: 'JFR Compression',
-    SESSION_FINISHED_DETECTOR: 'Session Finished Detector'
+    REPOSITORY_JFR_COMPRESSION: 'JFR Compression'
 };
 const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName] || jobType;
 
 const descriptions: Record<JobTypeName, string> = {
-    WORKSPACE_RECONCILER:
-        'Materializes new projects, instances and sessions from the entries the provisioner writes into each workspace\'s .pending index, reading only the subtrees it announced. Run it manually to walk every workspace tree in full — that is what finds trees the index never named, after an upgrade or a restored volume. Strictly additive either way: removing directories from the volume never deletes server state.',
     PROJECT_RETENTION:
-        'One pass per project over a single listing of its sessions. A finished session goes whole once older than session-retention; each instance keeps at most max-sessions logical sessions (a run of failed 0-byte sessions counts as one, the live session occupies a slot, retained sessions are exempt); a session still recording loses its closed chunks older than active-session-file-retention; the project is then held under max-size, oldest data first; and EXPIRED or never-started PENDING instances older than instance-retention are deleted with their directories. What is left is measured for the storage dashboard, so its figures are up to one period stale. The first tick runs at startup; run it manually to apply retention and refresh the dashboard now.',
+        'One pass per project over a single listing of its sessions. A finished session goes whole once older than session-retention; each instance keeps at most max-sessions logical sessions (a run of failed 0-byte sessions counts as one, the live session occupies a slot, retained sessions are exempt); a session still recording loses its closed chunks older than active-session-file-retention; the project is then held under max-size, oldest data first; and PENDING instances that never got a session within instance-retention are deleted with their directories (an instance goes with its last session otherwise). What is left is measured for the storage dashboard, so its figures are up to one period stale. The first tick runs at startup; run it manually to apply retention and refresh the dashboard now.',
     REPOSITORY_JFR_COMPRESSION:
-        'Compresses finished JFR recording files using LZ4 compression to save storage space. Processes the active and latest finished sessions on each tick.',
-    SESSION_FINISHED_DETECTOR:
-        'Detects when repository sessions become finished using a heartbeat-based strategy and marks them (and their instances) FINISHED in the database. A session that wrote no heartbeat within startup-grace is finished at its start, marked as having sent no heartbeat.'
+        'Compresses finished JFR recording files using LZ4 compression to save storage space. Processes the active and latest finished sessions on each tick.'
 };
 const descriptionFor = (jobType: string) => descriptions[jobType as JobTypeName] || '';
 
 const icons: Record<JobTypeName, [string, string]> = {
-    WORKSPACE_RECONCILER: ['bi-folder-symlink', 'job-icon-sync'],
     PROJECT_RETENTION: ['bi-trash', 'job-icon-trash'],
-    REPOSITORY_JFR_COMPRESSION: ['bi-file-zip', 'job-icon-zip'],
-    SESSION_FINISHED_DETECTOR: ['bi-check-circle', 'job-icon-check']
+    REPOSITORY_JFR_COMPRESSION: ['bi-file-zip', 'job-icon-zip']
 };
 const iconFor = (jobType: string) => icons[jobType as JobTypeName]?.[0] || 'bi-gear';
 const iconClass = (jobType: string) => icons[jobType as JobTypeName]?.[1] || 'job-icon-default';

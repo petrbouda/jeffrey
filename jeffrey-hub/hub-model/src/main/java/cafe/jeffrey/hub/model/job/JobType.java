@@ -18,10 +18,8 @@
 package cafe.jeffrey.hub.model.job;
 
 public enum JobType {
-    WORKSPACE_RECONCILER(ExecutionLevel.GLOBAL),
     PROJECT_RETENTION(ExecutionLevel.PROJECT),
-    REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT),
-    SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT);
+    REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT);
 
     /**
      * Where a job runs in the server's execution model:

@@ -21,6 +21,8 @@ import cafe.jeffrey.hub.api.v1.DataChunk;
 import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
+import cafe.jeffrey.hub.api.v1.GetInstanceRequest;
+import cafe.jeffrey.hub.api.v1.GetInstanceResponse;
 import cafe.jeffrey.hub.api.v1.InstanceServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
@@ -62,6 +64,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StubServicesInProcessTest {
 
     private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-17T12:00:00Z"), ZoneOffset.UTC);
+    private static final String WORKSPACE_ID = "production";
+    private static final String CHECKOUT = "proj-checkout";
+    private static final String INVENTORY = "proj-inventory";
 
     private static Server server;
     private static ManagedChannel channel;
@@ -108,11 +113,10 @@ class StubServicesInProcessTest {
 
     @Test
     void listInstancesAndTheirSessionsArePopulated() {
-        String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
-
         ListInstancesResponse instances = InstanceServiceGrpc.newBlockingStub(channel)
                 .listInstances(ListInstancesRequest.newBuilder()
-                        .setProjectId(projectId)
+                        .setWorkspaceId(WORKSPACE_ID)
+                        .setProjectId(CHECKOUT)
                         .build());
         assertFalse(instances.getInstancesList().isEmpty());
         assertTrue(instances.getInstancesList().stream().anyMatch(instance -> instance.getSessionCount() > 0));
@@ -122,13 +126,40 @@ class StubServicesInProcessTest {
                 .findFirst()
                 .orElseThrow()
                 .getId();
-        ListSessionsResponse sessions = RepositoryServiceGrpc.newBlockingStub(channel)
-                .listSessions(ListSessionsRequest.newBuilder()
-                        .setProjectId(projectId)
+        GetInstanceResponse instance = InstanceServiceGrpc.newBlockingStub(channel)
+                .getInstance(GetInstanceRequest.newBuilder()
+                        .setWorkspaceId(WORKSPACE_ID)
+                        .setProjectId(CHECKOUT)
                         .setInstanceId(instanceId)
                         .build());
+        assertEquals(instanceId, instance.getInstance().getId());
+        assertFalse(instance.getSessionsList().isEmpty());
+        assertTrue(instance.getSessionsList().stream().allMatch(session -> session.getInstanceId().equals(instanceId)));
+    }
+
+    @Test
+    void listedSessionsCarryTheirSizeButNotTheirFiles() {
+        ListSessionsResponse sessions = RepositoryServiceGrpc.newBlockingStub(channel)
+                .listSessions(ListSessionsRequest.newBuilder()
+                        .setWorkspaceId(WORKSPACE_ID)
+                        .setProjectId(CHECKOUT)
+                        .build());
+
         assertFalse(sessions.getSessionsList().isEmpty());
-        assertTrue(sessions.getSessionsList().stream().allMatch(session -> session.getInstanceId().equals(instanceId)));
+        assertTrue(sessions.getSessionsList().stream().allMatch(session -> session.getFilesCount() == 0));
+        assertTrue(sessions.getSessionsList().stream().allMatch(session -> session.getFileCount() > 0));
+        assertTrue(sessions.getSessionsList().stream().allMatch(session -> session.getSizeBytes() > 0));
+    }
+
+    @Test
+    void aProjectIsNotFoundOutsideItsWorkspace() {
+        ListInstancesResponse instances = InstanceServiceGrpc.newBlockingStub(channel)
+                .listInstances(ListInstancesRequest.newBuilder()
+                        .setWorkspaceId("staging")
+                        .setProjectId(CHECKOUT)
+                        .build());
+
+        assertTrue(instances.getInstancesList().isEmpty());
     }
 
     @Test
@@ -146,10 +177,7 @@ class StubServicesInProcessTest {
         String sessionId = firstSessionId();
 
         Iterator<DataChunk> chunks = FileDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadFile(DownloadFileRequest.newBuilder()
-                        .setSessionId(sessionId)
-                        .setFileId(fileId(sessionId, true))
-                        .build());
+                .downloadFile(download(CHECKOUT, sessionId, fileId(CHECKOUT, sessionId, true)));
 
         ByteArrayOutputStream collected = new ByteArrayOutputStream();
         long totalSizeFromFirstChunk = -1;
@@ -168,7 +196,7 @@ class StubServicesInProcessTest {
         byte[] bytes = collected.toByteArray();
         assertTrue(bytes.length > 0, "expected a non-empty recording file");
         assertEquals(bytes.length, totalSizeFromFirstChunk, "total_size must match the streamed byte count");
-        assertEquals(fileName(sessionId, true), nameFromFirstChunk,
+        assertEquals(fileName(CHECKOUT, sessionId, true), nameFromFirstChunk,
                 "the name travels with the bytes, on the first chunk");
         // LZ4 frame magic (0x04 0x22 0x4D 0x18) — confirms the bundled .jfr.lz4 streamed intact.
         assertEquals(0x04, bytes[0] & 0xFF);
@@ -182,8 +210,8 @@ class StubServicesInProcessTest {
         FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub =
                 FileDownloadServiceGrpc.newBlockingStub(channel);
 
-        long first = countBytes(stub, "sess-inst-checkout-blue-1");
-        long second = countBytes(stub, "sess-inst-inventory-1-1");
+        long first = countBytes(stub, CHECKOUT, "sess-inst-checkout-blue-1");
+        long second = countBytes(stub, INVENTORY, "sess-inst-inventory-1-1");
 
         assertTrue(first > 0);
         assertEquals(first, second, "the stub serves the same fixed file for every session");
@@ -198,10 +226,7 @@ class StubServicesInProcessTest {
         String sessionId = firstSessionId();
 
         Iterator<DataChunk> chunks = FileDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadFile(DownloadFileRequest.newBuilder()
-                        .setSessionId(sessionId)
-                        .setFileId(fileId(sessionId, false))
-                        .build());
+                .downloadFile(download(CHECKOUT, sessionId, fileId(CHECKOUT, sessionId, false)));
 
         long total = 0;
         String nameFromFirstChunk = null;
@@ -213,7 +238,7 @@ class StubServicesInProcessTest {
             total += chunk.getData().size();
         }
         assertEquals(0, total, "artifacts are served as empty files");
-        assertEquals(fileName(sessionId, false), nameFromFirstChunk,
+        assertEquals(fileName(CHECKOUT, sessionId, false), nameFromFirstChunk,
                 "an empty file still sends the header chunk that names it");
     }
 
@@ -227,12 +252,18 @@ class StubServicesInProcessTest {
         assertDownloadFails(firstSessionId(), "does-not-exist");
     }
 
+    @Test
+    void downloadFileOfASessionOfAnotherProjectReturnsNotFound() {
+        assertDownloadFails(INVENTORY, firstSessionId(), fileId(CHECKOUT, firstSessionId(), true));
+    }
+
     private void assertDownloadFails(String sessionId, String fileId) {
+        assertDownloadFails(CHECKOUT, sessionId, fileId);
+    }
+
+    private void assertDownloadFails(String projectId, String sessionId, String fileId) {
         Iterator<DataChunk> chunks = FileDownloadServiceGrpc.newBlockingStub(channel)
-                .downloadFile(DownloadFileRequest.newBuilder()
-                        .setSessionId(sessionId)
-                        .setFileId(fileId)
-                        .build());
+                .downloadFile(download(projectId, sessionId, fileId));
 
         StatusRuntimeException error = assertThrows(StatusRuntimeException.class, () -> {
             while (chunks.hasNext()) {
@@ -243,11 +274,8 @@ class StubServicesInProcessTest {
     }
 
     private long countBytes(
-            FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub, String sessionId) {
-        Iterator<DataChunk> chunks = stub.downloadFile(DownloadFileRequest.newBuilder()
-                .setSessionId(sessionId)
-                .setFileId(fileId(sessionId, true))
-                .build());
+            FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub, String projectId, String sessionId) {
+        Iterator<DataChunk> chunks = stub.downloadFile(download(projectId, sessionId, fileId(projectId, sessionId, true)));
         long total = 0;
         while (chunks.hasNext()) {
             total += chunks.next().getData().size();
@@ -255,13 +283,21 @@ class StubServicesInProcessTest {
         return total;
     }
 
-    private String firstSessionId() {
-        String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
-        return dataset.sessionsForProject(projectId).getFirst().id();
+    private static DownloadFileRequest download(String projectId, String sessionId, String fileId) {
+        return DownloadFileRequest.newBuilder()
+                .setWorkspaceId(WORKSPACE_ID)
+                .setProjectId(projectId)
+                .setSessionId(sessionId)
+                .setFileId(fileId)
+                .build();
     }
 
-    private StubDataset.File file(String sessionId, boolean recording) {
-        return dataset.session(sessionId)
+    private String firstSessionId() {
+        return dataset.sessionsForProject(WORKSPACE_ID, CHECKOUT).getFirst().id();
+    }
+
+    private StubDataset.File file(String projectId, String sessionId, boolean recording) {
+        return dataset.session(WORKSPACE_ID, projectId, sessionId)
                 .orElseThrow(() -> new IllegalStateException("no fixture session " + sessionId))
                 .files().stream()
                 .filter(file -> file.kind().recording() == recording)
@@ -270,11 +306,11 @@ class StubServicesInProcessTest {
                         "session " + sessionId + " holds no " + (recording ? "recording" : "artifact")));
     }
 
-    private String fileId(String sessionId, boolean recording) {
-        return file(sessionId, recording).id();
+    private String fileId(String projectId, String sessionId, boolean recording) {
+        return file(projectId, sessionId, recording).id();
     }
 
-    private String fileName(String sessionId, boolean recording) {
-        return file(sessionId, recording).name();
+    private String fileName(String projectId, String sessionId, boolean recording) {
+        return file(projectId, sessionId, recording).name();
     }
 }

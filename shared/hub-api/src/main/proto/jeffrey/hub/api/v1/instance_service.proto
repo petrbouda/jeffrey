@@ -23,41 +23,56 @@ option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
 import "jeffrey/hub/api/v1/common.proto";
+import "jeffrey/hub/api/v1/repository_service.proto";
 
 // Manages project instances — running JVM processes that produce profiling data.
 // Each instance represents a single JVM lifecycle (start to finish) and contains
 // one or more recording sessions.
 //
-// Only the lifecycle lives here. An instance's sessions, its files and their sizes come from
-// RepositoryService.ListSessions, narrowed to the instance with its instance_id.
+// Every call answers one level of the tree: a project's instances, or one instance with its
+// sessions. A session's files come only from RepositoryService.GetSession.
 service InstanceService {
-  // Lists all instances for a project, in all lifecycle states.
+  // Lists all instances for a project, in all lifecycle states, without their sessions.
   rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
+
+  // Gets one instance with its sessions, newest first. The sessions carry their file count and
+  // size but not their files.
+  rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
 }
 
 message ListInstancesRequest {
-  string project_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
 }
 
 message ListInstancesResponse {
   repeated InstanceInfo instances = 1;
 }
 
-// A project instance — represents a single JVM process lifecycle.
-// Instances transition through states: PENDING -> ACTIVE -> FINISHED -> EXPIRED.
+message GetInstanceRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+  string instance_id = 3;
+}
+
+message GetInstanceResponse {
+  InstanceInfo instance = 1;
+  // The instance's sessions, newest first, without their files.
+  repeated RecordingSession sessions = 2;
+}
+
+// A project instance — one directory of the project, typically one pod. Its status is read off
+// its newest session, the only one that can still be recording: PENDING without a session,
+// ACTIVE while the newest one records, FINISHED otherwise.
 message InstanceInfo {
   // Unique identifier for the instance.
   string id = 1;
   // Current lifecycle status.
   InstanceStatus status = 2;
-  // Timestamp when the instance was first detected (epoch millis).
+  // Timestamp when the provisioner created the instance (epoch millis).
   int64 created_at = 3;
   // Timestamp when the instance finished, all sessions completed (epoch millis).
   optional int64 finished_at = 4;
-  // Timestamp when retention deleted the instance's first session (epoch millis).
-  optional int64 expiring_at = 5;
-  // Timestamp when retention deleted the instance's last session (epoch millis).
-  optional int64 expired_at = 6;
   // Number of recording sessions in this instance.
-  int32 session_count = 7;
+  int32 session_count = 5;
 }

@@ -34,7 +34,7 @@ public abstract class ProjectJob extends FanOutJob {
     @Override
     public void execute() {
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
-            String workspaceId = workspaceManager.resolveInfo().id();
+            String workspaceId = workspaceManager.info().id();
             for (ProjectManager projectManager : workspaceManager.projectsManager().findAll()) {
                 visit("workspace_id=" + workspaceId + " project_id=" + projectManager.info().id(),
                         () -> execute(projectManager));

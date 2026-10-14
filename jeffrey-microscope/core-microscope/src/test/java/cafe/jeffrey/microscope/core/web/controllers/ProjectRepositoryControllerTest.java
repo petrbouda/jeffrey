@@ -27,6 +27,9 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.hub.controller.ProjectRepositoryController;
 
@@ -52,7 +55,7 @@ class ProjectRepositoryControllerTest {
     @Test
     void listsEmptySessions() {
         when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
-        when(repositoryManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of());
+        when(repositoryManager.listRecordingSessions(RecordingSessionFilter.ALL)).thenReturn(List.of());
 
         Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
         MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
@@ -69,7 +72,7 @@ class ProjectRepositoryControllerTest {
         Instant hourAgo = now.minus(Duration.ofHours(1));
         var expected = new RecordingSessionFilter(hourAgo, now, RecordingStatus.FINISHED, 3);
         when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
-        when(repositoryManager.listRecordingSessions(true, expected)).thenReturn(List.of(
+        when(repositoryManager.listRecordingSessions(expected)).thenReturn(List.of(
                 new RecordingSession("s-1", "s-1", "inst-1", hourAgo, now,
                         RecordingStatus.FINISHED, null, List.of(), false)));
 
@@ -83,6 +86,55 @@ class ProjectRepositoryControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$[0].id").asString().isEqualTo("s-1");
+    }
+
+    @Test
+    void listedSessionsCarryTheirSizeWithoutFiles() {
+        Instant now = Instant.parse("2026-04-26T12:00:00Z");
+        when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
+        when(repositoryManager.listRecordingSessions(RecordingSessionFilter.ALL)).thenReturn(List.of(
+                new RecordingSession("s-1", "s-1", "inst-1", now, now, RecordingStatus.FINISHED, null, List.of(),
+                        false, false, false, new SessionSize(3, 4096L))));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.fixed(now, ZoneOffset.UTC)));
+
+        var body = assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/sessions"))
+                .hasStatusOk()
+                .bodyJson();
+        body.extractingPath("$[0].fileCount").asNumber().isEqualTo(3);
+        body.extractingPath("$[0].sizeBytes").asNumber().isEqualTo(4096);
+        body.extractingPath("$[0].files").asArray().isEmpty();
+    }
+
+    @Test
+    void oneSessionComesWithItsFiles() {
+        Instant now = Instant.parse("2026-04-26T12:00:00Z");
+        when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
+        when(repositoryManager.recordingSession("s-1")).thenReturn(
+                new RecordingSession("s-1", "s-1", "inst-1", now, now, RecordingStatus.FINISHED, null,
+                        List.of(new RepositoryFile("f-1", "profile.jfr", now, 2048L, true, null)),
+                        false));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.fixed(now, ZoneOffset.UTC)));
+
+        var body = assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/sessions/s-1"))
+                .hasStatusOk()
+                .bodyJson();
+        body.extractingPath("$.files[0].id").asString().isEqualTo("f-1");
+        body.extractingPath("$.sizeBytes").asNumber().isEqualTo(2048);
+    }
+
+    @Test
+    void statisticsAreTheMeasuredFigureOrNoneYet() {
+        when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
+        when(repositoryManager.repositoryStatistics()).thenReturn(RepositoryStatistics.NOT_YET_MEASURED);
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.systemUTC()));
+
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/statistics"))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.totalSize").isNull();
     }
 
     @Test

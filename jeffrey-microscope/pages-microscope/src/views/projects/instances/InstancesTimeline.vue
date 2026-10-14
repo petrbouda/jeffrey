@@ -119,9 +119,9 @@
                 size="xs"
               />
               <Badge
-                v-if="instanceEnd(instance)"
+                v-if="instance.finishedAt"
                 key-label="Finished"
-                :value="FormattingService.formatTimestampUTC(instanceEnd(instance))"
+                :value="FormattingService.formatTimestampUTC(instance.finishedAt)"
                 size="xs"
               />
               <Badge
@@ -1192,10 +1192,6 @@ function shutdownKindDescription(kind: string | undefined): string {
   }
 }
 
-function instanceEnd(instance: ProjectInstance): number | undefined {
-  return instance.finishedAt ?? instance.expiredAt;
-}
-
 function statusBadgeLabel(status: ProjectInstanceStatus): string {
   switch (status) {
     case 'PENDING':
@@ -1204,8 +1200,6 @@ function statusBadgeLabel(status: ProjectInstanceStatus): string {
       return 'Active';
     case 'FINISHED':
       return 'Finished';
-    case 'EXPIRED':
-      return 'Expired';
     default:
       return 'Unknown';
   }
@@ -1219,7 +1213,6 @@ function statusBadgeVariant(status: ProjectInstanceStatus): 'blue' | 'orange' | 
       return 'orange';
     case 'FINISHED':
       return 'green';
-    case 'EXPIRED':
     default:
       return 'grey';
   }
@@ -1264,6 +1257,9 @@ function toggleSessionBar(instanceId: string, session: ProjectInstanceSession): 
     expandedNext.delete(instanceId);
     expandedIds.value = expandedNext;
 
+    if (!repositorySessions.value.has(session.id)) {
+      loadRepositorySession(session.id);
+    }
     if (!sessionDetails.value.has(session.id)) {
       instanceClient.getSessionDetail(instanceId, session.id).then(detail => {
         const updated = new Map(sessionDetails.value);
@@ -1281,13 +1277,16 @@ function closeSessionDrawer(instanceId: string): void {
   activeSessionByInstance.value = next;
 }
 
-async function loadRepositorySessions(): Promise<void> {
+/**
+ * The session as the repository has it — its files and its pin — read when its drawer opens,
+ * so opening the timeline never fetches the files of every session in the project.
+ */
+async function loadRepositorySession(sessionId: string): Promise<void> {
   try {
-    const sessions = await repositoryClient.listRecordingSessions();
-    repositorySessions.value = new Map(sessions.map(session => [session.id, session]));
+    const session = await repositoryClient.getRecordingSession(sessionId);
+    repositorySessions.value = new Map(repositorySessions.value).set(sessionId, session);
   } catch (error) {
-    // The Download action simply stays hidden when repository data is unavailable
-    repositorySessions.value = new Map();
+    // The Download and Pin actions simply stay hidden when the session cannot be read
   }
 }
 
@@ -1332,7 +1331,7 @@ async function downloadSession(sessionId: string): Promise<void> {
       sessionId,
       fileIds,
       async () => {
-        await loadRepositorySessions();
+        await loadRepositorySession(sessionId);
       }
     );
   } catch (error: any) {
@@ -1421,11 +1420,7 @@ function cancelHideTooltip() {
 }
 
 onMounted(async () => {
-  const [loadedInstances] = await Promise.all([
-    instanceClient.list(true),
-    loadRepositorySessions()
-  ]);
-  instances.value = loadedInstances;
+  instances.value = await instanceClient.list(true);
   instanceSessions.value = new Map(
     instances.value.map(instance => [instance.id, instance.sessions ?? []])
   );
@@ -1477,10 +1472,6 @@ onMounted(async () => {
   background-color: rgba(16, 185, 129, 0.04);
   border-left-color: var(--color-success);
 }
-.instance-card.expired .instance-card-head {
-  background-color: rgba(156, 163, 175, 0.04);
-  border-left-color: var(--color-text-light);
-}
 /* The newest session ended without ever sending a heartbeat: a purple rail, status kept */
 .instance-card.no-heartbeat .instance-card-head {
   border-left-color: var(--color-purple-border);
@@ -1494,9 +1485,6 @@ onMounted(async () => {
 }
 .instance-card.finished .instance-card-head:hover {
   background-color: rgba(16, 185, 129, 0.1);
-}
-.instance-card.expired .instance-card-head:hover {
-  background-color: rgba(156, 163, 175, 0.1);
 }
 
 .head-iconbox {
@@ -1603,9 +1591,6 @@ onMounted(async () => {
 }
 .instance-card.finished .instance-card-body {
   border-left-color: var(--color-success);
-}
-.instance-card.expired .instance-card-body {
-  border-left-color: var(--color-text-light);
 }
 .instance-card.no-heartbeat .instance-card-body {
   border-left-color: var(--color-purple-border);

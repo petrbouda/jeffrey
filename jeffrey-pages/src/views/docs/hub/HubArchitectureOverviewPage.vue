@@ -47,9 +47,10 @@ onMounted(() => {
 
     <div class="docs-content">
       <p>
-        Jeffrey Hub is a headless, multi-workspace recording-collection backend. It catalogs
-        what's running (workspaces, projects, instances, recording sessions) in an embedded
-        DuckDB and stores the JFR recordings on a shared filesystem. Analysis happens in
+        Jeffrey Hub is a headless, multi-workspace recording-collection backend. It has no
+        database: what's running (workspaces, projects, instances, recording sessions) and the
+        JFR recordings themselves live on a shared filesystem, which the hub reads whenever it
+        is asked. Analysis happens in
         Microscope; the hub's job is to collect, organize, and serve.
       </p>
 
@@ -57,7 +58,8 @@ onMounted(() => {
       <p>
         Hub runs as a long-lived process next to your Java fleet. Async-Profiler running
         inside your applications writes JFR chunks to the shared volume on every recording loop;
-        the hub discovers them there, catalogues them in place and serves them over gRPC. The
+        the hub reads them there on every request — the marker files the provisioner wrote, and the
+        heartbeat files from which it derives each session's status — and serves them over gRPC. The
         profiler gets its configuration (event toggles, sampling intervals, output paths) from the
         provisioner that started the JVM — its <code>profiler-command</code> setting or the
         <code>JEFFREY_PROFILER_COMMAND</code> environment variable.
@@ -119,10 +121,10 @@ onMounted(() => {
 
       <h2 id="storage">Storage</h2>
       <p>
-        Hub stores its catalog (workspaces, projects, instances, sessions)
-        in a single embedded DuckDB file, and stores the JFR recordings themselves on a shared
-        filesystem laid out by workspace and project. There is no managed database, no object
-        store, and no per-profile databases. See the
+        The shared volume is the hub's only state: workspaces, projects, instances and sessions are
+        its directories and marker files, and the JFR recordings sit inside them, laid out by
+        workspace and project. There is no database, no cache, no object store, and no
+        per-profile databases. See the
         <router-link to="/docs/hub/storage">Storage</router-link> page for the directory
         layout and design philosophy.
       </p>

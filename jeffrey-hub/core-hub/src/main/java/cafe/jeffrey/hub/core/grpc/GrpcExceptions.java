@@ -22,6 +22,7 @@ import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceAlreadyExistsException;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 
 /**
  * Factory methods for creating gRPC {@link StatusRuntimeException} instances with standard status
@@ -57,12 +58,12 @@ public abstract class GrpcExceptions {
     public static StatusRuntimeException toStatus(Throwable exception) {
         return switch (exception) {
             case StatusRuntimeException e -> e;
+            case JeffreyClientException e when e.getCode().isNotFound() ->
+                    Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException();
             case WorkspaceAlreadyExistsException e ->
                     Status.ALREADY_EXISTS.withDescription(e.getMessage()).asRuntimeException();
             case IllegalArgumentException e ->
                     Status.INVALID_ARGUMENT.withDescription(e.getMessage()).asRuntimeException();
-            // What the storage says when a project has no repository row yet — a state the
-            // reconciler expects, so it is the caller's timing, not this server's failure
             case IllegalStateException e ->
                     Status.FAILED_PRECONDITION.withDescription(e.getMessage()).asRuntimeException();
             default -> {

@@ -17,43 +17,22 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
+import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 
 import java.util.function.Function;
 
 public interface WorkspaceManager {
 
     @FunctionalInterface
-    interface Factory extends Function<WorkspaceInfo, WorkspaceManager> {
+    interface Factory extends Function<WorkspaceDirectory, WorkspaceManager> {
     }
 
-    /**
-     * Returns the locally stored workspace information without remote resolution.
-     * Unlike {@link #resolveInfo()}, this never makes network calls.
-     *
-     * @return the locally stored workspace information
-     */
-    WorkspaceInfo localInfo();
+    WorkspaceInfo info();
 
-    /**
-     * Returns the workspace information associated with this manager.
-     * For remote workspaces, this may involve network calls to check availability.
-     *
-     * @return the workspace information
-     */
-    WorkspaceInfo resolveInfo();
-
-    /**
-     * Returns the projects manager for managing multiple projects within the workspace.
-     *
-     * @return the projects manager
-     */
     ProjectsManager projectsManager();
 
-    /**
-     * Deletes the workspace and all its data.
-     * The workspace can be recreated by the synchronizer from filesystem events.
-     */
+    /** Deletes the workspace's directory with every project in it. */
     void delete();
 }

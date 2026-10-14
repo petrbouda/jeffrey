@@ -93,14 +93,14 @@ onMounted(() => {
       <p>
         The <strong>Settings</strong> tab is intentionally minimal: it lets you <strong>delete</strong> the
         project (a confirmation step protects against accidents). Deleting is final: the hub removes the
-        project's rows and its directory on the workspace volume, and there is no restore.
+        project's directory on the workspace volume, and there is no restore.
       </p>
 
       <h2 id="creating-projects">Creating Projects</h2>
       <p>
         Projects are not created in Microscope. A project appears when a JVM started by the
-        <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> announces it:
-        the hub's workspace reconciler picks it up from the shared filesystem, and the next time
+        <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> writes its marker file:
+        the hub reads the shared filesystem on every request, so the next time
         Microscope syncs with that hub the project shows up under its workspace, together with
         its instances and recording sessions.
       </p>

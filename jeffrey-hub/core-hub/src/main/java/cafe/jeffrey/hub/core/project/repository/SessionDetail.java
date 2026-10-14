@@ -17,8 +17,8 @@
 package cafe.jeffrey.hub.core.project.repository;
 
 /**
- * How much of a session a listing loads. {@link #HEADERS} is the rows — enough to pick a
- * session by id, status or age. {@link #WITH_FILES} walks the session's directory on the
+ * How much of a session a listing loads. {@link #HEADERS} is its marker and liveness files —
+ * enough to pick a session by id, status or age. {@link #WITH_FILES} walks the session's directory on the
  * volume as well, which is a stat per file over a network mount: what
  * {@code openRecording()}, {@code finishedRecordings()}, {@code totalSizeBytes()} and
  * {@code isFailedEmpty()} answer from, and meaningless without.

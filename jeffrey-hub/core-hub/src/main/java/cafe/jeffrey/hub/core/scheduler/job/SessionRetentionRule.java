@@ -49,7 +49,7 @@ record SessionRetentionRule(Duration retention, int maxSessions) implements Rete
 
     @Override
     public void apply(ProjectRetentionPass pass) {
-        Map<String, ProjectInstanceInfo> instancesById = pass.instances().findAll().stream()
+        Map<String, ProjectInstanceInfo> instancesById = pass.instances().stream()
                 .collect(Collectors.toMap(ProjectInstanceInfo::id, Function.identity()));
 
         Map<String, List<RecordingSession>> sessionsByInstance = pass.sessions().stream()

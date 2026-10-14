@@ -17,59 +17,60 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
+import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
+import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
+import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
+import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectCreator;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.volume.SessionLiveness;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 
 /**
- * Wires the workspace tree: the one {@link HubWorkspacesManager} at the root, and the factories
- * it builds a {@link WorkspaceManager} and its {@link ProjectsManager} from, one per workspace.
+ * Wires the workspace tree over the volume: the one {@link HubWorkspacesManager} at the
+ * workspaces root, and the factories it builds a {@link WorkspaceManager}, its
+ * {@link ProjectsManager} and each {@link ProjectManager} from, one per directory.
  */
 @Configuration
 public class HubWorkspaceConfiguration {
 
     @Bean
-    public ProjectsManager.Factory projectsManagerFactory(
-            HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory,
-            Clock clock) {
-
-        return workspaceInfo -> new HubProjectsManager(
-                workspaceInfo,
-                new ProjectCreator(workspaceInfo, platformRepositories.newProjectsRepository(), clock),
-                platformRepositories,
-                projectManagerFactory);
+    public ProjectManager.Factory projectManagerFactory(SessionLiveness sessionLiveness) {
+        return project -> new HubProjectManager(project, sessionLiveness);
     }
 
     @Bean
-    public WorkspaceManager.Factory workspaceManagerFactory(
-            HubJeffreyDirs jeffreyDirs,
-            HubPlatformRepositories platformRepositories,
-            ProjectsManager.Factory projectsManagerFactory) {
+    public ProjectsManager.Factory projectsManagerFactory(ProjectManager.Factory projectManagerFactory) {
+        return workspace -> new HubProjectsManager(workspace, projectManagerFactory);
+    }
 
-        return workspaceInfo -> {
-            WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
-            return new HubWorkspaceManager(jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
-        };
+    @Bean
+    public WorkspaceManager.Factory workspaceManagerFactory(ProjectsManager.Factory projectsManagerFactory) {
+        return workspace -> new HubWorkspaceManager(workspace, projectsManagerFactory);
     }
 
     @Bean
     public HubWorkspacesManager workspacesManager(
+            HubJeffreyDirs jeffreyDirs,
             Clock applicationClock,
-            HubPlatformRepositories platformRepositories,
+            WorkspacesProperties workspacesProperties,
             WorkspaceManager.Factory workspaceManagerFactory) {
+        return new HubWorkspacesManager(
+                jeffreyDirs.workspaces(), applicationClock, workspacesProperties.isAutoCreate(), workspaceManagerFactory);
+    }
 
-        return new HubWorkspacesManager(applicationClock, platformRepositories.newWorkspacesRepository(), workspaceManagerFactory);
+    @Bean
+    public DefaultWorkspaceInitializer defaultWorkspaceInitializer(
+            WorkspacesManager workspacesManager, DefaultWorkspaceProperties defaultWorkspaceProperties) {
+        return new DefaultWorkspaceInitializer(workspacesManager, defaultWorkspaceProperties);
     }
 }

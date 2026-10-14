@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.hub.client.FileStreamClient;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
@@ -90,6 +91,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private final RepositoryClient repositoryClient;
     private final RecordingsCoreManager recordingsManager;
     private final OriginContext originContext;
+    private final ProjectScope scope;
     private final String projectName;
 
     public RemoteRecordingsDownloadManager(
@@ -105,6 +107,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         this.repositoryClient = repositoryClient;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
+        this.scope = new ProjectScope(originContext.workspaceId(), originContext.projectId());
         this.projectName = projectName;
     }
 
@@ -165,7 +168,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * the profiler still holds open is the session's newest chunk.
      */
     private RecordingSession session(String recordingSessionId) {
-        return RecordingSessionResponse.from(repositoryClient.recordingSession(recordingSessionId));
+        return RecordingSessionResponse.from(repositoryClient.recordingSession(scope, recordingSessionId));
     }
 
     /**
@@ -399,7 +402,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 // bytes arriving are then the archive's. The progress channel keeps saying the
                 // name the reader chose, which is the one it was shown.
                 AtomicReference<Path> landed = new AtomicReference<>();
-                fileStreamClient.streamFile(recordingSessionId, file.id(), (inputStream, transferred) -> {
+                fileStreamClient.streamFile(scope, recordingSessionId, file.id(), (inputStream, transferred) -> {
                     long actualSize = transferred.size() > 0 ? transferred.size() : file.size();
                     progressCallback.onFileStart(file.name(), actualSize);
                     Path target = targetIn(tempDir, transferred.name());

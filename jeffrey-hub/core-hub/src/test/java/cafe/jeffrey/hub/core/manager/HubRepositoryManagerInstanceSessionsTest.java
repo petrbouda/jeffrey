@@ -24,14 +24,9 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.transaction.support.TransactionOperations;
 
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,13 +59,7 @@ class HubRepositoryManagerInstanceSessionsTest {
     }
 
     private HubRepositoryManager manager() {
-        return new HubRepositoryManager(
-                Clock.fixed(T0, ZoneOffset.UTC),
-                mock(ProjectInfo.class),
-                mock(ProjectRepositoryRepository.class),
-                mock(ProjectInstanceRepository.class),
-                repositoryStorage,
-                TransactionOperations.withoutTransaction());
+        return new HubRepositoryManager(mock(ProjectInfo.class), repositoryStorage);
     }
 
     @Test

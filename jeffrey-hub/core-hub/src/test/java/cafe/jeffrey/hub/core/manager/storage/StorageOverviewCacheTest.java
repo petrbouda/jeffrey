@@ -28,11 +28,7 @@ import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -48,20 +44,15 @@ class StorageOverviewCacheTest {
     private static final Instant LAST_ACTIVITY = Instant.parse("2026-08-09T10:00:00Z");
 
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "ws-1", "production", CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
+            new WorkspaceInfo("ws-1", "production", CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
     private static final ProjectInfo PROJECT =
-            new ProjectInfo("prj-1", "origin-1", "order-service", "ws-1", CREATED_AT, CREATED_AT, Map.of());
-
-    @TempDir
-    Path homeDir;
+            new ProjectInfo("prj-1", "order-service", "ws-1", CREATED_AT, Map.of());
 
     private StorageOverviewCache cache;
 
     @BeforeEach
     void setUp() {
-        cache = new StorageOverviewCache(
-                List.of(homeDir.resolve("jeffrey-data.db"), homeDir.resolve("jeffrey-data.db.wal")),
-                Clock.fixed(NOW, ZoneOffset.UTC));
+        cache = new StorageOverviewCache(Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Nested
@@ -98,20 +89,6 @@ class StorageOverviewCacheTest {
             cache.publish(List.of(remaining));
 
             assertThat(cache.get().overview().projects()).containsExactly(remaining);
-        }
-    }
-
-    @Nested
-    class Database {
-
-        @Test
-        void measuresTheDatabaseAndItsWalOnEveryRead() throws IOException {
-            assertThat(cache.get().overview().infrastructure().databaseBytes()).isZero();
-
-            Files.write(homeDir.resolve("jeffrey-data.db"), new byte[100]);
-            Files.write(homeDir.resolve("jeffrey-data.db.wal"), new byte[20]);
-
-            assertThat(cache.get().overview().infrastructure().databaseBytes()).isEqualTo(120L);
         }
     }
 

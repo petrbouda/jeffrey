@@ -21,12 +21,14 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
- * A recording session as the hub lists it.
+ * A recording session as the hub reports it. A listing carries the session's {@link SessionSize}
+ * but none of its files; only a single-session read carries the files, so every method below
+ * that reads {@code files} answers only for a session read on its own.
  *
+ * @param size             its file count and bytes, measured from {@code files} when not given
  * @param heartbeatMissing the session ended because it sent no heartbeat within the hub's startup grace
  * @param failed           the session finished without producing any data, as the hub judged it from the
  *                         files on its volume; never set together with {@code heartbeatMissing}
@@ -42,7 +44,8 @@ public record RecordingSession(
         List<RepositoryFile> files,
         boolean retained,
         boolean heartbeatMissing,
-        boolean failed) {
+        boolean failed,
+        SessionSize size) {
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -50,6 +53,27 @@ public record RecordingSession(
      */
     public RecordingSession {
         files = files == null ? List.of() : files;
+        size = size == null ? SessionSize.of(files) : size;
+    }
+
+    /**
+     * A session whose size is measured from the files it carries.
+     */
+    public RecordingSession(
+            String id,
+            String name,
+            String instanceId,
+            Instant createdAt,
+            Instant finishedAt,
+            RecordingStatus status,
+            Path absolutePath,
+            List<RepositoryFile> files,
+            boolean retained,
+            boolean heartbeatMissing,
+            boolean failed) {
+
+        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, heartbeatMissing,
+                failed, null);
     }
 
     /**
@@ -89,16 +113,17 @@ public record RecordingSession(
     }
 
     /**
-     * Total size in bytes of every file in this session. Zero when the session was
-     * loaded without files. Files whose size could not be determined count as zero
-     * rather than failing the whole sum.
+     * Total size in bytes of every file in this session, whether or not the files came with it.
      */
     public long totalSizeBytes() {
-        return files.stream()
-                .map(RepositoryFile::size)
-                .filter(Objects::nonNull)
-                .mapToLong(Long::longValue)
-                .sum();
+        return size.bytes();
+    }
+
+    /**
+     * Number of files in this session, whether or not the files came with it.
+     */
+    public int fileCount() {
+        return size.fileCount();
     }
 
     /**

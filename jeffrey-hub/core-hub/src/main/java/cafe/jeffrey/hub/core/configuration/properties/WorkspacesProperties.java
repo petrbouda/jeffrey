@@ -20,8 +20,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * {@code jeffrey.hub.workspaces.*}: how the hub treats a workspace directory it finds on the
- * volume with no workspace row behind it. Off by default — a directory is created by the
- * reconciler only when an operator has said that any announced workspace is welcome.
+ * volume without the hub's {@code .workspace-info.json} — one the provisioner wrote into but
+ * nobody created. Off by default: such a directory is listed only when an operator has said that
+ * any workspace the provisioner names is welcome; otherwise CreateWorkspace adopts it.
  */
 @ConfigurationProperties("jeffrey.hub.workspaces")
 public class WorkspacesProperties {

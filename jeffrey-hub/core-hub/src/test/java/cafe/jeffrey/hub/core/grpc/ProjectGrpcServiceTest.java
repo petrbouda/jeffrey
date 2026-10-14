@@ -17,76 +17,105 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.hub.api.v1.DeleteProjectRequest;
+import cafe.jeffrey.hub.api.v1.GetProjectRequest;
+import cafe.jeffrey.hub.api.v1.GetProjectResponse;
+import cafe.jeffrey.hub.api.v1.ListProjectsRequest;
+import cafe.jeffrey.hub.api.v1.ListProjectsResponse;
+import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
+import cafe.jeffrey.hub.api.v1.RecordingStatus;
+import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
+import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
+import cafe.jeffrey.hub.core.manager.workspace.HubWorkspaceManager;
+import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
+import cafe.jeffrey.hub.core.volume.TestVolume;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.hub.api.v1.*;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
-import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.hub.persistence.api.ProjectRepository;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Projects over a real volume: a workspace directory holding project directories the provisioner
+ * declared, each known by the project id in its marker.
+ */
 class ProjectGrpcServiceTest {
 
     private static final String WORKSPACE_ID = "ws-1";
-    private static final String WORKSPACE_REFERENCE_ID = "ws-ref";
     private static final String PROJECT_ID = "proj-1";
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
 
-    private InProcessGrpcServer grpc;
+    @TempDir
+    Path root;
 
-    private ProjectServiceGrpc.ProjectServiceBlockingStub startServer(
-            ProjectGrpcService service) {
-        grpc = InProcessGrpcServer.start(service);
-        return ProjectServiceGrpc.newBlockingStub(grpc.channel());
+    private Path projectDir;
+    private StorageOverviewCache storageOverviewCache;
+    private InProcessGrpcServer grpc;
+    private ProjectServiceGrpc.ProjectServiceBlockingStub stub;
+
+    @BeforeEach
+    void start() {
+        Path workspace = TestVolume.workspace(root, WORKSPACE_ID, "Workspace", FIXED_TIME);
+        projectDir = TestVolume.project(workspace, PROJECT_ID, "Test Project", FIXED_TIME);
+        TestVolume.workspace(root, "other-ws", "Other", FIXED_TIME);
+
+        Clock clock = Clock.fixed(FIXED_TIME.plusSeconds(60), ZoneOffset.UTC);
+        ProjectManager.Factory projectFactory = project -> new HubProjectManager(project, TestVolume.liveness(clock));
+        HubWorkspacesManager workspaces = new HubWorkspacesManager(root, clock, false,
+                ws -> new HubWorkspaceManager(ws, dir -> new HubProjectsManager(dir, projectFactory)));
+
+        storageOverviewCache = new StorageOverviewCache(clock);
+        grpc = InProcessGrpcServer.start(new ProjectGrpcService(new GrpcLookups(workspaces), storageOverviewCache));
+        stub = ProjectServiceGrpc.newBlockingStub(grpc.channel());
     }
 
     @AfterEach
     void shutdown() {
-        if (grpc != null) {
-            grpc.close();
-        }
+        grpc.close();
+    }
+
+    private static GetProjectRequest get(String workspaceId, String projectId) {
+        return GetProjectRequest.newBuilder().setWorkspaceId(workspaceId).setProjectId(projectId).build();
+    }
+
+    private static void assertNotFound(Runnable call) {
+        var ex = assertThrows(StatusRuntimeException.class, call::run);
+        assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
     }
 
     @Nested
     class ListProjects {
 
         @Test
-        void returnsProjectList() throws IOException {
-            var stub = startServer(serviceForListProjects());
-
+        void returnsProjectList() {
             ListProjectsResponse response = stub.listProjects(
                     ListProjectsRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
 
             assertEquals(1, response.getProjectsCount());
             assertEquals(PROJECT_ID, response.getProjects(0).getId());
             assertEquals("Test Project", response.getProjects(0).getName());
-            assertEquals(WORKSPACE_REFERENCE_ID, response.getProjects(0).getWorkspaceReferenceId());
+            assertEquals(WORKSPACE_ID, response.getProjects(0).getWorkspaceId());
         }
 
         @Test
-        void workspaceNotFound_returnsNotFound() throws IOException {
-            var stub = startServer(serviceWithNoWorkspace());
-
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.listProjects(ListProjectsRequest.newBuilder().setWorkspaceId("missing").build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        void workspaceNotFound_returnsNotFound() {
+            assertNotFound(() -> stub.listProjects(ListProjectsRequest.newBuilder().setWorkspaceId("missing").build()));
         }
     }
 
@@ -94,51 +123,71 @@ class ProjectGrpcServiceTest {
     class GetProject {
 
         @Test
-        void returnsActiveProject() throws IOException {
-            var stub = startServer(serviceWithWorkspaceProject());
+        void returnsTheProjectWithItsSessions() {
+            Path instance = TestVolume.instance(projectDir, "pod-a", FIXED_TIME);
+            TestVolume.heartbeat(TestVolume.session(instance, "s-1", FIXED_TIME), FIXED_TIME.plusSeconds(60));
 
-            GetProjectResponse response = stub.getProject(
-                    GetProjectRequest.newBuilder()
-                            .setWorkspaceId(WORKSPACE_ID)
-                            .setProjectId(PROJECT_ID)
-                            .build());
+            GetProjectResponse response = stub.getProject(get(WORKSPACE_ID, PROJECT_ID));
 
             assertEquals(PROJECT_ID, response.getProject().getId());
             assertEquals(WORKSPACE_ID, response.getProject().getWorkspaceId());
-            assertEquals(WORKSPACE_REFERENCE_ID, response.getProject().getWorkspaceReferenceId());
+            assertEquals(FIXED_TIME.toEpochMilli(), response.getProject().getCreatedAt());
+            assertEquals(RecordingStatus.RECORDING_STATUS_ACTIVE, response.getProject().getStatus());
+            assertEquals(1, response.getProject().getSessionCount());
+        }
+
+        /**
+         * Only an instance's newest session can still be recording, so the older one — which has
+         * no liveness files at all — is counted but never assessed.
+         */
+        @Test
+        void statusComesFromEachInstancesNewestSession() {
+            Path instance = TestVolume.instance(projectDir, "pod-a", FIXED_TIME);
+            TestVolume.session(instance, "s-1", FIXED_TIME);
+            TestVolume.heartbeat(TestVolume.session(instance, "s-2", FIXED_TIME.plusSeconds(30)), FIXED_TIME.plusSeconds(60));
+
+            GetProjectResponse response = stub.getProject(get(WORKSPACE_ID, PROJECT_ID));
+
+            assertEquals(RecordingStatus.RECORDING_STATUS_ACTIVE, response.getProject().getStatus());
+            assertEquals(2, response.getProject().getSessionCount());
         }
 
         @Test
-        void projectFromAnotherWorkspace_returnsNotFound() throws IOException {
-            var stub = startServer(serviceWithProjectInAnotherWorkspace());
+        void isFinishedOnceEveryNewestSessionFinished() {
+            Path instance = TestVolume.instance(projectDir, "pod-a", FIXED_TIME);
+            TestVolume.finished(TestVolume.session(instance, "s-1", FIXED_TIME), FIXED_TIME.plusSeconds(20));
 
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.getProject(GetProjectRequest.newBuilder()
-                            .setWorkspaceId(WORKSPACE_ID)
-                            .setProjectId(PROJECT_ID).build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+            GetProjectResponse response = stub.getProject(get(WORKSPACE_ID, PROJECT_ID));
+
+            assertEquals(RecordingStatus.RECORDING_STATUS_FINISHED, response.getProject().getStatus());
         }
 
         @Test
-        void projectNotFound_returnsNotFound() throws IOException {
-            var stub = startServer(serviceWithWorkspaceWithoutProjects());
-
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.getProject(GetProjectRequest.newBuilder()
-                            .setWorkspaceId(WORKSPACE_ID)
-                            .setProjectId("missing").build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        void carriesNoSizeBeforeTheFirstRetentionPass() {
+            assertFalse(stub.getProject(get(WORKSPACE_ID, PROJECT_ID)).getProject().hasSizeBytes());
         }
 
         @Test
-        void workspaceNotFound_returnsNotFound() throws IOException {
-            var stub = startServer(serviceWithNoWorkspace());
+        void carriesTheSizeTheLastRetentionPassMeasured() {
+            storageOverviewCache.publish(List.of(
+                    new ProjectStorage(WORKSPACE_ID, "Workspace", PROJECT_ID, "Test Project", 4096L, 2, 0L)));
 
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.getProject(GetProjectRequest.newBuilder()
-                            .setWorkspaceId("missing")
-                            .setProjectId(PROJECT_ID).build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+            assertEquals(4096L, stub.getProject(get(WORKSPACE_ID, PROJECT_ID)).getProject().getSizeBytes());
+        }
+
+        @Test
+        void projectFromAnotherWorkspace_returnsNotFound() {
+            assertNotFound(() -> stub.getProject(get("other-ws", PROJECT_ID)));
+        }
+
+        @Test
+        void projectNotFound_returnsNotFound() {
+            assertNotFound(() -> stub.getProject(get(WORKSPACE_ID, "missing")));
+        }
+
+        @Test
+        void workspaceNotFound_returnsNotFound() {
+            assertNotFound(() -> stub.getProject(get("missing", PROJECT_ID)));
         }
     }
 
@@ -146,166 +195,21 @@ class ProjectGrpcServiceTest {
     class DeleteProject {
 
         @Test
-        void deletesProject() throws IOException {
-            var projectManager = mock(ProjectManager.class);
-            when(projectManager.detailedInfo()).thenReturn(testDetailedInfo());
-            var stub = startServer(serviceWithProjectManager(projectManager));
-
+        void deletesTheProjectDirectory() {
             stub.deleteProject(DeleteProjectRequest.newBuilder()
-                    .setProjectId(PROJECT_ID).build());
+                    .setWorkspaceId(WORKSPACE_ID)
+                    .setProjectId(PROJECT_ID)
+                    .build());
 
-            verify(projectManager).delete();
+            assertFalse(Files.exists(projectDir));
         }
 
         @Test
-        void projectNotFound_returnsNotFound() throws IOException {
-            var stub = startServer(serviceWithNoProject());
-
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.deleteProject(DeleteProjectRequest.newBuilder()
-                            .setProjectId("missing").build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        void projectNotFound_returnsNotFound() {
+            assertNotFound(() -> stub.deleteProject(DeleteProjectRequest.newBuilder()
+                    .setWorkspaceId(WORKSPACE_ID)
+                    .setProjectId("missing")
+                    .build()));
         }
-    }
-
-    // ========== Helpers ==========
-
-    private static final cafe.jeffrey.hub.model.ProjectInfo TEST_PROJECT_INFO =
-            new cafe.jeffrey.hub.model.ProjectInfo(
-                    PROJECT_ID, "origin-1", "Test Project",
-                    WORKSPACE_ID, FIXED_TIME, null, null);
-
-    /**
-     * Creates a service for ListProjects (which still goes through WorkspacesManager).
-     */
-    private ProjectGrpcService serviceForListProjects() {
-        var projectManager = mock(ProjectManager.class);
-        when(projectManager.detailedInfo()).thenReturn(testDetailedInfo());
-
-        var projectsManager = mock(ProjectsManager.class);
-        when(projectsManager.findAll()).thenReturn(List.of(projectManager));
-
-        var workspaceManager = workspace();
-        when(workspaceManager.projectsManager()).thenReturn(projectsManager);
-
-        var workspacesManager = mock(WorkspacesManager.class);
-        when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-
-        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
-    }
-
-    private ProjectGrpcService serviceWithWorkspaceProject() {
-        return serviceWithProjectInLookup(TEST_PROJECT_INFO, testDetailedInfo());
-    }
-
-    /**
-     * The project exists but belongs to another workspace, so the workspace-scoped GetProject
-     * must not resolve it.
-     */
-    private ProjectGrpcService serviceWithProjectInAnotherWorkspace() {
-        var foreignInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                PROJECT_ID, "origin-1", "Test Project",
-                "other-workspace", FIXED_TIME, null, null);
-
-        return serviceWithProjectInLookup(foreignInfo, null);
-    }
-
-    /**
-     * The workspace exists but no project does.
-     */
-    private ProjectGrpcService serviceWithWorkspaceWithoutProjects() {
-        return serviceWithProjectInLookup(null, null);
-    }
-
-    /**
-     * A service whose WORKSPACE_ID workspace exists and whose project lookup answers with
-     * {@code info} for PROJECT_ID (nothing for any id when {@code info} is null).
-     */
-    private ProjectGrpcService serviceWithProjectInLookup(
-            cafe.jeffrey.hub.model.ProjectInfo info, DetailedProjectInfo detail) {
-
-        var workspaceManager = workspace();
-        var workspacesManager = mock(WorkspacesManager.class);
-        when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-
-        var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.ofNullable(info));
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);
-
-        var projectManager = mock(ProjectManager.class);
-        when(projectManager.info()).thenReturn(info);
-        when(projectManager.detailedInfo()).thenReturn(detail);
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-        when(projectManagerFactory.apply(any())).thenReturn(projectManager);
-
-        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
-    }
-
-    /**
-     * Creates a service where findProject(PROJECT_ID) succeeds with the given ProjectManager.
-     */
-    private ProjectGrpcService serviceWithProjectManager(ProjectManager projectManager) {
-        var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.of(TEST_PROJECT_INFO));
-
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
-
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-        when(projectManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(projectManager);
-
-        var workspacesManager = mock(WorkspacesManager.class);
-
-        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
-    }
-
-    /**
-     * Creates a service where WorkspacesManager.findById returns empty (for ListProjects).
-     */
-    private ProjectGrpcService serviceWithNoWorkspace() {
-        var workspacesManager = mock(WorkspacesManager.class);
-        when(workspacesManager.findById(any())).thenReturn(Optional.empty());
-
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-
-        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
-    }
-
-    /**
-     * Creates a service where findProject("missing") fails (project not found).
-     */
-    private ProjectGrpcService serviceWithNoProject() {
-        var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.empty());
-
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);
-
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-        var workspacesManager = mock(WorkspacesManager.class);
-
-        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
-    }
-
-    /**
-     * The WORKSPACE_ID workspace, carrying the reference id every project of it reports.
-     */
-    private static WorkspaceManager workspace() {
-        var workspaceManager = mock(WorkspaceManager.class);
-        when(workspaceManager.localInfo()).thenReturn(new WorkspaceInfo(
-                WORKSPACE_ID, WORKSPACE_REFERENCE_ID, "Workspace", FIXED_TIME, WorkspaceStatus.AVAILABLE, 1));
-        return workspaceManager;
-    }
-
-    private static DetailedProjectInfo testDetailedInfo() {
-        return new DetailedProjectInfo(
-                TEST_PROJECT_INFO,
-                cafe.jeffrey.hub.model.repository.RecordingStatus.ACTIVE,
-                5);
     }
 }

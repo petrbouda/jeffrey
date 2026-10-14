@@ -22,18 +22,22 @@ import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import cafe.jeffrey.hub.api.v1.GetInstanceRequest;
+import cafe.jeffrey.hub.api.v1.GetInstanceResponse;
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
 import cafe.jeffrey.hub.api.v1.InstanceServiceGrpc;
 import cafe.jeffrey.hub.api.v1.InstanceStatus;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.hub.persistence.api.ProjectRepository;
-import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -43,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,12 +58,6 @@ class InstanceGrpcServiceTest {
 
     private InProcessGrpcServer grpc;
 
-    private InstanceServiceGrpc.InstanceServiceBlockingStub startServer(HubPlatformRepositories platformRepositories) {
-        GrpcLookups lookups = new GrpcLookups(platformRepositories, mock(RepositoryManager.Factory.class), null);
-        grpc = InProcessGrpcServer.start(new InstanceGrpcService(platformRepositories, lookups));
-        return InstanceServiceGrpc.newBlockingStub(grpc.channel());
-    }
-
     @AfterEach
     void shutdown() {
         if (grpc != null) {
@@ -68,23 +65,27 @@ class InstanceGrpcServiceTest {
         }
     }
 
-    /**
-     * Platform repositories in which PROJECT_ID is a project GrpcLookups can resolve, holding the
-     * given instances; every other project id stays unknown.
-     */
-    private static HubPlatformRepositories projectWithInstances(List<ProjectInstanceInfo> instances) {
-        var instanceRepo = mock(ProjectInstanceRepository.class);
-        when(instanceRepo.findAll()).thenReturn(instances);
+    private final RepositoryStorage storage = mock(RepositoryStorage.class);
+    private final RepositoryManager repositoryManager = mock(RepositoryManager.class);
 
-        ProjectInfo projectInfo = new ProjectInfo(PROJECT_ID, null, "test-project", null, FIXED_TIME, null, null);
-        var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.of(projectInfo));
+    /** A service over PROJECT_ID, whose instances the volume reports as given. */
+    private InstanceServiceGrpc.InstanceServiceBlockingStub startServer(List<ProjectInstanceInfo> instances) {
+        when(storage.instances()).thenReturn(instances);
+        instances.forEach(instance -> when(storage.instance(instance.id())).thenReturn(Optional.of(instance)));
+        when(storage.instance("ghost")).thenReturn(Optional.empty());
+        ProjectManager project = mock(ProjectManager.class);
+        when(project.repositoryStorage()).thenReturn(storage);
+        when(project.repositoryManager()).thenReturn(repositoryManager);
 
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.newProjectRepository(any())).thenReturn(mock(ProjectRepository.class));
-        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
-        when(platformRepositories.newProjectInstanceRepository(PROJECT_ID)).thenReturn(instanceRepo);
-        return platformRepositories;
+        grpc = InProcessGrpcServer.start(new InstanceGrpcService(TestLookups.withProject(PROJECT_ID, project)));
+        return InstanceServiceGrpc.newBlockingStub(grpc.channel());
+    }
+
+    private static ListInstancesRequest request(String projectId) {
+        return ListInstancesRequest.newBuilder()
+                .setWorkspaceId(TestLookups.WORKSPACE_ID)
+                .setProjectId(projectId)
+                .build();
     }
 
     @Nested
@@ -92,18 +93,12 @@ class InstanceGrpcServiceTest {
 
         @Test
         void returnsEveryInstanceWithItsLifecycle() {
-            var stub = startServer(projectWithInstances(List.of(
+            var stub = startServer(List.of(
+                    new ProjectInstanceInfo(INSTANCE_ID, ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, 2),
                     new ProjectInstanceInfo(
-                            INSTANCE_ID, PROJECT_ID, INSTANCE_ID,
-                            ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, null, null,
-                            2, "session-active"),
-                    new ProjectInstanceInfo(
-                            "inst-2", PROJECT_ID, "inst-2",
-                            ProjectInstanceStatus.EXPIRED, FIXED_TIME, FIXED_TIME.plusSeconds(3600),
-                            FIXED_TIME.plusSeconds(7200), FIXED_TIME.plusSeconds(9000), 0, null))));
+                            "inst-2", ProjectInstanceStatus.FINISHED, FIXED_TIME, FIXED_TIME.plusSeconds(3600), 1)));
 
-            ListInstancesResponse response = stub.listInstances(
-                    ListInstancesRequest.newBuilder().setProjectId(PROJECT_ID).build());
+            ListInstancesResponse response = stub.listInstances(request(PROJECT_ID));
 
             assertEquals(2, response.getInstancesCount());
 
@@ -113,35 +108,68 @@ class InstanceGrpcServiceTest {
             assertEquals(FIXED_TIME.toEpochMilli(), active.getCreatedAt());
             assertEquals(2, active.getSessionCount());
             assertFalse(active.hasFinishedAt());
-            assertFalse(active.hasExpiringAt());
-            assertFalse(active.hasExpiredAt());
 
-            InstanceInfo expired = response.getInstances(1);
-            assertEquals("inst-2", expired.getId());
-            assertEquals(InstanceStatus.INSTANCE_STATUS_EXPIRED, expired.getStatus());
-            assertTrue(expired.hasFinishedAt());
-            assertEquals(FIXED_TIME.plusSeconds(3600).toEpochMilli(), expired.getFinishedAt());
-            assertEquals(FIXED_TIME.plusSeconds(7200).toEpochMilli(), expired.getExpiringAt());
-            assertEquals(FIXED_TIME.plusSeconds(9000).toEpochMilli(), expired.getExpiredAt());
-            assertEquals(0, expired.getSessionCount());
+            InstanceInfo finished = response.getInstances(1);
+            assertEquals("inst-2", finished.getId());
+            assertEquals(InstanceStatus.INSTANCE_STATUS_FINISHED, finished.getStatus());
+            assertTrue(finished.hasFinishedAt());
+            assertEquals(FIXED_TIME.plusSeconds(3600).toEpochMilli(), finished.getFinishedAt());
         }
 
         @Test
         void returnsEmptyListWhenNoInstances() {
-            var stub = startServer(projectWithInstances(List.of()));
+            var stub = startServer(List.of());
 
-            ListInstancesResponse response = stub.listInstances(
-                    ListInstancesRequest.newBuilder().setProjectId(PROJECT_ID).build());
-
-            assertEquals(0, response.getInstancesCount());
+            assertEquals(0, stub.listInstances(request(PROJECT_ID)).getInstancesCount());
         }
 
         @Test
         void unknownProject_returnsNotFound() {
-            var stub = startServer(projectWithInstances(List.of()));
+            var stub = startServer(List.of());
 
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.listInstances(ListInstancesRequest.newBuilder().setProjectId("ghost").build()));
+            var ex = assertThrows(StatusRuntimeException.class, () -> stub.listInstances(request("ghost")));
+
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        }
+    }
+
+    @Nested
+    class GetInstance {
+
+        private GetInstanceRequest get(String instanceId) {
+            return GetInstanceRequest.newBuilder()
+                    .setWorkspaceId(TestLookups.WORKSPACE_ID)
+                    .setProjectId(PROJECT_ID)
+                    .setInstanceId(instanceId)
+                    .build();
+        }
+
+        @Test
+        void returnsTheInstanceWithItsSessionsButNotTheirFiles() {
+            when(repositoryManager.listInstanceSessions(INSTANCE_ID, RecordingSessionFilter.ALL)).thenReturn(List.of(
+                    new RecordingSession("s-1", "inst-1/s-1", INSTANCE_ID, FIXED_TIME, null, RecordingStatus.ACTIVE,
+                            List.of(new RepositoryFile("f-1", "profile.jfr", FIXED_TIME, 2048L, true, null)),
+                            false)));
+            var stub = startServer(List.of(
+                    new ProjectInstanceInfo(INSTANCE_ID, ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, 1)));
+
+            GetInstanceResponse response = stub.getInstance(get(INSTANCE_ID));
+
+            assertEquals(INSTANCE_ID, response.getInstance().getId());
+            assertEquals(InstanceStatus.INSTANCE_STATUS_ACTIVE, response.getInstance().getStatus());
+            assertEquals(1, response.getSessionsCount());
+            var session = response.getSessions(0);
+            assertEquals("s-1", session.getId());
+            assertEquals(0, session.getFilesCount(), "the files stay on the hub");
+            assertEquals(1, session.getFileCount());
+            assertEquals(2048L, session.getSizeBytes());
+        }
+
+        @Test
+        void unknownInstance_returnsNotFound() {
+            var stub = startServer(List.of());
+
+            var ex = assertThrows(StatusRuntimeException.class, () -> stub.getInstance(get("ghost")));
 
             assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
         }

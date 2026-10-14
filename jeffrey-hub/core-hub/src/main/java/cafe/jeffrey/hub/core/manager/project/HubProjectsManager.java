@@ -17,63 +17,62 @@
 
 package cafe.jeffrey.hub.core.manager.project;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.CreateProject;
-import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.core.volume.ProjectDirectory;
+import cafe.jeffrey.hub.core.volume.VolumeMarkers;
+import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * The projects of one workspace: its child directories with a {@code .project-info.json}, each
+ * known by the provisioner's project id from that marker.
+ */
 public class HubProjectsManager implements ProjectsManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HubProjectsManager.class);
-
-    private final WorkspaceInfo workspaceInfo;
-    private final ProjectCreator projectCreator;
-    private final HubPlatformRepositories platformRepositories;
-    private final ProjectsRepository projectsRepository;
+    private final WorkspaceDirectory workspace;
     private final ProjectManager.Factory projectManagerFactory;
 
-    public HubProjectsManager(
-            WorkspaceInfo workspaceInfo,
-            ProjectCreator projectCreator,
-            HubPlatformRepositories platformRepositories,
-            ProjectManager.Factory projectManagerFactory) {
-
-        this.workspaceInfo = workspaceInfo;
-        this.projectCreator = projectCreator;
-        this.platformRepositories = platformRepositories;
-        this.projectsRepository = platformRepositories.newProjectsRepository();
+    public HubProjectsManager(WorkspaceDirectory workspace, ProjectManager.Factory projectManagerFactory) {
+        this.workspace = workspace;
         this.projectManagerFactory = projectManagerFactory;
     }
 
     @Override
-    public ProjectManager create(CreateProject createProject) {
-        LOG.debug("Creating project: project_name={}", createProject.projectName());
-        return projectManagerFactory.apply(projectCreator.create(createProject));
-    }
-
-    @Override
     public List<ProjectManager> findAll() {
-         return projectsRepository.findAllProjects(workspaceInfo.id()).stream()
+        return projectDirectories().stream()
                 .map(projectManagerFactory)
                 .toList();
     }
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).find()
-                .filter(project -> workspaceInfo.id().equals(project.workspaceId()))
+        return projectDirectories().stream()
+                .filter(project -> project.info().id().equals(projectId))
+                .findFirst()
                 .map(projectManagerFactory);
     }
 
-    @Override
-    public Optional<ProjectManager> findByOriginProjectId(String originProjectId) {
-        return projectsRepository.findByOriginProjectId(originProjectId)
-                .map(projectManagerFactory);
+    private List<ProjectDirectory> projectDirectories() {
+        return VolumeMarkers.childDirectories(workspace.path()).stream()
+                .map(this::projectDirectory)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
+    private Optional<ProjectDirectory> projectDirectory(Path directory) {
+        return VolumeMarkers.read(directory, JeffreyLayout.PROJECT_INFO_FILE, RemoteProject.class)
+                .filter(marker -> marker.projectId() != null && !marker.projectId().isBlank())
+                .map(marker -> new ProjectDirectory(directory, new ProjectInfo(
+                        marker.projectId(),
+                        marker.projectName(),
+                        workspace.info().id(),
+                        Instant.ofEpochMilli(marker.createdAt()),
+                        marker.attributes())));
+    }
 }

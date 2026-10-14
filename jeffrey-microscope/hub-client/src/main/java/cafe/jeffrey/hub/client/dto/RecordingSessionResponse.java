@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.client.dto;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.SessionSize;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -36,7 +37,9 @@ public record RecordingSessionResponse(
         List<RepositoryFileResponse> files,
         boolean retained,
         boolean heartbeatMissing,
-        boolean failed) {
+        boolean failed,
+        int fileCount,
+        long sizeBytes) {
 
     public static RecordingSessionResponse from(RecordingSession session, Clock clock) {
         Instant end = session.finishedAt() != null ? session.finishedAt() : clock.instant();
@@ -55,7 +58,9 @@ public record RecordingSessionResponse(
                         .toList(),
                 session.retained(),
                 session.heartbeatMissing(),
-                session.failed());
+                session.failed(),
+                session.fileCount(),
+                session.totalSizeBytes());
     }
 
     /**
@@ -78,7 +83,9 @@ public record RecordingSessionResponse(
                         .toList(),
                 retained,
                 heartbeatMissing,
-                failed);
+                failed,
+                fileCount,
+                sizeBytes);
     }
 
     public static RecordingSession from(RecordingSessionResponse response) {
@@ -95,6 +102,7 @@ public record RecordingSessionResponse(
                         .toList(),
                 response.retained(),
                 response.heartbeatMissing(),
-                response.failed());
+                response.failed(),
+                new SessionSize(response.fileCount(), response.sizeBytes()));
     }
 }

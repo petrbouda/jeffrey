@@ -29,7 +29,7 @@ import java.util.Optional;
 
 /**
  * Declares a run's project, instance and session to the hub by writing the marker files it
- * reconciles from.
+ * lists them from.
  *
  * <p>Project and instance are found-or-created, so repeated runs of the same application reuse
  * them; the session is always new. Registration is two steps because the session marker records

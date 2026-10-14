@@ -18,36 +18,25 @@
 package cafe.jeffrey.hub.model;
 
 import java.time.Instant;
-import java.util.Set;
 
+/**
+ * An instance as its directory on the volume says at the moment of reading.
+ *
+ * @param id         the instance's directory name, typically the pod's hostname
+ * @param startedAt  when the provisioner created it
+ * @param finishedAt when its last session finished; {@code null} unless FINISHED
+ */
 public record ProjectInstanceInfo(
         String id,
-        String projectId,
-        String instanceName,
         ProjectInstanceStatus status,
         Instant startedAt,
         Instant finishedAt,
-        Instant expiringAt,
-        Instant expiredAt,
-        int sessionCount,
-        String activeSessionId) {
+        int sessionCount) {
 
+    /**
+     * PENDING has no session yet, ACTIVE has one still recording, FINISHED has only finished ones.
+     */
     public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED, EXPIRED;
-
-        /**
-         * Returns the set of statuses that are valid predecessors for transitioning
-         * to this status. Empty set means this is an initial state (set via insert only).
-         */
-        public Set<ProjectInstanceStatus> validFromStatuses() {
-            return switch (this) {
-                case PENDING -> Set.of();
-                // EXPIRED is a valid predecessor: an expired instance that starts streaming
-                // a new session is reactivated by the session-created consumer
-                case ACTIVE -> Set.of(PENDING, FINISHED, EXPIRED);
-                case FINISHED -> Set.of(ACTIVE);
-                case EXPIRED -> Set.of(FINISHED);
-            };
-        }
+        PENDING, ACTIVE, FINISHED
     }
 }

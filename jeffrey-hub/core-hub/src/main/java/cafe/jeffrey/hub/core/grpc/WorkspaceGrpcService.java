@@ -54,7 +54,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
         GrpcUnary.respond(responseObserver, () -> {
             ListWorkspacesResponse.Builder response = ListWorkspacesResponse.newBuilder();
             for (WorkspaceManager workspace : workspacesManager.findAll()) {
-                response.addWorkspaces(ProtoMappers.workspace(workspace.resolveInfo()));
+                response.addWorkspaces(ProtoMappers.workspace(workspace.info()));
             }
 
             LOG.debug("Listed workspaces via gRPC: count={}", response.getWorkspacesCount());
@@ -76,12 +76,9 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
             WorkspaceInfo created = workspacesManager.create(
                     new WorkspacesManager.CreateWorkspaceRequest(request.getReferenceId(), request.getName()));
 
-            LOG.info("Created workspace via gRPC: workspace_id={} reference_id={} name={}",
-                    created.id(), created.referenceId(), created.name());
-
-            // The row carries no status; the manager resolves one from the workspace's directory
+            LOG.info("Created workspace via gRPC: workspace_id={} name={}", created.id(), created.name());
             return CreateWorkspaceResponse.newBuilder()
-                    .setWorkspace(ProtoMappers.workspace(findWorkspace(created.id()).resolveInfo()))
+                    .setWorkspace(ProtoMappers.workspace(created))
                     .build();
         });
     }
@@ -92,8 +89,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
             WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
 
             String defaultRefId = defaultWorkspaceProperties.getReferenceId();
-            String workspaceRefId = workspace.resolveInfo().referenceId();
-            if (defaultRefId.equals(workspaceRefId)) {
+            if (defaultRefId.equals(workspace.info().id())) {
                 throw GrpcExceptions.failedPrecondition(
                         "Cannot delete the default workspace (" + defaultRefId + "). "
                                 + "Reconfigure jeffrey.hub.default-workspace.reference-id "

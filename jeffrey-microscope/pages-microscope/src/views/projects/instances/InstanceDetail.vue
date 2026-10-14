@@ -66,7 +66,6 @@ import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingSessionList from '@hubs/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
-import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus';
 import { usePolling } from '@shared/composables/usePolling';
 import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
@@ -75,6 +74,8 @@ import { useNavigation } from '@/composables/useNavigation';
 import '@shared/styles/shared-components.css';
 
 const { hubId, workspaceId, projectId, instanceId } = useNavigation();
+
+const instanceClient = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
 
 // Collector-only mode is never active in local mode
 const isCollectorOnly = computed(() => {
@@ -111,13 +112,9 @@ const fetchSessions = async (background: boolean = false) => {
     sessionsLoading.value = true;
   }
   try {
-    const repositoryService = new ProjectRepositoryClient(
-      hubId.value,
-      workspaceId.value!,
-      projectId.value!
-    );
-    const allSessions = await repositoryService.listRecordingSessions();
-    sessions.value = allSessions.filter(s => s.instanceId === instanceId.value);
+    // This instance's sessions alone, each without its files: the list fetches a session's
+    // files when it is expanded
+    sessions.value = await instanceClient.listSessions(instanceId.value!);
   } catch (error: any) {
     if (error.response?.status === 404) {
       sessions.value = [];
@@ -137,9 +134,7 @@ const fetchSessions = async (background: boolean = false) => {
 };
 
 onMounted(async () => {
-  const client = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
-
-  const [inst] = await Promise.all([client.find(instanceId.value!), fetchSessions()]);
+  const [inst] = await Promise.all([instanceClient.find(instanceId.value!), fetchSessions()]);
 
   instance.value = inst || null;
   loading.value = false;

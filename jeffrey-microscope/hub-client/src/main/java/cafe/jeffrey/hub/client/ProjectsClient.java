@@ -34,11 +34,12 @@ public class ProjectsClient {
         this.stub = ProjectServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public void deleteProject(String projectId) {
+    public void deleteProject(ProjectScope scope) {
         stub.deleteProject(DeleteProjectRequest.newBuilder()
-                .setProjectId(projectId)
+                .setWorkspaceId(scope.workspaceId())
+                .setProjectId(scope.projectId())
                 .build());
 
-        LOG.debug("Deleted project via gRPC: projectId={}", projectId);
+        LOG.debug("Deleted project via gRPC: workspaceId={} projectId={}", scope.workspaceId(), scope.projectId());
     }
 }

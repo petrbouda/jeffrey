@@ -18,6 +18,7 @@
 package cafe.jeffrey.hub.client.manager;
 
 import cafe.jeffrey.hub.client.InstancesClient;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
@@ -40,13 +41,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * A project's instances, put together from two hub listings: the instance lifecycle from
- * {@link InstancesClient}, and the sessions under each instance from {@link RepositoryClient}.
- * The hub keeps one session listing; an instance's sessions are that listing narrowed to it.
+ * A project's instances, one level of the hub's tree per call: the project's instances from
+ * {@link InstancesClient#projectInstances}, one instance with its sessions from
+ * {@link InstancesClient#instance}. No session arrives with its files; a session's files come
+ * from {@link RepositoryClient#recordingSession} when that session is opened.
  */
 public class RemoteInstancesManager {
 
     private final ProjectInfo projectInfo;
+    private final ProjectScope scope;
     private final InstancesClient instancesClient;
     private final RepositoryClient repositoryClient;
     private final SessionEnvironmentReader sessionEnvironmentReader;
@@ -58,6 +61,7 @@ public class RemoteInstancesManager {
             SessionEnvironmentReader sessionEnvironmentReader) {
 
         this.projectInfo = projectInfo;
+        this.scope = ProjectScope.of(projectInfo);
         this.instancesClient = instancesClient;
         this.repositoryClient = repositoryClient;
         this.sessionEnvironmentReader = sessionEnvironmentReader;
@@ -65,10 +69,11 @@ public class RemoteInstancesManager {
 
     /**
      * @param includeSessions whether each instance carries its sessions — one more listing, of
-     *                        every session of the project
+     *                        every session header of the project, for the timeline that draws
+     *                        them all side by side
      */
     public List<ProjectInstanceInfo> findAll(boolean includeSessions) {
-        List<InstanceResponse> instances = instancesClient.projectInstances(projectInfo.id());
+        List<InstanceResponse> instances = instancesClient.projectInstances(scope);
         if (!includeSessions) {
             return instances.stream()
                     .map(instance -> toProjectInstanceInfo(instance, List.of()))
@@ -76,7 +81,7 @@ public class RemoteInstancesManager {
         }
 
         Map<String, List<RecordingSessionResponse>> sessionsByInstance =
-                repositoryClient.recordingSessions(projectInfo.id()).stream()
+                repositoryClient.recordingSessions(scope).stream()
                         .filter(session -> session.instanceId() != null)
                         .collect(Collectors.groupingBy(RecordingSessionResponse::instanceId));
 
@@ -87,19 +92,29 @@ public class RemoteInstancesManager {
     }
 
     public Optional<ProjectInstanceInfo> find(String instanceId) {
-        return findInstance(instanceId)
-                .map(instance -> toProjectInstanceInfo(instance, List.of()));
+        return instancesClient.instance(scope, instanceId)
+                .map(found -> toProjectInstanceInfo(found.instance(), found.sessions()));
     }
 
     public Optional<InstanceDetailResponse> detail(String instanceId) {
-        return findInstance(instanceId).map(instance -> {
-            List<RecordingSessionResponse> sessions = repositoryClient.instanceSessions(projectInfo.id(), instanceId);
-            return new InstanceDetailResponse(withSessions(instance, sessions), stats(sessions));
-        });
+        return instancesClient.instance(scope, instanceId)
+                .map(found -> new InstanceDetailResponse(
+                        withSessions(found.instance(), found.sessions()), stats(found.sessions())));
+    }
+
+    /**
+     * One instance's sessions, newest first, each without its files; empty when the project
+     * holds no instance by that id.
+     */
+    public Optional<List<RecordingSession>> sessions(String instanceId) {
+        return instancesClient.instance(scope, instanceId)
+                .map(found -> found.sessions().stream()
+                        .map(RecordingSessionResponse::from)
+                        .toList());
     }
 
     public Optional<InstanceSessionDetailResponse> sessionDetail(String instanceId, String sessionId) {
-        RecordingSessionResponse session = repositoryClient.recordingSession(sessionId);
+        RecordingSessionResponse session = repositoryClient.recordingSession(scope, sessionId);
         if (!instanceId.equals(session.instanceId())) {
             return Optional.empty();
         }
@@ -110,18 +125,10 @@ public class RemoteInstancesManager {
         return Optional.of(new InstanceSessionDetailResponse(toSessionResponse(session), environment));
     }
 
-    private Optional<InstanceResponse> findInstance(String instanceId) {
-        return instancesClient.projectInstances(projectInfo.id()).stream()
-                .filter(instance -> instance.id().equals(instanceId))
-                .findFirst();
-    }
-
+    /** Summed from the size each session arrived with; no session's files are fetched for it. */
     private static InstanceStatsResponse stats(List<RecordingSessionResponse> sessions) {
-        int fileCount = sessions.stream().mapToInt(session -> session.files().size()).sum();
-        long totalSize = sessions.stream()
-                .map(RecordingSessionResponse::from)
-                .mapToLong(RecordingSession::totalSizeBytes)
-                .sum();
+        int fileCount = sessions.stream().mapToInt(RecordingSessionResponse::fileCount).sum();
+        long totalSize = sessions.stream().mapToLong(RecordingSessionResponse::sizeBytes).sum();
         return new InstanceStatsResponse(fileCount, totalSize);
     }
 
@@ -132,8 +139,6 @@ public class RemoteInstancesManager {
                 instance.status(),
                 instance.createdAt(),
                 instance.finishedAt(),
-                instance.expiringAt(),
-                instance.expiredAt(),
                 instance.sessionCount(),
                 activeSessionId(sessions),
                 instance.duration(),
@@ -174,8 +179,6 @@ public class RemoteInstancesManager {
                 ProjectInstanceStatus.valueOf(response.status()),
                 InstantUtils.fromEpochMilli(response.createdAt()),
                 InstantUtils.fromEpochMilli(response.finishedAt()),
-                InstantUtils.fromEpochMilli(response.expiringAt()),
-                InstantUtils.fromEpochMilli(response.expiredAt()),
                 response.sessionCount(),
                 activeSessionId(sessions),
                 sessions.stream().map(RemoteInstancesManager::toProjectInstanceSessionInfo).toList());

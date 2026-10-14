@@ -71,7 +71,6 @@ public abstract class ClientProtoMappers {
             case INSTANCE_STATUS_PENDING -> "PENDING";
             case INSTANCE_STATUS_ACTIVE -> "ACTIVE";
             case INSTANCE_STATUS_FINISHED -> "FINISHED";
-            case INSTANCE_STATUS_EXPIRED -> "EXPIRED";
             default -> "UNKNOWN";
         };
     }

@@ -51,41 +51,41 @@ class SchedulerJobsPropertiesTest {
 
         @Test
         void resolvesTheCanonicalKebabCaseKey() {
-            var properties = propertiesWithJob("workspace-reconciler", Duration.ofSeconds(2));
+            var properties = propertiesWithJob("project-retention", Duration.ofSeconds(2));
 
             assertEquals(Duration.ofSeconds(2),
-                    properties.forType(JobType.WORKSPACE_RECONCILER).period());
+                    properties.forType(JobType.PROJECT_RETENTION).period());
         }
 
         @Test
         void resolvesTheKeyEnvironmentVariableBindingProduces() {
-            // JEFFREY_HUB_SCHEDULER_JOBS_WORKSPACERECONCILER_PERIOD — relaxed binding drops the dash
-            var properties = propertiesWithJob("workspacereconciler", Duration.ofSeconds(10));
+            // JEFFREY_HUB_SCHEDULER_JOBS_PROJECTRETENTION_PERIOD — relaxed binding drops the dash
+            var properties = propertiesWithJob("projectretention", Duration.ofSeconds(10));
 
             assertEquals(Duration.ofSeconds(10),
-                    properties.forType(JobType.WORKSPACE_RECONCILER).period());
+                    properties.forType(JobType.PROJECT_RETENTION).period());
         }
 
         @Test
         void resolvesUnderscoreAndUppercaseSpellings() {
             assertEquals(Duration.ofSeconds(7),
-                    propertiesWithJob("workspace_reconciler", Duration.ofSeconds(7))
-                            .forType(JobType.WORKSPACE_RECONCILER).period());
+                    propertiesWithJob("project_retention", Duration.ofSeconds(7))
+                            .forType(JobType.PROJECT_RETENTION).period());
             assertEquals(Duration.ofSeconds(8),
-                    propertiesWithJob("WORKSPACE_RECONCILER", Duration.ofSeconds(8))
-                            .forType(JobType.WORKSPACE_RECONCILER).period());
+                    propertiesWithJob("PROJECT_RETENTION", Duration.ofSeconds(8))
+                            .forType(JobType.PROJECT_RETENTION).period());
         }
 
         @Test
         void aJobWithNoConfigurationStaysDisabled() {
             var properties = new SchedulerJobsProperties();
 
-            assertFalse(properties.forType(JobType.WORKSPACE_RECONCILER).enabled());
+            assertFalse(properties.forType(JobType.PROJECT_RETENTION).enabled());
         }
 
         @Test
         void doesNotConfuseDistinctJobs() {
-            var properties = propertiesWithJob("workspace-reconciler", Duration.ofSeconds(2));
+            var properties = propertiesWithJob("project-retention", Duration.ofSeconds(2));
 
             assertFalse(properties.forType(JobType.REPOSITORY_JFR_COMPRESSION).enabled());
         }

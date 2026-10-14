@@ -31,5 +31,11 @@ package cafe.jeffrey.microscope.model.repository;
  * this record nor the RPC that carries it. A caller that wants to know what a particular file is
  * reads {@code fileType} off the session listing, where the hub reports it without acting on it.
  */
-public record RepositoryStatistics(long totalSizeBytes) {
+/**
+ * @param totalSizeBytes as the hub's last retention pass measured it, or {@code null} before the
+ *                       first pass: the figure is read off that pass, never re-measured on request
+ */
+public record RepositoryStatistics(Long totalSizeBytes) {
+
+    public static final RepositoryStatistics NOT_YET_MEASURED = new RepositoryStatistics(null);
 }

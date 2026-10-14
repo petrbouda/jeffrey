@@ -58,7 +58,7 @@ public class InitExecutor {
         ProjectLayout projectLayout = layoutProvisioner.provisionProject(config);
 
         SessionRegistrar registrar = new SessionRegistrar(
-                new FileSystemRepository(clock, projectLayout.workspace()), layoutProvisioner);
+                new FileSystemRepository(clock), layoutProvisioner);
         ProvisionedSession session = registrar.openSession(config, projectLayout);
 
         // Phase two of placeholder resolution: the layout only exists now that the session

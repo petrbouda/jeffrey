@@ -50,7 +50,7 @@ public class WorkspacesController {
     @GetMapping
     public List<WorkspaceResponse> list() {
         return workspacesManager.findAll().stream()
-                .map(workspace -> Mappers.toResponse(workspace.resolveInfo()))
+                .map(workspace -> Mappers.toResponse(workspace.info()))
                 .toList();
     }
 

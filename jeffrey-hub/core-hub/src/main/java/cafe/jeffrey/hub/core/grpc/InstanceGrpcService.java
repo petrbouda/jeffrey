@@ -20,11 +20,15 @@ package cafe.jeffrey.hub.core.grpc;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.api.v1.GetInstanceRequest;
+import cafe.jeffrey.hub.api.v1.GetInstanceResponse;
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
 import cafe.jeffrey.hub.api.v1.InstanceServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
+import cafe.jeffrey.hub.api.v1.RecordingSession;
+import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.util.List;
 
@@ -36,26 +40,45 @@ public class InstanceGrpcService extends InstanceServiceGrpc.InstanceServiceImpl
 
     private static final Logger LOG = LoggerFactory.getLogger(InstanceGrpcService.class);
 
-    private final HubPlatformRepositories platformRepositories;
     private final GrpcLookups lookups;
 
-    public InstanceGrpcService(HubPlatformRepositories platformRepositories, GrpcLookups lookups) {
-        this.platformRepositories = platformRepositories;
+    public InstanceGrpcService(GrpcLookups lookups) {
         this.lookups = lookups;
     }
 
     @Override
     public void listInstances(ListInstancesRequest request, StreamObserver<ListInstancesResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            String projectId = lookups.projectInfo(request.getProjectId()).id();
-            List<InstanceInfo> instances = platformRepositories.newProjectInstanceRepository(projectId).findAll().stream()
+            List<InstanceInfo> instances = lookups.project(request.getWorkspaceId(), request.getProjectId())
+                    .repositoryStorage().instances().stream()
                     .map(ProtoMappers::instance)
                     .toList();
-
-            LOG.debug("Listed instances via gRPC: project_id={} count={}", projectId, instances.size());
-
+            LOG.debug("Listed instances via gRPC: workspace_id={} project_id={} count={}",
+                    request.getWorkspaceId(), request.getProjectId(), instances.size());
             return ListInstancesResponse.newBuilder()
                     .addAllInstances(instances)
+                    .build();
+        });
+    }
+
+    @Override
+    public void getInstance(GetInstanceRequest request, StreamObserver<GetInstanceResponse> responseObserver) {
+        GrpcUnary.respond(responseObserver, () -> {
+            ProjectManager project = lookups.project(request.getWorkspaceId(), request.getProjectId());
+            InstanceInfo instance = project.repositoryStorage().instance(request.getInstanceId())
+                    .map(ProtoMappers::instance)
+                    .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + request.getInstanceId()));
+            List<RecordingSession> sessions = project.repositoryManager()
+                    .listInstanceSessions(request.getInstanceId(), RecordingSessionFilter.ALL).stream()
+                    .map(ProtoMappers::sessionHeader)
+                    .toList();
+
+            LOG.debug("Fetched instance via gRPC: workspace_id={} project_id={} instance_id={} sessions={}",
+                    request.getWorkspaceId(), request.getProjectId(), request.getInstanceId(), sessions.size());
+
+            return GetInstanceResponse.newBuilder()
+                    .setInstance(instance)
+                    .addAllSessions(sessions)
                     .build();
         });
     }

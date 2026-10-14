@@ -18,7 +18,7 @@
 package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.util.List;
@@ -30,13 +30,6 @@ public interface RepositoryStorage {
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, RepositoryStorage> {
     }
-
-    /**
-     * Information about the repository.
-     *
-     * @return information about the repository.
-     */
-    RepositoryInfo repositoryInfo();
 
     /**
      * Lists of files for the given session.
@@ -82,28 +75,37 @@ public interface RepositoryStorage {
     void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds);
 
     /**
-     * Deletes a specific recording session and all its associated recordings
-     * from the repository.
+     * Deletes a session's directory with everything in it.
      *
-     * @param sessionId the unique identifier of the recording session to delete
+     * @return whether the session was there to delete
      */
-    void deleteSession(String sessionId);
+    boolean deleteSession(String sessionId);
 
     /**
-     * Deletes an instance's directory (including its marker file) from the repository.
-     * Removing the on-disk declaration is what makes an instance deletion final: the
-     * workspace reconciler re-creates any instance whose directory still exists.
+     * Every instance of the project, its status read off its newest session at this moment.
+     */
+    List<ProjectInstanceInfo> instances();
+
+    /**
+     * One instance of the project, or empty when the project holds none by that id.
+     */
+    Optional<ProjectInstanceInfo> instance(String instanceId);
+
+    /**
+     * Pins a session against every retention rule, or releases it, by a flag file in its directory.
+     *
+     * @return whether the project holds the session
+     */
+    boolean setRetained(String sessionId, boolean retained);
+
+    /**
+     * Deletes an instance's directory, its marker file included.
      *
      * @param instanceId the unique identifier of the instance whose directory to delete
      */
     void deleteInstanceDirectory(String instanceId);
 
-    /**
-     * Deletes the whole project directory (including its marker file) from the repository.
-     * Removing the on-disk declaration is what makes a project deletion final: the
-     * workspace reconciler re-creates any project whose directory still exists. A no-op
-     * when the project has no repository or the directory is already gone.
-     */
+    /** Deletes the whole project directory, its marker file included; a no-op when it is gone. */
     void deleteProjectDirectory();
 
     // ========== Files ==========

@@ -63,7 +63,6 @@ public class StubWorkspaceService extends WorkspaceServiceGrpc.WorkspaceServiceI
         return WorkspaceInfo.newBuilder()
                 .setId(workspace.id())
                 .setName(workspace.name())
-                .setReferenceId(workspace.referenceId())
                 .setCreatedAt(workspace.createdAt().toEpochMilli())
                 .setProjectCount(workspace.projects().size())
                 .setStatus(WorkspaceStatus.WORKSPACE_STATUS_AVAILABLE)

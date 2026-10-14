@@ -38,48 +38,37 @@ public record StubDataset(List<Workspace> workspaces) {
                 .findFirst();
     }
 
-    public List<Project> projects(String workspaceId) {
-        return workspace(workspaceId)
-                .map(Workspace::projects)
-                .orElse(List.of());
-    }
-
-    public Optional<Project> project(String projectId) {
-        return workspaces.stream()
+    /**
+     * A project within its workspace. Like the real hub, the stub resolves nothing below a
+     * workspace without it: a request that leaves out the workspace finds no project.
+     */
+    public Optional<Project> project(String workspaceId, String projectId) {
+        return workspace(workspaceId).stream()
                 .flatMap(workspace -> workspace.projects().stream())
                 .filter(project -> project.id().equals(projectId))
                 .findFirst();
     }
 
-    public Optional<Instance> instance(String instanceId) {
-        return workspaces.stream()
-                .flatMap(workspace -> workspace.projects().stream())
-                .flatMap(project -> project.instances().stream())
-                .filter(instance -> instance.id().equals(instanceId))
-                .findFirst();
-    }
-
-    public List<Session> sessionsForProject(String projectId) {
-        return project(projectId)
+    public List<Session> sessionsForProject(String workspaceId, String projectId) {
+        return project(workspaceId, projectId)
                 .map(project -> project.instances().stream()
                         .flatMap(instance -> instance.sessions().stream())
                         .toList())
                 .orElse(List.of());
     }
 
-    public Optional<Session> session(String sessionId) {
-        return workspaces.stream()
-                .flatMap(workspace -> workspace.projects().stream())
-                .flatMap(project -> project.instances().stream())
-                .flatMap(instance -> instance.sessions().stream())
+    public Optional<Session> session(String workspaceId, String projectId, String sessionId) {
+        return sessionsForProject(workspaceId, projectId).stream()
                 .filter(session -> session.id().equals(sessionId))
                 .findFirst();
     }
 
+    /**
+     * @param id the workspace's directory name on the hub's volume, which is also its reference id
+     */
     public record Workspace(
             String id,
             String name,
-            String referenceId,
             Instant createdAt,
             List<Project> projects) {
     }
@@ -95,6 +84,13 @@ public record StubDataset(List<Workspace> workspaces) {
         public int sessionCount() {
             return instances.stream().mapToInt(instance -> instance.sessions().size()).sum();
         }
+
+        public long sizeBytes() {
+            return instances.stream()
+                    .flatMap(instance -> instance.sessions().stream())
+                    .mapToLong(Session::sizeBytes)
+                    .sum();
+        }
     }
 
     public record Instance(
@@ -103,8 +99,6 @@ public record StubDataset(List<Workspace> workspaces) {
             InstState status,
             Instant createdAt,
             Instant finishedAt,
-            Instant expiringAt,
-            Instant expiredAt,
             String activeSessionId,
             List<Session> sessions) {
     }
@@ -119,6 +113,10 @@ public record StubDataset(List<Workspace> workspaces) {
             boolean active,
             RecState status,
             List<File> files) {
+
+        public long sizeBytes() {
+            return files.stream().mapToLong(File::size).sum();
+        }
     }
 
     public record File(
@@ -137,7 +135,7 @@ public record StubDataset(List<Workspace> workspaces) {
 
     /** Instance lifecycle state. */
     public enum InstState {
-        PENDING, ACTIVE, FINISHED, EXPIRED
+        PENDING, ACTIVE, FINISHED
     }
 
     /**

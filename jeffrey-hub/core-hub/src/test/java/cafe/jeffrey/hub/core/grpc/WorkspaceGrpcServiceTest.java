@@ -38,6 +38,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,7 +83,7 @@ class WorkspaceGrpcServiceTest {
         void returnsWorkspaceList() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             var workspaceManager = mock(WorkspaceManager.class);
-            when(workspaceManager.resolveInfo()).thenReturn(testWorkspaceInfo());
+            when(workspaceManager.info()).thenReturn(testWorkspaceInfo());
             doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
 
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
@@ -114,9 +115,6 @@ class WorkspaceGrpcServiceTest {
         void createsWorkspaceAndReturnsIt() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
-            var created = mock(WorkspaceManager.class);
-            when(created.resolveInfo()).thenReturn(testWorkspaceInfo().withStatus(WorkspaceStatus.UNAVAILABLE));
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(created));
 
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
@@ -128,8 +126,7 @@ class WorkspaceGrpcServiceTest {
 
             assertEquals(WORKSPACE_ID, response.getWorkspace().getId());
             assertEquals("Test Workspace", response.getWorkspace().getName());
-            // The row carries no status; the answer is the one the manager resolves from the directory
-            assertEquals(cafe.jeffrey.hub.api.v1.WorkspaceStatus.WORKSPACE_STATUS_UNAVAILABLE, response.getWorkspace().getStatus());
+            assertEquals(3, response.getWorkspace().getProjectCount());
         }
 
         @Test
@@ -189,7 +186,7 @@ class WorkspaceGrpcServiceTest {
         void deletesWorkspace() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             var workspaceManager = mock(WorkspaceManager.class);
-            when(workspaceManager.resolveInfo()).thenReturn(testWorkspaceInfo());
+            when(workspaceManager.info()).thenReturn(testWorkspaceInfo());
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
@@ -213,7 +210,7 @@ class WorkspaceGrpcServiceTest {
     }
 
     private static WorkspaceInfo testWorkspaceInfo() {
-        return new WorkspaceInfo(WORKSPACE_ID, "origin-1", "Test Workspace", FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
+        return new WorkspaceInfo(WORKSPACE_ID, "Test Workspace", FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
     }
 
     private static DefaultWorkspaceProperties defaultProperties() {
@@ -239,16 +236,13 @@ class WorkspaceGrpcServiceTest {
             assertEquals(Status.INVALID_ARGUMENT.getCode(), ex.getStatus().getCode());
             assertTrue(ex.getStatus().getDescription().contains("reserved"),
                     "Expected description to mention 'reserved', got: " + ex.getStatus().getDescription());
-            verify(workspacesManager, org.mockito.Mockito.never()).create(any());
+            verify(workspacesManager, never()).create(any());
         }
 
         @Test
         void plainReferenceId_passesThroughToManager() throws IOException {
             var workspacesManager = mock(WorkspacesManager.class);
             when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
-            var created = mock(WorkspaceManager.class);
-            when(created.resolveInfo()).thenReturn(testWorkspaceInfo());
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(created));
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
 
             CreateWorkspaceRequest request = CreateWorkspaceRequest.newBuilder()
@@ -270,8 +264,8 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             var workspaceManager = mock(WorkspaceManager.class);
             WorkspaceInfo defaultInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, "$default", "$default", FIXED_TIME, WorkspaceStatus.UNKNOWN, 0);
-            when(workspaceManager.resolveInfo()).thenReturn(defaultInfo);
+                    "$default", "$default", FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
+            when(workspaceManager.info()).thenReturn(defaultInfo);
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
@@ -284,7 +278,7 @@ class WorkspaceGrpcServiceTest {
             assertEquals(Status.FAILED_PRECONDITION.getCode(), ex.getStatus().getCode());
             assertTrue(ex.getStatus().getDescription().contains("$default"),
                     "Expected description to mention '$default', got: " + ex.getStatus().getDescription());
-            verify(workspaceManager, org.mockito.Mockito.never()).delete();
+            verify(workspaceManager, never()).delete();
         }
 
         @Test
@@ -292,8 +286,8 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             var workspaceManager = mock(WorkspaceManager.class);
             WorkspaceInfo info = new WorkspaceInfo(
-                    WORKSPACE_ID, "uat", "Uat", FIXED_TIME, WorkspaceStatus.UNKNOWN, 0);
-            when(workspaceManager.resolveInfo()).thenReturn(info);
+                    WORKSPACE_ID, "Uat", FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
+            when(workspaceManager.info()).thenReturn(info);
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
             var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));

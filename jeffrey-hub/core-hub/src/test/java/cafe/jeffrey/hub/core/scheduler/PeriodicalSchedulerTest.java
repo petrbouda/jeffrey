@@ -48,11 +48,11 @@ class PeriodicalSchedulerTest {
     }
 
     private static Job testJob(Runnable action, Duration period) {
-        return testJob(action, period, JobType.WORKSPACE_RECONCILER, Job.ExecutorGroup.GLOBAL);
+        return testJob(action, period, JobType.PROJECT_RETENTION, Job.ExecutorGroup.GLOBAL);
     }
 
     private static Job fanOutTestJob(Runnable action, Duration period) {
-        return testJob(action, period, JobType.SESSION_FINISHED_DETECTOR, Job.ExecutorGroup.PROJECT_FAN_OUT);
+        return testJob(action, period, JobType.REPOSITORY_JFR_COMPRESSION, Job.ExecutorGroup.PROJECT_FAN_OUT);
     }
 
     private static Job testJob(Runnable action, Duration period, JobType jobType, Job.ExecutorGroup executorGroup) {

@@ -86,8 +86,10 @@ public class FileStreamClient {
      * is decides what the caller does with it afterwards, and the caller read that off the
      * listing that gave it this id.
      */
-    public void streamFile(String sessionId, String fileId, InputStreamConsumer consumer) {
+    public void streamFile(ProjectScope scope, String sessionId, String fileId, InputStreamConsumer consumer) {
         DownloadFileRequest request = DownloadFileRequest.newBuilder()
+                .setWorkspaceId(scope.workspaceId())
+                .setProjectId(scope.projectId())
                 .setSessionId(sessionId)
                 .setFileId(fileId)
                 .build();

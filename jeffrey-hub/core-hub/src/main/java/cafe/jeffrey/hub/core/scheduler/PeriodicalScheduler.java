@@ -81,10 +81,9 @@ public class PeriodicalScheduler implements AutoCloseable {
     }
 
     /**
-     * Stops both pools and waits for the tick in flight, because the beans a tick works on —
-     * the DuckDB provider first of all — are destroyed right after this one, and a session
-     * deletion or a compression rename cut off half-way is exactly the state every job is
-     * written to never leave behind.
+     * Stops both pools and waits for the tick in flight, because a session deletion or a
+     * compression rename cut off half-way is exactly the state every job is written to never
+     * leave behind.
      */
     @Override
     public void close() {

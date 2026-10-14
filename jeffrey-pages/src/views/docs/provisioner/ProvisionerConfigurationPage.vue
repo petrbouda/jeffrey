@@ -239,14 +239,16 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_WORKSPACE_REF_ID</code></td>
               <td>
-                Reference ID of the workspace on the target Jeffrey Hub. Optional — when
-                omitted (or blank), events route to the server's default workspace
-                (<code>$default</code> unless reconfigured via
+                Reference ID of the workspace on the target Jeffrey Hub — the name of the
+                workspace directory the provisioner writes into, and the workspace's id on the
+                Hub. Optional — when omitted (or blank), recordings go to the server's default
+                workspace (<code>$default</code> unless reconfigured via
                 <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
-                If set, the value must match an existing workspace's reference ID — unknown
-                IDs are dropped server-side with a warning, unless the hub enables
-                <code>jeffrey.hub.workspaces.auto-create=true</code>, in which case the
-                workspace is created on the first incoming event.
+                If set, it should name a workspace created on the Hub — a directory without the
+                Hub's <code>.workspace-info.json</code> is not listed, unless the hub enables
+                <code>jeffrey.hub.workspaces.auto-create=true</code>, in which case every
+                workspace directory is listed. Creating the workspace later adopts what was
+                already written.
               </td>
             </tr>
             <tr>

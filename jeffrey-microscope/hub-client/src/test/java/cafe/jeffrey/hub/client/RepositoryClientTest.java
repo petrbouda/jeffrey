@@ -48,7 +48,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RepositoryClientTest {
 
+    private static final String WORKSPACE_ID = "ws-1";
     private static final String PROJECT_ID = "proj-1";
+    private static final ProjectScope SCOPE = new ProjectScope(WORKSPACE_ID, PROJECT_ID);
     private static final Instant NOW = Instant.parse("2026-03-01T12:00:00Z");
 
     /**
@@ -98,9 +100,10 @@ class RepositoryClientTest {
 
         @Test
         void unfilteredListingSendsAnEmptyFilter() {
-            List<RecordingSessionResponse> sessions = client.recordingSessions(PROJECT_ID);
+            List<RecordingSessionResponse> sessions = client.recordingSessions(SCOPE);
 
             ListSessionsRequest sent = service.lastRequest.get();
+            assertEquals(WORKSPACE_ID, sent.getWorkspaceId());
             assertEquals(PROJECT_ID, sent.getProjectId());
             assertEquals(SessionFilter.getDefaultInstance(), sent.getFilter());
             assertEquals(1, sessions.size());
@@ -113,7 +116,7 @@ class RepositoryClientTest {
             var filter = new RecordingSessionFilter(
                     from, NOW, cafe.jeffrey.microscope.model.repository.RecordingStatus.FINISHED, 3);
 
-            client.recordingSessions(PROJECT_ID, filter);
+            client.recordingSessions(SCOPE, filter);
 
             SessionFilter sent = service.lastRequest.get().getFilter();
             assertTrue(sent.hasActiveFrom());
@@ -126,7 +129,7 @@ class RepositoryClientTest {
 
         @Test
         void openBoundsStayUnsetOnTheWire() {
-            client.recordingSessions(PROJECT_ID, RecordingSessionFilter.activeWithinLast(Duration.ofHours(1), NOW));
+            client.recordingSessions(SCOPE, RecordingSessionFilter.activeWithinLast(Duration.ofHours(1), NOW));
 
             SessionFilter sent = service.lastRequest.get().getFilter();
             assertTrue(sent.hasActiveFrom());

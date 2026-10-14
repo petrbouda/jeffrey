@@ -24,7 +24,6 @@ import java.util.List;
 
 public record StorageOverviewResponse(
         long computedAtMillis,
-        long databaseSizeBytes,
         List<ProjectStorageResponse> projects) {
 
     /** {@code computedAtMillis} before the first retention pass has measured any project. */
@@ -38,7 +37,6 @@ public record StorageOverviewResponse(
 
         return new StorageOverviewResponse(
                 cached.computedAt() == null ? NOT_YET_COMPUTED : cached.computedAt().toEpochMilli(),
-                overview.infrastructure().databaseBytes(),
                 projects);
     }
 

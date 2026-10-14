@@ -26,8 +26,8 @@ package cafe.jeffrey.hub.core.scheduler;
  * else.</p>
  *
  * <p>The manual run is deliberately a separate method from {@link Job#execute}. A job's scheduled
- * tick and what an operator wants on demand are not always the same work — the workspace
- * reconciler ticks over the pending index but walks the entire tree when asked by hand.</p>
+ * tick and what an operator wants on demand are not always the same work — a manual run also
+ * reports what it did, in one line.</p>
  */
 public interface ManuallyTriggerable {
 

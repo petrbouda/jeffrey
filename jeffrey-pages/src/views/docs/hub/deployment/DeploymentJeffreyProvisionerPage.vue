@@ -212,8 +212,8 @@ volumes:
       <h2 id="project-block">Project Block</h2>
       <p>
         Controls how the workload appears in Jeffrey Hub. The
-        <code>name</code> is the logical identifier (used as the project key in the
-        catalog DB) and the name shown for the project everywhere.
+        <code>name</code> is the logical identifier (the project's directory on the shared
+        volume) and the name shown for the project everywhere.
       </p>
 
       <DocsCodeBlock

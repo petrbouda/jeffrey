@@ -30,6 +30,7 @@ import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import Badge from '@shared/components/Badge.vue';
 import RecordingFileRow from '@hubs/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
 import type { TimelineBarItem, Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
@@ -93,6 +94,44 @@ const visibleFilesCount = ref<{ [key: string]: number }>({});
 const expandedTypePanels = ref<{ [key: string]: boolean }>({});
 const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
 const expandedFailedGroups = ref<{ [key: string]: boolean }>({});
+
+// --- Files, fetched per session when it is opened ---
+// A listing carries each session's file count and size but none of its files, so a session's
+// files are fetched when it is expanded or about to be downloaded, and kept here.
+const sessionFiles = ref<{ [sessionId: string]: RepositoryFile[] }>({});
+const loadingFiles = ref<{ [sessionId: string]: boolean }>({});
+
+const filesOf = (session: RecordingSession): RepositoryFile[] => {
+  return sessionFiles.value[session.id] ?? session.files;
+};
+
+const loadFiles = async (sessionId: string): Promise<RepositoryFile[]> => {
+  loadingFiles.value[sessionId] = true;
+  try {
+    const files = (await repositoryService.value.getRecordingSession(sessionId)).files;
+    sessionFiles.value[sessionId] = files;
+    const selection = selectedRepositoryFile.value[sessionId] ?? {};
+    files.forEach(file => {
+      if (selection[file.id] === undefined) {
+        selection[file.id] = false;
+      }
+    });
+    selectedRepositoryFile.value[sessionId] = selection;
+    return files;
+  } finally {
+    loadingFiles.value[sessionId] = false;
+  }
+};
+
+const loadFilesQuietly = (sessionId: string): void => {
+  loadFiles(sessionId).catch((error: any) => {
+    toast.error('Session files', error.message || 'Failed to load the files of the session');
+  });
+};
+
+const ensureFiles = async (session: RecordingSession): Promise<RepositoryFile[]> => {
+  return sessionFiles.value[session.id] ?? loadFiles(session.id);
+};
 
 // Delete dialog state
 const deleteSessionDialog = ref(false);
@@ -243,7 +282,7 @@ const getSortedRecordings = (session: RecordingSession) => {
     return 0;
   };
 
-  return [...session.files].sort((a, b) => {
+  return [...filesOf(session)].sort((a, b) => {
     const priorityA = getSortPriority(a);
     const priorityB = getSortPriority(b);
 
@@ -275,9 +314,12 @@ const initializeExpandedState = () => {
 
     if (!selectedRepositoryFile.value[session.id]) {
       selectedRepositoryFile.value[session.id] = {};
-      session.files.forEach(source => {
-        selectedRepositoryFile.value[session.id][source.id] = false;
-      });
+    }
+
+    // The files of an open session are fetched again on every refresh of the list, so a
+    // session that is still recording shows the chunks it wrote since
+    if (expandedSessions.value[session.id]) {
+      loadFilesQuietly(session.id);
     }
 
     if (showMultiSelectActions.value[session.id] === undefined) {
@@ -301,6 +343,10 @@ const toggleFailedGroup = (groupKey: string) => {
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
 
+  if (expandedSessions.value[sessionId] && !sessionFiles.value[sessionId]) {
+    loadFilesQuietly(sessionId);
+  }
+
   if (!expandedSessions.value[sessionId]) {
     visibleFilesCount.value[sessionId] = DEFAULT_FILES_LIMIT;
     for (const key of Object.keys(visibleFilesCount.value)) {
@@ -313,7 +359,7 @@ const toggleSession = (sessionId: string) => {
 
 // --- Status helpers ---
 const getSourcesCount = (session: RecordingSession): number => {
-  return session.files.length;
+  return session.fileCount;
 };
 
 /** Suffix of a session row's `session-*` and `session-icon-*` classes. */
@@ -338,6 +384,9 @@ const toggleSelectionMode = (sessionId: string) => {
 
   if (showMultiSelectActions.value[sessionId]) {
     expandedSessions.value[sessionId] = true;
+    if (!sessionFiles.value[sessionId]) {
+      loadFilesQuietly(sessionId);
+    }
   } else {
     clearAllSelections(sessionId);
   }
@@ -350,7 +399,7 @@ const clearAllSelections = (sessionId: string) => {
 
   const session = props.sessions.find(s => s.id === sessionId);
   if (session) {
-    session.files.forEach(source => {
+    filesOf(session).forEach(source => {
       selectedRepositoryFile.value[sessionId][source.id] = false;
     });
   }
@@ -398,7 +447,7 @@ const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
     selectedRepositoryFile.value[sessionId] = {};
   }
 
-  session.files.forEach(source => {
+  filesOf(session).forEach(source => {
     if (!isCheckboxDisabled(source)) {
       selectedRepositoryFile.value[sessionId][source.id] = selectAll;
     }
@@ -437,8 +486,8 @@ const isDownloadAllowed = (file: RepositoryFile): boolean => {
   return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
 };
 
-const hasDownloadableRecordings = (session: RecordingSession): boolean => {
-  return session.files.some(f => f.isRecording);
+const hasDownloadableRecordings = (files: RepositoryFile[]): boolean => {
+  return files.some(f => f.isRecording);
 };
 
 const downloadFile = async (sessionId: string, fileId: string) => {
@@ -458,7 +507,8 @@ const downloadSession = async (sessionId: string) => {
       return;
     }
 
-    if (!hasDownloadableRecordings(session)) {
+    const files = await ensureFiles(session);
+    if (!hasDownloadableRecordings(files)) {
       toast.warn(
         'No recording data available',
         'The session may have been terminated before any data was written.'
@@ -466,7 +516,7 @@ const downloadSession = async (sessionId: string) => {
       return;
     }
 
-    const fileIds = session.files.map(f => f.id);
+    const fileIds = files.map(f => f.id);
     await downloadAssistantStore.startDownload(
       props.hubId,
       props.workspaceId,
@@ -488,7 +538,7 @@ const downloadSelectedSources = async (sessionId: string) => {
     const session = props.sessions.find(s => s.id === sessionId);
     if (!session) {return;}
 
-    const selectedSources = session.files.filter(
+    const selectedSources = filesOf(session).filter(
       source => selectedRepositoryFile.value[sessionId][source.id]
     );
 
@@ -1007,6 +1057,10 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
       <!-- Session recordings (shown when expanded) -->
       <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
+        <LoadingState
+          v-if="loadingFiles[session.id] && !sessionFiles[session.id]"
+          message="Loading the session's files..."
+        />
         <!-- Multi-select controls -->
         <div
           v-if="showMultiSelectActions[session.id]"

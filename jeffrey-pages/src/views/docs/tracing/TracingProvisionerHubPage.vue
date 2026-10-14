@@ -66,7 +66,7 @@ jdk.VirtualThreadPinned#enabled=true,jdk.VirtualThreadPinned#threshold=1ms,\\
 jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
 const sessionLayout = `<workspaces>/<workspace-ref-id>/
-├── .pending/<timestamp>_<uuid>        # provisioner-declared work, for the hub to notice
+├── .workspace-info.json               # written by the Hub when the workspace is created
 └── <project-name>/<instance-id>/<session-id>/
     ├── profile-<timestamp>.jfr        # the durable chunks — traces live in these
     ├── .heartbeat/heartbeat           # epoch millis, rewritten every 5s
@@ -92,7 +92,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <ul>
         <li><strong>The Provisioner never talks to the Hub.</strong> It is a short-lived CLI that runs before <code>main()</code>, writes the session tree and an <code>@argfile</code>, and exits. Its only channel to the Hub is the shared volume — there is no event transport in between.</li>
-        <li><strong>The Hub polls; nothing pushes to it.</strong> A reconciler drains <code>.pending/</code> every 5&nbsp;seconds, and a detector reads <code>.heartbeat/</code> every 30&nbsp;seconds. A session appearing a few seconds after the app starts is the system working as designed.</li>
+        <li><strong>The Hub reads; nothing pushes to it.</strong> It keeps no database and no copy of the volume: every listing reads the marker files and <code>.heartbeat/</code> when it is asked, so a session shows up on the next listing after the Provisioner writes it, and its status is decided at that moment.</li>
       </ul>
 
       <h2 id="switch">Turning Tracing On</h2>
@@ -139,7 +139,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes the marker files, then appends a pointer file to <code>.pending/</code> — an index, not a queue, carrying a path rather than a copy of the state. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the heartbeat library rewrites the liveness file every 5&nbsp;seconds.</p>
+      <p>The Provisioner creates the tree and writes the marker files — atomically, because they are the Hub's only record of what exists. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the heartbeat library rewrites the liveness file every 5&nbsp;seconds.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -153,25 +153,20 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
         </thead>
         <tbody>
           <tr>
-            <td>Workspace reconciler</td>
-            <td>5&nbsp;s</td>
-            <td>Drains <code>.pending/</code>, reads the marker JSONs, and materializes projects, instances and sessions into the Hub's catalog. Strictly additive; an entry is deleted only after it succeeds.</td>
-          </tr>
-          <tr>
-            <td>Session-finished detector</td>
-            <td>30&nbsp;s</td>
-            <td>Reads <code>.heartbeat/</code>. A <code>finished</code> marker ends the session deterministically; a stale heartbeat ends it at that timestamp. A crash log left in the directory is listed as a session file, not acted on.</td>
+            <td>Listing (no job)</td>
+            <td>Every request</td>
+            <td>Reads the marker JSONs to list projects, instances and sessions, and <code>.heartbeat/</code> to decide each session's status: a <code>finished</code> marker ends the session deterministically; a newer session in the same instance or a stale heartbeat ends it at the last heartbeat. A crash log left in the directory is listed as a session file, not acted on.</td>
           </tr>
           <tr>
             <td>Compression &amp; retention</td>
-            <td>15&nbsp;m and up</td>
+            <td>1&nbsp;m and 5&nbsp;m</td>
             <td>LZ4-compresses finished recordings, and enforces session, recording, quota and instance retention.</td>
           </tr>
         </tbody>
       </table>
 
       <DocsCallout type="warning">
-        <strong>The Hub never analyses a recording.</strong> It catalogs, compresses, retains and serves. Every flamegraph, trace and heap-dump view is computed in Microscope — so the traces in this guide are derived on your machine, from bytes the Hub only ever stored.
+        <strong>The Hub never analyses a recording.</strong> It lists, compresses, retains and serves. Every flamegraph, trace and heap-dump view is computed in Microscope — so the traces in this guide are derived on your machine, from bytes the Hub only ever stored.
       </DocsCallout>
 
       <h2 id="download">Getting the Recording into Microscope</h2>
@@ -213,12 +208,12 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           </tr>
           <tr>
             <td>The session never appears in the Hub</td>
-            <td>The Hub is not mounting the same volume path, or <code>.pending/</code> is unreadable</td>
-            <td>The reconciler runs every 5&nbsp;s and is additive — if nothing arrives, the volume is the thing to check, not the app</td>
+            <td>The Hub is not mounting the same volume path, or the workspace was never created on the Hub (no <code>.workspace-info.json</code>)</td>
+            <td>The Hub reads the volume on every request — if nothing arrives, the volume is the thing to check, not the app. Create the workspace with the reference id the Provisioner uses (it adopts the existing directory), or set <code>jeffrey.hub.workspaces.auto-create=true</code></td>
           </tr>
           <tr>
             <td>The session never ends</td>
-            <td>No heartbeat file — the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> is switched off (<code>JEFFREY_AGENT_ENABLED=false</code>) and the application does not carry the <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, liveness is switched off with <code>jeffrey.heartbeat.enabled=false</code>, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere. Heartbeats are mandatory: past the detector's <code>startup-grace</code> such a session is finished at its start, marked as having sent no heartbeat</td>
+            <td>No heartbeat file — the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> is switched off (<code>JEFFREY_AGENT_ENABLED=false</code>) and the application does not carry the <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, liveness is switched off with <code>jeffrey.heartbeat.enabled=false</code>, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere. Heartbeats are mandatory: past the Hub's <code>jeffrey.hub.liveness.startup-grace</code> such a session is finished at its start, marked as having sent no heartbeat</td>
             <td>Check the Provisioner's verdict line for <code>jeffrey_agent=true</code>. The Provisioner sets <code>heartbeat.dir</code>; a hand-set <code>jeffrey.heartbeat.dir</code> has to match the session path</td>
           </tr>
         </tbody>

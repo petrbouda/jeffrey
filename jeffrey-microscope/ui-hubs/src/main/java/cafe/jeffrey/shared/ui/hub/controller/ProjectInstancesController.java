@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
+import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
@@ -88,6 +89,24 @@ public class ProjectInstancesController {
         LOG.debug("Fetching instance detail: instanceId={}", instanceId);
         return projectAccess.instancesManager(hubId, workspaceId, projectId).detail(instanceId)
                 .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId));
+    }
+
+    /**
+     * One instance's sessions, newest first, each without its files — the files come from the
+     * repository's single-session read when a session is expanded.
+     */
+    @GetMapping("/{instanceId}/sessions")
+    public List<RecordingSessionResponse> getSessions(
+            @PathVariable("hubId") String hubId,
+            @PathVariable("workspaceId") String workspaceId,
+            @PathVariable("projectId") String projectId,
+            @PathVariable("instanceId") String instanceId) {
+        LOG.debug("Listing instance sessions: instanceId={}", instanceId);
+        return projectAccess.instancesManager(hubId, workspaceId, projectId).sessions(instanceId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId))
+                .stream()
+                .map(session -> RecordingSessionResponse.from(session, clock))
+                .toList();
     }
 
     @GetMapping("/{instanceId}/sessions/{sessionId}/detail")

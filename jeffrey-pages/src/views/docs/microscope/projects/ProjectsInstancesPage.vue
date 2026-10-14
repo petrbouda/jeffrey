@@ -52,7 +52,7 @@ onMounted(() => {
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-grid" title="Instances">
-            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the hub.
+            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the hub, as its last retention pass measured them.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-bar-chart-steps" title="Timeline">
             A swimlane view of when each instance and its sessions were active. Pick a time range (1H, 6H, 24H, 7D, 30D) to focus on the period you care about.
@@ -76,30 +76,28 @@ onMounted(() => {
           <tbody>
             <tr>
               <td><strong>Pending</strong></td>
-              <td>Instance registered but not yet actively recording</td>
+              <td>Instance registered but has no recording session yet</td>
             </tr>
             <tr>
               <td><strong>Active</strong></td>
-              <td>Instance is running and producing recording sessions</td>
+              <td>At least one of the instance's sessions is still recording</td>
             </tr>
             <tr>
               <td><strong>Finished</strong></td>
-              <td>Instance has stopped recording (application shut down gracefully)</td>
-            </tr>
-            <tr>
-              <td><strong>Expired</strong></td>
-              <td>Instance was removed after the retention period elapsed</td>
+              <td>Every session of the instance has finished; its finish time is the latest session's</td>
             </tr>
           </tbody>
         </table>
 
+        <p>The status is derived by the hub from the instance's sessions each time it is listed. When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
+
         <h2 id="instances-tab">Instances Tab</h2>
-        <p>The Instances tab opens with three stat cards summarising the project:</p>
+        <p>The Instances tab opens with two stat cards summarising the project:</p>
         <ul>
-          <li><strong>Instances</strong> — counts by status (pending, active, finished, expired), total sessions, and uptime range.</li>
-          <li><strong>Storage</strong> — total storage size, file count, and the largest session — this is the data the old "Repository" view used to show.</li>
-          <li><strong>File Types</strong> — breakdown by type: JFR recordings, heap dumps, JVM logs, application logs, JVM error logs.</li>
+          <li><strong>Instances</strong> — counts by status (pending, active, finished), total sessions, and uptime range.</li>
+          <li><strong>Storage</strong> — the bytes the project occupies on the hub, as the hub's last retention pass measured them. Opening the tab never walks the project's files for it; until the first pass has run the card says the project is not measured yet.</li>
         </ul>
+        <p>Every view here loads one level of the hub's tree: the instance list carries no sessions, an instance's page reads that instance and its sessions, and a session's files are fetched only when the session is expanded or its drawer is opened.</p>
 
         <p>Below the stats, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
 

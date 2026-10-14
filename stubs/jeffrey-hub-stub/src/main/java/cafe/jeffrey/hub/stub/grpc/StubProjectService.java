@@ -42,7 +42,7 @@ public class StubProjectService extends ProjectServiceGrpc.ProjectServiceImplBas
         ListProjectsResponse.Builder builder = ListProjectsResponse.newBuilder();
         dataset.workspace(request.getWorkspaceId()).ifPresent(workspace -> {
             for (StubDataset.Project project : workspace.projects()) {
-                builder.addProjects(StubProtoMappers.projectInfo(workspace, project));
+                builder.addProjects(StubProtoMappers.projectInfo(project));
             }
         });
         responseObserver.onNext(builder.build());
@@ -51,11 +51,8 @@ public class StubProjectService extends ProjectServiceGrpc.ProjectServiceImplBas
 
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
-        dataset.workspace(request.getWorkspaceId())
-                .flatMap(workspace -> workspace.projects().stream()
-                        .filter(project -> project.id().equals(request.getProjectId()))
-                        .findFirst()
-                        .map(project -> StubProtoMappers.projectInfo(workspace, project)))
+        dataset.project(request.getWorkspaceId(), request.getProjectId())
+                .map(StubProtoMappers::projectInfo)
                 .ifPresentOrElse(
                         project -> {
                             responseObserver.onNext(GetProjectResponse.newBuilder().setProject(project).build());

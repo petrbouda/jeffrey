@@ -167,7 +167,8 @@ public class DiscoveryClient {
     static WorkspaceInfo toWorkspaceInfo(cafe.jeffrey.hub.api.v1.WorkspaceInfo proto) {
         return new WorkspaceInfo(
                 proto.getId(),
-                proto.getReferenceId().isEmpty() ? proto.getId() : proto.getReferenceId(),
+                // A hub workspace is named by its directory on the volume, so its id is its reference id
+                proto.getId(),
                 null,
                 proto.getName(),
                 null,
@@ -183,8 +184,8 @@ public class DiscoveryClient {
                 proto.getName(),
                 proto.getCreatedAt() != 0 ? Instant.ofEpochMilli(proto.getCreatedAt()) : null,
                 proto.getWorkspaceId(),
-                ClientProtoMappers.nullIfEmpty(proto.getWorkspaceReferenceId()),
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
-                proto.getSessionCount());
+                proto.getSessionCount(),
+                proto.hasSizeBytes() ? proto.getSizeBytes() : null);
     }
 }

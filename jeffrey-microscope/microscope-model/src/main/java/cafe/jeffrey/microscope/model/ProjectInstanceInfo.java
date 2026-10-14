@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.model;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 
 public record ProjectInstanceInfo(
         String id,
@@ -28,8 +27,6 @@ public record ProjectInstanceInfo(
         ProjectInstanceStatus status,
         Instant startedAt,
         Instant finishedAt,
-        Instant expiringAt,
-        Instant expiredAt,
         int sessionCount,
         String activeSessionId,
         List<ProjectInstanceSessionInfo> sessions) {
@@ -41,30 +38,12 @@ public record ProjectInstanceInfo(
             ProjectInstanceStatus status,
             Instant startedAt,
             Instant finishedAt,
-            Instant expiringAt,
-            Instant expiredAt,
             int sessionCount,
             String activeSessionId) {
-        this(id, projectId, instanceName, status, startedAt, finishedAt, expiringAt, expiredAt,
-                sessionCount, activeSessionId, List.of());
+        this(id, projectId, instanceName, status, startedAt, finishedAt, sessionCount, activeSessionId, List.of());
     }
 
     public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED, EXPIRED;
-
-        /**
-         * Returns the set of statuses that are valid predecessors for transitioning
-         * to this status. Empty set means this is an initial state (set via insert only).
-         */
-        public Set<ProjectInstanceStatus> validFromStatuses() {
-            return switch (this) {
-                case PENDING -> Set.of();
-                // EXPIRED is a valid predecessor: an expired instance that starts streaming
-                // a new session is reactivated by the session-created consumer
-                case ACTIVE -> Set.of(PENDING, FINISHED, EXPIRED);
-                case FINISHED -> Set.of(ACTIVE);
-                case EXPIRED -> Set.of(FINISHED);
-            };
-        }
+        PENDING, ACTIVE, FINISHED
     }
 }

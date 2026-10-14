@@ -28,7 +28,6 @@ public record OriginContext(
         String hubId,
         String hubName,
         String workspaceId,
-        String workspaceRef,
         String projectId,
         String projectName) {
 
@@ -54,9 +53,8 @@ public record OriginContext(
         }
         if (workspaceId != null) {
             tags.put("origin.workspaceId", workspaceId);
-        }
-        if (workspaceRef != null) {
-            tags.put("origin.workspace", workspaceRef);
+            // A hub workspace is named by its directory on the volume, so its id is what the user knows it by
+            tags.put("origin.workspace", workspaceId);
         }
         if (projectId != null) {
             tags.put("origin.projectId", projectId);

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +17,16 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import cafe.jeffrey.hub.core.project.repository.FileLookup;
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
+import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import org.springframework.transaction.support.TransactionOperations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,27 +34,12 @@ public class HubRepositoryManager implements RepositoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubRepositoryManager.class);
 
-    private final Clock clock;
     private final ProjectInfo projectInfo;
-    private final ProjectRepositoryRepository repository;
-    private final ProjectInstanceRepository instanceRepository;
     private final RepositoryStorage repositoryStorage;
-    private final TransactionOperations transactionOperations;
 
-    public HubRepositoryManager(
-            Clock clock,
-            ProjectInfo projectInfo,
-            ProjectRepositoryRepository repository,
-            ProjectInstanceRepository instanceRepository,
-            RepositoryStorage repositoryStorage,
-            TransactionOperations transactionOperations) {
-
-        this.clock = clock;
+    public HubRepositoryManager(ProjectInfo projectInfo, RepositoryStorage repositoryStorage) {
         this.projectInfo = projectInfo;
-        this.repository = repository;
-        this.instanceRepository = instanceRepository;
         this.repositoryStorage = repositoryStorage;
-        this.transactionOperations = transactionOperations;
     }
 
     @Override
@@ -89,96 +65,37 @@ public class HubRepositoryManager implements RepositoryManager {
                 .toList();
     }
 
-    @Override
-    public void create(RepositoryInfo repositoryInfo) {
-        repository.insert(repositoryInfo);
-    }
-
-    @Override
-    public void createSession(ProjectInstanceSessionInfo projectInstanceSessionInfo) {
-        repository.createSession(projectInstanceSessionInfo);
-    }
-
-    @Override
-    public Optional<RepositoryInfo> info() {
-        return repository.getAll().stream()
-                .findFirst();
-    }
-
     /**
-     * Deletes a recording session directly: the database row, the instance expiring/expired
-     * transitions and the on-disk session directory — all inside one transaction. The storage
-     * removal runs LAST and still inside the transaction: file deletion cannot be rolled back,
-     * so every database write must have succeeded before the irreversible side effect happens;
-     * a storage failure rolls the row back and the next retention tick retries the whole
-     * deletion.
+     * Deletes a session's directory, and its instance's directory with it when that was the
+     * instance's last session — an instance with no session left has nothing to show.
      */
     @Override
     public boolean deleteRecordingSession(String recordingSessionId) {
-        LOG.debug("Deleting recording session: session_id={}", recordingSessionId);
-
-        Instant now = clock.instant();
-        boolean deleted = Boolean.TRUE.equals(transactionOperations.execute(_ -> {
-            Optional<ProjectInstanceSessionInfo> sessionOpt = repository.findSessionById(recordingSessionId);
-            if (sessionOpt.isEmpty()) {
-                LOG.warn("Recording session not found, nothing to delete: session_id={} project_id={}",
-                        recordingSessionId, projectInfo.id());
-                return false;
-            }
-            String instanceId = sessionOpt.get().instanceId();
-
-            repository.deleteSession(recordingSessionId);
-            transitionInstanceAfterSessionDelete(instanceId, now);
-
-            repositoryStorage.deleteSession(recordingSessionId);
-            return true;
-        }));
-
-        if (deleted) {
-            LOG.info("Deleted recording session: session_id={} project_id={}", recordingSessionId, projectInfo.id());
-            JfrNotificationEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
-        }
-        return deleted;
-    }
-
-    /**
-     * Marks the instance as expiring on its first session deletion, and EXPIRED once its last
-     * session is gone — the single place this transition happens for session deletions.
-     */
-    private void transitionInstanceAfterSessionDelete(String instanceId, Instant now) {
-        Optional<ProjectInstanceInfo> instanceOpt = instanceRepository.find(instanceId);
-        if (instanceOpt.isEmpty()) {
-            return;
-        }
-        ProjectInstanceInfo instance = instanceOpt.get();
-
-        if (instance.expiringAt() == null) {
-            instanceRepository.setExpiringAt(instanceId, now);
+        Optional<RecordingSession> session =
+                repositoryStorage.singleSession(recordingSessionId, SessionDetail.HEADERS);
+        if (session.isEmpty() || !repositoryStorage.deleteSession(recordingSessionId)) {
+            LOG.warn("Recording session not found, nothing to delete: session_id={} project_id={}",
+                    recordingSessionId, projectInfo.id());
+            return false;
         }
 
-        List<ProjectInstanceSessionInfo> remainingSessions = instanceRepository.findSessions(instanceId);
-        if (remainingSessions.isEmpty() && instance.status() == ProjectInstanceStatus.FINISHED) {
-            instanceRepository.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, now);
-            LOG.info("Instance marked as EXPIRED (last session deleted): instance_id={} project_id={}",
-                    instanceId, projectInfo.id());
+        String instanceId = session.get().instanceId();
+        if (repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.HEADERS).isEmpty()) {
+            repositoryStorage.deleteInstanceDirectory(instanceId);
         }
+
+        LOG.info("Deleted recording session: session_id={} project_id={}", recordingSessionId, projectInfo.id());
+        JfrNotificationEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
+        return true;
     }
 
     @Override
-    public void setSessionRetained(String recordingSessionId, boolean retained) {
-        repository.setSessionRetained(recordingSessionId, retained);
-        LOG.info("Updated session retention: session_id={} project_id={} retained={}",
-                recordingSessionId, projectInfo.id(), retained);
+    public boolean setSessionRetained(String recordingSessionId, boolean retained) {
+        return repositoryStorage.setRetained(recordingSessionId, retained);
     }
 
     @Override
     public FileLookup file(String sessionId, String fileId) {
         return repositoryStorage.file(sessionId, fileId);
-    }
-
-    @Override
-    public void delete() {
-        LOG.debug("Deleting repository");
-        repository.deleteAll();
     }
 }

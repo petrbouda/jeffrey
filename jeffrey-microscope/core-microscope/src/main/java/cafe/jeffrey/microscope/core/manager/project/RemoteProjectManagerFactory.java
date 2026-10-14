@@ -24,11 +24,12 @@ import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.recordings.core.OriginContext;
 
 /**
  * Turns a project the hub reported into its manager. Everything the manager needs comes with the
- * project itself — its workspace id and reference id included — so building one takes no further
+ * project itself — its workspace id included — so building one takes no further
  * call to the hub, whether the project came from a workspace listing or from a single lookup.
  */
 public class RemoteProjectManagerFactory {
@@ -52,13 +53,13 @@ public class RemoteProjectManagerFactory {
                 hubInfo.hubId(),
                 hubInfo.name(),
                 project.workspaceId(),
-                project.workspaceReferenceId(),
                 project.id(),
                 project.name());
 
         return new RemoteProjectManager(
                 jeffreyDirs,
                 RemoteMappers.toDetailedProjectInfo(project),
+                new RepositoryStatistics(project.sizeBytes()),
                 hubClients,
                 profilesManagerFactory,
                 recordingsManager,

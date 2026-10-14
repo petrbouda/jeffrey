@@ -23,7 +23,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
@@ -46,7 +45,6 @@ class StorageControllerTest {
     @Test
     void returnsCachedStorageOverview() {
         StorageOverview overview = new StorageOverview(
-                new InfrastructureUsage(2_900_000_000L),
                 List.of(new ProjectStorage(
                         "ws-1", "production",
                         "prj-1", "order-service",
@@ -59,7 +57,6 @@ class StorageControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$.computedAtMillis", v -> assertThat(v).asNumber().isEqualTo(COMPUTED_AT.toEpochMilli()))
-                .hasPathSatisfying("$.databaseSizeBytes", v -> assertThat(v).asNumber().isEqualTo(2_900_000_000L))
                 .doesNotHavePath("$.tempSizeBytes")
                 .hasPathSatisfying("$.projects[0].workspaceName", v -> assertThat(v).asString().isEqualTo("production"))
                 .hasPathSatisfying("$.projects[0].projectName", v -> assertThat(v).asString().isEqualTo("order-service"))
@@ -72,9 +69,7 @@ class StorageControllerTest {
 
     @Test
     void returnsEmptyProjectsWhenNothingIsStored() {
-        StorageOverview overview = new StorageOverview(
-                new InfrastructureUsage(0L),
-                List.of());
+        StorageOverview overview = new StorageOverview(List.of());
         when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 
         MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));

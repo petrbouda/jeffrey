@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
 import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
 import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
-import cafe.jeffrey.hub.api.v1.RepositoryFile;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
@@ -41,10 +40,11 @@ import java.time.Instant;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Repository statistics are one number — the bytes every file of every session occupies — summed
- * here over the session listing rather than asked of the hub separately.
+ * A listing brings each session's size but none of its files, and the project's size is the
+ * figure the hub measured — neither walks the project's files on request.
  */
 class RemoteRepositoryManagerTest {
 
@@ -63,8 +63,8 @@ class RemoteRepositoryManagerTest {
                     @Override
                     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> observer) {
                         observer.onNext(ListSessionsResponse.newBuilder()
-                                .addSessions(session("s-1", file("profile-1.jfr.lz4", 1_000L), file("heap.hprof", 20_000L)))
-                                .addSessions(session("s-2", file("profile-2.jfr", 300L)))
+                                .addSessions(session("s-1", 2, 21_000L))
+                                .addSessions(session("s-2", 1, 300L))
                                 .build());
                         observer.onCompleted();
                     }
@@ -74,7 +74,8 @@ class RemoteRepositoryManagerTest {
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
         ProjectInfo project = new ProjectInfo(PROJECT_ID, PROJECT_ID, "demo", null, "ws-1", T0, null, Map.of());
         manager = new RemoteRepositoryManager(
-                null, project, new RepositoryClient(new GrpcHubConnection(channel) { }), null);
+                null, project, new RepositoryStatistics(21_300L),
+                new RepositoryClient(new GrpcHubConnection(channel) { }), null);
     }
 
     @AfterEach
@@ -84,29 +85,27 @@ class RemoteRepositoryManagerTest {
     }
 
     @Test
-    void sumsEveryFileOfEverySession() {
-        assertEquals(new RepositoryStatistics(21_300L), manager.calculateRepositoryStatistics());
+    void reportsTheSizeTheProjectArrivedWith() {
+        assertEquals(new RepositoryStatistics(21_300L), manager.repositoryStatistics());
     }
 
-    private static RecordingSession session(String id, RepositoryFile... files) {
-        RecordingSession.Builder builder = RecordingSession.newBuilder()
+    @Test
+    void listedSessionsCarryTheirSizeButNoFiles() {
+        var first = manager.listRecordingSessions().getFirst();
+
+        assertEquals(2, first.fileCount());
+        assertEquals(21_000L, first.totalSizeBytes());
+        assertTrue(first.files().isEmpty());
+    }
+
+    private static RecordingSession session(String id, int fileCount, long sizeBytes) {
+        return RecordingSession.newBuilder()
                 .setId(id)
                 .setCreatedAt(T0.toEpochMilli())
                 .setFinishedAt(T0.plusSeconds(60).toEpochMilli())
-                .setStatus(RecordingStatus.RECORDING_STATUS_FINISHED);
-        for (RepositoryFile file : files) {
-            builder.addFiles(file);
-        }
-        return builder.build();
-    }
-
-    private static RepositoryFile file(String name, long size) {
-        return RepositoryFile.newBuilder()
-                .setId(name)
-                .setName(name)
-                .setCreatedAt(T0.toEpochMilli())
-                .setSize(size)
-                .setIsRecording(name.contains(".jfr"))
+                .setStatus(RecordingStatus.RECORDING_STATUS_FINISHED)
+                .setFileCount(fileCount)
+                .setSizeBytes(sizeBytes)
                 .build();
     }
 }

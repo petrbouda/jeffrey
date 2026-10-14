@@ -122,7 +122,7 @@ onMounted(() => {
         <p>Downloading is never refused because of a reported size — the download reads the file's real content, whatever the directory claims. So the files of such a session stay listed and stay retrievable. Seeing that badge on a session you know is recording means the hub's mount is serving stale file metadata: compare <code>stat -c '%s' &lt;file&gt;</code> with <code>wc -c &lt; &lt;file&gt;</code> inside the hub container, and check the mount's attribute-cache settings (gcsfuse <code>metadata-cache:ttl-secs</code> / <code>stat-cache-ttl</code>, FUSE <code>attr_timeout</code>, NFS and SMB <code>actimeo</code>). Note that a <em>finished</em> session with zero bytes is still read as a failed session — a crash is the ordinary explanation there, and the badge does not second-guess it.</p>
 
         <h2 id="session-detection">Session Detection</h2>
-        <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The profiled application emits periodic liveness signals that the platform monitors to determine session state.</p>
+        <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The profiled application emits periodic liveness signals, and the Hub reads them to determine a session's state every time it reads the session — for a listing, a download, compression or retention alike. No job finishes a session and nothing is stored: the answer is derived from the session's own files, with the Hub's clock, whenever it is asked.</p>
 
         <h3 id="heartbeat-mechanism">Heartbeat Mechanism</h3>
         <p>The <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link>, which the Provisioner attaches by default, writes liveness files into the session directory on shared storage — or, when a deployment switches the agent off, the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library the application carries writes the same files:</p>
@@ -132,21 +132,28 @@ onMounted(() => {
         </ul>
 
         <h3 id="finish-detection-logic">Finish Detection Logic</h3>
-        <p>A scheduled job periodically evaluates each active session and applies the following rules. Every session must report liveness: one that has written a liveness file — a heartbeat or the clean-exit marker — is held to the heartbeat deadline, and one that wrote none within the startup grace is finished, see <a href="#sessions-without-heartbeats">Sessions Without Heartbeats</a>.</p>
+        <p>Each time a session is read, the Hub applies the following rules in order. Every session must report liveness: one that has written a liveness file — a heartbeat or the clean-exit marker — is held to the heartbeat deadline, and one that wrote none within the startup grace is finished, see <a href="#sessions-without-heartbeats">Sessions Without Heartbeats</a>.</p>
 
         <div class="detection-cases">
           <div class="detection-case finished-case">
             <div class="case-indicator"><i class="bi bi-check-circle-fill"></i></div>
             <div class="case-content">
               <h4>Clean-exit marker exists</h4>
-              <p>The marker is checked first. The session becomes <strong>Finished</strong> with the marker's timestamp on the next detector run, without waiting for heartbeat staleness.</p>
+              <p>The marker is checked first. The session is <strong>Finished</strong> with the marker's timestamp as soon as it appears, without waiting for heartbeat staleness.</p>
+            </div>
+          </div>
+          <div class="detection-case finished-case">
+            <div class="case-indicator"><i class="bi bi-skip-forward-circle"></i></div>
+            <div class="case-content">
+              <h4>A newer session started in the same instance</h4>
+              <p>The JVM restarted, so this session has ended: it is <strong>Finished</strong> at its last heartbeat, or — if it never wrote one — at the newer session's start.</p>
             </div>
           </div>
           <div class="detection-case active-case">
             <div class="case-indicator"><i class="bi bi-circle-fill"></i></div>
             <div class="case-content">
               <h4>Heartbeat is recent</h4>
-              <p>The heartbeat file contains a timestamp within the staleness threshold (default 10 seconds). The session remains <strong>Active</strong>.</p>
+              <p>The heartbeat file contains a timestamp within the staleness threshold (<code>jeffrey.hub.liveness.heartbeat-threshold</code>, 10 seconds by default). The session remains <strong>Active</strong>.</p>
             </div>
           </div>
           <div class="detection-case finished-case">
@@ -160,14 +167,14 @@ onMounted(() => {
             <div class="case-indicator"><i class="bi bi-question-circle"></i></div>
             <div class="case-content">
               <h4>A liveness file cannot be read</h4>
-              <p>A file is there — or the mount will not say — and the Hub cannot make sense of it: a permission error, a stale handle on a network mount, a truncated read, content that is not a timestamp. That says nothing about whether the JVM is running, so the detector <strong>leaves the session alone</strong> with a warning and reads again on its next sweep. Only a file that is genuinely absent counts as evidence, because a guessed timestamp here would be permanent.</p>
+              <p>A file is there — or the mount will not say — and the Hub cannot make sense of it: a permission error, a stale handle on a network mount, a truncated read, content that is not a timestamp. That says nothing about whether the JVM is running, so the session is <strong>still recording</strong> and the files are read again the next time it is asked for. Only a file that is genuinely absent counts as evidence, because a guessed timestamp here would be permanent.</p>
             </div>
           </div>
           <div class="detection-case skip-case">
             <div class="case-indicator"><i class="bi bi-hourglass-split"></i></div>
             <div class="case-content">
               <h4>No liveness file yet</h4>
-              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists, and the Hub first saw the session less than the startup grace ago — <code>startup-grace</code>, 1 minute by default. The JVM may still be starting, so the session is <strong>left alone</strong>.</p>
+              <p>Neither <code>.heartbeat/heartbeat</code> nor <code>.heartbeat/finished</code> exists, and the session was created (per its <code>.session-info.json</code>) less than the startup grace ago — <code>jeffrey.hub.liveness.startup-grace</code>, 1 minute by default. The JVM may still be starting, so the session is <strong>still recording</strong>.</p>
             </div>
           </div>
           <div class="detection-case finished-case">
@@ -191,13 +198,13 @@ onMounted(() => {
         </ul>
 
         <h3 id="jvm-crash-logs">JVM Crash Logs</h3>
-        <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>, or <code>hs-jvm-err.log</code> when the Provisioner named it) is left in the session directory. The Hub classifies it as a <em>HotSpot Error Log</em> and lists it beside the session's other files, where it can be downloaded or fetched by a coding agent. The Hub does not read the file and raises no event for it: the detector finishes the session on the heartbeat evidence alone, and whether a crashed session is worth keeping is a decision left to whoever investigates it — see <a href="#retained-sessions">Retained Sessions</a>.</p>
+        <p>When a JVM crashes, a HotSpot error log (<code>hs_err_pid*.log</code>, or <code>hs-jvm-err.log</code> when the Provisioner named it) is left in the session directory. The Hub classifies it as a <em>HotSpot Error Log</em> and lists it beside the session's other files, where it can be downloaded or fetched by a coding agent. The Hub does not read the file and raises no event for it: the session is finished on the heartbeat evidence alone, and whether a crashed session is worth keeping is a decision left to whoever investigates it — see <a href="#retained-sessions">Retained Sessions</a>.</p>
 
         <h3 id="heartbeat-recovery">Hub Restart</h3>
-        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts. The detector reads those files again when it resumes, using the clean-exit timestamp first and the last heartbeat timestamp when stale. If neither file exists past the startup grace, the session is finished at its start as having sent no heartbeat; if one exists but cannot be read, the session is left for the next sweep.</p>
+        <p>Heartbeat and clean-exit files remain on shared storage across Hub restarts, and the Hub keeps no state of its own, so a restart changes nothing: the first request after it reads the same files and reaches the same answer — the clean-exit timestamp first, then the last heartbeat when stale. If neither file exists past the startup grace, the session is finished at its start as having sent no heartbeat; if one exists but cannot be read, the session counts as recording until it can be.</p>
 
         <DocsCallout type="info">
-          <strong>Scheduler job:</strong> The Session Finished Detector job runs every 30 seconds by default on Jeffrey Hub to evaluate heartbeat staleness and detect finished sessions.
+          <strong>No scheduler job:</strong> session status is derived on read. The two thresholds are <code>jeffrey.hub.liveness.heartbeat-threshold</code> (10 seconds) and <code>jeffrey.hub.liveness.startup-grace</code> (1 minute) — see <router-link to="/docs/hub/configuration#session-liveness">Configuration</router-link>.
         </DocsCallout>
 
         <h2 id="session-cleanup">Session Cleanup</h2>
@@ -207,8 +214,9 @@ onMounted(() => {
           <li><code>max-sessions</code> (10 by default) - Caps each instance at that many logical sessions; the oldest beyond the cap go even before the age window expires. The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
           <li><code>active-session-file-retention</code> (7 days by default) - Trims finished chunks older than the window inside the <em>live</em> session, so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
           <li><code>max-size</code> (20 GB by default) - Caps total disk per project. Age alone cannot bound disk usage, so when a project exceeds its budget the pass reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
-          <li><code>instance-retention</code> (14 days by default) - Deletes instances (including their directories on disk) once they have been EXPIRED that long, and PENDING instances that never streamed a session within it.</li>
+          <li><code>instance-retention</code> (14 days by default) - Deletes PENDING instances (including their directories on disk) that never streamed a session within it.</li>
         </ul>
+        <p>An instance's status follows from its sessions: <strong>Pending</strong> with none, <strong>Active</strong> while any is recording, <strong>Finished</strong> otherwise. Deleting an instance's last session — by retention or by hand — deletes the instance's directory with it, so there is no expired state.</p>
         <p>What a pass leaves is what the storage dashboard shows. Separately, the <strong>JFR Compression</strong> job LZ4-compresses finished JFR files to save storage space, every minute by default.</p>
 
         <h2 id="retained-sessions">Retained Sessions</h2>
@@ -219,7 +227,8 @@ onMounted(() => {
         </p>
         <p>
           Retention is a manual choice: a session is set or released through the repository API, or from the
-          session's row in Microscope. Nothing pins a session on its own — a crash log in the session directory
+          session's row in Microscope. The Hub records it as an empty <code>.retained</code> file in the session's
+          directory, removed again on release. Nothing pins a session on its own — a crash log in the session directory
           is listed, not acted on. A retained session stays until it is explicitly released or deleted.
         </p>
 

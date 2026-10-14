@@ -18,10 +18,8 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcServerInterceptor;
 import cafe.jeffrey.shared.common.Schedulers;
 import io.grpc.BindableService;
@@ -30,7 +28,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.GlobalServerInterceptor;
 
-import java.time.Clock;
 
 /**
  * Wires the hub's gRPC services as Spring beans. Spring gRPC's auto-configuration owns the
@@ -53,16 +50,12 @@ public class GrpcServerConfiguration {
     }
 
     /**
-     * Shared resource-resolution collaborator for the gRPC services. Carries the repositories and
-     * manager factories so the services can resolve workspaces/projects/sessions/instances by id
-     * with consistent NOT_FOUND handling, instead of each repeating the lookup wiring.
+     * Shared resource-resolution collaborator for the gRPC services, so each resolves the workspace
+     * and project a request names with the same NOT_FOUND handling.
      */
     @Bean
-    public GrpcLookups grpcLookups(
-            HubPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory,
-            ProjectManager.Factory projectManagerFactory) {
-        return new GrpcLookups(platformRepositories, repositoryManagerFactory, projectManagerFactory);
+    public GrpcLookups grpcLookups(WorkspacesManager workspacesManager) {
+        return new GrpcLookups(workspacesManager);
     }
 
     @Bean
@@ -73,13 +66,13 @@ public class GrpcServerConfiguration {
     }
 
     @Bean
-    public BindableService projectGrpcService(WorkspacesManager workspacesManager, GrpcLookups grpcLookups) {
-        return new ProjectGrpcService(workspacesManager, grpcLookups);
+    public BindableService projectGrpcService(GrpcLookups grpcLookups, StorageOverviewCache storageOverviewCache) {
+        return new ProjectGrpcService(grpcLookups, storageOverviewCache);
     }
 
     @Bean
-    public BindableService instanceGrpcService(HubPlatformRepositories platformRepositories, GrpcLookups grpcLookups) {
-        return new InstanceGrpcService(platformRepositories, grpcLookups);
+    public BindableService instanceGrpcService(GrpcLookups grpcLookups) {
+        return new InstanceGrpcService(grpcLookups);
     }
 
     @Bean

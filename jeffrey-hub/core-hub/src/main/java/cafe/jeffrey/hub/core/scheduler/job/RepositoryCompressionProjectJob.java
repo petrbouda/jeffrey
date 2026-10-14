@@ -42,9 +42,8 @@ import java.util.Optional;
  * <p>
  * Within a session there is nothing further to decide: every closed chunk is compressed, and a
  * session that is still recording keeps the one chunk its profiler holds open out of it. Whether
- * a session is still recording is a fact of the session ({@code finishedAt} is null, until the
- * heartbeat, the reconciler or the expiry job stamps it), never of its position in the project's
- * listing; the job itself does not read a file to find out. Compressing the open chunk would
+ * a session is still recording is a fact of the session (its heartbeat files, read by
+ * {@code SessionLiveness} when it is listed), never of its position in the project's listing. Compressing the open chunk would
  * compress a prefix of it and then delete the file the profiler is writing into.
  */
 public class RepositoryCompressionProjectJob extends RepositoryProjectJob {

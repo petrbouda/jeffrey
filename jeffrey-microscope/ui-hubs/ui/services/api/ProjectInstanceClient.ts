@@ -20,6 +20,7 @@ import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
 import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
+import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 
 export default class ProjectInstanceClient extends BasePlatformClient {
   constructor(hubId: string, workspaceId: string, projectId: string) {
@@ -36,6 +37,11 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       .get<any>(`/${instanceId}`)
       .then(data => this.mapToInstance(data))
       .catch(() => undefined);
+  }
+
+  /** One instance's sessions, each with its file count and size but not its files. */
+  async listSessions(instanceId: string): Promise<RecordingSession[]> {
+    return super.get<RecordingSession[]>(`/${instanceId}/sessions`);
   }
 
   async getDetail(instanceId: string): Promise<ProjectInstanceDetail> {
@@ -82,8 +88,6 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       data.sessionCount || 0,
       data.activeSessionId,
       data.finishedAt ?? undefined,
-      data.expiringAt ?? undefined,
-      data.expiredAt ?? undefined,
       sessions
     );
   };

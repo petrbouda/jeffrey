@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.Jo
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -81,23 +80,18 @@ class ProjectRetentionJobQuotaTest {
     RepositoryManager repositoryManager;
 
     @Mock
-    ProjectInstanceRepository instanceRepository;
-
-    @Mock
     StorageOverviewCache storageOverview;
 
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
-        ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", "ws-1", NOW, NOW, Map.of());
+        ProjectInfo projectInfo = new ProjectInfo("proj-1", "my-project", "ws-1", NOW, Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
         when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
         when(projectManager.repositoryStorage()).thenReturn(storage);
-        when(projectManager.projectInstanceRepository()).thenReturn(instanceRepository);
 
         job = job(BUDGET + "");
     }

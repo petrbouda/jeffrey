@@ -27,5 +27,6 @@
  * neither NFS, EFS nor hostPath reports the claim's own size, so a percentage would be fiction.
  */
 export default interface RepositoryStatistics {
-  totalSize: number; // Total repository size in bytes
+  // Bytes as the hub's last retention pass measured them; null until the first pass has run
+  totalSize: number | null;
 }

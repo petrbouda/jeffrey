@@ -116,7 +116,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -177,7 +176,7 @@ class HubsMcpToolsTest {
 
     private RepositoryManager repositoryWith(RecordingSession... sessions) {
         RepositoryManager repo = mock(RepositoryManager.class);
-        when(repo.listRecordingSessions(anyBoolean(), any())).thenReturn(List.of(sessions));
+        when(repo.listRecordingSessions(any())).thenReturn(List.of(sessions));
         return repo;
     }
 
@@ -264,8 +263,8 @@ class HubsMcpToolsTest {
         @Test
         void pagesTiedTimestampsByFullReferenceAndReadsAllProjectRows() {
             RepositoryManager repo = mock(RepositoryManager.class);
-            when(repo.listRecordingSessions(anyBoolean(), any())).thenAnswer(call -> {
-                RecordingSessionFilter filter = call.getArgument(1);
+            when(repo.listRecordingSessions(any())).thenAnswer(call -> {
+                RecordingSessionFilter filter = call.getArgument(0);
                 return filter.apply(List.of(jfrSession("c", NOW), jfrSession("b", NOW), jfrSession("a", NOW)));
             });
             HubManager hub = reachableHub(HUB_ID, "production", "checkout", repo);
@@ -364,7 +363,7 @@ class HubsMcpToolsTest {
             when(hubsManager.findAll()).thenReturn(List.of(hub));
             noLocalRecordings();
             String cursor = page(tools, null, null, 1, null).path("structuredContent").path("nextCursor").asText();
-            when(repo.listRecordingSessions(anyBoolean(), any())).thenReturn(List.of(
+            when(repo.listRecordingSessions(any())).thenReturn(List.of(
                     jfrSession("new", NOW.plusSeconds(1)), jfrSession("b", NOW.minusSeconds(1))));
             JsonNode next = page(tools, null, null, 1, cursor).path("structuredContent");
             assertEquals("b", HubSessionRef.decode(next.path("sessions").get(0).path("sessionRef").asText()).sessionId());
@@ -382,7 +381,7 @@ class HubsMcpToolsTest {
                     Clock.fixed(NOW.plusSeconds(120), ZoneOffset.UTC)).build();
             page(later, null, 60, 1, cursor);
             ArgumentCaptor<RecordingSessionFilter> filters = ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo, times(2)).listRecordingSessions(eq(true), filters.capture());
+            verify(repo, times(2)).listRecordingSessions(filters.capture());
             assertEquals(filters.getAllValues().get(0).activeFrom(), filters.getAllValues().get(1).activeFrom());
         }
 
@@ -628,7 +627,7 @@ class HubsMcpToolsTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(NOW.minus(Duration.ofHours(1)), captor.getValue().activeFrom());
         }
 
@@ -643,7 +642,7 @@ class HubsMcpToolsTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(RecordingStatus.ACTIVE, captor.getValue().status());
         }
 
@@ -679,7 +678,7 @@ class HubsMcpToolsTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(RecordingSessionFilter.NO_LIMIT, captor.getValue().limit());
         }
 

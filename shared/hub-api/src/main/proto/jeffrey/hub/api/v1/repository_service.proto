@@ -27,28 +27,30 @@ import "jeffrey/hub/api/v1/common.proto";
 // Manages a project's repository — the files its sessions produced, whatever they are,
 // organized into sessions. Provides session listing and deletion.
 service RepositoryService {
-  // Lists the recording sessions of a project, newest first. An optional filter narrows the
-  // listing to sessions that were recording inside a time window, to one status, or to the
-  // newest N, so a caller asking for "the last hour" gets exactly those sessions back.
+  // Lists the recording sessions of a project, newest first, without their files (each carries
+  // its file count and size). An optional filter narrows the listing to sessions that were
+  // recording inside a time window, to one status, or to the newest N, so a caller asking for
+  // "the last hour" gets exactly those sessions back. One instance's sessions come from
+  // InstanceService.GetInstance.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
 
-  // Gets detailed information about a single recording session, including its files.
+  // Gets a single recording session with its files — the only call that sends files.
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
 
-  // Deletes a recording session and all its associated files from the repository.
+  // Deletes a recording session's directory with all its files, and its instance's directory
+  // when that was the instance's last session.
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 
-  // Marks a recording session as retained, exempting it from every retention job,
+  // Marks a recording session as retained, exempting it from every retention rule,
   // or releases it again so normal retention resumes.
   rpc SetSessionRetained(SetSessionRetainedRequest) returns (SetSessionRetainedResponse);
 }
 
 message ListSessionsRequest {
-  string project_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
   // Narrows the listing. Absent, or with every field unset, returns every session.
-  SessionFilter filter = 2;
-  // Only the sessions of this instance; the hub then walks that instance's directories alone.
-  optional string instance_id = 3;
+  SessionFilter filter = 3;
 }
 
 // Constraints on a session listing. Every field is optional and an unset field does not
@@ -71,7 +73,9 @@ message ListSessionsResponse {
 }
 
 message GetSessionRequest {
-  string session_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
 }
 
 message GetSessionResponse {
@@ -79,22 +83,27 @@ message GetSessionResponse {
 }
 
 message DeleteSessionRequest {
-  string session_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
 }
 
 message DeleteSessionResponse {}
 
 message SetSessionRetainedRequest {
-  string session_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
   // True to exempt the session from retention, false to release it.
-  bool retained = 2;
+  bool retained = 4;
 }
 
 message SetSessionRetainedResponse {}
 
-// A recording session — a continuous profiling period that produces files.
-// Sessions are created when the profiler starts and finished when
-// the heartbeat goes stale or the JVM shuts down.
+// A recording session — a continuous profiling period that produces files, one directory on the
+// volume. Its status is read from its heartbeat files when it is listed: finished once the JVM
+// wrote its clean-exit marker, its heartbeat went stale, or a newer session of the same
+// instance started.
 message RecordingSession {
   // Unique identifier for the session.
   string id = 1;
@@ -108,9 +117,10 @@ message RecordingSession {
   optional int64 finished_at = 5;
   // Current status.
   RecordingStatus status = 6;
-  // Files produced during this session, of every kind.
+  // Files produced during this session, of every kind. Sent only by GetSession; a listing
+  // leaves it empty and carries file_count and size_bytes instead.
   repeated RepositoryFile files = 7;
-  // Whether this session is exempt from retention jobs.
+  // Whether this session is exempt from retention (a .retained file in its directory).
   bool retained = 8;
   // Whether the session ended because it sent no heartbeat within the startup grace.
   bool heartbeat_missing = 9;
@@ -118,6 +128,10 @@ message RecordingSession {
   // killed prematurely (OOM kill, container healthcheck restart loop). A session that ended
   // because it sent no heartbeat is not failed.
   bool failed = 10;
+  // Number of files in the session, of every kind.
+  int32 file_count = 11;
+  // Bytes the session's files occupy.
+  int64 size_bytes = 12;
 }
 
 // A single file within a session.
