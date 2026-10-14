@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.stub.grpc;
 
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
-import cafe.jeffrey.hub.api.v1.InstanceSessionInfo;
 import cafe.jeffrey.hub.api.v1.InstanceStatus;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
 import cafe.jeffrey.hub.api.v1.RecordingSession;
@@ -52,25 +51,17 @@ final class StubProtoMappers {
     static ProjectInfo projectInfo(StubDataset.Project project) {
         ProjectInfo.Builder builder = ProjectInfo.newBuilder()
                 .setId(project.id())
-                .setOriginId(project.originId())
                 .setName(project.name())
                 .setCreatedAt(project.createdAt().toEpochMilli())
                 .setWorkspaceId(project.workspaceId())
                 .setStatus(recordingStatus(project.status()))
                 .setSessionCount(project.sessionCount());
-        if (project.namespace() != null) {
-            builder.setNamespace(project.namespace());
-        }
-        if (project.deletedAt() != null) {
-            builder.setDeletedAt(project.deletedAt().toEpochMilli());
-        }
         return builder.build();
     }
 
-    static InstanceInfo instanceInfo(StubDataset.Instance instance, boolean includeSessions) {
+    static InstanceInfo instanceInfo(StubDataset.Instance instance) {
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(instance.id())
-                .setInstanceName(instance.name())
                 .setStatus(instanceStatus(instance.status()))
                 .setCreatedAt(instance.createdAt().toEpochMilli())
                 .setSessionCount(instance.sessions().size());
@@ -82,26 +73,6 @@ final class StubProtoMappers {
         }
         if (instance.expiredAt() != null) {
             builder.setExpiredAt(instance.expiredAt().toEpochMilli());
-        }
-        if (instance.activeSessionId() != null) {
-            builder.setActiveSessionId(instance.activeSessionId());
-        }
-        if (includeSessions) {
-            for (StubDataset.Session session : instance.sessions()) {
-                builder.addSessions(instanceSessionInfo(session));
-            }
-        }
-        return builder.build();
-    }
-
-    static InstanceSessionInfo instanceSessionInfo(StubDataset.Session session) {
-        InstanceSessionInfo.Builder builder = InstanceSessionInfo.newBuilder()
-                .setId(session.id())
-                .setRepositoryId(session.repositoryId())
-                .setCreatedAt(session.createdAt().toEpochMilli())
-                .setIsActive(session.active());
-        if (session.finishedAt() != null) {
-            builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
         return builder.build();
     }

@@ -42,11 +42,11 @@ class StorageOverviewCacheTest {
     private static final Instant SECOND_TICK = Instant.parse("2026-08-10T10:05:00Z");
 
     private static final StorageOverview FIRST_OVERVIEW = new StorageOverview(
-            new InfrastructureUsage(2_900_000_000L, 1_300_000_000L),
+            new InfrastructureUsage(2_900_000_000L),
             List.of());
 
     private static final StorageOverview SECOND_OVERVIEW = new StorageOverview(
-            new InfrastructureUsage(3_000_000_000L, 900_000_000L),
+            new InfrastructureUsage(3_000_000_000L),
             List.of());
 
     @Mock

@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -58,7 +57,6 @@ class JdbcHubPlatformRepositoriesTest {
         assertNull(result.get().sessionInfo().finishedAt());
 
         assertEquals("repo-001", result.get().repositoryInfo().id());
-        assertEquals(RepositoryType.ASYNC_PROFILER, result.get().repositoryInfo().repositoryType());
         assertEquals("/workspaces", result.get().repositoryInfo().workspacesPath());
         assertEquals("ws-001", result.get().repositoryInfo().relativeWorkspacePath());
         assertEquals("proj-001", result.get().repositoryInfo().relativeProjectPath());

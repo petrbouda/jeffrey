@@ -239,8 +239,6 @@ const runJob = async (jobType: string) => {
 
 const displayNames: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER: 'Workspace Reconciler',
-    TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
-    DELETED_PROJECTS_CLEANER: 'Deleted Projects Cleaner',
     STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
     PROJECT_INSTANCE_SESSION_CLEANER: 'Instance Session Cleaner',
     PROJECT_STORAGE_QUOTA_CLEANER: 'Storage Quota Cleaner',
@@ -253,10 +251,6 @@ const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName]
 const descriptions: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER:
         'Materializes new projects, instances and sessions from the entries the provisioner writes into each workspace\'s .pending index, reading only the subtrees it announced. Run it manually to walk every workspace tree in full — that is what finds trees the index never named, after an upgrade or a restored volume. Strictly additive either way: removing directories from the volume never deletes server state.',
-    TEMP_DIRECTORY_CLEANER:
-        'Sweeps the server temp directory, removing scratch entries (compression staging, session file transfers) left behind by operations that crashed before cleaning up after themselves.',
-    DELETED_PROJECTS_CLEANER:
-        'Permanently purges soft-deleted project rows once their retention window has passed. Until then the project can still be restored, so this retention doubles as the restore window.',
     STORAGE_OVERVIEW_REFRESHER:
         'Recomputes the storage overview shown on the Workspaces dashboard into an in-memory cache. The scan walks every project repository on disk, so the dashboard serves the cached snapshot; figures may be up to one period stale. The first tick runs at startup.',
     PROJECT_INSTANCE_SESSION_CLEANER:
@@ -274,8 +268,6 @@ const descriptionFor = (jobType: string) => descriptions[jobType as JobTypeName]
 
 const icons: Record<JobTypeName, [string, string]> = {
     WORKSPACE_RECONCILER: ['bi-folder-symlink', 'job-icon-sync'],
-    TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
-    DELETED_PROJECTS_CLEANER: ['bi-trash', 'job-icon-trash'],
     STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
     PROJECT_INSTANCE_SESSION_CLEANER: ['bi-trash', 'job-icon-trash'],
     PROJECT_STORAGE_QUOTA_CLEANER: ['bi-hdd', 'job-icon-trash'],
@@ -494,7 +486,6 @@ onMounted(async () => {
 .job-icon-check  { background: var(--color-cyan-bg); color: var(--color-teal-text); }
 .job-icon-sync   { background: var(--color-violet-lightest-bg); color: var(--color-violet-deeper); }
 .job-icon-bell   { background: var(--color-amber-light); color: var(--color-amber-text); }
-.job-icon-broom  { background: var(--color-red-bg); color: var(--color-red-text); }
 .job-icon-default { background: var(--color-grey-bg); color: var(--color-slate-muted); }
 
 .job-name { font-weight: 600; color: var(--color-heading-dark); font-size: 0.86rem; }

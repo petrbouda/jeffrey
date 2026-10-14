@@ -66,7 +66,7 @@ class WorkspaceReconcilerJobTest {
             Clock.fixed(Instant.parse("2026-02-20T15:30:45.123Z"), ZoneOffset.UTC);
 
     private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
-            "ws-internal-1", KNOWN_REF_ID, null, "Known", null, null,
+            "ws-internal-1", KNOWN_REF_ID, "Known",
             Instant.parse("2025-01-01T10:00:00Z"), null, 0);
 
     @Mock

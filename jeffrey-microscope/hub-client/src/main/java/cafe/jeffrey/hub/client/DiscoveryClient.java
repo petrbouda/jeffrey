@@ -24,8 +24,6 @@ import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
 import cafe.jeffrey.hub.api.v1.GetProjectRequest;
 import cafe.jeffrey.hub.api.v1.GetProjectResponse;
-import cafe.jeffrey.hub.api.v1.GetWorkspaceRequest;
-import cafe.jeffrey.hub.api.v1.GetWorkspaceResponse;
 import cafe.jeffrey.hub.api.v1.ListProjectsRequest;
 import cafe.jeffrey.hub.api.v1.ListProjectsResponse;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
@@ -35,7 +33,6 @@ import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import io.grpc.StatusRuntimeException;
@@ -70,10 +67,10 @@ public class DiscoveryClient {
 
     public PublicApiInfo info() {
         GetApiInfoResponse response = workspaceStub.getApiInfo(GetApiInfoRequest.getDefaultInstance());
-        return new PublicApiInfo(response.getVersion(), response.getApiVersion());
+        return new PublicApiInfo(response.getVersion());
     }
 
-    public record PublicApiInfo(String version, int apiVersion) {
+    public record PublicApiInfo(String version) {
     }
 
     public List<WorkspaceInfo> allWorkspaces() {
@@ -103,20 +100,15 @@ public class DiscoveryClient {
      * the ordinary {@link #workspace(String)} method keeps its best-effort UI behavior.
      */
     public Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId) {
-        try {
-            GetWorkspaceResponse response = workspaceStub.getWorkspace(
-                    GetWorkspaceRequest.newBuilder()
-                            .setWorkspaceId(workspaceId)
-                            .build());
-
-            return Optional.of(toWorkspaceInfo(response.getWorkspace()));
-        } catch (StatusRuntimeException e) {
-            if (GrpcClientErrors.isNotFound(e)) {
-                LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
-                return Optional.empty();
-            }
-            throw e;
+        // The hub has no single-workspace lookup: it holds a handful of workspaces, and the
+        // listing answers this as well as a dedicated RPC would
+        Optional<WorkspaceInfo> workspace = allWorkspaces().stream()
+                .filter(candidate -> candidate.id().equals(workspaceId))
+                .findFirst();
+        if (workspace.isEmpty()) {
+            LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
         }
+        return workspace;
     }
 
     public WorkspaceInfo createWorkspace(String referenceId, String name) {
@@ -143,11 +135,10 @@ public class DiscoveryClient {
         }
     }
 
-    public List<RemoteProjectResponse> allProjects(String workspaceId, boolean includeDeleted) {
+    public List<RemoteProjectResponse> allProjects(String workspaceId) {
         ListProjectsResponse response = projectStub.listProjects(
                 ListProjectsRequest.newBuilder()
                         .setWorkspaceId(workspaceId)
-                        .setIncludeDeleted(includeDeleted)
                         .build());
 
         return response.getProjectsList().stream()
@@ -189,13 +180,10 @@ public class DiscoveryClient {
     private static RemoteProjectResponse toRemoteProjectResponse(ProjectInfo proto) {
         return new RemoteProjectResponse(
                 proto.getId(),
-                ClientProtoMappers.nullIfEmpty(proto.getOriginId()),
                 proto.getName(),
-                ClientProtoMappers.nullIfEmpty(proto.getNamespace()),
-                proto.getCreatedAt() != 0 ? InstantUtils.formatInstant(Instant.ofEpochMilli(proto.getCreatedAt())) : null,
+                proto.getCreatedAt() != 0 ? Instant.ofEpochMilli(proto.getCreatedAt()) : null,
                 proto.getWorkspaceId(),
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
-                proto.getSessionCount(),
-                proto.hasDeletedAt() ? Instant.ofEpochMilli(proto.getDeletedAt()) : null);
+                proto.getSessionCount());
     }
 }

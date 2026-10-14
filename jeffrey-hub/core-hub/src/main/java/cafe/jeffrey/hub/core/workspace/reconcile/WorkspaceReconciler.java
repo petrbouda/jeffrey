@@ -221,7 +221,6 @@ public class WorkspaceReconciler {
         CreateProject createProject = new CreateProject(
                 marker.projectId(),
                 marker.projectName(),
-                null, // namespace — not declared on disk
                 Instant.ofEpochMilli(marker.createdAt()),
                 marker.attributes());
 
@@ -237,7 +236,6 @@ public class WorkspaceReconciler {
             RepositoryManager repositoryManager, ProjectManager projectManager, RemoteProject marker) {
         RepositoryInfo projectRepository = new RepositoryInfo(
                 IDGenerator.generate(),
-                marker.repositoryType(),
                 marker.workspacesPath(),
                 marker.relativeWorkspacePath(),
                 marker.relativeProjectPath());
@@ -342,7 +340,6 @@ public class WorkspaceReconciler {
                 marker.sessionId(),
                 repositoryInfo.id(),
                 marker.instanceId(),
-                marker.order(),
                 Path.of(marker.relativeSessionPath()),
                 originCreatedAt,
                 clock.instant(),

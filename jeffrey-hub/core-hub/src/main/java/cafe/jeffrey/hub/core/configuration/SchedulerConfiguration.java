@@ -30,14 +30,12 @@ import cafe.jeffrey.hub.core.scheduler.JobLocks;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
 import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
 import cafe.jeffrey.hub.core.scheduler.PeriodicalScheduler;
-import cafe.jeffrey.hub.core.scheduler.job.DeletedProjectsCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ExpiredInstanceCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectInstanceSessionCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectStorageQuotaCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.RepositoryCompressionProjectJob;
 import cafe.jeffrey.hub.core.scheduler.job.SessionFinishedDetectorProjectJob;
 import cafe.jeffrey.hub.core.scheduler.job.StorageOverviewRefresherJob;
-import cafe.jeffrey.hub.core.scheduler.job.TempDirectoryCleanerJob;
 import cafe.jeffrey.hub.core.scheduler.job.WorkspaceReconcilerJob;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.hub.model.job.JobType;
@@ -131,17 +129,6 @@ public class SchedulerConfiguration {
                 workspacesProperties,
                 clock,
                 config(JobType.WORKSPACE_RECONCILER).period());
-    }
-
-    @Bean
-    public TempDirectoryCleanerJob tempDirectoryCleanerJob(HubJeffreyDirs jeffreyDirs, Clock clock) {
-        return new TempDirectoryCleanerJob(jeffreyDirs.temp(), clock, config(JobType.TEMP_DIRECTORY_CLEANER));
-    }
-
-    @Bean
-    public DeletedProjectsCleanerJob deletedProjectsCleanerJob(HubPlatformRepositories platformRepositories, Clock clock) {
-        return new DeletedProjectsCleanerJob(
-                platformRepositories.newProjectsRepository(), clock, config(JobType.DELETED_PROJECTS_CLEANER));
     }
 
     @Bean

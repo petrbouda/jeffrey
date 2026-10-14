@@ -45,11 +45,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -93,7 +91,7 @@ class ProjectInstanceSessionCleanerJobTest {
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", null, "ws-1", NOW, NOW, Map.of(), null);
+                "proj-1", null, "my-project", "ws-1", NOW, NOW, Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);

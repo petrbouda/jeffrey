@@ -14,8 +14,8 @@
 -- limitations under the License.
 
 -- Insert workspace and project for consumer integration tests
-INSERT INTO workspaces (workspace_id, reference_id, repository_id, name, location, base_location,  created_at)
-VALUES ('ws-001', 'ws-001', NULL, 'Test Workspace', NULL, NULL, '2025-01-01T10:00:00Z');
+INSERT INTO workspaces (workspace_id, reference_id, name, created_at)
+VALUES ('ws-001', 'ws-001', 'Test Workspace', '2025-01-01T10:00:00Z');
 
 INSERT INTO projects (project_id, origin_project_id, project_name, workspace_id, created_at, origin_created_at, attributes)
 VALUES ('proj-001', 'origin-proj-001', 'Test Project', 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}');

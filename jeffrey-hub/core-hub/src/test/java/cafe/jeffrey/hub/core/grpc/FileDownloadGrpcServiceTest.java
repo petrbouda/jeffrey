@@ -49,7 +49,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -264,7 +263,7 @@ class FileDownloadGrpcServiceTest {
     // ========== Helpers ==========
 
     private static final ProjectInfo TEST_PROJECT_INFO =
-            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null, null, null);
+            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null);
 
     /**
      * Creates a service where {@code repositoryManagerForSession(SESSION_ID)} succeeds.

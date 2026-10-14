@@ -187,8 +187,8 @@ class HubsMcpToolsTest {
     private HubManager reachableHub(String hubId, String hubName, String projectName, RepositoryManager repo) {
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(hubInfo(hubId, hubName));
-        when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("2.1.0", 1)));
-        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("2.1.0", 1));
+        when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("2.1.0")));
+        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("2.1.0"));
         WorkspaceInfo workspace = new WorkspaceInfo(
                 WORKSPACE_ID, "ref", "repo", "default", null, null, NOW, WorkspaceStatus.AVAILABLE, 1);
         when(hub.workspaces()).thenReturn(List.of(workspace));
@@ -196,7 +196,7 @@ class HubsMcpToolsTest {
 
         ProjectManager project = mock(ProjectManager.class);
         when(project.info()).thenReturn(new ProjectInfo(
-                PROJECT_ID, "origin", projectName, "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                PROJECT_ID, "origin", projectName, "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
         when(project.repositoryManager()).thenReturn(repo);
 
         ProjectsManager projects = mock(ProjectsManager.class);
@@ -825,7 +825,7 @@ class HubsMcpToolsTest {
             ProjectManager project = mock(ProjectManager.class);
             when(project.repositoryManager()).thenReturn(repo);
             when(project.info()).thenReturn(new ProjectInfo(
-                    PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                    PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
             if (downloads != null) {
                 when(project.recordingsDownloadManager()).thenReturn(downloads);
             }
@@ -840,7 +840,7 @@ class HubsMcpToolsTest {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo(ref.hubId(), "production"));
             when(resolver.resolveHub(ref.hubId())).thenReturn(hub);
-            when(resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId())).thenReturn(
+            when(resolver.resolve(ref.hubId(), ref.workspaceId(), ref.projectId())).thenReturn(
                     new ProjectManagerResolver.ProjectContext(
                             mock(WorkspaceManager.class), mock(ProjectsManager.class), project));
         }
@@ -881,7 +881,7 @@ class HubsMcpToolsTest {
                 ProjectManager project = mock(ProjectManager.class);
                 when(project.repositoryManager()).thenReturn(repo);
                 when(project.info()).thenReturn(new ProjectInfo(
-                        PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                        PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
                 when(project.recordingsDownloadManager()).thenReturn(downloads);
                 resolvesTo(project);
                 noLocalRecordings();
@@ -2134,7 +2134,7 @@ class HubsMcpToolsTest {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo(HUB_ID, "production"));
             when(resolver.resolveHub(HUB_ID)).thenReturn(hub);
-            when(resolver.resolveStrict(HUB_ID, WORKSPACE_ID, PROJECT_ID))
+            when(resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID))
                     .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
 
             JeffreyException exception = assertThrows(

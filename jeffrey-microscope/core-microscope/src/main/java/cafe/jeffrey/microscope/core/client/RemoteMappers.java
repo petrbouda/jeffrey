@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.client;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.shared.common.InstantUtils;
 
 public abstract class RemoteMappers {
 
@@ -29,8 +28,7 @@ public abstract class RemoteMappers {
                 toProjectInfo(response),
                 response.status(),
                 response.sessionCount(),
-                null,
-                response.deletedAt() != null);
+                null);
     }
 
     private static ProjectInfo toProjectInfo(RemoteProjectResponse response) {
@@ -40,10 +38,8 @@ public abstract class RemoteMappers {
                 response.name(),
                 null,
                 response.workspaceId(),
-                InstantUtils.parseInstant(response.createdAt()),
+                response.createdAt(),
                 null,
-                null,
-                response.deletedAt()
-        );
+                null);
     }
 }

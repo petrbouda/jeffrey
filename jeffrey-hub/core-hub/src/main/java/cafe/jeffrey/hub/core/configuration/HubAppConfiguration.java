@@ -111,17 +111,10 @@ public class HubAppConfiguration {
     }
 
     @Bean
-    public HubJeffreyDirs jeffreyDir(
-            @Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey-hub}") String homeDir,
-            @Value("${jeffrey.hub.temp.dir:}") String tempDir) {
-
-        Path homeDirPath = Path.of(homeDir);
-        HubJeffreyDirs jeffreyDirs = StringUtils.isNullOrBlank(tempDir)
-                ? new HubJeffreyDirs(homeDirPath)
-                : new HubJeffreyDirs(homeDirPath, Path.of(tempDir));
-
+    public HubJeffreyDirs jeffreyDir(@Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey-hub}") String homeDir) {
+        HubJeffreyDirs jeffreyDirs = new HubJeffreyDirs(Path.of(homeDir));
         jeffreyDirs.initialize();
-        LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
+        LOG.info("Using Jeffrey directory: HOME={}", jeffreyDirs.homeDir());
         return jeffreyDirs;
     }
 

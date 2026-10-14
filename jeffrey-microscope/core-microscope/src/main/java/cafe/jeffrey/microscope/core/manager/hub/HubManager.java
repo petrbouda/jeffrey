@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.core.manager.hub;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.client.CachedHubClientsFactory;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
@@ -144,9 +143,7 @@ public class HubManager {
      */
     public void delete() {
         hubsRepository.delete(hubInfo.hubId());
-        if (hubClientsFactory instanceof CachedHubClientsFactory cached) {
-            cached.evict(hubInfo.address());
-        }
+        hubClientsFactory.evict(hubInfo.address());
         LOG.info("Deleted local hub pointer: hub_id={} address={}",
                 hubInfo.hubId(), hubInfo.address());
     }

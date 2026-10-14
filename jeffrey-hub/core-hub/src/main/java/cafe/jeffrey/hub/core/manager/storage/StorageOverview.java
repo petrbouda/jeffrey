@@ -31,7 +31,7 @@ public record StorageOverview(
     /**
      * Storage used by the hub itself, outside of project repositories.
      */
-    public record InfrastructureUsage(long databaseBytes, long tempBytes) {
+    public record InfrastructureUsage(long databaseBytes) {
     }
 
     /**

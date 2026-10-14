@@ -67,7 +67,7 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<RemoteProjectResponse> remoteProjects;
         try {
-            remoteProjects = hubClients.discovery().allProjects(workspaceInfo.id(), false);
+            remoteProjects = hubClients.discovery().allProjects(workspaceInfo.id());
         } catch (Exception e) {
             LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
@@ -81,23 +81,7 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public List<ProjectManager> findAllOrThrow() {
-        return hubClients.discovery().allProjects(workspaceInfo.id(), false).stream()
-                .map(remoteProject -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(remoteProject)))
-                .toList();
-    }
-
-    @Override
-    public List<ProjectManager> findAllIncludingDeleted() {
-        List<RemoteProjectResponse> remoteProjects;
-        try {
-            remoteProjects = hubClients.discovery().allProjects(workspaceInfo.id(), true);
-        } catch (Exception e) {
-            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
-            remoteProjects = List.of();
-        }
-
-        return remoteProjects.stream()
+        return hubClients.discovery().allProjects(workspaceInfo.id()).stream()
                 .map(remoteProject -> toRemoteProjectManager(
                         RemoteMappers.toDetailedProjectInfo(remoteProject)))
                 .toList();
@@ -106,7 +90,6 @@ public class RemoteProjectsManager implements ProjectsManager {
     @Override
     public Optional<ProjectManager> project(String projectId) {
         // In remote-only mode, we look up the single project from the hub.
-        // The hub returns deleted projects as well so restore/management lookups work.
         Optional<RemoteProjectResponse> remoteProject;
         try {
             remoteProject = hubClients.discovery().project(workspaceInfo.id(), projectId);

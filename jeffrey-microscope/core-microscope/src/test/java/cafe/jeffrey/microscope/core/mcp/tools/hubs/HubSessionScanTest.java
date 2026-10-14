@@ -75,7 +75,7 @@ class HubSessionScanTest {
     }
 
     private static ProjectInfo projectInfo(String id, String name) {
-        return new ProjectInfo(id, "origin-" + id, name, "ns", "ws-1", NOW, NOW, Map.of(), null);
+        return new ProjectInfo(id, "origin-" + id, name, "ns", "ws-1", NOW, NOW, Map.of());
     }
 
     private static RecordingSession session(String id, Instant createdAt) {
@@ -89,8 +89,8 @@ class HubSessionScanTest {
     private HubManager reachableHub(String hubId, String hubName, String projectName, RepositoryManager repo) {
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(hubInfo(hubId, hubName));
-        when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("1.0", 1)));
-        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+        when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("1.0")));
+        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0"));
         WorkspaceInfo workspace = workspace("ws-1", "default");
         when(hub.workspaces()).thenReturn(List.of(workspace));
         when(hub.workspacesOrThrow()).thenReturn(List.of(workspace));
@@ -368,7 +368,7 @@ class HubSessionScanTest {
 
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo("h-1", "production"));
-            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0"));
             when(hub.workspacesOrThrow()).thenReturn(List.of(fastWorkspace, stalledWorkspace));
             when(hub.workspace(fastWorkspace)).thenReturn(fastManager);
             when(hub.workspace(stalledWorkspace)).thenReturn(stalledManager);
@@ -400,7 +400,7 @@ class HubSessionScanTest {
 
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo("h-1", "production"));
-            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0"));
             when(hub.workspacesOrThrow()).thenReturn(List.of(workspace));
             when(hub.workspace(workspace)).thenReturn(workspaceManager);
             return hub;
@@ -502,7 +502,7 @@ class HubSessionScanTest {
         void reportsAWorkspaceWhoseManagerCannotBeCreated() {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo("h-1", "production"));
-            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0", 1));
+            when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0"));
             WorkspaceInfo gone = workspace("ws-gone", "default");
             when(hub.workspacesOrThrow()).thenReturn(List.of(gone));
             when(hub.workspace(gone)).thenThrow(new IllegalStateException("workspace disappeared"));

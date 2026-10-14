@@ -40,7 +40,7 @@ class WorkspaceProjectsControllerTest {
 
     @Test
     void listsEmptyProjects() {
-        when(access.projects("srv-1", "ws-1", false)).thenReturn(List.of());
+        when(access.projects("srv-1", "ws-1")).thenReturn(List.of());
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(access));
 
@@ -52,7 +52,7 @@ class WorkspaceProjectsControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(access.projects("srv-1", "ghost", false)).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(access.projects("srv-1", "ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(access));
 

@@ -103,8 +103,7 @@ public class HubStorageManager {
     private InfrastructureUsage infrastructureUsage() {
         long databaseBytes = fileSizeIfExists(jeffreyDirs.homeDir().resolve(DATABASE_FILE_NAME))
                 + fileSizeIfExists(jeffreyDirs.homeDir().resolve(DATABASE_WAL_FILE_NAME));
-        long tempBytes = FileSystemUtils.directorySize(jeffreyDirs.temp());
-        return new InfrastructureUsage(databaseBytes, tempBytes);
+        return new InfrastructureUsage(databaseBytes);
     }
 
     private static long fileSizeIfExists(Path file) {

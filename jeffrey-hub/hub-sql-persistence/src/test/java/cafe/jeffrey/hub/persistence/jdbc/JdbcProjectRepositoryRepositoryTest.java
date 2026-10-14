@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.persistence.jdbc;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.hub.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -52,13 +51,12 @@ class JdbcProjectRepositoryRepositoryTest {
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
-            RepositoryInfo repoInfo = new RepositoryInfo("repo-new", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
+            RepositoryInfo repoInfo = new RepositoryInfo("repo-new", "/workspaces", "ws-001", "proj-001");
             repository.insert(repoInfo);
 
             List<RepositoryInfo> result = repository.getAll();
             assertEquals(1, result.size());
             assertEquals("repo-new", result.get(0).id());
-            assertEquals(RepositoryType.ASYNC_PROFILER, result.get(0).repositoryType());
         }
 
         /**
@@ -71,7 +69,7 @@ class JdbcProjectRepositoryRepositoryTest {
             var provider = new DatabaseClientProvider(dataSource);
             TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
-            RepositoryInfo repoInfo = new RepositoryInfo("repo-new", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
+            RepositoryInfo repoInfo = new RepositoryInfo("repo-new", "/workspaces", "ws-001", "proj-001");
 
             repository.insert(repoInfo);
             repository.insert(repoInfo);
@@ -125,7 +123,7 @@ class JdbcProjectRepositoryRepositoryTest {
             JdbcProjectRepositoryRepository repository = new JdbcProjectRepositoryRepository(FIXED_CLOCK, "proj-001", provider);
 
             ProjectInstanceSessionInfo sessionInfo = ProjectInstanceSessionInfo.notRetained(
-                    "session-new-001", "repo-001", "inst-001", 1, Path.of("session-test"),
+                    "session-new-001", "repo-001", "inst-001", Path.of("session-test"),
                     Instant.parse("2025-01-15T10:00:00Z"), null, null);
 
             repository.createSession(sessionInfo);

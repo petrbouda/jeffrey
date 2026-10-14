@@ -115,11 +115,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
               Base directory for all Jeffrey Hub data. Env var: <code>JEFFREY_HUB_HOME_DIR</code>
             </td>
           </tr>
-          <tr>
-            <td><code>jeffrey.hub.temp.dir</code></td>
-            <td><code>${jeffrey.hub.home.dir}/temp</code></td>
-            <td>Directory for temporary files</td>
-          </tr>
         </tbody>
       </table>
 
@@ -327,18 +322,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
               nothing costs one directory listing and no queries. Create-only: removing
               directories from the volume never deletes hub state.
             </td>
-          </tr>
-          <tr>
-            <td><code>temp-directory-cleaner</code></td>
-            <td><code>5m</code></td>
-            <td><code>retention=30m</code></td>
-            <td>Removes scratch entries leaked by crashed operations</td>
-          </tr>
-          <tr>
-            <td><code>deleted-projects-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td><code>retention=7d</code></td>
-            <td>Purges soft-deleted projects. Doubles as the window in which a deleted project can be restored.</td>
           </tr>
           <tr>
             <td><code>storage-overview-refresher</code></td>

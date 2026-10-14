@@ -104,20 +104,6 @@ class ProjectGrpcServiceTest {
         }
 
         @Test
-        void returnsDeletedProjectViaFallback() throws IOException {
-            var stub = startServer(serviceWithDeletedWorkspaceProject());
-
-            GetProjectResponse response = stub.getProject(
-                    GetProjectRequest.newBuilder()
-                            .setWorkspaceId(WORKSPACE_ID)
-                            .setProjectId(PROJECT_ID)
-                            .build());
-
-            assertEquals(PROJECT_ID, response.getProject().getId());
-            assertTrue(response.getProject().hasDeletedAt());
-        }
-
-        @Test
         void projectFromAnotherWorkspace_returnsNotFound() throws IOException {
             var stub = startServer(serviceWithProjectInAnotherWorkspace());
 
@@ -177,41 +163,12 @@ class ProjectGrpcServiceTest {
         }
     }
 
-    @Nested
-    class RestoreProject {
-
-        @Test
-        void restoresSoftDeletedProject() throws IOException {
-            var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                    PROJECT_ID, "origin-1", "Test Project", "namespace",
-                    WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
-
-            var projectManager = mock(ProjectManager.class);
-            var stub = startServer(serviceWithSoftDeletedProject(deletedInfo, projectManager));
-
-            stub.restoreProject(RestoreProjectRequest.newBuilder()
-                    .setProjectId(PROJECT_ID).build());
-
-            verify(projectManager).restore();
-        }
-
-        @Test
-        void projectNotFound_returnsNotFound() throws IOException {
-            var stub = startServer(serviceWithNoProject());
-
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.restoreProject(RestoreProjectRequest.newBuilder()
-                            .setProjectId("missing").build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
-        }
-    }
-
     // ========== Helpers ==========
 
     private static final cafe.jeffrey.hub.model.ProjectInfo TEST_PROJECT_INFO =
             new cafe.jeffrey.hub.model.ProjectInfo(
-                    PROJECT_ID, "origin-1", "Test Project", "namespace",
-                    WORKSPACE_ID, FIXED_TIME, null, null, null);
+                    PROJECT_ID, "origin-1", "Test Project",
+                    WORKSPACE_ID, FIXED_TIME, null, null);
 
     /**
      * Creates a service for ListProjects (which still goes through WorkspacesManager).
@@ -240,28 +197,13 @@ class ProjectGrpcServiceTest {
     }
 
     /**
-     * GetProject has to see a soft-deleted project — restore names one — so it resolves through
-     * the deleted-inclusive lookup.
-     */
-    private ProjectGrpcService serviceWithDeletedWorkspaceProject() {
-        var deletedInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                PROJECT_ID, "origin-1", "Test Project", "namespace",
-                WORKSPACE_ID, FIXED_TIME, null, null, FIXED_TIME);
-
-        return serviceWithProjectInLookup(deletedInfo, new DetailedProjectInfo(
-                deletedInfo,
-                cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
-                0));
-    }
-
-    /**
      * The project exists but belongs to another workspace, so the workspace-scoped GetProject
      * must not resolve it.
      */
     private ProjectGrpcService serviceWithProjectInAnotherWorkspace() {
         var foreignInfo = new cafe.jeffrey.hub.model.ProjectInfo(
-                PROJECT_ID, "origin-1", "Test Project", "namespace",
-                "other-workspace", FIXED_TIME, null, null, null);
+                PROJECT_ID, "origin-1", "Test Project",
+                "other-workspace", FIXED_TIME, null, null);
 
         return serviceWithProjectInLookup(foreignInfo, null);
     }
@@ -274,8 +216,8 @@ class ProjectGrpcServiceTest {
     }
 
     /**
-     * A service whose WORKSPACE_ID workspace exists and whose deleted-inclusive project lookup
-     * answers with {@code info} for PROJECT_ID (nothing for any id when {@code info} is null).
+     * A service whose WORKSPACE_ID workspace exists and whose project lookup answers with
+     * {@code info} for PROJECT_ID (nothing for any id when {@code info} is null).
      */
     private ProjectGrpcService serviceWithProjectInLookup(
             cafe.jeffrey.hub.model.ProjectInfo info, DetailedProjectInfo detail) {
@@ -284,7 +226,7 @@ class ProjectGrpcServiceTest {
         when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(mock(WorkspaceManager.class)));
 
         var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.findIncludingDeleted()).thenReturn(Optional.ofNullable(info));
+        when(projectRepo.find()).thenReturn(Optional.ofNullable(info));
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);
 
@@ -329,35 +271,11 @@ class ProjectGrpcServiceTest {
     }
 
     /**
-     * Creates a service where the project exists only as a soft-deleted row: the active-only
-     * find() is empty, the deleted-inclusive findIncludingDeleted() resolves it. This is the
-     * exact state RestoreProject must be able to operate on.
-     */
-    private ProjectGrpcService serviceWithSoftDeletedProject(
-            cafe.jeffrey.hub.model.ProjectInfo deletedInfo, ProjectManager projectManager) {
-
-        var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.empty());
-        when(projectRepo.findIncludingDeleted()).thenReturn(Optional.of(deletedInfo));
-
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
-
-        var projectManagerFactory = mock(ProjectManager.Factory.class);
-        when(projectManagerFactory.apply(deletedInfo)).thenReturn(projectManager);
-
-        var workspacesManager = mock(WorkspacesManager.class);
-
-        return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
-    }
-
-    /**
      * Creates a service where findProject("missing") fails (project not found).
      */
     private ProjectGrpcService serviceWithNoProject() {
         var projectRepo = mock(ProjectRepository.class);
         when(projectRepo.find()).thenReturn(Optional.empty());
-        when(projectRepo.findIncludingDeleted()).thenReturn(Optional.empty());
 
         var platformRepositories = mock(HubPlatformRepositories.class);
         when(platformRepositories.newProjectRepository(any())).thenReturn(projectRepo);

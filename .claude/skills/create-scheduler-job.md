@@ -19,7 +19,7 @@ Ask the user for the following information using AskUserQuestion:
 1. **Job Name**: The name for the new job (e.g., "DataCleanup", "MetricsExporter")
 2. **Job Scope**: One of:
     - `PROJECT` - Job operates on individual projects (extends RepositoryProjectJob)
-    - `GLOBAL` - Job runs once per tick across the whole server (implements `Job` directly, like `DeletedProjectsCleanerJob`)
+    - `GLOBAL` - Job runs once per tick across the whole server (implements `Job` directly, like `StorageOverviewRefresherJob`)
     - `INTERNAL` - Internal system job (implements Job directly)
 3. **Description**: Brief description of what the job does
 4. **Parameters**: Does the job need configuration parameters? (yes/no)

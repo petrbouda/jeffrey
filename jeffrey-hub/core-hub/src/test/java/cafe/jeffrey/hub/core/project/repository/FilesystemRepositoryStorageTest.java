@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
@@ -133,9 +132,9 @@ class FilesystemRepositoryStorageTest {
 
         private FilesystemRepositoryStorage storage(Instant finishedAt) {
             when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
-                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+                    "repo-1", null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
-                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
                     T0, T0, finishedAt, false)));
 
             return new FilesystemRepositoryStorage(
@@ -310,9 +309,9 @@ class FilesystemRepositoryStorageTest {
 
         private FilesystemRepositoryStorage storage(Instant finishedAt) {
             when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
-                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+                    "repo-1", null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
-                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
                     T0, T0, finishedAt, false)));
 
             return new FilesystemRepositoryStorage(
@@ -389,10 +388,10 @@ class FilesystemRepositoryStorageTest {
             FilesystemRepositoryStorage storage = liveSession();
             when(repository.findAllSessions()).thenReturn(List.of(
                     new ProjectInstanceSessionInfo(
-                            "session-2", "repo-1", "instance-2", 0, Path.of("instance-2", "session-2"),
+                            "session-2", "repo-1", "instance-2", Path.of("instance-2", "session-2"),
                             T0.plusSeconds(1800), T0.plusSeconds(1800), null, false),
                     new ProjectInstanceSessionInfo(
-                            SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                            SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
                             T0, T0, null, false)));
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);
@@ -517,9 +516,9 @@ class FilesystemRepositoryStorageTest {
 
         private FilesystemRepositoryStorage storage() {
             when(repository.getAll()).thenReturn(List.of(new RepositoryInfo(
-                    "repo-1", RepositoryType.ASYNC_PROFILER, null, "ws", PROJECT)));
+                    "repo-1", null, "ws", PROJECT)));
             when(repository.findSessionById(SESSION_ID)).thenReturn(Optional.of(new ProjectInstanceSessionInfo(
-                    SESSION_ID, "repo-1", INSTANCE, 0, Path.of(INSTANCE, SESSION_ID),
+                    SESSION_ID, "repo-1", INSTANCE, Path.of(INSTANCE, SESSION_ID),
                     T0, T0, null, false)));
 
             return new FilesystemRepositoryStorage(

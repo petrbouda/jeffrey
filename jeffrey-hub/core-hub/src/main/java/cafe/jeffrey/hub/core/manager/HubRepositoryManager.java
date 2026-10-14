@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 import cafe.jeffrey.hub.model.repository.StreamedFile;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
@@ -78,26 +77,18 @@ public class HubRepositoryManager implements RepositoryManager {
         // The filter reads headers only, so files are walked for the sessions that survive it —
         // a limit of five over a project of hundreds lists five directories, not hundreds
         List<RecordingSession> sessions = filter.apply(repositoryStorage.listSessions(SessionDetail.HEADERS));
-        if (!detail.withFiles()) {
-            return sessions;
-        }
+        return detail.withFiles() ? withFiles(sessions) : sessions;
+    }
+
+    @Override
+    public List<RecordingSession> listInstanceSessions(String instanceId, RecordingSessionFilter filter) {
+        return withFiles(filter.apply(repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.HEADERS)));
+    }
+
+    private List<RecordingSession> withFiles(List<RecordingSession> sessions) {
         return sessions.stream()
                 .map(repositoryStorage::withFiles)
                 .toList();
-    }
-
-    @Override
-    public RepositoryStatistics calculateRepositoryStatistics() {
-        long totalSize = listRecordingSessions(SessionDetail.WITH_FILES).stream()
-                .mapToLong(RecordingSession::totalSizeBytes)
-                .sum();
-
-        return new RepositoryStatistics(totalSize);
-    }
-
-    @Override
-    public List<RecordingSession> instanceSessions(String instanceId) {
-        return repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.WITH_FILES);
     }
 
     @Override

@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
-import cafe.jeffrey.hub.client.dto.InstanceSessionResponse;
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
@@ -89,19 +88,6 @@ public class ProjectInstancesController {
         LOG.debug("Fetching instance detail: instanceId={}", instanceId);
         return projectAccess.instancesManager(hubId, workspaceId, projectId).detail(instanceId)
                 .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId));
-    }
-
-    @GetMapping("/{instanceId}/sessions")
-    public List<InstanceSessionResponse> getSessions(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @PathVariable("instanceId") String instanceId) {
-        var result = projectAccess.instancesManager(hubId, workspaceId, projectId).findSessions(instanceId).stream()
-                .map(s -> InstanceSessionResponse.from(s, clock))
-                .toList();
-        LOG.debug("Listed instance sessions: projectId={} instanceId={} count={}", projectId, instanceId, result.size());
-        return result;
     }
 
     @GetMapping("/{instanceId}/sessions/{sessionId}/detail")

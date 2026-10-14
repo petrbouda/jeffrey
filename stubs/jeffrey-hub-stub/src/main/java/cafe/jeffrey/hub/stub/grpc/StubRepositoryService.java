@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.hub.stub.grpc;
 
-import cafe.jeffrey.hub.api.v1.GetRepositoryStatisticsRequest;
-import cafe.jeffrey.hub.api.v1.GetRepositoryStatisticsResponse;
 import cafe.jeffrey.hub.api.v1.GetSessionRequest;
 import cafe.jeffrey.hub.api.v1.GetSessionResponse;
 import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
@@ -27,12 +25,10 @@ import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.stub.data.StubDataset;
 import io.grpc.stub.StreamObserver;
 
-import java.util.List;
-
 /**
  * Stub {@code RepositoryService} backed by the in-memory dataset. Recording sessions
- * are flattened from the project's instances; statistics are aggregated from the
- * in-memory files. Deletion RPCs fall through to {@code UNIMPLEMENTED}.
+ * are flattened from the project's instances. Deletion RPCs fall through to
+ * {@code UNIMPLEMENTED}.
  */
 public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServiceImplBase {
 
@@ -46,7 +42,9 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
         ListSessionsResponse.Builder builder = ListSessionsResponse.newBuilder();
         for (StubDataset.Session session : dataset.sessionsForProject(request.getProjectId())) {
-            builder.addSessions(StubProtoMappers.recordingSession(session));
+            if (!request.hasInstanceId() || request.getInstanceId().equals(session.instanceId())) {
+                builder.addSessions(StubProtoMappers.recordingSession(session));
+            }
         }
         responseObserver.onNext(builder.build());
         responseObserver.onCompleted();
@@ -64,26 +62,5 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
                         },
                         () -> responseObserver.onError(
                                 StubGrpcExceptions.notFound("Session not found: " + request.getSessionId())));
-    }
-
-    @Override
-    public void getRepositoryStatistics(
-            GetRepositoryStatisticsRequest request,
-            StreamObserver<GetRepositoryStatisticsResponse> responseObserver) {
-
-        List<StubDataset.Session> sessions = dataset.sessionsForProject(request.getProjectId());
-        responseObserver.onNext(aggregate(sessions));
-        responseObserver.onCompleted();
-    }
-
-    private static GetRepositoryStatisticsResponse aggregate(List<StubDataset.Session> sessions) {
-        long totalSize = sessions.stream()
-                .flatMap(session -> session.files().stream())
-                .mapToLong(StubDataset.File::size)
-                .sum();
-
-        return GetRepositoryStatisticsResponse.newBuilder()
-                .setTotalSize(totalSize)
-                .build();
     }
 }

@@ -23,7 +23,6 @@ import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.util.List;
@@ -64,19 +63,10 @@ public interface RepositoryManager {
     List<RecordingSession> listRecordingSessions(SessionDetail detail, RecordingSessionFilter filter);
 
     /**
-     * Calculates comprehensive repository statistics including session counts,
-     * file type distributions, sizes, and activity timestamps.
-     *
-     * @return repository statistics containing all calculated metrics
+     * One instance's sessions that satisfy the filter, with their files, newest first: a walk of
+     * that instance's directories alone.
      */
-    RepositoryStatistics calculateRepositoryStatistics();
-
-    /**
-     * One instance's sessions with their files, newest first: one walk of that instance's
-     * directories, from which a caller derives its statistics and which of its sessions
-     * finished empty.
-     */
-    List<RecordingSession> instanceSessions(String instanceId);
+    List<RecordingSession> listInstanceSessions(String instanceId, RecordingSessionFilter filter);
 
     /**
      * Create a new repository for the project.

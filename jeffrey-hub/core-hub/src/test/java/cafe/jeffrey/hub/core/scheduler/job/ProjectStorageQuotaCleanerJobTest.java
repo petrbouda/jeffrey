@@ -45,7 +45,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,7 +77,7 @@ class ProjectStorageQuotaCleanerJobTest {
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", null, "ws-1", NOW, NOW, java.util.Map.of(), null);
+                "proj-1", null, "my-project", "ws-1", NOW, NOW, java.util.Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);

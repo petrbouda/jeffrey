@@ -21,12 +21,11 @@
     :initial-hub-id="initialHubId"
     :initial-workspace-id="initialWorkspaceId"
   >
-    <template #project="{ project, hubId, workspaceId, restore }">
+    <template #project="{ project, hubId, workspaceId }">
       <ProjectCard
         :project="project"
         :hub-id="hubId"
         :workspace-id="workspaceId"
-        @restore="restore"
         @open="t => navigateToProject(t.hubId, t.projectId, t.workspaceId)"
       />
     </template>

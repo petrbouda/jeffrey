@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.persistence.jdbc;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
@@ -27,8 +26,6 @@ import cafe.jeffrey.hub.persistence.api.ProjectsRepository;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.hub.persistence.api.WorkspacesRepository;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -43,17 +40,6 @@ import java.util.Optional;
 public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
 
     //language=SQL
-    private static final String SELECT_INSTANCE_BY_ID = HubMappers.INSTANCE_WITH_COUNTS + """
-            WHERE i.instance_id = :instance_id
-            """ + HubMappers.GROUP_BY_INSTANCE;
-
-    //language=SQL
-    private static final String SELECT_SESSIONS_BY_INSTANCE_ID = """
-            SELECT rs.* FROM project_instance_sessions rs
-            WHERE rs.instance_id = :instance_id
-            ORDER BY rs.created_at DESC""";
-
-    //language=SQL
     private static final String SELECT_SESSIONS_BY_PROJECT_ID = """
             SELECT rs.* FROM project_instance_sessions rs
             JOIN project_instances i ON rs.instance_id = i.instance_id
@@ -66,14 +52,12 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
                    rs.session_id AS session_id,
                    rs.repository_id AS repository_id,
                    rs.instance_id AS instance_id,
-                   rs.session_order AS session_order,
                    rs.relative_session_path AS relative_session_path,
                    rs.origin_created_at AS origin_created_at,
                    rs.created_at AS created_at,
                    rs.finished_at AS finished_at,
                    rs.retained AS retained,
                    rs.heartbeat_missing AS heartbeat_missing,
-                   r.repository_type AS repository_type,
                    r.workspaces_path AS workspaces_path,
                    r.relative_workspace_path AS relative_workspace_path,
                    r.relative_project_path AS relative_project_path
@@ -94,7 +78,7 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
 
     @Override
     public ProjectRepository newProjectRepository(String projectId) {
-        return new JdbcProjectRepository(clock, projectId, databaseClientProvider);
+        return new JdbcProjectRepository(projectId, databaseClientProvider);
     }
 
     @Override
@@ -137,45 +121,6 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
                     ProjectInstanceSessionInfo sessionInfo = HubMappers.projectInstanceSessionMapper().mapRow(rs, rowNum);
                     return new SessionWithRepository(projectId, repositoryInfo, sessionInfo);
                 });
-    }
-
-    @Override
-    public Optional<ProjectInstanceInfo> findInstanceById(String instanceId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("instance_id", instanceId);
-
-        return databaseClient.querySingle(
-                StatementLabel.FIND_INSTANCE_BY_ID,
-                SELECT_INSTANCE_BY_ID,
-                paramSource,
-                (rs, _) -> {
-                    String statusStr = rs.getString("status");
-                    ProjectInstanceStatus status = ProjectInstanceStatus.valueOf(statusStr);
-
-                    return new ProjectInstanceInfo(
-                            rs.getString("instance_id"),
-                            rs.getString("project_id"),
-                            rs.getString("instance_name"),
-                            status,
-                            HubMappers.instant(rs, "started_at"),
-                            HubMappers.instant(rs, "finished_at"),
-                            HubMappers.instant(rs, "expiring_at"),
-                            HubMappers.instant(rs, "expired_at"),
-                            rs.getInt("session_count"),
-                            rs.getString("active_session_id"));
-                });
-    }
-
-    @Override
-    public List<ProjectInstanceSessionInfo> findSessionsByInstanceId(String instanceId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("instance_id", instanceId);
-
-        return databaseClient.query(
-                StatementLabel.FIND_SESSIONS_BY_INSTANCE_ID,
-                SELECT_SESSIONS_BY_INSTANCE_ID,
-                paramSource,
-                HubMappers.projectInstanceSessionMapper());
     }
 
     @Override

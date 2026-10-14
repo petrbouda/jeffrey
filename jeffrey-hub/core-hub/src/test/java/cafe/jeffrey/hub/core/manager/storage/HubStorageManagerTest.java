@@ -91,14 +91,11 @@ class HubStorageManagerTest {
             Files.write(homeDir.resolve("jeffrey-data.db.wal"), new byte[20]);
             Path events = Files.createDirectories(homeDir.resolve("workspaces").resolve(".events"));
             Files.write(events.resolve("event.json"), new byte[30]);
-            Path temp = Files.createDirectories(homeDir.resolve("temp"));
-            Files.write(temp.resolve("scratch.bin"), new byte[40]);
             when(workspacesManager.findAll()).thenReturn(List.of());
 
             StorageOverview overview = storageManager.overview();
 
             assertThat(overview.infrastructure().databaseBytes()).isEqualTo(120L);
-            assertThat(overview.infrastructure().tempBytes()).isEqualTo(40L);
         }
 
         @Test
@@ -108,7 +105,6 @@ class HubStorageManagerTest {
             StorageOverview overview = storageManager.overview();
 
             assertThat(overview.infrastructure().databaseBytes()).isZero();
-            assertThat(overview.infrastructure().tempBytes()).isZero();
             assertThat(overview.projects()).isEmpty();
         }
 
@@ -158,11 +154,10 @@ class HubStorageManagerTest {
 
         private void mockSingleProject(List<RecordingSession> sessions) {
             WorkspaceInfo workspaceInfo = new WorkspaceInfo(
-                    "ws-1", "ws-1", "repo-1", "production",
-                    null, null, CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
+                    "ws-1", "ws-1", "production", CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
             ProjectInfo projectInfo = new ProjectInfo(
-                    "prj-1", "origin-1", "order-service", "default",
-                    "ws-1", CREATED_AT, CREATED_AT, Map.of(), null);
+                    "prj-1", "origin-1", "order-service",
+                    "ws-1", CREATED_AT, CREATED_AT, Map.of());
 
             doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
             when(workspaceManager.localInfo()).thenReturn(workspaceInfo);

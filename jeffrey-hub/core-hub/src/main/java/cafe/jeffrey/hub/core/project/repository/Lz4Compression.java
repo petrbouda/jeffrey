@@ -109,9 +109,9 @@ final class Lz4Compression implements Compression {
      * than in a temp directory, so the rename that publishes it stays within one directory and
      * therefore within one filesystem.
      *
-     * <p>Unique per attempt, and that is load-bearing rather than tidy: the lock the compression
-     * job takes is held by one storage instance, and a storage instance is built per call, so two
-     * runs over the same session genuinely overlap. Sharing one scratch name, the second would
+     * <p>Unique per attempt, and that is load-bearing rather than tidy: nothing serializes two
+     * runs over the same session — a storage instance is built per call — so they genuinely
+     * overlap. Sharing one scratch name, the second would
      * write into the file the first is about to rename, and the rename would publish a half
      * archive under a name that means "whole".
      *

@@ -14,13 +14,13 @@
 -- limitations under the License.
 
 -- Insert multiple workspaces and projects for filtering tests
-INSERT INTO workspaces (workspace_id, reference_id, repository_id, name, location, base_location,  created_at)
+INSERT INTO workspaces (workspace_id, reference_id, name, created_at)
 VALUES
-    ('ws-001', 'ws-001', NULL, 'Workspace One', NULL, NULL, '2025-01-01T10:00:00Z'),
-    ('ws-002', 'ws-002', NULL, 'Workspace Two', NULL, NULL, '2025-01-02T10:00:00Z');
+    ('ws-001', 'ws-001', 'Workspace One', '2025-01-01T10:00:00Z'),
+    ('ws-002', 'ws-002', 'Workspace Two', '2025-01-02T10:00:00Z');
 
-INSERT INTO projects (project_id, origin_project_id, project_name, namespace, workspace_id, created_at, origin_created_at, attributes)
+INSERT INTO projects (project_id, origin_project_id, project_name, workspace_id, created_at, origin_created_at, attributes)
 VALUES
-    ('proj-001', NULL, 'Project A in WS1', NULL, 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}'),
-    ('proj-002', NULL, 'Project B in WS1', NULL, 'ws-001', '2025-01-01T12:00:00Z', NULL, '{}'),
-    ('proj-003', NULL, 'Project C in WS2', NULL, 'ws-002', '2025-01-02T11:00:00Z', NULL, '{}');
+    ('proj-001', NULL, 'Project A in WS1', 'ws-001', '2025-01-01T11:00:00Z', NULL, '{}'),
+    ('proj-002', NULL, 'Project B in WS1', 'ws-001', '2025-01-01T12:00:00Z', NULL, '{}'),
+    ('proj-003', NULL, 'Project C in WS2', 'ws-002', '2025-01-02T11:00:00Z', NULL, '{}');

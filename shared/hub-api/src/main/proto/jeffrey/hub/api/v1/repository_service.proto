@@ -25,7 +25,7 @@ option java_multiple_files = true;
 import "jeffrey/hub/api/v1/common.proto";
 
 // Manages a project's repository — the files its sessions produced, whatever they are,
-// organized into sessions. Provides session listing, statistics, and deletion.
+// organized into sessions. Provides session listing and deletion.
 service RepositoryService {
   // Lists the recording sessions of a project, newest first. An optional filter narrows the
   // listing to sessions that were recording inside a time window, to one status, or to the
@@ -34,9 +34,6 @@ service RepositoryService {
 
   // Gets detailed information about a single recording session, including its files.
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
-
-  // Gets aggregate statistics about the repository (file counts, sizes by type).
-  rpc GetRepositoryStatistics(GetRepositoryStatisticsRequest) returns (GetRepositoryStatisticsResponse);
 
   // Deletes a recording session and all its associated files from the repository.
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
@@ -53,6 +50,8 @@ message ListSessionsRequest {
   string project_id = 1;
   // Narrows the listing. Absent, or with every field unset, returns every session.
   SessionFilter filter = 2;
+  // Only the sessions of this instance; the hub then walks that instance's directories alone.
+  optional string instance_id = 3;
 }
 
 // Constraints on a session listing. Every field is optional and an unset field does not
@@ -80,24 +79,6 @@ message GetSessionRequest {
 
 message GetSessionResponse {
   RecordingSession session = 1;
-}
-
-message GetRepositoryStatisticsRequest {
-  string project_id = 1;
-}
-
-// What a project's repository occupies on the hub, in bytes.
-//
-// One number, and deliberately no per-file-type breakdown: a bucket per kind would make the hub
-// decide what every file type means, which is the reader's job and not the hub's.
-//
-// There is deliberately no capacity to divide this by either. The shared volume the hub reads is
-// ReadWriteMany — hostPath, NFS or EFS in these docs — and on none of those does the filesystem
-// report the claim's size: NFS reports the whole export, EFS reports an enormous constant, and
-// hostPath reports the node's own disk. A percentage built on any of those would be fiction.
-message GetRepositoryStatisticsResponse {
-  // Total size in bytes of every file in every session of the project.
-  int64 total_size = 1;
 }
 
 message DeleteSessionRequest {
@@ -144,6 +125,10 @@ message RecordingSession {
   bool retained = 8;
   // Whether the session ended because it sent no heartbeat within the startup grace.
   bool heartbeat_missing = 9;
+  // Whether the session failed: it finished without producing any data, typically a process
+  // killed prematurely (OOM kill, container healthcheck restart loop). A session that ended
+  // because it sent no heartbeat is not failed.
+  bool failed = 10;
 }
 
 // A single file within a session.

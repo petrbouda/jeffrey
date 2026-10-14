@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.persistence.api;
 
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 
 import java.util.List;
@@ -51,16 +50,6 @@ public interface HubPlatformRepositories {
      * @return the session joined with its repository, or empty if no session matches
      */
     Optional<SessionWithRepository> findSessionWithRepositoryById(String sessionId);
-
-    /**
-     * Finds a project instance by its globally unique ID, without requiring project scope.
-     */
-    Optional<ProjectInstanceInfo> findInstanceById(String instanceId);
-
-    /**
-     * Finds all sessions for a project instance by its globally unique instance ID.
-     */
-    List<ProjectInstanceSessionInfo> findSessionsByInstanceId(String instanceId);
 
     /**
      * Finds every session across every instance of a project in a single query.

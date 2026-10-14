@@ -30,7 +30,6 @@ public record ProjectInstanceSessionInfo(
         String sessionId,
         String repositoryId,
         String instanceId,
-        int order,
         Path relativeSessionPath,
         Instant originCreatedAt,
         Instant createdAt,
@@ -49,14 +48,13 @@ public record ProjectInstanceSessionInfo(
             String sessionId,
             String repositoryId,
             String instanceId,
-            int order,
             Path relativeSessionPath,
             Instant originCreatedAt,
             Instant createdAt,
             Instant finishedAt,
             boolean retained) {
 
-        this(sessionId, repositoryId, instanceId, order, relativeSessionPath,
+        this(sessionId, repositoryId, instanceId, relativeSessionPath,
                 originCreatedAt, createdAt, finishedAt, retained, false);
     }
 
@@ -67,14 +65,13 @@ public record ProjectInstanceSessionInfo(
             String sessionId,
             String repositoryId,
             String instanceId,
-            int order,
             Path relativeSessionPath,
             Instant originCreatedAt,
             Instant createdAt,
             Instant finishedAt) {
 
         return new ProjectInstanceSessionInfo(
-                sessionId, repositoryId, instanceId, order,
+                sessionId, repositoryId, instanceId,
                 relativeSessionPath, originCreatedAt, createdAt, finishedAt, false);
     }
 }

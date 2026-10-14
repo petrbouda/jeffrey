@@ -64,13 +64,6 @@ public class HubProjectsManager implements ProjectsManager {
     }
 
     @Override
-    public List<ProjectManager> findAllIncludingDeleted() {
-        return projectsRepository.findAllProjectsIncludingDeleted(workspaceInfo.id()).stream()
-                .map(projectManagerFactory)
-                .toList();
-    }
-
-    @Override
     public Optional<ProjectManager> project(String projectId) {
         return platformRepositories.newProjectRepository(projectId).find()
                 .filter(project -> workspaceInfo.id().equals(project.workspaceId()))

@@ -40,7 +40,7 @@ public class StubProjectService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void listProjects(ListProjectsRequest request, StreamObserver<ListProjectsResponse> responseObserver) {
         ListProjectsResponse.Builder builder = ListProjectsResponse.newBuilder();
-        for (StubDataset.Project project : dataset.projects(request.getWorkspaceId(), request.getIncludeDeleted())) {
+        for (StubDataset.Project project : dataset.projects(request.getWorkspaceId())) {
             builder.addProjects(StubProtoMappers.projectInfo(project));
         }
         responseObserver.onNext(builder.build());

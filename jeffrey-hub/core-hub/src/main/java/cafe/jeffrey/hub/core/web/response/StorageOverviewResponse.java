@@ -25,7 +25,6 @@ import java.util.List;
 public record StorageOverviewResponse(
         long computedAtMillis,
         long databaseSizeBytes,
-        long tempSizeBytes,
         List<ProjectStorageResponse> projects) {
 
     public static StorageOverviewResponse from(CachedOverview cached) {
@@ -37,7 +36,6 @@ public record StorageOverviewResponse(
         return new StorageOverviewResponse(
                 cached.computedAt().toEpochMilli(),
                 overview.infrastructure().databaseBytes(),
-                overview.infrastructure().tempBytes(),
                 projects);
     }
 

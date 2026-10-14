@@ -41,25 +41,21 @@ public class ProjectManagerResolver {
                 .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
     }
 
+    /**
+     * Resolves a workspace of a hub. A hub that cannot be reached surfaces as its gRPC failure —
+     * reported as the hub being unavailable — never as a workspace that is not there.
+     */
     public WorkspaceManager resolveWorkspace(String hubId, String workspaceId) {
-        return resolveHub(hubId).workspace(workspaceId)
+        return resolveHub(hubId).workspaceOrThrow(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
-    }
-
-    public ProjectContext resolve(String hubId, String workspaceId, String projectId) {
-        WorkspaceManager workspace = resolveWorkspace(hubId, workspaceId);
-        ProjectsManager projectsManager = workspace.projectsManager();
-        ProjectManager projectManager = projectsManager.project(projectId)
-                .orElseThrow(() -> Exceptions.projectNotFound(projectId));
-        return new ProjectContext(workspace, projectsManager, projectManager);
     }
 
     /**
-     * Resolves a remote project without hiding an unavailable hub behind a not-found result.
+     * Resolves a project of a hub's workspace, with the same rule: not found means the hub said
+     * so, and an unreachable hub is reported as unavailable.
      */
-    public ProjectContext resolveStrict(String hubId, String workspaceId, String projectId) {
-        WorkspaceManager workspace = resolveHub(hubId).workspaceOrThrow(workspaceId)
-                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
+    public ProjectContext resolve(String hubId, String workspaceId, String projectId) {
+        WorkspaceManager workspace = resolveWorkspace(hubId, workspaceId);
         ProjectsManager projectsManager = workspace.projectsManager();
         ProjectManager projectManager = projectsManager.projectOrThrow(projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));

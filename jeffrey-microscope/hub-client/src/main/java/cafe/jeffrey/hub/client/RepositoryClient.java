@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 
@@ -49,12 +48,24 @@ public class RepositoryClient {
      * to the hub, so only the matching sessions come back over the wire.
      */
     public List<RecordingSessionResponse> recordingSessions(String projectId, RecordingSessionFilter filter) {
-        ListSessionsResponse response = stub.listSessions(
-                ListSessionsRequest.newBuilder()
-                        .setProjectId(projectId)
-                        .setFilter(toProto(filter))
-                        .build());
+        return listSessions(ListSessionsRequest.newBuilder()
+                .setProjectId(projectId)
+                .setFilter(toProto(filter))
+                .build());
+    }
 
+    /**
+     * The sessions of one instance, newest first. The hub walks only that instance's directories.
+     */
+    public List<RecordingSessionResponse> instanceSessions(String projectId, String instanceId) {
+        return listSessions(ListSessionsRequest.newBuilder()
+                .setProjectId(projectId)
+                .setInstanceId(instanceId)
+                .build());
+    }
+
+    private List<RecordingSessionResponse> listSessions(ListSessionsRequest request) {
+        ListSessionsResponse response = stub.listSessions(request);
         return response.getSessionsList().stream()
                 .map(RepositoryClient::toSessionResponse)
                 .toList();
@@ -80,15 +91,6 @@ public class RepositoryClient {
                         .build());
 
         return toSessionResponse(response.getSession());
-    }
-
-    public RepositoryStatisticsResponse repositoryStatistics(String projectId) {
-        GetRepositoryStatisticsResponse response = stub.getRepositoryStatistics(
-                GetRepositoryStatisticsRequest.newBuilder()
-                        .setProjectId(projectId)
-                        .build());
-
-        return new RepositoryStatisticsResponse(response.getTotalSize());
     }
 
     public void deleteSession(String sessionId) {
@@ -136,7 +138,8 @@ public class RepositoryClient {
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
                 files,
                 proto.getRetained(),
-                proto.getHeartbeatMissing())
+                proto.getHeartbeatMissing(),
+                proto.getFailed())
                 // Here rather than at each call site. A file's status is a fact about its
                 // session, so it can only be settled once the whole session is decoded — and
                 // settling it inside the one method that decodes one means no caller can be

@@ -28,8 +28,4 @@ public record RepositoryStatisticsResponse(long totalSize) {
     public static RepositoryStatisticsResponse from(RepositoryStatistics stats) {
         return new RepositoryStatisticsResponse(stats.totalSizeBytes());
     }
-
-    public static RepositoryStatistics from(RepositoryStatisticsResponse response) {
-        return new RepositoryStatistics(response.totalSize());
-    }
 }

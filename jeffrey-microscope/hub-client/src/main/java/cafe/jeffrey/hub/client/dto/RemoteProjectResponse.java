@@ -21,14 +21,16 @@ import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 
 import java.time.Instant;
 
+/**
+ * A project as the hub reports it.
+ *
+ * @param createdAt when the hub created the project, or {@code null} when the hub sent none
+ */
 public record RemoteProjectResponse(
         String id,
-        String originId,
         String name,
-        String namespace,
-        String createdAt,
+        Instant createdAt,
         String workspaceId,
         RecordingStatus status,
-        int sessionCount,
-        Instant deletedAt) {
+        int sessionCount) {
 }

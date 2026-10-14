@@ -34,8 +34,4 @@ export default class ProjectClient extends BasePlatformClient {
   async delete(): Promise<void> {
     return super.del<void>();
   }
-
-  async restore(): Promise<void> {
-    return super.post<void>('/restore', {});
-  }
 }

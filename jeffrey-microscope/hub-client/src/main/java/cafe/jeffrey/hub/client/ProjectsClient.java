@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.DeleteProjectRequest;
 import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
-import cafe.jeffrey.hub.api.v1.RestoreProjectRequest;
 
 public class ProjectsClient {
 
@@ -42,13 +41,4 @@ public class ProjectsClient {
 
         LOG.debug("Deleted project via gRPC: projectId={}", projectId);
     }
-
-    public void restoreProject(String projectId) {
-        stub.restoreProject(RestoreProjectRequest.newBuilder()
-                .setProjectId(projectId)
-                .build());
-
-        LOG.debug("Restored project via gRPC: projectId={}", projectId);
-    }
-
 }

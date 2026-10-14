@@ -33,8 +33,7 @@ public interface ProjectManager {
             ProjectInfo projectInfo,
             RecordingStatus status,
             int sessionCount,
-            RecordingEventSource eventSource,
-            boolean isDeleted) {
+            RecordingEventSource eventSource) {
     }
 
     @FunctionalInterface
@@ -54,8 +53,6 @@ public interface ProjectManager {
     DetailedProjectInfo detailedInfo();
 
     void updateName(String name);
-
-    void restore();
 
     void delete();
 }

@@ -66,13 +66,12 @@ class WorkspaceGrpcServiceTest {
     class GetApiInfo {
 
         @Test
-        void returnsVersionAndApiVersion() throws IOException {
+        void returnsVersion() throws IOException {
             var stub = startServer(new WorkspaceGrpcService(mock(WorkspacesManager.class), defaultProperties()));
 
             GetApiInfoResponse response = stub.getApiInfo(GetApiInfoRequest.getDefaultInstance());
 
             assertFalse(response.getVersion().isEmpty());
-            assertEquals(1, response.getApiVersion());
         }
     }
 
@@ -105,40 +104,6 @@ class WorkspaceGrpcServiceTest {
             ListWorkspacesResponse response = stub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
 
             assertEquals(0, response.getWorkspacesCount());
-        }
-    }
-
-    @Nested
-    class GetWorkspace {
-
-        @Test
-        void returnsWorkspace() throws IOException {
-            var workspacesManager = mock(WorkspacesManager.class);
-            var workspaceManager = mock(WorkspaceManager.class);
-            when(workspaceManager.resolveInfo()).thenReturn(testWorkspaceInfo());
-            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
-
-            GetWorkspaceResponse response = stub.getWorkspace(
-                    GetWorkspaceRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
-
-            assertEquals(WORKSPACE_ID, response.getWorkspace().getId());
-            assertEquals("Test Workspace", response.getWorkspace().getName());
-            assertEquals(cafe.jeffrey.hub.api.v1.WorkspaceStatus.WORKSPACE_STATUS_AVAILABLE,
-                    response.getWorkspace().getStatus());
-        }
-
-        @Test
-        void workspaceNotFound_returnsNotFound() throws IOException {
-            var workspacesManager = mock(WorkspacesManager.class);
-            when(workspacesManager.findById(any())).thenReturn(Optional.empty());
-
-            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
-
-            var ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.getWorkspace(GetWorkspaceRequest.newBuilder().setWorkspaceId("missing").build()));
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
         }
     }
 
@@ -248,7 +213,7 @@ class WorkspaceGrpcServiceTest {
     }
 
     private static WorkspaceInfo testWorkspaceInfo() {
-        return new WorkspaceInfo(WORKSPACE_ID, "origin-1", "repo-1", "Test Workspace", null, null, FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
+        return new WorkspaceInfo(WORKSPACE_ID, "origin-1", "Test Workspace", FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
     }
 
     private static DefaultWorkspaceProperties defaultProperties() {
@@ -305,8 +270,7 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             var workspaceManager = mock(WorkspaceManager.class);
             WorkspaceInfo defaultInfo = new WorkspaceInfo(
-                    WORKSPACE_ID, "$default", "$default", "$default",
-                    null, null, FIXED_TIME, WorkspaceStatus.UNKNOWN, 0);
+                    WORKSPACE_ID, "$default", "$default", FIXED_TIME, WorkspaceStatus.UNKNOWN, 0);
             when(workspaceManager.resolveInfo()).thenReturn(defaultInfo);
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
@@ -328,8 +292,7 @@ class WorkspaceGrpcServiceTest {
             var workspacesManager = mock(WorkspacesManager.class);
             var workspaceManager = mock(WorkspaceManager.class);
             WorkspaceInfo info = new WorkspaceInfo(
-                    WORKSPACE_ID, "uat", "uat", "Uat",
-                    null, null, FIXED_TIME, WorkspaceStatus.UNKNOWN, 0);
+                    WORKSPACE_ID, "uat", "Uat", FIXED_TIME, WorkspaceStatus.UNKNOWN, 0);
             when(workspaceManager.resolveInfo()).thenReturn(info);
             when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 

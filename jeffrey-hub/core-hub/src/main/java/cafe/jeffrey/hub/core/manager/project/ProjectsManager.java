@@ -34,11 +34,6 @@ public interface ProjectsManager {
 
     List<ProjectManager> findAll();
 
-    /**
-     * Find all projects including soft-deleted ones.
-     */
-    List<ProjectManager> findAllIncludingDeleted();
-
     Optional<ProjectManager> project(String projectId);
 
     /**

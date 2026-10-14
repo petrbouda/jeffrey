@@ -22,15 +22,12 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 
 /**
  * Resolves domain managers/entities from request identifiers for the gRPC services, throwing a
  * consistent {@code NOT_FOUND} status when a target does not exist. Holds the lookups more than
  * one service needs — {@code repositoryManagerForSession} for the repository and download
- * services, the active-project lookup for the project service, and the
- * instance lookups — so each is written once.
+ * services, and the project lookups — so each is written once.
  */
 public class GrpcLookups {
 
@@ -54,17 +51,6 @@ public class GrpcLookups {
                 .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
     }
 
-    /**
-     * Resolves a project regardless of its soft-deleted state. Restore must see soft-deleted
-     * projects — the active-only {@link #projectManager(String)} filters them out, which would
-     * make restoring impossible.
-     */
-    public ProjectManager projectManagerIncludingDeleted(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).findIncludingDeleted()
-                .map(projectManagerFactory)
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
-    }
-
     public ProjectInfo projectInfo(String projectId) {
         return platformRepositories.newProjectRepository(projectId).find()
                 .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
@@ -77,12 +63,8 @@ public class GrpcLookups {
     public RepositoryManager repositoryManagerForSession(String sessionId) {
         SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
                 .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + sessionId));
-        // A session's project is always active: a soft delete takes the project's sessions with it
+        // A session always has its project: deleting a project takes its sessions with it
         return repositoryManagerFactory.apply(projectInfo(session.projectId()));
     }
 
-    public ProjectInstanceInfo instanceById(String instanceId) {
-        return platformRepositories.findInstanceById(instanceId)
-                .orElseThrow(() -> GrpcExceptions.notFound("Instance not found: " + instanceId));
-    }
 }

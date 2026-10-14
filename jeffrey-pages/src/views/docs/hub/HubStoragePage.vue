@@ -160,7 +160,6 @@ onMounted(() => {
       <div class="directory-structure">
         <pre><code>$JEFFREY_HOME/                        # Server home
 ├── jeffrey-data.db                   # Hub database
-├── temp/                             # Scratch files
 └── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
     └── {workspace-ref-id}/
         └── {project}/

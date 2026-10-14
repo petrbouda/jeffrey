@@ -17,7 +17,11 @@
 
 package cafe.jeffrey.shared.ui.hub.controller;
 
+import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
+import cafe.jeffrey.shared.ui.hub.request.AddHubRequest;
+import io.grpc.Status;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
@@ -80,6 +84,45 @@ class HubsControllerTest {
         @Test
         void an_unknown_hub_is_rejected() {
             assertThrows(JeffreyClientException.class, () -> controller.delete("nope"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Adding a hub")
+    class Add {
+
+        @Test
+        void an_unreachable_address_is_refused_and_its_probe_connection_let_go() {
+            HubAddress address = new HubAddress("hub.invalid", 9090, true);
+            List<HubAddress> evicted = new ArrayList<>();
+            GrpcHubConnection connection = new GrpcHubConnection(address);
+            DiscoveryClient unreachable = new DiscoveryClient(connection) {
+                @Override
+                public PublicApiInfo info() {
+                    throw Status.UNAVAILABLE.asRuntimeException();
+                }
+            };
+            HubClients.Factory probing = new HubClients.Factory() {
+                @Override
+                public HubClients apply(HubAddress requested) {
+                    return new HubClients(unreachable, null, null, null, null);
+                }
+
+                @Override
+                public void evict(HubAddress requested) {
+                    evicted.add(requested);
+                }
+            };
+
+            try {
+                HubsController adding = new HubsController(registry, probing);
+                assertThrows(JeffreyClientException.class, () -> adding.add(
+                        new AddHubRequest("Typo", address.hostname(), address.port(), address.plaintext())));
+
+                assertEquals(List.of(address), evicted);
+            } finally {
+                connection.close();
+            }
         }
     }
 

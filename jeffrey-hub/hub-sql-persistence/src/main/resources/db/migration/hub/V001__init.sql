@@ -29,10 +29,7 @@ CREATE TABLE IF NOT EXISTS workspaces
 (
     workspace_id  VARCHAR PRIMARY KEY,
     reference_id  VARCHAR NOT NULL,
-    repository_id VARCHAR,
     name          VARCHAR NOT NULL,
-    location      VARCHAR,
-    base_location VARCHAR,
     created_at    TIMESTAMPTZ NOT NULL,
     UNIQUE (reference_id),
     UNIQUE (name)
@@ -47,19 +44,15 @@ CREATE TABLE IF NOT EXISTS projects
     project_id              VARCHAR NOT NULL,
     origin_project_id       VARCHAR,
     project_name            VARCHAR NOT NULL,
-    namespace               VARCHAR,
     workspace_id            VARCHAR NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL,
     origin_created_at       TIMESTAMPTZ,
     attributes              VARCHAR NOT NULL,
-    deleted_at              TIMESTAMPTZ,
     PRIMARY KEY (project_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_projects_workspace_id ON projects(workspace_id);
--- Supports findByOriginProjectId and the synchronizer's duplicate-origin guard.
--- Not UNIQUE: a soft-deleted project may legitimately coexist with its re-created successor,
--- and DuckDB has no partial indexes to scope uniqueness to deleted_at IS NULL rows.
+-- Supports findByOriginProjectId and the reconciler's duplicate-origin guard.
 CREATE INDEX IF NOT EXISTS idx_projects_origin_project_id ON projects(origin_project_id);
 
 --
@@ -70,7 +63,6 @@ CREATE TABLE IF NOT EXISTS repositories
 (
     project_id               VARCHAR NOT NULL,
     repository_id            VARCHAR NOT NULL,
-    repository_type          VARCHAR NOT NULL,
     workspaces_path          VARCHAR,
     relative_workspace_path  VARCHAR NOT NULL,
     relative_project_path    VARCHAR NOT NULL,
@@ -86,7 +78,6 @@ CREATE TABLE IF NOT EXISTS project_instance_sessions
     session_id            VARCHAR NOT NULL,
     repository_id         VARCHAR NOT NULL,
     instance_id           VARCHAR NOT NULL,
-    session_order         INTEGER NOT NULL DEFAULT 1,
     relative_session_path VARCHAR NOT NULL,
     origin_created_at     TIMESTAMPTZ NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,

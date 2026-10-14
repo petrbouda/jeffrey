@@ -56,7 +56,5 @@ public interface ProjectManager {
 
     DetailedProjectInfo detailedInfo();
 
-    void restore();
-
     void delete();
 }

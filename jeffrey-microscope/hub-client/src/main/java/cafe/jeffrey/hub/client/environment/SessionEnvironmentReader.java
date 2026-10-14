@@ -67,18 +67,28 @@ public class SessionEnvironmentReader {
      */
     public Optional<ObjectNode> forSession(String sessionId, boolean expectShutdown) {
         try {
-            RecordingSession session = repositoryManager.recordingSession(sessionId);
+            return forSession(repositoryManager.recordingSession(sessionId), expectShutdown);
+        } catch (RuntimeException e) {
+            LOG.warn("Cannot read the session environment, leaving it off the detail: session_id={}", sessionId, e);
+            return Optional.empty();
+        }
+    }
 
+    /**
+     * The same, for a session the caller has already fetched — no second look-up of it on the hub.
+     */
+    public Optional<ObjectNode> forSession(RecordingSession session, boolean expectShutdown) {
+        try {
             Optional<RepositoryFile> chunk = session.latestFinishedRecording();
             if (chunk.isEmpty()) {
                 LOG.debug("Session has no finished recording chunk to read an environment from: session_id={}",
-                        sessionId);
+                        session.id());
                 return Optional.empty();
             }
-
-            return Optional.of(parseChunk(sessionId, chunk.get(), expectShutdown));
+            return Optional.of(parseChunk(session.id(), chunk.get(), expectShutdown));
         } catch (RuntimeException e) {
-            LOG.warn("Cannot read the session environment, leaving it off the detail: session_id={}", sessionId, e);
+            LOG.warn("Cannot read the session environment, leaving it off the detail: session_id={}",
+                    session.id(), e);
             return Optional.empty();
         }
     }

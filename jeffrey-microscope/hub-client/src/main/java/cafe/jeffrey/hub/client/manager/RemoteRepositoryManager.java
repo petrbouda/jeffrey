@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.client.manager;
 import cafe.jeffrey.hub.client.FileStreamClient;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
@@ -67,9 +66,11 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
-        RepositoryStatisticsResponse response =
-                repositoryClient.repositoryStatistics(projectInfo.id());
-        return RepositoryStatisticsResponse.from(response);
+        // The bytes every file of every session occupies, summed over the listing the hub sends anyway
+        long totalSize = listRecordingSessions(true).stream()
+                .mapToLong(RecordingSession::totalSizeBytes)
+                .sum();
+        return new RepositoryStatistics(totalSize);
     }
 
     /**

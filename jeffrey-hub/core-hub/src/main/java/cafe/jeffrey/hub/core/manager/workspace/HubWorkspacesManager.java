@@ -69,10 +69,7 @@ public final class HubWorkspacesManager implements WorkspacesManager {
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
                 null,
                 trimmedSourceId,
-                trimmedSourceId,
                 trimmedName,
-                null,
-                null,
                 clock.instant(),
                 WorkspaceStatus.UNKNOWN,
                 0

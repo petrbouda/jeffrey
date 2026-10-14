@@ -22,37 +22,17 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
 
-public class HubJeffreyDirs {
-
-    private static final String TMP_DIR = "temp";
-
-    private final Path homeDir;
-    private final Path tempDir;
-
-    public HubJeffreyDirs(Path homeDir) {
-        this(homeDir, homeDir.resolve(TMP_DIR));
-    }
-
-    public HubJeffreyDirs(Path homeDir, Path tempDir) {
-        this.homeDir = homeDir;
-        this.tempDir = tempDir;
-    }
+/**
+ * The hub's home directory and the workspaces root under it.
+ */
+public record HubJeffreyDirs(Path homeDir) {
 
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
-        FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
     }
 
     public Path workspaces() {
         return homeDir.resolve(JeffreyLayout.WORKSPACES_DIR);
-    }
-
-    public Path homeDir() {
-        return homeDir;
-    }
-
-    public Path temp() {
-        return tempDir;
     }
 }

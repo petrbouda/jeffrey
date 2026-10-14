@@ -40,8 +40,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,7 +82,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private static final Comparator<Path> NEWEST_BY_NAME =
             Comparator.comparing((Path file) -> file.getFileName().toString()).reversed();
 
-    private final Lock compressionLock = new ReentrantLock();
     private final ProjectInfo projectInfo;
     private final Path workspacesDir;
     private final ProjectRepositoryRepository projectRepositoryRepository;
@@ -472,12 +469,10 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      *
      * <p>The source is deleted only once the archive exists, and the archive exists only once it
      * is whole: {@link Compression#compress} writes elsewhere and renames onto the target, so
-     * the target's name never names a file being written into. That is what makes the two
-     * shortcuts below safe. Written straight to the target, as this did, a hub killed
-     * mid-compression left a partial archive beside a whole recording, and the next run read
-     * "the archive is there" and deleted the recording; two overlapping runs did the same to
-     * each other, since the lock is held by one storage instance and an instance is built per
-     * call.
+     * the target's name never names a file being written into. That is what makes the
+     * shortcut below safe, and what lets two overlapping runs over the same session — a storage
+     * instance is built per call, so nothing in-process serializes them — each publish a whole
+     * archive or nothing.
      */
     private Path compress(String sessionId, RepositoryFile file) {
         // Every file here is a recording — finishedRecordings() saw to that — so the only way
@@ -499,30 +494,18 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
             return compressedPath;
         }
 
-        compressionLock.lock();
-        try {
-            // Double-check after acquiring lock
-            if (Files.exists(compressedPath)) {
-                FileSystemUtils.removeFile(sourcePath);
-                return compressedPath;
-            }
-
-            // Skip empty recording files left when the profiler stops before writing events,
-            // for example after a non-graceful shutdown.
-            if (FileSystemUtils.size(sourcePath) == 0) {
-                LOG.debug("Skipping empty recording file: session_id={} file={}", sessionId, sourcePath);
-                return null;
-            }
-
-            // No verification of the result here any more: compress() returns only once the
-            // archive is whole and under its own name, and throws otherwise, so there is nothing
-            // left for this to check that the check could still fail.
-            compression.compress(sourcePath, compressedPath);
-            FileSystemUtils.removeFile(sourcePath);
-            return compressedPath;
-        } finally {
-            compressionLock.unlock();
+        // Skip empty recording files left when the profiler stops before writing events,
+        // for example after a non-graceful shutdown.
+        if (FileSystemUtils.size(sourcePath) == 0) {
+            LOG.debug("Skipping empty recording file: session_id={} file={}", sessionId, sourcePath);
+            return null;
         }
+
+        // compress() returns only once the archive is whole and under its own name, and throws
+        // otherwise, so there is nothing left to verify before the recording goes.
+        compression.compress(sourcePath, compressedPath);
+        FileSystemUtils.removeFile(sourcePath);
+        return compressedPath;
     }
 
     private List<RepositoryFile> _listRepositoryFiles(Path sessionPath) {
