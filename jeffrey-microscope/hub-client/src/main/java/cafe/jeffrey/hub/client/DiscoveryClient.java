@@ -183,6 +183,7 @@ public class DiscoveryClient {
                 proto.getName(),
                 proto.getCreatedAt() != 0 ? Instant.ofEpochMilli(proto.getCreatedAt()) : null,
                 proto.getWorkspaceId(),
+                ClientProtoMappers.nullIfEmpty(proto.getWorkspaceReferenceId()),
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.getSessionCount());
     }

@@ -42,9 +42,10 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void listProjects(ListProjectsRequest request, StreamObserver<ListProjectsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            List<ProjectInfo> projects = findWorkspace(request.getWorkspaceId()).projectsManager().findAll().stream()
-                    .map(ProjectManager::detailedInfo)
-                    .map(ProtoMappers::project)
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+            String referenceId = workspace.localInfo().referenceId();
+            List<ProjectInfo> projects = workspace.projectsManager().findAll().stream()
+                    .map(project -> ProtoMappers.project(project.detailedInfo(), referenceId))
                     .toList();
 
             LOG.debug("Listed projects via gRPC: workspace_id={} count={}", request.getWorkspaceId(), projects.size());
@@ -58,14 +59,14 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            findWorkspace(request.getWorkspaceId());
+            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
             ProjectManager project = findProjectInWorkspace(request.getWorkspaceId(), request.getProjectId());
 
             LOG.debug("Fetched project via gRPC: workspace_id={} project_id={}",
                     request.getWorkspaceId(), request.getProjectId());
 
             return GetProjectResponse.newBuilder()
-                    .setProject(ProtoMappers.project(project.detailedInfo()))
+                    .setProject(ProtoMappers.project(project.detailedInfo(), workspace.localInfo().referenceId()))
                     .build();
         });
     }

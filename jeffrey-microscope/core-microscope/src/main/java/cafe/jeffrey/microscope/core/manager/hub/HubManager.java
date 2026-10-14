@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
+import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
+import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
@@ -33,7 +35,7 @@ import java.util.function.Function;
 
 /**
  * Facade for one connected jeffrey-hub. Lists workspaces live via gRPC,
- * creates new workspaces on the hub, and produces per-workspace managers.
+ * creates new workspaces on the hub, and produces per-workspace and per-project managers.
  */
 public class HubManager {
 
@@ -46,6 +48,7 @@ public class HubManager {
     private final HubInfo hubInfo;
     private final HubClients hubClients;
     private final WorkspaceManagerFactory workspaceManagerFactory;
+    private final RemoteProjectManagerFactory projectManagerFactory;
     private final HubsRepository hubsRepository;
     private final HubClients.Factory hubClientsFactory;
 
@@ -53,12 +56,14 @@ public class HubManager {
             HubInfo hubInfo,
             HubClients hubClients,
             WorkspaceManagerFactory workspaceManagerFactory,
+            RemoteProjectManagerFactory projectManagerFactory,
             HubsRepository hubsRepository,
             HubClients.Factory hubClientsFactory) {
 
         this.hubInfo = hubInfo;
         this.hubClients = hubClients;
         this.workspaceManagerFactory = workspaceManagerFactory;
+        this.projectManagerFactory = projectManagerFactory;
         this.hubsRepository = hubsRepository;
         this.hubClientsFactory = hubClientsFactory;
     }
@@ -117,8 +122,33 @@ public class HubManager {
     }
 
     /**
+     * One project of one of this hub's workspaces, in a single GetProject call: the hub checks the
+     * workspace and the project together, and the answer carries everything the manager needs.
+     * Empty when the hub holds no such workspace or project; a hub that cannot be reached surfaces
+     * as its gRPC failure.
+     */
+    public Optional<ProjectManager> projectOrThrow(String workspaceId, String projectId) {
+        return hubClients.discovery().project(workspaceId, projectId)
+                .map(project -> projectManagerFactory.create(hubInfo, hubClients, project));
+    }
+
+    /**
+     * The same single-call lookup for a caller asking every hub in turn: a hub that cannot be
+     * reached answers empty here, so one hub being down does not fail a lookup another hub serves.
+     */
+    public Optional<ProjectManager> project(String workspaceId, String projectId) {
+        try {
+            return projectOrThrow(workspaceId, projectId);
+        } catch (RuntimeException e) {
+            LOG.warn("Failed to look up a project on hub: hubId={} workspaceId={} projectId={}",
+                    hubInfo.hubId(), workspaceId, projectId, e);
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Builds a manager for workspace information returned by the same scan. This avoids a redundant
-     * GetWorkspace RPC after ListWorkspaces has already established that the workspace exists.
+     * workspace lookup after ListWorkspaces has already established that the workspace exists.
      */
     public WorkspaceManager workspace(WorkspaceInfo workspaceInfo) {
         return workspaceManagerFactory.create(hubInfo, workspaceInfo, hubClients);

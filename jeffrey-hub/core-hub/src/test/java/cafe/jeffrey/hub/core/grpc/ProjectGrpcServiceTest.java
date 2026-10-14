@@ -28,6 +28,8 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
@@ -43,6 +45,7 @@ import static org.mockito.Mockito.*;
 class ProjectGrpcServiceTest {
 
     private static final String WORKSPACE_ID = "ws-1";
+    private static final String WORKSPACE_REFERENCE_ID = "ws-ref";
     private static final String PROJECT_ID = "proj-1";
     private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
 
@@ -74,6 +77,7 @@ class ProjectGrpcServiceTest {
             assertEquals(1, response.getProjectsCount());
             assertEquals(PROJECT_ID, response.getProjects(0).getId());
             assertEquals("Test Project", response.getProjects(0).getName());
+            assertEquals(WORKSPACE_REFERENCE_ID, response.getProjects(0).getWorkspaceReferenceId());
         }
 
         @Test
@@ -101,6 +105,7 @@ class ProjectGrpcServiceTest {
 
             assertEquals(PROJECT_ID, response.getProject().getId());
             assertEquals(WORKSPACE_ID, response.getProject().getWorkspaceId());
+            assertEquals(WORKSPACE_REFERENCE_ID, response.getProject().getWorkspaceReferenceId());
         }
 
         @Test
@@ -180,7 +185,7 @@ class ProjectGrpcServiceTest {
         var projectsManager = mock(ProjectsManager.class);
         when(projectsManager.findAll()).thenReturn(List.of(projectManager));
 
-        var workspaceManager = mock(WorkspaceManager.class);
+        var workspaceManager = workspace();
         when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
         var workspacesManager = mock(WorkspacesManager.class);
@@ -222,8 +227,9 @@ class ProjectGrpcServiceTest {
     private ProjectGrpcService serviceWithProjectInLookup(
             cafe.jeffrey.hub.model.ProjectInfo info, DetailedProjectInfo detail) {
 
+        var workspaceManager = workspace();
         var workspacesManager = mock(WorkspacesManager.class);
-        when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(mock(WorkspaceManager.class)));
+        when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
 
         var projectRepo = mock(ProjectRepository.class);
         when(projectRepo.find()).thenReturn(Optional.ofNullable(info));
@@ -284,6 +290,16 @@ class ProjectGrpcServiceTest {
         var workspacesManager = mock(WorkspacesManager.class);
 
         return new ProjectGrpcService(workspacesManager, new GrpcLookups(platformRepositories, null, projectManagerFactory));
+    }
+
+    /**
+     * The WORKSPACE_ID workspace, carrying the reference id every project of it reports.
+     */
+    private static WorkspaceManager workspace() {
+        var workspaceManager = mock(WorkspaceManager.class);
+        when(workspaceManager.localInfo()).thenReturn(new WorkspaceInfo(
+                WORKSPACE_ID, WORKSPACE_REFERENCE_ID, "Workspace", FIXED_TIME, WorkspaceStatus.AVAILABLE, 1));
+        return workspaceManager;
     }
 
     private static DetailedProjectInfo testDetailedInfo() {

@@ -19,16 +19,10 @@ package cafe.jeffrey.microscope.core.manager.workspace;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManager;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.recordings.core.OriginContext;
+import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
@@ -40,27 +34,21 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
-    private final MicroscopeJeffreyDirs jeffreyDirs;
     private final HubInfo hubInfo;
     private final WorkspaceInfo workspaceInfo;
     private final HubClients hubClients;
-    private final ProfilesManager.Factory profilesManagerFactory;
-    private final RecordingsManager recordingsManager;
+    private final RemoteProjectManagerFactory projectManagerFactory;
 
     public RemoteProjectsManager(
-            MicroscopeJeffreyDirs jeffreyDirs,
             HubInfo hubInfo,
             WorkspaceInfo workspaceInfo,
             HubClients hubClients,
-            ProfilesManager.Factory profilesManagerFactory,
-            RecordingsManager recordingsManager) {
+            RemoteProjectManagerFactory projectManagerFactory) {
 
-        this.jeffreyDirs = jeffreyDirs;
         this.hubInfo = hubInfo;
         this.workspaceInfo = workspaceInfo;
         this.hubClients = hubClients;
-        this.profilesManagerFactory = profilesManagerFactory;
-        this.recordingsManager = recordingsManager;
+        this.projectManagerFactory = projectManagerFactory;
     }
 
     @Override
@@ -74,16 +62,14 @@ public class RemoteProjectsManager implements ProjectsManager {
         }
 
         return remoteProjects.stream()
-                .map(remoteProject -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(remoteProject)))
+                .map(this::toProjectManager)
                 .toList();
     }
 
     @Override
     public List<ProjectManager> findAllOrThrow() {
         return hubClients.discovery().allProjects(workspaceInfo.id()).stream()
-                .map(remoteProject -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(remoteProject)))
+                .map(this::toProjectManager)
                 .toList();
     }
 
@@ -99,33 +85,17 @@ public class RemoteProjectsManager implements ProjectsManager {
             return Optional.empty();
         }
 
-        return remoteProject.map(project -> toRemoteProjectManager(
-                RemoteMappers.toDetailedProjectInfo(project)));
+        return remoteProject.map(this::toProjectManager);
     }
 
     @Override
     public Optional<ProjectManager> projectOrThrow(String projectId) {
         return hubClients.discovery().project(workspaceInfo.id(), projectId)
-                .map(project -> toRemoteProjectManager(
-                        RemoteMappers.toDetailedProjectInfo(project)));
+                .map(this::toProjectManager);
     }
 
-    private ProjectManager toRemoteProjectManager(DetailedProjectInfo projectInfo) {
-        OriginContext originContext = new OriginContext(
-                hubInfo.hubId(),
-                hubInfo.name(),
-                workspaceInfo.id(),
-                workspaceInfo.referenceId(),
-                projectInfo.projectInfo().id(),
-                projectInfo.projectInfo().name());
-
-        return new RemoteProjectManager(
-                jeffreyDirs,
-                projectInfo,
-                hubClients,
-                profilesManagerFactory,
-                recordingsManager,
-                originContext);
+    private ProjectManager toProjectManager(RemoteProjectResponse project) {
+        return projectManagerFactory.create(hubInfo, hubClients, project);
     }
 
     @Override

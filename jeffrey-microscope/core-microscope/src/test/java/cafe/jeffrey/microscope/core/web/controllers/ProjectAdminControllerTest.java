@@ -23,10 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver.ProjectContext;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 
@@ -45,18 +42,12 @@ class ProjectAdminControllerTest {
     ProjectManagerResolver resolver;
 
     @Mock
-    WorkspaceManager workspaceManager;
-
-    @Mock
-    ProjectsManager projectsManager;
-
-    @Mock
     ProjectManager projectManager;
 
     @Test
     void deleteInvokesManager() {
         when(resolver.resolve("srv-1", "ws-1", "p-1"))
-                .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
+                .thenReturn(projectManager);
         when(projectManager.info()).thenReturn(new ProjectInfo(
                 "p-1", "p-1", "demo", "demo", "ws-1",
                 Instant.EPOCH, Instant.EPOCH, Map.of()));

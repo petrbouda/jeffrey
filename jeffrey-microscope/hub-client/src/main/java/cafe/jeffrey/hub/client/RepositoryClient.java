@@ -102,17 +102,6 @@ public class RepositoryClient {
         LOG.debug("Deleted session via gRPC: sessionId={}", sessionId);
     }
 
-    public void deleteFilesInSession(String sessionId, List<String> fileIds) {
-        stub.deleteFilesInSession(
-                DeleteFilesInSessionRequest.newBuilder()
-                        .setSessionId(sessionId)
-                        .addAllFileIds(fileIds)
-                        .build());
-
-        LOG.debug("Deleted files in session via gRPC: sessionId={} fileCount={}",
-                sessionId, fileIds.size());
-    }
-
     public void setSessionRetained(String sessionId, boolean retained) {
         stub.setSessionRetained(
                 SetSessionRetainedRequest.newBuilder()

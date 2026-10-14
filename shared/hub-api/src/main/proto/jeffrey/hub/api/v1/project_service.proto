@@ -31,7 +31,8 @@ service ProjectService {
   // Lists all projects in a workspace.
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
 
-  // Gets detailed information about a single project within a workspace.
+  // Gets detailed information about a single project within a workspace. NOT_FOUND when either
+  // the workspace or the project is not there, or the project belongs to another workspace.
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
 
   // Deletes a project for good: its rows and its directory on the workspace volume are gone
@@ -79,4 +80,7 @@ message ProjectInfo {
   RecordingStatus status = 5;
   // Number of active and finished recording sessions.
   int32 session_count = 6;
+  // Reference ID of the workspace this project belongs to — what the CLI's project.workspace-id
+  // names. Carried here so a caller holding the project needs no workspace lookup for it.
+  string workspace_reference_id = 7;
 }

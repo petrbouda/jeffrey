@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
@@ -56,11 +57,19 @@ public class HubConfiguration {
     }
 
     @Bean
+    public RemoteProjectManagerFactory remoteProjectManagerFactory(
+            MicroscopeJeffreyDirs jeffreyDirs,
+            ProfilesManager.Factory profilesManagerFactory,
+            RecordingsManager recordingsManager) {
+
+        return new RemoteProjectManagerFactory(jeffreyDirs, profilesManagerFactory, recordingsManager);
+    }
+
+    @Bean
     public WorkspaceManagerFactory workspaceManagerFactory(
             MicroscopeJeffreyDirs jeffreyDirs,
             MicroscopeCorePersistenceProvider persistenceProvider,
-            ProfilesManager.Factory profilesManagerFactory,
-            RecordingsManager recordingsManager) {
+            RemoteProjectManagerFactory remoteProjectManagerFactory) {
 
         return (hubInfo, workspaceInfo, hubClients) -> new RemoteWorkspaceManager(
                 jeffreyDirs,
@@ -68,14 +77,14 @@ public class HubConfiguration {
                 workspaceInfo,
                 new JdbcWorkspaceRepository(workspaceInfo.id(), persistenceProvider.databaseClientProvider()),
                 hubClients,
-                profilesManagerFactory,
-                recordingsManager);
+                remoteProjectManagerFactory);
     }
 
     @Bean
     public HubManager.Factory hubManagerFactory(
             CachedHubClientsFactory hubClientsFactory,
             WorkspaceManagerFactory workspaceManagerFactory,
+            RemoteProjectManagerFactory remoteProjectManagerFactory,
             HubsRepository hubsRepository) {
 
         return hubInfo -> {
@@ -84,6 +93,7 @@ public class HubConfiguration {
                     hubInfo,
                     clients,
                     workspaceManagerFactory,
+                    remoteProjectManagerFactory,
                     hubsRepository,
                     hubClientsFactory);
         };

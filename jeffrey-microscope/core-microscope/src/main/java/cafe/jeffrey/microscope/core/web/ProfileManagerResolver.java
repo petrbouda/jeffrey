@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.web;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -72,11 +71,7 @@ public class ProfileManagerResolver {
 
         ProfileInfo profileInfo = profileInfoOpt.get();
         for (HubManager hub : hubsManager.findAll()) {
-            Optional<WorkspaceManager> ws = hub.workspace(profileInfo.workspaceId());
-            if (ws.isEmpty()) {
-                continue;
-            }
-            Optional<ProfileManager> resolved = ws.flatMap(w -> w.projectsManager().project(profileInfo.projectId()))
+            Optional<ProfileManager> resolved = hub.project(profileInfo.workspaceId(), profileInfo.projectId())
                     .flatMap(pm -> pm.profilesManager().profile(profileId));
             if (resolved.isPresent()) {
                 return resolved;

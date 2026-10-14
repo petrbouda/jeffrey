@@ -27,10 +27,6 @@ export default class ProjectClient extends BasePlatformClient {
     return super.get<Project>();
   }
 
-  async isInitializing(): Promise<boolean> {
-    return super.get<boolean>('/initializing');
-  }
-
   async delete(): Promise<void> {
     return super.del<void>();
   }

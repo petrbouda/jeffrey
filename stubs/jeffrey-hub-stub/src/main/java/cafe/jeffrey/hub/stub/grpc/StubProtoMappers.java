@@ -48,12 +48,13 @@ final class StubProtoMappers {
         };
     }
 
-    static ProjectInfo projectInfo(StubDataset.Project project) {
+    static ProjectInfo projectInfo(StubDataset.Workspace workspace, StubDataset.Project project) {
         ProjectInfo.Builder builder = ProjectInfo.newBuilder()
                 .setId(project.id())
                 .setName(project.name())
                 .setCreatedAt(project.createdAt().toEpochMilli())
                 .setWorkspaceId(project.workspaceId())
+                .setWorkspaceReferenceId(workspace.referenceId())
                 .setStatus(recordingStatus(project.status()))
                 .setSessionCount(project.sessionCount());
         return builder.build();

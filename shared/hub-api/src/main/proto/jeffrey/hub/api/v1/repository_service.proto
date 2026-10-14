@@ -38,9 +38,6 @@ service RepositoryService {
   // Deletes a recording session and all its associated files from the repository.
   rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 
-  // Deletes specific files within a recording session.
-  rpc DeleteFilesInSession(DeleteFilesInSessionRequest) returns (DeleteFilesInSessionResponse);
-
   // Marks a recording session as retained, exempting it from every retention job,
   // or releases it again so normal retention resumes.
   rpc SetSessionRetained(SetSessionRetainedRequest) returns (SetSessionRetainedResponse);
@@ -86,14 +83,6 @@ message DeleteSessionRequest {
 }
 
 message DeleteSessionResponse {}
-
-message DeleteFilesInSessionRequest {
-  string session_id = 1;
-  // IDs of specific files to delete within the session.
-  repeated string file_ids = 2;
-}
-
-message DeleteFilesInSessionResponse {}
 
 message SetSessionRetainedRequest {
   string session_id = 1;

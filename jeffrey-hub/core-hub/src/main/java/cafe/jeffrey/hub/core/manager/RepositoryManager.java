@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.hub.core.manager;
 
+import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -90,8 +90,6 @@ public interface RepositoryManager {
      */
     boolean deleteRecordingSession(String recordingSessionId);
 
-    void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
-
     /**
      * Marks a recording session as retained, exempting it from every retention job,
      * or releases it again so normal retention resumes.
@@ -102,14 +100,12 @@ public interface RepositoryManager {
     void setSessionRetained(String recordingSessionId, boolean retained);
 
     /**
-     * Opens one file of a session for streaming — a recording chunk, a heap dump, a log, a crash
-     * file. One method for every kind: the category decides what a reader does with the file, not
-     * whether the hub serves it.
+     * Looks up one file of a session for download, whatever kind it is: a recording chunk, a heap
+     * dump, a log, a crash file.
      *
-     * @throws IllegalArgumentException when the session has no such file, or it is one the hub
-     *                                  will not hand over
+     * @return the path to serve, or the named reason the file is not served
      */
-    StreamedFile streamFile(String sessionId, String fileId);
+    FileLookup file(String sessionId, String fileId);
 
     void delete();
 }

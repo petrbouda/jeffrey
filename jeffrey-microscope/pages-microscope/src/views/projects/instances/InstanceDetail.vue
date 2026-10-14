@@ -40,7 +40,6 @@
           :hubId="hubId!"
           :workspaceId="workspaceId!"
           :projectId="projectId!"
-          :isRemoteWorkspace="isRemoteWorkspace"
           :isCollectorOnly="isCollectorOnly"
           :showInstanceLink="false"
           headerText="Sessions"
@@ -86,11 +85,6 @@ const loading = ref(true);
 const sessionsLoading = ref(true);
 const instance = ref<ProjectInstance | null>(null);
 const sessions = ref<RecordingSession[]>([]);
-
-// Always remote in local mode
-const isRemoteWorkspace = computed(() => {
-  return true;
-});
 
 /**
  * How often a session that is still recording is re-read. A session's figures — file sizes

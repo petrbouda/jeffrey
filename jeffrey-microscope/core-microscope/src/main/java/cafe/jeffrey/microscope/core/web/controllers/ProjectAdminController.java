@@ -48,7 +48,7 @@ public class ProjectAdminController {
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         LOG.debug("Deleting project: projectId={}", pm.info().id());
         pm.delete();
     }

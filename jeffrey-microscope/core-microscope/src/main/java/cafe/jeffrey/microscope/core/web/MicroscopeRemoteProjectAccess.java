@@ -51,6 +51,6 @@ public class MicroscopeRemoteProjectAccess implements RemoteProjectAccess {
     }
 
     private ProjectManager projectManager(String hubId, String workspaceId, String projectId) {
-        return resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        return resolver.resolve(hubId, workspaceId, projectId);
     }
 }

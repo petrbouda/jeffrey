@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
@@ -51,20 +50,13 @@ public class ProjectManagerResolver {
     }
 
     /**
-     * Resolves a project of a hub's workspace, with the same rule: not found means the hub said
-     * so, and an unreachable hub is reported as unavailable.
+     * Resolves a project of a hub's workspace in one GetProject call: the hub checks that the
+     * workspace holds the project and answers with all the manager needs. Not found means the
+     * hub said so, whether of the workspace or the project; an unreachable hub is reported as
+     * unavailable.
      */
-    public ProjectContext resolve(String hubId, String workspaceId, String projectId) {
-        WorkspaceManager workspace = resolveWorkspace(hubId, workspaceId);
-        ProjectsManager projectsManager = workspace.projectsManager();
-        ProjectManager projectManager = projectsManager.projectOrThrow(projectId)
+    public ProjectManager resolve(String hubId, String workspaceId, String projectId) {
+        return resolveHub(hubId).projectOrThrow(workspaceId, projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));
-        return new ProjectContext(workspace, projectsManager, projectManager);
-    }
-
-    public record ProjectContext(
-            WorkspaceManager workspace,
-            ProjectsManager projectsManager,
-            ProjectManager projectManager) {
     }
 }

@@ -116,7 +116,11 @@ public final class ProtoMappers {
                 .build();
     }
 
-    public static ProjectInfo project(DetailedProjectInfo detail) {
+    /**
+     * @param workspaceReferenceId the reference id of the project's workspace, which the project
+     *                             row does not hold
+     */
+    public static ProjectInfo project(DetailedProjectInfo detail, String workspaceReferenceId) {
         cafe.jeffrey.hub.model.ProjectInfo info = detail.projectInfo();
         return ProjectInfo.newBuilder()
                 .setId(info.id())
@@ -125,6 +129,7 @@ public final class ProtoMappers {
                 .setWorkspaceId(info.workspaceId())
                 .setStatus(recordingStatus(detail.status()))
                 .setSessionCount(detail.sessionCount())
+                .setWorkspaceReferenceId(orEmpty(workspaceReferenceId))
                 .build();
     }
 

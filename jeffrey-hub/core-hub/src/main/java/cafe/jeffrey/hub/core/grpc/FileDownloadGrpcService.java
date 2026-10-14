@@ -27,15 +27,17 @@ import cafe.jeffrey.hub.api.v1.DataChunk;
 import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
 import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.hub.model.repository.StreamedFile;
+import cafe.jeffrey.hub.core.project.repository.FileLookup;
 
 import java.io.Closeable;
-import java.util.concurrent.Executor;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.concurrent.Executor;
 
 public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloadServiceImplBase {
 
@@ -56,98 +58,94 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
     /**
      * Streams one file of a session, whatever that file is.
      *
-     * <p>The gate is attached here, on the gRPC handler thread and before this method returns:
-     * gRPC rejects {@code setOnReadyHandler} / {@code setOnCancelHandler} once the observer has
-     * been handed back. Everything after it runs on the streaming executor.
+     * <p>The gate is attached on the gRPC handler thread, before this method returns: gRPC rejects
+     * {@code setOnReadyHandler} / {@code setOnCancelHandler} after that. Everything else runs on the
+     * streaming executor.
      */
     @Override
     public void downloadFile(DownloadFileRequest request, StreamObserver<DataChunk> responseObserver) {
         ServerCallStreamObserver<DataChunk> observer = (ServerCallStreamObserver<DataChunk>) responseObserver;
         ReadyGate gate = ReadyGate.attach(observer);
+        String sessionId = request.getSessionId();
+        String fileId = request.getFileId();
 
         streamingExecutor.execute(() -> {
             try {
-                RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
+                RepositoryManager repoManager = lookups.repositoryManagerForSession(sessionId);
+                LOG.debug("Streaming file via gRPC: session_id={} file_id={}", sessionId, fileId);
 
-                LOG.debug("Streaming file via gRPC: session_id={} file_id={}",
-                        request.getSessionId(), request.getFileId());
-
-                try (OpenFile file = open(repoManager, request.getSessionId(), request.getFileId())) {
-                    streamWithBackpressure(file, observer, gate);
+                switch (open(repoManager, sessionId, fileId)) {
+                    case OpenFile file -> {
+                        try (file) {
+                            streamWithBackpressure(file, observer, gate);
+                        }
+                    }
+                    case Refusal(FileLookup.Refused refused) -> {
+                        LOG.debug("Refusing to stream a file: session_id={} file_id={} reason={}",
+                                sessionId, fileId, refused.reason());
+                        observer.onError(GrpcExceptions.invalidArgument(refused.reason()));
+                    }
                 }
             } catch (StatusRuntimeException e) {
-                // A lookup that already knows its status — NOT_FOUND for a session or file that is
-                // not there — passes through as it is.
+                // NOT_FOUND for a session that is not there, already mapped by the lookup
                 observer.onError(e);
-            } catch (IllegalArgumentException e) {
-                // Everything the lookup refuses: a file the session does not hold, one still
-                // being written, one that is empty. Each is a statement about what was asked
-                // for, so it travels as INVALID_ARGUMENT carrying its own sentence rather than
-                // as a hub failure.
-                LOG.debug("Refusing to stream a file: session_id={} file_id={} reason={}",
-                        request.getSessionId(), request.getFileId(), e.getMessage());
-                observer.onError(GrpcExceptions.invalidArgument(e.getMessage()));
             } catch (Exception e) {
-                LOG.error("Failed to stream file: session_id={} file_id={}",
-                        request.getSessionId(), request.getFileId(), e);
+                LOG.error("Failed to stream file: session_id={} file_id={}", sessionId, fileId, e);
                 observer.onError(GrpcExceptions.internal(e));
             }
         });
     }
 
     /**
-     * Resolves the id and opens what it names, once more when the first answer was gone before a
-     * byte of it could be read.
-     *
-     * <p>That is the compression job and nothing else: it publishes an archive and removes the
-     * file it was made from, and a request that resolved that file a moment earlier is left
-     * holding a path to something no longer there. The id survives the rewrite, so asking again
-     * names the archive, and the name travelling on the first chunk tells the reader which of the
-     * two it is getting. Once only: a second miss is a file that is genuinely not there.
-     *
-     * <p>Before anything is sent, so the retry is invisible to the caller. Once the first chunk
-     * is on its way there is no going back, and nothing can take the file away from an open
-     * handle anyway.
+     * Looks the id up and opens what it names, once more if the file was gone before it could be
+     * opened: the compression job replaced it with its archive, which the same id names. Only once,
+     * and before anything is sent, so the retry is invisible to the caller.
      */
-    private static OpenFile open(RepositoryManager repoManager, String sessionId, String fileId)
-            throws IOException {
+    private static Opened open(RepositoryManager repoManager, String sessionId, String fileId) throws IOException {
+        Opened first = attempt(repoManager, sessionId, fileId);
+        if (first instanceof Refusal(FileLookup.Vanished _)) {
+            LOG.debug("File was replaced before it could be opened, looking it up again: session_id={} file_id={}",
+                    sessionId, fileId);
+            return attempt(repoManager, sessionId, fileId);
+        }
+        return first;
+    }
 
-        try {
-            return OpenFile.of(repoManager.streamFile(sessionId, fileId));
-        } catch (IOException | RuntimeException e) {
-            if (!replacedWhileResolving(e)) {
+    private static Opened attempt(RepositoryManager repoManager, String sessionId, String fileId) throws IOException {
+        return switch (repoManager.file(sessionId, fileId)) {
+            case FileLookup.Found(Path path) -> OpenFile.of(sessionId, path);
+            case FileLookup.Refused refused -> new Refusal(refused);
+        };
+    }
+
+    /** A looked-up file: open and ready to stream, or refused with its reason. */
+    private sealed interface Opened permits OpenFile, Refusal {
+    }
+
+    private record Refusal(FileLookup.Refused refused) implements Opened {
+    }
+
+    /**
+     * A file's bytes with the name and size the first chunk carries, all taken from one open
+     * handle so the compression job cannot slip in between them.
+     */
+    private record OpenFile(String name, long totalSize, InputStream stream) implements Opened, Closeable {
+
+        /** Opens the file, or reports it {@link FileLookup.Vanished} when it is gone by now. */
+        static Opened of(String sessionId, Path path) throws IOException {
+            String name = path.getFileName().toString();
+            FileChannel channel;
+            try {
+                channel = FileChannel.open(path, StandardOpenOption.READ);
+            } catch (NoSuchFileException e) {
+                return new Refusal(new FileLookup.Vanished(sessionId, name));
+            }
+            try {
+                return new OpenFile(name, channel.size(), Channels.newInputStream(channel));
+            } catch (IOException e) {
+                channel.close();
                 throw e;
             }
-            LOG.debug("The file this id named was replaced before it could be opened, resolving it again: "
-                    + "session_id={} file_id={}", sessionId, fileId);
-            return OpenFile.of(repoManager.streamFile(sessionId, fileId));
-        }
-    }
-
-    /**
-     * Whether a failure means "the file the id named is no longer there", which can arrive two
-     * ways: the listing's own check caught it, or the open did. The second is wrapped by the
-     * size reader, so the question is asked of the whole cause chain rather than of the
-     * exception in hand.
-     */
-    private static boolean replacedWhileResolving(Throwable failure) {
-        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof FileVanishedException || cause instanceof NoSuchFileException) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * A file's bytes together with everything the first chunk has to say about them, read at the
-     * one moment the file is known to be there. Taken separately, the size and the stream are two
-     * chances for the compression job to get in between.
-     */
-    private record OpenFile(String name, long totalSize, InputStream stream) implements Closeable {
-
-        static OpenFile of(StreamedFile file) throws IOException {
-            return new OpenFile(file.fileName(), FileSystemUtils.size(file.path()), file.openStream());
         }
 
         @Override
@@ -157,10 +155,8 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
     }
 
     /**
-     * What the first chunk says about the whole transfer: how many bytes are coming, and the name
-     * the file has here <em>now</em>. The caller listed the session some time ago and the
-     * compression job may have renamed the file since; written under the name it asked for, the
-     * file would claim to be something it is not, and every reader downstream goes by the name.
+     * What the first chunk says about the whole transfer: the byte count and the name the file has
+     * here now, which differs from the listed one when the compression job renamed it since.
      */
     private static DataChunk.Builder header(DataChunk.Builder builder, OpenFile file) {
         return builder
@@ -196,8 +192,7 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
             return;
         }
 
-        // A file with no bytes still has to say what it is. Without this the reader is handed a
-        // stream with no name and no size, and has to guess both from what it asked for.
+        // An empty file still sends one chunk carrying its name and size
         if (firstChunk) {
             observer.onNext(header(DataChunk.newBuilder(), file).build());
         }

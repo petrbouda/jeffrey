@@ -72,7 +72,7 @@ public class MicroscopeHubBrowserAccess implements HubBrowserAccess {
 
     @Override
     public ProjectResponse project(String hubId, String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         return Mappers.toProjectResponse(pm.detailedInfo());
     }
 }

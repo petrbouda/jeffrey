@@ -26,7 +26,6 @@ import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
@@ -41,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -106,12 +105,8 @@ class FilesystemRepositoryStorageTest {
     }
 
     /**
-     * Handing one file of a session over — a chunk, a log, a dump, through the same call.
-     *
-     * <p>A lookup and nothing else: what the reader receives must be the file the listing named,
-     * because the download carries the bytes and their length and no name at all. And a refusal
-     * rather than an empty answer, because a caller that named one file and got nothing back
-     * cannot tell which of five reasons applied.
+     * Looking up one file of a session for download — a chunk, a log, a dump, through the same
+     * call. A lookup only: it never rewrites the file, and each refusal is named.
      */
     @Nested
     class OneFile {
@@ -149,21 +144,17 @@ class FilesystemRepositoryStorageTest {
             return Files.write(dir.resolve(name), content.getBytes(StandardCharsets.UTF_8));
         }
 
-        private static String refusal(Executable call) {
-            return assertThrows(IllegalArgumentException.class, call).getMessage();
+        private static Path served(FileLookup lookup) {
+            return assertInstanceOf(FileLookup.Found.class, lookup).path();
         }
 
-        /**
-         * The file is handed over as it lies. Compressing it here — which is what this did, so the
-         * transfer would carry less — rewrote the repository in the middle of a read and changed
-         * the file's name under a reader that had already been told the old one.
-         */
+        /** The file is handed over as it lies; a read path never compresses. */
         @Test
         void isHandedOverAsTheListingNamedIt() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr", "chunk one");
 
-            Path served = finishedSession().file(SESSION_ID, "profile-20260220-120000");
+            Path served = served(finishedSession().file(SESSION_ID, "profile-20260220-120000"));
 
             assertEquals("profile-20260220-120000.jfr", served.getFileName().toString());
             assertTrue(Files.exists(session.resolve("profile-20260220-120000.jfr")),
@@ -171,25 +162,24 @@ class FilesystemRepositoryStorageTest {
             assertFalse(Files.exists(session.resolve("profile-20260220-120000.jfr.lz4")));
         }
 
-        /**
-         * One call for every kind. What a file's category decides is what the reader does with the
-         * bytes, not whether the hub hands them over — and the reader knows the category already.
-         */
+        /** One call for every kind of file. */
         @Test
         void servesAnArtifactThroughTheSameCall() throws IOException {
             Path session = sessionDir();
             write(session, "service-app.log", "a line");
 
             assertEquals("service-app.log",
-                    finishedSession().file(SESSION_ID, "service-app.log").getFileName().toString());
+                    served(finishedSession().file(SESSION_ID, "service-app.log")).getFileName().toString());
         }
 
         @Test
         void refusesAnIdTheSessionDoesNotHold() throws IOException {
             sessionDir();
 
-            assertTrue(refusal(() -> finishedSession().file(SESSION_ID, "profile-20260220-999999"))
-                    .contains("holds no file with id"));
+            FileLookup lookup = finishedSession().file(SESSION_ID, "profile-20260220-999999");
+
+            assertEquals(new FileLookup.NotInSession(SESSION_ID, "profile-20260220-999999"), lookup);
+            assertTrue(assertInstanceOf(FileLookup.Refused.class, lookup).reason().contains("holds no file with id"));
         }
 
         @Test
@@ -198,58 +188,44 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr", "closed");
             write(session, "profile-20260220-120500.jfr", "still being written");
 
-            assertTrue(refusal(() -> storage(null).file(SESSION_ID, "profile-20260220-120500"))
-                    .contains("still writing"));
+            assertEquals(new FileLookup.StillWriting("profile-20260220-120500.jfr"),
+                    storage(null).file(SESSION_ID, "profile-20260220-120500"));
         }
 
-        /**
-         * A profiler stopped before it wrote an event leaves a zero-byte recording. It used to be
-         * dropped by the compression that ran here, and a caller was told "not found".
-         */
+        /** A profiler stopped before it wrote an event leaves a zero-byte recording. */
         @Test
         void refusesAnEmptyRecordingAndSaysSo() throws IOException {
             Path session = sessionDir();
             Files.createFile(session.resolve("profile-20260220-120000.jfr"));
 
-            assertTrue(refusal(() -> finishedSession().file(SESSION_ID, "profile-20260220-120000"))
-                    .contains("is empty"));
+            assertEquals(new FileLookup.EmptyRecording("profile-20260220-120000.jfr"),
+                    finishedSession().file(SESSION_ID, "profile-20260220-120000"));
         }
 
-        /**
-         * Emptiness is a statement about parsing, so it is asked of recordings only. A log with
-         * nothing in it is an answer — a reader that asked for one wants the nothing it holds,
-         * not a refusal it has to interpret.
-         */
+        /** Emptiness is refused for recordings only; an empty log is still an answer. */
         @Test
         void servesAnEmptyArtifact() throws IOException {
             Path session = sessionDir();
             Files.createFile(session.resolve("service-app.log"));
 
-            Path served = finishedSession().file(SESSION_ID, "service-app.log");
+            Path served = served(finishedSession().file(SESSION_ID, "service-app.log"));
 
             assertEquals("service-app.log", served.getFileName().toString());
             assertEquals(0, Files.size(served));
         }
 
-        /**
-         * The hub has no name for the profiler's {@code .jfr.N~} cache file and does not refuse
-         * it: what kind of file is worth taking is Microscope's judgement, made from the name it
-         * was given. What the hub judges is only whether the file is there to be taken.
-         */
+        /** The profiler's {@code .jfr.N~} cache is served like any file; Microscope declines to ask for it. */
         @Test
         void servesTheProfilersCacheFileLikeAnyOther() throws IOException {
             Path session = sessionDir();
             Path cache = write(session, "profile-20260220-120000.jfr.1~", "cache");
 
-            assertEquals(cache, finishedSession().file(SESSION_ID, "profile-20260220-120000.jfr.1~"));
+            assertEquals(cache, served(finishedSession().file(SESSION_ID, "profile-20260220-120000.jfr.1~")));
         }
 
         /**
-         * The compression job is between publishing an archive and removing the recording it was
-         * made from, so one id names two files. Both are whole — an archive is renamed onto its
-         * name and so is never listed half-written — and the archive is the one served, because
-         * it is the one that will still be there: the recording beside it is about to go, and a
-         * reader that resolved it can find it gone before it opens it.
+         * Mid-compression one id names a recording and its archive; the archive is served because it
+         * is the one that stays.
          */
         @Test
         void prefersTheArchiveOverTheRecordingItWasMadeFrom() throws IOException {
@@ -258,13 +234,10 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr.lz4", "the archive of it");
 
             assertEquals("profile-20260220-120000.jfr.lz4",
-                    finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
+                    served(finishedSession().file(SESSION_ID, "profile-20260220-120000")).getFileName().toString());
         }
 
-        /**
-         * And the other way round, since a reduce over two entries sees them in listing order and
-         * must answer the same either way.
-         */
+        /** Whichever order the listing gives them in. */
         @Test
         void prefersTheArchiveWhicheverWayTheListingOrdersThem() throws IOException {
             Path session = sessionDir();
@@ -272,7 +245,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr", "the whole chunk");
 
             assertEquals("profile-20260220-120000.jfr.lz4",
-                    finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
+                    served(finishedSession().file(SESSION_ID, "profile-20260220-120000")).getFileName().toString());
         }
 
         @Test
@@ -281,15 +254,11 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr.lz4", "the archive");
 
             assertEquals("profile-20260220-120000.jfr.lz4",
-                    finishedSession().file(SESSION_ID, "profile-20260220-120000").getFileName().toString());
+                    served(finishedSession().file(SESSION_ID, "profile-20260220-120000")).getFileName().toString());
         }
     }
 
-    /**
-     * The compression job, which is now the only thing in the tree that rewrites a repository
-     * file. It had no test at all: the six that arrived with it were written against the lookup
-     * that used to compress on the way out of a read, and went when that did.
-     */
+    /** The compression job, the only thing that rewrites a repository file. */
     @Nested
     class CompressSession {
 
@@ -493,9 +462,8 @@ class FilesystemRepositoryStorageTest {
     }
 
     /**
-     * Deleting the files a caller named by the ids the listing gave them. Both retention jobs and
-     * the UI's delete come through here, and an id that does not find its file frees nothing while
-     * reporting success.
+     * Deleting the files a retention job named by the ids the listing gave them. An id that does
+     * not find its file frees nothing.
      */
     @Nested
     class DeleteRepositoryFiles {

@@ -90,19 +90,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     }
 
     @Override
-    public void deleteFilesInSession(DeleteFilesInSessionRequest request, StreamObserver<DeleteFilesInSessionResponse> responseObserver) {
-        GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-            repoManager.deleteFilesInSession(request.getSessionId(), request.getFileIdsList());
-
-            LOG.debug("Deleted files in session via gRPC: session_id={} file_count={}",
-                    request.getSessionId(), request.getFileIdsCount());
-
-            return DeleteFilesInSessionResponse.getDefaultInstance();
-        });
-    }
-
-    @Override
     public void setSessionRetained(SetSessionRetainedRequest request, StreamObserver<SetSessionRetainedResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());

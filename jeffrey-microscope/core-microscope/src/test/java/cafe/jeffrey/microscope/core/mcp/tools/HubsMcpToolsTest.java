@@ -840,9 +840,7 @@ class HubsMcpToolsTest {
             HubManager hub = mock(HubManager.class);
             when(hub.info()).thenReturn(hubInfo(ref.hubId(), "production"));
             when(resolver.resolveHub(ref.hubId())).thenReturn(hub);
-            when(resolver.resolve(ref.hubId(), ref.workspaceId(), ref.projectId())).thenReturn(
-                    new ProjectManagerResolver.ProjectContext(
-                            mock(WorkspaceManager.class), mock(ProjectsManager.class), project));
+            when(resolver.resolve(ref.hubId(), ref.workspaceId(), ref.projectId())).thenReturn(project);
         }
 
         private HubsMcpTools toolsWithBudget(Duration responseBudget) {

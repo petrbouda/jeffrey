@@ -69,7 +69,7 @@ onMounted(() => {
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Hub exposes 5 gRPC services, 14 RPCs in all, defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>. There is one session listing: an instance's sessions, a project's repository size and a session's detail are all read from it by Microscope rather than asked of the hub separately.</p>
+        <p>Jeffrey Hub exposes 5 gRPC services, 13 RPCs in all, defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>. There is one session listing: an instance's sessions, a project's repository size and a session's detail are all read from it by Microscope rather than asked of the hub separately.</p>
 
         <div class="endpoint-groups">
           <!-- WorkspaceService -->
@@ -122,14 +122,14 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListProjects</code>
                 </div>
-                <p>List projects in workspace</p>
+                <p>List projects in workspace. Each <code>ProjectInfo</code> carries its workspace's id and reference id</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>GetProject</code>
                 </div>
-                <p>Get project details</p>
+                <p>Get project details, NOT_FOUND unless the project belongs to the named workspace. Its <code>ProjectInfo</code> carries everything Microscope needs to open the project, so opening one costs this single call</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -185,13 +185,6 @@ onMounted(() => {
                   <code>DeleteSession</code>
                 </div>
                 <p>Delete recording session</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DeleteFilesInSession</code>
-                </div>
-                <p>Delete specific files in session</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

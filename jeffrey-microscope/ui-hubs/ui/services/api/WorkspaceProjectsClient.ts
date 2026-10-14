@@ -26,12 +26,4 @@ export default class WorkspaceProjectsClient extends BasePlatformClient {
   async list(): Promise<Project[]> {
     return super.get<Project[]>();
   }
-
-  async create(name: string, templateId?: string): Promise<Project> {
-    const content: any = { name: name };
-    if (templateId) {
-      content.templateId = templateId;
-    }
-    return super.post<Project>('', content);
-  }
 }

@@ -27,7 +27,7 @@ import io.grpc.stub.StreamObserver;
 
 /**
  * Stub {@code ProjectService} backed by the in-memory dataset. Mutating RPCs
- * (Delete/Restore) fall through to the generated {@code UNIMPLEMENTED} default.
+ * (Delete) fall through to the generated {@code UNIMPLEMENTED} default.
  */
 public class StubProjectService extends ProjectServiceGrpc.ProjectServiceImplBase {
 
@@ -40,21 +40,25 @@ public class StubProjectService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void listProjects(ListProjectsRequest request, StreamObserver<ListProjectsResponse> responseObserver) {
         ListProjectsResponse.Builder builder = ListProjectsResponse.newBuilder();
-        for (StubDataset.Project project : dataset.projects(request.getWorkspaceId())) {
-            builder.addProjects(StubProtoMappers.projectInfo(project));
-        }
+        dataset.workspace(request.getWorkspaceId()).ifPresent(workspace -> {
+            for (StubDataset.Project project : workspace.projects()) {
+                builder.addProjects(StubProtoMappers.projectInfo(workspace, project));
+            }
+        });
         responseObserver.onNext(builder.build());
         responseObserver.onCompleted();
     }
 
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
-        dataset.project(request.getProjectId())
+        dataset.workspace(request.getWorkspaceId())
+                .flatMap(workspace -> workspace.projects().stream()
+                        .filter(project -> project.id().equals(request.getProjectId()))
+                        .findFirst()
+                        .map(project -> StubProtoMappers.projectInfo(workspace, project)))
                 .ifPresentOrElse(
                         project -> {
-                            responseObserver.onNext(GetProjectResponse.newBuilder()
-                                    .setProject(StubProtoMappers.projectInfo(project))
-                                    .build());
+                            responseObserver.onNext(GetProjectResponse.newBuilder().setProject(project).build());
                             responseObserver.onCompleted();
                         },
                         () -> responseObserver.onError(

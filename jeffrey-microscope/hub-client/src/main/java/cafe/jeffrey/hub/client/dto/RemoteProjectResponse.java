@@ -24,13 +24,16 @@ import java.time.Instant;
 /**
  * A project as the hub reports it.
  *
- * @param createdAt when the hub created the project, or {@code null} when the hub sent none
+ * @param createdAt            when the hub created the project, or {@code null} when the hub sent none
+ * @param workspaceReferenceId the reference id of the project's workspace, so a caller holding
+ *                             the project needs no workspace lookup for it
  */
 public record RemoteProjectResponse(
         String id,
         String name,
         Instant createdAt,
         String workspaceId,
+        String workspaceReferenceId,
         RecordingStatus status,
         int sessionCount) {
 }

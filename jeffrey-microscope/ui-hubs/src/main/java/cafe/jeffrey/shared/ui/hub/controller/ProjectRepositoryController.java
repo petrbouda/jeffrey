@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
-import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
@@ -41,7 +40,6 @@ import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.hub.request.SelectedRecordingsRequest;
 import cafe.jeffrey.shared.ui.hub.request.SessionRetainedRequest;
 
 import java.io.IOException;
@@ -106,17 +104,6 @@ public class ProjectRepositoryController {
         return RepositoryStatisticsResponse.from(stats);
     }
 
-    @PostMapping("/sessions/download")
-    public void downloadSession(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @RequestBody SelectedRecordingsRequest request) {
-        LOG.debug("Downloading session recordings: sessionId={}", request.sessionId());
-        RecordingsDownloadManager mgr = projectAccess.recordingsDownloadManager(hubId, workspaceId, projectId);
-        mgr.downloadSession(request.sessionId());
-    }
-
     @DeleteMapping("/sessions/{sessionId}")
     public void deleteSession(
             @PathVariable("hubId") String hubId,
@@ -138,29 +125,6 @@ public class ProjectRepositoryController {
         LOG.debug("Updating repository session retention: sessionId={} retained={}", sessionId, request.retained());
         RepositoryManager mgr = projectAccess.repositoryManager(hubId, workspaceId, projectId);
         mgr.setSessionRetained(sessionId, request.retained());
-    }
-
-    @PostMapping("/recordings/download")
-    public void downloadSelectedRecordings(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @RequestBody SelectedRecordingsRequest request) {
-        LOG.debug("Downloading selected recordings: fileCount={}",
-                request.recordingIds() != null ? request.recordingIds().size() : 0);
-        RecordingsDownloadManager mgr = projectAccess.recordingsDownloadManager(hubId, workspaceId, projectId);
-        mgr.downloadRecordings(request.sessionId(), request.recordingIds());
-    }
-
-    @PostMapping("/recordings/delete")
-    public void deleteRecording(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @RequestBody SelectedRecordingsRequest request) {
-        LOG.debug("Deleting recording from repository");
-        RepositoryManager mgr = projectAccess.repositoryManager(hubId, workspaceId, projectId);
-        mgr.deleteFilesInSession(request.sessionId(), request.recordingIds());
     }
 
     @GetMapping(value = "/sessions/{sessionId}/files/{fileId}/download",

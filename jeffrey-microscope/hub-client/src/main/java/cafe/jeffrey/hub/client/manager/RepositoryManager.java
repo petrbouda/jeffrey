@@ -52,8 +52,6 @@ public interface RepositoryManager {
 
     void deleteRecordingSession(String recordingSessionId);
 
-    void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
-
     /**
      * Marks a recording session as retained, exempting it from every retention job,
      * or releases it again so normal retention resumes.

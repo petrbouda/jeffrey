@@ -29,7 +29,7 @@ import cafe.jeffrey.shared.ui.hub.dto.ProjectResponse;
 /**
  * Shared WorkspaceBrowser controller serving a single remote project's info. Both deployments
  * register it via {@code HubsFeatureConfiguration} and supply a {@link HubBrowserAccess}
- * bridge. Write operations (delete/restore) are microscope-only and live in a deployment-specific
+ * bridge. Write operations (delete) are microscope-only and live in a deployment-specific
  * supplementary controller.
  */
 @RestController
@@ -51,10 +51,5 @@ public class ProjectController {
             @PathVariable("projectId") String projectId) {
         LOG.debug("Fetching project info: workspaceId={} projectId={}", workspaceId, projectId);
         return access.project(hubId, workspaceId, projectId);
-    }
-
-    @GetMapping("/initializing")
-    public boolean initializing() {
-        return false;
     }
 }

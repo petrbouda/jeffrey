@@ -22,9 +22,8 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.hub.client.DiscoveryClient;
-import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -32,11 +31,8 @@ import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 
 import java.util.List;
-import java.util.Optional;
-import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
@@ -47,8 +43,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final HubClients hubClients;
-    private final ProfilesManager.Factory profilesManagerFactory;
-    private final RecordingsManager recordingsManager;
+    private final RemoteProjectManagerFactory projectManagerFactory;
 
     public RemoteWorkspaceManager(
             MicroscopeJeffreyDirs jeffreyDirs,
@@ -56,16 +51,14 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             HubClients hubClients,
-            ProfilesManager.Factory profilesManagerFactory,
-            RecordingsManager recordingsManager) {
+            RemoteProjectManagerFactory projectManagerFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
         this.hubInfo = hubInfo;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
         this.hubClients = hubClients;
-        this.profilesManagerFactory = profilesManagerFactory;
-        this.recordingsManager = recordingsManager;
+        this.projectManagerFactory = projectManagerFactory;
     }
 
     @Override
@@ -91,13 +84,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public ProjectsManager projectsManager() {
-        return new RemoteProjectsManager(
-                jeffreyDirs,
-                hubInfo,
-                workspaceInfo,
-                hubClients,
-                profilesManagerFactory,
-                recordingsManager);
+        return new RemoteProjectsManager(hubInfo, workspaceInfo, hubClients, projectManagerFactory);
     }
 
     @Override

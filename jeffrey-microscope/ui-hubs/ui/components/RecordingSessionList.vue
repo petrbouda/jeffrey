@@ -50,7 +50,6 @@ interface Props {
   hubId: string;
   workspaceId: string;
   projectId: string;
-  isRemoteWorkspace: boolean;
   showInstanceLink?: boolean;
   headerText?: string;
   isCollectorOnly?: boolean;
@@ -100,9 +99,6 @@ const deleteSessionDialog = ref(false);
 const sessionToDelete = ref<RecordingSession | null>(null);
 const deletingSession = ref(false);
 const pinningSessions = ref<{ [sessionId: string]: boolean }>({});
-const deleteSelectedFilesDialog = ref(false);
-const sessionIdWithFilesToDelete = ref('');
-const deletingSelectedFiles = ref(false);
 
 // --- Constants ---
 const DEFAULT_FILES_LIMIT = 15;
@@ -362,8 +358,8 @@ const clearAllSelections = (sessionId: string) => {
 
 /**
  * Whether the ticked recordings may be downloaded together. They become one recording reporting one
- * span, so a skipped chunk would leave a hole the result cannot show. Ticking itself stays free,
- * because Delete Selected shares this map and has no reason to want an unbroken run.
+ * span, so a skipped chunk would leave a hole the result cannot show. Ticking itself stays free;
+ * only the download is refused.
  */
 const isDownloadableSelection = (sessionId: string): boolean => {
   const session = props.sessions.find(s => s.id === sessionId);
@@ -470,23 +466,17 @@ const downloadSession = async (sessionId: string) => {
       return;
     }
 
-    if (props.isRemoteWorkspace) {
-      const fileIds = session.files.map(f => f.id);
-      await downloadAssistantStore.startDownload(
-        props.hubId,
-        props.workspaceId,
-        props.projectId,
-        sessionId,
-        fileIds,
-        async () => {
-          emit('refresh');
-        }
-      );
-    } else {
-      await repositoryService.value.copyRecordingSession(session);
-      toast.success('Download', `Successfully downloaded session ${session.id}`);
-      emit('refresh');
-    }
+    const fileIds = session.files.map(f => f.id);
+    await downloadAssistantStore.startDownload(
+      props.hubId,
+      props.workspaceId,
+      props.projectId,
+      sessionId,
+      fileIds,
+      async () => {
+        emit('refresh');
+      }
+    );
   } catch (error: any) {
     console.error('Error downloading session:', error);
     toast.error('Download', error.message || 'Failed to download recording session');
@@ -507,74 +497,21 @@ const downloadSelectedSources = async (sessionId: string) => {
       return;
     }
 
-    if (props.isRemoteWorkspace) {
-      const fileIds = selectedSources.map(f => f.id);
-      await downloadAssistantStore.startDownload(
-        props.hubId,
-        props.workspaceId,
-        props.projectId,
-        sessionId,
-        fileIds,
-        async () => {
-          emit('refresh');
-          toggleSelectAllSources(sessionId, false);
-        }
-      );
-    } else {
-      await repositoryService.value.copySelectedRepositoryFile(session.id, selectedSources);
-      toast.success('Download', `Successfully downloaded ${selectedSources.length} recording(s)`);
-      emit('refresh');
-      toggleSelectAllSources(sessionId, false);
-    }
+    const fileIds = selectedSources.map(f => f.id);
+    await downloadAssistantStore.startDownload(
+      props.hubId,
+      props.workspaceId,
+      props.projectId,
+      sessionId,
+      fileIds,
+      async () => {
+        emit('refresh');
+        toggleSelectAllSources(sessionId, false);
+      }
+    );
   } catch (error: any) {
     console.error('Error downloading selected recordings:', error);
     toast.error('Download', error.message || 'Failed to download selected recordings');
-  }
-};
-
-const deleteSelectedSources = async (sessionId: string) => {
-  const session = props.sessions.find(s => s.id === sessionId);
-  if (!session) {return;}
-
-  const selectedSources = session.files.filter(
-    source => selectedRepositoryFile.value[sessionId][source.id]
-  );
-
-  if (selectedSources.length === 0) {
-    toast.info('Delete Selected', 'No recordings selected');
-    return;
-  }
-
-  sessionIdWithFilesToDelete.value = sessionId;
-  deleteSelectedFilesDialog.value = true;
-};
-
-const confirmDeleteSelectedFiles = async () => {
-  if (!sessionIdWithFilesToDelete.value) {return;}
-
-  const sessionId = sessionIdWithFilesToDelete.value;
-  const session = props.sessions.find(s => s.id === sessionId);
-  if (!session) {return;}
-
-  deletingSelectedFiles.value = true;
-
-  try {
-    const selectedSources = session.files.filter(
-      source => selectedRepositoryFile.value[sessionId][source.id]
-    );
-
-    await repositoryService.value.deleteSelectedRepositoryFile(sessionId, selectedSources);
-    toast.success('Delete Selected', `Successfully deleted ${selectedSources.length} recording(s)`);
-
-    emit('refresh');
-    toggleSelectAllSources(sessionId, false);
-    deleteSelectedFilesDialog.value = false;
-  } catch (error: any) {
-    console.error('Error deleting selected recordings:', error);
-    toast.error('Delete Selected', error.message || 'Failed to delete selected recordings');
-  } finally {
-    deletingSelectedFiles.value = false;
-    sessionIdWithFilesToDelete.value = '';
   }
 };
 
@@ -1114,21 +1051,12 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             >
               <i class="bi bi-folder-symlink me-1"></i>Download
             </button>
-            <button
-              v-if="!isRemoteWorkspace"
-              class="btn btn-sm btn-outline-danger"
-              @click.stop="deleteSelectedSources(session.id)"
-              :disabled="getSelectedCount(session.id) === 0"
-              title="Delete selected recordings"
-            >
-              <i class="bi bi-trash me-1"></i>Delete Selected
-            </button>
           </div>
         </div>
 
         <!--
-          Why Download is greyed out. Deleting a gapped selection is fine, so the checkboxes stay
-          free and only the download is refused.
+          Why Download is greyed out. The checkboxes stay free; only the download of a gapped
+          selection is refused.
         -->
         <div
           v-if="showMultiSelectActions[session.id] && !isDownloadableSelection(session.id)"
@@ -1520,19 +1448,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
     confirm-button-id="deleteSessionButton"
     modal-id="deleteSessionModal"
     @confirm="confirmDeleteSession"
-  />
-
-  <!-- Delete Selected Files Confirmation Modal -->
-  <ConfirmationDialog
-    v-model:show="deleteSelectedFilesDialog"
-    title="Confirm Deletion"
-    message="Are you sure you want to delete the selected recordings?"
-    sub-message="This action cannot be undone."
-    confirm-label="Delete Selected"
-    confirm-button-class="btn-danger"
-    confirm-button-id="deleteSelectedFilesButton"
-    modal-id="deleteSelectedFilesModal"
-    @confirm="confirmDeleteSelectedFiles"
   />
 </template>
 
