@@ -17,13 +17,12 @@
 
 package cafe.jeffrey.hub.core.manager;
 
+import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
-import cafe.jeffrey.hub.model.repository.StreamedFile;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -35,7 +34,6 @@ import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import org.springframework.transaction.support.TransactionOperations;
 
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -75,29 +73,20 @@ public class HubRepositoryManager implements RepositoryManager {
 
     @Override
     public List<RecordingSession> listRecordingSessions(SessionDetail detail, RecordingSessionFilter filter) {
-        // The filter reads headers only, so files are walked for the sessions that survive it —
-        // a limit of five over a project of hundreds lists five directories, not hundreds
+        // Filter on headers first, so only the surviving sessions' directories are walked
         List<RecordingSession> sessions = filter.apply(repositoryStorage.listSessions(SessionDetail.HEADERS));
-        if (!detail.withFiles()) {
-            return sessions;
-        }
+        return detail.withFiles() ? withFiles(sessions) : sessions;
+    }
+
+    @Override
+    public List<RecordingSession> listInstanceSessions(String instanceId, RecordingSessionFilter filter) {
+        return withFiles(filter.apply(repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.HEADERS)));
+    }
+
+    private List<RecordingSession> withFiles(List<RecordingSession> sessions) {
         return sessions.stream()
                 .map(repositoryStorage::withFiles)
                 .toList();
-    }
-
-    @Override
-    public RepositoryStatistics calculateRepositoryStatistics() {
-        long totalSize = listRecordingSessions(SessionDetail.WITH_FILES).stream()
-                .mapToLong(RecordingSession::totalSizeBytes)
-                .sum();
-
-        return new RepositoryStatistics(totalSize);
-    }
-
-    @Override
-    public List<RecordingSession> instanceSessions(String instanceId) {
-        return repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.WITH_FILES);
     }
 
     @Override
@@ -175,35 +164,6 @@ public class HubRepositoryManager implements RepositoryManager {
         }
     }
 
-    /**
-     * Deletes the named files of a session, refusing the one file of it that is not finished.
-     *
-     * <p>The guard sits here rather than in the storage because this is where ids arrive from
-     * outside — the UI's delete, over gRPC. The retention jobs reach the storage directly with
-     * ids they took from {@link RecordingSession#finishedRecordings()}, so they can never name
-     * the open chunk and should not pay for a second listing of the session to be told so.
-     *
-     * <p>Deleting it would take the file the profiler is writing into out from under it: the
-     * recording loses the chunk in flight, and the profiler writes on to a path that no longer
-     * has a directory entry.
-     */
-    @Override
-    public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
-        RecordingSession session = repositoryStorage.singleSession(recordingSessionId, SessionDetail.WITH_FILES)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + recordingSessionId));
-
-        session.openRecording()
-                .filter(open -> fileIds.contains(open.id()))
-                .ifPresent(open -> {
-                    throw new IllegalArgumentException("File " + open.name() + " is the chunk the profiler "
-                            + "is still writing for session " + recordingSessionId + ", and deleting it would "
-                            + "take it out from under the profiler. It can be deleted once the profiler has "
-                            + "rolled the next one.");
-                });
-
-        repositoryStorage.deleteRepositoryFiles(recordingSessionId, fileIds);
-    }
-
     @Override
     public void setSessionRetained(String recordingSessionId, boolean retained) {
         repository.setSessionRetained(recordingSessionId, retained);
@@ -211,17 +171,9 @@ public class HubRepositoryManager implements RepositoryManager {
                 recordingSessionId, projectInfo.id(), retained);
     }
 
-    /**
-     * One file of a session, whatever kind it is.
-     *
-     * <p>There were two of these, one per category, identical but for the word in their refusal.
-     * A category says what a reader does with a file, not whether the hub will hand it over, and
-     * the reader knows the category already — it arrives with every listing.
-     */
     @Override
-    public StreamedFile streamFile(String sessionId, String fileId) {
-        Path filePath = repositoryStorage.file(sessionId, fileId);
-        return new StreamedFile(filePath.getFileName().toString(), filePath);
+    public FileLookup file(String sessionId, String fileId) {
+        return repositoryStorage.file(sessionId, fileId);
     }
 
     @Override

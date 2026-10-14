@@ -24,8 +24,6 @@ export default class Project {
     public createdAt: number,
     public workspaceId: string,
     public status: RecordingStatus,
-    public sessionCount: number,
-    public isDeleted: boolean,
-    public deletedAt: number | null
+    public sessionCount: number
   ) {}
 }

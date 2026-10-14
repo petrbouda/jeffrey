@@ -79,7 +79,7 @@ class McpDiagnosticsTest {
         HubManager ready = hub("ready");
         HubManager unavailable = hub("unavailable");
         HubManager timeout = hub("timeout");
-        when(ready.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1", 1));
+        when(ready.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1"));
         when(unavailable.infoOrThrow()).thenThrow(Status.UNAVAILABLE.withDescription("credential-secret").asRuntimeException());
         when(timeout.infoOrThrow()).thenThrow(Status.DEADLINE_EXCEEDED.withDescription("credential-secret").asRuntimeException());
         when(hubs.findAll()).thenReturn(List.of(ready, unavailable, timeout));

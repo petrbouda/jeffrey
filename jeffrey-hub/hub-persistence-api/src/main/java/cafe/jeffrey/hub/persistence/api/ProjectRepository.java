@@ -24,7 +24,7 @@ import java.util.Optional;
 public interface ProjectRepository {
 
     /**
-     * Delete the project and all its related data.
+     * Delete the project and all its related data, for good.
      */
     void delete();
 
@@ -34,19 +34,4 @@ public interface ProjectRepository {
      * @return project information.
      */
     Optional<ProjectInfo> find();
-
-    /**
-     * Find the project information regardless of its soft-deleted state. Needed by
-     * operations that must resolve soft-deleted projects, e.g. restoring them.
-     *
-     * @return project information, including soft-deleted projects.
-     */
-    Optional<ProjectInfo> findIncludingDeleted();
-
-
-    /**
-     * Restore a previously soft-deleted project, clearing the deleted_at timestamp.
-     */
-    void restore();
-
 }

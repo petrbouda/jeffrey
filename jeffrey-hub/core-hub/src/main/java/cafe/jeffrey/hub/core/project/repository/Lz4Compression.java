@@ -30,15 +30,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 /**
- * LZ4, appended to the name the file already has, so {@code profile-1.jfr} becomes
- * {@code profile-1.jfr.lz4} — a name {@link HubManagedFile} classifies as JFR_LZ4, which
- * strips to the same id and carries the same timestamp.
- *
- * <p>Written to a scratch file beside the target and renamed onto it, so the target's name never
- * names a file that is still being written into. That is what lets every other reader of the
- * directory treat the archive's presence as the whole story: the compression job deletes the
- * recording once the archive exists, a listing that shows an archive shows a complete one, and a
- * download that resolves one is reading bytes nothing will touch again.
+ * LZ4 appended to the file's name ({@code profile-1.jfr} → {@code profile-1.jfr.lz4}). Written to
+ * a hidden scratch file beside the target and renamed onto it, so an archive under its own name is
+ * always complete.
  */
 final class Lz4Compression implements Compression {
 
@@ -46,12 +40,7 @@ final class Lz4Compression implements Compression {
 
     private static final String SUFFIX = ".lz4";
 
-    /**
-     * A leading dot keeps the scratch file out of every listing — {@code _listRepositoryFiles}
-     * drops hidden files — and the {@code .tmp} tail keeps it out of the one type that matches on
-     * a trailing {@code ~}, async-profiler's own cache file, which is a real file of the session
-     * and must not be confused with this.
-     */
+    /** Hidden (leading dot) so listings skip it; {@code .tmp} so it is never taken for a {@code .jfr.N~} cache. */
     private static final String SCRATCH_PREFIX = ".";
     private static final String SCRATCH_SUFFIX = ".tmp";
     private static final String SCRATCH_SEPARATOR = ".";
@@ -67,9 +56,7 @@ final class Lz4Compression implements Compression {
         try {
             Lz4Compressor.compress(source, scratch);
 
-            // Before the rename, because after it the file is the answer. An archive of no bytes
-            // is a compression that failed quietly, and publishing one would let the caller
-            // delete a recording it has not actually copied.
+            // An empty archive is a silent failure; publishing it would let the recording be deleted
             if (Files.size(scratch) == 0) {
                 throw new IllegalStateException(
                         "Compressing " + source + " produced no bytes; leaving the recording as it is");
@@ -78,21 +65,14 @@ final class Lz4Compression implements Compression {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to compress file: source=" + source + " target=" + target, e);
         } finally {
-            // A no-op on the way out of a successful publish, since the rename took the file
-            // with it. On any failure this is what keeps the scratch file from outliving the
-            // attempt that wrote it.
+            // A no-op after a successful rename; on failure it removes the partial scratch file
             removeScratch(scratch);
         }
     }
 
     /**
-     * Renames the finished archive onto its own name in one step, which on every filesystem the
-     * hub runs on is a single directory operation: a reader sees the old name or the new one and
-     * never a file in between.
-     *
-     * <p>A filesystem that cannot promise that much still gets the archive, because the
-     * alternative is refusing to compress on it at all. It is said out loud, once per file, since
-     * it is the one case where a reader can still see a partial archive.
+     * Renames the finished archive onto its name atomically; a filesystem without atomic moves
+     * still gets the archive, with a warning since a reader may then see it partial.
      */
     private static Path publish(Path scratch, Path target) throws IOException {
         try {
@@ -105,21 +85,9 @@ final class Lz4Compression implements Compression {
     }
 
     /**
-     * Where the archive is written before it has a name anyone reads. Beside the target rather
-     * than in a temp directory, so the rename that publishes it stays within one directory and
-     * therefore within one filesystem.
-     *
-     * <p>Unique per attempt, and that is load-bearing rather than tidy: the lock the compression
-     * job takes is held by one storage instance, and a storage instance is built per call, so two
-     * runs over the same session genuinely overlap. Sharing one scratch name, the second would
-     * write into the file the first is about to rename, and the rename would publish a half
-     * archive under a name that means "whole".
-     *
-     * <p>What this does not do is reclaim a scratch file left behind by a hub that was killed
-     * mid-compression. It is hidden, so nothing lists it and no quota counts it, and the session
-     * directory takes it along when the session goes; a sweep would have to tell a stale scratch
-     * file from one an overlapping run is writing this moment, which is exactly the distinction
-     * the unique name gives up on knowing.
+     * The scratch file: beside the target so the rename stays on one filesystem, and unique per
+     * attempt because two compression runs over one session can overlap. One left behind by a
+     * killed hub is hidden and goes with its session directory.
      */
     private static Path scratch(Path target) {
         String name = SCRATCH_PREFIX + target.getFileName() + SCRATCH_SEPARATOR + UUID.randomUUID() + SCRATCH_SUFFIX;

@@ -24,6 +24,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * A recording session as the hub lists it.
+ *
+ * @param heartbeatMissing the session ended because it sent no heartbeat within the hub's startup grace
+ * @param failed           the session finished without producing any data, as the hub judged it from the
+ *                         files on its volume; never set together with {@code heartbeatMissing}
+ */
 public record RecordingSession(
         String id,
         String name,
@@ -34,7 +41,8 @@ public record RecordingSession(
         Path absolutePath,
         List<RepositoryFile> files,
         boolean retained,
-        boolean heartbeatMissing) {
+        boolean heartbeatMissing,
+        boolean failed) {
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -45,7 +53,26 @@ public record RecordingSession(
     }
 
     /**
-     * A session that sent its heartbeat.
+     * A session the hub does not report as failed.
+     */
+    public RecordingSession(
+            String id,
+            String name,
+            String instanceId,
+            Instant createdAt,
+            Instant finishedAt,
+            RecordingStatus status,
+            Path absolutePath,
+            List<RepositoryFile> files,
+            boolean retained,
+            boolean heartbeatMissing) {
+
+        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, heartbeatMissing,
+                false);
+    }
+
+    /**
+     * A session that sent its heartbeat and is not failed.
      */
     public RecordingSession(
             String id,

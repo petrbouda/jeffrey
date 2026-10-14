@@ -22,25 +22,16 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.nio.file.Path;
 
-public class HubJeffreyDirs {
+/**
+ * The hub's home directory, the workspaces root and the default database under it.
+ */
+public record HubJeffreyDirs(Path homeDir) {
 
-    private static final String TMP_DIR = "temp";
-
-    private final Path homeDir;
-    private final Path tempDir;
-
-    public HubJeffreyDirs(Path homeDir) {
-        this(homeDir, homeDir.resolve(TMP_DIR));
-    }
-
-    public HubJeffreyDirs(Path homeDir, Path tempDir) {
-        this.homeDir = homeDir;
-        this.tempDir = tempDir;
-    }
+    private static final String DATABASE_FILE_NAME = "jeffrey-data.db";
+    private static final String WAL_SUFFIX = ".wal";
 
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
-        FileSystemUtils.removeAndCreateDirectories(tempDir);
         return homeDir;
     }
 
@@ -48,11 +39,12 @@ public class HubJeffreyDirs {
         return homeDir.resolve(JeffreyLayout.WORKSPACES_DIR);
     }
 
-    public Path homeDir() {
-        return homeDir;
+    /** The database used unless {@code jeffrey.hub.persistence.database.url} names another. */
+    public Path databaseFile() {
+        return homeDir.resolve(DATABASE_FILE_NAME);
     }
 
-    public Path temp() {
-        return tempDir;
+    public Path databaseWalFile() {
+        return homeDir.resolve(DATABASE_FILE_NAME + WAL_SUFFIX);
     }
 }

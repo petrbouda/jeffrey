@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 
 import java.util.List;
 
@@ -44,12 +43,16 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
             RecordingSessionFilter filter = ProtoMappers.sessionFilter(request.getFilter());
 
-            List<RecordingSession> sessions = repoManager.listRecordingSessions(SessionDetail.WITH_FILES, filter).stream()
+            // Narrowed to one instance, only that instance's directories are walked
+            var found = request.hasInstanceId()
+                    ? repoManager.listInstanceSessions(request.getInstanceId(), filter)
+                    : repoManager.listRecordingSessions(SessionDetail.WITH_FILES, filter);
+            List<RecordingSession> sessions = found.stream()
                     .map(ProtoMappers::session)
                     .toList();
 
-            LOG.debug("Listed sessions via gRPC: project_id={} filter={} count={}",
-                    request.getProjectId(), filter, sessions.size());
+            LOG.debug("Listed sessions via gRPC: project_id={} instance_id={} filter={} count={}",
+                    request.getProjectId(), request.getInstanceId(), filter, sessions.size());
 
             return ListSessionsResponse.newBuilder()
                     .addAllSessions(sessions)
@@ -75,20 +78,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     }
 
     @Override
-    public void getRepositoryStatistics(GetRepositoryStatisticsRequest request, StreamObserver<GetRepositoryStatisticsResponse> responseObserver) {
-        GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
-            RepositoryStatistics stats = repoManager.calculateRepositoryStatistics();
-
-            LOG.debug("Fetched repository statistics via gRPC: project_id={}", request.getProjectId());
-
-            return GetRepositoryStatisticsResponse.newBuilder()
-                    .setTotalSize(stats.totalSizeBytes())
-                    .build();
-        });
-    }
-
-    @Override
     public void deleteSession(DeleteSessionRequest request, StreamObserver<DeleteSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
@@ -97,19 +86,6 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             LOG.debug("Deleted session via gRPC: session_id={}", request.getSessionId());
 
             return DeleteSessionResponse.getDefaultInstance();
-        });
-    }
-
-    @Override
-    public void deleteFilesInSession(DeleteFilesInSessionRequest request, StreamObserver<DeleteFilesInSessionResponse> responseObserver) {
-        GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-            repoManager.deleteFilesInSession(request.getSessionId(), request.getFileIdsList());
-
-            LOG.debug("Deleted files in session via gRPC: session_id={} file_count={}",
-                    request.getSessionId(), request.getFileIdsCount());
-
-            return DeleteFilesInSessionResponse.getDefaultInstance();
         });
     }
 

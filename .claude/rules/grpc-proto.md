@@ -21,7 +21,7 @@ paths:
 
 ### Services (`jeffrey-hub/core-hub/.../grpc/`)
 - Map domain exceptions to status at the service boundary with `GrpcExceptions` (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`). Domain code never throws a gRPC status.
-- `GrpcExceptions.toStatus` belongs to `GrpcUnary`; a **streaming** RPC maps for itself (`FileDownloadGrpcService.downloadFile`: pass `StatusRuntimeException` through, `IllegalArgumentException` → `INVALID_ARGUMENT` with its own message, then `INTERNAL`).
+- `GrpcExceptions.toStatus` belongs to `GrpcUnary`; a **streaming** RPC maps for itself (`FileDownloadGrpcService.downloadFile`: a `FileLookup.Refused` → `INVALID_ARGUMENT` with its `reason()`, a `StatusRuntimeException` passes through, anything else is `INTERNAL`).
 
 ### Clients
 - Clients live in `jeffrey-microscope/grpc-client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/` (`DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `InstancesClient`, `ProjectsClient`). Add a new client to the record and its factory.

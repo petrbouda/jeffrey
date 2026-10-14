@@ -92,8 +92,8 @@ onMounted(() => {
       <h2 id="project-settings">Project Settings</h2>
       <p>
         The <strong>Settings</strong> tab is intentionally minimal: it lets you <strong>delete</strong> the
-        project (a confirmation step protects against accidents). A deleted project stays on its card in
-        the <strong>Hubs</strong> view with a <strong>Restore</strong> action until the hub removes it for good.
+        project (a confirmation step protects against accidents). Deleting is final: the hub removes the
+        project's rows and its directory on the workspace volume, and there is no restore.
       </p>
 
       <h2 id="creating-projects">Creating Projects</h2>

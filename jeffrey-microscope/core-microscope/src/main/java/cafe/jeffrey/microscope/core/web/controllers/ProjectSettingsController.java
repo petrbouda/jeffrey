@@ -43,7 +43,7 @@ public class ProjectSettingsController {
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         return ProjectSettingsResponse.create(pm.info());
     }
 
@@ -53,7 +53,7 @@ public class ProjectSettingsController {
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody ProjectSettingsUpdateRequest request) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         if (request.name() != null) {
             pm.updateName(request.name());
         }

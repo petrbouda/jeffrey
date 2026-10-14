@@ -23,7 +23,6 @@ import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import java.nio.file.Path;
 
@@ -37,7 +36,7 @@ class SessionPathsTest {
         @Test
         void usesDefaultWorkspacesPathWhenNull(@TempDir Path homeDir) {
             var jeffreyDirs = new HubJeffreyDirs(homeDir);
-            var repoInfo = new RepositoryInfo("repo-1", RepositoryType.JDK, null, "workspace-1", "project-1");
+            var repoInfo = new RepositoryInfo("repo-1", null, "workspace-1", "project-1");
             var sessionInfo = sessionInfo("session-2025");
 
             Path resolved = SessionPaths.resolve(jeffreyDirs, repoInfo, sessionInfo);
@@ -49,7 +48,7 @@ class SessionPathsTest {
         void usesCustomWorkspacesPathWhenProvided(@TempDir Path homeDir) {
             var jeffreyDirs = new HubJeffreyDirs(homeDir);
             var customPath = homeDir.resolve("custom/workspaces").toString();
-            var repoInfo = new RepositoryInfo("repo-1", RepositoryType.JDK, customPath, "workspace-1", "project-1");
+            var repoInfo = new RepositoryInfo("repo-1", customPath, "workspace-1", "project-1");
             var sessionInfo = sessionInfo("session-2025");
 
             Path resolved = SessionPaths.resolve(jeffreyDirs, repoInfo, sessionInfo);
@@ -60,7 +59,7 @@ class SessionPathsTest {
 
     private static ProjectInstanceSessionInfo sessionInfo(String relativeSessionPath) {
         return ProjectInstanceSessionInfo.notRetained(
-                "session-001", "repo-1", "instance-1", 0,
+                "session-001", "repo-1", "instance-1",
                 Path.of(relativeSessionPath), null, null, null);
     }
 }

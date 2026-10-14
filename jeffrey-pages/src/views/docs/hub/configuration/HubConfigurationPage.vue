@@ -115,11 +115,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
               Base directory for all Jeffrey Hub data. Env var: <code>JEFFREY_HUB_HOME_DIR</code>
             </td>
           </tr>
-          <tr>
-            <td><code>jeffrey.hub.temp.dir</code></td>
-            <td><code>${jeffrey.hub.home.dir}/temp</code></td>
-            <td>Directory for temporary files</td>
-          </tr>
         </tbody>
       </table>
 
@@ -252,8 +247,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           was down. It is create-only, so running it when nothing is missing changes nothing.
         </li>
         <li>
-          <code>storage-overview-refresher</code> — recomputes the storage figures immediately
-          instead of waiting out its period.
+          <code>project-retention</code> — runs a retention pass over every project now, deleting
+          what is due, and refreshes the storage figures instead of waiting out its period.
         </li>
       </ul>
 
@@ -329,56 +324,27 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             </td>
           </tr>
           <tr>
-            <td><code>temp-directory-cleaner</code></td>
+            <td><code>project-retention</code></td>
             <td><code>5m</code></td>
-            <td><code>retention=30m</code></td>
-            <td>Removes scratch entries leaked by crashed operations</td>
-          </tr>
-          <tr>
-            <td><code>deleted-projects-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td><code>retention=7d</code></td>
-            <td>Purges soft-deleted projects. Doubles as the window in which a deleted project can be restored.</td>
-          </tr>
-          <tr>
-            <td><code>storage-overview-refresher</code></td>
-            <td><code>5m</code></td>
-            <td>—</td>
             <td>
-              Recomputes the storage overview shown on the Workspaces dashboard into an in-memory
-              cache. The first tick runs at startup; the dashboard serves the cached snapshot and
-              offers a manual refresh.
-            </td>
-          </tr>
-          <tr>
-            <td><code>project-instance-session-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td>
-              <code>session-retention=7d</code> / <code>active-session-file-retention=7d</code> /
-              <code>max-sessions=10</code>
+              <code>session-retention=7d</code> / <code>max-sessions=10</code> /
+              <code>active-session-file-retention=7d</code> / <code>max-size=20G</code> /
+              <code>instance-retention=14d</code>
             </td>
             <td>
-              Deletes finished sessions older than <code>session-retention</code> (measured from the
-              session's start), trims the closed chunks older than
+              One pass per project over a single listing of its sessions, in this order: deletes
+              finished sessions older than <code>session-retention</code> (measured from the
+              session's start); caps each instance at <code>max-sessions</code> logical sessions —
+              a consecutive run of failed (0-byte) sessions counts as one, the live session occupies
+              a slot, retained sessions are exempt, and the oldest beyond the cap go even before the
+              window expires; trims closed chunks older than
               <code>active-session-file-retention</code> out of sessions still recording (the chunk
-              the profiler is writing is never touched), and caps each instance at
-              <code>max-sessions</code> logical sessions — a consecutive run of failed (0-byte)
-              sessions counts as one, the live session occupies a slot, retained sessions are
-              exempt. Oldest logical sessions beyond the cap are deleted even before the
-              retention window expires.
+              the profiler is writing is never touched); holds the project under
+              <code>max-size</code>, reclaiming oldest-first; and deletes EXPIRED instances and
+              abandoned PENDING instances older than <code>instance-retention</code>, with their
+              directories. What is left is the project's figure on the storage dashboard. The first
+              tick runs at startup.
             </td>
-          </tr>
-          <tr>
-            <td><code>project-storage-quota-cleaner</code></td>
-            <td><code>15m</code></td>
-            <td><code>max-size=20G</code></td>
-            <td>Caps total disk per project, reclaiming oldest-first</td>
-          </tr>
-          <tr>
-            <td><code>expired-instance-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td><code>retention=14d</code></td>
-            <td>Deletes EXPIRED instances and abandoned PENDING instances, including their directories on disk</td>
           </tr>
           <tr>
             <td><code>repository-jfr-compression</code></td>

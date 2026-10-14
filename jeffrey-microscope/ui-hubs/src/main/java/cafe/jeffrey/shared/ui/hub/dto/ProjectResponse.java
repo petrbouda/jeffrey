@@ -29,7 +29,5 @@ public record ProjectResponse(
         String workspaceId,
         RecordingStatus status,
         int sessionCount,
-        RecordingEventSource eventSource,
-        boolean isDeleted,
-        Long deletedAt) {
+        RecordingEventSource eventSource) {
 }

@@ -128,10 +128,7 @@ class JdbcWorkspacesRepositoryTest {
             WorkspaceInfo input = new WorkspaceInfo(
                     null, // ID will be generated
                     "new-workspace-ref",
-                    null,
                     "New Workspace",
-                    null,
-                    null,
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
                     0

@@ -33,5 +33,12 @@ public record HubClients(
 
     @FunctionalInterface
     public interface Factory extends Function<HubAddress, HubClients> {
+
+        /**
+         * Lets go of whatever the factory holds for this address. A no-op for a factory that
+         * holds nothing.
+         */
+        default void evict(HubAddress address) {
+        }
     }
 }

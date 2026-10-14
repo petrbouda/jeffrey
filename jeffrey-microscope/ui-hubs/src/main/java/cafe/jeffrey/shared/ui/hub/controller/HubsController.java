@@ -83,9 +83,11 @@ public class HubsController {
         // for an unreachable / misconfigured hub instead of a stored unusable pointer.
         try {
             DiscoveryClient.PublicApiInfo info = clientsFactory.apply(address).discovery().info();
-            LOG.debug("Verified hub reachability: address={} version={} apiVersion={}",
-                    address, info.version(), info.apiVersion());
+            LOG.debug("Verified hub reachability: address={} version={}", address, info.version());
         } catch (StatusRuntimeException e) {
+            // The probe opened a connection to an address that is not becoming a hub; holding it
+            // would keep a channel open to a mistyped address for the life of the process
+            clientsFactory.evict(address);
             String message = switch (e.getStatus().getCode()) {
                 case UNAVAILABLE -> "Cannot connect to %s:%d. Check that Jeffrey Hub is running and the gRPC port is correct."
                         .formatted(request.hostname(), request.port());

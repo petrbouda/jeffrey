@@ -97,7 +97,7 @@ class HubWorkspacesManagerTest {
 
         @Test
         void duplicateReferenceId_throwsAlreadyExists() {
-            WorkspaceInfo existing = new WorkspaceInfo("ws-internal-1", "dev-pb", null, "Existing", null, null, FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
+            WorkspaceInfo existing = new WorkspaceInfo("ws-internal-1", "dev-pb", "Existing", FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
             when(repository.findByReferenceId("dev-pb")).thenReturn(Optional.of(existing));
 
             var ex = assertThrows(WorkspaceAlreadyExistsException.class, () ->

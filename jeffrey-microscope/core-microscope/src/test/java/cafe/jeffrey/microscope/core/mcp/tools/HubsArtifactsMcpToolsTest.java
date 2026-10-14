@@ -20,9 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.McpTestProperties;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
@@ -167,13 +165,12 @@ class HubsArtifactsMcpToolsTest {
         ProjectManager project = mock(ProjectManager.class);
         when(project.repositoryManager()).thenReturn(repository);
         when(project.info()).thenReturn(new ProjectInfo(
-                PROJECT_ID, "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of(), null));
+                PROJECT_ID, "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(new HubInfo(
                 HUB_ID, "production", new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG));
         when(resolver.resolveHub(HUB_ID)).thenReturn(hub);
-        when(resolver.resolveStrict(HUB_ID, WORKSPACE_ID, PROJECT_ID)).thenReturn(
-                new ProjectManagerResolver.ProjectContext(mock(WorkspaceManager.class), mock(ProjectsManager.class), project));
+        when(resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID)).thenReturn(project);
         when(recordingsManager.listRecordings()).thenReturn(List.of());
     }
 

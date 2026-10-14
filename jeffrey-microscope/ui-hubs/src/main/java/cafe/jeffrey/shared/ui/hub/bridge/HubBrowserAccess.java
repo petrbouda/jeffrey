@@ -41,7 +41,7 @@ public interface HubBrowserAccess {
 
     void deleteWorkspace(String hubId, String workspaceId);
 
-    List<ProjectResponse> projects(String hubId, String workspaceId, boolean includeDeleted);
+    List<ProjectResponse> projects(String hubId, String workspaceId);
 
     ProjectResponse project(String hubId, String workspaceId, String projectId);
 }

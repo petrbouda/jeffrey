@@ -21,6 +21,7 @@ import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
@@ -45,11 +46,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,7 +60,11 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class ProjectInstanceSessionCleanerJobTest {
+/**
+ * The session rules of a retention pass: the age windows, the per-instance cap and the trim of
+ * live sessions. The disk budget is far above anything here, so the quota never acts.
+ */
+class ProjectRetentionJobSessionsTest {
 
     private static final Instant NOW = Instant.parse("2026-02-20T12:00:00Z");
     private static final Duration RETENTION = Duration.ofDays(7);
@@ -88,12 +91,15 @@ class ProjectInstanceSessionCleanerJobTest {
     @Mock
     ProjectInstanceRepository instanceRepository;
 
-    private ProjectInstanceSessionCleanerJob job;
+    @Mock
+    StorageOverviewCache storageOverview;
+
+    private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", null, "ws-1", NOW, NOW, Map.of(), null);
+                "proj-1", null, "my-project", "ws-1", NOW, NOW, Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -104,26 +110,28 @@ class ProjectInstanceSessionCleanerJobTest {
         job = job(MAX_SESSIONS);
     }
 
-    private ProjectInstanceSessionCleanerJob job(int maxSessions) {
+    private ProjectRetentionJob job(int maxSessions) {
         return job(RETENTION, RETENTION, maxSessions);
     }
 
-    private ProjectInstanceSessionCleanerJob job(
+    private ProjectRetentionJob job(
             Duration sessionRetention, Duration activeSessionFileRetention, int maxSessions) {
 
-        JobConfig config = new JobConfig(true, Duration.ofHours(1), Map.of(
+        JobConfig config = new JobConfig(true, Duration.ofMinutes(5), Map.of(
                 "session-retention", sessionRetention.toDays() + "d",
                 "active-session-file-retention", activeSessionFileRetention.toDays() + "d",
-                "max-sessions", Integer.toString(maxSessions)));
-        return new ProjectInstanceSessionCleanerJob(workspacesManager, config, Clock.fixed(NOW, ZoneOffset.UTC));
+                "max-sessions", Integer.toString(maxSessions),
+                "max-size", "1T",
+                "instance-retention", "14d"));
+        return new ProjectRetentionJob(workspacesManager, config, storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private void execute() {
-        job.executeOnRepository(projectManager, storage);
+        job.retain(projectManager);
     }
 
     private void execute(int maxSessions) {
-        job(maxSessions).executeOnRepository(projectManager, storage);
+        job(maxSessions).retain(projectManager);
     }
 
     private static ProjectInstanceInfo instance(ProjectInstanceStatus status) {
@@ -240,7 +248,7 @@ class ProjectInstanceSessionCleanerJobTest {
                     realSession("newer-finished", NOW.minus(AGE.plusDays(1))),
                     realSession("older-finished", NOW.minus(AGE.plusDays(2)))));
 
-            job(LONG, SHORT, MAX_SESSIONS).executeOnRepository(projectManager, storage);
+            job(LONG, SHORT, MAX_SESSIONS).retain(projectManager);
 
             verify(storage).deleteRepositoryFiles("live", List.of("old"));
             verify(repositoryManager, never()).deleteRecordingSession(anyString());
@@ -255,7 +263,7 @@ class ProjectInstanceSessionCleanerJobTest {
                     realSession("newer-finished", NOW.minus(AGE.plusDays(1))),
                     realSession("older-finished", NOW.minus(AGE.plusDays(2)))));
 
-            job(SHORT, LONG, MAX_SESSIONS).executeOnRepository(projectManager, storage);
+            job(SHORT, LONG, MAX_SESSIONS).retain(projectManager);
 
             // newer-finished is the keep-newest slot of the live instance; only the older one goes
             assertEquals(List.of("older-finished"), deletedSessionIds());

@@ -69,8 +69,6 @@ public class HubAppConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(HubAppConfiguration.class);
 
     private static final String DUCKDB_URL_PREFIX = "jdbc:duckdb:";
-    /** Also the file {@code HubStorageManager} measures for the storage dashboard. */
-    private static final String DATABASE_FILE_NAME = "jeffrey-data.db";
 
     @Bean
     public Clock applicationClock() {
@@ -84,7 +82,7 @@ public class HubAppConfiguration {
             Clock clock) {
 
         String resolvedUrl = StringUtils.isNullOrBlank(databaseUrl)
-                ? DUCKDB_URL_PREFIX + jeffreyDirs.homeDir().resolve(DATABASE_FILE_NAME)
+                ? DUCKDB_URL_PREFIX + jeffreyDirs.databaseFile()
                 : databaseUrl;
 
         return new DuckDBHubPersistenceProvider(resolvedUrl, clock);
@@ -111,17 +109,10 @@ public class HubAppConfiguration {
     }
 
     @Bean
-    public HubJeffreyDirs jeffreyDir(
-            @Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey-hub}") String homeDir,
-            @Value("${jeffrey.hub.temp.dir:}") String tempDir) {
-
-        Path homeDirPath = Path.of(homeDir);
-        HubJeffreyDirs jeffreyDirs = StringUtils.isNullOrBlank(tempDir)
-                ? new HubJeffreyDirs(homeDirPath)
-                : new HubJeffreyDirs(homeDirPath, Path.of(tempDir));
-
+    public HubJeffreyDirs jeffreyDir(@Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey-hub}") String homeDir) {
+        HubJeffreyDirs jeffreyDirs = new HubJeffreyDirs(Path.of(homeDir));
         jeffreyDirs.initialize();
-        LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
+        LOG.info("Using Jeffrey directory: HOME={}", jeffreyDirs.homeDir());
         return jeffreyDirs;
     }
 

@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
@@ -41,34 +40,23 @@ public class ProjectManagerResolver {
                 .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
     }
 
+    /**
+     * Resolves a workspace of a hub. A hub that cannot be reached surfaces as its gRPC failure —
+     * reported as the hub being unavailable — never as a workspace that is not there.
+     */
     public WorkspaceManager resolveWorkspace(String hubId, String workspaceId) {
-        return resolveHub(hubId).workspace(workspaceId)
+        return resolveHub(hubId).workspaceOrThrow(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
-    }
-
-    public ProjectContext resolve(String hubId, String workspaceId, String projectId) {
-        WorkspaceManager workspace = resolveWorkspace(hubId, workspaceId);
-        ProjectsManager projectsManager = workspace.projectsManager();
-        ProjectManager projectManager = projectsManager.project(projectId)
-                .orElseThrow(() -> Exceptions.projectNotFound(projectId));
-        return new ProjectContext(workspace, projectsManager, projectManager);
     }
 
     /**
-     * Resolves a remote project without hiding an unavailable hub behind a not-found result.
+     * Resolves a project of a hub's workspace in one GetProject call: the hub checks that the
+     * workspace holds the project and answers with all the manager needs. Not found means the
+     * hub said so, whether of the workspace or the project; an unreachable hub is reported as
+     * unavailable.
      */
-    public ProjectContext resolveStrict(String hubId, String workspaceId, String projectId) {
-        WorkspaceManager workspace = resolveHub(hubId).workspaceOrThrow(workspaceId)
-                .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
-        ProjectsManager projectsManager = workspace.projectsManager();
-        ProjectManager projectManager = projectsManager.projectOrThrow(projectId)
+    public ProjectManager resolve(String hubId, String workspaceId, String projectId) {
+        return resolveHub(hubId).projectOrThrow(workspaceId, projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));
-        return new ProjectContext(workspace, projectsManager, projectManager);
-    }
-
-    public record ProjectContext(
-            WorkspaceManager workspace,
-            ProjectsManager projectsManager,
-            ProjectManager projectManager) {
     }
 }

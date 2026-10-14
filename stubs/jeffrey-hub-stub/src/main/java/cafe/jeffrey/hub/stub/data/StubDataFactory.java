@@ -65,11 +65,11 @@ public class StubDataFactory {
         String workspaceId = "ws-production";
         String referenceId = "production";
 
-        Project checkout = project(workspaceId, "proj-checkout", "checkout-service", "payments", now, List.of(
+        Project checkout = project(workspaceId, "proj-checkout", "checkout-service", now, List.of(
                 finishedInstance("inst-checkout-blue", "checkout-service@blue", now, Duration.ofHours(6), 2),
                 activeInstance("inst-checkout-green", "checkout-service@green", now, Duration.ofMinutes(40))));
 
-        Project inventory = project(workspaceId, "proj-inventory", "inventory-service", "warehouse", now, List.of(
+        Project inventory = project(workspaceId, "proj-inventory", "inventory-service", now, List.of(
                 finishedInstance("inst-inventory-1", "inventory-service@1", now, Duration.ofHours(30), 3),
                 expiredInstance("inst-inventory-old", "inventory-service@old", now, Duration.ofDays(9))));
 
@@ -82,7 +82,7 @@ public class StubDataFactory {
         String workspaceId = "ws-staging";
         String referenceId = "staging";
 
-        Project gateway = project(workspaceId, "proj-gateway", "api-gateway", null, now, List.of(
+        Project gateway = project(workspaceId, "proj-gateway", "api-gateway", now, List.of(
                 activeInstance("inst-gateway-1", "api-gateway@1", now, Duration.ofMinutes(12))));
 
         List<Project> projects = List.of(gateway);
@@ -94,25 +94,19 @@ public class StubDataFactory {
         String workspaceId = "ws-development";
         String referenceId = "development";
 
-        Project sandbox = project(workspaceId, "proj-sandbox", "sandbox-app", "experiments", now, List.of(
+        Project sandbox = project(workspaceId, "proj-sandbox", "sandbox-app", now, List.of(
                 finishedInstance("inst-sandbox-1", "sandbox-app@1", now, Duration.ofHours(2), 1),
                 pendingInstance("inst-sandbox-2", "sandbox-app@2", now)));
 
-        Project deleted = new Project("proj-legacy", "origin-legacy", "legacy-batch", null,
-                minus(now, Duration.ofDays(60)), workspaceId, RecState.FINISHED,
-                minus(now, Duration.ofDays(3)), List.of());
-
-        List<Project> projects = List.of(sandbox, deleted);
+        List<Project> projects = List.of(sandbox);
         return new Workspace(workspaceId, "Development", referenceId,
                 minus(now, Duration.ofDays(60)), projects);
     }
 
-    private Project project(String workspaceId, String id, String name, String namespace,
-                            Instant now, List<Instance> instances) {
+    private Project project(String workspaceId, String id, String name, Instant now, List<Instance> instances) {
         boolean anyActive = instances.stream().anyMatch(instance -> instance.status() == InstState.ACTIVE);
-        return new Project(id, "origin-" + id, name, namespace,
-                minus(now, Duration.ofDays(40)), workspaceId,
-                anyActive ? RecState.ACTIVE : RecState.FINISHED, null, instances);
+        return new Project(id, name, minus(now, Duration.ofDays(40)), workspaceId,
+                anyActive ? RecState.ACTIVE : RecState.FINISHED, instances);
     }
 
     private Instance activeInstance(String id, String name, Instant now, Duration startedAgo) {

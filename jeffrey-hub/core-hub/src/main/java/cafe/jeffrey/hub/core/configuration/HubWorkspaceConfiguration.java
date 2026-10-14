@@ -54,15 +54,13 @@ public class HubWorkspaceConfiguration {
 
     @Bean
     public WorkspaceManager.Factory workspaceManagerFactory(
-            Clock applicationClock,
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             ProjectsManager.Factory projectsManagerFactory) {
 
         return workspaceInfo -> {
             WorkspaceRepository workspaceRepository = platformRepositories.newWorkspaceRepository(workspaceInfo.id());
-            return new HubWorkspaceManager(
-                    applicationClock, jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
+            return new HubWorkspaceManager(jeffreyDirs, workspaceInfo, workspaceRepository, projectsManagerFactory);
         };
     }
 

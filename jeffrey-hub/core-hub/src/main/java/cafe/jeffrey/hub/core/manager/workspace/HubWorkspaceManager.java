@@ -25,30 +25,25 @@ import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceLocation;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 import java.nio.file.Path;
-import java.time.Clock;
 
 public class HubWorkspaceManager implements WorkspaceManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubWorkspaceManager.class);
 
-    private final Clock clock;
     private final HubJeffreyDirs jeffreyDirs;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
     private final ProjectsManager.Factory projectsManagerFactory;
 
     public HubWorkspaceManager(
-            Clock clock,
             HubJeffreyDirs jeffreyDirs,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
             ProjectsManager.Factory projectsManagerFactory) {
 
-        this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
@@ -62,18 +57,9 @@ public class HubWorkspaceManager implements WorkspaceManager {
 
     @Override
     public WorkspaceInfo resolveInfo() {
-        /*
-         * For regular workspaces, if the location is not set, we default it to a path under the home directory.
-         * - this ensures the possibility to download workspaces without location set and copy them to local home dir.
-         * - these workspaces are automatically created
-         */
-        WorkspaceInfo workspaceInfo = this.workspaceInfo;
-        if (workspaceInfo.location() == null) {
-            Path location = jeffreyDirs.workspaces().resolve(workspaceInfo.repositoryId());
-            workspaceInfo = workspaceInfo.withLocation(WorkspaceLocation.of(location));
-        }
-
-        WorkspaceStatus workspaceStatus = FileSystemUtils.isDirectory(workspaceInfo.location().toPath())
+        // A workspace's directory is named by its reference id, under the hub's workspaces root
+        Path directory = jeffreyDirs.workspaces().resolve(workspaceInfo.referenceId());
+        WorkspaceStatus workspaceStatus = FileSystemUtils.isDirectory(directory)
                 ? WorkspaceStatus.AVAILABLE
                 : WorkspaceStatus.UNAVAILABLE;
 

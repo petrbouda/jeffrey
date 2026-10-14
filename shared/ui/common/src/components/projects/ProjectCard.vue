@@ -16,18 +16,10 @@
   -->
 
 <template>
-  <div class="project-card-compact" :class="getBorderClass" @click="handleClick">
+  <div class="project-card-compact border-default" @click="handleClick">
     <!-- Project Name Row -->
     <div class="name-row">
       <span class="project-name">{{ project.name }}</span>
-      <button
-        v-if="project.isDeleted"
-        class="restore-btn"
-        title="Restore project"
-        @click.stop="$emit('restore', project.id)"
-      >
-        <i class="bi bi-arrow-counterclockwise"></i>
-      </button>
     </div>
 
     <!-- Footer Row: Date + Sessions on the left, Status/Alerts on the right -->
@@ -40,9 +32,8 @@
         </span>
       </div>
       <div class="badges">
-        <Badge v-if="project.isDeleted" value="Deleted" variant="grey" size="xs" />
         <Badge
-          v-else-if="project.status"
+          v-if="project.status"
           :value="formatStatus(project.status)"
           :variant="getStatusVariant"
           size="xs"
@@ -65,24 +56,15 @@ const props = defineProps<{
   workspaceId: string;
 }>();
 
-// Navigation is delegated to the host app (route shapes differ per deployment): clicking a live
+// Navigation is delegated to the host app (route shapes differ per deployment): clicking a
 // project emits `open` with the identifiers, and the parent decides how to navigate.
 const emit = defineEmits<{
-  restore: [projectId: string];
   open: [target: { hubId: string; projectId: string; workspaceId: string }];
 }>();
 
 const handleClick = () => {
-  if (!props.project.isDeleted) {
-    emit('open', { hubId: props.hubId, projectId: props.project.id, workspaceId: props.workspaceId });
-  }
+  emit('open', { hubId: props.hubId, projectId: props.project.id, workspaceId: props.workspaceId });
 };
-
-// Border color class
-const getBorderClass = computed(() => {
-  if (props.project.isDeleted) {return 'border-deleted';}
-  return 'border-default';
-});
 
 // Status badge variant
 const getStatusVariant = computed((): Variant => {
@@ -140,19 +122,6 @@ const formatStatus = (status: RecordingStatus): string => {
   border-left-color: var(--color-primary);
 }
 
-.border-deleted {
-  border-left-color: var(--color-text-light);
-  opacity: 0.65;
-  cursor: default;
-}
-
-.border-deleted:hover {
-  transform: none;
-  box-shadow: none;
-  border-color: var(--color-border);
-  border-left-color: var(--color-text-light);
-}
-
 /* Name Row */
 .name-row {
   display: flex;
@@ -172,29 +141,6 @@ const formatStatus = (status: RecordingStatus): string => {
   white-space: nowrap;
   flex: 1;
   min-width: 0;
-}
-
-/* Restore Button */
-.restore-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-white);
-  color: var(--color-text-light);
-  cursor: pointer;
-  font-size: 0.8rem;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.restore-btn:hover {
-  background: var(--color-success-bg);
-  border-color: var(--color-emerald);
-  color: var(--color-emerald);
 }
 
 /* Footer Row */

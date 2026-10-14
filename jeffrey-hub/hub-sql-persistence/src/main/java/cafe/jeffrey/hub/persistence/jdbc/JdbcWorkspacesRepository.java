@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceLocation;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
@@ -37,23 +36,23 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
 
     //language=SQL
     private static final String SELECT_ALL_WORKSPACES = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
             FROM workspaces w""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_ID = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
             FROM workspaces w WHERE w.workspace_id = :workspace_id""";
 
     //language=SQL
     private static final String SELECT_WORKSPACE_BY_REFERENCE_ID = """
-            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id AND p.deleted_at IS NULL) as project_count
+            SELECT w.*, (SELECT COUNT(*) FROM projects p WHERE p.workspace_id = w.workspace_id) as project_count
             FROM workspaces w WHERE w.reference_id = :reference_id""";
 
     //language=SQL
     private static final String INSERT_WORKSPACE = """
-            INSERT INTO workspaces (workspace_id, reference_id, repository_id, name, location, base_location, created_at)
-            VALUES (:workspace_id, :reference_id, :repository_id, :name, :location, :base_location, :created_at)""";
+            INSERT INTO workspaces (workspace_id, reference_id, name, created_at)
+            VALUES (:workspace_id, :reference_id, :name, :created_at)""";
 
     //language=SQL
     private static final String CHECK_NAME_EXISTS =
@@ -104,10 +103,7 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("workspace_id", newWorkspaceInfo.id())
                 .addValue("reference_id", newWorkspaceInfo.referenceId())
-                .addValue("repository_id", newWorkspaceInfo.repositoryId())
                 .addValue("name", newWorkspaceInfo.name())
-                .addValue("location", newWorkspaceInfo.location() != null ? newWorkspaceInfo.location().toString() : null)
-                .addValue("base_location", newWorkspaceInfo.baseLocation() != null ? newWorkspaceInfo.baseLocation().toString() : null)
                 .addValue("created_at", newWorkspaceInfo.createdAt().atOffset(ZoneOffset.UTC));
 
         databaseClient.update(StatementLabel.INSERT_WORKSPACE, INSERT_WORKSPACE, paramSource);
@@ -130,21 +126,12 @@ public class JdbcWorkspacesRepository implements WorkspacesRepository {
     }
 
     private static RowMapper<WorkspaceInfo> workspaceMapper() {
-        return (rs, _) -> {
-            String location = rs.getString("location");
-            String baseLocation = rs.getString("base_location");
-
-            return new WorkspaceInfo(
-                    rs.getString("workspace_id"),
-                    rs.getString("reference_id"),
-                    rs.getString("repository_id"),
-                    rs.getString("name"),
-                    location != null ? WorkspaceLocation.of(location) : null,
-                    baseLocation != null ? WorkspaceLocation.of(baseLocation) : null,
-                    HubMappers.instant(rs, "created_at"),
-                    WorkspaceStatus.UNKNOWN,
-                    rs.getInt("project_count")
-            );
-        };
+        return (rs, _) -> new WorkspaceInfo(
+                rs.getString("workspace_id"),
+                rs.getString("reference_id"),
+                rs.getString("name"),
+                HubMappers.instant(rs, "created_at"),
+                WorkspaceStatus.UNKNOWN,
+                rs.getInt("project_count"));
     }
 }

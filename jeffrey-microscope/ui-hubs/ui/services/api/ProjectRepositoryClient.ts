@@ -18,7 +18,6 @@
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import HttpUtils from '@shared/services/HttpUtils';
 import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
-import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 import RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics.ts';
 
 export default class ProjectRepositoryClient extends BasePlatformClient {
@@ -34,40 +33,12 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     return super.get<RepositoryStatistics>('/statistics');
   }
 
-  copyRecordingSession(recordingSession: RecordingSession): Promise<void> {
-    const content = {
-      sessionId: recordingSession.id
-    };
-
-    return super.post<void>('/sessions/download', content);
-  }
-
   deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
     return super.del<void>('/sessions/' + recordingSession.id);
   }
 
   setSessionRetained(sessionId: string, retained: boolean): Promise<void> {
     return super.post<void>('/sessions/' + sessionId + '/retained', { retained: retained });
-  }
-
-  copySelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
-    const ids: string[] = files.map(it => it.id);
-    const content = {
-      sessionId: sessionId,
-      recordingIds: ids
-    };
-
-    return super.post<void>('/recordings/download', content);
-  }
-
-  deleteSelectedRepositoryFile(sessionId: string, files: RepositoryFile[]): Promise<void> {
-    const ids: string[] = files.map(it => it.id);
-    const content = {
-      sessionId: sessionId,
-      recordingIds: ids
-    };
-
-    return super.post<void>('/recordings/delete', content);
   }
 
   async downloadFile(sessionId: string, fileId: string): Promise<void> {

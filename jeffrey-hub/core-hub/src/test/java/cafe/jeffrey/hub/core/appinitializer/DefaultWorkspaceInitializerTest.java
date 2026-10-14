@@ -61,8 +61,7 @@ class DefaultWorkspaceInitializerTest {
         void createsDefaultWorkspaceWithConfiguredReferenceIdAndName() {
             when(workspacesManager.findByReferenceId("$default")).thenReturn(Optional.empty());
             when(workspacesManager.create(any())).thenReturn(
-                    new WorkspaceInfo("internal-id", "$default", "$default", "$default",
-                            null, null, Instant.parse("2026-01-01T00:00:00Z"),
+                    new WorkspaceInfo("internal-id", "$default", "$default", Instant.parse("2026-01-01T00:00:00Z"),
                             WorkspaceStatus.UNKNOWN, 0));
 
             DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
@@ -84,8 +83,7 @@ class DefaultWorkspaceInitializerTest {
 
             when(workspacesManager.findByReferenceId("$prod")).thenReturn(Optional.empty());
             when(workspacesManager.create(any())).thenReturn(
-                    new WorkspaceInfo("internal-id", "$prod", "$prod", "$prod",
-                            null, null, Instant.parse("2026-01-01T00:00:00Z"),
+                    new WorkspaceInfo("internal-id", "$prod", "$prod", Instant.parse("2026-01-01T00:00:00Z"),
                             WorkspaceStatus.UNKNOWN, 0));
 
             DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(

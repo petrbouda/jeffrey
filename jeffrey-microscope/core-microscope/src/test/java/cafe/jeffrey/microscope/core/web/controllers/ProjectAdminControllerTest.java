@@ -23,10 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver.ProjectContext;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 
@@ -34,6 +31,7 @@ import java.time.Instant;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -44,26 +42,21 @@ class ProjectAdminControllerTest {
     ProjectManagerResolver resolver;
 
     @Mock
-    WorkspaceManager workspaceManager;
-
-    @Mock
-    ProjectsManager projectsManager;
-
-    @Mock
     ProjectManager projectManager;
 
     @Test
-    void restoreInvokesManager() {
+    void deleteInvokesManager() {
         when(resolver.resolve("srv-1", "ws-1", "p-1"))
-                .thenReturn(new ProjectContext(workspaceManager, projectsManager, projectManager));
+                .thenReturn(projectManager);
         when(projectManager.info()).thenReturn(new ProjectInfo(
                 "p-1", "p-1", "demo", "demo", "ws-1",
-                Instant.EPOCH, Instant.EPOCH, Map.of(), null));
+                Instant.EPOCH, Instant.EPOCH, Map.of()));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectAdminController(resolver));
 
-        assertThat(mvc.post().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/restore"))
+        assertThat(mvc.delete().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1"))
                 .hasStatusOk();
+        verify(projectManager).delete();
     }
 
     @Test

@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
 import cafe.jeffrey.shared.ui.hub.dto.ProjectResponse;
@@ -50,10 +49,9 @@ public class WorkspaceProjectsController {
     @GetMapping
     public List<ProjectResponse> projects(
             @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @RequestParam(value = "includeDeleted", defaultValue = "false") boolean includeDeleted) {
-        List<ProjectResponse> result = access.projects(hubId, workspaceId, includeDeleted);
-        LOG.debug("Listed projects: workspaceId={} includeDeleted={} count={}", workspaceId, includeDeleted, result.size());
+            @PathVariable("workspaceId") String workspaceId) {
+        List<ProjectResponse> result = access.projects(hubId, workspaceId);
+        LOG.debug("Listed projects: workspaceId={} count={}", workspaceId, result.size());
         return result;
     }
 }

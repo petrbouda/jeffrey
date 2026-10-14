@@ -40,8 +40,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     // rather than a second row — which it silently was while the id was generated here
     //language=sql
     private static final String INSERT_REPOSITORY = """
-            INSERT INTO repositories (project_id, repository_id, repository_type, workspaces_path, relative_workspace_path, relative_project_path)
-            VALUES (:project_id, :repository_id, :repository_type, :workspaces_path, :relative_workspace_path, :relative_project_path)
+            INSERT INTO repositories (project_id, repository_id, workspaces_path, relative_workspace_path, relative_project_path)
+            VALUES (:project_id, :repository_id, :workspaces_path, :relative_workspace_path, :relative_project_path)
             ON CONFLICT DO NOTHING""";
 
     //language=sql
@@ -57,8 +57,8 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
     //language=SQL
     private static final String INSERT_REPOSITORY_SESSION = """
             INSERT INTO project_instance_sessions
-            (session_id, repository_id, instance_id, session_order, relative_session_path, origin_created_at, created_at)
-            VALUES (:session_id, :repository_id, :instance_id, :session_order, :relative_session_path, :origin_created_at, :created_at)
+            (session_id, repository_id, instance_id, relative_session_path, origin_created_at, created_at)
+            VALUES (:session_id, :repository_id, :instance_id, :relative_session_path, :origin_created_at, :created_at)
             ON CONFLICT DO NOTHING""";
 
     //language=SQL
@@ -142,7 +142,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
         SqlParameterSource params = new MapSqlParameterSource()
                 .addValue("project_id", projectId)
                 .addValue("repository_id", repositoryInfo.id())
-                .addValue("repository_type", repositoryInfo.repositoryType().name())
                 .addValue("workspaces_path", repositoryInfo.workspacesPath())
                 .addValue("relative_workspace_path", repositoryInfo.relativeWorkspacePath())
                 .addValue("relative_project_path", repositoryInfo.relativeProjectPath());
@@ -182,7 +181,6 @@ public class JdbcProjectRepositoryRepository implements ProjectRepositoryReposit
                 .addValue("session_id", session.sessionId())
                 .addValue("repository_id", session.repositoryId())
                 .addValue("instance_id", session.instanceId())
-                .addValue("session_order", session.order())
                 .addValue("relative_session_path", session.relativeSessionPath().toString())
                 .addValue("origin_created_at", session.originCreatedAt().atOffset(ZoneOffset.UTC))
                 .addValue("created_at", clock.instant().atOffset(ZoneOffset.UTC));

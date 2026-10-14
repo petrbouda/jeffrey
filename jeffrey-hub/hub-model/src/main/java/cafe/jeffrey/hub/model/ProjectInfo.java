@@ -24,10 +24,8 @@ public record ProjectInfo(
         String id,
         String originId,
         String name,
-        String namespace,
         String workspaceId,
         Instant createdAt,
         Instant originCreatedAt,
-        Map<String, String> attributes,
-        Instant deletedAt) {
+        Map<String, String> attributes) {
 }

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.project.repository.FileVanishedException;
+import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
@@ -34,7 +34,6 @@ import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.repository.StreamedFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -49,8 +48,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FileDownloadGrpcServiceTest {
@@ -75,11 +75,7 @@ class FileDownloadGrpcServiceTest {
     }
 
 
-    /**
-     * One RPC for every kind of file. There were two — one for recordings, one for artifacts —
-     * and they differed only in the word in their refusal, so the pair of near-identical nested
-     * classes that used to be here are one too.
-     */
+    /** One RPC for every kind of file. */
     @Nested
     class DownloadFile {
 
@@ -99,27 +95,19 @@ class FileDownloadGrpcServiceTest {
             assertStreams(tempDir, "recording.jfr", "JFR recording file content for testing");
         }
 
-        /**
-         * The same call, an artifact rather than a chunk. What the kind decides is what the
-         * reader does with the bytes, not which door they come through.
-         */
+        /** The same call, an artifact rather than a chunk. */
         @Test
         void streamsAnArtifactThroughTheSameCall(@TempDir Path tempDir) throws Exception {
             assertStreams(tempDir, "heapdump.hprof", "heap dump artifact content");
         }
 
-        /**
-         * A file with no bytes still has to say what it is. Without the header chunk the reader
-         * is handed a stream with no name and no size, and has to fall back on what it asked
-         * for — which is the very thing the name on the wire exists to replace.
-         */
+        /** A file with no bytes still sends one header chunk carrying its name and size. */
         @Test
         void anEmptyFileStillArrivesAsOneChunkThatNamesIt(@TempDir Path tempDir) throws Exception {
             Path empty = Files.createFile(tempDir.resolve("service-app.log"));
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamFile(SESSION_ID, FILE_ID))
-                    .thenReturn(new StreamedFile("service-app.log", empty));
+            when(repoManager.file(SESSION_ID, FILE_ID)).thenReturn(new FileLookup.Found(empty));
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
@@ -139,8 +127,7 @@ class FileDownloadGrpcServiceTest {
             Path tempFile = Files.write(tempDir.resolve(filename), content);
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamFile(SESSION_ID, FILE_ID))
-                    .thenReturn(new StreamedFile(filename, tempFile));
+            when(repoManager.file(SESSION_ID, FILE_ID)).thenReturn(new FileLookup.Found(tempFile));
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
@@ -158,16 +145,14 @@ class FileDownloadGrpcServiceTest {
         }
 
         /**
-         * What the lookup refuses is a statement about what was asked for, not a hub failure.
-         * Reported as INTERNAL it reached the caller as {@code REMOTE_OPERATION_FAILED} — the
-         * same thing an unreachable hub gives — with a stack trace in the hub's log for every
-         * mistyped id.
+         * A refusal is about what was asked for, not a hub failure: INVALID_ARGUMENT carrying the
+         * refusal's own reason, not INTERNAL (which reads like an unreachable hub).
          */
         @Test
-        void aRefusalIsReportedAsAnInvalidArgument() throws Exception {
+        void aRefusalIsReportedAsAnInvalidArgumentWithItsReason() throws Exception {
+            FileLookup.Refused empty = new FileLookup.EmptyRecording("profile-1.jfr");
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamFile(SESSION_ID, FILE_ID))
-                    .thenThrow(new IllegalArgumentException("Recording profile-1.jfr is empty"));
+            when(repoManager.file(SESSION_ID, FILE_ID)).thenReturn(empty);
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
@@ -176,15 +161,14 @@ class FileDownloadGrpcServiceTest {
 
             assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
             assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
-            assertEquals("Recording profile-1.jfr is empty",
-                    Status.fromThrowable(observer.error).getDescription(),
-                    "and the reason travels with it, since it is the whole use of refusing by reason");
+            assertEquals(empty.reason(), Status.fromThrowable(observer.error).getDescription());
+            verify(repoManager, times(1)).file(SESSION_ID, FILE_ID);
         }
 
         /**
-         * The compression job publishes the archive and removes the recording between the
-         * listing and the open. The id survives that rewrite, so the same id is resolved once
-         * more — and what comes back is the archive, under the archive's name.
+         * The compression job replaced the recording with its archive between the listing and the
+         * lookup. The id survives that, so it is looked up once more and the archive is served
+         * under its own name.
          */
         @Test
         void resolvesTheIdAgainWhenTheFileWasReplacedUnderIt(@TempDir Path tempDir) throws Exception {
@@ -192,9 +176,9 @@ class FileDownloadGrpcServiceTest {
             Path archive = Files.write(tempDir.resolve("profile-1.jfr.lz4"), archived);
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamFile(SESSION_ID, FILE_ID))
-                    .thenThrow(new FileVanishedException("File profile-1.jfr was listed but is no longer on disk"))
-                    .thenReturn(new StreamedFile("profile-1.jfr.lz4", archive));
+            when(repoManager.file(SESSION_ID, FILE_ID))
+                    .thenReturn(new FileLookup.Vanished(SESSION_ID, "profile-1.jfr"))
+                    .thenReturn(new FileLookup.Found(archive));
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
@@ -207,11 +191,7 @@ class FileDownloadGrpcServiceTest {
             assertArrayEquals(archived, reassemble(observer.chunks));
         }
 
-        /**
-         * The same race caught one step later: the listing still named the recording, and it was
-         * gone by the time the file was opened. Nothing has been sent at that point, so the
-         * second answer can still be streamed in full.
-         */
+        /** The same race caught at the open: the lookup found the recording, gone by the time it was opened. */
         @Test
         void resolvesTheIdAgainWhenTheFileIsGoneByTheTimeItIsOpened(@TempDir Path tempDir) throws Exception {
             byte[] archived = "the archive of that chunk".getBytes();
@@ -219,9 +199,9 @@ class FileDownloadGrpcServiceTest {
             Path removed = tempDir.resolve("profile-1.jfr");
 
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamFile(SESSION_ID, FILE_ID))
-                    .thenReturn(new StreamedFile("profile-1.jfr", removed))
-                    .thenReturn(new StreamedFile("profile-1.jfr.lz4", archive));
+            when(repoManager.file(SESSION_ID, FILE_ID))
+                    .thenReturn(new FileLookup.Found(removed))
+                    .thenReturn(new FileLookup.Found(archive));
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
@@ -234,15 +214,12 @@ class FileDownloadGrpcServiceTest {
             assertArrayEquals(archived, reassemble(observer.chunks));
         }
 
-        /**
-         * Once, and once only. A second miss is not a rewrite in flight but a file that is
-         * genuinely not there, and retrying it again would turn one missing file into a loop.
-         */
+        /** Once only: a second miss is a file that is genuinely not there. */
         @Test
         void butOnlyOnce() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.streamFile(SESSION_ID, FILE_ID))
-                    .thenThrow(new FileVanishedException("File profile-1.jfr is no longer on disk"));
+            when(repoManager.file(SESSION_ID, FILE_ID))
+                    .thenReturn(new FileLookup.Vanished(SESSION_ID, "profile-1.jfr"));
 
             var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
@@ -251,6 +228,7 @@ class FileDownloadGrpcServiceTest {
 
             assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
             assertStatus(Status.Code.INVALID_ARGUMENT, observer.error);
+            verify(repoManager, times(2)).file(SESSION_ID, FILE_ID);
         }
 
         private DownloadFileRequest request(String sessionId, String fileId) {
@@ -264,7 +242,7 @@ class FileDownloadGrpcServiceTest {
     // ========== Helpers ==========
 
     private static final ProjectInfo TEST_PROJECT_INFO =
-            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null, null, null);
+            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null);
 
     /**
      * Creates a service where {@code repositoryManagerForSession(SESSION_ID)} succeeds.

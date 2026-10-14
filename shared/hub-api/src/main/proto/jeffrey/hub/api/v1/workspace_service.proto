@@ -27,14 +27,11 @@ option java_multiple_files = true;
 // created via CreateWorkspace; the CLI's project.workspace-id must match an
 // existing workspace's reference_id for events to be accepted.
 service WorkspaceService {
-  // Returns the Jeffrey server version and API version for compatibility checks.
+  // Returns the Jeffrey server version.
   rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
 
   // Lists all workspaces registered on this server.
   rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
-
-  // Gets a single workspace by its internal ID.
-  rpc GetWorkspace(GetWorkspaceRequest) returns (GetWorkspaceResponse);
 
   // Creates a new workspace with a user-supplied reference_id (used by the CLI
   // to route recordings via project.workspace-id). The reference_id must be
@@ -50,23 +47,12 @@ message GetApiInfoRequest {}
 message GetApiInfoResponse {
   // The Jeffrey server version (e.g., "1.0.0").
   string version = 1;
-  // The gRPC API version number for client compatibility checks.
-  int32 api_version = 2;
 }
 
 message ListWorkspacesRequest {}
 
 message ListWorkspacesResponse {
   repeated WorkspaceInfo workspaces = 1;
-}
-
-message GetWorkspaceRequest {
-  // The internal workspace ID (not the origin/source ID).
-  string workspace_id = 1;
-}
-
-message GetWorkspaceResponse {
-  WorkspaceInfo workspace = 1;
 }
 
 message DeleteWorkspaceRequest {
@@ -114,6 +100,4 @@ enum WorkspaceStatus {
   WORKSPACE_STATUS_AVAILABLE = 1;
   // Workspace is no longer available (may have been removed from the filesystem).
   WORKSPACE_STATUS_UNAVAILABLE = 2;
-  // Workspace exists but is incompatible with the current server version.
-  WORKSPACE_STATUS_INCOMPATIBLE = 3;
 }

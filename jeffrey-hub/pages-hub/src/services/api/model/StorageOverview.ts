@@ -30,6 +30,5 @@ export interface StorageOverview {
     // UTC epoch millis of when the snapshot was computed by the refresher job
     computedAtMillis: number;
     databaseSizeBytes: number;
-    tempSizeBytes: number;
     projects: ProjectStorage[];
 }

@@ -46,12 +46,10 @@ public class ProjectCreator {
                 IDGenerator.generate(),
                 project.originProjectId(),
                 project.projectName(),
-                project.namespace(),
                 workspaceInfo.id(),
                 clock.instant(),
                 project.originCreatedAt(),
-                project.attributes(),
-                null);
+                project.attributes());
         return projectsRepository.create(projectInfo);
     }
 }

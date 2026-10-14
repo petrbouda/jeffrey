@@ -69,7 +69,7 @@ onMounted(() => {
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Hub exposes 5 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
+        <p>Jeffrey Hub exposes 5 gRPC services, 13 RPCs in all, defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>. There is one session listing: an instance's sessions, a project's repository size and a session's detail are all read from it by Microscope rather than asked of the hub separately.</p>
 
         <div class="endpoint-groups">
           <!-- WorkspaceService -->
@@ -84,21 +84,14 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>GetApiInfo</code>
                 </div>
-                <p>Returns API and Jeffrey version</p>
+                <p>Returns the Jeffrey version</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>ListWorkspaces</code>
                 </div>
-                <p>List all available workspaces</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetWorkspace</code>
-                </div>
-                <p>Get workspace details by ID</p>
+                <p>List all available workspaces. Microscope resolves a single workspace from this listing too</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -129,28 +122,21 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListProjects</code>
                 </div>
-                <p>List projects in workspace</p>
+                <p>List projects in workspace. Each <code>ProjectInfo</code> carries its workspace's id and reference id</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>GetProject</code>
                 </div>
-                <p>Get project details</p>
+                <p>Get project details, NOT_FOUND unless the project belongs to the named workspace. Its <code>ProjectInfo</code> carries everything Microscope needs to open the project, so opening one costs this single call</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>DeleteProject</code>
                 </div>
-                <p>Delete project by ID</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>RestoreProject</code>
-                </div>
-                <p>Restore a previously deleted project</p>
+                <p>Delete a project for good: its rows and its directory on the workspace volume. There is no restore</p>
               </div>
             </div>
           </div>
@@ -167,35 +153,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListInstances</code>
                 </div>
-                <p>List instances/pods for project</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetInstance</code>
-                </div>
-                <p>Get instance details</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>ListInstanceSessions</code>
-                </div>
-                <p>List sessions for an instance. A session that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set and is never <code>failed</code></p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetInstanceDetail</code>
-                </div>
-                <p>Instance identity, sessions, and filesystem-backed storage stats (file count, total size)</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetInstanceSessionDetail</code>
-                </div>
-                <p>Per-session detail: the session's metadata, and nothing read out of its recording. The hub holds no JFR parser — the one-shot environment events shown beside the session (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …) are read by Microscope, which downloads the session's newest closed chunk and parses it there</p>
+                <p>List a project's instances with their lifecycle (<code>PENDING</code> &rarr; <code>ACTIVE</code> &rarr; <code>FINISHED</code> &rarr; <code>EXPIRED</code>, with the <code>expiring_at</code>/<code>expired_at</code> retention marks) and session count. The sessions themselves come from <code>RepositoryService.ListSessions</code></p>
               </div>
             </div>
           </div>
@@ -212,21 +170,14 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListSessions</code>
                 </div>
-                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. A session that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set</p>
+                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. Setting <code>instance_id</code> narrows the listing to one instance, and the hub then walks only that instance's directories. A session that finished without producing any data is <code>failed</code>; one that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set instead and is never <code>failed</code></p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>GetSession</code>
                 </div>
-                <p>Get session details</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetRepositoryStatistics</code>
-                </div>
-                <p>Get repository statistics</p>
+                <p>One session with its files. Microscope reads the session's environment (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …) by downloading its newest closed chunk and parsing it locally &mdash; the hub holds no JFR parser</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -234,13 +185,6 @@ onMounted(() => {
                   <code>DeleteSession</code>
                 </div>
                 <p>Delete recording session</p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>DeleteFilesInSession</code>
-                </div>
-                <p>Delete specific files in session</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

@@ -38,13 +38,10 @@ public record StubDataset(List<Workspace> workspaces) {
                 .findFirst();
     }
 
-    public List<Project> projects(String workspaceId, boolean includeDeleted) {
+    public List<Project> projects(String workspaceId) {
         return workspace(workspaceId)
                 .map(Workspace::projects)
-                .orElse(List.of())
-                .stream()
-                .filter(project -> includeDeleted || project.deletedAt() == null)
-                .toList();
+                .orElse(List.of());
     }
 
     public Optional<Project> project(String projectId) {
@@ -89,13 +86,10 @@ public record StubDataset(List<Workspace> workspaces) {
 
     public record Project(
             String id,
-            String originId,
             String name,
-            String namespace,
             Instant createdAt,
             String workspaceId,
             RecState status,
-            Instant deletedAt,
             List<Instance> instances) {
 
         public int sessionCount() {

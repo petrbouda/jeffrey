@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.dto.workspace.Mappers;
 import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
@@ -64,12 +63,8 @@ public class MicroscopeHubBrowserAccess implements HubBrowserAccess {
     }
 
     @Override
-    public List<ProjectResponse> projects(String hubId, String workspaceId, boolean includeDeleted) {
-        ProjectsManager projectsManager = resolver.resolveWorkspace(hubId, workspaceId).projectsManager();
-        var managers = includeDeleted
-                ? projectsManager.findAllIncludingDeleted()
-                : projectsManager.findAll();
-        return managers.stream()
+    public List<ProjectResponse> projects(String hubId, String workspaceId) {
+        return resolver.resolveWorkspace(hubId, workspaceId).projectsManager().findAll().stream()
                 .map(ProjectManager::detailedInfo)
                 .map(Mappers::toProjectResponse)
                 .toList();
@@ -77,7 +72,7 @@ public class MicroscopeHubBrowserAccess implements HubBrowserAccess {
 
     @Override
     public ProjectResponse project(String hubId, String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         return Mappers.toProjectResponse(pm.detailedInfo());
     }
 }

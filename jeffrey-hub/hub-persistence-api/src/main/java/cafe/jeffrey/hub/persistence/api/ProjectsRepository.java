@@ -19,7 +19,6 @@ package cafe.jeffrey.hub.persistence.api;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,29 +48,10 @@ public interface ProjectsRepository {
     List<ProjectInfo> findAllProjects(String workspaceId);
 
     /**
-     * Find all projects by workspace ID, including soft-deleted ones.
-     *
-     * @param workspaceId workspace ID to filter by
-     * @return list of all projects in the specified workspace, including deleted.
-     */
-    List<ProjectInfo> findAllProjectsIncludingDeleted(String workspaceId);
-
-    /**
      * Find a project by its origin project ID.
      *
      * @param originProjectId the origin project ID to search for
      * @return project information if found, empty otherwise
      */
     Optional<ProjectInfo> findByOriginProjectId(String originProjectId);
-
-
-    /**
-     * Hard-delete soft-deleted projects whose {@code deleted_at} is older than the given
-     * cutoff, together with any child rows that may still reference them. Keeps the
-     * projects table from growing forever with tombstone rows.
-     *
-     * @param deletedBefore projects soft-deleted before this instant are purged
-     * @return number of purged project rows
-     */
-    int purgeDeletedProjects(Instant deletedBefore);
 }

@@ -16,7 +16,6 @@
  */
 package cafe.jeffrey.hub.model;
 
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -53,8 +52,8 @@ class RelativePathTest {
     @Test
     void theRecordsOffTheVolumeAreHeldToIt() {
         assertThrows(IllegalArgumentException.class, () -> new RepositoryInfo(
-                "repo", RepositoryType.ASYNC_PROFILER, null, "ws", "../escape"));
+                "repo", null, "ws", "../escape"));
         assertThrows(IllegalArgumentException.class, () -> new RepositoryInfo(
-                null, RepositoryType.ASYNC_PROFILER, null, "ws", "project"));
+                null, null, "ws", "project"));
     }
 }

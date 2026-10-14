@@ -48,15 +48,3 @@ enum InstanceStatus {
   INSTANCE_STATUS_EXPIRED = 4;
 }
 
-// Severity level for messages and alerts.
-enum Severity {
-  SEVERITY_UNSPECIFIED = 0;
-  // Critical severity — immediate attention required.
-  SEVERITY_CRITICAL = 1;
-  // High severity — requires attention.
-  SEVERITY_HIGH = 2;
-  // Medium severity — should be investigated.
-  SEVERITY_MEDIUM = 3;
-  // Low severity — informational.
-  SEVERITY_LOW = 4;
-}

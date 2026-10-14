@@ -43,12 +43,10 @@ public abstract class Mappers {
                 projectInfo.id(),
                 projectInfo.name(),
                 projectInfo.namespace(),
-                projectInfo.createdAt().toEpochMilli(),
+                projectInfo.createdAt() != null ? projectInfo.createdAt().toEpochMilli() : 0L,
                 projectInfo.workspaceId(),
                 detail.status(),
                 detail.sessionCount(),
-                detail.eventSource(),
-                detail.isDeleted(),
-                projectInfo.deletedAt() != null ? projectInfo.deletedAt().toEpochMilli() : null);
+                detail.eventSource());
     }
 }

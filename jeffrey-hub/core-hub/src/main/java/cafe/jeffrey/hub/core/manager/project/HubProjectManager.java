@@ -97,33 +97,28 @@ public class HubProjectManager implements ProjectManager {
         return new DetailedProjectInfo(projectInfo, recordingStatus, recordingSessions.size());
     }
 
-    @Override
-    public void restore() {
-        projectRepository.restore();
-        LOG.info("Restored project: project_id={}", projectInfo.id());
-    }
-
     /**
-     * Deletes the project directly: the SQL cascade commits first, then the project's
-     * directory tree is removed from the workspace volume. The directory removal is what
-     * makes the deletion final — the workspace reconciler re-creates any project whose
-     * on-disk declaration still exists. It runs after the commit and best-effort: leftover
-     * files are cheaper than a permanently stuck project delete.
+     * Deletes the project for good: its directory tree on the workspace volume, then its rows.
+     *
+     * <p>The directory goes first because its location is read from the project's repository
+     * row, which the cascade removes. Its removal is also what makes the deletion final — the
+     * workspace reconciler re-creates any project whose on-disk declaration still exists. It is
+     * best-effort: leftover files are cheaper than a permanently stuck project delete.
      */
     @Override
     public void delete() {
         LOG.debug("Deleting project: project_id={}", info().id());
-
-        transactionOperations.executeWithoutResult(_ -> {
-            // SQL cascade deletes all project metadata (instances, sessions, schedulers, etc.)
-            projectRepository.delete();
-        });
 
         try {
             repositoryStorage.deleteProjectDirectory();
         } catch (Exception e) {
             LOG.warn("Failed to delete project directory: project_id={}", projectInfo.id(), e);
         }
+
+        transactionOperations.executeWithoutResult(_ -> {
+            // SQL cascade deletes all project metadata (instances, sessions, repository, project row)
+            projectRepository.delete();
+        });
 
         LOG.info("Deleted project: project_id={}", projectInfo.id());
         JfrNotificationEmitter.projectDeleted(projectInfo.id());

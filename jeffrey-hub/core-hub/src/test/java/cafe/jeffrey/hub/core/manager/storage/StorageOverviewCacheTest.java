@@ -17,106 +17,140 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class StorageOverviewCacheTest {
 
-    private static final Instant FIRST_TICK = Instant.parse("2026-08-10T10:00:00Z");
-    private static final Instant SECOND_TICK = Instant.parse("2026-08-10T10:05:00Z");
+    private static final Instant NOW = Instant.parse("2026-08-10T10:00:00Z");
+    private static final Instant CREATED_AT = Instant.parse("2026-08-01T10:00:00Z");
+    private static final Instant LAST_ACTIVITY = Instant.parse("2026-08-09T10:00:00Z");
 
-    private static final StorageOverview FIRST_OVERVIEW = new StorageOverview(
-            new InfrastructureUsage(2_900_000_000L, 1_300_000_000L),
-            List.of());
+    private static final WorkspaceInfo WORKSPACE =
+            new WorkspaceInfo("ws-1", "ws-1", "production", CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
+    private static final ProjectInfo PROJECT =
+            new ProjectInfo("prj-1", "origin-1", "order-service", "ws-1", CREATED_AT, CREATED_AT, Map.of());
 
-    private static final StorageOverview SECOND_OVERVIEW = new StorageOverview(
-            new InfrastructureUsage(3_000_000_000L, 900_000_000L),
-            List.of());
+    @TempDir
+    Path homeDir;
 
-    @Mock
-    HubStorageManager storageManager;
-
-    @Mock
-    Clock clock;
-
-    StorageOverviewCache cache;
+    private StorageOverviewCache cache;
 
     @BeforeEach
     void setUp() {
-        cache = new StorageOverviewCache(storageManager, clock);
+        cache = new StorageOverviewCache(
+                List.of(homeDir.resolve("jeffrey-data.db"), homeDir.resolve("jeffrey-data.db.wal")),
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Nested
-    class Get {
+    class BeforeTheFirstPass {
 
         @Test
-        void computesOnce_whenNothingCachedYet() {
-            when(storageManager.overview()).thenReturn(FIRST_OVERVIEW);
-            when(clock.instant()).thenReturn(FIRST_TICK);
-
+        void listsNoProjectAndNoMeasurementTime() {
             CachedOverview cached = cache.get();
 
-            assertThat(cached.overview()).isSameAs(FIRST_OVERVIEW);
-            assertThat(cached.computedAt()).isEqualTo(FIRST_TICK);
-            verify(storageManager, times(1)).overview();
-        }
-
-        @Test
-        void returnsCachedSnapshot_withoutRecomputing() {
-            when(storageManager.overview()).thenReturn(FIRST_OVERVIEW);
-            when(clock.instant()).thenReturn(FIRST_TICK);
-
-            CachedOverview first = cache.get();
-            CachedOverview second = cache.get();
-
-            assertThat(second).isSameAs(first);
-            verify(storageManager, times(1)).overview();
+            assertThat(cached.overview().projects()).isEmpty();
+            assertThat(cached.computedAt()).isNull();
         }
     }
 
     @Nested
-    class Refresh {
+    class Published {
 
         @Test
-        void recomputesAndReplacesSnapshot() {
-            when(storageManager.overview()).thenReturn(FIRST_OVERVIEW, SECOND_OVERVIEW);
-            when(clock.instant()).thenReturn(FIRST_TICK, SECOND_TICK);
+        void servesTheProjectsOfTheLastPassAndWhenItRan() {
+            ProjectStorage project = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 10L, 1, 0L);
 
-            CachedOverview first = cache.refresh();
-            CachedOverview second = cache.refresh();
+            cache.publish(List.of(project));
 
-            assertThat(first.overview()).isSameAs(FIRST_OVERVIEW);
-            assertThat(second.overview()).isSameAs(SECOND_OVERVIEW);
-            assertThat(second.computedAt()).isEqualTo(SECOND_TICK);
-            verify(storageManager, times(2)).overview();
+            CachedOverview cached = cache.get();
+            assertThat(cached.overview().projects()).containsExactly(project);
+            assertThat(cached.computedAt()).isEqualTo(NOW);
         }
 
         @Test
-        void refreshedSnapshotIsServedToReaders() {
-            when(storageManager.overview()).thenReturn(FIRST_OVERVIEW, SECOND_OVERVIEW);
-            when(clock.instant()).thenReturn(FIRST_TICK, SECOND_TICK);
+        void aLaterPassReplacesTheEarlierOne() {
+            cache.publish(List.of(new ProjectStorage("ws-1", "production", "gone", "gone", 10L, 1, 0L)));
+            ProjectStorage remaining = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 5L, 1, 0L);
 
-            cache.get();
-            CachedOverview refreshed = cache.refresh();
+            cache.publish(List.of(remaining));
 
-            assertThat(cache.get()).isSameAs(refreshed);
-            verify(storageManager, times(2)).overview();
+            assertThat(cache.get().overview().projects()).containsExactly(remaining);
+        }
+    }
+
+    @Nested
+    class Database {
+
+        @Test
+        void measuresTheDatabaseAndItsWalOnEveryRead() throws IOException {
+            assertThat(cache.get().overview().infrastructure().databaseBytes()).isZero();
+
+            Files.write(homeDir.resolve("jeffrey-data.db"), new byte[100]);
+            Files.write(homeDir.resolve("jeffrey-data.db.wal"), new byte[20]);
+
+            assertThat(cache.get().overview().infrastructure().databaseBytes()).isEqualTo(120L);
+        }
+    }
+
+    @Nested
+    class Measure {
+
+        @Test
+        void sumsEveryFileOfEverySession() {
+            List<RecordingSession> sessions = List.of(
+                    session("session-1",
+                            file("recording-1.jfr", 700L, CREATED_AT),
+                            file("recording-2.jfr.lz4", 300L, CREATED_AT),
+                            file("heapdump.hprof.gz", 200L, CREATED_AT)),
+                    session("session-2",
+                            file("recording-3.jfr", 500L, LAST_ACTIVITY),
+                            file("service-app.log", 30L, CREATED_AT)));
+
+            ProjectStorage project = ProjectStorage.measure(WORKSPACE, PROJECT, sessions);
+
+            assertThat(project).isEqualTo(new ProjectStorage(
+                    "ws-1", "production", "prj-1", "order-service", 1730L, 5, LAST_ACTIVITY.toEpochMilli()));
+        }
+
+        @Test
+        void reportsZeroesForAProjectWithoutSessions() {
+            ProjectStorage project = ProjectStorage.measure(WORKSPACE, PROJECT, List.of());
+
+            assertThat(project.totalSizeBytes()).isZero();
+            assertThat(project.totalFiles()).isZero();
+            assertThat(project.lastActivityTimeMillis()).isZero();
+        }
+
+        private static RecordingSession session(String id, RepositoryFile... files) {
+            return new RecordingSession(id, id, "instance-1", CREATED_AT, null,
+                    RecordingStatus.FINISHED, List.of(files), false);
+        }
+
+        private static RepositoryFile file(String name, long size, Instant createdAt) {
+            return new RepositoryFile(name, name, createdAt, size, name.contains(".jfr"), null);
         }
     }
 }

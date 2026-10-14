@@ -18,8 +18,6 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
-import cafe.jeffrey.hub.api.v1.InstanceSessionInfo;
-import cafe.jeffrey.hub.api.v1.InstanceStats;
 import cafe.jeffrey.hub.api.v1.InstanceStatus;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
 import cafe.jeffrey.hub.api.v1.RecordingSession;
@@ -30,12 +28,9 @@ import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Every domain-to-proto conversion of the hub's gRPC services, in one place, so that no
@@ -121,21 +116,21 @@ public final class ProtoMappers {
                 .build();
     }
 
-    public static ProjectInfo project(DetailedProjectInfo detail) {
+    /**
+     * @param workspaceReferenceId the reference id of the project's workspace, which the project
+     *                             row does not hold
+     */
+    public static ProjectInfo project(DetailedProjectInfo detail, String workspaceReferenceId) {
         cafe.jeffrey.hub.model.ProjectInfo info = detail.projectInfo();
-        ProjectInfo.Builder builder = ProjectInfo.newBuilder()
+        return ProjectInfo.newBuilder()
                 .setId(info.id())
-                .setOriginId(orEmpty(info.originId()))
                 .setName(info.name())
-                .setNamespace(orEmpty(info.namespace()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setWorkspaceId(info.workspaceId())
                 .setStatus(recordingStatus(detail.status()))
-                .setSessionCount(detail.sessionCount());
-        if (info.deletedAt() != null) {
-            builder.setDeletedAt(info.deletedAt().toEpochMilli());
-        }
-        return builder.build();
+                .setSessionCount(detail.sessionCount())
+                .setWorkspaceReferenceId(orEmpty(workspaceReferenceId))
+                .build();
     }
 
     // ========== Sessions and files ==========
@@ -155,7 +150,18 @@ public final class ProtoMappers {
         }
         session.files().forEach(file -> builder.addFiles(file(file)));
         builder.setHeartbeatMissing(session.heartbeatMissing());
+        builder.setFailed(isFailed(session));
         return builder.build();
+    }
+
+    /**
+     * A failed session finished without producing any data, which only the files on the volume
+     * can say — so the session must have been loaded with its files. A session the hub finished
+     * because it never sent a heartbeat is empty too, but it did not crash: it is reported as
+     * missing its heartbeat instead, never as failed.
+     */
+    private static boolean isFailed(cafe.jeffrey.hub.model.repository.RecordingSession session) {
+        return session.isFailedEmpty() && !session.heartbeatMissing();
     }
 
     public static RepositoryFile file(cafe.jeffrey.hub.model.repository.RepositoryFile file) {
@@ -170,23 +176,9 @@ public final class ProtoMappers {
 
     // ========== Instances ==========
 
-    public static InstanceStats instanceStats(cafe.jeffrey.hub.model.repository.InstanceStats stats) {
-        return InstanceStats.newBuilder()
-                .setFileCount(stats.fileCount())
-                .setTotalSizeBytes(stats.totalSizeBytes())
-                .build();
-    }
-
-    /**
-     * @param failedSessionIds the sessions that finished without producing data — known only
-     *                         from the files on the volume, which is why the caller passes them
-     */
-    public static InstanceInfo instance(
-            ProjectInstanceInfo info, List<ProjectInstanceSessionInfo> sessions, Set<String> failedSessionIds) {
-
+    public static InstanceInfo instance(ProjectInstanceInfo info) {
         InstanceInfo.Builder builder = InstanceInfo.newBuilder()
                 .setId(info.id())
-                .setInstanceName(orEmpty(info.instanceName()))
                 .setStatus(instanceStatus(info.status()))
                 .setCreatedAt(info.startedAt().toEpochMilli())
                 .setSessionCount(info.sessionCount());
@@ -198,26 +190,6 @@ public final class ProtoMappers {
         }
         if (info.expiredAt() != null) {
             builder.setExpiredAt(info.expiredAt().toEpochMilli());
-        }
-        if (info.activeSessionId() != null) {
-            builder.setActiveSessionId(info.activeSessionId());
-        }
-        for (ProjectInstanceSessionInfo session : sessions) {
-            builder.addSessions(instanceSession(session, failedSessionIds));
-        }
-        return builder.build();
-    }
-
-    public static InstanceSessionInfo instanceSession(ProjectInstanceSessionInfo info, Set<String> failedSessionIds) {
-        InstanceSessionInfo.Builder builder = InstanceSessionInfo.newBuilder()
-                .setId(info.sessionId())
-                .setRepositoryId(orEmpty(info.repositoryId()))
-                .setCreatedAt(info.createdAt().toEpochMilli())
-                .setIsActive(info.finishedAt() == null)
-                .setFailed(failedSessionIds.contains(info.sessionId()))
-                .setHeartbeatMissing(info.heartbeatMissing());
-        if (info.finishedAt() != null) {
-            builder.setFinishedAt(info.finishedAt().toEpochMilli());
         }
         return builder.build();
     }

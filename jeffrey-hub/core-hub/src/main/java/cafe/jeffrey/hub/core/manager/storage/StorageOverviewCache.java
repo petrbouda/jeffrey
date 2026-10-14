@@ -17,73 +17,65 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 
 /**
- * In-memory cache of the hub's {@link StorageOverview}. Computing the overview walks
- * every project repository on the filesystem, so it is recomputed by the periodic
- * {@code StorageOverviewRefresherJob} (and on demand via {@link #refresh()}) instead
- * of on every request. Readers get the last computed snapshot together with the time
- * it was computed at.
+ * The hub's storage overview, as the last retention pass left it. That pass already lists every
+ * project's sessions with their files, so it publishes each project's figure here instead of a
+ * second walk of the volume; the dashboard reads it instantly, up to one pass period stale. The
+ * database's own size is a single stat and is measured on every read.
  */
 public class StorageOverviewCache {
 
     /**
-     * The last computed overview and the instant it was computed at.
+     * @param computedAt when the project figures were measured; {@code null} until the first
+     *                   retention pass has run, in which case {@code overview} lists no project
      */
     public record CachedOverview(StorageOverview overview, Instant computedAt) {
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(StorageOverviewCache.class);
+    private record ProjectsSnapshot(List<ProjectStorage> projects, Instant measuredAt) {
+    }
 
-    private final HubStorageManager storageManager;
+    private static final ProjectsSnapshot NOT_YET_MEASURED = new ProjectsSnapshot(List.of(), null);
+
+    private final List<Path> databaseFiles;
     private final Clock clock;
 
-    private volatile CachedOverview cached;
+    private volatile ProjectsSnapshot snapshot = NOT_YET_MEASURED;
 
-    public StorageOverviewCache(HubStorageManager storageManager, Clock clock) {
-        this.storageManager = storageManager;
+    /**
+     * @param databaseFiles the hub database and its WAL; a custom database URL pointing elsewhere is
+     *                      not measured
+     */
+    public StorageOverviewCache(List<Path> databaseFiles, Clock clock) {
+        this.databaseFiles = List.copyOf(databaseFiles);
         this.clock = clock;
     }
 
-    /**
-     * Returns the cached overview. If nothing has been computed yet (a request raced
-     * ahead of the startup tick of the refresher job, or the job is disabled), the
-     * overview is computed synchronously once.
-     */
+    /** Replaces the project figures with those of a pass that just visited every project. */
+    public void publish(List<ProjectStorage> projects) {
+        snapshot = new ProjectsSnapshot(List.copyOf(projects), clock.instant());
+    }
+
     public CachedOverview get() {
-        CachedOverview current = cached;
-        if (current != null) {
-            return current;
-        }
-        synchronized (this) {
-            if (cached == null) {
-                recompute();
-            }
-            return cached;
-        }
+        ProjectsSnapshot current = snapshot;
+        InfrastructureUsage infrastructure = new InfrastructureUsage(databaseBytes());
+        return new CachedOverview(new StorageOverview(infrastructure, current.projects()), current.measuredAt());
     }
 
-    /**
-     * Recomputes the overview from the filesystem and replaces the cached snapshot.
-     * Serialized so a manual refresh and a job tick never scan concurrently.
-     */
-    public synchronized CachedOverview refresh() {
-        return recompute();
-    }
-
-    private synchronized CachedOverview recompute() {
-        Elapsed<StorageOverview> elapsed = Measuring.s(storageManager::overview);
-        CachedOverview result = new CachedOverview(elapsed.entity(), clock.instant());
-        cached = result;
-        LOG.debug("Recomputed storage overview: projects={} duration_ms={}",
-                result.overview().projects().size(), elapsed.duration().toMillis());
-        return result;
+    private long databaseBytes() {
+        return databaseFiles.stream()
+                .filter(Files::isRegularFile)
+                .mapToLong(FileSystemUtils::size)
+                .sum();
     }
 }

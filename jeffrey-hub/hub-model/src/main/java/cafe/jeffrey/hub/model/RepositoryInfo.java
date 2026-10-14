@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.hub.model;
 
-import cafe.jeffrey.shared.common.model.RepositoryType;
-
 /**
  * Where a project's recordings live: an optional workspaces root ({@code null} means the hub's
  * own), the workspace's directory under it and the project's under that. Both relative parts
@@ -26,7 +24,6 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
  */
 public record RepositoryInfo(
         String id,
-        RepositoryType repositoryType,
         String workspacesPath,
         String relativeWorkspacePath,
         String relativeProjectPath) {

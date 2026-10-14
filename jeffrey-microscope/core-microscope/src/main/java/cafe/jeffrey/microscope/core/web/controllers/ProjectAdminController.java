@@ -21,14 +21,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 /**
- * Microscope-only WorkspaceBrowser endpoints: deleting and restoring a project. Deployments that are
+ * Microscope-only WorkspaceBrowser endpoint: deleting a project. Deployments that are
  * read-only against remote hubs do not have them, so these live outside the shared
  * {@code ProjectController}.
  */
@@ -49,18 +48,8 @@ public class ProjectAdminController {
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         LOG.debug("Deleting project: projectId={}", pm.info().id());
         pm.delete();
-    }
-
-    @PostMapping("/restore")
-    public void restore(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
-        LOG.debug("Restoring project: projectId={}", pm.info().id());
-        pm.restore();
     }
 }

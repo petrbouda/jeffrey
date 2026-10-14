@@ -21,23 +21,18 @@ import cafe.jeffrey.hub.api.v1.DataChunk;
 import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
 import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
-import cafe.jeffrey.hub.api.v1.GetInstanceSessionDetailRequest;
-import cafe.jeffrey.hub.api.v1.GetInstanceSessionDetailResponse;
-import cafe.jeffrey.hub.api.v1.InstanceSessionInfo;
-import cafe.jeffrey.hub.api.v1.GetRepositoryStatisticsRequest;
-import cafe.jeffrey.hub.api.v1.GetRepositoryStatisticsResponse;
 import cafe.jeffrey.hub.api.v1.InstanceServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.api.v1.ListProjectsRequest;
-import cafe.jeffrey.hub.api.v1.ListProjectsResponse;
+import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
+import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
 import cafe.jeffrey.hub.api.v1.ListWorkspacesResponse;
 import cafe.jeffrey.hub.api.v1.ProjectInfo;
 import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
 import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
-import cafe.jeffrey.hub.api.v1.WorkspaceInfo;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
 import cafe.jeffrey.hub.stub.data.StubDataFactory;
 import cafe.jeffrey.hub.stub.data.StubDataset;
@@ -95,11 +90,10 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void getApiInfoReportsApiVersionOne() {
+    void getApiInfoReportsTheVersion() {
         GetApiInfoResponse response = WorkspaceServiceGrpc.newBlockingStub(channel)
                 .getApiInfo(GetApiInfoRequest.getDefaultInstance());
 
-        assertEquals(1, response.getApiVersion());
         assertFalse(response.getVersion().isEmpty());
     }
 
@@ -113,44 +107,28 @@ class StubServicesInProcessTest {
     }
 
     @Test
-    void listProjectsExcludesDeletedByDefault() {
-        WorkspaceInfo development = WorkspaceServiceGrpc.newBlockingStub(channel)
-                .listWorkspaces(ListWorkspacesRequest.getDefaultInstance())
-                .getWorkspacesList().stream()
-                .filter(workspace -> workspace.getName().equals("Development"))
-                .findFirst()
-                .orElseThrow();
-
-        ProjectServiceGrpc.ProjectServiceBlockingStub projects = ProjectServiceGrpc.newBlockingStub(channel);
-
-        ListProjectsResponse active = projects.listProjects(ListProjectsRequest.newBuilder()
-                .setWorkspaceId(development.getId())
-                .build());
-        ListProjectsResponse all = projects.listProjects(ListProjectsRequest.newBuilder()
-                .setWorkspaceId(development.getId())
-                .setIncludeDeleted(true)
-                .build());
-
-        assertTrue(all.getProjectsCount() > active.getProjectsCount());
-    }
-
-    @Test
-    void listInstancesAndStatisticsArePopulated() {
+    void listInstancesAndTheirSessionsArePopulated() {
         String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
 
         ListInstancesResponse instances = InstanceServiceGrpc.newBlockingStub(channel)
                 .listInstances(ListInstancesRequest.newBuilder()
                         .setProjectId(projectId)
-                        .setIncludeSessions(true)
                         .build());
         assertFalse(instances.getInstancesList().isEmpty());
-        assertTrue(instances.getInstancesList().stream().anyMatch(instance -> instance.getSessionsCount() > 0));
+        assertTrue(instances.getInstancesList().stream().anyMatch(instance -> instance.getSessionCount() > 0));
 
-        GetRepositoryStatisticsResponse stats = RepositoryServiceGrpc.newBlockingStub(channel)
-                .getRepositoryStatistics(GetRepositoryStatisticsRequest.newBuilder()
+        String instanceId = instances.getInstancesList().stream()
+                .filter(instance -> instance.getSessionCount() > 0)
+                .findFirst()
+                .orElseThrow()
+                .getId();
+        ListSessionsResponse sessions = RepositoryServiceGrpc.newBlockingStub(channel)
+                .listSessions(ListSessionsRequest.newBuilder()
                         .setProjectId(projectId)
+                        .setInstanceId(instanceId)
                         .build());
-        assertTrue(stats.getTotalSize() > 0);
+        assertFalse(sessions.getSessionsList().isEmpty());
+        assertTrue(sessions.getSessionsList().stream().allMatch(session -> session.getInstanceId().equals(instanceId)));
     }
 
     @Test
@@ -298,43 +276,5 @@ class StubServicesInProcessTest {
 
     private String fileName(String sessionId, boolean recording) {
         return file(sessionId, recording).name();
-    }
-
-    /**
-     * The session detail carries the session and nothing read out of its recording. The hub
-     * serves files; Microscope pulls the session's newest closed chunk and parses it there.
-     */
-    @Test
-    void sessionDetailCarriesSessionMetadataOnly() {
-        InstanceServiceGrpc.InstanceServiceBlockingStub instances = InstanceServiceGrpc.newBlockingStub(channel);
-        String projectId = dataset.workspaces().getFirst().projects().getFirst().id();
-
-        ListInstancesResponse listed = instances.listInstances(ListInstancesRequest.newBuilder()
-                .setProjectId(projectId)
-                .setIncludeSessions(true)
-                .build());
-
-        String instanceId = null;
-        InstanceSessionInfo finishedSession = null;
-        outer:
-        for (var instance : listed.getInstancesList()) {
-            for (InstanceSessionInfo session : instance.getSessionsList()) {
-                if (!session.getIsActive()) {
-                    instanceId = instance.getId();
-                    finishedSession = session;
-                    break outer;
-                }
-            }
-        }
-        assertFalse(instanceId == null, "expected at least one finished session");
-
-        GetInstanceSessionDetailResponse detail = instances.getInstanceSessionDetail(
-                GetInstanceSessionDetailRequest.newBuilder()
-                        .setInstanceId(instanceId)
-                        .setSessionId(finishedSession.getId())
-                        .build());
-
-        assertEquals(finishedSession.getId(), detail.getSession().getId());
-        assertFalse(detail.getSession().getIsActive());
     }
 }

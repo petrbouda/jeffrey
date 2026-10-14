@@ -84,11 +84,11 @@ class WorkspaceReconcilerIntegrationTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project", null,
-            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
+            PROJECT_ID, ORIGIN_PROJECT_ID, "Test Project",
+            WORKSPACE_ID, Instant.parse("2025-01-01T11:00:00Z"), null, Map.of());
 
     private static final RepositoryInfo REPO_INFO = new RepositoryInfo(
-            "repo-001", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
+            "repo-001", "/workspaces", "ws-001", "proj-001");
 
     @Mock
     ProjectsManager projectsManager;
@@ -210,9 +210,9 @@ class WorkspaceReconcilerIntegrationTest {
     private static void insertRepositoryRow(DataSource dataSource) throws SQLException {
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
             statement.execute("""
-                    INSERT INTO repositories (project_id, repository_id, repository_type,
+                    INSERT INTO repositories (project_id, repository_id,
                         workspaces_path, relative_workspace_path, relative_project_path)
-                    VALUES ('proj-001', 'repo-001', 'ASYNC_PROFILER', '/workspaces', 'ws-001', 'proj-001')""");
+                    VALUES ('proj-001', 'repo-001', '/workspaces', 'ws-001', 'proj-001')""");
         }
     }
 
@@ -373,7 +373,8 @@ class WorkspaceReconcilerIntegrationTest {
 
             fixture.reconciler().reconcile(projectsManager, wsDir);
 
-            verify(spiedRepositories, never()).findSessionsByInstanceId(anyString());
+            // One session query for the whole project, however many instances it has
+            verify(spiedRepositories).findSessionsByProjectId(anyString());
         }
 
         @Test

@@ -60,7 +60,7 @@ public final class HubSessionLocator {
 
     public ProjectManager project(HubSessionRef ref) {
         try {
-            return resolver.resolveStrict(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
+            return resolver.resolve(ref.hubId(), ref.workspaceId(), ref.projectId());
         } catch (StatusRuntimeException e) {
             LOG.debug("Workspace or project lookup failed for a session_ref: hub_id={} reason={}",
                     ref.hubId(), e.getMessage(), e);

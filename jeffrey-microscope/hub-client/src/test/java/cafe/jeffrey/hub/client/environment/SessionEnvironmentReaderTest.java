@@ -235,11 +235,6 @@ class SessionEnvironmentReaderTest {
         }
 
         @Override
-        public void deleteFilesInSession(String recordingSessionId, List<String> fileIds) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public void setSessionRetained(String recordingSessionId, boolean retained) {
             throw new UnsupportedOperationException();
         }

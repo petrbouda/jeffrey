@@ -28,7 +28,6 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -41,22 +40,15 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     private static final String SELECT_PROJECT_BY_ORIGIN_ID = """
             SELECT p.* FROM projects p
             WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
-              AND p.origin_project_id = :origin_project_id AND p.deleted_at IS NULL""";
+              AND p.origin_project_id = :origin_project_id""";
 
     //language=SQL
     private static final String SELECT_ALL_PROJECTS = """
             SELECT p.* FROM projects p
-            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
-              AND p.deleted_at IS NULL""";
+            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)""";
 
     //language=SQL
     private static final String SELECT_PROJECTS_BY_WORKSPACE = """
-            SELECT p.* FROM projects p
-            WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
-              AND p.workspace_id = :workspace_id AND p.deleted_at IS NULL""";
-
-    //language=SQL
-    private static final String SELECT_PROJECTS_BY_WORKSPACE_INCLUDING_DELETED = """
             SELECT p.* FROM projects p
             WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
               AND p.workspace_id = :workspace_id""";
@@ -67,30 +59,13 @@ public class JdbcProjectsRepository implements ProjectsRepository {
                  project_id,
                  origin_project_id,
                  project_name,
-                 namespace,
                  workspace_id,
                  created_at,
                  origin_created_at,
                  attributes)
-                SELECT :project_id, :origin_project_id, :project_name, :namespace, :workspace_id, :created_at, :origin_created_at, :attributes
-                WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL AND deleted_at IS NULL)
+                SELECT :project_id, :origin_project_id, :project_name, :workspace_id, :created_at, :origin_created_at, :attributes
+                WHERE NOT EXISTS (SELECT 1 FROM projects WHERE origin_project_id = :origin_project_id AND origin_project_id IS NOT NULL)
                 ON CONFLICT DO NOTHING""";
-
-    /**
-     * Children are normally removed when the project is soft-deleted; the child deletes here
-     * are defensive so a purge never strands rows that survived an interrupted soft-delete.
-     * The purge of the {@code projects} rows themselves must run last.
-     */
-    //language=SQL
-    private static final List<String> PURGE_DELETED_PROJECTS_CASCADE = List.of(
-            """
-            DELETE FROM project_instance_sessions WHERE repository_id IN (
-                SELECT r.repository_id FROM repositories r
-                JOIN projects p ON r.project_id = p.project_id
-                WHERE p.deleted_at < :deleted_before)""",
-            "DELETE FROM project_instances WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
-            "DELETE FROM repositories WHERE project_id IN (SELECT project_id FROM projects WHERE deleted_at < :deleted_before)",
-            "DELETE FROM projects WHERE deleted_at < :deleted_before");
 
     private final DatabaseClient databaseClient;
 
@@ -112,20 +87,11 @@ public class JdbcProjectsRepository implements ProjectsRepository {
     }
 
     @Override
-    public List<ProjectInfo> findAllProjectsIncludingDeleted(String workspaceId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("workspace_id", workspaceId);
-        return databaseClient.query(StatementLabel.FIND_PROJECTS_BY_WORKSPACE_INCLUDING_DELETED,
-                SELECT_PROJECTS_BY_WORKSPACE_INCLUDING_DELETED, paramSource, HubMappers.projectInfoMapper());
-    }
-
-    @Override
     public ProjectInfo create(ProjectInfo newProject) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("project_id", newProject.id())
                 .addValue("origin_project_id", newProject.originId())
                 .addValue("project_name", newProject.name())
-                .addValue("namespace", newProject.namespace())
                 .addValue("workspace_id", newProject.workspaceId())
                 .addValue("created_at", newProject.createdAt().atOffset(ZoneOffset.UTC))
                 .addValue("origin_created_at", newProject.originCreatedAt() != null ? newProject.originCreatedAt().atOffset(ZoneOffset.UTC) : null)
@@ -161,16 +127,5 @@ public class JdbcProjectsRepository implements ProjectsRepository {
         return databaseClient.querySingle(
                 StatementLabel.FIND_PROJECT_BY_ORIGIN_ID, SELECT_PROJECT_BY_ORIGIN_ID, paramSource,
                 HubMappers.projectInfoMapper());
-    }
-
-
-    @Override
-    public int purgeDeletedProjects(Instant deletedBefore) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("deleted_before", deletedBefore.atOffset(ZoneOffset.UTC));
-
-        // The last statement of the cascade deletes the projects rows themselves
-        return databaseClient.deleteCascade(
-                StatementLabel.PURGE_DELETED_PROJECTS, PURGE_DELETED_PROJECTS_CASCADE, paramSource);
     }
 }

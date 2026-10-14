@@ -15,21 +15,14 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.model.repository;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+package cafe.jeffrey.hub.core.scheduler.job;
 
 /**
- * A file of a session handed over for streaming: the name the receiver should write it under —
- * which is the archive's when a rewrite in flight replaced the recording the listing named —
- * and where it is.
+ * One rule of a project's retention pass. The rules run in a fixed order over the same pass, so
+ * each sees what the ones before it deleted.
  */
-public record StreamedFile(String fileName, Path path) {
+sealed interface RetentionRule
+        permits SessionRetentionRule, LiveSessionTrimRule, StorageQuotaRule, StaleInstanceRule {
 
-    public InputStream openStream() throws IOException {
-        return Files.newInputStream(path);
-    }
+    void apply(ProjectRetentionPass pass);
 }

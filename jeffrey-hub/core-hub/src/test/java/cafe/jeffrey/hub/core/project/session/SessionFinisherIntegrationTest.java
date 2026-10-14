@@ -59,9 +59,9 @@ class SessionFinisherIntegrationTest {
     private static final Path SESSION_PATH = Path.of("/workspaces/ws-001/proj-001/session-2025-06-15");
 
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo(
-            PROJECT_ID, null, "Test Project", null,
+            PROJECT_ID, null, "Test Project",
             WORKSPACE_ID,
-            Instant.parse("2025-01-01T11:00:00Z"), null, Map.of(), null);
+            Instant.parse("2025-01-01T11:00:00Z"), null, Map.of());
 
     private static JdbcProjectRepositoryRepository createRepository(MutableClock clock, DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);

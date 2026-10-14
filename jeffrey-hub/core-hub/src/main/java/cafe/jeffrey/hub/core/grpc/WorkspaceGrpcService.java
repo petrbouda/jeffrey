@@ -28,12 +28,9 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
 
-import java.util.List;
-
 public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceImplBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceGrpcService.class);
-    private static final int CURRENT_API_VERSION = 1;
 
     private final WorkspacesManager workspacesManager;
     private final DefaultWorkspaceProperties defaultWorkspaceProperties;
@@ -49,7 +46,6 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     public void getApiInfo(GetApiInfoRequest request, StreamObserver<GetApiInfoResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> GetApiInfoResponse.newBuilder()
                 .setVersion(JeffreyVersion.resolveJeffreyVersion())
-                .setApiVersion(CURRENT_API_VERSION)
                 .build());
     }
 
@@ -64,19 +60,6 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
             LOG.debug("Listed workspaces via gRPC: count={}", response.getWorkspacesCount());
 
             return response.build();
-        });
-    }
-
-    @Override
-    public void getWorkspace(GetWorkspaceRequest request, StreamObserver<GetWorkspaceResponse> responseObserver) {
-        GrpcUnary.respond(responseObserver, () -> {
-            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
-
-            LOG.debug("Fetched workspace via gRPC: workspace_id={}", request.getWorkspaceId());
-
-            return GetWorkspaceResponse.newBuilder()
-                    .setWorkspace(ProtoMappers.workspace(workspace.resolveInfo()))
-                    .build();
         });
     }
 

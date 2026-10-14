@@ -30,22 +30,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 /**
- * The instant async-profiler wrote into the file's own name — {@code profile-20260220-120500.jfr}.
- *
- * <p>The only timestamp that survives the hub rewriting the file, which is why a JFR uses it and
- * why compressing one is allowed at all: {@code profile-20260220-120500.jfr.lz4} still answers
- * with the moment the profiler opened the chunk, where its creation time would answer with the
- * moment the compression job ran. Compression is undone before the name is read for exactly that
- * reason.
- *
- * <p>Anything the convention does not cover falls back to the filesystem — another prefix, a
- * timestamp that does not parse. A failure must not propagate: the caller drops a file it cannot
- * describe, so one oddly named file would leave the listing entirely rather than sort imprecisely.
- *
- * <p>Said at debug rather than warned about, because this is asked once per file per listing: a
- * repository whose chunks are named otherwise is a supported arrangement that merely sorts by the
- * filesystem, and warning about it would put a line in the log for every file on every page load
- * and every run of every scheduled job.
+ * The instant async-profiler wrote into the file's name ({@code profile-20260220-120500.jfr}), read
+ * the same from its {@code .lz4} archive. A name outside the convention falls back to the
+ * filesystem, logged at debug since this runs per file per listing.
  */
 final class RecordingNameTimestamp implements TimestampResolver {
 

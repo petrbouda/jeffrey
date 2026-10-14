@@ -19,32 +19,23 @@ package cafe.jeffrey.hub.model.workspace;
 
 import java.time.Instant;
 
+/**
+ * A workspace row: the reference id names its directory under the hub's workspaces root,
+ * and the status says whether that directory is there.
+ */
 public record WorkspaceInfo(
         String id,
         String referenceId,
-        String repositoryId,
         String name,
-        WorkspaceLocation location,
-        WorkspaceLocation baseLocation,
         Instant createdAt,
         WorkspaceStatus status,
         int projectCount) {
 
     public WorkspaceInfo withId(String newId) {
-        return new WorkspaceInfo(
-                newId, referenceId, repositoryId, name,
-                location, baseLocation, createdAt, status, projectCount);
-    }
-
-    public WorkspaceInfo withLocation(WorkspaceLocation newLocation) {
-        return new WorkspaceInfo(
-                id, referenceId, repositoryId, name,
-                newLocation, baseLocation, createdAt, status, projectCount);
+        return new WorkspaceInfo(newId, referenceId, name, createdAt, status, projectCount);
     }
 
     public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
-        return new WorkspaceInfo(
-                id, referenceId, repositoryId, name,
-                location, baseLocation, createdAt, newStatus, projectCount);
+        return new WorkspaceInfo(id, referenceId, name, createdAt, newStatus, projectCount);
     }
 }

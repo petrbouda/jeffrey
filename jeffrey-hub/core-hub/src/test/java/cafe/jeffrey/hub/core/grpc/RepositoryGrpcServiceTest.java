@@ -31,7 +31,6 @@ import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.repository.RepositoryStatistics;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -271,38 +270,71 @@ class RepositoryGrpcServiceTest {
         }
     }
 
-    // ========== GetRepositoryStatistics ==========
+    // ========== ListSessions narrowed to an instance, and the failed flag ==========
 
     @Nested
-    class GetRepositoryStatistics {
+    class InstanceSessions {
 
         @Test
-        void returnsTotalSize() throws Exception {
+        void instanceIdNarrowsTheListingToThatInstance() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.calculateRepositoryStatistics())
-                    .thenReturn(new RepositoryStatistics(1_000_000L));
+            when(repoManager.listInstanceSessions("inst-1", RecordingSessionFilter.ALL)).thenReturn(List.of(
+                    finishedSession("session-1", List.of(chunk("file-1")), false)));
 
             var stub = startServer(serviceWithProject(repoManager));
 
-            GetRepositoryStatisticsResponse response = stub.getRepositoryStatistics(
-                    GetRepositoryStatisticsRequest.newBuilder()
+            ListSessionsResponse response = stub.listSessions(
+                    ListSessionsRequest.newBuilder()
                             .setProjectId(PROJECT_ID)
+                            .setInstanceId("inst-1")
                             .build());
 
-            assertEquals(1_000_000L, response.getTotalSize());
+            assertEquals(1, response.getSessionsCount());
+            assertEquals("session-1", response.getSessions(0).getId());
+            verify(repoManager, never()).listRecordingSessions(any(), any());
         }
 
         @Test
-        void projectNotFound_returnsNotFound() throws Exception {
-            var stub = startServer(serviceWithNoProject());
+        void aSessionThatFinishedWithoutDataIsFailed() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES, RecordingSessionFilter.ALL)).thenReturn(List.of(
+                    finishedSession("with-data", List.of(chunk("file-1")), false),
+                    finishedSession("empty", List.of(), false)));
 
-            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.getRepositoryStatistics(
-                            GetRepositoryStatisticsRequest.newBuilder()
-                                    .setProjectId("non-existent")
-                                    .build()));
+            var stub = startServer(serviceWithProject(repoManager));
 
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+            ListSessionsResponse response = stub.listSessions(
+                    ListSessionsRequest.newBuilder().setProjectId(PROJECT_ID).build());
+
+            assertFalse(response.getSessions(0).getFailed());
+            assertTrue(response.getSessions(1).getFailed());
+        }
+
+        @Test
+        void aSessionWithoutHeartbeatIsNotFailedAndCarriesTheFlag() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.listRecordingSessions(SessionDetail.WITH_FILES, RecordingSessionFilter.ALL)).thenReturn(List.of(
+                    finishedSession("no-heartbeat", List.of(), true)));
+
+            var stub = startServer(serviceWithProject(repoManager));
+
+            cafe.jeffrey.hub.api.v1.RecordingSession session = stub.listSessions(
+                    ListSessionsRequest.newBuilder().setProjectId(PROJECT_ID).build()).getSessions(0);
+
+            assertFalse(session.getFailed());
+            assertTrue(session.getHeartbeatMissing());
+        }
+
+        private static cafe.jeffrey.hub.model.repository.RecordingSession finishedSession(
+                String id, List<RepositoryFile> files, boolean heartbeatMissing) {
+            return new cafe.jeffrey.hub.model.repository.RecordingSession(
+                    id, id, "inst-1", FIXED_TIME, FIXED_TIME.plusSeconds(60),
+                    cafe.jeffrey.hub.model.repository.RecordingStatus.FINISHED,
+                    files, false, heartbeatMissing);
+        }
+
+        private static RepositoryFile chunk(String id) {
+            return new RepositoryFile(id, id + ".jfr", FIXED_TIME, 1024L, true, null);
         }
     }
 
@@ -345,72 +377,6 @@ class RepositoryGrpcServiceTest {
         }
     }
 
-    // ========== DeleteFilesInSession ==========
-
-    @Nested
-    class DeleteFilesInSession {
-
-        @Test
-        void deletesFilesSuccessfully() throws Exception {
-            var repoManager = mock(RepositoryManager.class);
-
-            var stub = startServer(serviceWithSession(repoManager));
-
-            List<String> fileIds = List.of("file-1", "file-2", "file-3");
-
-            DeleteFilesInSessionResponse response = stub.deleteFilesInSession(
-                    DeleteFilesInSessionRequest.newBuilder()
-                            .setSessionId(SESSION_ID)
-                            .addAllFileIds(fileIds)
-                            .build());
-
-            assertNotNull(response);
-            verify(repoManager).deleteFilesInSession(SESSION_ID, fileIds);
-        }
-
-        @Test
-        void sessionNotFound_returnsNotFound() throws Exception {
-            var platformRepositories = mock(HubPlatformRepositories.class);
-            when(platformRepositories.findSessionWithRepositoryById("non-existent")).thenReturn(Optional.empty());
-
-            var repoManagerFactory = mock(RepositoryManager.Factory.class);
-
-            var stub = startServer(new RepositoryGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null)));
-
-            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.deleteFilesInSession(
-                            DeleteFilesInSessionRequest.newBuilder()
-                                    .setSessionId("non-existent")
-                                    .addFileIds("file-1")
-                                    .build()));
-
-            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
-        }
-        /**
-         * The manager refuses the chunk the profiler still writes with an {@code IllegalArgumentException};
-         * at this boundary that must arrive as INVALID_ARGUMENT carrying the manager's own sentence,
-         * not as INTERNAL — which is what an unreachable hub gives, and what the client cannot act on.
-         */
-        @Test
-        void refusingTheOpenChunk_returnsInvalidArgumentWithTheReason() throws Exception {
-            var repoManager = mock(RepositoryManager.class);
-            doThrow(new IllegalArgumentException("File profile-2.jfr is the chunk the profiler is still writing"))
-                    .when(repoManager).deleteFilesInSession(SESSION_ID, List.of("profile-2"));
-
-            var stub = startServer(serviceWithSession(repoManager));
-
-            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
-                    stub.deleteFilesInSession(
-                            DeleteFilesInSessionRequest.newBuilder()
-                                    .setSessionId(SESSION_ID)
-                                    .addFileIds("profile-2")
-                                    .build()));
-
-            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
-            assertTrue(ex.getStatus().getDescription().contains("still writing"));
-        }
-    }
-
     @Nested
     class SetSessionRetained {
 
@@ -447,7 +413,7 @@ class RepositoryGrpcServiceTest {
     // ========== Helpers ==========
 
     private static final ProjectInfo TEST_PROJECT_INFO =
-            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null, null, null);
+            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null);
 
     /**
      * Creates a service where {@code repositoryManagerForProject(PROJECT_ID)} succeeds.

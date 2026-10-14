@@ -27,81 +27,20 @@ import "jeffrey/hub/api/v1/common.proto";
 // Manages project instances — running JVM processes that produce profiling data.
 // Each instance represents a single JVM lifecycle (start to finish) and contains
 // one or more recording sessions.
+//
+// Only the lifecycle lives here. An instance's sessions, its files and their sizes come from
+// RepositoryService.ListSessions, narrowed to the instance with its instance_id.
 service InstanceService {
   // Lists all instances for a project, in all lifecycle states.
   rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
-
-  // Gets detailed information about a single instance.
-  rpc GetInstance(GetInstanceRequest) returns (GetInstanceResponse);
-
-  // Lists all recording sessions within a specific instance.
-  rpc ListInstanceSessions(ListInstanceSessionsRequest) returns (ListInstanceSessionsResponse);
-
-  // Returns the full detail payload for a single instance, including
-  // filesystem-backed storage statistics. Walks the instance's session
-  // directories on disk, so it is heavier than ListInstances — call it
-  // only when needed (e.g. when the user expands a row in the UI).
-  rpc GetInstanceDetail(GetInstanceDetailRequest) returns (GetInstanceDetailResponse);
-
-  // Returns the detail payload for a single session within an instance:
-  // the session's metadata, and nothing read out of its recording.
-  rpc GetInstanceSessionDetail(GetInstanceSessionDetailRequest) returns (GetInstanceSessionDetailResponse);
 }
 
 message ListInstancesRequest {
   string project_id = 1;
-  // When true, each InstanceInfo in the response is populated with its full list of sessions.
-  // Callers that only need instance metadata should leave this false to avoid payload bloat.
-  bool include_sessions = 2;
 }
 
 message ListInstancesResponse {
   repeated InstanceInfo instances = 1;
-}
-
-message GetInstanceRequest {
-  string instance_id = 1;
-}
-
-message GetInstanceResponse {
-  InstanceInfo instance = 1;
-}
-
-message ListInstanceSessionsRequest {
-  string instance_id = 1;
-}
-
-message ListInstanceSessionsResponse {
-  repeated InstanceSessionInfo sessions = 1;
-}
-
-message GetInstanceDetailRequest {
-  string instance_id = 1;
-}
-
-message GetInstanceDetailResponse {
-  // Identity, lifecycle, and sessions. Sessions are always populated in this response.
-  InstanceInfo instance = 1;
-  // Filesystem-backed aggregates over every file of the instance's sessions.
-  InstanceStats stats = 2;
-}
-
-// Aggregated storage statistics for a single instance, computed by walking
-// the instance's session directories on disk.
-message InstanceStats {
-  int32 file_count = 1;
-  int64 total_size_bytes = 2;
-}
-
-message GetInstanceSessionDetailRequest {
-  string instance_id = 1;
-  string session_id = 2;
-}
-
-message GetInstanceSessionDetailResponse {
-  // Metadata for the requested session, and nothing read out of its recording: what the JFR
-  // environment events hold is read by Microscope, which downloads the newest closed chunk.
-  InstanceSessionInfo session = 1;
 }
 
 // A project instance — represents a single JVM process lifecycle.
@@ -109,43 +48,16 @@ message GetInstanceSessionDetailResponse {
 message InstanceInfo {
   // Unique identifier for the instance.
   string id = 1;
-  // Human-readable display name for this instance.
-  string instance_name = 2;
   // Current lifecycle status.
-  InstanceStatus status = 3;
+  InstanceStatus status = 2;
   // Timestamp when the instance was first detected (epoch millis).
-  int64 created_at = 4;
-  // Timestamp when the instance finished, all sessions completed (epoch millis).
-  optional int64 finished_at = 5;
-  // Timestamp when the instance is scheduled for expiration cleanup (epoch millis).
-  optional int64 expiring_at = 6;
-  // Timestamp when the instance was expired and cleaned up (epoch millis).
-  optional int64 expired_at = 7;
-  // Number of recording sessions in this instance.
-  int32 session_count = 8;
-  // ID of the currently active session, if any.
-  optional string active_session_id = 9;
-  // Full session list. Populated only when ListInstancesRequest.include_sessions is true; otherwise empty.
-  repeated InstanceSessionInfo sessions = 10;
-}
-
-// A recording session within an instance.
-// Each session corresponds to a continuous profiling period.
-message InstanceSessionInfo {
-  // Unique identifier for the session.
-  string id = 1;
-  // ID of the repository storing the session's files.
-  string repository_id = 2;
-  // Timestamp when the session started (epoch millis).
   int64 created_at = 3;
-  // Timestamp when the session finished, heartbeat went stale or JVM stopped (epoch millis).
+  // Timestamp when the instance finished, all sessions completed (epoch millis).
   optional int64 finished_at = 4;
-  // Whether this session is currently active (streaming events).
-  bool is_active = 5;
-  // Whether this session failed: finished without producing any data (zero bytes),
-  // typically a prematurely killed process (OOM kill, container healthcheck restart loop).
-  bool failed = 6;
-  // Whether the session ended because it sent no heartbeat within the startup grace; such a session
-  // is not failed.
-  bool heartbeat_missing = 7;
+  // Timestamp when retention deleted the instance's first session (epoch millis).
+  optional int64 expiring_at = 5;
+  // Timestamp when retention deleted the instance's last session (epoch millis).
+  optional int64 expired_at = 6;
+  // Number of recording sessions in this instance.
+  int32 session_count = 7;
 }

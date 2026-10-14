@@ -23,7 +23,6 @@ import java.util.Map;
 public record CreateProject(
         String originProjectId,
         String projectName,
-        String namespace,
         Instant originCreatedAt,
         Map<String, String> attributes) {
 }

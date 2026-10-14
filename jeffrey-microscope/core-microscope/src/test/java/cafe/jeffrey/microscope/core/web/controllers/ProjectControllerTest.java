@@ -37,15 +37,6 @@ class ProjectControllerTest {
     HubBrowserAccess access;
 
     @Test
-    void initializingAlwaysFalse() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectController(access));
-
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/initializing"))
-                .hasStatusOk()
-                .bodyText().isEqualTo("false");
-    }
-
-    @Test
     void projectNotFoundReturns404() {
         when(access.project("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 

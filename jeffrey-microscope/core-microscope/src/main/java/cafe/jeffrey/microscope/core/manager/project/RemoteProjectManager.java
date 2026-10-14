@@ -97,6 +97,7 @@ public class RemoteProjectManager implements ProjectManager {
         return new RemoteInstancesManager(
                 detailedProjectInfo.projectInfo(),
                 remoteClients.instances(),
+                remoteClients.repository(),
                 new SessionEnvironmentReader(
                         repositoryManager(),
                         new SessionEnvironmentParser(jeffreyDirs)));
@@ -105,12 +106,6 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public void updateName(String name) {
         throw new UnsupportedOperationException("Renaming remote projects is not supported");
-    }
-
-    @Override
-    public void restore() {
-        remoteClients.projects().restoreProject(
-                detailedProjectInfo.projectInfo().id());
     }
 
     @Override

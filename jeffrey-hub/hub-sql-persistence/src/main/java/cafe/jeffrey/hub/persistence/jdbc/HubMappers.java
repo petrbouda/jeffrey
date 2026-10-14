@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -46,7 +45,6 @@ public abstract class HubMappers {
         return (rs, _) -> {
             return new RepositoryInfo(
                     rs.getString("repository_id"),
-                    RepositoryType.valueOf(rs.getString("repository_type")),
                     rs.getString("workspaces_path"),
                     rs.getString("relative_workspace_path"),
                     rs.getString("relative_project_path"));
@@ -96,7 +94,6 @@ public abstract class HubMappers {
                     rs.getString("session_id"),
                     rs.getString("repository_id"),
                     rs.getString("instance_id"),
-                    rs.getInt("session_order"),
                     Path.of(rs.getString("relative_session_path")),
                     HubMappers.instant(rs, "origin_created_at"),
                     HubMappers.instant(rs, "created_at"),
@@ -113,12 +110,10 @@ public abstract class HubMappers {
                     rs.getString("project_id"),
                     rs.getString("origin_project_id"),
                     rs.getString("project_name"),
-                    rs.getString("namespace"),
                     rs.getString("workspace_id"),
                     HubMappers.instant(rs, "created_at"),
                     HubMappers.instant(rs, "origin_created_at"),
-                    Json.toMap(rs.getString("attributes")),
-                    HubMappers.instant(rs, "deleted_at"));
+                    Json.toMap(rs.getString("attributes")));
         };
     }
 }

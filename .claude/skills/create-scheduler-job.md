@@ -19,7 +19,7 @@ Ask the user for the following information using AskUserQuestion:
 1. **Job Name**: The name for the new job (e.g., "DataCleanup", "MetricsExporter")
 2. **Job Scope**: One of:
     - `PROJECT` - Job operates on individual projects (extends RepositoryProjectJob)
-    - `GLOBAL` - Job runs once per tick across the whole server (implements `Job` directly, like `DeletedProjectsCleanerJob`)
+    - `GLOBAL` - Job runs once per tick across the whole server (implements `Job` directly, like `WorkspaceReconcilerJob`)
     - `INTERNAL` - Internal system job (implements Job directly)
 3. **Description**: Brief description of what the job does
 4. **Parameters**: Does the job need configuration parameters? (yes/no)
@@ -279,7 +279,6 @@ Add the job ID to the `jobDefinitions` array in the appropriate templates:
     "default-repository-jfr-compression",
     "default-project-recording-storage-synchronizer",
     "default-session-finished-detector",
-    "default-expired-instance-cleaner",
     "default-{job-name-kebab}"
   ]
 }
@@ -377,9 +376,8 @@ After generating all files, provide a summary:
 | Job                                       | Type                                       | Scope   | Description                                      |
 |-------------------------------------------|--------------------------------------------|---------|--------------------------------------------------|
 | RepositoryCompressionProjectJob           | REPOSITORY_JFR_COMPRESSION                 | PROJECT | Compresses JFR files using LZ4                   |
-| ProjectInstanceSessionCleanerJob          | PROJECT_INSTANCE_SESSION_CLEANER           | PROJECT | Removes old project instance sessions            |
+| ProjectRetentionJob                       | PROJECT_RETENTION                          | PROJECT | Age, cap, live-trim, quota and stale-instance rules over one listing per project; feeds the storage overview |
 | ProjectInstanceRecordingCleanerJob        | PROJECT_INSTANCE_RECORDING_CLEANER         | PROJECT | Removes old project instance recordings          |
-| ExpiredInstanceCleanerJob                 | EXPIRED_INSTANCE_CLEANER                   | PROJECT | Removes expired instances from projects          |
 | SessionFinishedDetectorProjectJob         | SESSION_FINISHED_DETECTOR                  | PROJECT | Detects finished recording sessions              |
 | WorkspaceReconcilerJob                    | WORKSPACE_RECONCILER                       | GLOBAL  | Materializes projects/instances/sessions from workspace directories |
 | DataRetentionJob                          | DATA_RETENTION                             | GLOBAL  | Cleans up old messages, alerts, and queue events |

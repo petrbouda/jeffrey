@@ -30,8 +30,8 @@ import java.util.List;
 public class JdbcWorkspaceRepository implements WorkspaceRepository {
 
     /**
-     * Cascade covering all rows reachable only through the workspace. Projects (including soft-deleted
-     * ones) and their children must go too — once the workspace row is gone, every project query
+     * Cascade covering all rows reachable only through the workspace. Projects and their
+     * children must go too — once the workspace row is gone, every project query
      * (INNER JOIN workspaces) can no longer see them, so leftover rows would be unreachable garbage.
      */
     //language=SQL
@@ -50,7 +50,7 @@ public class JdbcWorkspaceRepository implements WorkspaceRepository {
     private static final String SELECT_PROJECTS_BY_WORKSPACE_ID = """
             SELECT p.* FROM projects p
             WHERE EXISTS (SELECT 1 FROM workspaces w WHERE w.workspace_id = p.workspace_id)
-              AND p.workspace_id = :workspace_id AND p.deleted_at IS NULL""";
+              AND p.workspace_id = :workspace_id""";
 
     private final String workspaceId;
     private final DatabaseClient databaseClient;

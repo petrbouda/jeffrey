@@ -185,7 +185,6 @@
               :project="project"
               :hub-id="selectedHubId!"
               :workspace-id="selectedWorkspace.id"
-              :restore="handleRestoreProject"
             />
           </div>
         </template>
@@ -343,7 +342,6 @@ import ToastService from '@shared/services/ToastService';
 import HubClient from '@hubs/services/api/HubClient';
 import WorkspaceClient from '@hubs/services/api/WorkspaceClient';
 import WorkspaceProjectsClient from '@hubs/services/api/WorkspaceProjectsClient';
-import ProjectClient from '@hubs/services/api/ProjectClient';
 import Hub from '@hubs/services/api/model/Hub';
 import Workspace from '@hubs/services/api/model/Workspace';
 import Project from '@hubs/services/api/model/Project';
@@ -697,23 +695,6 @@ const deleteWorkspace = async (workspace: Workspace) => {
   } catch (error: any) {
     ToastService.error(
       'Failed to delete workspace',
-      error?.response?.data?.message ?? error?.message ?? 'Unknown error'
-    );
-  }
-};
-
-const handleRestoreProject = async (projectId: string) => {
-  if (!selectedHubId.value || !selectedWorkspaceId.value) {
-    return;
-  }
-  try {
-    const client = new ProjectClient(selectedHubId.value, selectedWorkspaceId.value, projectId);
-    await client.restore();
-    ToastService.success('Project Restored', 'Project has been restored.');
-    await refreshProjects();
-  } catch (error: any) {
-    ToastService.error(
-      'Failed to restore project',
       error?.response?.data?.message ?? error?.message ?? 'Unknown error'
     );
   }

@@ -42,6 +42,7 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
         return cache.computeIfAbsent(address, this::createEntry).clients();
     }
 
+    @Override
     public void evict(HubAddress address) {
         CachedEntry entry = cache.remove(address);
         if (entry != null) {

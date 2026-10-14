@@ -38,10 +38,6 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       .catch(() => undefined);
   }
 
-  async getSessions(instanceId: string): Promise<ProjectInstanceSession[]> {
-    return super.get<any[]>(`/${instanceId}/sessions`).then(data => data.map(this.mapToSession));
-  }
-
   async getDetail(instanceId: string): Promise<ProjectInstanceDetail> {
     return super
       .get<any>(`/${instanceId}/detail`)

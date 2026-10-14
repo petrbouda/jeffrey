@@ -25,9 +25,7 @@ import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -122,13 +120,10 @@ class JdbcProjectsRepositoryTest {
                     "new-proj-001",
                     null,
                     "New Project",
-                    null, // namespace
                     "ws-001",
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
-                    Map.of(),
-                    null
-            );
+                    Map.of());
 
             ProjectInfo result = repository.create(projectInfo);
 
@@ -152,13 +147,10 @@ class JdbcProjectsRepositoryTest {
                     "duplicate-proj",
                     "origin-002",  // Same origin_project_id as Project Two
                     "Duplicate Project",
-                    null, // namespace
                     "ws-001",
                     Instant.parse("2025-01-15T12:00:00Z"),
                     null,
-                    Map.of(),
-                    null
-            );
+                    Map.of());
 
             repository.create(projectInfo);
 
@@ -203,125 +195,6 @@ class JdbcProjectsRepositoryTest {
             Optional<ProjectInfo> result = repository.findByOriginProjectId("any-origin");
 
             assertTrue(result.isEmpty());
-        }
-    }
-
-    @Nested
-    class SoftDeleteFiltering {
-
-        private void softDeleteProject(DataSource dataSource, String projectId) throws SQLException {
-            try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(
-                        "UPDATE projects SET deleted_at = CURRENT_TIMESTAMP WHERE project_id = '" + projectId + "'");
-            }
-        }
-
-        @Test
-        void findAllProjects_excludesSoftDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            softDeleteProject(dataSource, "proj-001");
-
-            List<ProjectInfo> result = repository.findAllProjects();
-            assertEquals(1, result.size());
-            assertEquals("Project Two", result.getFirst().name());
-        }
-
-        @Test
-        void findAllProjectsByWorkspace_excludesSoftDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            softDeleteProject(dataSource, "proj-001");
-
-            List<ProjectInfo> result = repository.findAllProjects("ws-001");
-            assertEquals(1, result.size());
-            assertEquals("Project Two", result.getFirst().name());
-        }
-
-        @Test
-        void findByOriginProjectId_excludesSoftDeleted(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            softDeleteProject(dataSource, "proj-002");
-
-            Optional<ProjectInfo> result = repository.findByOriginProjectId("origin-002");
-            assertTrue(result.isEmpty());
-        }
-
-        @Test
-        void create_allowsReCreationAfterSoftDelete(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/projects/insert-workspace-with-projects.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            // Soft-delete proj-002 which has origin_project_id = "origin-002"
-            softDeleteProject(dataSource, "proj-002");
-
-            // Creating a new project with same origin_project_id should succeed
-            ProjectInfo newProject = new ProjectInfo(
-                    "proj-003", "origin-002", "Recreated Project", null,
-                    "ws-001", Instant.parse("2025-06-15T12:00:00Z"), null, Map.of(), null);
-
-            ProjectInfo result = repository.create(newProject);
-
-            assertEquals("Recreated Project", result.name());
-            assertEquals("origin-002", result.originId());
-
-            // Both old (soft-deleted) and new should exist in DB, but only the new one is visible
-            Optional<ProjectInfo> visible = repository.findByOriginProjectId("origin-002");
-            assertTrue(visible.isPresent());
-            assertEquals("proj-003", visible.get().id());
-        }
-    }
-
-    @Nested
-    class PurgeDeletedProjectsMethod {
-
-        @Test
-        void purgesOnlyProjectsDeletedBeforeCutoff_withChildRows(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-full-graph.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            // proj-002 was soft-deleted at 2025-01-02; proj-001 and proj-101 are live
-            int purged = repository.purgeDeletedProjects(Instant.parse("2025-02-01T00:00:00Z"));
-
-            assertEquals(1, purged, "Only the tombstoned project older than the cutoff is purged");
-            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-002'"));
-            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id = 'proj-002'"));
-
-            // Live projects and their children stay
-            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-001'"));
-            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-101'"));
-            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM repositories WHERE project_id = 'proj-001'"));
-        }
-
-        @Test
-        void keepsTombstones_youngerThanCutoff(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/workspace/insert-workspace-full-graph.sql");
-            JdbcProjectsRepository repository = new JdbcProjectsRepository(provider);
-
-            int purged = repository.purgeDeletedProjects(Instant.parse("2025-01-01T00:00:00Z"));
-
-            assertEquals(0, purged, "Tombstone is younger than the cutoff — still restorable");
-            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM projects WHERE project_id = 'proj-002'"));
-        }
-
-        private int countRows(DataSource dataSource, String sql) throws SQLException {
-            try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement();
-                 var rs = stmt.executeQuery(sql)) {
-                rs.next();
-                return rs.getInt(1);
-            }
         }
     }
 }

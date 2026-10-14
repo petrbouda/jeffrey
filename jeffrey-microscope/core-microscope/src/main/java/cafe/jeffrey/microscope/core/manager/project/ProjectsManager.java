@@ -38,8 +38,6 @@ public interface ProjectsManager {
         return findAll();
     }
 
-    List<ProjectManager> findAllIncludingDeleted();
-
     Optional<ProjectManager> project(String projectId);
 
     /**

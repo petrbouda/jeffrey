@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.RepositoryInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -107,45 +106,23 @@ public interface RepositoryStorage {
      */
     void deleteProjectDirectory();
 
-
-
     // ========== Files ==========
 
     /**
-     * Where one file of a session is on disk, exactly as it lies.
-     *
-     * <p>One lookup for every kind of file. There were two — one for recordings, one for
-     * artifacts — and by the end they differed only in the word in their refusal. What a file's
-     * category decides is what a reader does with it, and the reader knows the category already;
-     * it does not need a separate door to be told.
-     *
-     * <p>Refuses rather than returns nothing, so "not found" means not found. A file the session
-     * does not hold, a transient one, one no longer on disk, the chunk the profiler is still
-     * writing, and an empty recording are each named with the reason, because a caller that asked
-     * for one file and got silence cannot tell which of those happened. An empty <em>artifact</em>
-     * is served: emptiness is a statement about parsing, and a log with nothing in it is an
-     * answer.
+     * Looks up one file of a session for download, whatever kind it is. A lookup only: it neither
+     * compresses nor opens the file.
      *
      * @param sessionId the session ID
      * @param fileId    the file's id, as the session's listing reports it
-     * @return the path the file has now, which is the name the caller must use for it
-     * @throws IllegalArgumentException when the session has no such file, or it is one the hub
-     *                                  will not hand over
+     * @return the path the file has now, or the named reason it is not served
      */
-    Path file(String sessionId, String fileId);
+    FileLookup file(String sessionId, String fileId);
 
     // ========== Session Compression ==========
 
     /**
-     * Compresses FINISHED JFR recordings in the session and deletes originals.
-     * <p>
-     * This is used by the scheduler job to save disk space. Files that are already
-     * compressed (JFR_LZ4) are skipped. The original JFR files are deleted after
-     * successful compression.
-     * <p>
-     * For ACTIVE sessions, the latest few recording files are skipped because
-     * async-profiler may still be flushing data into them.
-     * </p>
+     * Compresses the session's closed JFR chunks to LZ4 and deletes the originals; for a live
+     * session the chunk the profiler is still writing is left alone. Used by the compression job.
      *
      * @param sessionId the session ID to compress
      * @return number of files compressed

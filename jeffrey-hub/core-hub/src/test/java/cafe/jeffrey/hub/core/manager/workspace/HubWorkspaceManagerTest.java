@@ -54,10 +54,9 @@ class HubWorkspaceManagerTest {
         when(projectsManager.findAll()).thenReturn(List.of(first, second));
         WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
         WorkspaceInfo workspaceInfo = new WorkspaceInfo(
-                "ws-1", "ws-1", "repo-1", "production",
-                null, null, FIXED_CLOCK.instant(), WorkspaceStatus.AVAILABLE, 2);
+                "ws-1", "ws-1", "production", FIXED_CLOCK.instant(), WorkspaceStatus.AVAILABLE, 2);
         HubWorkspaceManager manager = new HubWorkspaceManager(
-                FIXED_CLOCK, new HubJeffreyDirs(Path.of("/tmp/jeffrey-hub-test")), workspaceInfo,
+                new HubJeffreyDirs(Path.of("/tmp/jeffrey-hub-test")), workspaceInfo,
                 workspaceRepository, _ -> projectsManager);
 
         manager.delete();
