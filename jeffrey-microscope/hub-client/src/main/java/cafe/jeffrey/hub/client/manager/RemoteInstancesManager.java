@@ -27,11 +27,9 @@ import cafe.jeffrey.hub.client.dto.InstanceSessionResponse;
 import cafe.jeffrey.hub.client.dto.InstanceStatsResponse;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
-import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.microscope.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.InstantUtils;
 import tools.jackson.databind.JsonNode;
 
@@ -48,20 +46,18 @@ import java.util.stream.Collectors;
  */
 public class RemoteInstancesManager {
 
-    private final ProjectInfo projectInfo;
     private final ProjectScope scope;
     private final InstancesClient instancesClient;
     private final RepositoryClient repositoryClient;
     private final SessionEnvironmentReader sessionEnvironmentReader;
 
     public RemoteInstancesManager(
-            ProjectInfo projectInfo,
+            ProjectScope scope,
             InstancesClient instancesClient,
             RepositoryClient repositoryClient,
             SessionEnvironmentReader sessionEnvironmentReader) {
 
-        this.projectInfo = projectInfo;
-        this.scope = ProjectScope.of(projectInfo);
+        this.scope = scope;
         this.instancesClient = instancesClient;
         this.repositoryClient = repositoryClient;
         this.sessionEnvironmentReader = sessionEnvironmentReader;
@@ -91,26 +87,23 @@ public class RemoteInstancesManager {
                 .toList();
     }
 
-    public Optional<ProjectInstanceInfo> find(String instanceId) {
+    /**
+     * One instance with its sessions, from one read of the hub; empty when the project holds no
+     * instance by that id.
+     */
+    public Optional<InstanceWithSessions> find(String instanceId) {
         return instancesClient.instance(scope, instanceId)
-                .map(found -> toProjectInstanceInfo(found.instance(), found.sessions()));
+                .map(found -> new InstanceWithSessions(
+                        toProjectInstanceInfo(found.instance(), found.sessions()),
+                        found.sessions().stream()
+                                .map(RecordingSessionResponse::toSession)
+                                .toList()));
     }
 
     public Optional<InstanceDetailResponse> detail(String instanceId) {
         return instancesClient.instance(scope, instanceId)
                 .map(found -> new InstanceDetailResponse(
                         withSessions(found.instance(), found.sessions()), stats(found.sessions())));
-    }
-
-    /**
-     * One instance's sessions, newest first, each without its files; empty when the project
-     * holds no instance by that id.
-     */
-    public Optional<List<RecordingSession>> sessions(String instanceId) {
-        return instancesClient.instance(scope, instanceId)
-                .map(found -> found.sessions().stream()
-                        .map(RecordingSessionResponse::from)
-                        .toList());
     }
 
     public Optional<InstanceSessionDetailResponse> sessionDetail(String instanceId, String sessionId) {
@@ -120,7 +113,7 @@ public class RemoteInstancesManager {
         }
         boolean expectShutdown = session.finishedAt() != null;
         JsonNode environment = sessionEnvironmentReader
-                .forSession(RecordingSessionResponse.from(session), expectShutdown)
+                .forSession(session.toSession(), expectShutdown)
                 .orElse(null);
         return Optional.of(new InstanceSessionDetailResponse(toSessionResponse(session), environment));
     }
@@ -174,7 +167,7 @@ public class RemoteInstancesManager {
 
         return new ProjectInstanceInfo(
                 response.id(),
-                projectInfo.id(),
+                scope.projectId(),
                 response.instanceName(),
                 ProjectInstanceStatus.valueOf(response.status()),
                 InstantUtils.fromEpochMilli(response.createdAt()),

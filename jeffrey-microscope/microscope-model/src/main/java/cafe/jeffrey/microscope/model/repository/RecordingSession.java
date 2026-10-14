@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -53,11 +54,11 @@ public record RecordingSession(
      */
     public RecordingSession {
         files = files == null ? List.of() : files;
-        size = size == null ? SessionSize.of(files) : size;
+        Objects.requireNonNull(size, "size");
     }
 
     /**
-     * A session whose size is measured from the files it carries.
+     * A session read with its files, its size measured from them.
      */
     public RecordingSession(
             String id,
@@ -73,7 +74,7 @@ public record RecordingSession(
             boolean failed) {
 
         this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, heartbeatMissing,
-                failed, null);
+                failed, SessionSize.of(files == null ? List.of() : files));
     }
 
     /**

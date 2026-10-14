@@ -18,8 +18,12 @@
 package cafe.jeffrey.hub.core.volume;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Optional;
 
 /**
  * A project directory on the volume and what its {@code .project-info.json} declares.
@@ -32,5 +36,20 @@ public record ProjectDirectory(Path path, ProjectInfo info) {
         if (path == null || info == null) {
             throw new IllegalArgumentException("A project directory needs a path and its project");
         }
+    }
+
+    /**
+     * The project in this directory, or empty when it holds no readable marker naming a project
+     * id — the one test of "is this a project", shared by the listing and the workspace's count.
+     */
+    public static Optional<ProjectDirectory> at(Path directory, String workspaceId) {
+        return VolumeMarkers.read(directory, JeffreyLayout.PROJECT_INFO_FILE, RemoteProject.class)
+                .filter(marker -> marker.projectId() != null && !marker.projectId().isBlank())
+                .map(marker -> new ProjectDirectory(directory, new ProjectInfo(
+                        marker.projectId(),
+                        marker.projectName(),
+                        workspaceId,
+                        Instant.ofEpochMilli(marker.createdAt()),
+                        marker.attributes())));
     }
 }

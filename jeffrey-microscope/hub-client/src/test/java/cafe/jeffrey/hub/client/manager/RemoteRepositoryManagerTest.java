@@ -22,9 +22,10 @@ import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
 import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
@@ -37,7 +38,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -72,9 +72,8 @@ class RemoteRepositoryManagerTest {
                 .build()
                 .start();
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
-        ProjectInfo project = new ProjectInfo(PROJECT_ID, PROJECT_ID, "demo", null, "ws-1", T0, null, Map.of());
         manager = new RemoteRepositoryManager(
-                null, project, new RepositoryStatistics(21_300L),
+                null, new ProjectScope("ws-1", PROJECT_ID), new RepositoryStatistics(21_300L),
                 new RepositoryClient(new GrpcHubConnection(channel) { }), null);
     }
 
@@ -91,7 +90,7 @@ class RemoteRepositoryManagerTest {
 
     @Test
     void listedSessionsCarryTheirSizeButNoFiles() {
-        var first = manager.listRecordingSessions().getFirst();
+        var first = manager.listRecordingSessions(RecordingSessionFilter.ALL).getFirst();
 
         assertEquals(2, first.fileCount());
         assertEquals(21_000L, first.totalSizeBytes());

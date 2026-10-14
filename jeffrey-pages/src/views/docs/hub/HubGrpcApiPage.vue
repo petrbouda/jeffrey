@@ -124,7 +124,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListProjects</code>
                 </div>
-                <p>List projects in workspace. Each <code>ProjectInfo</code> carries its workspace's id, which is also the workspace's reference id; its <code>status</code> and <code>session_count</code>, read off each instance's newest session alone (only the newest can still be recording); and <code>size_bytes</code>, what the last retention pass measured &mdash; absent before the first pass, never re-measured on request</p>
+                <p>List projects in workspace. Each <code>ProjectInfo</code> carries its workspace's id, which is also the workspace's reference id; its <code>status</code> and <code>session_count</code>, read off each instance's newest session alone (only the newest can still be recording; a project with no session has no status and sends <code>RECORDING_STATUS_UNSPECIFIED</code>); and <code>size_bytes</code>, what the last retention pass measured &mdash; absent before the first pass, never re-measured on request</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">

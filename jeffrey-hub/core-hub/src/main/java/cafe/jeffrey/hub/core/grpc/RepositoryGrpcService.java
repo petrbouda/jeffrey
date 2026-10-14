@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +43,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
             RecordingSessionFilter filter = ProtoMappers.sessionFilter(request.getFilter());
 
             // Loaded with their files for the figures each row carries; the files stay on the hub
-            List<RecordingSession> sessions = repoManager.listRecordingSessions(SessionDetail.WITH_FILES, filter).stream()
+            List<RecordingSession> sessions = repoManager.listRecordingSessions(filter).stream()
                     .map(ProtoMappers::sessionHeader)
                     .toList();
 
@@ -62,7 +61,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
 
-            var session = repoManager.findRecordingSessions(request.getSessionId())
+            var session = repoManager.findSession(request.getSessionId())
                     .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
 
             LOG.debug("Fetched session via gRPC: session_id={}", request.getSessionId());
@@ -77,7 +76,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     public void deleteSession(DeleteSessionRequest request, StreamObserver<DeleteSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
-            if (!repoManager.deleteRecordingSession(request.getSessionId())) {
+            if (!repoManager.deleteRecordingSession(request.getSessionId()).deleted()) {
                 throw GrpcExceptions.notFound("Session not found: " + request.getSessionId());
             }
 

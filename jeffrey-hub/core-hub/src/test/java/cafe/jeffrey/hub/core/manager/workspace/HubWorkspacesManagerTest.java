@@ -89,6 +89,19 @@ class HubWorkspacesManagerTest {
             assertEquals(1, created.projectCount());
         }
 
+        /** With auto-create on, the directory is listed under its id as its name before it is created. */
+        @Test
+        void adoptsAnAutoCreatedDirectoryUnderTheNameItWasListedWith() throws IOException {
+            Files.createDirectories(root.resolve("prod-ws"));
+            HubWorkspacesManager manager = manager(true);
+            assertFalse(manager.isDescribed("prod-ws"));
+
+            WorkspaceInfo created = manager.create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", "prod-ws"));
+
+            assertEquals("prod-ws", created.name());
+            assertTrue(manager.isDescribed("prod-ws"));
+        }
+
         @Test
         void blankReferenceId_throwsIllegalArgumentException() {
             assertThrows(IllegalArgumentException.class, () ->

@@ -18,12 +18,15 @@
 package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -31,6 +34,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -69,7 +73,7 @@ class HubRepositoryManagerDeleteSessionTest {
         Path older = finishedSession("s-1", T0);
         Path newer = finishedSession("s-2", T0.plusSeconds(600));
 
-        assertTrue(manager.deleteRecordingSession("s-1"));
+        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
 
         assertFalse(Files.exists(older));
         assertTrue(Files.exists(newer));
@@ -80,16 +84,40 @@ class HubRepositoryManagerDeleteSessionTest {
     void deletesTheInstanceWithItsLastSession() {
         finishedSession("s-1", T0);
 
-        assertTrue(manager.deleteRecordingSession("s-1"));
+        assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, manager.deleteRecordingSession("s-1"));
 
         assertFalse(Files.exists(instance));
+    }
+
+    /**
+     * A directory the provisioner created but has not described yet is a session about to start,
+     * and its profiler may already be writing into it: the instance stays.
+     */
+    @Test
+    void keepsTheInstanceWhileADirectoryWithoutAMarkerIsInIt() throws IOException {
+        finishedSession("s-1", T0);
+        Path starting = Files.createDirectories(instance.resolve("s-2"));
+
+        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
+
+        assertTrue(Files.exists(starting));
+    }
+
+    @Test
+    void aSessionWithACorruptMarkerIsNoSession() throws IOException {
+        Path corrupt = Files.createDirectories(instance.resolve("s-1"));
+        Files.writeString(corrupt.resolve(JeffreyLayout.SESSION_INFO_FILE), "{not json");
+
+        assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("s-1"));
+        assertFalse(manager.setSessionRetained("s-1", true), "pinning answers the same as deleting");
+        assertTrue(Files.exists(corrupt));
     }
 
     @Test
     void aSessionThatIsNotThereFreesNothing() {
         finishedSession("s-1", T0);
 
-        assertFalse(manager.deleteRecordingSession("ghost"));
+        assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("ghost"));
         assertTrue(Files.exists(instance));
     }
 }

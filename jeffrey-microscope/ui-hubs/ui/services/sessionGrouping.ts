@@ -25,11 +25,6 @@ import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
  */
 const UNREPORTED_SIZES_GRACE_MS = 60_000;
 
-/** Total bytes across a session's files, as the hub reported them with the session. */
-export function totalSizeBytes(session: RecordingSession): number {
-  return session.sizeBytes;
-}
-
 /**
  * A finished session that produced no data at all — typically a prematurely killed
  * process (OOM kill, container healthcheck restart loop). Mirrors the backend
@@ -46,7 +41,7 @@ export function isFailedSession(session: RecordingSession): boolean {
   if (session.heartbeatMissing) {
     return false;
   }
-  return totalSizeBytes(session) === 0;
+  return session.sizeBytes === 0;
 }
 
 /**
@@ -69,7 +64,7 @@ export function hasUnreportedSizes(session: RecordingSession): boolean {
   }
   return (
     session.fileCount > 0 &&
-    totalSizeBytes(session) === 0 &&
+    session.sizeBytes === 0 &&
     session.duration >= UNREPORTED_SIZES_GRACE_MS
   );
 }

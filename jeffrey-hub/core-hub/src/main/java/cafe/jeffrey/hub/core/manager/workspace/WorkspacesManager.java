@@ -51,4 +51,10 @@ public interface WorkspacesManager {
      * @param workspaceId the workspace's directory name, which is its reference id
      */
     Optional<WorkspaceManager> findById(String workspaceId);
+
+    /**
+     * Whether the workspace was created — its directory carries the hub's marker — as opposed to
+     * listed only because auto-create stands it in for a directory the provisioner wrote into.
+     */
+    boolean isDescribed(String workspaceId);
 }

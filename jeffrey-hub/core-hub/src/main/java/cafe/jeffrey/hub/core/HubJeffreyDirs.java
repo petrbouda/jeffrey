@@ -27,6 +27,14 @@ import java.nio.file.Path;
  */
 public record HubJeffreyDirs(Path homeDir) {
 
+    /**
+     * Absolute and normalized, so a directory resolved under it compares equal to its parent: an
+     * id is accepted only when it names one directory directly under the one asked about.
+     */
+    public HubJeffreyDirs {
+        homeDir = homeDir.toAbsolutePath().normalize();
+    }
+
     public Path initialize() {
         FileSystemUtils.createDirectories(homeDir);
         return homeDir;

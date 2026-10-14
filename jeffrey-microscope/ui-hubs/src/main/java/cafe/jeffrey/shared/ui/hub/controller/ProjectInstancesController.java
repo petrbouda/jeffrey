@@ -27,9 +27,10 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.hub.client.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
 
 import java.time.Clock;
@@ -68,16 +69,21 @@ public class ProjectInstancesController {
         return result;
     }
 
+    /**
+     * One instance with its sessions, each without its files, from one read of the hub — the
+     * whole of what an instance's page shows; a session's files come from the repository's
+     * single-session read when the session is expanded.
+     */
     @GetMapping("/{instanceId}")
-    public InstanceResponse get(
+    public InstanceWithSessionsResponse get(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @PathVariable("instanceId") String instanceId) {
         LOG.debug("Fetching project instance: instanceId={}", instanceId);
         return projectAccess.instancesManager(hubId, workspaceId, projectId).find(instanceId)
-                .map(i -> InstanceResponse.from(i, clock))
-                .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId));
+                .map(found -> InstanceWithSessionsResponse.from(found, clock))
+                .orElseThrow(() -> instanceNotFound(instanceId));
     }
 
     @GetMapping("/{instanceId}/detail")
@@ -88,25 +94,7 @@ public class ProjectInstancesController {
             @PathVariable("instanceId") String instanceId) {
         LOG.debug("Fetching instance detail: instanceId={}", instanceId);
         return projectAccess.instancesManager(hubId, workspaceId, projectId).detail(instanceId)
-                .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId));
-    }
-
-    /**
-     * One instance's sessions, newest first, each without its files — the files come from the
-     * repository's single-session read when a session is expanded.
-     */
-    @GetMapping("/{instanceId}/sessions")
-    public List<RecordingSessionResponse> getSessions(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @PathVariable("instanceId") String instanceId) {
-        LOG.debug("Listing instance sessions: instanceId={}", instanceId);
-        return projectAccess.instancesManager(hubId, workspaceId, projectId).sessions(instanceId)
-                .orElseThrow(() -> Exceptions.invalidRequest("Instance not found: " + instanceId))
-                .stream()
-                .map(session -> RecordingSessionResponse.from(session, clock))
-                .toList();
+                .orElseThrow(() -> instanceNotFound(instanceId));
     }
 
     @GetMapping("/{instanceId}/sessions/{sessionId}/detail")
@@ -118,7 +106,11 @@ public class ProjectInstancesController {
             @PathVariable("sessionId") String sessionId) {
         LOG.debug("Fetching instance session detail: instanceId={} sessionId={}", instanceId, sessionId);
         return projectAccess.instancesManager(hubId, workspaceId, projectId).sessionDetail(instanceId, sessionId)
-                .orElseThrow(() -> Exceptions.invalidRequest(
+                .orElseThrow(() -> Exceptions.resourceNotFound(
                         "Session not found: instanceId=" + instanceId + " sessionId=" + sessionId));
+    }
+
+    private static JeffreyClientException instanceNotFound(String instanceId) {
+        return Exceptions.resourceNotFound("Instance not found: " + instanceId);
     }
 }

@@ -27,13 +27,6 @@ import java.util.List;
 public interface RepositoryManager {
 
     /**
-     * Lists every recording session of the project, newest first, without their files.
-     */
-    default List<RecordingSession> listRecordingSessions() {
-        return listRecordingSessions(RecordingSessionFilter.ALL);
-    }
-
-    /**
      * Lists the recording sessions that satisfy the filter, newest first. The filter is
      * evaluated by the hub, so the response carries only the sessions asked for. Each session
      * carries its {@code SessionSize} but not its files: those come from

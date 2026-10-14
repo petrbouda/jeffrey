@@ -19,6 +19,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
@@ -83,7 +84,10 @@ final class ProjectRetentionPass {
         return List.copyOf(sessions);
     }
 
-    /** The project's instances as the volume says now, with their status read off their sessions. */
+    /**
+     * The project's instances as the volume says now — read again on every call on purpose, so a
+     * rule sees the instances the rules before it deleted along with their last session.
+     */
     List<ProjectInstanceInfo> instances() {
         return storage.instances();
     }
@@ -100,12 +104,15 @@ final class ProjectRetentionPass {
      * @return whether it was there to delete; one already gone frees nothing
      */
     boolean deleteSession(RecordingSession session) {
-        boolean deleted = project.repositoryManager().deleteRecordingSession(session.id());
-        if (deleted) {
+        SessionDeletion deletion = project.repositoryManager().deleteRecordingSession(session.id());
+        if (deletion.deleted()) {
             sessions.remove(session);
             sessionsDeleted++;
         }
-        return deleted;
+        if (deletion.instanceDeleted()) {
+            instancesDeleted++;
+        }
+        return deletion.deleted();
     }
 
     /** Deletes some files of a session; the session stays, without them. */

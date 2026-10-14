@@ -33,12 +33,14 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceGrpcService.class);
 
     private final WorkspacesManager workspacesManager;
+    private final GrpcLookups lookups;
     private final DefaultWorkspaceProperties defaultWorkspaceProperties;
 
     public WorkspaceGrpcService(
             WorkspacesManager workspacesManager,
             DefaultWorkspaceProperties defaultWorkspaceProperties) {
         this.workspacesManager = workspacesManager;
+        this.lookups = new GrpcLookups(workspacesManager);
         this.defaultWorkspaceProperties = defaultWorkspaceProperties;
     }
 
@@ -86,7 +88,7 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
     @Override
     public void deleteWorkspace(DeleteWorkspaceRequest request, StreamObserver<DeleteWorkspaceResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
+            WorkspaceManager workspace = lookups.workspace(request.getWorkspaceId());
 
             String defaultRefId = defaultWorkspaceProperties.getReferenceId();
             if (defaultRefId.equals(workspace.info().id())) {
@@ -102,11 +104,6 @@ public class WorkspaceGrpcService extends WorkspaceServiceGrpc.WorkspaceServiceI
 
             return DeleteWorkspaceResponse.getDefaultInstance();
         });
-    }
-
-    private WorkspaceManager findWorkspace(String workspaceId) {
-        return workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + workspaceId));
     }
 
 }

@@ -24,6 +24,7 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -136,7 +137,7 @@ class FilesystemRepositoryStorageTest {
             TestVolume.heartbeat(older, NOW);
             TestVolume.heartbeat(session(INSTANCE, "s-2", T0.plusSeconds(600)), NOW);
 
-            List<RecordingSession> sessions = storage.listSessionsByInstanceId(INSTANCE, SessionDetail.HEADERS);
+            List<RecordingSession> sessions = storage.instanceWithSessions(INSTANCE).orElseThrow().sessions();
 
             assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.FINISHED),
                     sessions.stream().map(RecordingSession::status).toList());
@@ -148,7 +149,7 @@ class FilesystemRepositoryStorageTest {
             TestVolume.finished(session(INSTANCE, "s-1", T0), T0.plusSeconds(60));
             TestVolume.finished(session(INSTANCE, "s-2", T0.plusSeconds(120)), T0.plusSeconds(300));
 
-            ProjectInstanceInfo instance = storage.instance(INSTANCE).orElseThrow();
+            ProjectInstanceInfo instance = storage.instanceWithSessions(INSTANCE).orElseThrow().instance();
 
             assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
             assertEquals(T0.plusSeconds(300), instance.finishedAt());
@@ -159,7 +160,7 @@ class FilesystemRepositoryStorageTest {
         void anInstanceWithoutSessionsIsPending() {
             TestVolume.instance(project, INSTANCE, T0);
 
-            ProjectInstanceInfo instance = storage.instance(INSTANCE).orElseThrow();
+            ProjectInstanceInfo instance = storage.instanceWithSessions(INSTANCE).orElseThrow().instance();
 
             assertEquals(ProjectInstanceStatus.PENDING, instance.status());
             assertEquals(0, instance.sessionCount());
@@ -167,8 +168,29 @@ class FilesystemRepositoryStorageTest {
 
         @Test
         void anUnknownInstanceIsEmpty() {
-            assertTrue(storage.instance("ghost").isEmpty());
-            assertTrue(storage.instance("../escape").isEmpty());
+            assertTrue(storage.instanceWithSessions("ghost").isEmpty());
+            assertTrue(storage.instanceWithSessions("../escape").isEmpty());
+        }
+
+        /** One test of "is this an instance": a marker that does not read names no instance anywhere. */
+        @Test
+        void anInstanceWithACorruptMarkerIsNoInstance() throws IOException {
+            TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
+            Files.writeString(project.resolve(INSTANCE).resolve(JeffreyLayout.INSTANCE_INFO_FILE), "{not json");
+
+            assertTrue(storage.instances().isEmpty());
+            assertTrue(storage.instanceWithSessions(INSTANCE).isEmpty());
+            assertTrue(storage.listSessions(SessionDetail.HEADERS).isEmpty());
+            assertTrue(storage.session("s-1").isEmpty());
+        }
+
+        @Test
+        void aSessionReadAloneFinishesAtItsSuccessorsStartLikeItDoesInTheListing() {
+            session(INSTANCE, "s-1", T0);
+            TestVolume.heartbeat(session(INSTANCE, "s-2", T0.plusSeconds(600)), NOW);
+
+            assertEquals(T0.plusSeconds(600), storage.session("s-1").orElseThrow().finishedAt());
+            assertEquals(RecordingStatus.ACTIVE, storage.session("s-2").orElseThrow().status());
         }
 
         @Test
@@ -184,8 +206,8 @@ class FilesystemRepositoryStorageTest {
         void anInstanceIdThatIsNotOneDirectoryNamesNothing() {
             TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
 
-            assertTrue(storage.listSessionsByInstanceId("../" + INSTANCE, SessionDetail.HEADERS).isEmpty());
-            assertTrue(storage.singleSession("../s-1", SessionDetail.HEADERS).isEmpty());
+            assertTrue(storage.instanceWithSessions("../" + INSTANCE).isEmpty());
+            assertTrue(storage.session("../s-1").isEmpty());
         }
 
         @Test
@@ -195,12 +217,14 @@ class FilesystemRepositoryStorageTest {
 
             assertTrue(storage.setRetained("s-1", true));
             assertTrue(Files.exists(dir.resolve(FilesystemRepositoryStorage.RETAINED_MARKER)));
-            assertTrue(storage.singleSession("s-1", SessionDetail.HEADERS).orElseThrow().retained());
-            assertTrue(storage.singleSession("s-1", SessionDetail.WITH_FILES).orElseThrow().files().isEmpty(),
-                    "the flag is no file of the session");
+            assertTrue(storage.session("s-1").orElseThrow().retained());
+            assertTrue(storage.session("s-1").orElseThrow().files().isEmpty(), "the flag is no file of the session");
+
+            storage.setRetained("s-1", true);
+            assertTrue(storage.session("s-1").orElseThrow().retained(), "setting it again is no error");
 
             storage.setRetained("s-1", false);
-            assertFalse(storage.singleSession("s-1", SessionDetail.HEADERS).orElseThrow().retained());
+            assertFalse(storage.session("s-1").orElseThrow().retained());
         }
 
         @Nested
@@ -590,7 +614,7 @@ class FilesystemRepositoryStorageTest {
                     "half an archive".getBytes(StandardCharsets.UTF_8));
 
             List<RepositoryFile> files = finishedSession()
-                    .singleSession(SESSION_ID, SessionDetail.WITH_FILES)
+                    .session(SESSION_ID)
                     .orElseThrow()
                     .files();
 

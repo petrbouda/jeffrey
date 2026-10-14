@@ -29,8 +29,6 @@ import java.util.Objects;
  */
 public record SessionSize(int fileCount, long bytes) {
 
-    public static final SessionSize EMPTY = new SessionSize(0, 0L);
-
     public SessionSize {
         if (fileCount < 0 || bytes < 0) {
             throw new IllegalArgumentException("A session size cannot be negative: fileCount=" + fileCount + " bytes=" + bytes);

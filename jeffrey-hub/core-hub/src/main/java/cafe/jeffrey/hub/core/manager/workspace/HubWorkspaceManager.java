@@ -49,6 +49,6 @@ public class HubWorkspaceManager implements WorkspaceManager {
     @Override
     public void delete() {
         FileSystemUtils.removeDirectory(workspace.path());
-        LOG.info("Deleted workspace: workspace_id={} path={}", workspace.info().id(), workspace.path());
+        LOG.info("Deleted workspace: workspace_id={} path={}", workspace.id(), workspace.path());
     }
 }

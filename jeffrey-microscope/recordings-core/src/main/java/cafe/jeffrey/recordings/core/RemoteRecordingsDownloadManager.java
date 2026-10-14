@@ -28,7 +28,6 @@ import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
@@ -92,7 +91,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private final RecordingsCoreManager recordingsManager;
     private final OriginContext originContext;
     private final ProjectScope scope;
-    private final String projectName;
 
     public RemoteRecordingsDownloadManager(
             TempDirProvider tempDirProvider,
@@ -100,15 +98,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             RepositoryClient repositoryClient,
             RecordingsCoreManager recordingsManager,
             OriginContext originContext,
-            String projectName) {
+            ProjectScope scope) {
 
         this.tempDirProvider = tempDirProvider;
         this.fileStreamClient = fileStreamClient;
         this.repositoryClient = repositoryClient;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
-        this.scope = new ProjectScope(originContext.workspaceId(), originContext.projectId());
-        this.projectName = projectName;
+        this.scope = scope;
     }
 
     @Override
@@ -168,7 +165,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * the profiler still holds open is the session's newest chunk.
      */
     private RecordingSession session(String recordingSessionId) {
-        return RecordingSessionResponse.from(repositoryClient.recordingSession(scope, recordingSessionId));
+        return repositoryClient.recordingSession(scope, recordingSessionId).toSession();
     }
 
     /**
@@ -540,7 +537,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * @param window the covered span, or {@code null} for the whole session
      */
     private String recordingName(RecordingSession session, ChunkWindow.Selection window) {
-        String name = sanitizeForFilename(projectName) + WINDOW_NAME_SEPARATOR
+        String name = sanitizeForFilename(originContext.projectName()) + WINDOW_NAME_SEPARATOR
                 + RECORDING_NAME_TIMESTAMP.format(session.createdAt());
         if (window == null) {
             return name;

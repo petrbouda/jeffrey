@@ -31,18 +31,6 @@ public record ProjectInstanceInfo(
         String activeSessionId,
         List<ProjectInstanceSessionInfo> sessions) {
 
-    public ProjectInstanceInfo(
-            String id,
-            String projectId,
-            String instanceName,
-            ProjectInstanceStatus status,
-            Instant startedAt,
-            Instant finishedAt,
-            int sessionCount,
-            String activeSessionId) {
-        this(id, projectId, instanceName, status, startedAt, finishedAt, sessionCount, activeSessionId, List.of());
-    }
-
     public enum ProjectInstanceStatus {
         PENDING, ACTIVE, FINISHED
     }

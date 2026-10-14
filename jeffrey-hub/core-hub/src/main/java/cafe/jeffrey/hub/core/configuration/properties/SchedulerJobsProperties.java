@@ -53,7 +53,7 @@ public class SchedulerJobsProperties {
 
     private Map<String, JobConfig> jobs = new HashMap<>();
 
-    /** Pool size for the PROJECT_FAN_OUT executor group (see {@code Job.ExecutorGroup}) */
+    /** Pool size of the scheduler, which runs every job over the projects of every workspace */
     private int fanOutPoolSize = DEFAULT_FAN_OUT_POOL_SIZE;
 
     public Map<String, JobConfig> getJobs() {

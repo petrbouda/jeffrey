@@ -25,6 +25,7 @@ paths:
 
 ### Clients
 - Clients live in `jeffrey-microscope/grpc-client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/` (`DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `InstancesClient`, `ProjectsClient`). Add a new client to the record and its factory.
+- A message more than one client receives is mapped once, in `ClientProtoMappers`: `session(...)` decodes a session, its files and their statuses for `RepositoryClient` and `InstancesClient` alike — never a second copy in a client.
 - Blocking stubs for request/response, async stubs for streaming. Wire values (session ids, file names) are validated and reduced to one path element in the receiving record's compact constructor (`FileStreamClient.TransferredFile`).
 
 ### Tests

@@ -38,6 +38,17 @@ public record OriginContext(
      */
     public static final String TAG_WINDOW = "origin.window";
 
+    /** The keys a downloaded recording is matched back to its hub session by. */
+    public static final String TAG_HUB_ID = "origin.hubId";
+    public static final String TAG_WORKSPACE_ID = "origin.workspaceId";
+    public static final String TAG_PROJECT_ID = "origin.projectId";
+    public static final String TAG_RECORDING_ID = "origin.recordingId";
+
+    /** The keys the UI shows where a recording came from. */
+    public static final String TAG_HUB = "origin.hub";
+    public static final String TAG_WORKSPACE = "origin.workspace";
+    public static final String TAG_PROJECT = "origin.project";
+
     /**
      * Builds the {@code origin.*} system tag map for a recording downloaded from an upstream session.
      *
@@ -46,24 +57,24 @@ public record OriginContext(
     public Map<String, String> toTagMap(String upstreamRecordingId) {
         Map<String, String> tags = new LinkedHashMap<>();
         if (hubId != null) {
-            tags.put("origin.hubId", hubId);
+            tags.put(TAG_HUB_ID, hubId);
         }
         if (hubName != null) {
-            tags.put("origin.hub", hubName);
+            tags.put(TAG_HUB, hubName);
         }
         if (workspaceId != null) {
-            tags.put("origin.workspaceId", workspaceId);
-            // A hub workspace is named by its directory on the volume, so its id is what the user knows it by
-            tags.put("origin.workspace", workspaceId);
+            tags.put(TAG_WORKSPACE_ID, workspaceId);
+            // A hub workspace is named by its directory on the volume, so its id is also what the UI shows
+            tags.put(TAG_WORKSPACE, workspaceId);
         }
         if (projectId != null) {
-            tags.put("origin.projectId", projectId);
+            tags.put(TAG_PROJECT_ID, projectId);
         }
         if (projectName != null) {
-            tags.put("origin.project", projectName);
+            tags.put(TAG_PROJECT, projectName);
         }
         if (upstreamRecordingId != null) {
-            tags.put("origin.recordingId", upstreamRecordingId);
+            tags.put(TAG_RECORDING_ID, upstreamRecordingId);
         }
         return tags;
     }

@@ -53,9 +53,12 @@ public final class ProtoMappers {
 
     // ========== Enums ==========
 
+    /**
+     * @param status {@code null} for a project without a session, which has no status to report
+     */
     public static RecordingStatus recordingStatus(cafe.jeffrey.hub.model.repository.RecordingStatus status) {
         if (status == null) {
-            return RecordingStatus.RECORDING_STATUS_UNKNOWN;
+            return RecordingStatus.RECORDING_STATUS_UNSPECIFIED;
         }
         return switch (status) {
             case ACTIVE -> RecordingStatus.RECORDING_STATUS_ACTIVE;

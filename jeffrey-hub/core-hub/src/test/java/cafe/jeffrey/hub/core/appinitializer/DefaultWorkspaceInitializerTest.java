@@ -25,13 +25,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -42,9 +40,6 @@ class DefaultWorkspaceInitializerTest {
 
     @Mock
     WorkspacesManager workspacesManager;
-
-    @Mock
-    WorkspaceManager existingWorkspace;
 
     private DefaultWorkspaceProperties properties;
 
@@ -59,7 +54,7 @@ class DefaultWorkspaceInitializerTest {
 
         @Test
         void createsDefaultWorkspaceWithConfiguredReferenceIdAndName() {
-            when(workspacesManager.findById("$default")).thenReturn(Optional.empty());
+            when(workspacesManager.isDescribed("$default")).thenReturn(false);
             when(workspacesManager.create(any())).thenReturn(
                     new WorkspaceInfo("$default", "$default", Instant.parse("2026-01-01T00:00:00Z"),
                             WorkspaceStatus.UNKNOWN, 0));
@@ -81,7 +76,7 @@ class DefaultWorkspaceInitializerTest {
             properties.setReferenceId("$prod");
             properties.setName("$prod");
 
-            when(workspacesManager.findById("$prod")).thenReturn(Optional.empty());
+            when(workspacesManager.isDescribed("$prod")).thenReturn(false);
             when(workspacesManager.create(any())).thenReturn(
                     new WorkspaceInfo("$prod", "$prod", Instant.parse("2026-01-01T00:00:00Z"),
                             WorkspaceStatus.UNKNOWN, 0));
@@ -104,8 +99,7 @@ class DefaultWorkspaceInitializerTest {
 
         @Test
         void doesNotCreateAnything() {
-            when(workspacesManager.findById("$default"))
-                    .thenReturn(Optional.of(existingWorkspace));
+            when(workspacesManager.isDescribed("$default")).thenReturn(true);
 
             DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
                     workspacesManager, properties);

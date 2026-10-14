@@ -283,7 +283,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
             <td><code>2</code></td>
-            <td>Threads for project fan-out jobs. Both built-in jobs fan out across every project in every workspace.</td>
+            <td>Threads of the scheduler's one pool. Both jobs run per project, across every project in every workspace.</td>
           </tr>
         </tbody>
       </table>

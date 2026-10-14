@@ -32,6 +32,7 @@ import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.client.InstancesClient;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
@@ -200,7 +201,7 @@ class RemoteInstancesManagerTest {
         // looks a session up nor parses one
         SessionEnvironmentReader noEnvironment = new SessionEnvironmentReader(null, null);
         manager = new RemoteInstancesManager(
-                PROJECT, new InstancesClient(connection), new RepositoryClient(connection), noEnvironment);
+                ProjectScope.of(PROJECT), new InstancesClient(connection), new RepositoryClient(connection), noEnvironment);
     }
 
     @AfterEach
@@ -260,22 +261,31 @@ class RemoteInstancesManagerTest {
     }
 
     @Nested
-    class Sessions {
+    class Find {
 
         @Test
-        void areTheInstancesOwnWithTheirSizeButNoFiles() {
-            var sessions = manager.sessions(LIVE_INSTANCE).orElseThrow();
+        void readsTheInstanceWithItsSessionsInOneCall() {
+            InstanceWithSessions found = manager.find(LIVE_INSTANCE).orElseThrow();
 
+            assertEquals(LIVE_INSTANCE, found.instance().id());
+            assertEquals(ProjectInstanceStatus.ACTIVE, found.instance().status());
             assertEquals(List.of("session-live", "session-finished"),
-                    sessions.stream().map(session -> session.id()).toList());
-            assertEquals(1000L, sessions.get(1).totalSizeBytes());
-            assertEquals(1, sessions.get(1).fileCount());
-            assertTrue(sessions.get(1).files().isEmpty());
+                    found.sessions().stream().map(session -> session.id()).toList());
+            assertNull(hub.lastListing.get(), "no project-wide listing is asked for");
         }
 
         @Test
-        void ofAnUnknownInstanceAreEmpty() {
-            assertTrue(manager.sessions("ghost").isEmpty());
+        void sessionsCarryTheirSizeButNoFiles() {
+            var finished = manager.find(LIVE_INSTANCE).orElseThrow().sessions().get(1);
+
+            assertEquals(1000L, finished.totalSizeBytes());
+            assertEquals(1, finished.fileCount());
+            assertTrue(finished.files().isEmpty());
+        }
+
+        @Test
+        void anUnknownInstanceIsEmpty() {
+            assertTrue(manager.find("ghost").isEmpty());
         }
     }
 

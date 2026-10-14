@@ -27,11 +27,9 @@ package cafe.jeffrey.microscope.model.repository;
  * landed in "other", beside the files nothing could classify at all. Of what remained, the status
  * had no reader anywhere, and the rest sat beside the same numbers the page already had.
  *
- * <p>Nothing here names a kind of file, so adding a kind of file changes neither
- * this record nor the RPC that carries it. A caller that wants to know what a particular file is
- * reads {@code fileType} off the session listing, where the hub reports it without acting on it.
- */
-/**
+ * <p>Nothing here names a kind of file, so adding a kind of file changes nothing here. A caller
+ * that wants to know what a particular file is reads it off the session's files.
+ *
  * @param totalSizeBytes as the hub's last retention pass measured it, or {@code null} before the
  *                       first pass: the figure is read off that pass, never re-measured on request
  */

@@ -19,9 +19,12 @@ package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
+import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import org.slf4j.Logger;
@@ -43,20 +46,25 @@ public class HubRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public Optional<RecordingSession> findRecordingSessions(String recordingSessionId) {
-        return repositoryStorage.singleSession(recordingSessionId, SessionDetail.WITH_FILES);
+    public Optional<RecordingSession> findSession(String sessionId) {
+        return repositoryStorage.session(sessionId);
     }
 
     @Override
-    public List<RecordingSession> listRecordingSessions(SessionDetail detail, RecordingSessionFilter filter) {
+    public List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter) {
         // Filter on headers first, so only the surviving sessions' directories are walked
-        List<RecordingSession> sessions = filter.apply(repositoryStorage.listSessions(SessionDetail.HEADERS));
-        return detail.withFiles() ? withFiles(sessions) : sessions;
+        return withFiles(filter.apply(repositoryStorage.listSessions(SessionDetail.HEADERS)));
     }
 
     @Override
-    public List<RecordingSession> listInstanceSessions(String instanceId, RecordingSessionFilter filter) {
-        return withFiles(filter.apply(repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.HEADERS)));
+    public List<ProjectInstanceInfo> instances() {
+        return repositoryStorage.instances();
+    }
+
+    @Override
+    public Optional<InstanceSessions> instance(String instanceId) {
+        return repositoryStorage.instanceWithSessions(instanceId)
+                .map(found -> new InstanceSessions(found.instance(), withFiles(found.sessions())));
     }
 
     private List<RecordingSession> withFiles(List<RecordingSession> sessions) {
@@ -65,28 +73,19 @@ public class HubRepositoryManager implements RepositoryManager {
                 .toList();
     }
 
-    /**
-     * Deletes a session's directory, and its instance's directory with it when that was the
-     * instance's last session — an instance with no session left has nothing to show.
-     */
     @Override
-    public boolean deleteRecordingSession(String recordingSessionId) {
-        Optional<RecordingSession> session =
-                repositoryStorage.singleSession(recordingSessionId, SessionDetail.HEADERS);
-        if (session.isEmpty() || !repositoryStorage.deleteSession(recordingSessionId)) {
+    public SessionDeletion deleteRecordingSession(String recordingSessionId) {
+        SessionDeletion deletion = repositoryStorage.deleteSession(recordingSessionId);
+        if (!deletion.deleted()) {
             LOG.warn("Recording session not found, nothing to delete: session_id={} project_id={}",
                     recordingSessionId, projectInfo.id());
-            return false;
+            return deletion;
         }
 
-        String instanceId = session.get().instanceId();
-        if (repositoryStorage.listSessionsByInstanceId(instanceId, SessionDetail.HEADERS).isEmpty()) {
-            repositoryStorage.deleteInstanceDirectory(instanceId);
-        }
-
-        LOG.info("Deleted recording session: session_id={} project_id={}", recordingSessionId, projectInfo.id());
+        LOG.info("Deleted recording session: session_id={} project_id={} instance_deleted={}",
+                recordingSessionId, projectInfo.id(), deletion.instanceDeleted());
         JfrNotificationEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
-        return true;
+        return deletion;
     }
 
     @Override

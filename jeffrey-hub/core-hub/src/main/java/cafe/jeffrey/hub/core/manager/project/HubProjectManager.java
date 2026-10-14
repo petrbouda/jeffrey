@@ -68,12 +68,18 @@ public class HubProjectManager implements ProjectManager {
     public DetailedProjectInfo detailedInfo() {
         List<ProjectInstanceInfo> instances = repositoryStorage.instances();
         int sessionCount = instances.stream().mapToInt(ProjectInstanceInfo::sessionCount).sum();
-        RecordingStatus status = sessionCount == 0
-                ? null
-                : instances.stream().anyMatch(instance -> instance.status() == ProjectInstanceStatus.ACTIVE)
-                        ? RecordingStatus.ACTIVE
-                        : RecordingStatus.FINISHED;
-        return new DetailedProjectInfo(projectInfo, status, sessionCount);
+        return new DetailedProjectInfo(projectInfo, statusOf(instances, sessionCount), sessionCount);
+    }
+
+    /** {@code null} without a session; ACTIVE while any instance records; FINISHED otherwise. */
+    private static RecordingStatus statusOf(List<ProjectInstanceInfo> instances, int sessionCount) {
+        if (sessionCount == 0) {
+            return null;
+        }
+        if (instances.stream().anyMatch(instance -> instance.status() == ProjectInstanceStatus.ACTIVE)) {
+            return RecordingStatus.ACTIVE;
+        }
+        return RecordingStatus.FINISHED;
     }
 
     @Override

@@ -18,14 +18,8 @@
 package cafe.jeffrey.hub.core.manager.project;
 
 import cafe.jeffrey.hub.core.volume.ProjectDirectory;
-import cafe.jeffrey.hub.core.volume.VolumeMarkers;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
-import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 
-import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,20 +53,6 @@ public class HubProjectsManager implements ProjectsManager {
     }
 
     private List<ProjectDirectory> projectDirectories() {
-        return VolumeMarkers.childDirectories(workspace.path()).stream()
-                .map(this::projectDirectory)
-                .flatMap(Optional::stream)
-                .toList();
-    }
-
-    private Optional<ProjectDirectory> projectDirectory(Path directory) {
-        return VolumeMarkers.read(directory, JeffreyLayout.PROJECT_INFO_FILE, RemoteProject.class)
-                .filter(marker -> marker.projectId() != null && !marker.projectId().isBlank())
-                .map(marker -> new ProjectDirectory(directory, new ProjectInfo(
-                        marker.projectId(),
-                        marker.projectName(),
-                        workspace.info().id(),
-                        Instant.ofEpochMilli(marker.createdAt()),
-                        marker.attributes())));
+        return workspace.projects();
     }
 }

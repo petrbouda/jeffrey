@@ -109,7 +109,7 @@ public class StubDataFactory {
     private Instance activeInstance(String id, String name, Instant now, Duration startedAgo) {
         Instant createdAt = minus(now, startedAgo);
         Session active = activeSession(id, "sess-" + id + "-current", createdAt);
-        return new Instance(id, name, InstState.ACTIVE, createdAt, null, active.id(), List.of(active));
+        return new Instance(id, name, InstState.ACTIVE, createdAt, null, List.of(active));
     }
 
     private Instance finishedInstance(String id, String name, Instant now, Duration startedAgo, int sessionCount) {
@@ -120,12 +120,12 @@ public class StubDataFactory {
             sessions.add(finishedSession(id, "sess-" + id + "-" + (i + 1), sessionStart, Duration.ofMinutes(15)));
         }
         Instant finishedAt = sessions.getLast().finishedAt();
-        return new Instance(id, name, InstState.FINISHED, createdAt, finishedAt, null, List.copyOf(sessions));
+        return new Instance(id, name, InstState.FINISHED, createdAt, finishedAt, List.copyOf(sessions));
     }
 
     private Instance pendingInstance(String id, String name, Instant now) {
         Instant createdAt = minus(now, Duration.ofMinutes(2));
-        return new Instance(id, name, InstState.PENDING, createdAt, null, null, List.of());
+        return new Instance(id, name, InstState.PENDING, createdAt, null, List.of());
     }
 
     private Session activeSession(String instanceId, String sessionId, Instant createdAt) {

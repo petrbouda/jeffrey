@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
@@ -44,13 +43,13 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     public RemoteRepositoryManager(
             TempDirProvider tempDirProvider,
-            ProjectInfo projectInfo,
+            ProjectScope scope,
             RepositoryStatistics statistics,
             RepositoryClient repositoryClient,
             FileStreamClient fileStreamClient) {
 
         this.tempDirProvider = tempDirProvider;
-        this.scope = ProjectScope.of(projectInfo);
+        this.scope = scope;
         this.statistics = statistics;
         this.repositoryClient = repositoryClient;
         this.fileStreamClient = fileStreamClient;
@@ -59,13 +58,13 @@ public class RemoteRepositoryManager implements RepositoryManager {
     @Override
     public List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter) {
         return repositoryClient.recordingSessions(scope, filter).stream()
-                .map(RecordingSessionResponse::from)
+                .map(RecordingSessionResponse::toSession)
                 .toList();
     }
 
     @Override
     public RecordingSession recordingSession(String sessionId) {
-        return RecordingSessionResponse.from(repositoryClient.recordingSession(scope, sessionId));
+        return repositoryClient.recordingSession(scope, sessionId).toSession();
     }
 
     /**

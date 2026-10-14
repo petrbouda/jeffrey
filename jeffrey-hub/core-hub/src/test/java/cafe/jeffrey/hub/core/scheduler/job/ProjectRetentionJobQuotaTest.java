@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
@@ -90,7 +91,7 @@ class ProjectRetentionJobQuotaTest {
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
+        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
         when(projectManager.repositoryStorage()).thenReturn(storage);
 
         job = job(BUDGET + "");
@@ -199,7 +200,7 @@ class ProjectRetentionJobQuotaTest {
             RecordingSession next = finishedSession("next", NOW.minusSeconds(3000), false,
                     recording("n", NOW.minusSeconds(3000), 80 * MB));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(vanished, next));
-            when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(false);
+            when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(SessionDeletion.NOT_FOUND);
 
             execute();
 

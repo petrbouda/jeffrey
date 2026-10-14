@@ -30,6 +30,12 @@ public record SessionLifecycle(Instant finishedAt, boolean heartbeatMissing) {
 
     private static final SessionLifecycle RECORDING = new SessionLifecycle(null, false);
 
+    public SessionLifecycle {
+        if (heartbeatMissing && finishedAt == null) {
+            throw new IllegalArgumentException("A session missing its heartbeat is finished, so it needs a finish time");
+        }
+    }
+
     public static SessionLifecycle recording() {
         return RECORDING;
     }

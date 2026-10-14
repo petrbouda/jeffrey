@@ -24,17 +24,6 @@ import java.time.Duration;
 public interface Job {
 
     /**
-     * Executor group a job is scheduled on. {@link #GLOBAL} jobs (queue polling,
-     * cleaners) run on a dedicated single thread so a slow fan-out over many
-     * projects can never delay them; {@link #PROJECT_FAN_OUT} jobs (iterating
-     * every project of every workspace) share a small pool.
-     */
-    enum ExecutorGroup {
-        GLOBAL,
-        PROJECT_FAN_OUT
-    }
-
-    /**
      * One tick of the job. Every parameter a job needs is fixed at construction from its
      * {@code JobConfig}; there is no per-run input.
      */
@@ -49,11 +38,4 @@ public interface Job {
      * The type of job for categorization and logging.
      */
     JobType jobType();
-
-    /**
-     * The executor group this job is scheduled on.
-     */
-    default ExecutorGroup executorGroup() {
-        return ExecutorGroup.GLOBAL;
-    }
 }

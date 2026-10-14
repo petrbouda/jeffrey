@@ -59,6 +59,7 @@ import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
@@ -304,6 +305,25 @@ class HubsMcpToolsTest {
             assertEquals("FINISHED", row.path("status").asString());
             assertFalse(row.has("started"), row.toString());
             assertFalse(row.has("startedAtMs"), row.toString());
+        }
+
+        /**
+         * A listing brings each session's size but none of its files, so the row's figures come off
+         * that size; read off the (empty) file list, they would claim an empty session.
+         */
+        @Test
+        void takesTheFiguresFromTheListedSizeNotTheFiles() {
+            RepositoryManager repo = repositoryWith(new RecordingSession(SESSION_ID, SESSION_ID, "inst-1", NOW,
+                    NOW.plusSeconds(600), RecordingStatus.FINISHED, null, List.of(), false, false, false,
+                    new SessionSize(3, 4096L)));
+            HubManager production = reachableHub(HUB_ID, "production", "checkout", repo);
+            when(hubsManager.findAll()).thenReturn(List.of(production));
+            noLocalRecordings();
+
+            JsonNode row = page(tools, null, null, 1, null).path("structuredContent").path("sessions").get(0);
+
+            assertEquals(3, row.path("files").asInt());
+            assertEquals(4096, row.path("sizeBytes").asLong());
         }
 
         /** A session still recording has no duration yet, and says so with null rather than zero. */

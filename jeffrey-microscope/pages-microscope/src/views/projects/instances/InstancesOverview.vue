@@ -234,9 +234,9 @@ const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 const statisticsError = ref(false);
 
 /**
- * The one figure the card carries, split so the number can be set larger than its unit.
- * Falls back to an empty size rather than to placeholder text: the card is only rendered once
- * the statistics have arrived, so a reader never sees this.
+ * The one figure the card carries, split so the number can be set larger than its unit. Read
+ * only once a size has been measured (the template shows a caption before that), so the zero
+ * fallback is never displayed.
  */
 const storageSize = computed(() =>
   FormattingService.formatBytesParts(repositoryStatistics.value?.totalSize ?? 0)

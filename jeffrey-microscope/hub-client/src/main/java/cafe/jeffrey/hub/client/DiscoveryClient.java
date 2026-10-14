@@ -33,6 +33,7 @@ import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import io.grpc.StatusRuntimeException;
@@ -186,6 +187,8 @@ public class DiscoveryClient {
                 proto.getWorkspaceId(),
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
                 proto.getSessionCount(),
-                proto.hasSizeBytes() ? proto.getSizeBytes() : null);
+                proto.hasSizeBytes()
+                        ? new RepositoryStatistics(proto.getSizeBytes())
+                        : RepositoryStatistics.NOT_YET_MEASURED);
     }
 }

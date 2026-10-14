@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
 
@@ -30,13 +29,15 @@ import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
  * Said before the request is made, so the reader finds out while looking at the list rather than
  * afterwards. It mirrors `ChunkWindow` on the Java side field for field: finished recording files
  * only, ordered by `createdAt`. Deleting files has no such rule, which is why this constrains the
- * Download button
- * rather than the ticking.
+ * Download button rather than the ticking.
+ *
+ * Every function takes the session's files as read on their own: a session from a listing
+ * carries none, and a check over no files would let every pick through.
  */
 
 /** The session's finished recording chunks, oldest first — `ChunkWindow.finishedChunks`. */
-export function orderedChunks(session: RecordingSession): RepositoryFile[] {
-  return session.files
+export function orderedChunks(files: RepositoryFile[]): RepositoryFile[] {
+  return files
     .filter(file => file.isRecording && file.status === RecordingStatus.FINISHED)
     .slice()
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -50,14 +51,14 @@ export function orderedChunks(session: RecordingSession): RepositoryFile[] {
  * freely alongside any run.
  */
 export function chunkSelectionGap(
-  session: RecordingSession,
+  files: RepositoryFile[],
   selected: { [fileId: string]: boolean } | undefined
 ): RepositoryFile[] {
   if (!selected) {
     return [];
   }
 
-  const chunks = orderedChunks(session);
+  const chunks = orderedChunks(files);
   const first = chunks.findIndex(chunk => selected[chunk.id]);
   if (first < 0) {
     return [];
@@ -80,18 +81,18 @@ export function chunkSelectionGap(
  * separately disabled when nothing is ticked at all.
  */
 export function isContiguousChunkSelection(
-  session: RecordingSession,
+  files: RepositoryFile[],
   selected: { [fileId: string]: boolean } | undefined
 ): boolean {
-  return chunkSelectionGap(session, selected).length === 0;
+  return chunkSelectionGap(files, selected).length === 0;
 }
 
 /** The sentence shown beside a blocked Download, naming the files that would close the gap. */
 export function chunkSelectionGapMessage(
-  session: RecordingSession,
+  files: RepositoryFile[],
   selected: { [fileId: string]: boolean } | undefined
 ): string {
-  const gap = chunkSelectionGap(session, selected);
+  const gap = chunkSelectionGap(files, selected);
   if (gap.length === 0) {
     return '';
   }

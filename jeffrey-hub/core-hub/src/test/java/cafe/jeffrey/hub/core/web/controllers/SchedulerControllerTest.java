@@ -62,10 +62,8 @@ class SchedulerControllerTest {
         @Test
         void reportsWhetherEachJobCanBeRunManually() {
             when(jobRegistry.all()).thenReturn(List.of(
-                    new JobInfo(JobType.PROJECT_RETENTION, JobType.ExecutionLevel.PROJECT,
-                            Duration.ofMinutes(5), Map.of(), true, true),
-                    new JobInfo(JobType.REPOSITORY_JFR_COMPRESSION, JobType.ExecutionLevel.PROJECT,
-                            Duration.ofMinutes(1), Map.of(), true, false)));
+                    new JobInfo(JobType.PROJECT_RETENTION, Duration.ofMinutes(5), Map.of(), true, true),
+                    new JobInfo(JobType.REPOSITORY_JFR_COMPRESSION, Duration.ofMinutes(1), Map.of(), true, false)));
 
             assertThat(mvc().get().uri("/api/internal/scheduler/jobs"))
                     .hasStatusOk()

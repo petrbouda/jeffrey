@@ -18,7 +18,9 @@
 package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
@@ -28,45 +30,35 @@ import java.util.Optional;
 public interface RepositoryManager {
 
     /**
-     * Finds a recording session by its ID.
-     *
-     * @param recordingSessionId the ID of the recording session to find
-     * @return an Optional containing the RecordingSession if found, or empty if not found
+     * One session with its files, or empty when the project holds none by that id.
      */
-    Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
+    Optional<RecordingSession> findSession(String sessionId);
 
     /**
-     * Lists all recording sessions in the repository, newest first.
+     * The sessions that satisfy the filter, newest first, each loaded with its files — the
+     * figures a listing reports are read off them.
      *
-     * @param detail whether to load each session's files as well
-     * @return list of recording sessions
+     * @param filter the window, status and count constraints to apply
      */
-    default List<RecordingSession> listRecordingSessions(SessionDetail detail) {
-        return listRecordingSessions(detail, RecordingSessionFilter.ALL);
-    }
+    List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter);
 
     /**
-     * Lists the recording sessions that satisfy the filter, newest first.
-     *
-     * @param detail    whether to load each session's files as well in the sessions
-     * @param filter    the window, status and count constraints to apply
-     * @return list of matching recording sessions
+     * Every instance of the project, its status read off its newest session at this moment.
      */
-    List<RecordingSession> listRecordingSessions(SessionDetail detail, RecordingSessionFilter filter);
+    List<ProjectInstanceInfo> instances();
 
     /**
-     * One instance's sessions that satisfy the filter, with their files, newest first: a walk of
-     * that instance's directories alone.
+     * One instance with its sessions, newest first, each loaded with its files; empty when the
+     * project holds no instance by that id.
      */
-    List<RecordingSession> listInstanceSessions(String instanceId, RecordingSessionFilter filter);
+    Optional<InstanceSessions> instance(String instanceId);
 
     /**
-     * Deletes a session, and its instance's directory when that was the instance's last session.
-     *
-     * @return whether a session of that id existed and was deleted; {@code false} names a
-     * session already gone, which a caller counting reclaimed bytes must not count
+     * Deletes a session, and its instance's directory when no other directory is left in it.
+     * {@link SessionDeletion#NOT_FOUND} names a session already gone, which a caller counting
+     * reclaimed bytes must not count.
      */
-    boolean deleteRecordingSession(String recordingSessionId);
+    SessionDeletion deleteRecordingSession(String recordingSessionId);
 
     /**
      * Marks a recording session as retained, exempting it from every retention rule,

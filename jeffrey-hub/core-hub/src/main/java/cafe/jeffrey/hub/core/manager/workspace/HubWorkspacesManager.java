@@ -22,8 +22,6 @@ import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.core.volume.WorkspaceMarker;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +72,9 @@ public final class HubWorkspacesManager implements WorkspacesManager {
         if (VolumeMarkers.read(directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class).isPresent()) {
             throw new WorkspaceAlreadyExistsException("Workspace with reference ID '" + id + "' already exists");
         }
-        boolean nameTaken = findAll().stream()
-                .anyMatch(workspace -> workspace.info().name().equals(name));
+        // Another workspace's name; the one being adopted may already be listed under its id
+        boolean nameTaken = workspaceDirectories().stream()
+                .anyMatch(workspace -> !workspace.id().equals(id) && workspace.name().equals(name));
         if (nameTaken) {
             throw new WorkspaceAlreadyExistsException("Workspace with name '" + name + "' already exists");
         }
@@ -88,11 +87,23 @@ public final class HubWorkspacesManager implements WorkspacesManager {
 
     @Override
     public List<WorkspaceManager> findAll() {
+        return workspaceDirectories().stream()
+                .map(workspaceManagerFactory)
+                .toList();
+    }
+
+    private List<WorkspaceDirectory> workspaceDirectories() {
         return VolumeMarkers.childDirectories(workspacesRoot).stream()
                 .map(this::workspace)
                 .flatMap(Optional::stream)
-                .map(workspaceManagerFactory)
                 .toList();
+    }
+
+    @Override
+    public boolean isDescribed(String workspaceId) {
+        return WorkspaceReferenceId.isValid(workspaceId)
+                && VolumeMarkers.read(workspacesRoot.resolve(workspaceId), WorkspaceMarker.FILE_NAME, WorkspaceMarker.class)
+                        .isPresent();
     }
 
     @Override
@@ -119,13 +130,6 @@ public final class HubWorkspacesManager implements WorkspacesManager {
         String name = marker.map(WorkspaceMarker::name).orElse(id);
         Instant createdAt = marker.map(found -> Instant.ofEpochMilli(found.createdAt()))
                 .orElseGet(() -> FileSystemUtils.createdAt(directory));
-        WorkspaceInfo info = new WorkspaceInfo(id, name, createdAt, WorkspaceStatus.AVAILABLE, projectCount(directory));
-        return Optional.of(new WorkspaceDirectory(directory, info));
-    }
-
-    private static int projectCount(Path directory) {
-        return (int) VolumeMarkers.childDirectories(directory).stream()
-                .filter(project -> Files.isRegularFile(project.resolve(JeffreyLayout.PROJECT_INFO_FILE)))
-                .count();
+        return Optional.of(new WorkspaceDirectory(directory, name, createdAt));
     }
 }

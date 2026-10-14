@@ -43,6 +43,7 @@ public class RemoteProjectManager implements ProjectManager {
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
+    private final ProjectScope scope;
 
     public RemoteProjectManager(
             MicroscopeJeffreyDirs jeffreyDirs,
@@ -60,6 +61,7 @@ public class RemoteProjectManager implements ProjectManager {
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
+        this.scope = ProjectScope.of(detailedProjectInfo.projectInfo());
     }
 
     @Override
@@ -85,14 +87,14 @@ public class RemoteProjectManager implements ProjectManager {
                 remoteClients.repository(),
                 recordingsManager,
                 originContext,
-                detailedProjectInfo.projectInfo().name());
+                scope);
     }
 
     @Override
     public RepositoryManager repositoryManager() {
         return new RemoteRepositoryManager(
                 jeffreyDirs::newTempDir,
-                detailedProjectInfo.projectInfo(),
+                scope,
                 repositoryStatistics,
                 remoteClients.repository(),
                 remoteClients.files());
@@ -101,7 +103,7 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public RemoteInstancesManager instancesManager() {
         return new RemoteInstancesManager(
-                detailedProjectInfo.projectInfo(),
+                scope,
                 remoteClients.instances(),
                 remoteClients.repository(),
                 new SessionEnvironmentReader(
@@ -116,6 +118,6 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public void delete() {
-        remoteClients.projects().deleteProject(ProjectScope.of(detailedProjectInfo.projectInfo()));
+        remoteClients.projects().deleteProject(scope);
     }
 }

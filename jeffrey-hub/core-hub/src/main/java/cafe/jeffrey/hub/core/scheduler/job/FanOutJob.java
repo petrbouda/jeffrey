@@ -41,11 +41,6 @@ abstract class FanOutJob implements Job {
         this.workspacesManager = workspacesManager;
     }
 
-    @Override
-    public ExecutorGroup executorGroup() {
-        return ExecutorGroup.PROJECT_FAN_OUT;
-    }
-
     /**
      * @param scope what is being visited, as structured log keys, e.g. {@code workspace_id=ws-1 project_id=p-1}
      */

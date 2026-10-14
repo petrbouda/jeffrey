@@ -88,7 +88,7 @@ class RemoteRecordingsDownloadManagerTest {
     private final RecordingsCoreManager recordingsManager = mock(RecordingsCoreManager.class);
 
     private final OriginContext originContext =
-            new OriginContext("cfg-prod", "Production", "ws-1", "p-1", "checkout");
+            new OriginContext("cfg-prod", "Production", "ws-1", "p-1", PROJECT_NAME);
 
     @TempDir
     Path tempRoot;
@@ -99,7 +99,7 @@ class RemoteRecordingsDownloadManagerTest {
     void setUp() {
         TempDirProvider tempDirProvider = () -> new TempDirectory(tempRoot.resolve("download"));
         manager = new RemoteRecordingsDownloadManager(
-                tempDirProvider, streamClient, repositoryClient, recordingsManager, originContext, PROJECT_NAME);
+                tempDirProvider, streamClient, repositoryClient, recordingsManager, originContext, SCOPE);
 
         when(recordingsManager.createDownloadedRecording(any(), anyList(), anyList(), any()))
                 .thenReturn(RECORDING_ID);

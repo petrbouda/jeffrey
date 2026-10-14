@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.api.v1.InstanceServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
-import cafe.jeffrey.hub.client.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
@@ -65,7 +64,7 @@ public class InstancesClient {
      * One instance with its sessions, newest first, each without its files; empty when the
      * project holds no instance by that id.
      */
-    public Optional<InstanceWithSessionsResponse> instance(ProjectScope scope, String instanceId) {
+    public Optional<InstanceRead> instance(ProjectScope scope, String instanceId) {
         try {
             GetInstanceResponse response = stub.getInstance(
                     GetInstanceRequest.newBuilder()
@@ -77,10 +76,10 @@ public class InstancesClient {
             LOG.debug("Fetched instance via gRPC: workspaceId={} projectId={} instanceId={} sessions={}",
                     scope.workspaceId(), scope.projectId(), instanceId, response.getSessionsCount());
 
-            return Optional.of(new InstanceWithSessionsResponse(
+            return Optional.of(new InstanceRead(
                     toInstanceResponse(response.getInstance()),
                     response.getSessionsList().stream()
-                            .map(RepositoryClient::toSessionResponse)
+                            .map(ClientProtoMappers::session)
                             .toList()));
         } catch (StatusRuntimeException e) {
             if (GrpcClientErrors.isNotFound(e)) {
@@ -95,7 +94,7 @@ public class InstancesClient {
                 proto.getId(),
                 // The hub names an instance by its id
                 proto.getId(),
-                ClientProtoMappers.instanceStatus(proto.getStatus()),
+                ClientProtoMappers.instanceStatus(proto.getStatus()).name(),
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.getSessionCount(),

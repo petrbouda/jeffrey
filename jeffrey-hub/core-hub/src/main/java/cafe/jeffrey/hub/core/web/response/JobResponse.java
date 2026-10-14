@@ -29,7 +29,6 @@ import java.util.Map;
  */
 public record JobResponse(
         String jobType,
-        String executionLevel,
         String period,
         Map<String, String> params,
         boolean enabled,
@@ -38,7 +37,6 @@ public record JobResponse(
     public static JobResponse from(JobInfo job) {
         return new JobResponse(
                 job.jobType().name(),
-                job.executionLevel().name(),
                 job.period().toString(),
                 job.params(),
                 job.enabled(),

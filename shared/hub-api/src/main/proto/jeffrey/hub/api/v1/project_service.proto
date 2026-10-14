@@ -31,8 +31,8 @@ service ProjectService {
   // Lists all projects in a workspace.
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
 
-  // Gets detailed information about a single project within a workspace. NOT_FOUND when either
-  // the workspace or the project is not there, or the project belongs to another workspace.
+  // Gets one project of a workspace. NOT_FOUND when the workspace, or the project in it, is not
+  // there.
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
 
   // Deletes a project for good: its directory on the workspace volume is gone before the

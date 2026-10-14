@@ -24,7 +24,6 @@ import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.recordings.core.OriginContext;
 
 /**
@@ -59,7 +58,7 @@ public class RemoteProjectManagerFactory {
         return new RemoteProjectManager(
                 jeffreyDirs,
                 RemoteMappers.toDetailedProjectInfo(project),
-                new RepositoryStatistics(project.sizeBytes()),
+                project.statistics(),
                 hubClients,
                 profilesManagerFactory,
                 recordingsManager,

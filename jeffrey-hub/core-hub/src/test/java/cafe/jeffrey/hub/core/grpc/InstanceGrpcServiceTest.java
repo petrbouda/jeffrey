@@ -30,12 +30,10 @@ import cafe.jeffrey.hub.api.v1.InstanceStatus;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 
@@ -65,19 +63,14 @@ class InstanceGrpcServiceTest {
         }
     }
 
-    private final RepositoryStorage storage = mock(RepositoryStorage.class);
     private final RepositoryManager repositoryManager = mock(RepositoryManager.class);
 
     /** A service over PROJECT_ID, whose instances the volume reports as given. */
     private InstanceServiceGrpc.InstanceServiceBlockingStub startServer(List<ProjectInstanceInfo> instances) {
-        when(storage.instances()).thenReturn(instances);
-        instances.forEach(instance -> when(storage.instance(instance.id())).thenReturn(Optional.of(instance)));
-        when(storage.instance("ghost")).thenReturn(Optional.empty());
-        ProjectManager project = mock(ProjectManager.class);
-        when(project.repositoryStorage()).thenReturn(storage);
-        when(project.repositoryManager()).thenReturn(repositoryManager);
+        when(repositoryManager.instances()).thenReturn(instances);
+        when(repositoryManager.instance("ghost")).thenReturn(Optional.empty());
 
-        grpc = InProcessGrpcServer.start(new InstanceGrpcService(TestLookups.withProject(PROJECT_ID, project)));
+        grpc = InProcessGrpcServer.start(new InstanceGrpcService(TestLookups.withRepository(PROJECT_ID, repositoryManager)));
         return InstanceServiceGrpc.newBlockingStub(grpc.channel());
     }
 
@@ -146,23 +139,25 @@ class InstanceGrpcServiceTest {
 
         @Test
         void returnsTheInstanceWithItsSessionsButNotTheirFiles() {
-            when(repositoryManager.listInstanceSessions(INSTANCE_ID, RecordingSessionFilter.ALL)).thenReturn(List.of(
-                    new RecordingSession("s-1", "inst-1/s-1", INSTANCE_ID, FIXED_TIME, null, RecordingStatus.ACTIVE,
-                            List.of(new RepositoryFile("f-1", "profile.jfr", FIXED_TIME, 2048L, true, null)),
-                            false)));
-            var stub = startServer(List.of(
-                    new ProjectInstanceInfo(INSTANCE_ID, ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, 1)));
+            ProjectInstanceInfo instance =
+                    new ProjectInstanceInfo(INSTANCE_ID, ProjectInstanceStatus.ACTIVE, FIXED_TIME, null, 1);
+            RecordingSession session = new RecordingSession(
+                    "s-1", "inst-1/s-1", INSTANCE_ID, FIXED_TIME, null, RecordingStatus.ACTIVE,
+                    List.of(new RepositoryFile("f-1", "profile.jfr", FIXED_TIME, 2048L, true, null)), false);
+            when(repositoryManager.instance(INSTANCE_ID))
+                    .thenReturn(Optional.of(new InstanceSessions(instance, List.of(session))));
+            var stub = startServer(List.of(instance));
 
             GetInstanceResponse response = stub.getInstance(get(INSTANCE_ID));
 
             assertEquals(INSTANCE_ID, response.getInstance().getId());
             assertEquals(InstanceStatus.INSTANCE_STATUS_ACTIVE, response.getInstance().getStatus());
             assertEquals(1, response.getSessionsCount());
-            var session = response.getSessions(0);
-            assertEquals("s-1", session.getId());
-            assertEquals(0, session.getFilesCount(), "the files stay on the hub");
-            assertEquals(1, session.getFileCount());
-            assertEquals(2048L, session.getSizeBytes());
+            var sent = response.getSessions(0);
+            assertEquals("s-1", sent.getId());
+            assertEquals(0, sent.getFilesCount(), "the files stay on the hub");
+            assertEquals(1, sent.getFileCount());
+            assertEquals(2048L, sent.getSizeBytes());
         }
 
         @Test

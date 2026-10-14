@@ -75,7 +75,7 @@ public record RecordingSessionResponse(
      * remember.
      */
     public RecordingSessionResponse withResolvedFileStatuses() {
-        RecordingSession session = from(this);
+        RecordingSession session = toSession();
         return new RecordingSessionResponse(
                 id, name, instanceId, createdAt, finishedAt, status, duration,
                 session.files().stream()
@@ -88,21 +88,22 @@ public record RecordingSessionResponse(
                 sizeBytes);
     }
 
-    public static RecordingSession from(RecordingSessionResponse response) {
+    /** The session in Microscope's own model, its size as the hub reported it. */
+    public RecordingSession toSession() {
         return new RecordingSession(
-                response.id(),
-                response.name(),
-                response.instanceId(),
-                InstantUtils.fromEpochMilli(response.createdAt()),
-                InstantUtils.fromEpochMilli(response.finishedAt()),
-                response.status(),
+                id,
+                name,
+                instanceId,
+                InstantUtils.fromEpochMilli(createdAt),
+                InstantUtils.fromEpochMilli(finishedAt),
+                status,
                 null,
-                response.files().stream()
+                files.stream()
                         .map(RepositoryFileResponse::from)
                         .toList(),
-                response.retained(),
-                response.heartbeatMissing(),
-                response.failed(),
-                new SessionSize(response.fileCount(), response.sizeBytes()));
+                retained,
+                heartbeatMissing,
+                failed,
+                new SessionSize(fileCount, sizeBytes));
     }
 }

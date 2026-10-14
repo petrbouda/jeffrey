@@ -31,6 +31,8 @@ import Badge from '@shared/components/Badge.vue';
 import RecordingFileRow from '@hubs/components/RecordingFileRow.vue';
 import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import { useSessionReads } from '@hubs/composables/useSessionReads';
 import type { TimelineBarItem, Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
@@ -95,42 +97,45 @@ const expandedTypePanels = ref<{ [key: string]: boolean }>({});
 const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
 const expandedFailedGroups = ref<{ [key: string]: boolean }>({});
 
-// --- Files, fetched per session when it is opened ---
-// A listing carries each session's file count and size but none of its files, so a session's
-// files are fetched when it is expanded or about to be downloaded, and kept here.
-const sessionFiles = ref<{ [sessionId: string]: RepositoryFile[] }>({});
-const loadingFiles = ref<{ [sessionId: string]: boolean }>({});
+// --- Files, read per session when it is opened ---
+const {
+  sessions: readSessions,
+  loading: readingSession,
+  failed: sessionReadFailed,
+  read: readSession,
+  retainOnly: retainReadSessions
+} = useSessionReads(() => repositoryService.value);
 
+/** The session's files as last read on their own; a listed session carries none. */
 const filesOf = (session: RecordingSession): RepositoryFile[] => {
-  return sessionFiles.value[session.id] ?? session.files;
+  return readSessions.value[session.id]?.files ?? [];
 };
 
+/**
+ * Reads the session's files and rebuilds its selection from them: a file retention removed in
+ * the meantime drops out of the selection instead of being counted as still ticked.
+ */
 const loadFiles = async (sessionId: string): Promise<RepositoryFile[]> => {
-  loadingFiles.value[sessionId] = true;
-  try {
-    const files = (await repositoryService.value.getRecordingSession(sessionId)).files;
-    sessionFiles.value[sessionId] = files;
-    const selection = selectedRepositoryFile.value[sessionId] ?? {};
-    files.forEach(file => {
-      if (selection[file.id] === undefined) {
-        selection[file.id] = false;
-      }
-    });
-    selectedRepositoryFile.value[sessionId] = selection;
-    return files;
-  } finally {
-    loadingFiles.value[sessionId] = false;
-  }
+  const files = (await readSession(sessionId)).files;
+  const previous = selectedRepositoryFile.value[sessionId] ?? {};
+  selectedRepositoryFile.value[sessionId] = Object.fromEntries(
+    files.map(file => [file.id, previous[file.id] ?? false])
+  );
+  return files;
 };
 
-const loadFilesQuietly = (sessionId: string): void => {
-  loadFiles(sessionId).catch((error: any) => {
-    toast.error('Session files', error.message || 'Failed to load the files of the session');
-  });
+/** A read the body of the session reports itself — its error state carries the retry. */
+const loadFilesInBackground = (sessionId: string): void => {
+  loadFiles(sessionId).catch(() => {});
 };
 
-const ensureFiles = async (session: RecordingSession): Promise<RepositoryFile[]> => {
-  return sessionFiles.value[session.id] ?? loadFiles(session.id);
+/**
+ * Whether a refresh of the list should read an open session again: only while it can still have
+ * changed — it is recording, or its listing counts files the last read did not have.
+ */
+const isStale = (session: RecordingSession): boolean => {
+  const read = readSessions.value[session.id];
+  return !read || session.status === RecordingStatus.ACTIVE || read.files.length !== session.fileCount;
 };
 
 // Delete dialog state
@@ -301,12 +306,17 @@ const getSortedRecordings = (session: RecordingSession) => {
 // --- Session expand/collapse ---
 const initializeExpandedState = () => {
   // Auto-expand the newest session that actually produced data — a failed
-  // (finished, zero-size) session never auto-expands, it starts collapsed in its group
+  // (finished, zero-size) session never auto-expands, it starts collapsed in its group.
+  // Only a session seen for the first time takes the default; one the reader opened or closed
+  // keeps that across refreshes.
   const firstSessionId = sortedSessions.value.find(session => !isFailedSession(session))?.id ?? null;
+  retainReadSessions(new Set(props.sessions.map(session => session.id)));
 
   props.sessions.forEach(session => {
-    expandedSessions.value[session.id] =
-      session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
+    if (expandedSessions.value[session.id] === undefined) {
+      expandedSessions.value[session.id] =
+        session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
+    }
 
     if (visibleFilesCount.value[session.id] === undefined) {
       visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
@@ -316,10 +326,10 @@ const initializeExpandedState = () => {
       selectedRepositoryFile.value[session.id] = {};
     }
 
-    // The files of an open session are fetched again on every refresh of the list, so a
-    // session that is still recording shows the chunks it wrote since
-    if (expandedSessions.value[session.id]) {
-      loadFilesQuietly(session.id);
+    // An open session is read again when the list refreshes and it may have changed, so one
+    // that is still recording shows the chunks it wrote since
+    if (expandedSessions.value[session.id] && isStale(session)) {
+      loadFilesInBackground(session.id);
     }
 
     if (showMultiSelectActions.value[session.id] === undefined) {
@@ -343,8 +353,8 @@ const toggleFailedGroup = (groupKey: string) => {
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
 
-  if (expandedSessions.value[sessionId] && !sessionFiles.value[sessionId]) {
-    loadFilesQuietly(sessionId);
+  if (expandedSessions.value[sessionId] && !readSessions.value[sessionId]) {
+    loadFilesInBackground(sessionId);
   }
 
   if (!expandedSessions.value[sessionId]) {
@@ -358,10 +368,6 @@ const toggleSession = (sessionId: string) => {
 };
 
 // --- Status helpers ---
-const getSourcesCount = (session: RecordingSession): number => {
-  return session.fileCount;
-};
-
 /** Suffix of a session row's `session-*` and `session-icon-*` classes. */
 type SessionTone = 'no-heartbeat' | 'active' | 'finished' | 'unknown';
 
@@ -384,8 +390,8 @@ const toggleSelectionMode = (sessionId: string) => {
 
   if (showMultiSelectActions.value[sessionId]) {
     expandedSessions.value[sessionId] = true;
-    if (!sessionFiles.value[sessionId]) {
-      loadFilesQuietly(sessionId);
+    if (!readSessions.value[sessionId]) {
+      loadFilesInBackground(sessionId);
     }
   } else {
     clearAllSelections(sessionId);
@@ -415,7 +421,7 @@ const isDownloadableSelection = (sessionId: string): boolean => {
   if (!session) {
     return true;
   }
-  return isContiguousChunkSelection(session, selectedRepositoryFile.value[sessionId]);
+  return isContiguousChunkSelection(filesOf(session), selectedRepositoryFile.value[sessionId]);
 };
 
 const selectionGapMessage = (sessionId: string): string => {
@@ -423,7 +429,7 @@ const selectionGapMessage = (sessionId: string): string => {
   if (!session) {
     return '';
   }
-  return chunkSelectionGapMessage(session, selectedRepositoryFile.value[sessionId]);
+  return chunkSelectionGapMessage(filesOf(session), selectedRepositoryFile.value[sessionId]);
 };
 
 const getSelectedCount = (sessionId: string): number => {
@@ -507,7 +513,8 @@ const downloadSession = async (sessionId: string) => {
       return;
     }
 
-    const files = await ensureFiles(session);
+    // Read now rather than trusting an earlier read: retention may have trimmed the session since
+    const files = await loadFiles(session.id);
     if (!hasDownloadableRecordings(files)) {
       toast.warn(
         'No recording data available',
@@ -970,7 +977,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 </div>
                 <div class="session-meta">
                   <span
-                    ><i class="bi bi-files me-1"></i>{{ getSourcesCount(session) }} sources</span
+                    ><i class="bi bi-files me-1"></i>{{ session.fileCount }} sources</span
                   >
                   <Badge
                     v-if="hasUnreportedSizes(session)"
@@ -1058,9 +1065,15 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
       <!-- Session recordings (shown when expanded) -->
       <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
         <LoadingState
-          v-if="loadingFiles[session.id] && !sessionFiles[session.id]"
+          v-if="readingSession[session.id] && !readSessions[session.id]"
           message="Loading the session's files..."
         />
+        <ErrorState
+          v-else-if="sessionReadFailed[session.id] && !readSessions[session.id]"
+          message="The files of this session could not be loaded"
+          @retry="loadFilesInBackground(session.id)"
+        />
+        <template v-else>
         <!-- Multi-select controls -->
         <div
           v-if="showMultiSelectActions[session.id]"
@@ -1485,6 +1498,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           </div>
         </template>
 
+        </template>
       </div>
         </div>
       </template>

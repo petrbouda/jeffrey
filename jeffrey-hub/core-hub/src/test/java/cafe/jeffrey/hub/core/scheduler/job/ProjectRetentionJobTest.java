@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -106,7 +107,7 @@ class ProjectRetentionJobTest {
         when(workspaceManager.projectsManager()).thenReturn(projectsManager);
         when(projectsManager.findAll()).thenReturn(List.of(projectManager));
         stubProject(projectManager, "prj-1", storage);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
+        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
 
         storageOverview = new StorageOverviewCache(Clock.fixed(NOW, ZoneOffset.UTC));
         JobConfig config = new JobConfig(true, PERIOD, Map.of(

@@ -17,28 +17,10 @@
 
 package cafe.jeffrey.hub.model.job;
 
+/**
+ * The hub's scheduled jobs; each visits every project of every workspace once per tick.
+ */
 public enum JobType {
-    PROJECT_RETENTION(ExecutionLevel.PROJECT),
-    REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT);
-
-    /**
-     * Where a job runs in the server's execution model:
-     * <ul>
-     *   <li>{@link #GLOBAL} — singleton tick, no fan-out</li>
-     *   <li>{@link #PROJECT} — fan-out across all projects in all workspaces</li>
-     * </ul>
-     */
-    public enum ExecutionLevel {
-        GLOBAL, PROJECT
-    }
-
-    private final ExecutionLevel executionLevel;
-
-    JobType(ExecutionLevel executionLevel) {
-        this.executionLevel = executionLevel;
-    }
-
-    public ExecutionLevel executionLevel() {
-        return executionLevel;
-    }
+    PROJECT_RETENTION,
+    REPOSITORY_JFR_COMPRESSION
 }

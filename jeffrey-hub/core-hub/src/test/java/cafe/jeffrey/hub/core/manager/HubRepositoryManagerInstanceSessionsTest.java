@@ -17,19 +17,22 @@
 
 package cafe.jeffrey.hub.core.manager;
 
+import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -37,13 +40,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * One instance's sessions: listed from that instance's rows alone, narrowed by the filter on the
- * headers, and only the survivors walked for their files.
+ * One instance with its sessions: read from that instance's directory alone, each session then
+ * walked for its files, since the figures an instance read reports come off them.
  */
 class HubRepositoryManagerInstanceSessionsTest {
 
     private static final String INSTANCE_ID = "inst-1";
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
+    private static final ProjectInstanceInfo INSTANCE =
+            new ProjectInstanceInfo(INSTANCE_ID, ProjectInstanceStatus.ACTIVE, T0, null, 2);
 
     private final RepositoryStorage repositoryStorage = mock(RepositoryStorage.class);
 
@@ -63,20 +68,25 @@ class HubRepositoryManagerInstanceSessionsTest {
     }
 
     @Test
-    void walksOnlyTheSessionsTheFilterKeeps() {
+    void readsTheInstanceAloneAndEachOfItsSessionsWithFiles() {
         RecordingSession newest = header("s-2", T0.plusSeconds(60));
         RecordingSession oldest = header("s-1", T0);
-        when(repositoryStorage.listSessionsByInstanceId(INSTANCE_ID, SessionDetail.HEADERS))
-                .thenReturn(List.of(newest, oldest));
+        when(repositoryStorage.instanceWithSessions(INSTANCE_ID))
+                .thenReturn(Optional.of(new InstanceSessions(INSTANCE, List.of(newest, oldest))));
         when(repositoryStorage.withFiles(any())).thenAnswer(invocation -> withFile(invocation.getArgument(0)));
 
-        List<RecordingSession> sessions = manager()
-                .listInstanceSessions(INSTANCE_ID, RecordingSessionFilter.ALL.withLimit(1));
+        InstanceSessions found = manager().instance(INSTANCE_ID).orElseThrow();
 
-        assertEquals(1, sessions.size());
-        assertEquals("s-2", sessions.getFirst().id());
-        assertEquals(1, sessions.getFirst().files().size());
-        verify(repositoryStorage, never()).withFiles(oldest);
+        assertEquals(INSTANCE, found.instance());
+        assertEquals(List.of("s-2", "s-1"), found.sessions().stream().map(RecordingSession::id).toList());
+        assertTrue(found.sessions().stream().allMatch(session -> session.files().size() == 1));
         verify(repositoryStorage, never()).listSessions(any());
+    }
+
+    @Test
+    void anUnknownInstanceIsEmpty() {
+        when(repositoryStorage.instanceWithSessions("ghost")).thenReturn(Optional.empty());
+
+        assertTrue(manager().instance("ghost").isEmpty());
     }
 }

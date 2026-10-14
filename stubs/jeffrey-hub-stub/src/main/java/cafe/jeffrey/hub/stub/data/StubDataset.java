@@ -18,6 +18,7 @@
 package cafe.jeffrey.hub.stub.data;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,6 +32,9 @@ import java.util.Optional;
  * protobuf messages — no gRPC types appear here.
  */
 public record StubDataset(List<Workspace> workspaces) {
+
+    private static final Comparator<Session> NEWEST_FIRST =
+            Comparator.comparing(Session::createdAt).reversed();
 
     public Optional<Workspace> workspace(String workspaceId) {
         return workspaces.stream()
@@ -49,10 +53,14 @@ public record StubDataset(List<Workspace> workspaces) {
                 .findFirst();
     }
 
+    /**
+     * @return the project's sessions newest first, the order the hub lists them in
+     */
     public List<Session> sessionsForProject(String workspaceId, String projectId) {
         return project(workspaceId, projectId)
                 .map(project -> project.instances().stream()
                         .flatMap(instance -> instance.sessions().stream())
+                        .sorted(NEWEST_FIRST)
                         .toList())
                 .orElse(List.of());
     }
@@ -99,7 +107,6 @@ public record StubDataset(List<Workspace> workspaces) {
             InstState status,
             Instant createdAt,
             Instant finishedAt,
-            String activeSessionId,
             List<Session> sessions) {
     }
 

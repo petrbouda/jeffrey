@@ -32,21 +32,14 @@ public interface RepositoryStorage {
     }
 
     /**
-     * Lists of files for the given session.
-     *
-     * @param sessionId id of the session to list files for
-     * @param detail    whether to walk the session directory for its files too
-     * @return list of recordings for the given session
+     * One session with its files, or empty when the project holds none by that id.
      */
-    Optional<RecordingSession> singleSession(String sessionId, SessionDetail detail);
+    Optional<RecordingSession> session(String sessionId);
 
     /**
-     * Lists all recording sessions available in the repository.
+     * Every session of the project, newest first.
      *
-     * @param detail    whether to walk the session directory for its files too
-     *                  (e.g., recordings, metadata files)
-     * @return a list of all recording sessions, each containing metadata and
-     * associated recordings
+     * @param detail whether to walk each session's directory for its files too
      */
     List<RecordingSession> listSessions(SessionDetail detail);
 
@@ -57,29 +50,17 @@ public interface RepositoryStorage {
     RecordingSession withFiles(RecordingSession session);
 
     /**
-     * Lists recording sessions that belong to the given instance. Walks only
-     * the matching sessions' directories — does not scan the whole repository.
+     * Deletes the named files of a session.
      *
-     * @param instanceId the instance whose sessions should be returned
-     * @param detail     whether to walk the session directory for its files too
-     * @return recording sessions for the instance, newest first
+     * @param fileIds the files' ids, as the session's listing reports them
      */
-    List<RecordingSession> listSessionsByInstanceId(String instanceId, SessionDetail detail);
+    void deleteRepositoryFiles(String sessionId, List<String> fileIds);
 
     /**
-     * Deletes specific repository files from the repository.
-     *
-     * @param sessionId         the unique identifier of the recording session
-     * @param repositoryFileIds the list of unique identifiers of the repository files to delete
+     * Deletes a session's directory with everything in it, and its instance's directory when no
+     * other directory is left in it.
      */
-    void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds);
-
-    /**
-     * Deletes a session's directory with everything in it.
-     *
-     * @return whether the session was there to delete
-     */
-    boolean deleteSession(String sessionId);
+    SessionDeletion deleteSession(String sessionId);
 
     /**
      * Every instance of the project, its status read off its newest session at this moment.
@@ -87,9 +68,10 @@ public interface RepositoryStorage {
     List<ProjectInstanceInfo> instances();
 
     /**
-     * One instance of the project, or empty when the project holds none by that id.
+     * One instance with its sessions (without their files), or empty when the project holds no
+     * instance by that id. Walks that instance's directories alone.
      */
-    Optional<ProjectInstanceInfo> instance(String instanceId);
+    Optional<InstanceSessions> instanceWithSessions(String instanceId);
 
     /**
      * Pins a session against every retention rule, or releases it, by a flag file in its directory.

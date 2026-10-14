@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-export type ExecutionLevel = 'GLOBAL' | 'PROJECT';
-
 /**
  * All job types served by the scheduler, mirroring the backend {@code JobType} enum
  * (same order). The scheduler UI types its display-metadata maps as
@@ -29,7 +27,6 @@ export type JobTypeName =
 
 export interface JobView {
     jobType: string;
-    executionLevel: ExecutionLevel;
     period: string;
     params: Record<string, string>;
     enabled: boolean;

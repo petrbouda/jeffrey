@@ -203,10 +203,17 @@ const sortDirection = ref<SortDirection>('desc');
 
 const formatBytes = (bytes: number) => FormattingService.formatBytesShort(bytes);
 
+/** What `computedAtMillis` holds until the first retention pass has measured the projects. */
+const NOT_YET_MEASURED = 0;
+
 const storageComputedAgo = computed(() => {
   // The tick dependency re-evaluates the label periodically so it ages in place
   relativeTimeTick.value;
-  return FormattingService.formatRelativeTime(overview.value?.computedAtMillis);
+  const computedAt = overview.value?.computedAtMillis;
+  if (computedAt === NOT_YET_MEASURED) {
+    return 'not measured yet';
+  }
+  return FormattingService.formatRelativeTime(computedAt);
 });
 
 /** Placeholder storage for a project the storage scan has no data for (nothing recorded yet). */

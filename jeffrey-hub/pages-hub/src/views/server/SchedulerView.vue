@@ -37,15 +37,6 @@
 
         <template v-else>
             <div class="filter-bar">
-                <button
-                    v-for="filter in filters"
-                    :key="filter.value"
-                    class="filter-chip"
-                    :class="{ active: activeFilter === filter.value }"
-                    @click="activeFilter = filter.value"
-                >
-                    {{ filter.label }} <span class="chip-count">{{ counts[filter.value] }}</span>
-                </button>
                 <div class="filter-spacer"></div>
                 <span class="filter-meta">{{ enabledCount }} enabled · {{ disabledCount }} disabled</span>
             </div>
@@ -55,7 +46,6 @@
                     <thead>
                     <tr>
                         <th style="width: 32%">Job</th>
-                        <th>Execution</th>
                         <th style="width: 9%">Period</th>
                         <th>Parameters</th>
                         <th style="width: 12%">Status</th>
@@ -63,7 +53,7 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr v-for="job in filteredJobs" :key="job.jobType">
+                    <tr v-for="job in jobs" :key="job.jobType">
                         <td>
                             <div class="job-name-cell">
                                 <div class="job-icon-box" :class="iconClass(job.jobType)">
@@ -75,13 +65,6 @@
                                     {{ descriptionFor(job.jobType) }}
                                 </div>
                             </div>
-                        </td>
-                        <td>
-                            <Badge
-                                :value="levelLabel(job.executionLevel)"
-                                :variant="levelVariant(job.executionLevel)"
-                                size="xs"
-                            />
                         </td>
                         <td class="period-cell">{{ formatPeriod(job.period) }}</td>
                         <td class="params-cell">
@@ -156,37 +139,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
-import type { Variant } from '@shared/types/ui';
 import HubPageHeader from '@/components/HubPageHeader.vue';
 import SchedulerClient from '@/services/api/SchedulerClient';
-import { type ExecutionLevel, formatPeriod, type JobTypeName, type JobView } from '@/services/api/model/JobView';
+import { formatPeriod, type JobTypeName, type JobView } from '@/services/api/model/JobView';
 
 const schedulerClient = new SchedulerClient();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const jobs = ref<JobView[]>([]);
-const activeFilter = ref<'ALL' | ExecutionLevel>('ALL');
-
-const filters: Array<{ value: 'ALL' | ExecutionLevel; label: string }> = [
-    { value: 'ALL', label: 'All' },
-    { value: 'GLOBAL', label: 'Global' },
-    { value: 'PROJECT', label: 'Per project' }
-];
-
-const counts = computed(() => ({
-    ALL: jobs.value.length,
-    GLOBAL: jobs.value.filter(j => j.executionLevel === 'GLOBAL').length,
-    PROJECT: jobs.value.filter(j => j.executionLevel === 'PROJECT').length
-}));
-
 const enabledCount = computed(() => jobs.value.filter(j => j.enabled).length);
 const disabledCount = computed(() => jobs.value.length - enabledCount.value);
-
-const filteredJobs = computed(() => {
-    if (activeFilter.value === 'ALL') {return jobs.value;}
-    return jobs.value.filter(j => j.executionLevel === activeFilter.value);
-});
 
 const hasParams = (params: Record<string, string>) => params && Object.keys(params).length > 0;
 
@@ -257,18 +220,6 @@ const icons: Record<JobTypeName, [string, string]> = {
 };
 const iconFor = (jobType: string) => icons[jobType as JobTypeName]?.[0] || 'bi-gear';
 const iconClass = (jobType: string) => icons[jobType as JobTypeName]?.[1] || 'job-icon-default';
-
-const levelLabels: Record<ExecutionLevel, string> = {
-    GLOBAL: 'Global',
-    PROJECT: 'Per project'
-};
-const levelLabel = (lvl: ExecutionLevel) => levelLabels[lvl];
-
-const levelVariants: Record<ExecutionLevel, Variant> = {
-    GLOBAL: 'violet',
-    PROJECT: 'primary'
-};
-const levelVariant = (lvl: ExecutionLevel): Variant => levelVariants[lvl];
 
 const keyFor = (jobType: string) => jobType.toLowerCase().replace(/_/g, '-');
 
@@ -351,24 +302,6 @@ onMounted(async () => {
     margin-bottom: 14px;
     align-items: center;
 }
-.filter-chip {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.74rem;
-    font-weight: 500;
-    color: var(--color-slate-muted);
-    background: white;
-    border: 1px solid var(--color-border);
-    cursor: pointer;
-    user-select: none;
-    font-family: inherit;
-}
-.filter-chip.active {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
-}
-.chip-count { opacity: 0.6; }
 .filter-spacer { flex: 1; }
 .filter-meta { font-size: 0.72rem; color: var(--color-text-light); }
 
@@ -463,9 +396,6 @@ onMounted(async () => {
 }
 .job-icon-trash  { background: var(--color-teal-bg); color: var(--color-teal-text); }
 .job-icon-zip    { background: var(--color-orange-bg); color: var(--color-orange-text); }
-.job-icon-check  { background: var(--color-cyan-bg); color: var(--color-teal-text); }
-.job-icon-sync   { background: var(--color-violet-lightest-bg); color: var(--color-violet-deeper); }
-.job-icon-bell   { background: var(--color-amber-light); color: var(--color-amber-text); }
 .job-icon-default { background: var(--color-grey-bg); color: var(--color-slate-muted); }
 
 .job-name { font-weight: 600; color: var(--color-heading-dark); font-size: 0.86rem; }

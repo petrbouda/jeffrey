@@ -17,15 +17,22 @@
 
 package cafe.jeffrey.hub.client.dto;
 
+import cafe.jeffrey.hub.client.manager.InstanceWithSessions;
+
+import java.time.Clock;
 import java.util.List;
 
 /**
- * One instance as the hub reports it alone: its lifecycle and its sessions, newest first, each
- * session with its file count and size but not its files.
+ * One instance with its sessions, newest first, each with its file count and size but not its
+ * files — everything an instance's page asks for, in one response.
  */
 public record InstanceWithSessionsResponse(InstanceResponse instance, List<RecordingSessionResponse> sessions) {
 
-    public InstanceWithSessionsResponse {
-        sessions = List.copyOf(sessions);
+    public static InstanceWithSessionsResponse from(InstanceWithSessions found, Clock clock) {
+        return new InstanceWithSessionsResponse(
+                InstanceResponse.from(found.instance(), clock),
+                found.sessions().stream()
+                        .map(session -> RecordingSessionResponse.from(session, clock))
+                        .toList());
     }
 }

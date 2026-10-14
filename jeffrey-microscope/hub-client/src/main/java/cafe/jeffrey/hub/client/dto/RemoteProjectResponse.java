@@ -18,6 +18,7 @@
 package cafe.jeffrey.hub.client.dto;
 
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 
 import java.time.Instant;
 
@@ -27,7 +28,7 @@ import java.time.Instant;
  * @param createdAt   when the hub created the project, or {@code null} when the hub sent none
  * @param workspaceId the project's workspace, which is also its reference id: the hub names a
  *                    workspace by its directory on the volume
- * @param sizeBytes   what the hub's last retention pass measured, or {@code null} before the first
+ * @param statistics  what the hub's last retention pass measured for the project
  */
 public record RemoteProjectResponse(
         String id,
@@ -36,5 +37,5 @@ public record RemoteProjectResponse(
         String workspaceId,
         RecordingStatus status,
         int sessionCount,
-        Long sizeBytes) {
+        RepositoryStatistics statistics) {
 }

@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -90,14 +91,12 @@ public final class VolumeMarkers {
         }
     }
 
-    /** Creates or removes an empty flag file. */
+    /** Creates or removes an empty flag file; setting a flag that is already set is not an error. */
     public static void setFlag(Path directory, String flagFileName, boolean present) {
         Path flag = directory.resolve(flagFileName);
         try {
             if (present) {
-                if (!Files.exists(flag)) {
-                    Files.createFile(flag);
-                }
+                createIfAbsent(flag);
             } else {
                 Files.deleteIfExists(flag);
             }
@@ -124,6 +123,14 @@ public final class VolumeMarkers {
         } catch (IOException e) {
             LOG.warn("Cannot list directory: path={}", parent, e);
             return List.of();
+        }
+    }
+
+    private static void createIfAbsent(Path flag) throws IOException {
+        try {
+            Files.createFile(flag);
+        } catch (FileAlreadyExistsException e) {
+            // Set already, by an earlier call or one running alongside this one
         }
     }
 
