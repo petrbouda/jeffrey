@@ -17,18 +17,17 @@
 
 package cafe.jeffrey.shared.common.model.repository;
 
-import cafe.jeffrey.shared.common.model.RepositoryType;
-
 import java.util.Map;
 
+/**
+ * Project metadata persisted as {@code .project-info.json} in the project directory. It carries
+ * only what the hub reads: the project's id, name, creation time and attributes. Where the
+ * project lies is never written down — the hub reads it from the directory the file sits in.
+ * Files written by older provisioners carry more fields, which are ignored.
+ */
 public record RemoteProject(
         String projectId,
         String projectName,
-        String workspaceId,
         long createdAt,
-        String workspacesPath,
-        String relativeWorkspacePath,
-        String relativeProjectPath,
-        RepositoryType repositoryType,
         Map<String, String> attributes) {
 }

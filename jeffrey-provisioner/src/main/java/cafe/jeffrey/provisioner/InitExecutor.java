@@ -77,7 +77,7 @@ public class InitExecutor {
         String jvmOptions = JvmFeatures.of(config, profiler.feature(), agent)
                 .render(session.layout().session(), placeholders);
 
-        registrar.recordSession(config, session);
+        registrar.recordSession(session);
         outputWriter.write(config, session.layout(), jvmOptions);
 
         // Single greppable verdict line — the one place that tells a user their setup works

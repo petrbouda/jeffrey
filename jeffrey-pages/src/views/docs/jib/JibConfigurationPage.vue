@@ -85,7 +85,7 @@ onMounted(() => {
                 <td><code>jeffreyHome</code></td>
                 <td><code>JEFFREY_HOME</code></td>
                 <td>&mdash; <span class="prop-type">(must be set)</span></td>
-                <td>Root of the shared volume the application writes recordings to, under <code>&lt;home&gt;/workspaces/</code>. The provisioner also accepts <code>JEFFREY_WORKSPACES_DIR</code> as an alternative that names the recordings directory directly.</td>
+                <td>Root of the shared volume the application writes recordings to, under <code>&lt;home&gt;/workspaces/</code>.</td>
               </tr>
               <tr>
                 <td><code>baseConfig</code></td>

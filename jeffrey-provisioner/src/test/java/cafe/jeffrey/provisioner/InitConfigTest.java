@@ -26,7 +26,6 @@ import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -70,7 +69,6 @@ class InitConfigTest {
             assertNull(config.getProfilerCommand());
             assertEquals("uat", config.getWorkspaceRefId());
             assertEquals("test-project", config.getProjectName());
-            assertEquals("ASYNC_PROFILER", config.getRepositoryType());
         }
 
         @Test
@@ -129,11 +127,9 @@ class InitConfigTest {
         void optionalFieldsAreNull() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            assertNull(config.getWorkspacesDir());
             assertNull(config.getProfilerPath());
             assertNull(config.getJeffreyAgentPath());
             assertNull(config.getProfilerCommand());
-            assertNull(config.getRepositoryType());
             // Attributes are empty rather than null, so callers need no null check
             assertEquals(Map.of(), config.getAttributes());
         }
@@ -152,38 +148,10 @@ class InitConfigTest {
     }
 
     @Nested
-    class ParseWorkspacesDirConfig {
-
-        private static final Path CONFIG_FILE = FileSystemUtils.classpathPath("valid-workspaces-dir-config.conf");
-
-        @Test
-        void parsesWorkspacesDirInsteadOfJeffreyHome() {
-            InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
-
-            assertNull(config.getJeffreyHome());
-            assertEquals("/tmp/workspaces", config.getWorkspacesDir());
-            assertFalse(config.useJeffreyHome());
-        }
-    }
-
-    @Nested
     class HelperMethods {
 
         private static final Path FULL_CONFIG = FileSystemUtils.classpathPath("valid-full-config.conf");
         private static final Path MINIMAL_CONFIG = FileSystemUtils.classpathPath("valid-minimal-config.conf");
-        private static final Path WORKSPACES_CONFIG = FileSystemUtils.classpathPath("valid-workspaces-dir-config.conf");
-
-        @Test
-        void useJeffreyHomeReturnsTrueWhenSet() {
-            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG, null);
-            assertTrue(config.useJeffreyHome());
-        }
-
-        @Test
-        void useJeffreyHomeReturnsFalseWhenUsingWorkspacesDir() {
-            InitConfig config = InitConfig.fromHoconFile(WORKSPACES_CONFIG, null);
-            assertFalse(config.useJeffreyHome());
-        }
 
         @Test
         void isPerfCountersEnabledReturnsFalseWhenDisabled() {
@@ -221,18 +189,6 @@ class InitConfigTest {
 
         private static final Path FULL_CONFIG = FileSystemUtils.classpathPath("valid-full-config.conf");
         private static final Path MINIMAL_CONFIG = FileSystemUtils.classpathPath("valid-minimal-config.conf");
-
-        @Test
-        void resolveRepositoryTypeReturnsDefaultWhenNull() {
-            InitConfig config = InitConfig.fromHoconFile(MINIMAL_CONFIG, null);
-            assertEquals(RepositoryType.ASYNC_PROFILER, config.resolveRepositoryType());
-        }
-
-        @Test
-        void resolveRepositoryTypeReturnsSpecifiedValue() {
-            InitConfig config = InitConfig.fromHoconFile(FULL_CONFIG, null);
-            assertEquals(RepositoryType.ASYNC_PROFILER, config.resolveRepositoryType());
-        }
 
         @Test
         void resolveHeapDumpTypeReturnsCrash() {
@@ -297,7 +253,6 @@ class InitConfigTest {
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/opt/jeffrey"));
             assertEquals("/opt/jeffrey", config.getJeffreyHome());
-            assertTrue(config.useJeffreyHome());
         }
 
         @Test
@@ -312,44 +267,6 @@ class InitConfigTest {
             assertEquals("/from-the-pod", config.getJeffreyHome());
         }
 
-        /**
-         * The two location settings are mutually exclusive, so the winning layer takes the pair as
-         * a unit. An environment naming jeffrey-home replaces a file's workspaces-dir outright,
-         * rather than adding to it and failing validation with "cannot specify both".
-         */
-        @Test
-        void envJeffreyHomeReplacesAConfiguredWorkspacesDir() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Path workspacesDir = tempDir.resolve("workspaces");
-            Files.createDirectories(workspacesDir);
-
-            Files.writeString(configFile, configWithOverrides(
-                    "workspaces-dir = \"" + workspacesDir + "\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/opt/jeffrey"));
-            assertTrue(config.useJeffreyHome());
-            assertEquals("/opt/jeffrey", config.getJeffreyHome());
-            assertNull(config.getWorkspacesDir());
-        }
-
-        @Test
-        void configuredLocationStandsWhenTheEnvironmentNamesNone() throws IOException {
-            Path configFile = tempDir.resolve("config.conf");
-            Path workspacesDir = tempDir.resolve("workspaces");
-            Files.createDirectories(workspacesDir);
-
-            Files.writeString(configFile, configWithOverrides(
-                    "workspaces-dir = \"" + workspacesDir + "\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
-            assertFalse(config.useJeffreyHome());
-            assertEquals(workspacesDir.toString(), config.getWorkspacesDir());
-        }
-
         @Test
         void validationFailsWhenNeitherConfigNorEnvVarIsSet() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
@@ -361,7 +278,7 @@ class InitConfigTest {
                     IllegalArgumentException.class,
                     () -> InitConfig.fromHoconFile(configFile, null, name -> null)
             );
-            assertTrue(exception.getMessage().contains("Either 'jeffrey-home' or 'workspaces-dir'"));
+            assertTrue(exception.getMessage().contains("'jeffrey-home' must be specified"));
         }
     }
 
@@ -383,7 +300,7 @@ class InitConfigTest {
         }
 
         @Test
-        void throwsExceptionWhenNeitherJeffreyHomeNorWorkspacesDirSpecified() throws IOException {
+        void throwsExceptionWhenJeffreyHomeIsNotSpecified() throws IOException {
             Path configFile = tempDir.resolve("invalid.conf");
             Files.writeString(configFile, configWithOverrides(
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
@@ -393,23 +310,8 @@ class InitConfigTest {
                     IllegalArgumentException.class,
                     () -> InitConfig.fromHoconFile(configFile, null)
             );
-            assertEquals("Either 'jeffrey-home' or 'workspaces-dir' must be specified", exception.getMessage());
-        }
-
-        @Test
-        void throwsExceptionWhenBothJeffreyHomeAndWorkspacesDirSpecified() throws IOException {
-            Path configFile = tempDir.resolve("invalid.conf");
-            Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"/tmp/jeffrey\"",
-                    "workspaces-dir = \"/tmp/workspaces\"",
-                    "project { workspace-ref-id = \"test\", name = \"test\" }"
-            ));
-
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> InitConfig.fromHoconFile(configFile, null)
-            );
-            assertEquals("Cannot specify both 'jeffrey-home' and 'workspaces-dir'", exception.getMessage());
+            assertEquals("'jeffrey-home' must be specified (HOCON 'jeffrey-home' or env JEFFREY_HOME)",
+                    exception.getMessage());
         }
 
         @Test
@@ -756,8 +658,8 @@ class InitConfigTest {
         }
 
         /**
-         * The zero-file path used to be unable to reach jdk-java-options, env-file, print-env,
-         * debug-non-safepoints, workspaces-dir or repository-type at all. jdk-java-options was the
+         * The zero-file path used to be unable to reach jdk-java-options, env-file, print-env or
+         * debug-non-safepoints at all. jdk-java-options was the
          * one that stung: it is how a JVM picks the settings up without an argfile.
          */
         @Test
@@ -768,24 +670,12 @@ class InitConfigTest {
                     "JEFFREY_JDK_JAVA_OPTIONS", "true",
                     "JEFFREY_DEBUG_NON_SAFEPOINTS", "false",
                     "JEFFREY_ENV_FILE", "/tmp/jeffrey.env",
-                    "JEFFREY_PRINT_ENV", "true",
-                    "JEFFREY_REPOSITORY_TYPE", "ASYNC_PROFILER")));
+                    "JEFFREY_PRINT_ENV", "true")));
 
             assertTrue(config.isJdkJavaOptionsEnabled());
             assertFalse(config.isDebugNonSafepointsEnabled());
             assertEquals(Path.of("/tmp/jeffrey.env"), config.getEnvFilePath());
             assertTrue(config.isPrintEnv());
-            assertEquals("ASYNC_PROFILER", config.getRepositoryType());
-        }
-
-        @Test
-        void workspacesDirFromEnv() {
-            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
-                    "JEFFREY_WORKSPACES_DIR", "/mnt/workspaces",
-                    "JEFFREY_PROJECT_NAME", "my-service")));
-
-            assertEquals("/mnt/workspaces", config.getWorkspacesDir());
-            assertFalse(config.useJeffreyHome());
         }
     }
 

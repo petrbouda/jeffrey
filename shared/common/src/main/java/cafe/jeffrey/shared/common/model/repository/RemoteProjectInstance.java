@@ -18,19 +18,16 @@
 package cafe.jeffrey.shared.common.model.repository;
 
 /**
- * Represents a project instance stored in the remote filesystem.
- * An instance represents a deployed POD/container that creates sessions.
+ * Instance metadata persisted as {@code .instance-info.json} in the instance directory. An
+ * instance is a deployed pod or container that creates sessions; the hub reads its id from the
+ * directory name and its creation time from here. The project and workspace are not repeated:
+ * the directories above it already say them. Files written by older provisioners carry more
+ * fields, which are ignored.
  *
- * @param instanceId unique identifier for the instance (typically HOSTNAME)
- * @param projectId the project this instance belongs to
- * @param workspaceId the workspace containing the project
- * @param createdAt timestamp when the instance was created (epoch millis)
- * @param relativeInstancePath relative path from project directory to instance directory
+ * @param instanceId identifier of the instance (typically HOSTNAME), equal to its directory name
+ * @param createdAt  when the instance was first provisioned (epoch millis)
  */
 public record RemoteProjectInstance(
         String instanceId,
-        String projectId,
-        String workspaceId,
-        long createdAt,
-        String relativeInstancePath) {
+        long createdAt) {
 }

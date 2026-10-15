@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.volume;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
@@ -59,27 +58,21 @@ public final class TestVolume {
 
     public static Path project(Path workspaceDir, String projectId, String name, Instant createdAt) {
         Path dir = directories(workspaceDir.resolve(name));
-        String workspaceId = workspaceDir.getFileName().toString();
-        RemoteProject marker = new RemoteProject(
-                projectId, name, workspaceId, createdAt.toEpochMilli(), null, workspaceId, name,
-                RepositoryType.ASYNC_PROFILER, Map.of("env", "test"));
+        RemoteProject marker = new RemoteProject(projectId, name, createdAt.toEpochMilli(), Map.of("env", "test"));
         write(dir.resolve(JeffreyLayout.PROJECT_INFO_FILE), Json.toString(marker));
         return dir;
     }
 
     public static Path instance(Path projectDir, String instanceId, Instant createdAt) {
         Path dir = directories(projectDir.resolve(instanceId));
-        RemoteProjectInstance marker = new RemoteProjectInstance(
-                instanceId, "project", "workspace", createdAt.toEpochMilli(), instanceId);
+        RemoteProjectInstance marker = new RemoteProjectInstance(instanceId, createdAt.toEpochMilli());
         write(dir.resolve(JeffreyLayout.INSTANCE_INFO_FILE), Json.toString(marker));
         return dir;
     }
 
     public static Path session(Path instanceDir, String sessionId, Instant createdAt) {
         Path dir = directories(instanceDir.resolve(sessionId));
-        String instanceId = instanceDir.getFileName().toString();
-        RemoteProjectInstanceSession marker = new RemoteProjectInstanceSession(
-                sessionId, instanceId, createdAt.toEpochMilli(), 1, instanceId + "/" + sessionId);
+        RemoteProjectInstanceSession marker = new RemoteProjectInstanceSession(sessionId, createdAt.toEpochMilli());
         write(dir.resolve(JeffreyLayout.SESSION_INFO_FILE), Json.toString(marker));
         return dir;
     }

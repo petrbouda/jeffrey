@@ -66,9 +66,7 @@ public class EnvFileBuilder {
         SessionLayout layout = context.layout();
         List<String> exports = new ArrayList<>();
 
-        if (layout.hasJeffreyHome()) {
-            exports.add(export(JEFFREY_HOME_PROP, layout.jeffreyHome()));
-        }
+        exports.add(export(JEFFREY_HOME_PROP, layout.jeffreyHome()));
         exports.add(export(JEFFREY_WORKSPACES_PROP, layout.workspaces()));
         exports.add(export(JEFFREY_WORKSPACE_PROP, layout.workspace()));
         exports.add(export(JEFFREY_PROJECT_PROP, layout.project()));

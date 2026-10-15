@@ -51,10 +51,8 @@ public abstract class EnvironmentLayer {
 
     private static final List<EnvBinding> BINDINGS = List.of(
             new EnvBinding.Value("JEFFREY_HOME", ConfigPaths.JEFFREY_HOME),
-            new EnvBinding.Value("JEFFREY_WORKSPACES_DIR", ConfigPaths.WORKSPACES_DIR),
             new EnvBinding.Value("JEFFREY_PROFILER_PATH", ConfigPaths.PROFILER_PATH),
             new EnvBinding.Value("JEFFREY_PROFILER_COMMAND", ConfigPaths.PROFILER_COMMAND),
-            new EnvBinding.Value("JEFFREY_REPOSITORY_TYPE", ConfigPaths.REPOSITORY_TYPE),
             new EnvBinding.Value("JEFFREY_ARG_FILE", ConfigPaths.ARG_FILE),
             new EnvBinding.Value("JEFFREY_ENV_FILE", ConfigPaths.ENV_FILE),
             new EnvBinding.Value("JEFFREY_ADDITIONAL_JVM_OPTIONS", ConfigPaths.ADDITIONAL_JVM_OPTIONS),

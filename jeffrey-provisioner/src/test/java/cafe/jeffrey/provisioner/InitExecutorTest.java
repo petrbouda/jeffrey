@@ -19,17 +19,24 @@ package cafe.jeffrey.provisioner;
 
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +60,7 @@ class InitExecutorTest {
     @TempDir
     Path tempDir;
 
+    private Path jeffreyHome;
     private Path workspacesDir;
     private Path argFile;
     private Path envFile;
@@ -77,12 +85,13 @@ class InitExecutorTest {
     }
 
     private InitConfig config(Path profilerPath, Map<String, String> extraEnv) {
-        workspacesDir = tempDir.resolve("workspaces");
+        jeffreyHome = tempDir.resolve("jeffrey");
+        workspacesDir = jeffreyHome.resolve(JeffreyLayout.WORKSPACES_DIR);
         argFile = tempDir.resolve("jvm.args");
         envFile = tempDir.resolve("jeffrey.env");
 
         Map<String, String> env = new HashMap<>(Map.of(
-                "JEFFREY_WORKSPACES_DIR", workspacesDir.toString(),
+                "JEFFREY_HOME", jeffreyHome.toString(),
                 "JEFFREY_PROJECT_NAME", PROJECT_NAME,
                 "JEFFREY_WORKSPACE_REF_ID", WORKSPACE_REF_ID,
                 "JEFFREY_INSTANCE_NAME", INSTANCE_NAME,
@@ -211,6 +220,7 @@ class InitExecutorTest {
             List<String> layoutExports = normalized(Files.readString(envFile)).lines().toList();
 
             assertEquals(List.of(
+                    "export JEFFREY_HOME=" + jeffreyHome,
                     "export JEFFREY_WORKSPACES=" + workspacesDir,
                     "export JEFFREY_CURRENT_WORKSPACE=" + workspacesDir.resolve(WORKSPACE_REF_ID),
                     "export JEFFREY_CURRENT_PROJECT="
@@ -298,7 +308,7 @@ class InitExecutorTest {
     @Nested
     class RepeatedRuns {
 
-        /** A second run reuses the project and instance and adds a session ordered after the first. */
+        /** A second run reuses the project and instance and adds a session of its own. */
         @Test
         void secondRunAddsASessionAndKeepsTheProject() throws Exception {
             new InitExecutor(Clock.systemUTC()).execute(config());
@@ -317,31 +327,32 @@ class InitExecutorTest {
                     "the project marker must not be rewritten");
         }
 
+        /** A session's place in its instance is its start time; no ordinal is written down. */
         @Test
-        void sessionOrderIncrementsPerRun() throws Exception {
-            new InitExecutor(Clock.systemUTC()).execute(config());
-            new InitExecutor(Clock.systemUTC()).execute(config());
+        void eachSessionRecordsWhenItsRunStarted() throws Exception {
+            Instant firstRun = Instant.parse("2026-03-01T10:00:00Z");
+            Instant secondRun = Instant.parse("2026-03-01T11:00:00Z");
+            new InitExecutor(Clock.fixed(firstRun, ZoneOffset.UTC)).execute(config());
+            new InitExecutor(Clock.fixed(secondRun, ZoneOffset.UTC)).execute(config());
 
             Path instancePath = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(INSTANCE_NAME);
             try (Stream<Path> sessions = Files.list(instancePath)) {
-                List<String> orders = sessions
+                Set<Long> startTimes = sessions
                         .filter(Files::isDirectory)
                         .map(session -> session.resolve(JeffreyLayout.SESSION_INFO_FILE))
-                        .map(InitExecutorTest::readOrder)
-                        .sorted()
-                        .toList();
-                assertEquals(List.of("1", "2"), orders);
+                        .map(InitExecutorTest::readSessionMarker)
+                        .map(RemoteProjectInstanceSession::createdAt)
+                        .collect(Collectors.toSet());
+                assertEquals(Set.of(firstRun.toEpochMilli(), secondRun.toEpochMilli()), startTimes);
             }
         }
     }
 
-    private static String readOrder(Path sessionInfoFile) {
+    private static RemoteProjectInstanceSession readSessionMarker(Path sessionInfoFile) {
         try {
-            String content = Files.readString(sessionInfoFile);
-            int index = content.indexOf("\"order\":");
-            return content.substring(index + "\"order\":".length()).split("[,}]")[0].trim();
+            return Json.read(Files.readString(sessionInfoFile), RemoteProjectInstanceSession.class);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 }

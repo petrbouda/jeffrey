@@ -62,13 +62,6 @@
     "allDeclaredFields": true
   },
   {
-    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
-    "name": "cafe.jeffrey.shared.common.model.RepositoryType",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
     "condition": {"typeReachable": "ch.qos.logback.classic.LoggerContext"},
     "name": "ch.qos.logback.core.ConsoleAppender",
     "allDeclaredConstructors": true,

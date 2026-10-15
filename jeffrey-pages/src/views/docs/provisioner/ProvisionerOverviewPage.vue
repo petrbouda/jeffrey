@@ -203,7 +203,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>.session-info.json</code>
-              <p>What the Hub needs to register the session: its ID, instance, order, creation time, path, and whether it reports liveness.</p>
+              <p>The session's ID and start time &mdash; all the Hub reads from it. Its instance, project and workspace are the directories it sits in, and its place among the instance's sessions is its start time.</p>
             </div>
           </div>
         </div>

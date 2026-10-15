@@ -224,15 +224,9 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           <tbody>
             <tr>
               <td><code>jeffrey-home</code></td>
-              <td>One of</td>
+              <td>Yes</td>
               <td><code>JEFFREY_HOME</code></td>
-              <td>Base directory for Jeffrey data; <code>workspaces/</code> is created under it. Exactly one of <code>jeffrey-home</code> / <code>workspaces-dir</code> must be set. Because the two are mutually exclusive, an environment variable naming either one replaces both of them from the HOCON file rather than conflicting with it.</td>
-            </tr>
-            <tr>
-              <td><code>workspaces-dir</code></td>
-              <td>One of</td>
-              <td><code>JEFFREY_WORKSPACES_DIR</code></td>
-              <td>Points directly at an existing workspaces directory instead of deriving it from <code>jeffrey-home</code>. Mutually exclusive with <code>jeffrey-home</code>.</td>
+              <td>Root of the shared volume. Recordings always go under <code>&lt;jeffrey-home&gt;/workspaces/</code>, the same place the Hub reads them from, so point it at wherever the volume is mounted in this container. Images built with jeffrey-jib bake <code>JEFFREY_HOME</code>.</td>
             </tr>
             <tr>
               <td><code>project.workspace-ref-id</code></td>
@@ -292,12 +286,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_PROFILER_COMMAND</code></td>
               <td>The async-profiler agent the session runs with, in one of two forms. Options alone (<code>start,event=cpu,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>) run on the async-profiler library <code>profiler-path</code> names &mdash; the one jeffrey-jib bakes into the image, or your own. A full <code>-agentpath:&lt;library&gt;=&lt;options&gt;</code> loads that library instead, ignoring <code>profiler-path</code>, and the provisioner does not check it. Leave it unset to run the <code>profiler-path</code> library with the built-in default options. Whenever the <code>profiler-path</code> library is needed but missing, the provisioner logs a warning and switches profiling off. Build the options with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>. The environment variable takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
-            </tr>
-            <tr>
-              <td><code>repository-type</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_REPOSITORY_TYPE</code></td>
-              <td>Recording repository type: <code>ASYNC_PROFILER</code> (default) or <code>JDK</code>.</td>
             </tr>
             <tr>
               <td><code>additional-jvm-options</code></td>

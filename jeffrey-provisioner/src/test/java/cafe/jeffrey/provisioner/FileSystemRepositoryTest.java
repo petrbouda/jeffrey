@@ -23,7 +23,6 @@ import org.junit.jupiter.api.io.TempDir;
 import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 
 import java.io.IOException;
@@ -54,9 +53,14 @@ class FileSystemRepositoryTest {
     private static final String INSTANCE_ID = "inst-001";
     private static final String SESSION_ID = "session-001";
 
-    /** What the hub reads to list a session, plus the order the provisioner reads back. */
-    private static final Set<String> SESSION_INFO_FIELDS = Set.of(
-            "sessionId", "instanceId", "createdAt", "order", "relativeSessionPath");
+    /*
+     * What each marker carries: its own id and what the hub reads. Where an entity lies is never
+     * written down — the hub reads it from the directory the marker sits in.
+     */
+    private static final Set<String> PROJECT_INFO_FIELDS =
+            Set.of("projectId", "projectName", "createdAt", "attributes");
+    private static final Set<String> INSTANCE_INFO_FIELDS = Set.of("instanceId", "createdAt");
+    private static final Set<String> SESSION_INFO_FIELDS = Set.of("sessionId", "createdAt");
 
     private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {
     };
@@ -74,6 +78,10 @@ class FileSystemRepositoryTest {
         return Files.createDirectories(workspacePath.resolve(PROJECT_NAME));
     }
 
+    private static Set<String> fieldsOf(Path marker) throws IOException {
+        return Json.read(Files.readString(marker), JSON_OBJECT).keySet();
+    }
+
     @Nested
     class Markers {
 
@@ -81,25 +89,40 @@ class FileSystemRepositoryTest {
         void addProject_writesTheProjectMarker() throws IOException {
             Path projectPath = createProjectDir(workspacePath());
 
-            repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
-                    "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
+            repository.addProject(PROJECT_ID, PROJECT_NAME, Map.of("cluster", "blue"), projectPath);
 
             RemoteProject written = Json.read(
                     Files.readString(projectPath.resolve(JeffreyLayout.PROJECT_INFO_FILE)), RemoteProject.class);
-            assertEquals(PROJECT_ID, written.projectId());
-            assertEquals(NOW.toEpochMilli(), written.createdAt());
+            assertEquals(new RemoteProject(PROJECT_ID, PROJECT_NAME, NOW.toEpochMilli(), Map.of("cluster", "blue")),
+                    written);
         }
 
         @Test
-        void addSession_writesOnlyTheFieldsItsReadersUse() throws IOException {
+        void addProject_writesOnlyItsIdAndTheFieldsTheHubReads() throws IOException {
+            Path projectPath = createProjectDir(workspacePath());
+
+            repository.addProject(PROJECT_ID, PROJECT_NAME, Map.of(), projectPath);
+
+            assertEquals(PROJECT_INFO_FIELDS, fieldsOf(projectPath.resolve(JeffreyLayout.PROJECT_INFO_FILE)));
+        }
+
+        @Test
+        void addInstance_writesOnlyItsIdAndTheFieldsTheHubReads() throws IOException {
+            Path instancePath = Files.createDirectories(workspacePath().resolve(PROJECT_NAME).resolve(INSTANCE_ID));
+
+            repository.addInstance(INSTANCE_ID, instancePath);
+
+            assertEquals(INSTANCE_INFO_FIELDS, fieldsOf(instancePath.resolve(JeffreyLayout.INSTANCE_INFO_FILE)));
+        }
+
+        @Test
+        void addSession_writesOnlyItsIdAndTheFieldsTheHubReads() throws IOException {
             Path sessionPath = Files.createDirectories(
                     workspacePath().resolve(PROJECT_NAME).resolve(INSTANCE_ID).resolve(SESSION_ID));
 
-            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath);
+            repository.addSession(SESSION_ID, sessionPath);
 
-            Map<String, Object> written = Json.read(
-                    Files.readString(sessionPath.resolve(JeffreyLayout.SESSION_INFO_FILE)), JSON_OBJECT);
-            assertEquals(SESSION_INFO_FIELDS, written.keySet());
+            assertEquals(SESSION_INFO_FIELDS, fieldsOf(sessionPath.resolve(JeffreyLayout.SESSION_INFO_FILE)));
         }
 
         /**
@@ -113,10 +136,9 @@ class FileSystemRepositoryTest {
             Path instancePath = Files.createDirectories(projectPath.resolve(INSTANCE_ID));
             Path sessionPath = Files.createDirectories(instancePath.resolve(SESSION_ID));
 
-            repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
-                    "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), projectPath);
-            repository.addInstance(INSTANCE_ID, PROJECT_ID, WORKSPACE_REF_ID, instancePath);
-            repository.addSession(SESSION_ID, INSTANCE_ID, 1, sessionPath);
+            repository.addProject(PROJECT_ID, PROJECT_NAME, Map.of(), projectPath);
+            repository.addInstance(INSTANCE_ID, instancePath);
+            repository.addSession(SESSION_ID, sessionPath);
 
             try (Stream<Path> files = Files.walk(workspacePath)) {
                 Set<Path> written = files.filter(Files::isRegularFile)
@@ -135,8 +157,7 @@ class FileSystemRepositoryTest {
             Path missingProjectPath = workspacePath().resolve("never-created");
 
             assertThrows(RuntimeException.class, () ->
-                    repository.addProject(PROJECT_ID, PROJECT_NAME, WORKSPACE_REF_ID,
-                            "/workspaces", RepositoryType.ASYNC_PROFILER, Map.of(), missingProjectPath));
+                    repository.addProject(PROJECT_ID, PROJECT_NAME, Map.of(), missingProjectPath));
         }
     }
 }
