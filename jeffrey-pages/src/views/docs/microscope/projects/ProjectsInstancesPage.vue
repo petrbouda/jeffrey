@@ -94,14 +94,13 @@ onMounted(() => {
         </table>
 
         <h2 id="instances-tab">Instances Tab</h2>
-        <p>The Instances tab opens with three stat cards summarising the project:</p>
+        <p>On the Instances tab, the right end of the tab row carries a one-line summary of the project: active and finished instances (pending too, when there are any), sessions and storage size. Click it to open the full breakdown:</p>
         <ul>
-          <li><strong>Instances</strong> — counts by status (pending, active, finished, expired), total sessions, and uptime range.</li>
-          <li><strong>Storage</strong> — total storage size, file count, and the largest session — this is the data the old "Repository" view used to show.</li>
-          <li><strong>File Types</strong> — breakdown by type: JFR recordings, heap dumps, JVM logs, application logs, JVM error logs.</li>
+          <li><strong>Instances</strong> — counts by status (pending, active, finished, expired), total instances, total sessions, and uptime range.</li>
+          <li><strong>Storage</strong> — the bytes every session of the project occupies on the hub.</li>
         </ul>
 
-        <p>Below the stats, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
+        <p>Below the tab row, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
 
         <h2 id="timeline-tab">Timeline Tab</h2>
         <p>A swimlane view of instance and session activity over the selected time range (1h–30d). Each instance gets one row; session bars inside the lane are green when finished, amber when active.</p>

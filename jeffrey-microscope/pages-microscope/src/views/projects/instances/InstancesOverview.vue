@@ -22,68 +22,15 @@
         <MainCardHeader icon="bi bi-box" title="Instances Overview" />
       </template>
 
-      <!-- Stat Cards -->
-      <div class="mb-4" v-if="!loading && instances.length > 0">
-        <div class="row g-3">
-          <!-- Instances -->
-          <div class="col-md-4 col-xl">
-            <div class="compact-stat-card">
-              <div class="compact-stat-header">
-                <i class="bi bi-box text-primary"></i>
-                <span class="compact-stat-title">Instances</span>
-              </div>
-              <div class="compact-stat-metrics">
-                <div class="metric-item" v-if="pendingCount > 0">
-                  <span class="metric-label">Pending Instances</span>
-                  <span class="metric-value">{{ pendingCount }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Active Instances</span>
-                  <span class="metric-value">{{ activeCount }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Finished Instances</span>
-                  <span class="metric-value">{{ finishedCount }}</span>
-                </div>
-                <div class="metric-item" v-if="expiredCount > 0">
-                  <span class="metric-label">Expired Instances</span>
-                  <span class="metric-value">{{ expiredCount }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Total Instances</span>
-                  <span class="metric-value">{{ instances.length }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Total Sessions</span>
-                  <span class="metric-value">{{ totalSessions }}</span>
-                </div>
-                <div class="metric-item">
-                  <span class="metric-label">Uptime Range</span>
-                  <span class="metric-value">{{ uptimeRange }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Storage -->
-          <div class="col-md-4 col-xl" v-if="repositoryStatistics || statisticsError">
-            <div class="compact-stat-card">
-              <div class="compact-stat-header">
-                <i class="bi bi-hdd text-success"></i>
-                <span class="compact-stat-title">Storage</span>
-              </div>
-              <ErrorState v-if="statisticsError" message="Repository size could not be loaded" />
-              <template v-else>
-                <div class="storage-figure">
-                  <span class="storage-value">{{ storageSize.value }}</span>
-                  <span class="storage-unit">{{ storageSize.unit }}</span>
-                </div>
-                <p class="storage-caption">across every session of this project</p>
-              </template>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Figures live in the project tab row; they leave with this page -->
+      <Teleport defer :to="PROJECT_NAV_ACTIONS_SELECTOR">
+        <InstanceStatsSummary
+          v-if="!loading && instances.length > 0"
+          :stats="stats"
+          :storage="storageSize"
+          :storage-error="statisticsError"
+        />
+      </Teleport>
 
       <!-- Search Box and Filter -->
       <div class="d-flex gap-3 mb-3 align-items-center">
@@ -223,7 +170,6 @@
 import { ref, computed, onMounted } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
 import Badge from '@shared/components/Badge.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
@@ -235,6 +181,9 @@ import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatis
 import FormattingService from '@shared/services/FormattingService';
 import TimelineBar from '@shared/components/TimelineBar.vue';
 import { useNavigation } from '@/composables/useNavigation';
+import InstanceStatsSummary from './InstanceStatsSummary.vue';
+import { summarizeInstances } from './instanceStats';
+import { PROJECT_NAV_ACTIONS_SELECTOR } from '../projectNav';
 import '@shared/styles/shared-components.css';
 import type { Variant } from '@shared/types/ui';
 
@@ -247,53 +196,64 @@ const instances = ref<ProjectInstance[]>([]);
 const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 const statisticsError = ref(false);
 
-/**
- * The one figure the card carries, split so the number can be set larger than its unit.
- * Falls back to an empty size rather than to placeholder text: the card is only rendered once
- * the statistics have arrived, so a reader never sees this.
- */
+/** Repository size split so the number can be set larger than its unit; null until it arrives. */
 const storageSize = computed(() =>
-  FormattingService.formatBytesParts(repositoryStatistics.value?.totalSize ?? 0)
+  repositoryStatistics.value
+    ? FormattingService.formatBytesParts(repositoryStatistics.value.totalSize)
+    : null
 );
 
-const pendingCount = computed(() => instances.value.filter(i => i.status === 'PENDING').length);
-const activeCount = computed(() => instances.value.filter(i => i.status === 'ACTIVE').length);
-const finishedCount = computed(() => instances.value.filter(i => i.status === 'FINISHED').length);
-const expiredCount = computed(() => instances.value.filter(i => i.status === 'EXPIRED').length);
-
-const totalSessions = computed(() => instances.value.reduce((sum, i) => sum + i.sessionCount, 0));
-
-const uptimeRange = computed(() => {
-  if (instances.value.length === 0) {return '\u2014';}
-  const oldest = Math.min(...instances.value.map(i => i.createdAt));
-  return FormattingService.formatRelativeTime(oldest);
-});
+const stats = computed(() => summarizeInstances(instances.value));
 
 function instanceCardClass(status: string): string {
-  if (status === 'PENDING') {return 'instance-pending';}
-  if (status === 'ACTIVE') {return 'instance-active';}
-  if (status === 'EXPIRED') {return 'instance-expired';}
+  if (status === 'PENDING') {
+    return 'instance-pending';
+  }
+  if (status === 'ACTIVE') {
+    return 'instance-active';
+  }
+  if (status === 'EXPIRED') {
+    return 'instance-expired';
+  }
   return 'instance-finished';
 }
 
 function instanceIdentityClass(status: string): string {
-  if (status === 'PENDING') {return 'identity-pending';}
-  if (status === 'ACTIVE') {return 'identity-active';}
-  if (status === 'EXPIRED') {return 'identity-expired';}
+  if (status === 'PENDING') {
+    return 'identity-pending';
+  }
+  if (status === 'ACTIVE') {
+    return 'identity-active';
+  }
+  if (status === 'EXPIRED') {
+    return 'identity-expired';
+  }
   return 'identity-finished';
 }
 
 function instanceIconClass(status: string): string {
-  if (status === 'PENDING') {return 'icon-pending';}
-  if (status === 'ACTIVE') {return 'icon-active';}
-  if (status === 'EXPIRED') {return 'icon-expired';}
+  if (status === 'PENDING') {
+    return 'icon-pending';
+  }
+  if (status === 'ACTIVE') {
+    return 'icon-active';
+  }
+  if (status === 'EXPIRED') {
+    return 'icon-expired';
+  }
   return 'icon-finished';
 }
 
 function instanceBadgeVariant(status: string): Variant {
-  if (status === 'PENDING') {return 'blue';}
-  if (status === 'ACTIVE') {return 'warning';}
-  if (status === 'EXPIRED') {return 'grey';}
+  if (status === 'PENDING') {
+    return 'blue';
+  }
+  if (status === 'ACTIVE') {
+    return 'warning';
+  }
+  if (status === 'EXPIRED') {
+    return 'grey';
+  }
   return 'green';
 }
 
@@ -322,8 +282,8 @@ onMounted(async () => {
     workspaceId.value!,
     projectId.value!
   );
-  // The card is the only reader of this call. Left to reject, a failed call would drop the card
-  // without a word, and a project that looks storage-free is easy to mistake for one that is.
+  // The summary's storage figure is the only reader of this call. Left to reject, a failed call
+  // would drop it without a word, and a project that looks storage-free is easy to mistake for one that is.
   try {
     repositoryStatistics.value = await repositoryClient.getRepositoryStatistics();
   } catch (error) {
@@ -334,99 +294,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.storage-figure {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding-top: 4px;
-}
-
-.storage-value {
-  font-size: var(--font-size-xxxl);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.storage-unit {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-}
-
-.storage-caption {
-  margin: 6px 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-light);
-}
-
-/* Compact Stat Cards */
-.compact-stat-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  height: 100%;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-base);
-}
-
-.compact-stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.compact-stat-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.compact-stat-header i {
-  font-size: 1rem;
-}
-
-.compact-stat-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.compact-stat-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.metric-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 2px 0;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  font-weight: 500;
-}
-
-.metric-value {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text);
-  text-align: right;
-  min-width: 36px;
-}
-
 /* Filter button group */
 .filter-btn-group {
   flex-shrink: 0;
@@ -532,39 +399,5 @@ onMounted(async () => {
 
 .min-width-0 {
   min-width: 0;
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-  .compact-stat-card {
-    padding: 10px 12px;
-  }
-
-  .compact-stat-header {
-    gap: 6px;
-    margin-bottom: 6px;
-  }
-
-  .compact-stat-title {
-    font-size: 0.75rem;
-  }
-
-  .metric-label {
-    font-size: 0.7rem;
-  }
-
-  .metric-value {
-    font-size: 0.75rem;
-  }
-}
-
-@media (max-width: 576px) {
-  .compact-stat-card {
-    padding: 8px 10px;
-  }
-
-  .compact-stat-metrics {
-    gap: 3px;
-  }
 }
 </style>
