@@ -55,6 +55,9 @@ public final class AutoAnalysisFindings {
     /** A result cached before the topic was recorded lands here rather than in no category at all. */
     static final String UNTOPICED_CATEGORY = "auto-analysis";
 
+    /** The title of a verdict whose rule left both its summary and its name blank. */
+    static final String UNTITLED = "Auto-analysis rule result";
+
     private static final String EVIDENCE_RULE = "rule";
     private static final String EVIDENCE_SCORE = "score";
 
@@ -150,7 +153,7 @@ public final class AutoAnalysisFindings {
                 : result.topic();
         return Optional.of(McpFinding.of(category, result.rule())
                 .severity(severity(result.severity()))
-                .title(result.summary())
+                .title(title(result))
                 .detail(result.explanation())
                 .source(SOURCE)
                 .evidence(EVIDENCE_RULE, result.rule())
@@ -160,6 +163,21 @@ public final class AutoAnalysisFindings {
                         .map(call -> call.on(profileId))
                         .orElse(null))
                 .build());
+    }
+
+    /**
+     * The rule's one-line summary, or its name when the summary is blank: JMC hands back verdicts
+     * with no summary, and one such result must not make the whole answer fail on a finding with no
+     * title.
+     */
+    private static String title(AutoAnalysisResult result) {
+        if (result.summary() != null && !result.summary().isBlank()) {
+            return result.summary();
+        }
+        if (result.rule() != null && !result.rule().isBlank()) {
+            return result.rule();
+        }
+        return UNTITLED;
     }
 
     /**

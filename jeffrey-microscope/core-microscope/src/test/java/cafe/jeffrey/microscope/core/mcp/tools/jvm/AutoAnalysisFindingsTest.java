@@ -30,8 +30,10 @@ import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.mcp.McpNextToolConformance;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.shared.common.Json;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -82,5 +84,49 @@ class AutoAnalysisFindingsTest {
         McpFinding finding = AutoAnalysisFindings.finding(PROFILE_ID, fired("not_a_topic")).orElseThrow();
 
         assertNull(finding.nextTool());
+    }
+
+    @Nested
+    class Title {
+
+        @Test
+        void isTheSummary() {
+            McpFinding finding = AutoAnalysisFindings.finding(PROFILE_ID, fired("exceptions")).orElseThrow();
+
+            assertEquals("summary", finding.title());
+        }
+
+        /** JMC returns verdicts with no summary; one of them must not fail profiles_summary. */
+        @Test
+        void fallsBackToTheRuleNameWhenTheSummaryIsMissing() {
+            for (String summary : Arrays.asList(null, "", "  ")) {
+                AutoAnalysisResult result = new AutoAnalysisResult("Exceptions Rule", AnalysisResult.Severity.INFO,
+                        "explanation", summary, null, null, "exceptions");
+
+                McpFinding finding = AutoAnalysisFindings.finding(PROFILE_ID, result).orElseThrow();
+
+                assertEquals("Exceptions Rule", finding.title());
+            }
+        }
+
+        @Test
+        void isGenericWhenTheRuleHasNeitherSummaryNorName() {
+            AutoAnalysisResult result = new AutoAnalysisResult(null, AnalysisResult.Severity.WARNING,
+                    null, null, null, null, "exceptions");
+
+            McpFinding finding = AutoAnalysisFindings.finding(PROFILE_ID, result).orElseThrow();
+
+            assertEquals(AutoAnalysisFindings.UNTITLED, finding.title());
+        }
+
+        @Test
+        void aMissingSummaryDoesNotFailTheFlaggedList() {
+            List<AutoAnalysisResult> results = List.of(
+                    fired("exceptions"),
+                    new AutoAnalysisResult("GC Rule", AnalysisResult.Severity.WARNING, null, null, null, null,
+                            "garbage_collection"));
+
+            assertEquals(2, AutoAnalysisFindings.flagged(PROFILE_ID, results).size());
+        }
     }
 }
