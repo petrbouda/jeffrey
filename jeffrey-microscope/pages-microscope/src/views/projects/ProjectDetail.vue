@@ -35,29 +35,38 @@
           <span class="crumb crumb-current">{{ projectInfo?.name ?? 'Loading…' }}</span>
         </div>
 
-        <!-- Stacked icon-over-label tabs, matching MainNavigation -->
-        <nav class="nav-container" aria-label="Project sections">
-          <router-link
-            :to="generateProjectUrl('instances/timeline')"
-            class="nav-pill"
-            active-class="active"
-          >
-            <i class="bi bi-bar-chart-steps"></i>
-            <span>Timeline</span>
-          </router-link>
-          <router-link
-            :to="generateProjectUrl('instances')"
-            class="nav-pill"
-            :class="{ active: isInstancesActive }"
-          >
-            <i class="bi bi-grid"></i>
-            <span>Instances</span>
-          </router-link>
-          <router-link :to="generateProjectUrl('settings')" class="nav-pill" active-class="active">
-            <i class="bi bi-sliders"></i>
-            <span>Settings</span>
-          </router-link>
-        </nav>
+        <div class="nav-row">
+          <!-- Stacked icon-over-label tabs, matching MainNavigation -->
+          <nav class="nav-container" aria-label="Project sections">
+            <router-link
+              :to="generateProjectUrl('instances/timeline')"
+              class="nav-pill"
+              active-class="active"
+            >
+              <i class="bi bi-bar-chart-steps"></i>
+              <span>Timeline</span>
+            </router-link>
+            <router-link
+              :to="generateProjectUrl('instances')"
+              class="nav-pill"
+              :class="{ active: isInstancesActive }"
+            >
+              <i class="bi bi-grid"></i>
+              <span>Instances</span>
+            </router-link>
+            <router-link
+              :to="generateProjectUrl('settings')"
+              class="nav-pill"
+              active-class="active"
+            >
+              <i class="bi bi-sliders"></i>
+              <span>Settings</span>
+            </router-link>
+          </nav>
+
+          <!-- Filled by the active page (Teleport), e.g. the instance figures on Instances -->
+          <div :id="PROJECT_NAV_ACTIONS_ID" class="nav-actions"></div>
+        </div>
       </div>
     </div>
 
@@ -76,6 +85,7 @@ import Project from '@hubs/services/api/model/Project.ts';
 import WorkspaceClient from '@hubs/services/api/WorkspaceClient.ts';
 import Workspace from '@hubs/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
+import { PROJECT_NAV_ACTIONS_ID } from './projectNav';
 
 const route = useRoute();
 const router = useRouter();
@@ -185,8 +195,24 @@ watch(
   color: var(--color-text-light);
 }
 
+/* Tabs on the left, the active page's figures on the right; wraps under the tabs when narrow. */
+.nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 1.5rem;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+}
+
 /* Tab container + pills: mirrors MainNavigation.vue so the visual language matches. */
 .nav-container {
+  min-width: 0;
   display: flex;
   align-items: center;
   padding: 0 1rem;
