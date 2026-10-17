@@ -22,7 +22,6 @@ import {
   isContiguousChunkSelection,
   orderedChunks
 } from '@hubs/services/chunkSelection.ts';
-import RecordingSession from '@hubs/services/api/model/RecordingSession.ts';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@hubs/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@hubs/services/api/model/RepositoryFile.ts';
@@ -55,21 +54,11 @@ function log(): RepositoryFile {
 }
 
 /** Deliberately out of order, the way the backend lists them (filename descending). */
-function session(...files: RepositoryFile[]): RecordingSession {
-  return new RecordingSession(
-    'session-1',
-    'session-1',
-    'inst-1',
-    T0,
-    T0 + 40 * MINUTE,
-    RecordingStatus.FINISHED,
-    40 * MINUTE,
-    files,
-    false
-  );
+function filesOf(...files: RepositoryFile[]): RepositoryFile[] {
+  return files;
 }
 
-const SESSION = session(chunk('c3', 30), chunk('c1', 10), chunk('c0', 0), chunk('c2', 20), log());
+const FILES = filesOf(chunk('c3', 30), chunk('c1', 10), chunk('c0', 0), chunk('c2', 20), log());
 
 function ticked(...ids: string[]): { [fileId: string]: boolean } {
   return Object.fromEntries(ids.map(id => [id, true]));
@@ -77,11 +66,11 @@ function ticked(...ids: string[]): { [fileId: string]: boolean } {
 
 describe('orderedChunks', () => {
   it('puts the finished recording files oldest first', () => {
-    expect(orderedChunks(SESSION).map(f => f.id)).toEqual(['c0', 'c1', 'c2', 'c3']);
+    expect(orderedChunks(FILES).map(f => f.id)).toEqual(['c0', 'c1', 'c2', 'c3']);
   });
 
   it('leaves out artifacts and the chunk still being written', () => {
-    const withOpen = session(chunk('c0', 0), log(), chunk('c1', 10, RecordingStatus.ACTIVE));
+    const withOpen = filesOf(chunk('c0', 0), log(), chunk('c1', 10, RecordingStatus.ACTIVE));
 
     expect(orderedChunks(withOpen).map(f => f.id)).toEqual(['c0']);
   });
@@ -89,61 +78,61 @@ describe('orderedChunks', () => {
 
 describe('isContiguousChunkSelection', () => {
   it('accepts an unbroken run', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('c1', 'c2'))).toBe(true);
+    expect(isContiguousChunkSelection(FILES, ticked('c1', 'c2'))).toBe(true);
   });
 
   it('accepts every chunk', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('c0', 'c1', 'c2', 'c3'))).toBe(true);
+    expect(isContiguousChunkSelection(FILES, ticked('c0', 'c1', 'c2', 'c3'))).toBe(true);
   });
 
   it('accepts a single chunk', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('c2'))).toBe(true);
+    expect(isContiguousChunkSelection(FILES, ticked('c2'))).toBe(true);
   });
 
   it('accepts nothing ticked, which the empty-selection check already blocks', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked())).toBe(true);
-    expect(isContiguousChunkSelection(SESSION, undefined)).toBe(true);
+    expect(isContiguousChunkSelection(FILES, ticked())).toBe(true);
+    expect(isContiguousChunkSelection(FILES, undefined)).toBe(true);
   });
 
   it('refuses a run with a chunk skipped', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('c1', 'c3'))).toBe(false);
+    expect(isContiguousChunkSelection(FILES, ticked('c1', 'c3'))).toBe(false);
   });
 
   it('refuses a run with several chunks skipped', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('c0', 'c3'))).toBe(false);
+    expect(isContiguousChunkSelection(FILES, ticked('c0', 'c3'))).toBe(false);
   });
 
   it('ignores artifacts ticked beside a run', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('c0', 'c1', 'log'))).toBe(true);
+    expect(isContiguousChunkSelection(FILES, ticked('c0', 'c1', 'log'))).toBe(true);
   });
 
   it('accepts an artifact on its own', () => {
-    expect(isContiguousChunkSelection(SESSION, ticked('log'))).toBe(true);
+    expect(isContiguousChunkSelection(FILES, ticked('log'))).toBe(true);
   });
 });
 
 describe('chunkSelectionGap', () => {
   it('names the chunks that would close the gap', () => {
-    expect(chunkSelectionGap(SESSION, ticked('c0', 'c3')).map(f => f.id)).toEqual(['c1', 'c2']);
+    expect(chunkSelectionGap(FILES, ticked('c0', 'c3')).map(f => f.id)).toEqual(['c1', 'c2']);
   });
 
   it('is empty for an unbroken run', () => {
-    expect(chunkSelectionGap(SESSION, ticked('c2', 'c3'))).toEqual([]);
+    expect(chunkSelectionGap(FILES, ticked('c2', 'c3'))).toEqual([]);
   });
 });
 
 describe('chunkSelectionGapMessage', () => {
   it('names one missing file in the singular', () => {
-    expect(chunkSelectionGapMessage(SESSION, ticked('c1', 'c3'))).toContain('profile-c2.jfr lies between them');
+    expect(chunkSelectionGapMessage(FILES, ticked('c1', 'c3'))).toContain('profile-c2.jfr lies between them');
   });
 
   it('names several in the plural', () => {
-    expect(chunkSelectionGapMessage(SESSION, ticked('c0', 'c3'))).toContain(
+    expect(chunkSelectionGapMessage(FILES, ticked('c0', 'c3'))).toContain(
       'profile-c1.jfr, profile-c2.jfr lie between them'
     );
   });
 
   it('says nothing when there is no gap', () => {
-    expect(chunkSelectionGapMessage(SESSION, ticked('c0', 'c1'))).toBe('');
+    expect(chunkSelectionGapMessage(FILES, ticked('c0', 'c1'))).toBe('');
   });
 });

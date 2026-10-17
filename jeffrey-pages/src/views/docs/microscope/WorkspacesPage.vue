@@ -134,7 +134,9 @@ onMounted(() => {
             <td>
               A stable identifier the workspace exposes to <code>provisioner</code>. The provisioner uses
               this ID to route uploads to the right workspace, so it has to match the value in
-              your provisioner's configuration.
+              your provisioner's configuration. On the hub it becomes the workspace's id and the
+              name of its directory on the shared volume; if the provisioner already wrote into a
+              directory of that name, creating the workspace adopts it with its projects.
             </td>
           </tr>
         </tbody>

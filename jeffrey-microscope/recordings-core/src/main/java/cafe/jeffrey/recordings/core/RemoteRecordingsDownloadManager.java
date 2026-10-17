@@ -22,12 +22,12 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.client.RepositoryFiles;
 import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.hub.client.FileStreamClient;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
@@ -90,7 +90,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private final RepositoryClient repositoryClient;
     private final RecordingsCoreManager recordingsManager;
     private final OriginContext originContext;
-    private final String projectName;
+    private final ProjectScope scope;
 
     public RemoteRecordingsDownloadManager(
             TempDirProvider tempDirProvider,
@@ -98,14 +98,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             RepositoryClient repositoryClient,
             RecordingsCoreManager recordingsManager,
             OriginContext originContext,
-            String projectName) {
+            ProjectScope scope) {
 
         this.tempDirProvider = tempDirProvider;
         this.fileStreamClient = fileStreamClient;
         this.repositoryClient = repositoryClient;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
-        this.projectName = projectName;
+        this.scope = scope;
     }
 
     @Override
@@ -165,7 +165,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * the profiler still holds open is the session's newest chunk.
      */
     private RecordingSession session(String recordingSessionId) {
-        return RecordingSessionResponse.from(repositoryClient.recordingSession(recordingSessionId));
+        return repositoryClient.recordingSession(scope, recordingSessionId).toSession();
     }
 
     /**
@@ -399,7 +399,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 // bytes arriving are then the archive's. The progress channel keeps saying the
                 // name the reader chose, which is the one it was shown.
                 AtomicReference<Path> landed = new AtomicReference<>();
-                fileStreamClient.streamFile(recordingSessionId, file.id(), (inputStream, transferred) -> {
+                fileStreamClient.streamFile(scope, recordingSessionId, file.id(), (inputStream, transferred) -> {
                     long actualSize = transferred.size() > 0 ? transferred.size() : file.size();
                     progressCallback.onFileStart(file.name(), actualSize);
                     Path target = targetIn(tempDir, transferred.name());
@@ -537,7 +537,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * @param window the covered span, or {@code null} for the whole session
      */
     private String recordingName(RecordingSession session, ChunkWindow.Selection window) {
-        String name = sanitizeForFilename(projectName) + WINDOW_NAME_SEPARATOR
+        String name = sanitizeForFilename(originContext.projectName()) + WINDOW_NAME_SEPARATOR
                 + RECORDING_NAME_TIMESTAMP.format(session.createdAt());
         if (window == null) {
             return name;

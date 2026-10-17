@@ -24,7 +24,6 @@ Analyze changed files to determine affected modules and run only the relevant te
    - `jeffrey-microscope/profiles/recording-parser/*/` -> `-pl` the specific parser module
    - `jeffrey-microscope/microscope-core-sql-persistence/` -> `-pl jeffrey-microscope/microscope-core-sql-persistence`
    - `jeffrey-hub/core-hub/` -> `-pl jeffrey-hub/core-hub`
-   - `jeffrey-hub/hub-sql-persistence/` -> `-pl jeffrey-hub/hub-sql-persistence`
    - `shared/common/` -> `-pl shared/common`
    - `shared/persistence/` -> `-pl shared/persistence`
    - `shared/sql-builder/` -> `-pl shared/sql-builder`

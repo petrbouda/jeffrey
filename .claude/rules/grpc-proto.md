@@ -12,7 +12,7 @@ paths:
 ### Proto files
 - `proto3`, package `jeffrey.hub.api.v1`, `option java_package = "cafe.jeffrey.hub.api.v1"`, `option java_multiple_files = true`.
 - Location: `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/` — `workspace_service`, `project_service`, `instance_service`, `file_download_service`, `repository_service`. Protos only; no Java in that module.
-- Request/Response pair per RPC; `repeated` for collections; `workspace_id`/`project_id` on resource-scoped requests.
+- Request/Response pair per RPC; `repeated` for collections; `workspace_id`/`project_id` on every request scoped to a project or below — the hub resolves nothing without them. Microscope carries the pair as `hub-client`'s `ProjectScope`.
 
 ### No `reserved` fields — hub and Microscope ship as one release
 - A removed field's number is reused and survivors renumbered contiguously. No gaps, no `reserved` lines.
@@ -21,10 +21,11 @@ paths:
 
 ### Services (`jeffrey-hub/core-hub/.../grpc/`)
 - Map domain exceptions to status at the service boundary with `GrpcExceptions` (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`). Domain code never throws a gRPC status.
-- `GrpcExceptions.toStatus` belongs to `GrpcUnary`; a **streaming** RPC maps for itself (`FileDownloadGrpcService.downloadFile`: a `FileLookup.Refused` → `INVALID_ARGUMENT` with its `reason()`, a `StatusRuntimeException` passes through, anything else is `INTERNAL`).
+- `GrpcExceptions.toStatus` belongs to `GrpcUnary` (a not-found `JeffreyClientException` is `NOT_FOUND`); a **streaming** RPC maps for itself (`FileDownloadGrpcService.downloadFile`: a `FileLookup.Refused` → `INVALID_ARGUMENT` with its `reason()`, a `StatusRuntimeException` passes through — an unknown workspace or project from `GrpcLookups` is already `NOT_FOUND` — a not-found `JeffreyClientException` (an unknown session) is `NOT_FOUND`, anything else is `INTERNAL`).
 
 ### Clients
 - Clients live in `jeffrey-microscope/grpc-client/`, aggregated by the `HubClients` record in `jeffrey-microscope/hub-client/` (`DiscoveryClient`, `RepositoryClient`, `FileStreamClient`, `InstancesClient`, `ProjectsClient`). Add a new client to the record and its factory.
+- A message more than one client receives is mapped once, in `ClientProtoMappers`: `session(...)` decodes a session, its files and their statuses for `RepositoryClient` and `InstancesClient` alike — never a second copy in a client.
 - Blocking stubs for request/response, async stubs for streaming. Wire values (session ids, file names) are validated and reduced to one path element in the receiving record's compact constructor (`FileStreamClient.TransferredFile`).
 
 ### Tests

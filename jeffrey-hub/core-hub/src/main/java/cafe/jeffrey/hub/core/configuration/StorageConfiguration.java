@@ -17,19 +17,17 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 
 import java.time.Clock;
-import java.util.List;
 
 @Configuration
 public class StorageConfiguration {
 
     @Bean
-    public StorageOverviewCache storageOverviewCache(HubJeffreyDirs jeffreyDirs, Clock clock) {
-        return new StorageOverviewCache(List.of(jeffreyDirs.databaseFile(), jeffreyDirs.databaseWalFile()), clock);
+    public StorageOverviewCache storageOverviewCache(Clock clock) {
+        return new StorageOverviewCache(clock);
     }
 }

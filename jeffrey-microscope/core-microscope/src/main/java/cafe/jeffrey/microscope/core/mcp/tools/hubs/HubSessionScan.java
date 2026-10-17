@@ -346,7 +346,7 @@ public final class HubSessionScan {
         String scope = hub.name() + "/" + workspace.name() + "/" + projectInfo.name();
         return new ScopedCall<>(hub.name(), scope,
                 () -> ScanExpansion.rows(project.project().repositoryManager()
-                        .listRecordingSessions(true, filter.sessions()).stream()
+                        .listRecordingSessions(filter.sessions()).stream()
                         .map(session -> new Row(
                                 new HubSessionRef(
                                         hub.info().hubId(), workspace.id(), projectInfo.id(), session.id()),

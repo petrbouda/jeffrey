@@ -19,10 +19,11 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,8 +84,12 @@ final class ProjectRetentionPass {
         return List.copyOf(sessions);
     }
 
-    ProjectInstanceRepository instances() {
-        return project.projectInstanceRepository();
+    /**
+     * The project's instances as the volume says now — read again on every call on purpose, so a
+     * rule sees the instances the rules before it deleted along with their last session.
+     */
+    List<ProjectInstanceInfo> instances() {
+        return storage.instances();
     }
 
     long totalSizeBytes() {
@@ -94,17 +99,20 @@ final class ProjectRetentionPass {
     }
 
     /**
-     * Deletes a whole session: its row, its directory and its instance's lifecycle transition.
+     * Deletes a whole session, and its instance's directory with it when that was the last one.
      *
      * @return whether it was there to delete; one already gone frees nothing
      */
     boolean deleteSession(RecordingSession session) {
-        boolean deleted = project.repositoryManager().deleteRecordingSession(session.id());
-        if (deleted) {
+        SessionDeletion deletion = project.repositoryManager().deleteRecordingSession(session.id());
+        if (deletion.deleted()) {
             sessions.remove(session);
             sessionsDeleted++;
         }
-        return deleted;
+        if (deletion.instanceDeleted()) {
+            instancesDeleted++;
+        }
+        return deletion.deleted();
     }
 
     /** Deletes some files of a session; the session stays, without them. */
@@ -127,15 +135,11 @@ final class ProjectRetentionPass {
                 session.status(), kept, session.retained(), session.heartbeatMissing()));
     }
 
-    /**
-     * Deletes an instance's row and then its directory. Without the directory the reconciler would
-     * re-create the instance from disk; a failure there is logged, and the next pass deletes again.
-     */
+    /** Deletes an instance's directory; a failure is logged and the next pass tries again. */
     void deleteInstance(String instanceId) {
-        instances().delete(instanceId);
-        instancesDeleted++;
         try {
             storage.deleteInstanceDirectory(instanceId);
+            instancesDeleted++;
         } catch (RuntimeException e) {
             LOG.warn("Failed to delete instance directory: instance_id={}", instanceId, e);
         }

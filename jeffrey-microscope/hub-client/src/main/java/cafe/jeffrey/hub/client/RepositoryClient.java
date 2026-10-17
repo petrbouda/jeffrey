@@ -23,9 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 
 import java.util.List;
 
@@ -39,35 +37,23 @@ public class RepositoryClient {
         this.stub = RepositoryServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public List<RecordingSessionResponse> recordingSessions(String projectId) {
-        return recordingSessions(projectId, RecordingSessionFilter.ALL);
+    public List<RecordingSessionResponse> recordingSessions(ProjectScope scope) {
+        return recordingSessions(scope, RecordingSessionFilter.ALL);
     }
 
     /**
-     * Lists the sessions of a project that satisfy the filter, newest first. The filter travels
-     * to the hub, so only the matching sessions come back over the wire.
+     * Lists the sessions of a project that satisfy the filter, newest first, each with its file
+     * count and size but not its files. The filter travels to the hub, so only the matching
+     * sessions come back over the wire.
      */
-    public List<RecordingSessionResponse> recordingSessions(String projectId, RecordingSessionFilter filter) {
-        return listSessions(ListSessionsRequest.newBuilder()
-                .setProjectId(projectId)
+    public List<RecordingSessionResponse> recordingSessions(ProjectScope scope, RecordingSessionFilter filter) {
+        ListSessionsResponse response = stub.listSessions(ListSessionsRequest.newBuilder()
+                .setWorkspaceId(scope.workspaceId())
+                .setProjectId(scope.projectId())
                 .setFilter(toProto(filter))
                 .build());
-    }
-
-    /**
-     * The sessions of one instance, newest first. The hub walks only that instance's directories.
-     */
-    public List<RecordingSessionResponse> instanceSessions(String projectId, String instanceId) {
-        return listSessions(ListSessionsRequest.newBuilder()
-                .setProjectId(projectId)
-                .setInstanceId(instanceId)
-                .build());
-    }
-
-    private List<RecordingSessionResponse> listSessions(ListSessionsRequest request) {
-        ListSessionsResponse response = stub.listSessions(request);
         return response.getSessionsList().stream()
-                .map(RepositoryClient::toSessionResponse)
+                .map(ClientProtoMappers::session)
                 .toList();
     }
 
@@ -84,76 +70,42 @@ public class RepositoryClient {
         return builder.build();
     }
 
-    public RecordingSessionResponse recordingSession(String sessionId) {
+    /**
+     * One session with its files — the only call that brings files over the wire.
+     */
+    public RecordingSessionResponse recordingSession(ProjectScope scope, String sessionId) {
         GetSessionResponse response = stub.getSession(
                 GetSessionRequest.newBuilder()
+                        .setWorkspaceId(scope.workspaceId())
+                        .setProjectId(scope.projectId())
                         .setSessionId(sessionId)
                         .build());
 
-        return toSessionResponse(response.getSession());
+        return ClientProtoMappers.session(response.getSession());
     }
 
-    public void deleteSession(String sessionId) {
+    public void deleteSession(ProjectScope scope, String sessionId) {
         stub.deleteSession(
                 DeleteSessionRequest.newBuilder()
+                        .setWorkspaceId(scope.workspaceId())
+                        .setProjectId(scope.projectId())
                         .setSessionId(sessionId)
                         .build());
 
-        LOG.debug("Deleted session via gRPC: sessionId={}", sessionId);
+        LOG.debug("Deleted session via gRPC: workspaceId={} projectId={} sessionId={}",
+                scope.workspaceId(), scope.projectId(), sessionId);
     }
 
-    public void setSessionRetained(String sessionId, boolean retained) {
+    public void setSessionRetained(ProjectScope scope, String sessionId, boolean retained) {
         stub.setSessionRetained(
                 SetSessionRetainedRequest.newBuilder()
+                        .setWorkspaceId(scope.workspaceId())
+                        .setProjectId(scope.projectId())
                         .setSessionId(sessionId)
                         .setRetained(retained)
                         .build());
 
-        LOG.debug("Updated session retention via gRPC: sessionId={} retained={}", sessionId, retained);
-    }
-
-    private static RecordingSessionResponse toSessionResponse(RecordingSession proto) {
-        List<RepositoryFileResponse> files = proto.getFilesList().stream()
-                .map(RepositoryClient::toFileResponse)
-                .toList();
-
-        return new RecordingSessionResponse(
-                proto.getId(),
-                ClientProtoMappers.nullIfEmpty(proto.getName()),
-                proto.hasInstanceId() ? proto.getInstanceId() : null,
-                proto.getCreatedAt(),
-                proto.hasFinishedAt() ? proto.getFinishedAt() : null,
-                ClientProtoMappers.recordingStatus(proto.getStatus()),
-                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
-                files,
-                proto.getRetained(),
-                proto.getHeartbeatMissing(),
-                proto.getFailed())
-                // Here rather than at each call site. A file's status is a fact about its
-                // session, so it can only be settled once the whole session is decoded — and
-                // settling it inside the one method that decodes one means no caller can be
-                // handed a session whose file statuses nobody filled in.
-                .withResolvedFileStatuses();
-    }
-
-    /**
-     * One file as the hub sent it. Its status is left FINISHED here and settled by
-     * {@link RecordingSessionResponse#withResolvedFileStatuses()} before the session leaves
-     * {@link #toSessionResponse}: the wire carries no status, and a file on its own cannot
-     * answer for one.
-     *
-     * <p>Its type is classified from the name here: the wire carries none, because the hub
-     * reads none of the files it serves and has nothing to say about a log or a heap dump
-     * beyond that it is not a recording.
-     */
-    private static RepositoryFileResponse toFileResponse(RepositoryFile proto) {
-        return new RepositoryFileResponse(
-                proto.getId(),
-                proto.getName(),
-                proto.getCreatedAt() != 0 ? proto.getCreatedAt() : null,
-                proto.getSize(),
-                RepositoryFiles.typeOf(proto.getName()),
-                RecordingStatus.FINISHED,
-                proto.getIsRecording());
+        LOG.debug("Updated session retention via gRPC: workspaceId={} projectId={} sessionId={} retained={}",
+                scope.workspaceId(), scope.projectId(), sessionId, retained);
     }
 }

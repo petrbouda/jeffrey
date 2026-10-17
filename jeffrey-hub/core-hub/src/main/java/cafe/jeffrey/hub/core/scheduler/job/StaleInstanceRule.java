@@ -26,10 +26,10 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Dead instances, with their directories: EXPIRED instances more than {@code retention} past their
- * expiry, and PENDING instances started more than {@code retention} ago that never streamed a
- * session — no lifecycle event would ever move those out of PENDING. Neither holds a session, so
- * the pass's listing is unaffected.
+ * Abandoned instance directories: PENDING ones, started more than {@code retention} ago, that
+ * never got a session — the provisioner registered them and nothing ever streamed. An instance
+ * whose sessions retention deleted goes with its last session, so this is the only way an
+ * instance directory outlives its data. It holds no session, so the pass's listing is unaffected.
  */
 record StaleInstanceRule(Duration retention) implements RetentionRule {
 
@@ -38,19 +38,11 @@ record StaleInstanceRule(Duration retention) implements RetentionRule {
     @Override
     public void apply(ProjectRetentionPass pass) {
         Instant cutoff = pass.now().minus(retention);
-
-        for (ProjectInstanceInfo instance : pass.instances().findByStatus(ProjectInstanceStatus.EXPIRED)) {
-            if (instance.expiredAt() != null && instance.expiredAt().isBefore(cutoff)) {
-                pass.deleteInstance(instance.id());
-                LOG.info("Deleted expired instance: project_name={} instance_id={} expired_at={}",
-                        pass.projectName(), instance.id(), instance.expiredAt());
-            }
-        }
-
-        for (ProjectInstanceInfo instance : pass.instances().findByStatus(ProjectInstanceStatus.PENDING)) {
-            boolean abandoned = instance.startedAt() != null
-                    && instance.startedAt().isBefore(cutoff)
-                    && instance.sessionCount() == 0;
+        for (ProjectInstanceInfo instance : pass.instances()) {
+            boolean abandoned = instance.status() == ProjectInstanceStatus.PENDING
+                    && instance.sessionCount() == 0
+                    && instance.startedAt() != null
+                    && instance.startedAt().isBefore(cutoff);
             if (abandoned) {
                 pass.deleteInstance(instance.id());
                 LOG.info("Deleted abandoned PENDING instance: project_name={} instance_id={} started_at={}",

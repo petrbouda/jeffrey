@@ -18,7 +18,7 @@
 package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.util.List;
@@ -32,28 +32,14 @@ public interface RepositoryStorage {
     }
 
     /**
-     * Information about the repository.
-     *
-     * @return information about the repository.
+     * One session with its files, or empty when the project holds none by that id.
      */
-    RepositoryInfo repositoryInfo();
+    Optional<RecordingSession> session(String sessionId);
 
     /**
-     * Lists of files for the given session.
+     * Every session of the project, newest first.
      *
-     * @param sessionId id of the session to list files for
-     * @param detail    whether to walk the session directory for its files too
-     * @return list of recordings for the given session
-     */
-    Optional<RecordingSession> singleSession(String sessionId, SessionDetail detail);
-
-    /**
-     * Lists all recording sessions available in the repository.
-     *
-     * @param detail    whether to walk the session directory for its files too
-     *                  (e.g., recordings, metadata files)
-     * @return a list of all recording sessions, each containing metadata and
-     * associated recordings
+     * @param detail whether to walk each session's directory for its files too
      */
     List<RecordingSession> listSessions(SessionDetail detail);
 
@@ -64,46 +50,44 @@ public interface RepositoryStorage {
     RecordingSession withFiles(RecordingSession session);
 
     /**
-     * Lists recording sessions that belong to the given instance. Walks only
-     * the matching sessions' directories — does not scan the whole repository.
+     * Deletes the named files of a session.
      *
-     * @param instanceId the instance whose sessions should be returned
-     * @param detail     whether to walk the session directory for its files too
-     * @return recording sessions for the instance, newest first
+     * @param fileIds the files' ids, as the session's listing reports them
      */
-    List<RecordingSession> listSessionsByInstanceId(String instanceId, SessionDetail detail);
+    void deleteRepositoryFiles(String sessionId, List<String> fileIds);
 
     /**
-     * Deletes specific repository files from the repository.
-     *
-     * @param sessionId         the unique identifier of the recording session
-     * @param repositoryFileIds the list of unique identifiers of the repository files to delete
+     * Deletes a session's directory with everything in it, and its instance's directory when no
+     * other directory is left in it.
      */
-    void deleteRepositoryFiles(String sessionId, List<String> repositoryFileIds);
+    SessionDeletion deleteSession(String sessionId);
 
     /**
-     * Deletes a specific recording session and all its associated recordings
-     * from the repository.
-     *
-     * @param sessionId the unique identifier of the recording session to delete
+     * Every instance of the project, its status read off its newest session at this moment.
      */
-    void deleteSession(String sessionId);
+    List<ProjectInstanceInfo> instances();
 
     /**
-     * Deletes an instance's directory (including its marker file) from the repository.
-     * Removing the on-disk declaration is what makes an instance deletion final: the
-     * workspace reconciler re-creates any instance whose directory still exists.
+     * One instance with its sessions (without their files), or empty when the project holds no
+     * instance by that id. Walks that instance's directories alone.
+     */
+    Optional<InstanceSessions> instanceWithSessions(String instanceId);
+
+    /**
+     * Pins a session against every retention rule, or releases it, by a flag file in its directory.
+     *
+     * @return whether the project holds the session
+     */
+    boolean setRetained(String sessionId, boolean retained);
+
+    /**
+     * Deletes an instance's directory, its marker file included.
      *
      * @param instanceId the unique identifier of the instance whose directory to delete
      */
     void deleteInstanceDirectory(String instanceId);
 
-    /**
-     * Deletes the whole project directory (including its marker file) from the repository.
-     * Removing the on-disk declaration is what makes a project deletion final: the
-     * workspace reconciler re-creates any project whose directory still exists. A no-op
-     * when the project has no repository or the directory is already gone.
-     */
+    /** Deletes the whole project directory, its marker file included; a no-op when it is gone. */
     void deleteProjectDirectory();
 
     // ========== Files ==========

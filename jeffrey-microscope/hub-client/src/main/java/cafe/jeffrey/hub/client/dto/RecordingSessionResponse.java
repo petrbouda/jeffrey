@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.client.dto;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.SessionSize;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -36,7 +37,9 @@ public record RecordingSessionResponse(
         List<RepositoryFileResponse> files,
         boolean retained,
         boolean heartbeatMissing,
-        boolean failed) {
+        boolean failed,
+        int fileCount,
+        long sizeBytes) {
 
     public static RecordingSessionResponse from(RecordingSession session, Clock clock) {
         Instant end = session.finishedAt() != null ? session.finishedAt() : clock.instant();
@@ -55,7 +58,9 @@ public record RecordingSessionResponse(
                         .toList(),
                 session.retained(),
                 session.heartbeatMissing(),
-                session.failed());
+                session.failed(),
+                session.fileCount(),
+                session.totalSizeBytes());
     }
 
     /**
@@ -70,7 +75,7 @@ public record RecordingSessionResponse(
      * remember.
      */
     public RecordingSessionResponse withResolvedFileStatuses() {
-        RecordingSession session = from(this);
+        RecordingSession session = toSession();
         return new RecordingSessionResponse(
                 id, name, instanceId, createdAt, finishedAt, status, duration,
                 session.files().stream()
@@ -78,23 +83,27 @@ public record RecordingSessionResponse(
                         .toList(),
                 retained,
                 heartbeatMissing,
-                failed);
+                failed,
+                fileCount,
+                sizeBytes);
     }
 
-    public static RecordingSession from(RecordingSessionResponse response) {
+    /** The session in Microscope's own model, its size as the hub reported it. */
+    public RecordingSession toSession() {
         return new RecordingSession(
-                response.id(),
-                response.name(),
-                response.instanceId(),
-                InstantUtils.fromEpochMilli(response.createdAt()),
-                InstantUtils.fromEpochMilli(response.finishedAt()),
-                response.status(),
+                id,
+                name,
+                instanceId,
+                InstantUtils.fromEpochMilli(createdAt),
+                InstantUtils.fromEpochMilli(finishedAt),
+                status,
                 null,
-                response.files().stream()
+                files.stream()
                         .map(RepositoryFileResponse::from)
                         .toList(),
-                response.retained(),
-                response.heartbeatMissing(),
-                response.failed());
+                retained,
+                heartbeatMissing,
+                failed,
+                new SessionSize(fileCount, sizeBytes));
     }
 }

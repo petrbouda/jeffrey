@@ -22,8 +22,10 @@ import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 /**
  * What a project's repository occupies on the hub, in bytes. See {@link RepositoryStatistics}
  * for why it is only that.
+ *
+ * @param totalSize {@code null} until the hub's first retention pass has measured the project
  */
-public record RepositoryStatisticsResponse(long totalSize) {
+public record RepositoryStatisticsResponse(Long totalSize) {
 
     public static RepositoryStatisticsResponse from(RepositoryStatistics stats) {
         return new RepositoryStatisticsResponse(stats.totalSizeBytes());

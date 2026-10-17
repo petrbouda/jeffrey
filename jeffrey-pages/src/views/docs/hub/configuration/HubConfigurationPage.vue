@@ -35,7 +35,7 @@ const headings = [
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
-  { id: 'database', text: 'Database Persistence', level: 2 },
+  { id: 'session-liveness', text: 'Session Liveness', level: 2 },
 ];
 
 onMounted(() => {
@@ -71,7 +71,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
         (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths,
-        workspace defaults and database) follows.
+        workspace defaults and session liveness) follows. The Hub has no database: the shared
+        volume is its only state.
       </p>
 
       <DocsCallout type="info">
@@ -226,48 +227,41 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         <code>application.properties</code> overrides it.
       </p>
       <p>
-        Job configuration is resolved once at startup and is not stored in the database — changing a
+        Job configuration is resolved once at startup and is not stored anywhere — changing a
         period or retention window requires a server restart. The <strong>Scheduler</strong> page in the
         UI is a read-only view of what the server resolved.
       </p>
 
       <h3>Running a job on demand</h3>
       <p>
-        Some jobs can also be run by hand from the <strong>Run</strong> column on the Scheduler page.
+        A job can also be run by hand from the <strong>Run</strong> column on the Scheduler page.
         Whether a job offers this is a property of the job itself, not a setting — jobs that do not
         show a disabled control. The run is synchronous and reports what it did when it finishes.
       </p>
-      <p>Two jobs offer it today:</p>
+      <p>One job offers it today:</p>
       <ul>
-        <li>
-          <code>workspace-reconciler</code> — walks <em>every</em> workspace tree in full, rather
-          than reading the <code>.pending</code> index as its scheduled tick does. This is the only
-          full scan the server performs, and the only way to pick up trees the index never named:
-          those provisioned by an older CLI, restored from a snapshot, or written while the server
-          was down. It is create-only, so running it when nothing is missing changes nothing.
-        </li>
         <li>
           <code>project-retention</code> — runs a retention pass over every project now, deleting
           what is due, and refreshes the storage figures instead of waiting out its period.
         </li>
       </ul>
 
-      <h3>Tuning discovery latency</h3>
+      <h3>Tuning a job's period</h3>
       <p>
-        The <code>workspace-reconciler</code> period is how long a newly provisioned project, instance
-        or session waits before the server picks it up. A tick over a workspace that announced nothing
-        costs one directory listing and no queries, so a short period is cheap:
+        No job governs discovery: the Hub reads the shared volume on every request, so a newly
+        provisioned project, instance or session shows up on the next listing. A period only says how
+        often retention or compression runs:
       </p>
-      <pre><code>jeffrey.hub.scheduler.jobs.workspace-reconciler.period=5s</code></pre>
+      <pre><code>jeffrey.hub.scheduler.jobs.repository-jfr-compression.period=1m</code></pre>
       <p>
         The same key works as an environment variable, in the dash-free form Spring's relaxed binding
         produces:
       </p>
-      <pre><code>JEFFREY_HUB_SCHEDULER_JOBS_WORKSPACERECONCILER_PERIOD=500ms</code></pre>
+      <pre><code>JEFFREY_HUB_SCHEDULER_JOBS_REPOSITORYJFRCOMPRESSION_PERIOD=30s</code></pre>
       <p>
         Values accept the usual duration notation (<code>500ms</code>, <code>2s</code>,
         <code>5m</code>, <code>1h</code>, or ISO-8601 such as <code>PT2S</code>). Every job's period
-        is tunable the same way — substitute its own key from the tables below.
+        is tunable the same way — substitute its own key from the table below.
       </p>
 
       <h3>Global settings</h3>
@@ -289,7 +283,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
             <td><code>2</code></td>
-            <td>Threads for project fan-out jobs. Global jobs always get their own dedicated thread.</td>
+            <td>Threads of the scheduler's one pool. Both jobs run per project, across every project in every workspace.</td>
           </tr>
         </tbody>
       </table>
@@ -313,17 +307,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         </thead>
         <tbody>
           <tr>
-            <td><code>workspace-reconciler</code></td>
-            <td><code>5s</code></td>
-            <td>—</td>
-            <td>
-              Materializes new projects, instances and sessions from the entries the provisioner
-              writes into each workspace's <code>.pending</code> index. A workspace that announced
-              nothing costs one directory listing and no queries. Create-only: removing
-              directories from the volume never deletes hub state.
-            </td>
-          </tr>
-          <tr>
             <td><code>project-retention</code></td>
             <td><code>5m</code></td>
             <td>
@@ -340,10 +323,10 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
               window expires; trims closed chunks older than
               <code>active-session-file-retention</code> out of sessions still recording (the chunk
               the profiler is writing is never touched); holds the project under
-              <code>max-size</code>, reclaiming oldest-first; and deletes EXPIRED instances and
-              abandoned PENDING instances older than <code>instance-retention</code>, with their
-              directories. What is left is the project's figure on the storage dashboard. The first
-              tick runs at startup.
+              <code>max-size</code>, reclaiming oldest-first; and deletes abandoned PENDING
+              instances (no sessions) older than <code>instance-retention</code>, with their
+              directories. An instance whose last session is deleted goes with it. What is left is
+              the project's figure on the storage dashboard. The first tick runs at startup.
             </td>
           </tr>
           <tr>
@@ -351,16 +334,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td><code>1m</code></td>
             <td>—</td>
             <td>LZ4-compresses finished JFR files and deletes the originals</td>
-          </tr>
-          <tr>
-            <td><code>session-finished-detector</code></td>
-            <td><code>30s</code></td>
-            <td><code>heartbeat-threshold=10s</code> / <code>startup-grace=1m</code></td>
-            <td>
-              Marks a session finished once its heartbeat is older than
-              <code>heartbeat-threshold</code>, or at its start, as having sent no heartbeat, when no
-              liveness file appeared within <code>startup-grace</code>
-            </td>
           </tr>
         </tbody>
       </table>
@@ -370,16 +343,25 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         There is no property for this. Recordings are not copied into a directory of the Hub's own:
         they stay where the provisioner and the application wrote them, under the workspace tree on
         the shared volume — <code>&lt;workspaces&gt;/&lt;workspace-ref-id&gt;/&lt;project&gt;/&lt;instance&gt;/&lt;session&gt;/</code>.
-        The Hub catalogs, compresses and serves those files in place; see
+        The Hub lists, compresses and serves those files in place, reading the marker files on every
+        request rather than keeping a copy of them; see
         <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link> for the layout.
       </p>
 
       <h2 id="workspace-discovery">Workspace Discovery</h2>
       <p>
         How the server learns about projects, instances and sessions the provisioner wrote to the
-        shared volume. Discovery reads each workspace's <code>.pending</code> index; see
-        <a href="#job-scheduler">Job Scheduler</a> for the period that governs its latency, and
-        for the manual full scan that finds trees the index never named.
+        shared volume. There is no discovery job and no index: every call lists the workspace
+        directories and reads their marker files when it is asked. A workspace's id is its
+        directory name (the reference id the provisioner's <code>project.workspace-id</code>
+        names); a project's id is the <code>projectId</code> in its
+        <code>.project-info.json</code>; instance and session ids are their directory names.
+      </p>
+      <p>
+        A directory is a workspace once the Hub wrote its <code>.workspace-info.json</code> (name and
+        creation time) — when the workspace is created over gRPC or REST, or by the default-workspace
+        initializer. Creating a workspace whose directory already exists adopts it with its projects.
+        Directories starting with <code>.</code> are skipped.
       </p>
 
       <table>
@@ -405,9 +387,10 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td><code>jeffrey.hub.workspaces.auto-create</code></td>
             <td><code>false</code></td>
             <td>
-              Create a workspace automatically for a directory on the volume that announces work
-              but has no workspace registered yet. The default workspace is never auto-created
-              this way, and a directory that announces nothing never becomes a workspace.
+              List every workspace directory on the volume, including one without the Hub's
+              <code>.workspace-info.json</code> — one the provisioner wrote into but nobody created.
+              Such a workspace is named after its directory. Off, that directory is not listed
+              until a workspace with its reference id is created.
             </td>
           </tr>
         </tbody>
@@ -426,8 +409,14 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         browser it was set in.
       </p>
 
-      <h2 id="database">Database Persistence</h2>
-      <p>DuckDB database connection and pool settings.</p>
+      <h2 id="session-liveness">Session Liveness</h2>
+      <p>
+        No job finishes a session. The Hub decides whether a session is still recording each time it
+        reads it — for a listing, a download, compression or retention alike — from the session's
+        <code>.heartbeat/</code> files; see
+        <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>
+        for the rules. Two thresholds tune it:
+      </p>
 
       <table>
         <thead>
@@ -439,9 +428,17 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.hub.persistence.database.url</code></td>
-            <td><code>jdbc:duckdb:${jeffrey.hub.home.dir}/jeffrey-data.db</code></td>
-            <td>DuckDB database connection URL</td>
+            <td><code>jeffrey.hub.liveness.heartbeat-threshold</code></td>
+            <td><code>10s</code></td>
+            <td>How long after its last heartbeat a session is taken as finished (at that heartbeat).</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.hub.liveness.startup-grace</code></td>
+            <td><code>1m</code></td>
+            <td>
+              How long a session may go without any liveness file before it is taken as finished at
+              its start, marked as having sent no heartbeat.
+            </td>
           </tr>
         </tbody>
       </table>

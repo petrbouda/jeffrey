@@ -16,15 +16,11 @@
  */
 package cafe.jeffrey.hub.core.configuration;
 
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.appinitializer.SchedulerInitializer;
-import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.session.SessionFinisher;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobLocks;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
@@ -32,11 +28,7 @@ import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
 import cafe.jeffrey.hub.core.scheduler.PeriodicalScheduler;
 import cafe.jeffrey.hub.core.scheduler.job.ProjectRetentionJob;
 import cafe.jeffrey.hub.core.scheduler.job.RepositoryCompressionProjectJob;
-import cafe.jeffrey.hub.core.scheduler.job.SessionFinishedDetectorProjectJob;
-import cafe.jeffrey.hub.core.scheduler.job.WorkspaceReconcilerJob;
-import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.hub.model.job.JobType;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -109,25 +101,6 @@ public class SchedulerConfiguration {
         return new JobRegistry(properties, manualJobRunner.supportedTypes());
     }
 
-    // ========== GLOBAL jobs ==========
-
-    @Bean
-    public WorkspaceReconcilerJob workspaceReconcilerJob(
-            WorkspaceReconciler workspaceReconciler,
-            HubJeffreyDirs jeffreyDirs,
-            DefaultWorkspaceProperties defaultWorkspaceProperties,
-            WorkspacesProperties workspacesProperties,
-            Clock clock) {
-        return new WorkspaceReconcilerJob(
-                workspacesManager,
-                workspaceReconciler,
-                jeffreyDirs,
-                defaultWorkspaceProperties,
-                workspacesProperties,
-                clock,
-                config(JobType.WORKSPACE_RECONCILER).period());
-    }
-
     // ========== PROJECT fan-out ==========
 
     @Bean
@@ -139,18 +112,5 @@ public class SchedulerConfiguration {
     @Bean
     public RepositoryCompressionProjectJob repositoryCompressionProjectJob() {
         return new RepositoryCompressionProjectJob(workspacesManager, config(JobType.REPOSITORY_JFR_COMPRESSION));
-    }
-
-    @Bean
-    public SessionFinishedDetectorProjectJob sessionFinishedDetectorProjectJob(
-            HubJeffreyDirs jeffreyDirs,
-            HubPlatformRepositories platformRepositories,
-            SessionFinisher sessionFinisher) {
-        return new SessionFinishedDetectorProjectJob(
-                workspacesManager,
-                config(JobType.SESSION_FINISHED_DETECTOR),
-                jeffreyDirs,
-                platformRepositories,
-                sessionFinisher);
     }
 }

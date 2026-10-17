@@ -28,6 +28,7 @@ import cafe.jeffrey.hub.api.v1.DownloadFileRequest;
 import cafe.jeffrey.hub.api.v1.FileDownloadServiceGrpc;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -71,7 +72,7 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
 
         streamingExecutor.execute(() -> {
             try {
-                RepositoryManager repoManager = lookups.repositoryManagerForSession(sessionId);
+                RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
                 LOG.debug("Streaming file via gRPC: session_id={} file_id={}", sessionId, fileId);
 
                 switch (open(repoManager, sessionId, fileId)) {
@@ -87,8 +88,11 @@ public class FileDownloadGrpcService extends FileDownloadServiceGrpc.FileDownloa
                     }
                 }
             } catch (StatusRuntimeException e) {
-                // NOT_FOUND for a session that is not there, already mapped by the lookup
+                // NOT_FOUND for a workspace or project that is not there, already mapped by the lookup
                 observer.onError(e);
+            } catch (JeffreyClientException e) {
+                // A session the project does not hold
+                observer.onError(GrpcExceptions.toStatus(e));
             } catch (Exception e) {
                 LOG.error("Failed to stream file: session_id={} file_id={}", sessionId, fileId, e);
                 observer.onError(GrpcExceptions.internal(e));

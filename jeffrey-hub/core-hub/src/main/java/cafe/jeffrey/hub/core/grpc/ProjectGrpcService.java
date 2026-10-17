@@ -22,8 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 
 import java.util.List;
 
@@ -31,21 +30,19 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectGrpcService.class);
 
-    private final WorkspacesManager workspacesManager;
     private final GrpcLookups lookups;
+    private final StorageOverviewCache storageOverviewCache;
 
-    public ProjectGrpcService(WorkspacesManager workspacesManager, GrpcLookups lookups) {
-        this.workspacesManager = workspacesManager;
+    public ProjectGrpcService(GrpcLookups lookups, StorageOverviewCache storageOverviewCache) {
         this.lookups = lookups;
+        this.storageOverviewCache = storageOverviewCache;
     }
 
     @Override
     public void listProjects(ListProjectsRequest request, StreamObserver<ListProjectsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
-            String referenceId = workspace.localInfo().referenceId();
-            List<ProjectInfo> projects = workspace.projectsManager().findAll().stream()
-                    .map(project -> ProtoMappers.project(project.detailedInfo(), referenceId))
+            List<ProjectInfo> projects = lookups.workspace(request.getWorkspaceId()).projectsManager().findAll().stream()
+                    .map(this::project)
                     .toList();
 
             LOG.debug("Listed projects via gRPC: workspace_id={} count={}", request.getWorkspaceId(), projects.size());
@@ -59,14 +56,13 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void getProject(GetProjectRequest request, StreamObserver<GetProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            WorkspaceManager workspace = findWorkspace(request.getWorkspaceId());
-            ProjectManager project = findProjectInWorkspace(request.getWorkspaceId(), request.getProjectId());
+            ProjectManager project = lookups.project(request.getWorkspaceId(), request.getProjectId());
 
             LOG.debug("Fetched project via gRPC: workspace_id={} project_id={}",
                     request.getWorkspaceId(), request.getProjectId());
 
             return GetProjectResponse.newBuilder()
-                    .setProject(ProtoMappers.project(project.detailedInfo(), workspace.localInfo().referenceId()))
+                    .setProject(project(project))
                     .build();
         });
     }
@@ -74,29 +70,22 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     @Override
     public void deleteProject(DeleteProjectRequest request, StreamObserver<DeleteProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            ProjectManager project = lookups.projectManager(request.getProjectId());
-            project.delete();
+            lookups.project(request.getWorkspaceId(), request.getProjectId()).delete();
 
-            LOG.debug("Deleted project via gRPC: project_id={}", request.getProjectId());
+            LOG.debug("Deleted project via gRPC: workspace_id={} project_id={}",
+                    request.getWorkspaceId(), request.getProjectId());
 
             return DeleteProjectResponse.getDefaultInstance();
         });
     }
 
-    private WorkspaceManager findWorkspace(String workspaceId) {
-        return workspacesManager.findById(workspaceId)
-                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + workspaceId));
-    }
-
     /**
-     * Finds a single project within a workspace and refuses a project of another workspace as
-     * not found.
+     * The project with the size the last retention pass measured — read from that pass's
+     * figures, never by walking the project's files on request.
      */
-    private ProjectManager findProjectInWorkspace(String workspaceId, String projectId) {
-        ProjectManager project = lookups.projectManager(projectId);
-        if (!workspaceId.equals(project.info().workspaceId())) {
-            throw GrpcExceptions.notFound("Project not found: " + projectId);
-        }
-        return project;
+    private ProjectInfo project(ProjectManager project) {
+        ProjectManager.DetailedProjectInfo detail = project.detailedInfo();
+        return ProtoMappers.project(detail,
+                storageOverviewCache.projectSize(detail.projectInfo().workspaceId(), detail.projectInfo().id()));
     }
 }

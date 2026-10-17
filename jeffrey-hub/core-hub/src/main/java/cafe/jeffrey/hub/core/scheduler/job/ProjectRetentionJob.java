@@ -113,7 +113,7 @@ public class ProjectRetentionJob extends FanOutJob implements ManuallyTriggerabl
         List<ProjectRetentionPass.Outcome> outcomes = new ArrayList<>();
         List<ProjectStorage> measured = new ArrayList<>();
         for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
-            WorkspaceInfo workspace = workspaceManager.localInfo();
+            WorkspaceInfo workspace = workspaceManager.info();
             for (ProjectManager project : workspaceManager.projectsManager().findAll()) {
                 visit("workspace_id=" + workspace.id() + " project_id=" + project.info().id(), () -> {
                     ProjectRetentionPass.Outcome outcome = retain(project);

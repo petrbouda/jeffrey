@@ -36,7 +36,6 @@
         <module>hub-api</module>
         <module>test</module>
         <module>sql-builder</module>
-        <module>pending-index</module>
         <module>ui</module>
     </modules>
 

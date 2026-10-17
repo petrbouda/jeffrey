@@ -47,10 +47,6 @@ import java.util.Optional;
  */
 public final class DownloadedSessionIndex {
 
-    private static final String TAG_HUB_ID = "origin.hubId";
-    private static final String TAG_WORKSPACE_ID = "origin.workspaceId";
-    private static final String TAG_PROJECT_ID = "origin.projectId";
-    private static final String TAG_SESSION_ID = "origin.recordingId";
 
     private final Map<HubSessionRef, LocalCopy> byRef;
 
@@ -122,10 +118,10 @@ public final class DownloadedSessionIndex {
             return Optional.empty();
         }
 
-        String hubId = byKey.get(TAG_HUB_ID);
-        String workspaceId = byKey.get(TAG_WORKSPACE_ID);
-        String projectId = byKey.get(TAG_PROJECT_ID);
-        String sessionId = byKey.get(TAG_SESSION_ID);
+        String hubId = byKey.get(OriginContext.TAG_HUB_ID);
+        String workspaceId = byKey.get(OriginContext.TAG_WORKSPACE_ID);
+        String projectId = byKey.get(OriginContext.TAG_PROJECT_ID);
+        String sessionId = byKey.get(OriginContext.TAG_RECORDING_ID);
         if (hubId == null || workspaceId == null || projectId == null || sessionId == null) {
             return Optional.empty();
         }

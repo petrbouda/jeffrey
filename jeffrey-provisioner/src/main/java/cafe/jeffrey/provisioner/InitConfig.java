@@ -28,7 +28,6 @@ import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,10 +66,8 @@ public class InitConfig {
     // Default configuration with all optional fields
     private static final String DEFAULTS = """
             jeffrey-home = ""
-            workspaces-dir = ""
             profiler-path = ""
             profiler-command = ""
-            repository-type = ""
             project {
                 workspace-ref-id = ""
                 name = ""
@@ -153,7 +150,7 @@ public class InitConfig {
 
         Config environment = EnvironmentLayer.of(envLookup);
         Config resolved = environment
-                .withFallback(filesFor(environment, declared))
+                .withFallback(declared)
                 .withFallback(defaults)
                 .resolve();
 
@@ -162,26 +159,9 @@ public class InitConfig {
         return config;
     }
 
-    /**
-     * The file layer, minus the location settings when the environment names one of its own.
-     * {@code jeffrey-home} and {@code workspaces-dir} are mutually exclusive, so the winning layer
-     * has to take the pair as a unit — otherwise a file that picks one and an environment that
-     * picks the other produce a config that fails validation instead of one overriding the other.
-     */
-    private static Config filesFor(Config environment, Config declared) {
-        if (environment.hasPath(ConfigPaths.JEFFREY_HOME) || environment.hasPath(ConfigPaths.WORKSPACES_DIR)) {
-            return declared
-                    .withoutPath(ConfigPaths.JEFFREY_HOME)
-                    .withoutPath(ConfigPaths.WORKSPACES_DIR);
-        }
-        return declared;
-    }
-
     private final String jeffreyHome;
-    private final String workspacesDir;
     private final String profilerPath;
     private final String profilerCommand;
-    private final String repositoryType;
     private final String additionalJvmOptions;
 
     private final String workspaceRefId;
@@ -220,8 +200,6 @@ public class InitConfig {
         Placeholders placeholders = Placeholders.of(new EnvPlaceholderSource(envLookup));
 
         this.jeffreyHome = nullIfBlank(resolved.getString(ConfigPaths.JEFFREY_HOME));
-        this.workspacesDir = nullIfBlank(resolved.getString(ConfigPaths.WORKSPACES_DIR));
-        this.repositoryType = nullIfBlank(resolved.getString(ConfigPaths.REPOSITORY_TYPE));
         this.profilerCommand = nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.PROFILER_COMMAND)));
         this.additionalJvmOptions =
                 nullIfBlank(placeholders.resolve(resolved.getString(ConfigPaths.ADDITIONAL_JVM_OPTIONS)));
@@ -317,17 +295,12 @@ public class InitConfig {
 
     // ==================== Accessors ====================
 
+    /**
+     * The root of the shared volume. Workspaces always live under {@code <jeffrey-home>/workspaces},
+     * the same place the hub reads them from.
+     */
     public String getJeffreyHome() {
         return jeffreyHome;
-    }
-
-    public String getWorkspacesDir() {
-        return workspacesDir;
-    }
-
-    /** Whether this run lays its directories out under {@code jeffrey-home}. */
-    public boolean useJeffreyHome() {
-        return jeffreyHome != null;
     }
 
     public String getProfilerPath() {
@@ -336,10 +309,6 @@ public class InitConfig {
 
     public String getProfilerCommand() {
         return profilerCommand;
-    }
-
-    public String getRepositoryType() {
-        return repositoryType;
     }
 
     public String getAdditionalJvmOptions() {
@@ -412,10 +381,6 @@ public class InitConfig {
         return heapDumpType;
     }
 
-    public RepositoryType resolveRepositoryType() {
-        return repositoryType != null ? RepositoryType.resolve(repositoryType) : RepositoryType.ASYNC_PROFILER;
-    }
-
     public Path getEnvFilePath() {
         return envFilePath;
     }
@@ -435,12 +400,9 @@ public class InitConfig {
     // ==================== Validation ====================
 
     private void validate() {
-        if (jeffreyHome == null && workspacesDir == null) {
-            throw new IllegalArgumentException("Either 'jeffrey-home' or 'workspaces-dir' must be specified");
-        }
-
-        if (jeffreyHome != null && workspacesDir != null) {
-            throw new IllegalArgumentException("Cannot specify both 'jeffrey-home' and 'workspaces-dir'");
+        if (jeffreyHome == null) {
+            throw new IllegalArgumentException(
+                    "'jeffrey-home' must be specified (HOCON 'jeffrey-home' or env JEFFREY_HOME)");
         }
 
         if (projectName == null) {

@@ -31,6 +31,7 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 
 import java.time.Instant;
+import java.util.OptionalLong;
 
 /**
  * Every domain-to-proto conversion of the hub's gRPC services, in one place, so that no
@@ -52,9 +53,12 @@ public final class ProtoMappers {
 
     // ========== Enums ==========
 
+    /**
+     * @param status {@code null} for a project without a session, which has no status to report
+     */
     public static RecordingStatus recordingStatus(cafe.jeffrey.hub.model.repository.RecordingStatus status) {
         if (status == null) {
-            return RecordingStatus.RECORDING_STATUS_UNKNOWN;
+            return RecordingStatus.RECORDING_STATUS_UNSPECIFIED;
         }
         return switch (status) {
             case ACTIVE -> RecordingStatus.RECORDING_STATUS_ACTIVE;
@@ -98,7 +102,6 @@ public final class ProtoMappers {
             case PENDING -> InstanceStatus.INSTANCE_STATUS_PENDING;
             case ACTIVE -> InstanceStatus.INSTANCE_STATUS_ACTIVE;
             case FINISHED -> InstanceStatus.INSTANCE_STATUS_FINISHED;
-            case EXPIRED -> InstanceStatus.INSTANCE_STATUS_EXPIRED;
         };
     }
 
@@ -109,7 +112,6 @@ public final class ProtoMappers {
         return WorkspaceInfo.newBuilder()
                 .setId(info.id())
                 .setName(info.name())
-                .setReferenceId(orEmpty(info.referenceId()))
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setProjectCount(info.projectCount())
                 .setStatus(workspaceStatus(info.status()))
@@ -117,25 +119,42 @@ public final class ProtoMappers {
     }
 
     /**
-     * @param workspaceReferenceId the reference id of the project's workspace, which the project
-     *                             row does not hold
+     * @param sizeBytes what the last retention pass measured for the project, empty before the first
      */
-    public static ProjectInfo project(DetailedProjectInfo detail, String workspaceReferenceId) {
+    public static ProjectInfo project(DetailedProjectInfo detail, OptionalLong sizeBytes) {
         cafe.jeffrey.hub.model.ProjectInfo info = detail.projectInfo();
-        return ProjectInfo.newBuilder()
+        ProjectInfo.Builder builder = ProjectInfo.newBuilder()
                 .setId(info.id())
                 .setName(info.name())
                 .setCreatedAt(info.createdAt().toEpochMilli())
                 .setWorkspaceId(info.workspaceId())
                 .setStatus(recordingStatus(detail.status()))
-                .setSessionCount(detail.sessionCount())
-                .setWorkspaceReferenceId(orEmpty(workspaceReferenceId))
-                .build();
+                .setSessionCount(detail.sessionCount());
+        sizeBytes.ifPresent(builder::setSizeBytes);
+        return builder.build();
     }
 
     // ========== Sessions and files ==========
 
+    /**
+     * A session with its files, which only a single-session read sends.
+     */
     public static RecordingSession session(cafe.jeffrey.hub.model.repository.RecordingSession session) {
+        RecordingSession.Builder builder = sessionBuilder(session);
+        session.files().forEach(file -> builder.addFiles(file(file)));
+        return builder.build();
+    }
+
+    /**
+     * A session as a listing sends it: its file count and size, not its files. The session must
+     * still have been loaded with its files, since both figures — and whether it failed — are
+     * read off them.
+     */
+    public static RecordingSession sessionHeader(cafe.jeffrey.hub.model.repository.RecordingSession session) {
+        return sessionBuilder(session).build();
+    }
+
+    private static RecordingSession.Builder sessionBuilder(cafe.jeffrey.hub.model.repository.RecordingSession session) {
         RecordingSession.Builder builder = RecordingSession.newBuilder()
                 .setId(session.id())
                 .setName(orEmpty(session.name()))
@@ -148,10 +167,11 @@ public final class ProtoMappers {
         if (session.finishedAt() != null) {
             builder.setFinishedAt(session.finishedAt().toEpochMilli());
         }
-        session.files().forEach(file -> builder.addFiles(file(file)));
         builder.setHeartbeatMissing(session.heartbeatMissing());
         builder.setFailed(isFailed(session));
-        return builder.build();
+        builder.setFileCount(session.files().size());
+        builder.setSizeBytes(session.totalSizeBytes());
+        return builder;
     }
 
     /**
@@ -184,12 +204,6 @@ public final class ProtoMappers {
                 .setSessionCount(info.sessionCount());
         if (info.finishedAt() != null) {
             builder.setFinishedAt(info.finishedAt().toEpochMilli());
-        }
-        if (info.expiringAt() != null) {
-            builder.setExpiringAt(info.expiringAt().toEpochMilli());
-        }
-        if (info.expiredAt() != null) {
-            builder.setExpiredAt(info.expiredAt().toEpochMilli());
         }
         return builder.build();
     }

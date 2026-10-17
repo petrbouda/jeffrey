@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
+import FormattingService from '@shared/services/FormattingService';
 import type ProjectInstance from '@hubs/services/api/model/ProjectInstance';
 import type { ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
+import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics';
 
 /** A project's instances reduced to the figures the tab-row summary shows. */
 export interface InstanceStats {
   pending: number;
   active: number;
   finished: number;
-  expired: number;
   total: number;
   sessions: number;
   /** Creation time of the oldest instance (UTC epoch millis), null when there is none. */
@@ -38,10 +39,35 @@ export function summarizeInstances(instances: readonly ProjectInstance[]): Insta
     pending: countOf('PENDING'),
     active: countOf('ACTIVE'),
     finished: countOf('FINISHED'),
-    expired: countOf('EXPIRED'),
     total: instances.length,
     sessions: instances.reduce((sum, instance) => sum + instance.sessionCount, 0),
     oldestCreatedAt:
       instances.length === 0 ? null : Math.min(...instances.map(instance => instance.createdAt))
   };
+}
+
+/**
+ * The project's storage size as the summary shows it. The hub measures it on its retention pass
+ * only, so a project the pass has not reached yet is "unmeasured", not empty.
+ */
+export type StorageFigure =
+  | { kind: 'loading' }
+  | { kind: 'error' }
+  | { kind: 'unmeasured' }
+  | { kind: 'measured'; value: string; unit: string };
+
+export function storageFigure(
+  statistics: RepositoryStatistics | null,
+  failed: boolean
+): StorageFigure {
+  if (failed) {
+    return { kind: 'error' };
+  }
+  if (statistics === null) {
+    return { kind: 'loading' };
+  }
+  if (statistics.totalSize === null) {
+    return { kind: 'unmeasured' };
+  }
+  return { kind: 'measured', ...FormattingService.formatBytesParts(statistics.totalSize) };
 }

@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -36,7 +37,6 @@ import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -77,7 +77,7 @@ class ProjectRetentionJobTest {
     private static final long MB = 1024L * 1024L;
 
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "ws-1", "production", NOW, WorkspaceStatus.AVAILABLE, 1);
+            new WorkspaceInfo("ws-1", "production", NOW, WorkspaceStatus.AVAILABLE, 1);
 
     @Mock
     WorkspacesManager workspacesManager;
@@ -97,22 +97,19 @@ class ProjectRetentionJobTest {
     @Mock
     RepositoryStorage storage;
 
-    @Mock
-    ProjectInstanceRepository instanceRepository;
-
     private StorageOverviewCache storageOverview;
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
         when(workspacesManager.findAll()).thenReturn(List.of(workspaceManager));
-        when(workspaceManager.localInfo()).thenReturn(WORKSPACE);
+        when(workspaceManager.info()).thenReturn(WORKSPACE);
         when(workspaceManager.projectsManager()).thenReturn(projectsManager);
         when(projectsManager.findAll()).thenReturn(List.of(projectManager));
         stubProject(projectManager, "prj-1", storage);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
+        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
 
-        storageOverview = new StorageOverviewCache(List.of(), Clock.fixed(NOW, ZoneOffset.UTC));
+        storageOverview = new StorageOverviewCache(Clock.fixed(NOW, ZoneOffset.UTC));
         JobConfig config = new JobConfig(true, PERIOD, Map.of(
                 "session-retention", "7d",
                 "max-sessions", "10",
@@ -123,10 +120,9 @@ class ProjectRetentionJobTest {
     }
 
     private void stubProject(ProjectManager project, String projectId, RepositoryStorage repositoryStorage) {
-        when(project.info()).thenReturn(new ProjectInfo(projectId, null, projectId, "ws-1", NOW, NOW, Map.of()));
+        when(project.info()).thenReturn(new ProjectInfo(projectId, projectId, "ws-1", NOW, Map.of()));
         when(project.repositoryManager()).thenReturn(repositoryManager);
         when(project.repositoryStorage()).thenReturn(repositoryStorage);
-        when(project.projectInstanceRepository()).thenReturn(instanceRepository);
     }
 
     private static RecordingSession finished(String id, Duration age, long size) {
@@ -210,9 +206,10 @@ class ProjectRetentionJobTest {
     @Nested
     class StaleInstances {
 
-        private ProjectInstanceInfo instance(
-                String id, ProjectInstanceStatus status, Instant startedAt, Instant expiredAt, int sessionCount) {
-            return new ProjectInstanceInfo(id, "prj-1", id, status, startedAt, null, null, expiredAt, sessionCount, null);
+        private static final Instant LONG_AGO = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
+
+        private static ProjectInstanceInfo instance(String id, ProjectInstanceStatus status, Instant startedAt, int sessions) {
+            return new ProjectInstanceInfo(id, status, startedAt, null, sessions);
         }
 
         @BeforeEach
@@ -221,45 +218,28 @@ class ProjectRetentionJobTest {
         }
 
         @Test
-        void deletesAnInstanceExpiredLongerThanTheRetentionWithItsDirectory() {
-            Instant longAgo = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
-            when(instanceRepository.findByStatus(ProjectInstanceStatus.EXPIRED)).thenReturn(List.of(
-                    instance("old", ProjectInstanceStatus.EXPIRED, longAgo, longAgo, 0),
-                    instance("recent", ProjectInstanceStatus.EXPIRED, NOW.minusSeconds(60), NOW.minusSeconds(60), 0)));
-
-            job.execute();
-
-            verify(instanceRepository).delete("old");
-            verify(storage).deleteInstanceDirectory("old");
-            verify(instanceRepository, never()).delete("recent");
-        }
-
-        @Test
         void deletesAPendingInstanceThatNeverStreamedASession() {
-            Instant longAgo = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
-            when(instanceRepository.findByStatus(ProjectInstanceStatus.PENDING)).thenReturn(List.of(
-                    instance("abandoned", ProjectInstanceStatus.PENDING, longAgo, null, 0),
-                    instance("with-session", ProjectInstanceStatus.PENDING, longAgo, null, 1),
-                    instance("young", ProjectInstanceStatus.PENDING, NOW.minusSeconds(60), null, 0)));
+            when(storage.instances()).thenReturn(List.of(
+                    instance("abandoned", ProjectInstanceStatus.PENDING, LONG_AGO, 0),
+                    instance("young", ProjectInstanceStatus.PENDING, NOW.minusSeconds(60), 0),
+                    instance("finished", ProjectInstanceStatus.FINISHED, LONG_AGO, 2)));
 
             job.execute();
 
-            verify(instanceRepository).delete("abandoned");
-            verify(instanceRepository, never()).delete("with-session");
-            verify(instanceRepository, never()).delete("young");
+            verify(storage).deleteInstanceDirectory("abandoned");
+            verify(storage, never()).deleteInstanceDirectory("young");
+            verify(storage, never()).deleteInstanceDirectory("finished");
         }
 
         @Test
         void aDirectoryThatCannotBeDeletedDoesNotStopTheNextInstance() {
-            Instant longAgo = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
-            when(instanceRepository.findByStatus(ProjectInstanceStatus.EXPIRED)).thenReturn(List.of(
-                    instance("first", ProjectInstanceStatus.EXPIRED, longAgo, longAgo, 0),
-                    instance("second", ProjectInstanceStatus.EXPIRED, longAgo, longAgo, 0)));
+            when(storage.instances()).thenReturn(List.of(
+                    instance("first", ProjectInstanceStatus.PENDING, LONG_AGO, 0),
+                    instance("second", ProjectInstanceStatus.PENDING, LONG_AGO, 0)));
             doThrow(new IllegalStateException("busy")).when(storage).deleteInstanceDirectory("first");
 
             job.execute();
 
-            verify(instanceRepository).delete("second");
             verify(storage).deleteInstanceDirectory("second");
         }
     }

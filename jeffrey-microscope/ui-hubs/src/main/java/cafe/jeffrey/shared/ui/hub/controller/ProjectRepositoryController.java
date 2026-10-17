@@ -28,15 +28,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
-import cafe.jeffrey.shared.common.InstantUtils;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
@@ -45,7 +42,6 @@ import cafe.jeffrey.shared.ui.hub.request.SessionRetainedRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Clock;
-import java.util.List;
 
 /**
  * Shared remote-project repository controller. Annotated @RestController and registered as a @Bean via HubsFeatureConfiguration;
@@ -65,34 +61,6 @@ public class ProjectRepositoryController {
         this.clock = clock;
     }
 
-    /**
-     * Lists the project's recording sessions, newest first. All query parameters are optional and
-     * narrow the listing on the hub: {@code activeFrom}/{@code activeTo} (epoch millis) keep the
-     * sessions that were recording inside the window, {@code status} keeps one status and
-     * {@code limit} caps the count. Without parameters every session is returned.
-     */
-    @GetMapping("/sessions")
-    public List<RecordingSessionResponse> listRepositorySessions(
-            @PathVariable("hubId") String hubId,
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @RequestParam(value = "activeFrom", required = false) Long activeFrom,
-            @RequestParam(value = "activeTo", required = false) Long activeTo,
-            @RequestParam(value = "status", required = false) RecordingStatus status,
-            @RequestParam(value = "limit", defaultValue = "0") int limit) {
-        RecordingSessionFilter filter = new RecordingSessionFilter(
-                InstantUtils.fromEpochMilli(activeFrom),
-                InstantUtils.fromEpochMilli(activeTo),
-                status,
-                limit);
-        var result = projectAccess.repositoryManager(hubId, workspaceId, projectId)
-                .listRecordingSessions(true, filter).stream()
-                .map(s -> RecordingSessionResponse.from(s, clock))
-                .toList();
-        LOG.debug("Listed repository sessions: projectId={} filter={} count={}", projectId, filter, result.size());
-        return result;
-    }
-
     @GetMapping("/statistics")
     public RepositoryStatisticsResponse getRepositoryStatistics(
             @PathVariable("hubId") String hubId,
@@ -100,8 +68,24 @@ public class ProjectRepositoryController {
             @PathVariable("projectId") String projectId) {
         LOG.debug("Fetching repository statistics: projectId={}", projectId);
         RepositoryStatistics stats = projectAccess.repositoryManager(hubId, workspaceId, projectId)
-                .calculateRepositoryStatistics();
+                .repositoryStatistics();
         return RepositoryStatisticsResponse.from(stats);
+    }
+
+    /**
+     * One session with its files — what the session list fetches when a session is expanded, so
+     * the listing itself never carries every file of every session.
+     */
+    @GetMapping("/sessions/{sessionId}")
+    public RecordingSessionResponse getRepositorySession(
+            @PathVariable("hubId") String hubId,
+            @PathVariable("workspaceId") String workspaceId,
+            @PathVariable("projectId") String projectId,
+            @PathVariable("sessionId") String sessionId) {
+        LOG.debug("Fetching repository session: projectId={} sessionId={}", projectId, sessionId);
+        RecordingSession session = projectAccess.repositoryManager(hubId, workspaceId, projectId)
+                .recordingSession(sessionId);
+        return RecordingSessionResponse.from(session, clock);
     }
 
     @DeleteMapping("/sessions/{sessionId}")

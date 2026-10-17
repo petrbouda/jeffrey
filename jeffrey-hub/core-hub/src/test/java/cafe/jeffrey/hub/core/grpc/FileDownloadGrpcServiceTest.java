@@ -27,23 +27,15 @@ import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.ProjectRepository;
-import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
-import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -80,8 +72,26 @@ class FileDownloadGrpcServiceTest {
     class DownloadFile {
 
         @Test
+        void projectNotFound_returnsNotFound() throws Exception {
+            var stub = startServer(serviceWithSession(mock(RepositoryManager.class)));
+            var observer = new TestStreamObserver();
+
+            stub.downloadFile(DownloadFileRequest.newBuilder()
+                    .setWorkspaceId(TestLookups.WORKSPACE_ID)
+                    .setProjectId("non-existent")
+                    .setSessionId(SESSION_ID)
+                    .setFileId(FILE_ID)
+                    .build(), observer);
+
+            assertTrue(observer.errorLatch.await(5, TimeUnit.SECONDS));
+            assertStatus(Status.Code.NOT_FOUND, observer.error);
+        }
+
+        @Test
         void sessionNotFound_returnsNotFound() throws Exception {
-            var stub = startServer(serviceWithNoSession());
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.file("non-existent", FILE_ID)).thenThrow(Exceptions.recordingSessionNotFound("non-existent"));
+            var stub = startServer(serviceWithSession(repoManager));
             var observer = new TestStreamObserver();
 
             stub.downloadFile(request("non-existent", FILE_ID), observer);
@@ -233,6 +243,8 @@ class FileDownloadGrpcServiceTest {
 
         private DownloadFileRequest request(String sessionId, String fileId) {
             return DownloadFileRequest.newBuilder()
+                    .setWorkspaceId(TestLookups.WORKSPACE_ID)
+                    .setProjectId(PROJECT_ID)
                     .setSessionId(sessionId)
                     .setFileId(fileId)
                     .build();
@@ -241,56 +253,8 @@ class FileDownloadGrpcServiceTest {
 
     // ========== Helpers ==========
 
-    private static final ProjectInfo TEST_PROJECT_INFO =
-            new ProjectInfo(PROJECT_ID, null, null, null, null, null, null);
-
-    /**
-     * Creates a service where {@code repositoryManagerForSession(SESSION_ID)} succeeds.
-     */
-    private static final Instant SESSION_START = Instant.parse("2026-03-01T12:00:00Z");
-    private static final Instant SESSION_END = SESSION_START.plusSeconds(1800);
-
-    private static RepositoryFile chunk(String id, long startMinute) {
-        return new RepositoryFile(id, "profile-" + id + ".jfr", SESSION_START.plusSeconds(startMinute * 60),
-                10L, true, null);
-    }
-
-    /** Three ten-minute chunks, f1 f2 f3, the session finished at +30. */
-    private static RecordingSession threeChunks() {
-        return new RecordingSession("session-1", "session-1", "inst-1", SESSION_START, SESSION_END,
-                RecordingStatus.FINISHED,
-                List.of(chunk("f1", 0), chunk("f2", 10), chunk("f3", 20)), false);
-    }
-
     private FileDownloadGrpcService serviceWithSession(RepositoryManager repoManager) {
-        when(repoManager.findRecordingSessions(SESSION_ID)).thenReturn(Optional.of(threeChunks()));
-
-        // The session names its project by id; the lookup then resolves the project itself
-        var sessionWithRepo = mock(SessionWithRepository.class);
-        when(sessionWithRepo.projectId()).thenReturn(PROJECT_ID);
-        var projectRepo = mock(ProjectRepository.class);
-        when(projectRepo.find()).thenReturn(Optional.of(TEST_PROJECT_INFO));
-
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.findSessionWithRepositoryById(SESSION_ID)).thenReturn(Optional.of(sessionWithRepo));
-        when(platformRepositories.newProjectRepository(PROJECT_ID)).thenReturn(projectRepo);
-
-        var repoManagerFactory = mock(RepositoryManager.Factory.class);
-        when(repoManagerFactory.apply(TEST_PROJECT_INFO)).thenReturn(repoManager);
-
-        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null), Runnable::run);
-    }
-
-    /**
-     * Creates a service where {@code findSessionWithRepositoryById("non-existent")} returns empty.
-     */
-    private FileDownloadGrpcService serviceWithNoSession() {
-        var platformRepositories = mock(HubPlatformRepositories.class);
-        when(platformRepositories.findSessionWithRepositoryById("non-existent")).thenReturn(Optional.empty());
-
-        var repoManagerFactory = mock(RepositoryManager.Factory.class);
-
-        return new FileDownloadGrpcService(new GrpcLookups(platformRepositories, repoManagerFactory, null), Runnable::run);
+        return new FileDownloadGrpcService(TestLookups.withRepository(PROJECT_ID, repoManager), Runnable::run);
     }
 
     private static void assertStatus(Status.Code expected, Throwable error) {

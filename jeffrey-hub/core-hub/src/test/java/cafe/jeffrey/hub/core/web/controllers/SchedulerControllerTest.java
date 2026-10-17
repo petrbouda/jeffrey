@@ -62,10 +62,8 @@ class SchedulerControllerTest {
         @Test
         void reportsWhetherEachJobCanBeRunManually() {
             when(jobRegistry.all()).thenReturn(List.of(
-                    new JobInfo(JobType.WORKSPACE_RECONCILER, JobType.ExecutionLevel.GLOBAL,
-                            Duration.ofSeconds(5), Map.of(), true, true),
-                    new JobInfo(JobType.REPOSITORY_JFR_COMPRESSION, JobType.ExecutionLevel.PROJECT,
-                            Duration.ofMinutes(1), Map.of(), true, false)));
+                    new JobInfo(JobType.PROJECT_RETENTION, Duration.ofMinutes(5), Map.of(), true, true),
+                    new JobInfo(JobType.REPOSITORY_JFR_COMPRESSION, Duration.ofMinutes(1), Map.of(), true, false)));
 
             assertThat(mvc().get().uri("/api/internal/scheduler/jobs"))
                     .hasStatusOk()
@@ -80,14 +78,14 @@ class SchedulerControllerTest {
 
         @Test
         void returnsWhatTheJobReported() {
-            when(manualJobRunner.run(JobType.WORKSPACE_RECONCILER)).thenReturn(
+            when(manualJobRunner.run(JobType.PROJECT_RETENTION)).thenReturn(
                     new ManualJobRunner.Result(
-                            JobType.WORKSPACE_RECONCILER, STARTED_AT, 4200L, "3 entities from 2 workspaces"));
+                            JobType.PROJECT_RETENTION, STARTED_AT, 4200L, "3 entities from 2 workspaces"));
 
-            assertThat(mvc().post().uri("/api/internal/scheduler/jobs/WORKSPACE_RECONCILER/run"))
+            assertThat(mvc().post().uri("/api/internal/scheduler/jobs/PROJECT_RETENTION/run"))
                     .hasStatusOk()
                     .bodyJson()
-                    .hasPathSatisfying("$.jobType", v -> assertThat(v).asString().isEqualTo("WORKSPACE_RECONCILER"))
+                    .hasPathSatisfying("$.jobType", v -> assertThat(v).asString().isEqualTo("PROJECT_RETENTION"))
                     .hasPathSatisfying("$.durationMs", v -> assertThat(v).asNumber().isEqualTo(4200))
                     .hasPathSatisfying("$.summary",
                             v -> assertThat(v).asString().isEqualTo("3 entities from 2 workspaces"));

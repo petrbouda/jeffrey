@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,19 +39,16 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
+            RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
             RecordingSessionFilter filter = ProtoMappers.sessionFilter(request.getFilter());
 
-            // Narrowed to one instance, only that instance's directories are walked
-            var found = request.hasInstanceId()
-                    ? repoManager.listInstanceSessions(request.getInstanceId(), filter)
-                    : repoManager.listRecordingSessions(SessionDetail.WITH_FILES, filter);
-            List<RecordingSession> sessions = found.stream()
-                    .map(ProtoMappers::session)
+            // Loaded with their files for the figures each row carries; the files stay on the hub
+            List<RecordingSession> sessions = repoManager.listRecordingSessions(filter).stream()
+                    .map(ProtoMappers::sessionHeader)
                     .toList();
 
-            LOG.debug("Listed sessions via gRPC: project_id={} instance_id={} filter={} count={}",
-                    request.getProjectId(), request.getInstanceId(), filter, sessions.size());
+            LOG.debug("Listed sessions via gRPC: project_id={} filter={} count={}",
+                    request.getProjectId(), filter, sessions.size());
 
             return ListSessionsResponse.newBuilder()
                     .addAllSessions(sessions)
@@ -63,10 +59,9 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void getSession(GetSessionRequest request, StreamObserver<GetSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
+            RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
 
-            // Resolved twice on purpose: the lookup found the row, this loads the session with its files
-            var session = repoManager.findRecordingSessions(request.getSessionId())
+            var session = repoManager.findSession(request.getSessionId())
                     .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + request.getSessionId()));
 
             LOG.debug("Fetched session via gRPC: session_id={}", request.getSessionId());
@@ -80,8 +75,10 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void deleteSession(DeleteSessionRequest request, StreamObserver<DeleteSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-            repoManager.deleteRecordingSession(request.getSessionId());
+            RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
+            if (!repoManager.deleteRecordingSession(request.getSessionId()).deleted()) {
+                throw GrpcExceptions.notFound("Session not found: " + request.getSessionId());
+            }
 
             LOG.debug("Deleted session via gRPC: session_id={}", request.getSessionId());
 
@@ -92,8 +89,10 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void setSessionRetained(SetSessionRetainedRequest request, StreamObserver<SetSessionRetainedResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
-            RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-            repoManager.setSessionRetained(request.getSessionId(), request.getRetained());
+            RepositoryManager repoManager = lookups.repositoryManager(request.getWorkspaceId(), request.getProjectId());
+            if (!repoManager.setSessionRetained(request.getSessionId(), request.getRetained())) {
+                throw GrpcExceptions.notFound("Session not found: " + request.getSessionId());
+            }
 
             LOG.debug("Updated session retention via gRPC: session_id={} retained={}",
                     request.getSessionId(), request.getRetained());

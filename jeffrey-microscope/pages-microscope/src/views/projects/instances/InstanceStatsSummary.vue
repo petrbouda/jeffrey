@@ -37,7 +37,7 @@
         </template>
         <strong>{{ stats.active }}</strong> active · <strong>{{ stats.finished }}</strong> finished
         · <strong>{{ stats.sessions }}</strong> {{ stats.sessions === 1 ? 'session' : 'sessions' }}
-        <template v-if="storage">
+        <template v-if="storage.kind === 'measured'">
           · <strong>{{ storage.value }} {{ storage.unit }}</strong>
         </template>
       </span>
@@ -59,15 +59,20 @@
         </div>
       </section>
 
-      <section v-if="storage || storageError" class="popover-section storage-section">
+      <section v-if="storage.kind !== 'loading'" class="popover-section storage-section">
         <div class="popover-title storage-title"><i class="bi bi-hdd"></i>Storage</div>
-        <ErrorState v-if="storageError" message="Repository size could not be loaded" />
-        <template v-else-if="storage">
+        <ErrorState v-if="storage.kind === 'error'" message="Repository size could not be loaded" />
+        <p v-else-if="storage.kind === 'unmeasured'" class="storage-caption">
+          Not measured yet — the hub measures each project on its next retention pass
+        </p>
+        <template v-else>
           <div class="storage-figure">
             <span class="storage-value">{{ storage.value }}</span>
             <span class="storage-unit">{{ storage.unit }}</span>
           </div>
-          <p class="storage-caption">across every session of this project</p>
+          <p class="storage-caption">
+            across every session of this project, as of the hub's last retention pass
+          </p>
         </template>
       </section>
     </div>
@@ -78,7 +83,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import FormattingService from '@shared/services/FormattingService';
-import type { InstanceStats } from './instanceStats';
+import type { InstanceStats, StorageFigure } from './instanceStats';
 
 const POPOVER_ID = 'instance-stats-popover';
 const ESCAPE_KEY = 'Escape';
@@ -90,16 +95,14 @@ interface StatRow {
 
 const props = defineProps<{
   stats: InstanceStats;
-  /** Repository size split into number and unit; null until it has arrived. */
-  storage: { value: string; unit: string } | null;
-  storageError: boolean;
+  storage: StorageFigure;
 }>();
 
 const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
 
-// Pending and expired only earn a row when there is one, as on the old stat card.
+// Pending only earns a row when there is one, as on the old stat card.
 const rows = computed<StatRow[]>(() => {
   const stats = props.stats;
   const uptime =
@@ -111,7 +114,6 @@ const rows = computed<StatRow[]>(() => {
     ...(stats.pending > 0 ? [{ label: 'Pending instances', value: stats.pending }] : []),
     { label: 'Active instances', value: stats.active },
     { label: 'Finished instances', value: stats.finished },
-    ...(stats.expired > 0 ? [{ label: 'Expired instances', value: stats.expired }] : []),
     { label: 'Total instances', value: stats.total },
     { label: 'Total sessions', value: stats.sessions },
     { label: 'Uptime range', value: uptime }

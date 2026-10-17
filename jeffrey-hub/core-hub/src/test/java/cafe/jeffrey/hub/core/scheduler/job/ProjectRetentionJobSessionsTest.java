@@ -24,8 +24,7 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -86,26 +85,19 @@ class ProjectRetentionJobSessionsTest {
     RepositoryManager repositoryManager;
 
     @Mock
-    HubPlatformRepositories platformRepositories;
-
-    @Mock
-    ProjectInstanceRepository instanceRepository;
-
-    @Mock
     StorageOverviewCache storageOverview;
 
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
-        ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", "ws-1", NOW, NOW, Map.of());
+        ProjectInfo projectInfo = new ProjectInfo("proj-1", "my-project", "ws-1", NOW, Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
+        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
         when(projectManager.repositoryStorage()).thenReturn(storage);
-        when(projectManager.projectInstanceRepository()).thenReturn(instanceRepository);
-        when(instanceRepository.findAll()).thenReturn(List.of(instance(ProjectInstanceStatus.ACTIVE)));
+        when(storage.instances()).thenReturn(List.of(instance(ProjectInstanceStatus.ACTIVE)));
 
         job = job(MAX_SESSIONS);
     }
@@ -139,9 +131,7 @@ class ProjectRetentionJobSessionsTest {
     }
 
     private static ProjectInstanceInfo instance(String instanceId, ProjectInstanceStatus status) {
-        return new ProjectInstanceInfo(
-                instanceId, "proj-1", "my-instance", status, NOW.minus(Duration.ofDays(30)),
-                null, null, null, 3, null);
+        return new ProjectInstanceInfo(instanceId, status, NOW.minus(Duration.ofDays(30)), null, 3);
     }
 
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
@@ -347,7 +337,7 @@ class ProjectRetentionJobSessionsTest {
 
         @Test
         void noProtectionForFinishedInstances() {
-            when(instanceRepository.findAll()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
+            when(storage.instances()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     realSession("newest", NOW.minus(PAST_RETENTION)),
                     realSession("older", NOW.minus(PAST_RETENTION.plusDays(1)))));
@@ -555,7 +545,7 @@ class ProjectRetentionJobSessionsTest {
 
         @Test
         void noProtectionFromTheCapForFinishedInstances() {
-            when(instanceRepository.findAll()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
+            when(storage.instances()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
 
             sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
             empty("empty-1");
@@ -571,7 +561,7 @@ class ProjectRetentionJobSessionsTest {
 
         @Test
         void capAppliesPerInstanceIndependently() {
-            when(instanceRepository.findAll()).thenReturn(List.of(
+            when(storage.instances()).thenReturn(List.of(
                     instance(ProjectInstanceStatus.ACTIVE), instance("inst-2", ProjectInstanceStatus.ACTIVE)));
 
             real("real-1");

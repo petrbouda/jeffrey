@@ -25,8 +25,9 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     super(`/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/repository`);
   }
 
-  listRecordingSessions(): Promise<RecordingSession[]> {
-    return super.get<RecordingSession[]>('/sessions');
+  /** One session with its files — what a session row fetches when it is expanded. */
+  getRecordingSession(sessionId: string): Promise<RecordingSession> {
+    return super.get<RecordingSession>('/sessions/' + sessionId);
   }
 
   getRepositoryStatistics(): Promise<RepositoryStatistics> {

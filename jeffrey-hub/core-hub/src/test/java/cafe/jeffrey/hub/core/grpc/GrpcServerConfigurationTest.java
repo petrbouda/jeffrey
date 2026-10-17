@@ -26,10 +26,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.server.GlobalServerInterceptor;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.lang.reflect.Method;
 import java.time.Clock;
@@ -115,18 +113,8 @@ class GrpcServerConfigurationTest {
         }
 
         @Bean
-        public HubPlatformRepositories platformRepositories() {
-            return mock(HubPlatformRepositories.class);
-        }
-
-        @Bean
-        public ProjectManager.Factory projectManagerFactory() {
-            return mock(ProjectManager.Factory.class);
-        }
-
-        @Bean
-        public RepositoryManager.Factory repositoryManagerFactory() {
-            return mock(RepositoryManager.Factory.class);
+        public StorageOverviewCache storageOverviewCache() {
+            return mock(StorageOverviewCache.class);
         }
     }
 }

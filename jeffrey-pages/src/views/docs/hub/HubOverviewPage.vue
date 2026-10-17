@@ -48,8 +48,9 @@ onMounted(() => {
         <h2 class="hero-title">Collect once, analyze anywhere.</h2>
         <p class="hero-lede">
           Jeffrey Hub runs alongside your Java fleet — typically on Kubernetes or a dedicated
-          host — and continuously collects JFR recordings. It catalogs them by workspace, project,
-          and instance, schedules recording jobs, and serves the results over gRPC. Detailed profile
+          host — and continuously collects JFR recordings. It lists them by workspace, project,
+          and instance straight off the shared volume — its only state, with no database —
+          runs retention and compression jobs, and serves the results over gRPC. Detailed profile
           analysis happens in Microscope. <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
           pick a session, or the hours of it that matter, and download that.
         </p>
@@ -69,12 +70,12 @@ onMounted(() => {
         <div class="value-tile tile-broadcast">
           <div class="value-icon"><i class="bi bi-broadcast-pin"></i></div>
           <h3>Continuous Recording</h3>
-          <p>Async-Profiler writes JFR chunks to the shared volume on every loop and the hub picks them up — no manual capture, no missed windows.</p>
+          <p>Async-Profiler writes JFR chunks to the shared volume on every loop and the hub lists them on the next request — no manual capture, no missed windows.</p>
         </div>
         <div class="value-tile tile-collection">
           <div class="value-icon"><i class="bi bi-collection"></i></div>
           <h3>Recording Sessions</h3>
-          <p>Recordings are grouped into sessions per JVM lifecycle, with automatic discovery, retention, and lifecycle states.</p>
+          <p>Recordings are grouped into sessions per JVM lifecycle, with their status read from heartbeat files, retention, and lifecycle states.</p>
         </div>
         <div class="value-tile tile-grpc">
           <div class="value-icon"><i class="bi bi-hdd-network"></i></div>

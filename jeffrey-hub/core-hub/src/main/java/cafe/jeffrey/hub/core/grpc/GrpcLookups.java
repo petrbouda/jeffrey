@@ -19,52 +19,32 @@ package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
-import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 
 /**
- * Resolves domain managers/entities from request identifiers for the gRPC services, throwing a
- * consistent {@code NOT_FOUND} status when a target does not exist. Holds the lookups more than
- * one service needs — {@code repositoryManagerForSession} for the repository and download
- * services, and the project lookups — so each is written once.
+ * Resolves the workspace and project a request names, throwing {@code NOT_FOUND} when either is
+ * not on the volume, so every service reports a missing target the same way.
  */
 public class GrpcLookups {
 
-    private final HubPlatformRepositories platformRepositories;
-    private final RepositoryManager.Factory repositoryManagerFactory;
-    private final ProjectManager.Factory projectManagerFactory;
+    private final WorkspacesManager workspacesManager;
 
-    public GrpcLookups(
-            HubPlatformRepositories platformRepositories,
-            RepositoryManager.Factory repositoryManagerFactory,
-            ProjectManager.Factory projectManagerFactory) {
-
-        this.platformRepositories = platformRepositories;
-        this.repositoryManagerFactory = repositoryManagerFactory;
-        this.projectManagerFactory = projectManagerFactory;
+    public GrpcLookups(WorkspacesManager workspacesManager) {
+        this.workspacesManager = workspacesManager;
     }
 
-    public ProjectManager projectManager(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).find()
-                .map(projectManagerFactory)
+    public WorkspaceManager workspace(String workspaceId) {
+        return workspacesManager.findById(workspaceId)
+                .orElseThrow(() -> GrpcExceptions.notFound("Workspace not found: " + workspaceId));
+    }
+
+    public ProjectManager project(String workspaceId, String projectId) {
+        return workspace(workspaceId).projectsManager().project(projectId)
                 .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
     }
 
-    public ProjectInfo projectInfo(String projectId) {
-        return platformRepositories.newProjectRepository(projectId).find()
-                .orElseThrow(() -> GrpcExceptions.notFound("Project not found: " + projectId));
+    public RepositoryManager repositoryManager(String workspaceId, String projectId) {
+        return project(workspaceId, projectId).repositoryManager();
     }
-
-    public RepositoryManager repositoryManagerForProject(String projectId) {
-        return repositoryManagerFactory.apply(projectInfo(projectId));
-    }
-
-    public RepositoryManager repositoryManagerForSession(String sessionId) {
-        SessionWithRepository session = platformRepositories.findSessionWithRepositoryById(sessionId)
-                .orElseThrow(() -> GrpcExceptions.notFound("Session not found: " + sessionId));
-        // A session always has its project: deleting a project takes its sessions with it
-        return repositoryManagerFactory.apply(projectInfo(session.projectId()));
-    }
-
 }

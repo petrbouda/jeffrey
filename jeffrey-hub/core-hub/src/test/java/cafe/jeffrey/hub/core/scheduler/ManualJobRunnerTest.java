@@ -90,10 +90,10 @@ class ManualJobRunnerTest {
         @Test
         void reportsOnlyJobsThatImplementTheInterface() {
             var runner = new ManualJobRunner(List.of(
-                    new TriggerableJob(JobType.WORKSPACE_RECONCILER, "2 entities"),
+                    new TriggerableJob(JobType.PROJECT_RETENTION, "2 entities"),
                     new ScheduledOnlyJob(JobType.REPOSITORY_JFR_COMPRESSION)), new JobLocks(), FIXED_CLOCK);
 
-            assertEquals(Set.of(JobType.WORKSPACE_RECONCILER), runner.supportedTypes());
+            assertEquals(Set.of(JobType.PROJECT_RETENTION), runner.supportedTypes());
         }
 
         @Test
@@ -109,14 +109,14 @@ class ManualJobRunnerTest {
 
         @Test
         void runsTheJobAndReturnsItsOwnSummary() {
-            var job = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "3 entities from 2 workspaces");
+            var job = new TriggerableJob(JobType.PROJECT_RETENTION, "3 entities from 2 workspaces");
             var runner = new ManualJobRunner(List.of(job), new JobLocks(), FIXED_CLOCK);
 
-            ManualJobRunner.Result result = runner.run(JobType.WORKSPACE_RECONCILER);
+            ManualJobRunner.Result result = runner.run(JobType.PROJECT_RETENTION);
 
             assertAll(
                     () -> assertEquals(1, job.runs.get()),
-                    () -> assertEquals(JobType.WORKSPACE_RECONCILER, result.jobType()),
+                    () -> assertEquals(JobType.PROJECT_RETENTION, result.jobType()),
                     () -> assertEquals(NOW, result.startedAt()),
                     () -> assertEquals("3 entities from 2 workspaces", result.summary()),
                     () -> assertTrue(result.durationMs() >= 0));
@@ -124,12 +124,12 @@ class ManualJobRunnerTest {
 
         @Test
         void routesToTheRequestedJobOnly() {
-            var reconciler = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "reconciled");
+            var compression = new TriggerableJob(JobType.REPOSITORY_JFR_COMPRESSION, "compressed");
             var retention = new TriggerableJob(JobType.PROJECT_RETENTION, "retained");
-            var runner = new ManualJobRunner(List.of(reconciler, retention), new JobLocks(), FIXED_CLOCK);
+            var runner = new ManualJobRunner(List.of(compression, retention), new JobLocks(), FIXED_CLOCK);
 
             assertEquals("retained", runner.run(JobType.PROJECT_RETENTION).summary());
-            assertEquals(0, reconciler.runs.get());
+            assertEquals(0, compression.runs.get());
         }
 
         @Test
@@ -147,12 +147,12 @@ class ManualJobRunnerTest {
             var runner = new ManualJobRunner(List.of(), new JobLocks(), FIXED_CLOCK);
 
             assertThrows(ManualJobRunner.ManualRunNotSupportedException.class,
-                    () -> runner.run(JobType.WORKSPACE_RECONCILER));
+                    () -> runner.run(JobType.PROJECT_RETENTION));
         }
 
         @Test
         void aFailingJobPropagatesRatherThanReportingSuccess() {
-            var failing = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "unused") {
+            var failing = new TriggerableJob(JobType.PROJECT_RETENTION, "unused") {
                 @Override
                 public String runManually() {
                     throw new IllegalStateException("volume unavailable");
@@ -160,7 +160,7 @@ class ManualJobRunnerTest {
             };
             var runner = new ManualJobRunner(List.of(failing), new JobLocks(), FIXED_CLOCK);
 
-            assertThrows(IllegalStateException.class, () -> runner.run(JobType.WORKSPACE_RECONCILER));
+            assertThrows(IllegalStateException.class, () -> runner.run(JobType.PROJECT_RETENTION));
         }
 
         /**
@@ -169,7 +169,7 @@ class ManualJobRunnerTest {
          */
         @Test
         void waitsForTheJobsScheduledTickToFinish() throws Exception {
-            var job = new TriggerableJob(JobType.WORKSPACE_RECONCILER, "done");
+            var job = new TriggerableJob(JobType.PROJECT_RETENTION, "done");
             var locks = new JobLocks();
             var runner = new ManualJobRunner(List.of(job), locks, FIXED_CLOCK);
             var tickRunning = new CountDownLatch(1);
@@ -186,7 +186,7 @@ class ManualJobRunnerTest {
             tick.start();
             assertTrue(tickRunning.await(5, TimeUnit.SECONDS));
 
-            var manual = CompletableFuture.supplyAsync(() -> runner.run(JobType.WORKSPACE_RECONCILER));
+            var manual = CompletableFuture.supplyAsync(() -> runner.run(JobType.PROJECT_RETENTION));
 
             assertFalse(manual.isDone(), "the manual run must wait for the tick");
             releaseTick.countDown();

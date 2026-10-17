@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-export type ExecutionLevel = 'GLOBAL' | 'PROJECT';
-
 /**
  * All job types served by the scheduler, mirroring the backend {@code JobType} enum
  * (same order). The scheduler UI types its display-metadata maps as
@@ -24,14 +22,11 @@ export type ExecutionLevel = 'GLOBAL' | 'PROJECT';
  * for every declared job type — extend this union when a new enum constant is added.
  */
 export type JobTypeName =
-    | 'WORKSPACE_RECONCILER'
     | 'PROJECT_RETENTION'
-    | 'REPOSITORY_JFR_COMPRESSION'
-    | 'SESSION_FINISHED_DETECTOR';
+    | 'REPOSITORY_JFR_COMPRESSION';
 
 export interface JobView {
     jobType: string;
-    executionLevel: ExecutionLevel;
     period: string;
     params: Record<string, string>;
     enabled: boolean;

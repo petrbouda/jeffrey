@@ -20,22 +20,14 @@ package cafe.jeffrey.hub.model.workspace;
 import java.time.Instant;
 
 /**
- * A workspace row: the reference id names its directory under the hub's workspaces root,
- * and the status says whether that directory is there.
+ * A workspace directory on the volume.
+ *
+ * @param id the directory name, which is also the reference id the provisioner writes into
  */
 public record WorkspaceInfo(
         String id,
-        String referenceId,
         String name,
         Instant createdAt,
         WorkspaceStatus status,
         int projectCount) {
-
-    public WorkspaceInfo withId(String newId) {
-        return new WorkspaceInfo(newId, referenceId, name, createdAt, status, projectCount);
-    }
-
-    public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
-        return new WorkspaceInfo(id, referenceId, name, createdAt, newStatus, projectCount);
-    }
 }

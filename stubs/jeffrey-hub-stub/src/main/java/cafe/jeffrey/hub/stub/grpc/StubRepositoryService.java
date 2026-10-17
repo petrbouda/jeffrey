@@ -41,10 +41,8 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
     @Override
     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
         ListSessionsResponse.Builder builder = ListSessionsResponse.newBuilder();
-        for (StubDataset.Session session : dataset.sessionsForProject(request.getProjectId())) {
-            if (!request.hasInstanceId() || request.getInstanceId().equals(session.instanceId())) {
-                builder.addSessions(StubProtoMappers.recordingSession(session));
-            }
+        for (StubDataset.Session session : dataset.sessionsForProject(request.getWorkspaceId(), request.getProjectId())) {
+            builder.addSessions(StubProtoMappers.sessionHeader(session));
         }
         responseObserver.onNext(builder.build());
         responseObserver.onCompleted();
@@ -52,7 +50,7 @@ public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServi
 
     @Override
     public void getSession(GetSessionRequest request, StreamObserver<GetSessionResponse> responseObserver) {
-        dataset.session(request.getSessionId())
+        dataset.session(request.getWorkspaceId(), request.getProjectId(), request.getSessionId())
                 .ifPresentOrElse(
                         session -> {
                             responseObserver.onNext(GetSessionResponse.newBuilder()

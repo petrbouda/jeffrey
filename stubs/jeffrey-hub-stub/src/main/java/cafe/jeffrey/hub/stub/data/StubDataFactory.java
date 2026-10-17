@@ -62,8 +62,7 @@ public class StubDataFactory {
     }
 
     private Workspace productionWorkspace(Instant now) {
-        String workspaceId = "ws-production";
-        String referenceId = "production";
+        String workspaceId = "production";
 
         Project checkout = project(workspaceId, "proj-checkout", "checkout-service", now, List.of(
                 finishedInstance("inst-checkout-blue", "checkout-service@blue", now, Duration.ofHours(6), 2),
@@ -71,35 +70,33 @@ public class StubDataFactory {
 
         Project inventory = project(workspaceId, "proj-inventory", "inventory-service", now, List.of(
                 finishedInstance("inst-inventory-1", "inventory-service@1", now, Duration.ofHours(30), 3),
-                expiredInstance("inst-inventory-old", "inventory-service@old", now, Duration.ofDays(9))));
+                finishedInstance("inst-inventory-old", "inventory-service@old", now, Duration.ofDays(9), 1)));
 
         List<Project> projects = List.of(checkout, inventory);
-        return new Workspace(workspaceId, "Production", referenceId,
+        return new Workspace(workspaceId, "Production",
                 minus(now, Duration.ofDays(45)), projects);
     }
 
     private Workspace stagingWorkspace(Instant now) {
-        String workspaceId = "ws-staging";
-        String referenceId = "staging";
+        String workspaceId = "staging";
 
         Project gateway = project(workspaceId, "proj-gateway", "api-gateway", now, List.of(
                 activeInstance("inst-gateway-1", "api-gateway@1", now, Duration.ofMinutes(12))));
 
         List<Project> projects = List.of(gateway);
-        return new Workspace(workspaceId, "Staging", referenceId,
+        return new Workspace(workspaceId, "Staging",
                 minus(now, Duration.ofDays(20)), projects);
     }
 
     private Workspace developmentWorkspace(Instant now) {
-        String workspaceId = "ws-development";
-        String referenceId = "development";
+        String workspaceId = "development";
 
         Project sandbox = project(workspaceId, "proj-sandbox", "sandbox-app", now, List.of(
                 finishedInstance("inst-sandbox-1", "sandbox-app@1", now, Duration.ofHours(2), 1),
                 pendingInstance("inst-sandbox-2", "sandbox-app@2", now)));
 
         List<Project> projects = List.of(sandbox);
-        return new Workspace(workspaceId, "Development", referenceId,
+        return new Workspace(workspaceId, "Development",
                 minus(now, Duration.ofDays(60)), projects);
     }
 
@@ -112,8 +109,7 @@ public class StubDataFactory {
     private Instance activeInstance(String id, String name, Instant now, Duration startedAgo) {
         Instant createdAt = minus(now, startedAgo);
         Session active = activeSession(id, "sess-" + id + "-current", createdAt);
-        return new Instance(id, name, InstState.ACTIVE, createdAt, null,
-                minus(now, startedAgo.minus(Duration.ofDays(14))), null, active.id(), List.of(active));
+        return new Instance(id, name, InstState.ACTIVE, createdAt, null, List.of(active));
     }
 
     private Instance finishedInstance(String id, String name, Instant now, Duration startedAgo, int sessionCount) {
@@ -124,22 +120,12 @@ public class StubDataFactory {
             sessions.add(finishedSession(id, "sess-" + id + "-" + (i + 1), sessionStart, Duration.ofMinutes(15)));
         }
         Instant finishedAt = sessions.getLast().finishedAt();
-        return new Instance(id, name, InstState.FINISHED, createdAt, finishedAt,
-                finishedAt.plus(Duration.ofDays(14)), null, null, List.copyOf(sessions));
-    }
-
-    private Instance expiredInstance(String id, String name, Instant now, Duration startedAgo) {
-        Instant createdAt = minus(now, startedAgo);
-        Session session = finishedSession(id, "sess-" + id + "-1", createdAt, Duration.ofMinutes(25));
-        Instant finishedAt = session.finishedAt();
-        return new Instance(id, name, InstState.EXPIRED, createdAt, finishedAt,
-                finishedAt.plus(Duration.ofDays(7)), finishedAt.plus(Duration.ofDays(7)), null, List.of(session));
+        return new Instance(id, name, InstState.FINISHED, createdAt, finishedAt, List.copyOf(sessions));
     }
 
     private Instance pendingInstance(String id, String name, Instant now) {
         Instant createdAt = minus(now, Duration.ofMinutes(2));
-        return new Instance(id, name, InstState.PENDING, createdAt, null,
-                createdAt.plus(Duration.ofDays(14)), null, null, List.of());
+        return new Instance(id, name, InstState.PENDING, createdAt, null, List.of());
     }
 
     private Session activeSession(String instanceId, String sessionId, Instant createdAt) {

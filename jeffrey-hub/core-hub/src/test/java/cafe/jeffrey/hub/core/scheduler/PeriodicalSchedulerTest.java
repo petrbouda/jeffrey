@@ -48,14 +48,14 @@ class PeriodicalSchedulerTest {
     }
 
     private static Job testJob(Runnable action, Duration period) {
-        return testJob(action, period, JobType.WORKSPACE_RECONCILER, Job.ExecutorGroup.GLOBAL);
+        return testJob(action, period, JobType.PROJECT_RETENTION);
     }
 
-    private static Job fanOutTestJob(Runnable action, Duration period) {
-        return testJob(action, period, JobType.SESSION_FINISHED_DETECTOR, Job.ExecutorGroup.PROJECT_FAN_OUT);
+    private static Job otherTestJob(Runnable action, Duration period) {
+        return testJob(action, period, JobType.REPOSITORY_JFR_COMPRESSION);
     }
 
-    private static Job testJob(Runnable action, Duration period, JobType jobType, Job.ExecutorGroup executorGroup) {
+    private static Job testJob(Runnable action, Duration period, JobType jobType) {
         return new Job() {
             @Override
             public void execute() {
@@ -70,11 +70,6 @@ class PeriodicalSchedulerTest {
             @Override
             public JobType jobType() {
                 return jobType;
-            }
-
-            @Override
-            public ExecutorGroup executorGroup() {
-                return executorGroup;
             }
         };
     }
@@ -194,29 +189,10 @@ class PeriodicalSchedulerTest {
     }
 
     @Nested
-    class ExecutorGroups {
+    class Pool {
 
         @Test
-        void slowFanOutJob_doesNotDelayGlobalJob() {
-            AtomicInteger globalTicks = new AtomicInteger();
-            Job slowFanOut = fanOutTestJob(() -> {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }, Duration.ofMillis(10));
-            Job fastGlobal = testJob(globalTicks::incrementAndGet, Duration.ofMillis(50));
-
-            scheduler = new PeriodicalScheduler(List.of(slowFanOut, fastGlobal), 1, new JobLocks());
-            scheduler.start();
-
-            // On a shared single thread the 500ms fan-out job would starve the global job
-            await().atMost(2, SECONDS).until(() -> globalTicks.get() >= 5);
-        }
-
-        @Test
-        void differentFanOutJobs_runConcurrently_withPoolSizeTwo() {
+        void differentJobs_runConcurrently_withPoolSizeTwo() {
             AtomicInteger concurrent = new AtomicInteger();
             AtomicInteger maxConcurrent = new AtomicInteger();
             Runnable overlapping = () -> {
@@ -230,8 +206,8 @@ class PeriodicalSchedulerTest {
                     concurrent.decrementAndGet();
                 }
             };
-            Job first = fanOutTestJob(overlapping, Duration.ofMillis(20));
-            Job second = fanOutTestJob(overlapping, Duration.ofMillis(20));
+            Job first = otherTestJob(overlapping, Duration.ofMillis(20));
+            Job second = otherTestJob(overlapping, Duration.ofMillis(20));
 
             scheduler = new PeriodicalScheduler(List.of(first, second), 2, new JobLocks());
             scheduler.start();
@@ -244,7 +220,7 @@ class PeriodicalSchedulerTest {
             AtomicInteger concurrent = new AtomicInteger();
             AtomicInteger maxConcurrent = new AtomicInteger();
             AtomicInteger executions = new AtomicInteger();
-            Job job = fanOutTestJob(() -> {
+            Job job = otherTestJob(() -> {
                 int current = concurrent.incrementAndGet();
                 maxConcurrent.accumulateAndGet(current, Math::max);
                 try {

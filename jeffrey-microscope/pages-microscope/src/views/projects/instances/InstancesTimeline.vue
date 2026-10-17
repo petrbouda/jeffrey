@@ -119,9 +119,9 @@
                 size="xs"
               />
               <Badge
-                v-if="instanceEnd(instance)"
+                v-if="instance.finishedAt"
                 key-label="Finished"
-                :value="FormattingService.formatTimestampUTC(instanceEnd(instance))"
+                :value="FormattingService.formatTimestampUTC(instance.finishedAt)"
                 size="xs"
               />
               <Badge
@@ -295,7 +295,7 @@
                       </span>
                     </button>
                     <button
-                      v-if="repositorySessions.has(session.id)"
+                      v-if="repositorySessions[session.id]"
                       type="button"
                       class="drawer-action drawer-action--pin"
                       :class="{ on: isSessionRetained(session.id) }"
@@ -595,7 +595,7 @@ import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
-import RecordingSession from '@hubs/services/api/model/RecordingSession';
+import { useSessionReads } from '@hubs/composables/useSessionReads';
 import { downloadAssistantStore } from '@hubs/stores/assistants/downloadAssistantStore';
 import { ToastService } from '@shared/services/ToastService';
 import ProjectInstance, { type ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
@@ -646,9 +646,11 @@ const repositoryClient = new ProjectRepositoryClient(
   projectId.value!
 );
 
-// Repository sessions keyed by session id: the drawer's Download action needs the
-// session's files (ids + sizes), which the timeline session model does not carry.
-const repositorySessions = ref<Map<string, RecordingSession>>(new Map());
+// Each session as the repository has it — its files and its pin — read when its drawer opens,
+// so opening the timeline never fetches the files of every session in the project
+const { sessions: repositorySessions, read: readRepositorySession } = useSessionReads(
+  () => repositoryClient
+);
 
 const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
@@ -1192,10 +1194,6 @@ function shutdownKindDescription(kind: string | undefined): string {
   }
 }
 
-function instanceEnd(instance: ProjectInstance): number | undefined {
-  return instance.finishedAt ?? instance.expiredAt;
-}
-
 function statusBadgeLabel(status: ProjectInstanceStatus): string {
   switch (status) {
     case 'PENDING':
@@ -1204,8 +1202,6 @@ function statusBadgeLabel(status: ProjectInstanceStatus): string {
       return 'Active';
     case 'FINISHED':
       return 'Finished';
-    case 'EXPIRED':
-      return 'Expired';
     default:
       return 'Unknown';
   }
@@ -1219,7 +1215,6 @@ function statusBadgeVariant(status: ProjectInstanceStatus): 'blue' | 'orange' | 
       return 'orange';
     case 'FINISHED':
       return 'green';
-    case 'EXPIRED':
     default:
       return 'grey';
   }
@@ -1264,6 +1259,8 @@ function toggleSessionBar(instanceId: string, session: ProjectInstanceSession): 
     expandedNext.delete(instanceId);
     expandedIds.value = expandedNext;
 
+    // Read on every open: a session that is still recording has written chunks since
+    loadRepositorySession(session.id);
     if (!sessionDetails.value.has(session.id)) {
       instanceClient.getSessionDetail(instanceId, session.id).then(detail => {
         const updated = new Map(sessionDetails.value);
@@ -1281,14 +1278,10 @@ function closeSessionDrawer(instanceId: string): void {
   activeSessionByInstance.value = next;
 }
 
-async function loadRepositorySessions(): Promise<void> {
-  try {
-    const sessions = await repositoryClient.listRecordingSessions();
-    repositorySessions.value = new Map(sessions.map(session => [session.id, session]));
-  } catch (error) {
-    // The Download action simply stays hidden when repository data is unavailable
-    repositorySessions.value = new Map();
-  }
+function loadRepositorySession(sessionId: string): void {
+  readRepositorySession(sessionId).catch(() => {
+    // The Download and Pin actions simply stay hidden when the session cannot be read
+  });
 }
 
 /**
@@ -1297,7 +1290,7 @@ async function loadRepositorySessions(): Promise<void> {
  * mirroring the sessions list's "no recording data available" rule.
  */
 function downloadableSummary(sessionId: string): string | null {
-  const repositorySession = repositorySessions.value.get(sessionId);
+  const repositorySession = repositorySessions.value[sessionId];
   if (!repositorySession) {
     return null;
   }
@@ -1317,7 +1310,7 @@ function downloadableSummary(sessionId: string): string | null {
  * of the session from the remote workspace.
  */
 async function downloadSession(sessionId: string): Promise<void> {
-  const repositorySession = repositorySessions.value.get(sessionId);
+  const repositorySession = repositorySessions.value[sessionId];
   if (!repositorySession) {
     ToastService.error('Download', 'Session not found in the repository');
     return;
@@ -1332,7 +1325,7 @@ async function downloadSession(sessionId: string): Promise<void> {
       sessionId,
       fileIds,
       async () => {
-        await loadRepositorySessions();
+        loadRepositorySession(sessionId);
       }
     );
   } catch (error: any) {
@@ -1344,7 +1337,7 @@ async function downloadSession(sessionId: string): Promise<void> {
 const pinningSessions = ref<Set<string>>(new Set());
 
 function isSessionRetained(sessionId: string): boolean {
-  return repositorySessions.value.get(sessionId)?.retained ?? false;
+  return repositorySessions.value[sessionId]?.retained ?? false;
 }
 
 /**
@@ -1353,7 +1346,7 @@ function isSessionRetained(sessionId: string): boolean {
  * hands it back to normal expiry.
  */
 async function togglePinned(sessionId: string): Promise<void> {
-  const repositorySession = repositorySessions.value.get(sessionId);
+  const repositorySession = repositorySessions.value[sessionId];
   if (!repositorySession) {
     return;
   }
@@ -1365,7 +1358,6 @@ async function togglePinned(sessionId: string): Promise<void> {
     await repositoryClient.setSessionRetained(sessionId, next);
     // Reflect immediately rather than waiting for a refresh round-trip
     repositorySession.retained = next;
-    repositorySessions.value = new Map(repositorySessions.value);
     ToastService.success(
       next ? 'Session pinned' : 'Session released',
       next
@@ -1421,11 +1413,7 @@ function cancelHideTooltip() {
 }
 
 onMounted(async () => {
-  const [loadedInstances] = await Promise.all([
-    instanceClient.list(true),
-    loadRepositorySessions()
-  ]);
-  instances.value = loadedInstances;
+  instances.value = await instanceClient.list(true);
   instanceSessions.value = new Map(
     instances.value.map(instance => [instance.id, instance.sessions ?? []])
   );
@@ -1477,10 +1465,6 @@ onMounted(async () => {
   background-color: rgba(16, 185, 129, 0.04);
   border-left-color: var(--color-success);
 }
-.instance-card.expired .instance-card-head {
-  background-color: rgba(156, 163, 175, 0.04);
-  border-left-color: var(--color-text-light);
-}
 /* The newest session ended without ever sending a heartbeat: a purple rail, status kept */
 .instance-card.no-heartbeat .instance-card-head {
   border-left-color: var(--color-purple-border);
@@ -1494,9 +1478,6 @@ onMounted(async () => {
 }
 .instance-card.finished .instance-card-head:hover {
   background-color: rgba(16, 185, 129, 0.1);
-}
-.instance-card.expired .instance-card-head:hover {
-  background-color: rgba(156, 163, 175, 0.1);
 }
 
 .head-iconbox {
@@ -1603,9 +1584,6 @@ onMounted(async () => {
 }
 .instance-card.finished .instance-card-body {
   border-left-color: var(--color-success);
-}
-.instance-card.expired .instance-card-body {
-  border-left-color: var(--color-text-light);
 }
 .instance-card.no-heartbeat .instance-card-body {
   border-left-color: var(--color-purple-border);

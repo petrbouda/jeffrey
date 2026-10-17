@@ -33,8 +33,6 @@
     <modules>
         <module>hub-model</module>
         <module>pages-hub</module>
-        <module>hub-persistence-api</module>
-        <module>hub-sql-persistence</module>
         <module>core-hub</module>
     </modules>
 
@@ -53,16 +51,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>hub-model</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>hub-persistence-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>hub-sql-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

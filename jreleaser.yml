@@ -45,9 +45,9 @@ release:
     overwrite: true
     releaseName: 'Jeffrey {{projectVersion}}'
     prerelease:
-      # Beta tags (vX.Y.Z-bN) are flagged as pre-releases automatically; the old
-      # job always set prerelease=false, even for betas.
-      pattern: '.*-b\d+'
+      # Any suffixed tag (vX.Y.Z-bN betas, vX.Y.Z-hub-db-less builds) is flagged as a
+      # pre-release automatically, so it never becomes GitHub's "latest" release.
+      pattern: '.*-[a-z].*'
     # No auto-generated changelog. Release notes are maintained manually at
     # https://www.jeffrey-analyst.cafe/release-notes, so instead of listing
     # commits the body is a fixed 'Release {version}' line. A non-empty body is

@@ -17,50 +17,32 @@
 
 package cafe.jeffrey.hub.core.manager.project;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
+import cafe.jeffrey.hub.core.manager.HubRepositoryManager;
+import cafe.jeffrey.hub.core.manager.RepositoryManager;
+import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.volume.ProjectDirectory;
+import cafe.jeffrey.hub.core.volume.SessionLiveness;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.support.TransactionOperations;
-import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
-import cafe.jeffrey.hub.persistence.api.ProjectRepository;
-import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
 import java.util.List;
 
-/**
- * Hub-specific project manager — no profile analysis, recording management,
- * or download capabilities. The hub is a pure collector.
- */
 public class HubProjectManager implements ProjectManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubProjectManager.class);
 
     private final ProjectInfo projectInfo;
-    private final ProjectRepository projectRepository;
-    private final HubPlatformRepositories platformRepositories;
     private final RepositoryStorage repositoryStorage;
-    private final RepositoryManager.Factory repositoryManagerFactory;
-    private final TransactionOperations transactionOperations;
 
-    public HubProjectManager(
-            ProjectInfo projectInfo,
-            HubPlatformRepositories platformRepositories,
-            RepositoryStorage repositoryStorage,
-            RepositoryManager.Factory repositoryManagerFactory,
-            TransactionOperations transactionOperations) {
-
-        this.projectInfo = projectInfo;
-        this.projectRepository = platformRepositories.newProjectRepository(projectInfo.id());
-        this.platformRepositories = platformRepositories;
-        this.repositoryStorage = repositoryStorage;
-        this.repositoryManagerFactory = repositoryManagerFactory;
-        this.transactionOperations = transactionOperations;
+    public HubProjectManager(ProjectDirectory project, SessionLiveness liveness) {
+        this.projectInfo = project.info();
+        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.path(), liveness);
     }
 
     @Override
@@ -70,12 +52,7 @@ public class HubProjectManager implements ProjectManager {
 
     @Override
     public RepositoryManager repositoryManager() {
-        return repositoryManagerFactory.apply(projectInfo);
-    }
-
-    @Override
-    public ProjectInstanceRepository projectInstanceRepository() {
-        return platformRepositories.newProjectInstanceRepository(projectInfo.id());
+        return new HubRepositoryManager(projectInfo, repositoryStorage);
     }
 
     @Override
@@ -83,43 +60,31 @@ public class HubProjectManager implements ProjectManager {
         return projectInfo;
     }
 
-    @Override
-    public DetailedProjectInfo detailedInfo() {
-        List<RecordingSession> recordingSessions = repositoryManager()
-                .listRecordingSessions(SessionDetail.HEADERS);
-
-        RecordingStatus recordingStatus = recordingSessions.isEmpty()
-                ? null
-                : recordingSessions.stream().anyMatch(session -> session.status() == RecordingStatus.ACTIVE)
-                        ? RecordingStatus.ACTIVE
-                        : RecordingStatus.FINISHED;
-
-        return new DetailedProjectInfo(projectInfo, recordingStatus, recordingSessions.size());
-    }
-
     /**
-     * Deletes the project for good: its directory tree on the workspace volume, then its rows.
-     *
-     * <p>The directory goes first because its location is read from the project's repository
-     * row, which the cascade removes. Its removal is also what makes the deletion final — the
-     * workspace reconciler re-creates any project whose on-disk declaration still exists. It is
-     * best-effort: leftover files are cheaper than a permanently stuck project delete.
+     * The project's status and session count, read off its instances — each from its newest
+     * session alone, so listing projects never reads an older session's liveness files.
      */
     @Override
-    public void delete() {
-        LOG.debug("Deleting project: project_id={}", info().id());
+    public DetailedProjectInfo detailedInfo() {
+        List<ProjectInstanceInfo> instances = repositoryStorage.instances();
+        int sessionCount = instances.stream().mapToInt(ProjectInstanceInfo::sessionCount).sum();
+        return new DetailedProjectInfo(projectInfo, statusOf(instances, sessionCount), sessionCount);
+    }
 
-        try {
-            repositoryStorage.deleteProjectDirectory();
-        } catch (Exception e) {
-            LOG.warn("Failed to delete project directory: project_id={}", projectInfo.id(), e);
+    /** {@code null} without a session; ACTIVE while any instance records; FINISHED otherwise. */
+    private static RecordingStatus statusOf(List<ProjectInstanceInfo> instances, int sessionCount) {
+        if (sessionCount == 0) {
+            return null;
         }
+        if (instances.stream().anyMatch(instance -> instance.status() == ProjectInstanceStatus.ACTIVE)) {
+            return RecordingStatus.ACTIVE;
+        }
+        return RecordingStatus.FINISHED;
+    }
 
-        transactionOperations.executeWithoutResult(_ -> {
-            // SQL cascade deletes all project metadata (instances, sessions, repository, project row)
-            projectRepository.delete();
-        });
-
+    @Override
+    public void delete() {
+        repositoryStorage.deleteProjectDirectory();
         LOG.info("Deleted project: project_id={}", projectInfo.id());
         JfrNotificationEmitter.projectDeleted(projectInfo.id());
     }

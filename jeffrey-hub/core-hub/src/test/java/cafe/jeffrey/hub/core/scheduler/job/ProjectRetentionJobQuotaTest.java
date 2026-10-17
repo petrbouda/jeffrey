@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -81,23 +81,18 @@ class ProjectRetentionJobQuotaTest {
     RepositoryManager repositoryManager;
 
     @Mock
-    ProjectInstanceRepository instanceRepository;
-
-    @Mock
     StorageOverviewCache storageOverview;
 
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
-        ProjectInfo projectInfo = new ProjectInfo(
-                "proj-1", null, "my-project", "ws-1", NOW, NOW, Map.of());
+        ProjectInfo projectInfo = new ProjectInfo("proj-1", "my-project", "ws-1", NOW, Map.of());
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(true);
+        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
         when(projectManager.repositoryStorage()).thenReturn(storage);
-        when(projectManager.projectInstanceRepository()).thenReturn(instanceRepository);
 
         job = job(BUDGET + "");
     }
@@ -205,7 +200,7 @@ class ProjectRetentionJobQuotaTest {
             RecordingSession next = finishedSession("next", NOW.minusSeconds(3000), false,
                     recording("n", NOW.minusSeconds(3000), 80 * MB));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(vanished, next));
-            when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(false);
+            when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(SessionDeletion.NOT_FOUND);
 
             execute();
 

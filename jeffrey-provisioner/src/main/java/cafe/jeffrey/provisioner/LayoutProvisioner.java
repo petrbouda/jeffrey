@@ -27,10 +27,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Creates the directory tree a run needs, up to and including its session directory.
- *
- * <p>The workspaces root comes either from an explicit {@code workspaces-dir} or from
- * {@code jeffrey-home}, which is the only place that choice is acted on.
+ * Creates the directory tree a run needs, up to and including its session directory. The
+ * workspaces root is always {@code <jeffrey-home>/workspaces}, where the hub reads it.
  */
 public class LayoutProvisioner {
 
@@ -38,16 +36,8 @@ public class LayoutProvisioner {
 
     /** Everything above the session: shared by every run of the same project. */
     public ProjectLayout provisionProject(InitConfig config) throws IOException {
-        Path jeffreyHome = null;
-        Path workspaces;
-
-        if (config.useJeffreyHome()) {
-            jeffreyHome = createDirectories(Path.of(config.getJeffreyHome()));
-            workspaces = createDirectories(jeffreyHome.resolve(JeffreyLayout.WORKSPACES_DIR));
-        } else {
-            workspaces = createDirectories(Path.of(config.getWorkspacesDir()));
-        }
-
+        Path jeffreyHome = createDirectories(Path.of(config.getJeffreyHome()));
+        Path workspaces = createDirectories(jeffreyHome.resolve(JeffreyLayout.WORKSPACES_DIR));
         Path workspace = createDirectories(workspaces.resolve(config.getWorkspaceRefId()));
         Path project = createDirectories(workspace.resolve(config.getProjectName()));
 

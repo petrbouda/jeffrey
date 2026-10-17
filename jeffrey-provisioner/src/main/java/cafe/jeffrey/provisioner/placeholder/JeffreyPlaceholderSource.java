@@ -58,20 +58,19 @@ public record JeffreyPlaceholderSource(Map<String, String> values) implements Pl
     }
 
     /**
-     * Binds the names to the paths a run produced. {@code jeffreyHome} is absent when the run was
-     * configured with an explicit workspaces directory, and {@code profilerPath} when no profiler
-     * was resolved; both are simply left unbound.
+     * Binds the names to the paths a run produced. {@code profilerPath} is absent when no profiler
+     * was resolved, and is then simply left unbound.
      */
     public static JeffreyPlaceholderSource of(
             SessionLayout layout, String profilerPath, String filePatternTemplate) {
 
         Map<String, String> values = new HashMap<>();
-        put(values, HOME, layout.jeffreyHome());
-        put(values, WORKSPACES, layout.workspaces());
-        put(values, CURRENT_WORKSPACE, layout.workspace());
-        put(values, CURRENT_PROJECT, layout.project());
-        put(values, CURRENT_SESSION, layout.session());
-        put(values, FILE_PATTERN, layout.recordingFilePattern(filePatternTemplate));
+        values.put(HOME, layout.jeffreyHome().toString());
+        values.put(WORKSPACES, layout.workspaces().toString());
+        values.put(CURRENT_WORKSPACE, layout.workspace().toString());
+        values.put(CURRENT_PROJECT, layout.project().toString());
+        values.put(CURRENT_SESSION, layout.session().toString());
+        values.put(FILE_PATTERN, layout.recordingFilePattern(filePatternTemplate).toString());
         if (profilerPath != null && !profilerPath.isBlank()) {
             values.put(PROFILER_PATH, profilerPath);
         }
@@ -84,12 +83,6 @@ public record JeffreyPlaceholderSource(Map<String, String> values) implements Pl
      */
     public static JeffreyPlaceholderSource ofSession(Path session) {
         return new JeffreyPlaceholderSource(Map.of(CURRENT_SESSION, session.toString()));
-    }
-
-    private static void put(Map<String, String> values, String name, Path path) {
-        if (path != null) {
-            values.put(name, path.toString());
-        }
     }
 
     @Override

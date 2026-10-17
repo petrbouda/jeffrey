@@ -53,7 +53,22 @@ function session(
   duration: number = SHORT_DURATION
 ): RecordingSession {
   const finishedAt = status === RecordingStatus.FINISHED ? createdAt + duration : null;
-  return new RecordingSession(id, id, 'inst-1', createdAt, finishedAt, status, duration, files, false);
+  // As a listing sends it: the files' count and size, never the files themselves
+  const sizeBytes = files.reduce((sum, f) => sum + (f.size ?? 0), 0);
+  return new RecordingSession(
+    id,
+    id,
+    'inst-1',
+    createdAt,
+    finishedAt,
+    status,
+    duration,
+    [],
+    false,
+    false,
+    files.length,
+    sizeBytes
+  );
 }
 
 /** A session the hub finished at its start because no heartbeat arrived within the grace. */

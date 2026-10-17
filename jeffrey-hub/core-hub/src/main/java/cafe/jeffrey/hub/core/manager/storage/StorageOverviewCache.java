@@ -17,21 +17,17 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.OptionalLong;
 
 /**
  * The hub's storage overview, as the last retention pass left it. That pass already lists every
  * project's sessions with their files, so it publishes each project's figure here instead of a
- * second walk of the volume; the dashboard reads it instantly, up to one pass period stale. The
- * database's own size is a single stat and is measured on every read.
+ * second walk of the volume; the dashboard reads it instantly, up to one pass period stale.
  */
 public class StorageOverviewCache {
 
@@ -42,40 +38,33 @@ public class StorageOverviewCache {
     public record CachedOverview(StorageOverview overview, Instant computedAt) {
     }
 
-    private record ProjectsSnapshot(List<ProjectStorage> projects, Instant measuredAt) {
-    }
+    private static final CachedOverview NOT_YET_MEASURED = new CachedOverview(new StorageOverview(List.of()), null);
 
-    private static final ProjectsSnapshot NOT_YET_MEASURED = new ProjectsSnapshot(List.of(), null);
-
-    private final List<Path> databaseFiles;
     private final Clock clock;
 
-    private volatile ProjectsSnapshot snapshot = NOT_YET_MEASURED;
+    private volatile CachedOverview snapshot = NOT_YET_MEASURED;
 
-    /**
-     * @param databaseFiles the hub database and its WAL; a custom database URL pointing elsewhere is
-     *                      not measured
-     */
-    public StorageOverviewCache(List<Path> databaseFiles, Clock clock) {
-        this.databaseFiles = List.copyOf(databaseFiles);
+    public StorageOverviewCache(Clock clock) {
         this.clock = clock;
     }
 
     /** Replaces the project figures with those of a pass that just visited every project. */
     public void publish(List<ProjectStorage> projects) {
-        snapshot = new ProjectsSnapshot(List.copyOf(projects), clock.instant());
+        snapshot = new CachedOverview(new StorageOverview(List.copyOf(projects)), clock.instant());
     }
 
     public CachedOverview get() {
-        ProjectsSnapshot current = snapshot;
-        InfrastructureUsage infrastructure = new InfrastructureUsage(databaseBytes());
-        return new CachedOverview(new StorageOverview(infrastructure, current.projects()), current.measuredAt());
+        return snapshot;
     }
 
-    private long databaseBytes() {
-        return databaseFiles.stream()
-                .filter(Files::isRegularFile)
-                .mapToLong(FileSystemUtils::size)
-                .sum();
+    /**
+     * What the last pass measured for one project, or empty before the first pass and for a
+     * project created since.
+     */
+    public OptionalLong projectSize(String workspaceId, String projectId) {
+        return snapshot.overview().projects().stream()
+                .filter(project -> project.workspaceId().equals(workspaceId) && project.projectId().equals(projectId))
+                .mapToLong(ProjectStorage::totalSizeBytes)
+                .findFirst();
     }
 }

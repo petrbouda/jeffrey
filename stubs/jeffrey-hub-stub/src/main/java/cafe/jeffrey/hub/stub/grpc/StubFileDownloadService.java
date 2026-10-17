@@ -59,7 +59,7 @@ public class StubFileDownloadService extends FileDownloadServiceGrpc.FileDownloa
 
     @Override
     public void downloadFile(DownloadFileRequest request, StreamObserver<DataChunk> responseObserver) {
-        Optional<StubDataset.Session> session = dataset.session(request.getSessionId());
+        Optional<StubDataset.Session> session = dataset.session(request.getWorkspaceId(), request.getProjectId(), request.getSessionId());
         if (session.isEmpty()) {
             responseObserver.onError(
                     StubGrpcExceptions.notFound("Session not found: " + request.getSessionId()));

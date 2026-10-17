@@ -22,9 +22,6 @@ import java.nio.file.Path;
 /**
  * The directories a run shares with every other run of the same project — everything above the
  * session. Becomes a {@link SessionLayout} once this run's session directory exists.
- *
- * @param jeffreyHome null when the run was configured with an explicit workspaces directory
- *                    instead, in which case there is no Jeffrey home to speak of
  */
 public record ProjectLayout(
         Path jeffreyHome,
@@ -33,8 +30,8 @@ public record ProjectLayout(
         Path project) {
 
     public ProjectLayout {
-        if (workspaces == null || workspace == null || project == null) {
-            throw new IllegalArgumentException("Only jeffreyHome may be absent from a project layout");
+        if (jeffreyHome == null || workspaces == null || workspace == null || project == null) {
+            throw new IllegalArgumentException("A project layout needs every directory above the session");
         }
     }
 

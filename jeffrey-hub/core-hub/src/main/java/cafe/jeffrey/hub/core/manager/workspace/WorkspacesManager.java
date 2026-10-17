@@ -26,9 +26,8 @@ import java.util.Optional;
 public interface WorkspacesManager {
 
     /**
-     * What a workspace is created from: the reference id the provisioner names it by on the
-     * volume, and a display name. It once carried a location and a base location too, which no
-     * caller ever set — a workspace's directory is derived from its repository id.
+     * What a workspace is created from: its id, which is the reference id the provisioner names
+     * its directory by, and a display name.
      */
     record CreateWorkspaceRequest(String referenceId, String name) {
 
@@ -38,34 +37,24 @@ public interface WorkspacesManager {
     }
 
     /**
-     * Create a new workspace.
+     * Creates the workspace's directory and marker, or adopts a directory the provisioner already
+     * wrote into by giving it a marker.
      *
-     * @param request the workspace creation request
-     * @return the created workspace
+     * @throws WorkspaceAlreadyExistsException when a workspace of that id or name exists
      */
     WorkspaceInfo create(CreateWorkspaceRequest request);
 
-    /**
-     * Get all workspaces.
-     *
-     * @return list of all workspaces
-     */
+    /** Every workspace directory on the volume. */
     List<WorkspaceManager> findAll();
 
     /**
-     * Get a workspace by its ID.
-     *
-     * @param workspaceId the workspace ID
-     * @return the workspace if it exists, otherwise an empty optional
+     * @param workspaceId the workspace's directory name, which is its reference id
      */
     Optional<WorkspaceManager> findById(String workspaceId);
 
     /**
-     * Get a workspace by its reference ID (the user-supplied id the CLI binds to).
-     *
-     * @param referenceId the workspace reference ID
-     * @return the workspace if it exists, otherwise an empty optional
+     * Whether the workspace was created — its directory carries the hub's marker — as opposed to
+     * listed only because auto-create stands it in for a directory the provisioner wrote into.
      */
-    Optional<WorkspaceManager> findByReferenceId(String referenceId);
-
+    boolean isDescribed(String workspaceId);
 }

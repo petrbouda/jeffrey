@@ -147,11 +147,6 @@
             </tbody>
           </table>
         </div>
-
-        <div class="infra-note">
-          Infrastructure (outside projects):
-          database {{ formatBytes(overview?.databaseSizeBytes ?? 0) }}
-        </div>
       </section>
     </div>
   </div>
@@ -208,10 +203,17 @@ const sortDirection = ref<SortDirection>('desc');
 
 const formatBytes = (bytes: number) => FormattingService.formatBytesShort(bytes);
 
+/** What `computedAtMillis` holds until the first retention pass has measured the projects. */
+const NOT_YET_MEASURED = 0;
+
 const storageComputedAgo = computed(() => {
   // The tick dependency re-evaluates the label periodically so it ages in place
   relativeTimeTick.value;
-  return FormattingService.formatRelativeTime(overview.value?.computedAtMillis);
+  const computedAt = overview.value?.computedAtMillis;
+  if (computedAt === NOT_YET_MEASURED) {
+    return 'not measured yet';
+  }
+  return FormattingService.formatRelativeTime(computedAt);
 });
 
 /** Placeholder storage for a project the storage scan has no data for (nothing recorded yet). */
@@ -280,16 +282,8 @@ const lastActivity = (row: ProjectRow) => {
   return FormattingService.formatRelativeTime(row.lastActivityTimeMillis);
 };
 
-const projectsTotalBytes = computed(() => {
-  return workspaceRows.value.reduce((sum, row) => sum + row.totalSizeBytes, 0);
-});
-
 const totalUsedBytes = computed(() => {
-  if (!overview.value) {
-    return projectsTotalBytes.value;
-  }
-  return projectsTotalBytes.value
-      + overview.value.databaseSizeBytes;
+  return workspaceRows.value.reduce((sum, row) => sum + row.totalSizeBytes, 0);
 });
 
 const totalProjects = computed(() => {
@@ -301,10 +295,10 @@ const totalFiles = computed(() => {
 });
 
 const shareOfHubValue = (row: WorkspaceRow) => {
-  if (projectsTotalBytes.value === 0) {
+  if (totalUsedBytes.value === 0) {
     return 0;
   }
-  return (row.totalSizeBytes / projectsTotalBytes.value) * 100;
+  return (row.totalSizeBytes / totalUsedBytes.value) * 100;
 };
 
 const shareOfHubPct = (row: WorkspaceRow) => {
@@ -743,14 +737,5 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
   min-width: 44px;
   text-align: right;
-}
-
-/* Infrastructure footnote */
-.infra-note {
-  margin: 10px 4px 0;
-  font-size: 0.74rem;
-  color: var(--color-slate-muted);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 </style>

@@ -23,16 +23,12 @@ import cafe.jeffrey.shared.common.Schedulers;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Schedules jobs on two executors split by {@link Job.ExecutorGroup}:
- * {@code GLOBAL} jobs (queue polling, cleaners) get a dedicated single thread,
- * while {@code PROJECT_FAN_OUT} jobs (iterating all workspaces/projects) share
- * a small pool — a slow fan-out can therefore never delay the global jobs.
+ * Schedules the jobs on one small pool; every job visits each project of each workspace.
  *
  * <p>Jobs are scheduled with fixed <em>delay</em> semantics: the period is
  * measured from the end of one run to the start of the next, so a run that
@@ -47,68 +43,51 @@ public class PeriodicalScheduler implements AutoCloseable {
     /** How long {@link #close()} waits for a running tick before letting the context go down under it. */
     private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(30);
 
-    private static final int DEFAULT_FAN_OUT_POOL_SIZE = 1;
+    private static final int DEFAULT_POOL_SIZE = 1;
 
     private final List<? extends Job> jobs;
-    private final int fanOutPoolSize;
+    private final int poolSize;
     private final JobLocks jobLocks;
 
-    private ScheduledExecutorService globalScheduler;
-    private ScheduledExecutorService fanOutScheduler;
+    private ScheduledExecutorService scheduler;
 
     public PeriodicalScheduler(List<? extends Job> jobs) {
-        this(jobs, DEFAULT_FAN_OUT_POOL_SIZE, new JobLocks());
+        this(jobs, DEFAULT_POOL_SIZE, new JobLocks());
     }
 
-    public PeriodicalScheduler(List<? extends Job> jobs, int fanOutPoolSize, JobLocks jobLocks) {
+    public PeriodicalScheduler(List<? extends Job> jobs, int poolSize, JobLocks jobLocks) {
         this.jobs = jobs;
-        this.fanOutPoolSize = fanOutPoolSize;
+        this.poolSize = poolSize;
         this.jobLocks = jobLocks;
     }
 
     public void start() {
-        if (globalScheduler == null) {
-            globalScheduler = Executors.newSingleThreadScheduledExecutor(
-                    Schedulers.platformThreadfactory("scheduler-global"));
-            fanOutScheduler = Executors.newScheduledThreadPool(
-                    fanOutPoolSize, Schedulers.platformThreadfactory("scheduler-fanout"));
-
+        if (scheduler == null) {
+            scheduler = Executors.newScheduledThreadPool(poolSize, Schedulers.platformThreadfactory("scheduler"));
             for (Job job : jobs) {
-                executorFor(job).scheduleWithFixedDelay(
-                        executedJob(job), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
+                scheduler.scheduleWithFixedDelay(executedJob(job), 0, job.period().toMillis(), TimeUnit.MILLISECONDS);
             }
         }
     }
 
     /**
-     * Stops both pools and waits for the tick in flight, because the beans a tick works on —
-     * the DuckDB provider first of all — are destroyed right after this one, and a session
-     * deletion or a compression rename cut off half-way is exactly the state every job is
-     * written to never leave behind.
+     * Stops the pool and waits for the tick in flight, because a session deletion or a
+     * compression rename cut off half-way is exactly the state every job is written to never
+     * leave behind.
      */
     @Override
     public void close() {
-        if (globalScheduler == null) {
+        if (scheduler == null) {
             return;
         }
-        globalScheduler.shutdownNow();
-        fanOutScheduler.shutdownNow();
-        awaitTermination(globalScheduler, "global");
-        awaitTermination(fanOutScheduler, "fan-out");
-    }
-
-    private static void awaitTermination(ExecutorService executor, String name) {
+        scheduler.shutdownNow();
         try {
-            if (!executor.awaitTermination(SHUTDOWN_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
-                LOG.warn("Scheduler did not stop within the shutdown timeout: executor={} timeout={}", name, SHUTDOWN_TIMEOUT);
+            if (!scheduler.awaitTermination(SHUTDOWN_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+                LOG.warn("Scheduler did not stop within the shutdown timeout: timeout={}", SHUTDOWN_TIMEOUT);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private ScheduledExecutorService executorFor(Job job) {
-        return job.executorGroup() == Job.ExecutorGroup.PROJECT_FAN_OUT ? fanOutScheduler : globalScheduler;
     }
 
     private ExecutedJob executedJob(Job job) {

@@ -13,9 +13,9 @@ Jeffrey splits profiling into distinct responsibilities:
 ![Jeffrey Local + Server architecture](images/release-notes/server-recording/01-architecture.png)
 *Split architecture: Server collects in the cloud, Local analyzes on your machine.*
 
-**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and announces the new instance by writing a pointer into `.pending/` on that storage for Jeffrey Hub to pick up. It runs once before your Java application starts.
+**Jeffrey Provisioner** runs as an init step in your Docker container. It reads a configuration file, generates JVM arguments for Async Profiler, creates the directory structure on shared storage, and describes the new project, instance and session in marker files there for Jeffrey Hub to read. It runs once before your Java application starts.
 
-**Jeffrey Hub** runs as a service in your Kubernetes cluster. It watches shared storage for new JFR files and metadata, tracks recording sessions, manages instance lifecycles, and exposes a gRPC API for remote access. It collects — it doesn't analyze.
+**Jeffrey Hub** runs as a service in your Kubernetes cluster. It keeps no database: every request reads the JFR files and marker files on shared storage, derives the state of recording sessions and instances from them, and is served over a gRPC API for remote access. It collects — it doesn't analyze.
 
 **Jeffrey Local** runs on your developer machine. It connects to Jeffrey Hub as a "remote workspace," lets you browse instances and sessions, download recordings, and perform full analysis — flamegraphs, GC analysis, heap dumps, AI, everything covered in previous articles.
 
@@ -101,17 +101,18 @@ Each project can have multiple **instances** (pods), and each instance can have 
 
 ## Instance Lifecycle
 
-An **instance** represents a single pod lifecycle — from startup to termination. Jeffrey tracks instances through four states:
+An **instance** represents a single pod lifecycle — from startup to termination. Jeffrey derives an instance's state from its sessions:
 
 - **PENDING** — Created by provisioner, waiting for the first recording session to start
 - **ACTIVE** — At least one recording session is producing JFR data
 - **FINISHED** — All sessions have ended (pod terminated)
-- **EXPIRED** — Cleaned up after the configured retention period
+
+When retention removes an instance's last session, the instance's directory goes with it.
 
 ![Instances overview and lifecycle](images/release-notes/server-recording/02-instances-overview.png)
 *Instance list showing lifecycle state, session count, and timestamps.*
 
-Jeffrey detects session liveness through **file-based heartbeats**. The `jeffrey-agent` Java agent — baked into the image next to async-profiler and attached with `-javaagent` by default, so the application needs no change — writes `.heartbeat/heartbeat` to shared storage every five seconds and a `.heartbeat/finished` timestamp on clean shutdown. A deployment that sets `JEFFREY_AGENT_ENABLED=false` runs without it; liveness then comes only from the `jeffrey-heartbeat` library, if the application carries it (an application that carries it anyway is safe with the agent on — the library stands down while the agent reports). Either is silenced by the application's own `jeffrey.heartbeat.enabled=false`. Jeffrey Hub checks the finished marker first, then falls back to heartbeat staleness after a hard crash. A session that never writes either file is left alone and closed when the instance's next session appears. If a HotSpot error log appears, the Hub records it as a crash event.
+Jeffrey detects session liveness through **file-based heartbeats**. The `jeffrey-agent` Java agent — baked into the image next to async-profiler and attached with `-javaagent` by default, so the application needs no change — writes `.heartbeat/heartbeat` to shared storage every five seconds and a `.heartbeat/finished` timestamp on clean shutdown. A deployment that sets `JEFFREY_AGENT_ENABLED=false` runs without it; liveness then comes only from the `jeffrey-heartbeat` library, if the application carries it (an application that carries it anyway is safe with the agent on — the library stands down while the agent reports). Either is silenced by the application's own `jeffrey.heartbeat.enabled=false`. Each time it reads a session, Jeffrey Hub checks the finished marker first, ends a session once a newer one starts in the same instance, then falls back to heartbeat staleness after a hard crash. A session that never writes either file is finished at its start once the startup grace (one minute by default) has passed, marked as having sent no heartbeat. If a HotSpot error log appears, the Hub records it as a crash event.
 
 ![Instance timeline](images/release-notes/server-recording/03-instance-timeline.png)
 *Timeline view showing instance activity, sessions, and events over time.*
@@ -169,8 +170,7 @@ Settings are propagated to shared storage, and Jeffrey Provisioner picks them up
 
 Jeffrey Hub runs background scheduler jobs to maintain data hygiene:
 
-- **Session finish detection** — Evaluates heartbeats and marks sessions as finished when pods terminate
-- **Instance expiration** — Cleans up old instances after the configured retention period
+- **Instance cleanup** — Removes instances that never started a session within the configured retention period
 - **Recording cleanup** — Limits disk usage by removing old JFR chunks from long-running sessions
 - **Session cleanup** — Removes sessions older than the retention period and compresses finished JFR files
 

@@ -165,7 +165,7 @@ comparisons. No rebuild required.
 | Property | Image ENV set | Default |
 |---|---|---|
 | `enabled` | — | `true` (build-time gate) |
-| `jeffreyHome` | `JEFFREY_HOME` | unset (the provisioner also accepts `JEFFREY_WORKSPACES_DIR`) |
+| `jeffreyHome` | `JEFFREY_HOME` | unset |
 | `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` (optional file) |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
 | `profilerPath` | `JEFFREY_PROFILER_PATH` | baked: `/opt/jeffrey/libasyncProfiler.so` |

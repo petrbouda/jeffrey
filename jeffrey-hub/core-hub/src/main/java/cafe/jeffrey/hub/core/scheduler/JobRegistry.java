@@ -46,7 +46,6 @@ public class JobRegistry {
             SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(jobType);
             result.add(new JobInfo(
                     jobType,
-                    jobType.executionLevel(),
                     config.period(),
                     config.params(),
                     config.enabled(),

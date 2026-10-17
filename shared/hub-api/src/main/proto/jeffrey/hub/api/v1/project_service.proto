@@ -25,18 +25,18 @@ option java_multiple_files = true;
 import "jeffrey/hub/api/v1/common.proto";
 
 // Manages projects within a workspace — listing and deletion.
-// Projects represent monitored applications and are created from the declarations
-// jeffrey-provisioner writes to the workspace volume.
+// A project is a directory jeffrey-provisioner declared with its .project-info.json; its id is
+// the one the provisioner wrote there.
 service ProjectService {
   // Lists all projects in a workspace.
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
 
-  // Gets detailed information about a single project within a workspace. NOT_FOUND when either
-  // the workspace or the project is not there, or the project belongs to another workspace.
+  // Gets one project of a workspace. NOT_FOUND when the workspace, or the project in it, is not
+  // there.
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
 
-  // Deletes a project for good: its rows and its directory on the workspace volume are gone
-  // before the response is returned. There is no restore.
+  // Deletes a project for good: its directory on the workspace volume is gone before the
+  // response is returned. There is no restore.
   rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
 }
 
@@ -61,14 +61,15 @@ message GetProjectResponse {
 }
 
 message DeleteProjectRequest {
-  string project_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
 }
 
 message DeleteProjectResponse {}
 
 // Detailed information about a project and its current state.
 message ProjectInfo {
-  // Internal unique identifier for the project.
+  // The project's id, as the provisioner wrote it into the project's marker file.
   string id = 1;
   // Project name.
   string name = 2;
@@ -76,11 +77,12 @@ message ProjectInfo {
   int64 created_at = 3;
   // ID of the workspace this project belongs to.
   string workspace_id = 4;
-  // Current recording status.
+  // ACTIVE while the newest session of any instance is recording, FINISHED otherwise;
+  // unspecified for a project without a session.
   RecordingStatus status = 5;
-  // Number of active and finished recording sessions.
+  // Number of recording sessions across the project's instances.
   int32 session_count = 6;
-  // Reference ID of the workspace this project belongs to — what the CLI's project.workspace-id
-  // names. Carried here so a caller holding the project needs no workspace lookup for it.
-  string workspace_reference_id = 7;
+  // Bytes the project occupies, as the last retention pass measured them; absent until the
+  // first pass has run. Not re-measured on request.
+  optional int64 size_bytes = 7;
 }

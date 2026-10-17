@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
  * any field by redeclaring the same key.
  * <p>
  * Property keys use the lower-kebab-case form of {@link JobType} (for example
- * {@code workspace-reconciler} for {@code WORKSPACE_RECONCILER}).
+ * {@code project-retention} for {@code PROJECT_RETENTION}).
  */
 @ConfigurationProperties("jeffrey.hub.scheduler")
 public class SchedulerJobsProperties {
@@ -53,7 +53,7 @@ public class SchedulerJobsProperties {
 
     private Map<String, JobConfig> jobs = new HashMap<>();
 
-    /** Pool size for the PROJECT_FAN_OUT executor group (see {@code Job.ExecutorGroup}) */
+    /** Pool size of the scheduler, which runs every job over the projects of every workspace */
     private int fanOutPoolSize = DEFAULT_FAN_OUT_POOL_SIZE;
 
     public Map<String, JobConfig> getJobs() {
@@ -85,8 +85,8 @@ public class SchedulerJobsProperties {
     /**
      * Resolves a job's configuration tolerantly of how the property source spelled the map key.
      * The canonical key is lower-kebab-case, but environment variables cannot carry a dash:
-     * Spring's relaxed binding turns {@code JEFFREY_HUB_SCHEDULER_JOBS_WORKSPACERECONCILER_PERIOD}
-     * into the key {@code workspacereconciler}. Matching on the canonical key alone would miss
+     * Spring's relaxed binding turns {@code JEFFREY_HUB_SCHEDULER_JOBS_PROJECTRETENTION_PERIOD}
+     * into the key {@code projectretention}. Matching on the canonical key alone would miss
      * that and silently fall back to a disabled job — the operator's attempt to tune a period
      * would switch the job off instead.
      */

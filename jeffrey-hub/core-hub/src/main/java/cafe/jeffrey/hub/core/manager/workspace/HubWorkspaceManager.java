@@ -17,72 +17,38 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
+import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
+import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
-
-import java.nio.file.Path;
 
 public class HubWorkspaceManager implements WorkspaceManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubWorkspaceManager.class);
 
-    private final HubJeffreyDirs jeffreyDirs;
-    private final WorkspaceInfo workspaceInfo;
-    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceDirectory workspace;
     private final ProjectsManager.Factory projectsManagerFactory;
 
-    public HubWorkspaceManager(
-            HubJeffreyDirs jeffreyDirs,
-            WorkspaceInfo workspaceInfo,
-            WorkspaceRepository workspaceRepository,
-            ProjectsManager.Factory projectsManagerFactory) {
-
-        this.jeffreyDirs = jeffreyDirs;
-        this.workspaceInfo = workspaceInfo;
-        this.workspaceRepository = workspaceRepository;
+    public HubWorkspaceManager(WorkspaceDirectory workspace, ProjectsManager.Factory projectsManagerFactory) {
+        this.workspace = workspace;
         this.projectsManagerFactory = projectsManagerFactory;
     }
 
     @Override
-    public WorkspaceInfo localInfo() {
-        return workspaceInfo;
-    }
-
-    @Override
-    public WorkspaceInfo resolveInfo() {
-        // A workspace's directory is named by its reference id, under the hub's workspaces root
-        Path directory = jeffreyDirs.workspaces().resolve(workspaceInfo.referenceId());
-        WorkspaceStatus workspaceStatus = FileSystemUtils.isDirectory(directory)
-                ? WorkspaceStatus.AVAILABLE
-                : WorkspaceStatus.UNAVAILABLE;
-
-        return workspaceInfo.withStatus(workspaceStatus);
+    public WorkspaceInfo info() {
+        return workspace.info();
     }
 
     @Override
     public ProjectsManager projectsManager() {
-        return projectsManagerFactory.apply(workspaceInfo);
+        return projectsManagerFactory.apply(workspace);
     }
 
-    /**
-     * Deletes every project the way a project is deleted on its own — rows, then the project's
-     * directory tree — and only then the workspace row. The directory is what makes a deletion
-     * final: the reconciler re-creates any project whose on-disk declaration still exists, and
-     * a workspace deleted rows-only came back, project by project, on the next tick.
-     */
     @Override
     public void delete() {
-        for (ProjectManager project : projectsManager().findAll()) {
-            project.delete();
-        }
-        workspaceRepository.delete();
-        LOG.info("Deleted workspace: workspace_id={}", workspaceInfo.id());
+        FileSystemUtils.removeDirectory(workspace.path());
+        LOG.info("Deleted workspace: workspace_id={} path={}", workspace.id(), workspace.path());
     }
 }

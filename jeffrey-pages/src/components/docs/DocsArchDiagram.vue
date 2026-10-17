@@ -113,7 +113,6 @@ withDefaults(defineProps<{
           </div>
           <div class="arch-section-label">Storage</div>
           <div class="arch-storage-row">
-            <div class="arch-storage"><i class="bi bi-database"></i> DuckDB</div>
             <div class="arch-storage"><i class="bi bi-folder"></i> Filesystem</div>
           </div>
         </div>
@@ -126,7 +125,7 @@ withDefaults(defineProps<{
       <div v-if="variant !== 'hub'" class="arch-bottom-connector-spacer"></div>
       <div class="arch-bottom-server-col">
         <div class="arch-reads-arrow">
-          <small>{{ variant === 'tracing' ? 'polls · 5s / 30s' : 'reads' }}</small>
+          <small>{{ variant === 'tracing' ? 'reads on every request' : 'reads' }}</small>
           <i class="bi bi-arrow-down"></i>
         </div>
         <div class="arch-shared-fs">

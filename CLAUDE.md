@@ -25,10 +25,11 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
                                        mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
                                        scoping, hints, findings)
-jeffrey-hub/                           HubApplication (core-hub: gRPC services, scheduler/jobs, web/), hub-model,
-                                       hub-{persistence-api,sql-persistence}, pages-hub (minimal Vue UI)
+jeffrey-hub/                           HubApplication (core-hub: gRPC services, scheduler/jobs, web/, volume/ —
+                                       no database: the shared volume is its only state), hub-model,
+                                       pages-hub (minimal Vue UI)
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
-                                       sql-builder, test (@DuckDBTest), hub-api (protos only), pending-index,
+                                       sql-builder, test (@DuckDBTest), hub-api (protos only),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from
                                        jeffrey-agent.path (like profiler-path) unless jeffrey-agent.enabled=false
@@ -70,7 +71,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 ### Inspecting DuckDB files
 - Per-profile DB `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (`events`, `threads`, `event_types`, …); core DB `~/.jeffrey-microscope/jeffrey-data.db`.
 - A running app holds an exclusive lock: **copy the file first** (plus `.wal` if present) and open the copy read-only. No `duckdb` CLI is installed — `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
-- Schema is `CREATE TABLE` in each `V001__init.sql` (`microscope-core-sql-persistence`, `hub-sql-persistence`, `profile-sql-persistence` under `src/main/resources/db/migration/`); edit it in place — the DB is recreated on every startup. JFR event fields reference: https://sap.github.io/jfrevents/
+- Schema is `CREATE TABLE` in each `V001__init.sql` (`microscope-core-sql-persistence`, `profile-sql-persistence` under `src/main/resources/db/migration/`); edit it in place — the DB is recreated on every startup. JFR event fields reference: https://sap.github.io/jfrevents/
 
 ## Rules that apply everywhere
 

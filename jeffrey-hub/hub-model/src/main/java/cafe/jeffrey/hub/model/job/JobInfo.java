@@ -31,7 +31,6 @@ import java.util.Map;
  */
 public record JobInfo(
         JobType jobType,
-        JobType.ExecutionLevel executionLevel,
         Duration period,
         Map<String, String> params,
         boolean enabled,

@@ -23,9 +23,10 @@ option java_package = "cafe.jeffrey.hub.api.v1";
 option java_multiple_files = true;
 
 // Manages workspace discovery and lifecycle.
-// Workspaces are top-level containers that group projects. They are explicitly
-// created via CreateWorkspace; the CLI's project.workspace-id must match an
-// existing workspace's reference_id for events to be accepted.
+// Workspaces are top-level containers that group projects: one directory each under the hub's
+// workspaces root, named by the reference id the CLI's project.workspace-id binds to. A directory
+// counts as a workspace once CreateWorkspace gave it the hub's marker (or always, with
+// jeffrey.hub.workspaces.auto-create).
 service WorkspaceService {
   // Returns the Jeffrey server version.
   rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
@@ -33,12 +34,12 @@ service WorkspaceService {
   // Lists all workspaces registered on this server.
   rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
 
-  // Creates a new workspace with a user-supplied reference_id (used by the CLI
-  // to route recordings via project.workspace-id). The reference_id must be
-  // unique on this server.
+  // Creates a workspace with a user-supplied reference_id (used by the CLI to route
+  // recordings via project.workspace-id), which becomes its id. The reference_id and the
+  // name must be unique on this server.
   rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse);
 
-  // Deletes a workspace and all its data.
+  // Deletes a workspace's directory with all its data.
   rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
 }
 
@@ -64,7 +65,8 @@ message DeleteWorkspaceResponse {}
 
 message CreateWorkspaceRequest {
   // The reference ID — used by jeffrey-provisioner's `project.workspace-id` to route
-  // recordings to this workspace. Must be unique on this server.
+  // recordings to this workspace. It becomes the workspace's id and directory name, so it must
+  // be unique on this server. An existing directory of that name is adopted with its projects.
   string reference_id = 1;
   // Display name (required).
   string name = 2;
@@ -74,22 +76,19 @@ message CreateWorkspaceResponse {
   WorkspaceInfo workspace = 1;
 }
 
-// Represents a workspace — a top-level container for projects.
-// Workspaces are explicitly created via CreateWorkspace; the reference_id
-// is what the CLI uses to address them.
+// Represents a workspace — a top-level container for projects, one directory on the volume.
 message WorkspaceInfo {
-  // Internal unique identifier for the workspace.
+  // The workspace's id: its directory name, which is also the reference id the CLI's
+  // project.workspace-id binds to.
   string id = 1;
   // Display name of the workspace.
   string name = 2;
-  // Reference ID — the user-supplied id the CLI's project.workspace-id binds to.
-  string reference_id = 3;
   // Timestamp when the workspace was created (epoch millis).
-  int64 created_at = 4;
+  int64 created_at = 3;
   // Number of projects currently in this workspace.
-  int32 project_count = 5;
+  int32 project_count = 4;
   // Current availability status of the workspace.
-  WorkspaceStatus status = 6;
+  WorkspaceStatus status = 5;
 }
 
 // Availability status of a workspace.

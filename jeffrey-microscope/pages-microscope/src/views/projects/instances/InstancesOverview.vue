@@ -27,8 +27,7 @@
         <InstanceStatsSummary
           v-if="!loading && instances.length > 0"
           :stats="stats"
-          :storage="storageSize"
-          :storage-error="statisticsError"
+          :storage="storage"
         />
       </Teleport>
 
@@ -84,14 +83,6 @@
           >
             Finished
           </button>
-          <button
-            type="button"
-            class="btn btn-sm"
-            :class="statusFilter === 'EXPIRED' ? 'btn-primary' : 'btn-outline-secondary'"
-            @click="statusFilter = 'EXPIRED'"
-          >
-            Expired
-          </button>
         </div>
       </div>
 
@@ -135,13 +126,6 @@
                       :variant="instanceBadgeVariant(instance.status)"
                       size="xs"
                     />
-                    <Badge
-                      v-if="instance.expiringAt"
-                      class="ms-1"
-                      value="Expiring"
-                      variant="warning"
-                      size="xs"
-                    />
                   </div>
                   <div class="instance-meta">
                     <span
@@ -178,11 +162,10 @@ import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
 import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
 import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics';
-import FormattingService from '@shared/services/FormattingService';
 import TimelineBar from '@shared/components/TimelineBar.vue';
 import { useNavigation } from '@/composables/useNavigation';
 import InstanceStatsSummary from './InstanceStatsSummary.vue';
-import { summarizeInstances } from './instanceStats';
+import { storageFigure, summarizeInstances } from './instanceStats';
 import { PROJECT_NAV_ACTIONS_SELECTOR } from '../projectNav';
 import '@shared/styles/shared-components.css';
 import type { Variant } from '@shared/types/ui';
@@ -196,12 +179,7 @@ const instances = ref<ProjectInstance[]>([]);
 const repositoryStatistics = ref<RepositoryStatistics | null>(null);
 const statisticsError = ref(false);
 
-/** Repository size split so the number can be set larger than its unit; null until it arrives. */
-const storageSize = computed(() =>
-  repositoryStatistics.value
-    ? FormattingService.formatBytesParts(repositoryStatistics.value.totalSize)
-    : null
-);
+const storage = computed(() => storageFigure(repositoryStatistics.value, statisticsError.value));
 
 const stats = computed(() => summarizeInstances(instances.value));
 
@@ -211,9 +189,6 @@ function instanceCardClass(status: string): string {
   }
   if (status === 'ACTIVE') {
     return 'instance-active';
-  }
-  if (status === 'EXPIRED') {
-    return 'instance-expired';
   }
   return 'instance-finished';
 }
@@ -225,9 +200,6 @@ function instanceIdentityClass(status: string): string {
   if (status === 'ACTIVE') {
     return 'identity-active';
   }
-  if (status === 'EXPIRED') {
-    return 'identity-expired';
-  }
   return 'identity-finished';
 }
 
@@ -238,9 +210,6 @@ function instanceIconClass(status: string): string {
   if (status === 'ACTIVE') {
     return 'icon-active';
   }
-  if (status === 'EXPIRED') {
-    return 'icon-expired';
-  }
   return 'icon-finished';
 }
 
@@ -250,9 +219,6 @@ function instanceBadgeVariant(status: string): Variant {
   }
   if (status === 'ACTIVE') {
     return 'warning';
-  }
-  if (status === 'EXPIRED') {
-    return 'grey';
   }
   return 'green';
 }
@@ -334,10 +300,6 @@ onMounted(async () => {
   border-left: 3px solid var(--color-success);
 }
 
-.instance-expired {
-  border-left: 3px solid var(--color-text-light);
-}
-
 .instance-identity {
   padding: 12px 16px;
 }
@@ -352,10 +314,6 @@ onMounted(async () => {
 
 .identity-finished {
   background-color: rgba(16, 185, 129, 0.04);
-}
-
-.identity-expired {
-  background-color: rgba(156, 163, 175, 0.04);
 }
 
 .instance-icon-square {
@@ -382,11 +340,6 @@ onMounted(async () => {
 .icon-finished {
   background-color: rgba(16, 185, 129, 0.12);
   color: var(--color-success-hover);
-}
-
-.icon-expired {
-  background-color: rgba(156, 163, 175, 0.12);
-  color: var(--color-text-muted);
 }
 
 .instance-meta {

@@ -87,14 +87,18 @@ spec:
     path: {{ .Values.sharedVolume.hostPath.path | quote }}                # /tmp/jeffrey-data`;
 
 const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME (from sharedVolume.mountPath)
-├── jeffrey-data.db                          # Jeffrey Hub's own database
 ├── temp/
-└── workspaces/
+└── workspaces/                              # the Hub's only state — it has no database
     └── <workspace-ref-id>/
-        ├── .pending/                        # provisioner-declared work for the Hub
+        ├── .workspace-info.json             # written by the Hub when the workspace is created
         └── <project-name>/
+            ├── .project-info.json
             └── <instance-id>/
-                └── <session-id>/            # the JFR recordings land here`;
+                ├── .instance-info.json
+                └── <session-id>/            # the JFR recordings land here
+                    ├── .session-info.json
+                    ├── .heartbeat/          # liveness files the Hub derives the status from
+                    └── .retained            # only while the session is pinned against retention`;
 </script>
 
 <template>
@@ -109,7 +113,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         Jeffrey Hub and the monitored applications coordinate through a single
         <strong>ReadWriteMany</strong> PersistentVolumeClaim. Every monitored pod writes its
         recordings into <code>${JEFFREY_HOME}/workspaces/</code>; Jeffrey Hub mounts the same PVC
-        and reconciles what it finds there.
+        and reads what it finds there whenever it is asked — the volume is its only state.
       </p>
 
       <h2 id="why-shared">Why a Shared Volume?</h2>

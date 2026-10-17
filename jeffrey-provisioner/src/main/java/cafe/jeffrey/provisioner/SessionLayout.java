@@ -23,9 +23,6 @@ import java.nio.file.Path;
  * Where a provisioner run put things. Everything downstream — the placeholder source, the
  * {@code .env} file, the argfile — needs some subset of these paths, and each used to restate its
  * own subset as a separate record built from the same locals.
- *
- * @param jeffreyHome null when the run was configured with an explicit workspaces directory
- *                    instead, in which case there is no Jeffrey home to speak of
  */
 public record SessionLayout(
         Path jeffreyHome,
@@ -35,14 +32,9 @@ public record SessionLayout(
         Path session) {
 
     public SessionLayout {
-        if (workspaces == null || workspace == null || project == null || session == null) {
-            throw new IllegalArgumentException("Only jeffreyHome may be absent from a session layout");
+        if (jeffreyHome == null || workspaces == null || workspace == null || project == null || session == null) {
+            throw new IllegalArgumentException("A session layout needs every directory down to the session");
         }
-    }
-
-    /** Whether this run laid its directories out under a Jeffrey home. */
-    public boolean hasJeffreyHome() {
-        return jeffreyHome != null;
     }
 
     /** The file the profiler writes recordings to, by the session's own naming template. */

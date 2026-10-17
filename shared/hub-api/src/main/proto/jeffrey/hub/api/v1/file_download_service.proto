@@ -43,9 +43,11 @@ service FileDownloadService {
 }
 
 message DownloadFileRequest {
-  string session_id = 1;
+  string workspace_id = 1;
+  string project_id = 2;
+  string session_id = 3;
   // The ID of the file to download, as the session's listing reports it.
-  string file_id = 2;
+  string file_id = 4;
 }
 
 // A chunk of binary data for streaming file transfers.

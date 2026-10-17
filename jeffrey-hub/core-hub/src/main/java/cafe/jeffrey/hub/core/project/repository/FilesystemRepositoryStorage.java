@@ -17,24 +17,29 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.hub.core.project.session.SessionPaths;
+import cafe.jeffrey.hub.core.volume.SessionLifecycle;
+import cafe.jeffrey.hub.core.volume.SessionLiveness;
+import cafe.jeffrey.hub.core.volume.VolumeMarkers;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.hub.model.RepositoryInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
+import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -44,16 +49,22 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * A project's repository as it lies on the shared volume: instance directories, session
- * directories under them, and the files a profiler left behind.
+ * A project's repository as it lies on the shared volume, which is all the hub knows of it:
+ * instance directories with their {@code .instance-info.json}, session directories under them
+ * with their {@code .session-info.json}, and the files a profiler left behind. Nothing is cached;
+ * every call reads the directories again.
  *
- * <p>A file's id, timestamp source and compressibility come from {@link HubManagedFile#of(String)}:
- * a JFR and its archive are the only types the hub knows. Everything else (logs, heap dumps) is
- * listed and served as it lies; Microscope classifies those names on its side.
+ * <p>A session's id is its directory name and its lifecycle is read from its liveness files by
+ * {@link SessionLiveness} at that moment. A file's id, timestamp source and compressibility come
+ * from {@link HubManagedFile#of(String)}: a JFR and its archive are the only types the hub knows.
+ * Everything else (logs, heap dumps) is listed and served as it lies.
  */
 public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemRepositoryStorage.class);
+
+    /** The flag file that pins a session against every retention rule. */
+    static final String RETAINED_MARKER = ".retained";
 
     /**
      * How a session directory is listed: newest first by filename. Presentation only — which chunk
@@ -62,90 +73,157 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private static final Comparator<Path> NEWEST_BY_NAME =
             Comparator.comparing((Path file) -> file.getFileName().toString()).reversed();
 
+    private static final Comparator<RecordingSession> NEWEST_FIRST =
+            Comparator.comparing(RecordingSession::createdAt).reversed();
+
     private final ProjectInfo projectInfo;
-    private final Path workspacesDir;
-    private final ProjectRepositoryRepository projectRepositoryRepository;
+    private final Path projectDir;
+    private final SessionLiveness liveness;
 
-    private volatile RepositoryInfo cachedRepositoryInfo;
-
-    public FilesystemRepositoryStorage(
-            ProjectInfo projectInfo,
-            Path workspacesDir,
-            ProjectRepositoryRepository projectRepositoryRepository) {
-
+    public FilesystemRepositoryStorage(ProjectInfo projectInfo, Path projectDir, SessionLiveness liveness) {
         this.projectInfo = projectInfo;
-        this.workspacesDir = workspacesDir;
-        this.projectRepositoryRepository = projectRepositoryRepository;
+        this.projectDir = projectDir;
+        this.liveness = liveness;
     }
 
-    @Override
-    public RepositoryInfo repositoryInfo() {
-        RepositoryInfo result = cachedRepositoryInfo;
-        if (result == null) {
-            List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
-            if (repositoryInfos.isEmpty()) {
-                throw new IllegalStateException("No repository info found for project: " + projectInfo.id());
-            }
-            result = repositoryInfos.getFirst();
-            cachedRepositoryInfo = result;
+    // ========== Instances and sessions ==========
+
+    /**
+     * An instance directory whose marker reads. The one test of "is this an instance", shared by
+     * every lookup and listing, so none of them disagrees about a directory with a broken marker.
+     */
+    private record InstanceDirectory(Path path, Instant createdAt) {
+
+        String id() {
+            return path.getFileName().toString();
         }
-        return result;
     }
 
-    private Path projectPath(RepositoryInfo repositoryInfo) {
-        return SessionPaths.project(workspacesDir, repositoryInfo);
+    /** A session directory whose marker reads — likewise the one test of "is this a session". */
+    private record SessionDirectory(Path path, Instant createdAt) {
+
+        String id() {
+            return path.getFileName().toString();
+        }
+
+        String instanceId() {
+            return path.getParent().getFileName().toString();
+        }
     }
 
-    private Path resolveSessionPath(RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
-        return SessionPaths.session(workspacesDir, repositoryInfo, sessionInfo);
+    private static Optional<InstanceDirectory> instanceAt(Path dir) {
+        return VolumeMarkers.read(dir, JeffreyLayout.INSTANCE_INFO_FILE, RemoteProjectInstance.class)
+                .map(marker -> new InstanceDirectory(dir, Instant.ofEpochMilli(marker.createdAt())));
+    }
+
+    private static Optional<SessionDirectory> sessionAt(Path dir) {
+        return VolumeMarkers.read(dir, JeffreyLayout.SESSION_INFO_FILE, RemoteProjectInstanceSession.class)
+                .map(marker -> new SessionDirectory(dir, Instant.ofEpochMilli(marker.createdAt())));
+    }
+
+    private List<InstanceDirectory> instanceDirectories() {
+        return VolumeMarkers.childDirectories(projectDir).stream()
+                .map(FilesystemRepositoryStorage::instanceAt)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     /**
-     * The directory of a session this project holds, or empty (and logged) when the session is not
-     * the project's or its directory is gone.
+     * The directory {@code name} directly under {@code parent}, or empty for a name that is not one
+     * plain path element — ids arrive over gRPC and must not walk out of the project.
      */
-    private Optional<Path> sessionDirectory(String sessionId) {
-        Optional<ProjectInstanceSessionInfo> sessionInfo = projectRepositoryRepository.findSessionById(sessionId);
-        if (sessionInfo.isEmpty()) {
-            LOG.warn("Session not found: project_id={} session_id={}", projectInfo.id(), sessionId);
+    private static Optional<Path> child(Path parent, String name) {
+        if (name == null || name.isBlank() || name.startsWith(".")) {
             return Optional.empty();
         }
-        Path sessionPath = resolveSessionPath(repositoryInfo(), sessionInfo.get());
-        if (!Files.isDirectory(sessionPath)) {
-            LOG.warn("Session directory does not exist: session_id={} session_path={}", sessionId, sessionPath);
+        Path candidate = parent.resolve(name).normalize();
+        if (!parent.equals(candidate.getParent()) || !Files.isDirectory(candidate)) {
             return Optional.empty();
         }
-        return Optional.of(sessionPath);
+        return Optional.of(candidate);
     }
 
-    @Override
-    public Optional<RecordingSession> singleSession(String sessionId, SessionDetail detail) {
-        Optional<ProjectInstanceSessionInfo> sessionOpt = projectRepositoryRepository.findSessionById(sessionId);
-        if (sessionOpt.isEmpty()) {
-            return Optional.empty();
-        }
+    private Optional<InstanceDirectory> instanceDirectory(String instanceId) {
+        return child(projectDir, instanceId).flatMap(FilesystemRepositoryStorage::instanceAt);
+    }
 
-        return Optional.of(createRecordingSession(detail, sessionOpt.get()));
+    /** A session lies in one of the instance directories, under its own id. */
+    private Optional<SessionDirectory> sessionDirectory(String sessionId) {
+        return instanceDirectories().stream()
+                .map(instance -> child(instance.path(), sessionId).flatMap(FilesystemRepositoryStorage::sessionAt))
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    private static List<SessionDirectory> sessionsOldestFirst(Path instanceDir) {
+        return VolumeMarkers.childDirectories(instanceDir).stream()
+                .map(FilesystemRepositoryStorage::sessionAt)
+                .flatMap(Optional::stream)
+                .sorted(Comparator.comparing(SessionDirectory::createdAt))
+                .toList();
+    }
+
+    /** When the session after this one in its instance started, or {@code null} for the newest. */
+    private static Instant nextStart(List<SessionDirectory> oldestFirst, Path sessionPath) {
+        for (int i = 0; i < oldestFirst.size() - 1; i++) {
+            if (oldestFirst.get(i).path().equals(sessionPath)) {
+                return oldestFirst.get(i + 1).createdAt();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * An instance's sessions, newest first. Read together because a session's lifecycle depends on
+     * the start of the next one: a newer session in the same instance means this one ended.
+     */
+    private List<RecordingSession> sessionsOf(InstanceDirectory instance) {
+        List<SessionDirectory> oldestFirst = sessionsOldestFirst(instance.path());
+        return oldestFirst.stream()
+                .map(session -> toRecordingSession(session, nextStart(oldestFirst, session.path())))
+                .toList()
+                .reversed();
+    }
+
+    /** The session without its files, its lifecycle read from its liveness files at this moment. */
+    private RecordingSession toRecordingSession(SessionDirectory session, Instant nextStart) {
+        SessionLifecycle lifecycle = liveness.assess(session.path(), session.createdAt(), nextStart);
+        return new RecordingSession(
+                session.id(),
+                projectDir.relativize(session.path()).toString(),
+                session.instanceId(),
+                session.createdAt(),
+                lifecycle.finishedAt(),
+                lifecycle.isRecording() ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED,
+                List.of(),
+                VolumeMarkers.hasFlag(session.path(), RETAINED_MARKER),
+                lifecycle.heartbeatMissing());
+    }
+
+    /**
+     * Only this session's liveness files are read; its siblings are needed for their start times
+     * alone, which their markers give.
+     */
+    @Override
+    public Optional<RecordingSession> session(String sessionId) {
+        return sessionDirectory(sessionId).map(session -> {
+            List<SessionDirectory> siblings = sessionsOldestFirst(session.path().getParent());
+            return withFiles(toRecordingSession(session, nextStart(siblings, session.path())));
+        });
     }
 
     @Override
     public List<RecordingSession> listSessions(SessionDetail detail) {
-        // Newest first, which the query already orders by origin_created_at
-        return projectRepositoryRepository.findAllSessions().stream()
-                .map(session -> createRecordingSession(detail, session))
-                .toList();
-    }
-
-    @Override
-    public List<RecordingSession> listSessionsByInstanceId(String instanceId, SessionDetail detail) {
-        return projectRepositoryRepository.findSessionsByInstanceId(instanceId).stream()
-                .map(session -> createRecordingSession(detail, session))
+        return instanceDirectories().stream()
+                .flatMap(instance -> sessionsOf(instance).stream())
+                .map(session -> detail.withFiles() ? withFiles(session) : session)
+                .sorted(NEWEST_FIRST)
                 .toList();
     }
 
     @Override
     public RecordingSession withFiles(RecordingSession session) {
-        Path sessionPath = projectPath(repositoryInfo()).resolve(session.name());
+        Path sessionPath = projectDir.resolve(session.name());
         return new RecordingSession(
                 session.id(),
                 session.name(),
@@ -153,33 +231,61 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.createdAt(),
                 session.finishedAt(),
                 session.status(),
-                _listRepositoryFiles(sessionPath),
+                listFiles(sessionPath),
                 session.retained(),
                 session.heartbeatMissing());
     }
 
-    private RecordingSession createRecordingSession(SessionDetail detail, ProjectInstanceSessionInfo sessionInfo) {
-        RepositoryInfo repositoryInfo = repositoryInfo();
-        Path sessionPath = resolveSessionPath(repositoryInfo, sessionInfo);
-        RecordingStatus recordingStatus = statusOf(sessionInfo);
+    /**
+     * Every instance, each read off its newest session alone: a newer session is what finishes the
+     * one before it, so only the newest can still be recording and the older sessions' liveness
+     * files are never read here. Their markers give the count.
+     */
+    @Override
+    public List<ProjectInstanceInfo> instances() {
+        return instanceDirectories().stream()
+                .map(instance -> {
+                    List<SessionDirectory> oldestFirst = sessionsOldestFirst(instance.path());
+                    Optional<RecordingSession> newest = oldestFirst.isEmpty()
+                            ? Optional.empty()
+                            : Optional.of(toRecordingSession(oldestFirst.getLast(), null));
+                    return instanceInfo(instance, oldestFirst.size(), newest);
+                })
+                .toList();
+    }
 
-        List<RepositoryFile> repositoryFiles;
-        if (detail.withFiles()) {
-            repositoryFiles = _listRepositoryFiles(sessionPath);
-        } else {
-            repositoryFiles = List.of();
+    @Override
+    public Optional<InstanceSessions> instanceWithSessions(String instanceId) {
+        return instanceDirectory(instanceId).map(instance -> {
+            List<RecordingSession> sessions = sessionsOf(instance);
+            return new InstanceSessions(
+                    instanceInfo(instance, sessions.size(), sessions.stream().findFirst()), sessions);
+        });
+    }
+
+    /** PENDING without a session; otherwise ACTIVE while the newest records, FINISHED once it ended. */
+    private static ProjectInstanceInfo instanceInfo(
+            InstanceDirectory instance, int sessionCount, Optional<RecordingSession> newest) {
+
+        ProjectInstanceStatus status = newest
+                .map(session -> session.status() == RecordingStatus.ACTIVE
+                        ? ProjectInstanceStatus.ACTIVE
+                        : ProjectInstanceStatus.FINISHED)
+                .orElse(ProjectInstanceStatus.PENDING);
+        Instant finishedAt = newest.map(RecordingSession::finishedAt).orElse(null);
+        return new ProjectInstanceInfo(instance.id(), status, instance.createdAt(), finishedAt, sessionCount);
+    }
+
+    @Override
+    public boolean setRetained(String sessionId, boolean retained) {
+        Optional<SessionDirectory> session = sessionDirectory(sessionId);
+        if (session.isEmpty()) {
+            return false;
         }
-
-        return new RecordingSession(
-                sessionInfo.sessionId(),
-                sessionInfo.relativeSessionPath().toString(),
-                sessionInfo.instanceId(),
-                sessionInfo.originCreatedAt(),
-                sessionInfo.finishedAt(),
-                recordingStatus,
-                repositoryFiles,
-                sessionInfo.retained(),
-                sessionInfo.heartbeatMissing());
+        VolumeMarkers.setFlag(session.get().path(), RETAINED_MARKER, retained);
+        LOG.info("Updated session retention: project_id={} session_id={} retained={}",
+                projectInfo.id(), sessionId, retained);
+        return true;
     }
 
     /**
@@ -199,7 +305,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 return null;
             }
             return new RepositoryFile(
-                    recording.map(type -> type.idOf(file)).orElse(sourceName),
+                    fileId(file),
                     sourceName,
                     recording.map(HubManagedFile::timestampResolver)
                             .orElse(TimestampResolver.FILESYSTEM)
@@ -227,29 +333,19 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     }
 
     /**
-     * A session is recording until something stamps {@code finishedAt} (the heartbeat, its startup
-     * grace, or the reconciler when the instance's next session appears). Never derive this from
-     * the session's position in the listing: with two instances per project that marked a live
-     * session FINISHED and had its open chunk compressed away.
-     */
-    private static RecordingStatus statusOf(ProjectInstanceSessionInfo sessionInfo) {
-        return sessionInfo.finishedAt() == null ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED;
-    }
-
-    /**
      * Deletes the named files of a session, matched against the session's own listing. Never
      * resolve a path from an id: a recording's id has no extension, so it names no file, and an id
      * holding {@code ../} would walk out of the session directory.
      */
     @Override
-    public void deleteRepositoryFiles(String sessionId, List<String> sessionFileIds) {
-        Optional<Path> directory = sessionDirectory(sessionId);
-        if (directory.isEmpty()) {
+    public void deleteRepositoryFiles(String sessionId, List<String> fileIds) {
+        Optional<SessionDirectory> session = sessionDirectory(sessionId);
+        if (session.isEmpty()) {
             return;
         }
-        Path sessionPath = directory.get();
+        Path sessionPath = session.get().path();
 
-        Set<String> requestedIds = Set.copyOf(sessionFileIds);
+        Set<String> requestedIds = Set.copyOf(fileIds);
         List<Path> matched;
         try (Stream<Path> files = Files.list(sessionPath)) {
             matched = files
@@ -279,47 +375,48 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         LOG.info("Deleted files in repository session: session_path={} file_ids={}", sessionPath, found);
     }
 
+    /**
+     * The instance goes too when no directory is left in it. Any directory counts, marker or not:
+     * one the provisioner has created but not yet described is a session about to start, and its
+     * profiler may already be writing into it.
+     */
     @Override
-    public void deleteSession(String sessionId) {
-        Optional<Path> directory = sessionDirectory(sessionId);
-        if (directory.isEmpty()) {
-            return;
+    public SessionDeletion deleteSession(String sessionId) {
+        Optional<SessionDirectory> session = sessionDirectory(sessionId);
+        if (session.isEmpty()) {
+            return SessionDeletion.NOT_FOUND;
         }
-        FileSystemUtils.removeDirectory(directory.get());
-        LOG.info("Deleted session directory: session_id={} session_path={}", sessionId, directory.get());
+        Path sessionPath = session.get().path();
+        Path instanceDir = sessionPath.getParent();
+        FileSystemUtils.removeDirectory(sessionPath);
+        LOG.info("Deleted session directory: session_id={} session_path={}", sessionId, sessionPath);
+
+        if (!VolumeMarkers.childDirectories(instanceDir).isEmpty()) {
+            return SessionDeletion.SESSION_DELETED;
+        }
+        FileSystemUtils.removeDirectory(instanceDir);
+        LOG.info("Deleted instance directory with its last session: instance_path={}", instanceDir);
+        return SessionDeletion.SESSION_AND_INSTANCE_DELETED;
     }
 
     @Override
     public void deleteInstanceDirectory(String instanceId) {
-        Path instancePath = projectPath(repositoryInfo()).resolve(instanceId);
-
-        if (!Files.isDirectory(instancePath)) {
+        Optional<Path> instancePath = child(projectDir, instanceId);
+        if (instancePath.isEmpty()) {
             return;
         }
-
-        FileSystemUtils.removeDirectory(instancePath);
-        LOG.info("Deleted instance directory: instance_path={}", instancePath);
+        FileSystemUtils.removeDirectory(instancePath.get());
+        LOG.info("Deleted instance directory: instance_path={}", instancePath.get());
     }
 
     @Override
     public void deleteProjectDirectory() {
-        // getAll() instead of repositoryInfo(): a project without a repository has no
-        // directory to delete and must not fail the surrounding delete flow
-        List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
-        if (repositoryInfos.isEmpty()) {
+        if (!Files.isDirectory(projectDir)) {
             return;
         }
-
-        Path projectPath = projectPath(repositoryInfos.getFirst());
-
-        if (!Files.isDirectory(projectPath)) {
-            return;
-        }
-
-        FileSystemUtils.removeDirectory(projectPath);
-        LOG.info("Deleted project directory: project_path={}", projectPath);
+        FileSystemUtils.removeDirectory(projectDir);
+        LOG.info("Deleted project directory: project_path={}", projectDir);
     }
-
 
     // ========== Files ==========
 
@@ -373,11 +470,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     // ========== Private Helpers ==========
 
     private RecordingSession resolveSession(String sessionId) {
-        Optional<RecordingSession> sessionOpt = singleSession(sessionId, SessionDetail.WITH_FILES);
-        if (sessionOpt.isEmpty()) {
-            throw Exceptions.recordingSessionNotFound(sessionId);
-        }
-        return sessionOpt.get();
+        return session(sessionId).orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
     }
 
     /**
@@ -418,8 +511,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         return compressedPath;
     }
 
-    private List<RepositoryFile> _listRepositoryFiles(Path sessionPath) {
-
+    private List<RepositoryFile> listFiles(Path sessionPath) {
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: session_path={}", sessionPath);
             return List.of();

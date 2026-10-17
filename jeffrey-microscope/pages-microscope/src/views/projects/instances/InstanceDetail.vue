@@ -25,6 +25,8 @@
       <!-- Loading Indicator -->
       <LoadingState v-if="loading" message="Loading instance..." />
 
+      <ErrorState v-else-if="failed" message="The instance could not be loaded" @retry="load()" />
+
       <!-- Instance Not Found -->
       <EmptyState
         v-else-if="!instance"
@@ -43,12 +45,12 @@
           :isCollectorOnly="isCollectorOnly"
           :showInstanceLink="false"
           headerText="Sessions"
-          @refresh="() => fetchSessions()"
+          @refresh="() => load(true)"
         />
 
         <!-- No Sessions Message -->
         <EmptyState
-          v-if="!sessionsLoading && sessions.length === 0"
+          v-if="sessions.length === 0"
           icon="bi-inbox"
           title="No Sessions"
           description="No recording sessions found for this instance."
@@ -61,12 +63,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingSessionList from '@hubs/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
-import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
 import RecordingStatus from '@hubs/services/api/model/RecordingStatus';
 import { usePolling } from '@shared/composables/usePolling';
 import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
@@ -76,21 +78,23 @@ import '@shared/styles/shared-components.css';
 
 const { hubId, workspaceId, projectId, instanceId } = useNavigation();
 
+const instanceClient = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
+
 // Collector-only mode is never active in local mode
 const isCollectorOnly = computed(() => {
   return false;
 });
 
 const loading = ref(true);
-const sessionsLoading = ref(true);
+const failed = ref(false);
 const instance = ref<ProjectInstance | null>(null);
 const sessions = ref<RecordingSession[]>([]);
 
 /**
- * How often a session that is still recording is re-read. A session's figures — file sizes
- * above all — come from a listing of the hub's repository directory taken at request time,
- * so without this the page shows whatever the files measured at the moment it was opened,
- * for as long as it stays open.
+ * How often an instance with a session still recording is re-read. A session's figures — file
+ * sizes above all — come from a listing of the hub's repository directory taken at request time,
+ * so without this the page shows whatever the files measured at the moment it was opened, for
+ * as long as it stays open.
  */
 const ACTIVE_SESSION_REFRESH_MS = 10_000;
 
@@ -98,36 +102,33 @@ const hasActiveSession = (): boolean => {
   return sessions.value.some(session => session.status === RecordingStatus.ACTIVE);
 };
 
-// Declared ahead of fetchSessions because that is what arms and disarms it; the callback
-// reaches the function below only when a tick fires, long after setup has run.
-const sessionPolling = usePolling(() => fetchSessions(true), ACTIVE_SESSION_REFRESH_MS);
+// Declared ahead of load because that is what arms and disarms it; the callback reaches the
+// function below only when a tick fires, long after setup has run.
+const sessionPolling = usePolling(() => load(true), ACTIVE_SESSION_REFRESH_MS);
 
 /**
- * Loads this instance's sessions. Background reloads (the poll above) leave the loading
- * flag alone so a refresh never flickers the view that is already on screen.
+ * Reads the instance and its sessions (each without its files: the list fetches a session's
+ * files when it is expanded) in one call. Background reloads — the poll above and a refresh
+ * from the list — leave the loading flag alone so the view on screen never flickers, and keep
+ * it when a read fails.
  */
-const fetchSessions = async (background: boolean = false) => {
+const load = async (background: boolean = false) => {
   if (!background) {
-    sessionsLoading.value = true;
+    loading.value = true;
+    failed.value = false;
   }
   try {
-    const repositoryService = new ProjectRepositoryClient(
-      hubId.value,
-      workspaceId.value!,
-      projectId.value!
-    );
-    const allSessions = await repositoryService.listRecordingSessions();
-    sessions.value = allSessions.filter(s => s.instanceId === instanceId.value);
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      sessions.value = [];
+    const found = await instanceClient.find(instanceId.value!);
+    instance.value = found?.instance ?? null;
+    sessions.value = found?.sessions ?? [];
+  } catch {
+    if (!background) {
+      failed.value = true;
     }
   } finally {
-    if (!background) {
-      sessionsLoading.value = false;
-    }
+    loading.value = false;
     // Decided after every load rather than once: a session that finishes while the page is
-    // open ends the polling, and one that starts begins it.
+    // open ends the polling, one that starts begins it, and a removed instance ends it.
     if (hasActiveSession()) {
       sessionPolling.start();
     } else {
@@ -136,12 +137,5 @@ const fetchSessions = async (background: boolean = false) => {
   }
 };
 
-onMounted(async () => {
-  const client = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
-
-  const [inst] = await Promise.all([client.find(instanceId.value!), fetchSessions()]);
-
-  instance.value = inst || null;
-  loading.value = false;
-});
+onMounted(() => load());
 </script>

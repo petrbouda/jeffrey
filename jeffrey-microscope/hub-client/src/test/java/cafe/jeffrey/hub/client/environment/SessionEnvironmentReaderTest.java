@@ -220,12 +220,12 @@ class SessionEnvironmentReaderTest {
         }
 
         @Override
-        public List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter) {
+        public List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public RepositoryStatistics calculateRepositoryStatistics() {
+        public RepositoryStatistics repositoryStatistics() {
             throw new UnsupportedOperationException();
         }
 

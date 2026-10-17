@@ -27,18 +27,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Snapshot of the hub's on-disk storage usage. Every byte figure comes from the filesystem; the
- * hub database stores no size columns.
+ * Snapshot of what every project occupies on the volume, measured by the retention pass.
  */
-public record StorageOverview(
-        InfrastructureUsage infrastructure,
-        List<ProjectStorage> projects) {
-
-    /**
-     * Storage used by the hub itself, outside of project repositories.
-     */
-    public record InfrastructureUsage(long databaseBytes) {
-    }
+public record StorageOverview(List<ProjectStorage> projects) {
 
     /**
      * Storage used by a single project's recording repository: the bytes and the file count over

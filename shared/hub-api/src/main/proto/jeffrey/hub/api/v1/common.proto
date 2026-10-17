@@ -44,7 +44,5 @@ enum InstanceStatus {
   INSTANCE_STATUS_ACTIVE = 2;
   // All sessions have finished.
   INSTANCE_STATUS_FINISHED = 3;
-  // Instance has been cleaned up after retention period.
-  INSTANCE_STATUS_EXPIRED = 4;
 }
 

@@ -17,20 +17,23 @@
 
 package cafe.jeffrey.hub.client;
 
+import cafe.jeffrey.hub.api.v1.GetInstanceRequest;
+import cafe.jeffrey.hub.api.v1.GetInstanceResponse;
 import cafe.jeffrey.hub.api.v1.InstanceInfo;
 import cafe.jeffrey.hub.api.v1.InstanceServiceGrpc;
 import cafe.jeffrey.hub.api.v1.ListInstancesRequest;
 import cafe.jeffrey.hub.api.v1.ListInstancesResponse;
 import cafe.jeffrey.hub.client.dto.InstanceResponse;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
- * An instance's lifecycle as the hub reports it. Its sessions come from {@link RepositoryClient},
- * narrowed to the instance, so every instance here arrives without them.
+ * A project's instances, and one instance with its sessions — one level of the tree per call.
  */
 public class InstancesClient {
 
@@ -42,17 +45,48 @@ public class InstancesClient {
         this.stub = InstanceServiceGrpc.newBlockingStub(connection.getChannel());
     }
 
-    public List<InstanceResponse> projectInstances(String projectId) {
+    public List<InstanceResponse> projectInstances(ProjectScope scope) {
         ListInstancesResponse response = stub.listInstances(
                 ListInstancesRequest.newBuilder()
-                        .setProjectId(projectId)
+                        .setWorkspaceId(scope.workspaceId())
+                        .setProjectId(scope.projectId())
                         .build());
 
-        LOG.debug("Listed instances via gRPC: projectId={} count={}", projectId, response.getInstancesCount());
+        LOG.debug("Listed instances via gRPC: workspaceId={} projectId={} count={}",
+                scope.workspaceId(), scope.projectId(), response.getInstancesCount());
 
         return response.getInstancesList().stream()
                 .map(InstancesClient::toInstanceResponse)
                 .toList();
+    }
+
+    /**
+     * One instance with its sessions, newest first, each without its files; empty when the
+     * project holds no instance by that id.
+     */
+    public Optional<InstanceRead> instance(ProjectScope scope, String instanceId) {
+        try {
+            GetInstanceResponse response = stub.getInstance(
+                    GetInstanceRequest.newBuilder()
+                            .setWorkspaceId(scope.workspaceId())
+                            .setProjectId(scope.projectId())
+                            .setInstanceId(instanceId)
+                            .build());
+
+            LOG.debug("Fetched instance via gRPC: workspaceId={} projectId={} instanceId={} sessions={}",
+                    scope.workspaceId(), scope.projectId(), instanceId, response.getSessionsCount());
+
+            return Optional.of(new InstanceRead(
+                    toInstanceResponse(response.getInstance()),
+                    response.getSessionsList().stream()
+                            .map(ClientProtoMappers::session)
+                            .toList()));
+        } catch (StatusRuntimeException e) {
+            if (GrpcClientErrors.isNotFound(e)) {
+                return Optional.empty();
+            }
+            throw e;
+        }
     }
 
     private static InstanceResponse toInstanceResponse(InstanceInfo proto) {
@@ -60,11 +94,9 @@ public class InstancesClient {
                 proto.getId(),
                 // The hub names an instance by its id
                 proto.getId(),
-                ClientProtoMappers.instanceStatus(proto.getStatus()),
+                ClientProtoMappers.instanceStatus(proto.getStatus()).name(),
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
-                proto.hasExpiringAt() ? proto.getExpiringAt() : null,
-                proto.hasExpiredAt() ? proto.getExpiredAt() : null,
                 proto.getSessionCount(),
                 null,
                 proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,

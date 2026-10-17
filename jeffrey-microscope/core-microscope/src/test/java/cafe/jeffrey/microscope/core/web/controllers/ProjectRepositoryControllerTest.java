@@ -25,13 +25,13 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.hub.controller.ProjectRepositoryController;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -50,39 +50,34 @@ class ProjectRepositoryControllerTest {
     RepositoryManager repositoryManager;
 
     @Test
-    void listsEmptySessions() {
+    void oneSessionComesWithItsFiles() {
+        Instant now = Instant.parse("2026-04-26T12:00:00Z");
         when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
-        when(repositoryManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of());
+        when(repositoryManager.recordingSession("s-1")).thenReturn(
+                new RecordingSession("s-1", "s-1", "inst-1", now, now, RecordingStatus.FINISHED, null,
+                        List.of(new RepositoryFile("f-1", "profile.jfr", now, 2048L, true, null)),
+                        false));
 
-        Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.fixed(now, ZoneOffset.UTC)));
 
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/sessions"))
+        var body = assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/sessions/s-1"))
                 .hasStatusOk()
-                .bodyJson()
-                .extractingPath("$").asArray().isEmpty();
+                .bodyJson();
+        body.extractingPath("$.files[0].id").asString().isEqualTo("f-1");
+        body.extractingPath("$.sizeBytes").asNumber().isEqualTo(2048);
     }
 
     @Test
-    void queryParametersBecomeTheSessionFilter() {
-        Instant now = Instant.parse("2026-04-26T12:00:00Z");
-        Instant hourAgo = now.minus(Duration.ofHours(1));
-        var expected = new RecordingSessionFilter(hourAgo, now, RecordingStatus.FINISHED, 3);
+    void statisticsAreTheMeasuredFigureOrNoneYet() {
         when(projectAccess.repositoryManager("srv-1", "ws-1", "p-1")).thenReturn(repositoryManager);
-        when(repositoryManager.listRecordingSessions(true, expected)).thenReturn(List.of(
-                new RecordingSession("s-1", "s-1", "inst-1", hourAgo, now,
-                        RecordingStatus.FINISHED, null, List.of(), false)));
+        when(repositoryManager.repositoryStatistics()).thenReturn(RepositoryStatistics.NOT_YET_MEASURED);
 
-        Clock clock = Clock.fixed(now, ZoneOffset.UTC);
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.systemUTC()));
 
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/sessions"
-                        + "?activeFrom=" + hourAgo.toEpochMilli()
-                        + "&activeTo=" + now.toEpochMilli()
-                        + "&status=FINISHED&limit=3"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/repository/statistics"))
                 .hasStatusOk()
                 .bodyJson()
-                .extractingPath("$[0].id").asString().isEqualTo("s-1");
+                .extractingPath("$.totalSize").isNull();
     }
 
     @Test
@@ -93,7 +88,7 @@ class ProjectRepositoryControllerTest {
         Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
         MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
 
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost/repository/sessions"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost/repository/statistics"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

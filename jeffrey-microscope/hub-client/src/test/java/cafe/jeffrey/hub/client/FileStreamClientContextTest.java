@@ -89,7 +89,7 @@ class FileStreamClientContextTest {
     }
 
     private void download() {
-        client.streamFile("session", "file", (stream, transferred) -> stream.readAllBytes());
+        client.streamFile(new ProjectScope("workspace", "project"), "session", "file", (stream, transferred) -> stream.readAllBytes());
     }
 
     @Test

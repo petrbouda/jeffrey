@@ -21,11 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.pendingindex.PendingIndex;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -33,10 +31,8 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public class FileSystemRepository {
 
@@ -47,30 +43,14 @@ public class FileSystemRepository {
     private static final String SESSION_INFO_FILENAME = JeffreyLayout.SESSION_INFO_FILE;
 
     private final Clock clock;
-    private final Path workspacePath;
-    private final PendingIndex pendingIndex;
 
-    public FileSystemRepository(Clock clock, Path workspacePath) {
+    public FileSystemRepository(Clock clock) {
         this.clock = clock;
-        this.workspacePath = workspacePath;
-        this.pendingIndex = new PendingIndex(workspacePath.resolve(JeffreyLayout.PENDING_DIR), clock);
-    }
-
-    /**
-     * Names a freshly declared subtree for the hub to reconcile. Always called <em>after</em>
-     * the marker write it refers to: the hub keeps a hint whose declaration it cannot read yet
-     * and retries, so a hint can never outrun the state it points at.
-     */
-    private void announce(String entityId, Path declaredPath) {
-        pendingIndex.add(entityId, workspacePath.relativize(declaredPath).toString());
     }
 
     public void addProject(
             String projectId,
             String projectName,
-            String workspaceRefId,
-            String workspacesDir,
-            RepositoryType repositoryType,
             Map<String, String> attributes,
             Path projectPath) {
         LOG.debug("Adding project to filesystem repository: projectId={} projectName={} projectPath={}", projectId, projectName, projectPath);
@@ -78,41 +58,25 @@ public class FileSystemRepository {
             RemoteProject project = new RemoteProject(
                     projectId,
                     projectName,
-                    workspaceRefId,
                     clock.instant().toEpochMilli(),
-                    workspacesDir,
-                    workspaceRefId,
-                    projectName,
-                    repositoryType,
                     attributes);
 
             Path projectInfoFile = projectPath.resolve(PROJECT_INFO_FILENAME);
             writeAtomically(projectInfoFile, Json.toString(project));
-            announce(projectId, projectPath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write project info for project: " + projectId, e);
         }
     }
 
-    public void addInstance(
-            String instanceId,
-            String projectId,
-            String workspaceRefId,
-            Path instancePath) {
-        LOG.debug("Adding instance to filesystem repository: instanceId={} projectId={} instancePath={}", instanceId, projectId, instancePath);
+    public void addInstance(String instanceId, Path instancePath) {
+        LOG.debug("Adding instance to filesystem repository: instanceId={} instancePath={}", instanceId, instancePath);
         try {
-            RemoteProjectInstance instance = new RemoteProjectInstance(
-                    instanceId,
-                    projectId,
-                    workspaceRefId,
-                    clock.instant().toEpochMilli(),
-                    instanceId);
+            RemoteProjectInstance instance = new RemoteProjectInstance(instanceId, clock.instant().toEpochMilli());
 
             Path instanceInfoFile = instancePath.resolve(INSTANCE_INFO_FILENAME);
             writeAtomically(instanceInfoFile, Json.toString(instance));
-            announce(instanceId, instancePath);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to write instance info for instance: " + instanceId + " in project: " + projectId, e);
+            throw new RuntimeException("Failed to write instance info for instance: " + instanceId, e);
         }
     }
 
@@ -129,52 +93,16 @@ public class FileSystemRepository {
         return Optional.empty();
     }
 
-    public void addSession(
-            String sessionId,
-            String instanceId,
-            int order,
-            Path sessionPath) {
-        LOG.debug("Adding session to filesystem repository: sessionId={} instanceId={} sessionPath={}", sessionId, instanceId, sessionPath);
+    public void addSession(String sessionId, Path sessionPath) {
+        LOG.debug("Adding session to filesystem repository: sessionId={} sessionPath={}", sessionId, sessionPath);
         try {
-            // Build relative session path: instanceId/sessionId (instance is always required)
-            String relativeSessionPath = instanceId + "/" + sessionId;
-
-            RemoteProjectInstanceSession session = new RemoteProjectInstanceSession(
-                    sessionId,
-                    instanceId,
-                    clock.instant().toEpochMilli(),
-                    order,
-                    relativeSessionPath);
+            RemoteProjectInstanceSession session =
+                    new RemoteProjectInstanceSession(sessionId, clock.instant().toEpochMilli());
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));
-            announce(sessionId, sessionPath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write session info for session: " + sessionId + " at: " + sessionPath, e);
-        }
-    }
-
-    public List<RemoteProjectInstanceSession> findSessionsInInstance(Path instancePath) {
-        if (!Files.exists(instancePath) || !Files.isDirectory(instancePath)) {
-            return List.of();
-        }
-
-        try (Stream<Path> stream = Files.list(instancePath)) {
-            return stream
-                    .filter(Files::isDirectory)
-                    .map(sessionDir -> sessionDir.resolve(SESSION_INFO_FILENAME))
-                    .filter(Files::exists)
-                    .map(sessionInfoFile -> {
-                        try {
-                            String jsonContent = Files.readString(sessionInfoFile);
-                            return Json.read(jsonContent, RemoteProjectInstanceSession.class);
-                        } catch (Exception e) {
-                            throw new RuntimeException("Failed to read session info from: " + sessionInfoFile, e);
-                        }
-                    })
-                    .toList();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to list sessions in instance: " + instancePath, e);
         }
     }
 
@@ -192,8 +120,8 @@ public class FileSystemRepository {
     }
 
     /**
-     * Marker files are the hub's discovery input: the reconciler must never observe a
-     * half-written file, so the content lands in a temp file first and is moved into
+     * Marker files are the hub's only record of the volume, read whenever it is asked: it must
+     * never observe a half-written file, so the content lands in a temp file first and is moved into
      * place atomically (with a plain move fallback for filesystems without atomic move).
      */
     private static void writeAtomically(Path target, String content) throws IOException {

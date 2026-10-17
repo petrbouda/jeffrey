@@ -27,8 +27,7 @@ export interface ProjectStorage {
 }
 
 export interface StorageOverview {
-    // UTC epoch millis of when the snapshot was computed by the refresher job
+    // UTC epoch millis of when the last retention pass measured the projects; 0 before the first one
     computedAtMillis: number;
-    databaseSizeBytes: number;
     projects: ProjectStorage[];
 }

@@ -33,6 +33,7 @@ import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
 import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import io.grpc.StatusRuntimeException;
@@ -167,7 +168,8 @@ public class DiscoveryClient {
     static WorkspaceInfo toWorkspaceInfo(cafe.jeffrey.hub.api.v1.WorkspaceInfo proto) {
         return new WorkspaceInfo(
                 proto.getId(),
-                proto.getReferenceId().isEmpty() ? proto.getId() : proto.getReferenceId(),
+                // A hub workspace is named by its directory on the volume, so its id is its reference id
+                proto.getId(),
                 null,
                 proto.getName(),
                 null,
@@ -183,8 +185,10 @@ public class DiscoveryClient {
                 proto.getName(),
                 proto.getCreatedAt() != 0 ? Instant.ofEpochMilli(proto.getCreatedAt()) : null,
                 proto.getWorkspaceId(),
-                ClientProtoMappers.nullIfEmpty(proto.getWorkspaceReferenceId()),
                 ClientProtoMappers.recordingStatus(proto.getStatus()),
-                proto.getSessionCount());
+                proto.getSessionCount(),
+                proto.hasSizeBytes()
+                        ? new RepositoryStatistics(proto.getSizeBytes())
+                        : RepositoryStatistics.NOT_YET_MEASURED);
     }
 }

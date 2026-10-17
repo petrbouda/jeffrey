@@ -16,7 +16,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { summarizeInstances } from './instanceStats.ts';
+import FormattingService from '@shared/services/FormattingService';
+import { storageFigure, summarizeInstances } from './instanceStats.ts';
 import ProjectInstance, {
   type ProjectInstanceStatus
 } from '@hubs/services/api/model/ProjectInstance.ts';
@@ -38,17 +39,15 @@ describe('summarizeInstances', () => {
       instance('a', 'ACTIVE', BASE + 3_000, 2),
       instance('b', 'ACTIVE', BASE + 1_000, 1),
       instance('c', 'FINISHED', BASE, 4),
-      instance('d', 'PENDING', BASE + 5_000, 0),
-      instance('e', 'EXPIRED', BASE + 2_000, 3)
+      instance('d', 'PENDING', BASE + 5_000, 0)
     ]);
 
     expect(stats).toEqual({
       pending: 1,
       active: 2,
       finished: 1,
-      expired: 1,
-      total: 5,
-      sessions: 10,
+      total: 4,
+      sessions: 7,
       oldestCreatedAt: BASE
     });
   });
@@ -58,10 +57,32 @@ describe('summarizeInstances', () => {
       pending: 0,
       active: 0,
       finished: 0,
-      expired: 0,
       total: 0,
       sessions: 0,
       oldestCreatedAt: null
     });
+  });
+});
+
+describe('storageFigure', () => {
+  it('is loading until the statistics arrive', () => {
+    expect(storageFigure(null, false)).toEqual({ kind: 'loading' });
+  });
+
+  it('reports a failed call over anything it has', () => {
+    expect(storageFigure({ totalSize: 1024 }, true)).toEqual({ kind: 'error' });
+  });
+
+  it('is unmeasured before the hub has run its first retention pass', () => {
+    expect(storageFigure({ totalSize: null }, false)).toEqual({ kind: 'unmeasured' });
+  });
+
+  it('splits a measured size into number and unit', () => {
+    const figure = storageFigure({ totalSize: 1024 }, false);
+
+    expect(figure.kind).toBe('measured');
+    if (figure.kind === 'measured') {
+      expect(`${figure.value} ${figure.unit}`).toBe(FormattingService.formatBytes(1024));
+    }
   });
 });

@@ -70,6 +70,8 @@ onMounted(() => {
 
         <h2 id="grpc-services">gRPC Services</h2>
         <p>Jeffrey Hub exposes 5 gRPC services, 13 RPCs in all, defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>. There is one session listing: an instance's sessions, a project's repository size and a session's detail are all read from it by Microscope rather than asked of the hub separately.</p>
+        <p>Every id is read off the shared volume, which is the hub's only state: a workspace's id is its directory name &mdash; the reference id the provisioner's <code>project.workspace-id</code> names &mdash; a project's id is the <code>projectId</code> the provisioner wrote into its <code>.project-info.json</code>, and an instance's and a session's ids are their directory names. Every request below the workspace carries <code>workspace_id</code> and <code>project_id</code> (<code>ListInstances</code>, <code>GetInstance</code>, <code>DeleteProject</code>, <code>ListSessions</code>, <code>GetSession</code>, <code>DeleteSession</code>, <code>SetSessionRetained</code>, <code>DownloadFile</code>), so the hub never searches the whole volume for a session. An unknown workspace, project, instance or session is <code>NOT_FOUND</code>.</p>
+        <p>Each call answers one level of the tree &mdash; workspaces, a workspace's projects, a project's instances, one instance with its sessions, one session with its files &mdash; so a screen asks for the level it shows and nothing below it. Files travel only with <code>GetSession</code>: every session in a listing carries its <code>file_count</code> and <code>size_bytes</code> and an empty <code>files</code>.</p>
 
         <div class="endpoint-groups">
           <!-- WorkspaceService -->
@@ -98,14 +100,14 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>CreateWorkspace</code>
                 </div>
-                <p>Create a workspace with a user-supplied reference ID (used by the CLI to route recordings)</p>
+                <p>Create a workspace with a user-supplied reference ID (used by the CLI to route recordings), which becomes its id and directory name. The hub writes the directory's <code>.workspace-info.json</code>; an existing directory of that name is adopted with its projects</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>DeleteWorkspace</code>
                 </div>
-                <p>Delete workspace and all its data</p>
+                <p>Delete a workspace's directory with all its data</p>
               </div>
             </div>
           </div>
@@ -122,7 +124,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListProjects</code>
                 </div>
-                <p>List projects in workspace. Each <code>ProjectInfo</code> carries its workspace's id and reference id</p>
+                <p>List projects in workspace. Each <code>ProjectInfo</code> carries its workspace's id, which is also the workspace's reference id; its <code>status</code> and <code>session_count</code>, read off each instance's newest session alone (only the newest can still be recording; a project with no session has no status and sends <code>RECORDING_STATUS_UNSPECIFIED</code>); and <code>size_bytes</code>, what the last retention pass measured &mdash; absent before the first pass, never re-measured on request</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -136,7 +138,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>DeleteProject</code>
                 </div>
-                <p>Delete a project for good: its rows and its directory on the workspace volume. There is no restore</p>
+                <p>Delete a project for good: its directory on the workspace volume is gone before the response returns. There is no restore</p>
               </div>
             </div>
           </div>
@@ -153,7 +155,14 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListInstances</code>
                 </div>
-                <p>List a project's instances with their lifecycle (<code>PENDING</code> &rarr; <code>ACTIVE</code> &rarr; <code>FINISHED</code> &rarr; <code>EXPIRED</code>, with the <code>expiring_at</code>/<code>expired_at</code> retention marks) and session count. The sessions themselves come from <code>RepositoryService.ListSessions</code></p>
+                <p>List a project's instances with their lifecycle and session count, without their sessions. The status is read off the instance's newest session, the only one that can still be recording: <code>PENDING</code> with no session, <code>ACTIVE</code> while the newest records, <code>FINISHED</code> otherwise (<code>finished_at</code> is the newest session's finish)</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetInstance</code>
+                </div>
+                <p>One instance with its sessions, newest first, each with its <code>file_count</code> and <code>size_bytes</code> but not its files. What an instance's page and the timeline's instance drawer read</p>
               </div>
             </div>
           </div>
@@ -170,28 +179,28 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListSessions</code>
                 </div>
-                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. Setting <code>instance_id</code> narrows the listing to one instance, and the hub then walks only that instance's directories. A session that finished without producing any data is <code>failed</code>; one that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set instead and is never <code>failed</code></p>
+                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count. Each session carries its <code>file_count</code> and <code>size_bytes</code> but not its files. One instance's sessions come from <code>InstanceService.GetInstance</code>. A session that finished without producing any data is <code>failed</code>; one that ended because it sent no heartbeat within the startup grace has <code>heartbeat_missing</code> set instead and is never <code>failed</code></p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>GetSession</code>
                 </div>
-                <p>One session with its files. Microscope reads the session's environment (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …) by downloading its newest closed chunk and parsing it locally &mdash; the hub holds no JFR parser</p>
+                <p>One session with its files &mdash; the only call that sends files; Microscope fetches them when a session is opened. Microscope reads the session's environment (<code>jdk.JVMInformation</code>, <code>jdk.GCConfiguration</code>, <code>jdk.Shutdown</code>, …) by downloading its newest closed chunk and parsing it locally &mdash; the hub holds no JFR parser</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>DeleteSession</code>
                 </div>
-                <p>Delete recording session</p>
+                <p>Delete a recording session's directory with all its files, and its instance's directory when that was the instance's last session</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
                   <code>SetSessionRetained</code>
                 </div>
-                <p>Retain a session (exempt from every retention job) or release it again</p>
+                <p>Retain a session (exempt from every retention rule) or release it again; the flag is a <code>.retained</code> file in the session's directory</p>
               </div>
             </div>
           </div>

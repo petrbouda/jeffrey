@@ -17,7 +17,7 @@
 
 import type ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
 
-export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED' | 'EXPIRED';
+export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED';
 
 export default class ProjectInstance {
   constructor(
@@ -30,8 +30,6 @@ export default class ProjectInstance {
     public sessionCount: number,
     public activeSessionId?: string,
     public finishedAt?: number,
-    public expiringAt?: number,
-    public expiredAt?: number,
     public sessions?: ProjectInstanceSession[]
   ) {}
 }

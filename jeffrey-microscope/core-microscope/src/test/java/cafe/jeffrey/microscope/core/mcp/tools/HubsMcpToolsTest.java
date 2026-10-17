@@ -59,6 +59,7 @@ import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
@@ -116,7 +117,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -177,7 +177,7 @@ class HubsMcpToolsTest {
 
     private RepositoryManager repositoryWith(RecordingSession... sessions) {
         RepositoryManager repo = mock(RepositoryManager.class);
-        when(repo.listRecordingSessions(anyBoolean(), any())).thenReturn(List.of(sessions));
+        when(repo.listRecordingSessions(any())).thenReturn(List.of(sessions));
         return repo;
     }
 
@@ -264,8 +264,8 @@ class HubsMcpToolsTest {
         @Test
         void pagesTiedTimestampsByFullReferenceAndReadsAllProjectRows() {
             RepositoryManager repo = mock(RepositoryManager.class);
-            when(repo.listRecordingSessions(anyBoolean(), any())).thenAnswer(call -> {
-                RecordingSessionFilter filter = call.getArgument(1);
+            when(repo.listRecordingSessions(any())).thenAnswer(call -> {
+                RecordingSessionFilter filter = call.getArgument(0);
                 return filter.apply(List.of(jfrSession("c", NOW), jfrSession("b", NOW), jfrSession("a", NOW)));
             });
             HubManager hub = reachableHub(HUB_ID, "production", "checkout", repo);
@@ -305,6 +305,25 @@ class HubsMcpToolsTest {
             assertEquals("FINISHED", row.path("status").asString());
             assertFalse(row.has("started"), row.toString());
             assertFalse(row.has("startedAtMs"), row.toString());
+        }
+
+        /**
+         * A listing brings each session's size but none of its files, so the row's figures come off
+         * that size; read off the (empty) file list, they would claim an empty session.
+         */
+        @Test
+        void takesTheFiguresFromTheListedSizeNotTheFiles() {
+            RepositoryManager repo = repositoryWith(new RecordingSession(SESSION_ID, SESSION_ID, "inst-1", NOW,
+                    NOW.plusSeconds(600), RecordingStatus.FINISHED, null, List.of(), false, false, false,
+                    new SessionSize(3, 4096L)));
+            HubManager production = reachableHub(HUB_ID, "production", "checkout", repo);
+            when(hubsManager.findAll()).thenReturn(List.of(production));
+            noLocalRecordings();
+
+            JsonNode row = page(tools, null, null, 1, null).path("structuredContent").path("sessions").get(0);
+
+            assertEquals(3, row.path("files").asInt());
+            assertEquals(4096, row.path("sizeBytes").asLong());
         }
 
         /** A session still recording has no duration yet, and says so with null rather than zero. */
@@ -364,7 +383,7 @@ class HubsMcpToolsTest {
             when(hubsManager.findAll()).thenReturn(List.of(hub));
             noLocalRecordings();
             String cursor = page(tools, null, null, 1, null).path("structuredContent").path("nextCursor").asText();
-            when(repo.listRecordingSessions(anyBoolean(), any())).thenReturn(List.of(
+            when(repo.listRecordingSessions(any())).thenReturn(List.of(
                     jfrSession("new", NOW.plusSeconds(1)), jfrSession("b", NOW.minusSeconds(1))));
             JsonNode next = page(tools, null, null, 1, cursor).path("structuredContent");
             assertEquals("b", HubSessionRef.decode(next.path("sessions").get(0).path("sessionRef").asText()).sessionId());
@@ -382,7 +401,7 @@ class HubsMcpToolsTest {
                     Clock.fixed(NOW.plusSeconds(120), ZoneOffset.UTC)).build();
             page(later, null, 60, 1, cursor);
             ArgumentCaptor<RecordingSessionFilter> filters = ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo, times(2)).listRecordingSessions(eq(true), filters.capture());
+            verify(repo, times(2)).listRecordingSessions(filters.capture());
             assertEquals(filters.getAllValues().get(0).activeFrom(), filters.getAllValues().get(1).activeFrom());
         }
 
@@ -628,7 +647,7 @@ class HubsMcpToolsTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(NOW.minus(Duration.ofHours(1)), captor.getValue().activeFrom());
         }
 
@@ -643,7 +662,7 @@ class HubsMcpToolsTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(RecordingStatus.ACTIVE, captor.getValue().status());
         }
 
@@ -679,7 +698,7 @@ class HubsMcpToolsTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(captor.capture());
             assertEquals(RecordingSessionFilter.NO_LIMIT, captor.getValue().limit());
         }
 

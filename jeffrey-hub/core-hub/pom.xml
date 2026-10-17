@@ -54,14 +54,6 @@
         <!-- Platform modules (formerly transitive via platform-core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>pending-index</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hub-sql-persistence</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>hub-model</artifactId>
         </dependency>
 
