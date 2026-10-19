@@ -958,7 +958,7 @@ const exPeak = `hubs_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" }
       </table>
 
       <DocsCallout type="info" title="The engine is sandboxed, not just the syntax">
-        The engine behind these two is sandboxed rather than merely checked: the profile database is opened with DuckDB&rsquo;s external file access and extension autoloading disabled, so a query cannot reach the host&rsquo;s filesystem through <code>read_text</code>, <code>read_csv</code> or <code>glob</code>, and cannot <code>ATTACH</code> another database. A second statement after a semicolon is refused rather than run. What a query can reach is this profile&rsquo;s own tables, which is what the family is for.
+        The engine behind these two is sandboxed rather than merely checked: the profile database is opened with DuckDB&rsquo;s external file access and extension autoloading disabled, so a query cannot reach the host&rsquo;s filesystem through <code>read_text</code>, <code>read_csv</code> or <code>glob</code>, and cannot <code>ATTACH</code> another database. Its configuration is locked once it opens, so no query can switch those settings back, and every statement runs in a transaction that is rolled back, so nothing a query writes outlives the call. A second statement after a semicolon is refused rather than run. What a query can reach is this profile&rsquo;s own tables, which is what the family is for.
       </DocsCallout>
 
       <DocsCallout type="warning" title="Query the events view, not events_raw">

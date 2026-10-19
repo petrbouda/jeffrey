@@ -78,6 +78,17 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     private static final String AUTOLOAD_EXTENSIONS_SETTING = "autoload_known_extensions";
     private static final String EXTENSION_AUTOLOADING_VALUE = "false";
 
+    /**
+     * Freezes every setting above once the database is open. The MCP tools roll back what a caller's
+     * statement writes, but a setting is not data: one changed on a pooled connection would outlive
+     * the rollback and follow the connection into the next request, the UI's included. The prefix
+     * check in front of {@code jfr_executeQuery} refuses {@code SET} and {@code PRAGMA}; this makes
+     * the engine refuse them, whatever the spelling. Nothing changes a setting on a profile database
+     * after it opens -- they all arrive here, as connection properties.
+     */
+    private static final String LOCK_CONFIGURATION_SETTING = "lock_configuration";
+    private static final String LOCK_CONFIGURATION_VALUE = "true";
+
     private static final String WAL_AUTOCHECKPOINT_PROPERTY = "wal_autocheckpoint";
 
     /**
@@ -140,6 +151,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .additionalProperty(EXTERNAL_ACCESS_SETTING, EXTERNAL_ACCESS_VALUE)
                 .additionalProperty(AUTOINSTALL_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
                 .additionalProperty(AUTOLOAD_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
+                .additionalProperty(LOCK_CONFIGURATION_SETTING, LOCK_CONFIGURATION_VALUE)
                 .build();
 
         return DataSourceProvider.open(params);
