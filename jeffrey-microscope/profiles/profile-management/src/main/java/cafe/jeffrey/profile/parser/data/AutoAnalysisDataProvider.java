@@ -82,13 +82,22 @@ public class AutoAnalysisDataProvider {
 
     private static AutoAnalysisResult toAnalysisItem(IResult result) {
         IQuantity score = result.getResult(TypedResult.SCORE);
+        String rule = result.getRule().getName();
         return new AutoAnalysisResult(
-                result.getRule().getName(),
+                rule,
                 AutoAnalysisResult.Severity.valueOf(result.getSeverity().name()),
                 ResultToolkit.populateMessage(result, result.getExplanation(), false),
-                ResultToolkit.populateMessage(result, result.getSummary(), false),
+                summaryOrRule(ResultToolkit.populateMessage(result, result.getSummary(), false), rule),
                 ResultToolkit.populateMessage(result, result.getSolution(), false),
                 score != null ? score.displayUsing(IDisplayable.AUTO) : null,
                 result.getRule().getTopic());
+    }
+
+    /**
+     * The rule's summary, or its name when JMC returned a verdict without one, so every result has a
+     * one-line statement to show.
+     */
+    static String summaryOrRule(String summary, String rule) {
+        return summary == null || summary.isBlank() ? rule : summary;
     }
 }
