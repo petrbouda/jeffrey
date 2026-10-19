@@ -17,20 +17,23 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.common.exceptions.ThrowOrigin;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionRateTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.exceptions.ExceptionSiteStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypeStat;
-import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypesBuilder;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysis;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysisBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.provider.profile.api.ProfileExceptionRepository;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ExceptionsManagerImpl implements ExceptionsManager {
@@ -40,33 +43,41 @@ public class ExceptionsManagerImpl implements ExceptionsManager {
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
     private final ProfileEventStreamRepository eventStreamRepository;
+    private final ProfileExceptionRepository exceptionRepository;
 
     public ExceptionsManagerImpl(
             ProfileInfo profileInfo,
             ProfileEventRepository eventRepository,
-            ProfileEventStreamRepository eventStreamRepository) {
+            ProfileEventStreamRepository eventStreamRepository,
+            ProfileExceptionRepository exceptionRepository) {
         this.profileInfo = profileInfo;
         this.eventRepository = eventRepository;
         this.eventStreamRepository = eventStreamRepository;
+        this.exceptionRepository = exceptionRepository;
     }
 
     @Override
     public ExceptionsOverview overview() {
+        return overview(analysis());
+    }
+
+    @Override
+    public ExceptionsOverview overview(ThrowAnalysis analysis) {
         long totalThrowables = eventRepository.latestJsonFields(Type.EXCEPTION_STATISTICS)
                 .map(fields -> Math.max(0, Json.readLong(fields, THROWABLES_FIELD)))
                 .orElse(0L);
 
-        List<ExceptionTypeStat> types = topTypes();
-        long sampledThrows = types.stream().filter(type -> !type.error()).mapToLong(ExceptionTypeStat::count).sum();
-        long errors = types.stream().filter(ExceptionTypeStat::error).mapToLong(ExceptionTypeStat::count).sum();
+        long errors = analysis.errorCount();
 
         return new ExceptionsOverview(
                 totalThrowables,
-                sampledThrows,
+                analysis.throwCount() - errors,
                 errors,
-                types.size(),
+                analysis.types().size(),
                 eventRepository.containsEventType(Type.JAVA_EXCEPTION_THROW),
-                eventRepository.containsEventType(Type.JAVA_ERROR_THROW));
+                eventRepository.containsEventType(Type.JAVA_ERROR_THROW),
+                analysis.countOf(ThrowOrigin.APPLICATION),
+                analysis.countOf(ThrowOrigin.JVM_INTERNAL));
     }
 
     @Override
@@ -85,21 +96,24 @@ public class ExceptionsManagerImpl implements ExceptionsManager {
 
     @Override
     public List<ExceptionTypeStat> topTypes() {
-        List<Type> presentTypes = new ArrayList<>(2);
-        if (eventRepository.containsEventType(Type.JAVA_EXCEPTION_THROW)) {
-            presentTypes.add(Type.JAVA_EXCEPTION_THROW);
-        }
-        if (eventRepository.containsEventType(Type.JAVA_ERROR_THROW)) {
-            presentTypes.add(Type.JAVA_ERROR_THROW);
-        }
-        if (presentTypes.isEmpty()) {
-            return List.of();
-        }
+        return analysis().types();
+    }
 
-        EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventTypes(presentTypes)
-                .withJsonFields();
+    @Override
+    public List<ExceptionSiteStat> sites() {
+        return analysis().sites();
+    }
 
-        return eventStreamRepository.genericStreaming(configurer, new ExceptionTypesBuilder());
+    @Override
+    public ThrowAnalysis analysis() {
+        boolean recorded = eventRepository.containsEventType(Type.JAVA_EXCEPTION_THROW)
+                || eventRepository.containsEventType(Type.JAVA_ERROR_THROW);
+        if (!recorded) {
+            return ThrowAnalysis.EMPTY;
+        }
+        return ThrowAnalysisBuilder.build(
+                exceptionRepository.throwCounts(),
+                exceptionRepository.throwMessages(),
+                exceptionRepository.throwStacktraces());
     }
 }

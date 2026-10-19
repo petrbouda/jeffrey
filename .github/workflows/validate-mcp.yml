@@ -147,7 +147,7 @@ jobs:
         run: python3 build/scripts/mcp-snapshot.py --url "${MICROSCOPE_URL}" --check
 
       # The skills extension against the packaged jar: skills/list answers every client, declared or
-      # not, with the ten plugin skills copied onto the classpath at build time, and the discover
+      # not, with the eleven plugin skills copied onto the classpath at build time, and the discover
       # result the readiness step saved declares io.modelcontextprotocol/skills, which it does exactly
       # when at least one skill loads. A skill whose SKILL.md frontmatter stops parsing is skipped with a
       # warning, so this is where a packaging slip shows up as a count of nine.
@@ -171,7 +171,7 @@ jobs:
           import json
           import sys
 
-          EXPECTED_SKILLS = 10
+          EXPECTED_SKILLS = 11
           SKILLS_EXTENSION = "io.modelcontextprotocol/skills"
 
           with open(sys.argv[1]) as f:

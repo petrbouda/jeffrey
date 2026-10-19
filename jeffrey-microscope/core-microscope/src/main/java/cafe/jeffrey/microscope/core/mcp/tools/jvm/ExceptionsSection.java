@@ -22,9 +22,14 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.common.exceptions.ThrowFrame;
+import cafe.jeffrey.profile.common.exceptions.ThrowOrigin;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.model.exceptions.ExceptionMessageCount;
+import cafe.jeffrey.profile.manager.model.exceptions.ExceptionSiteStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypeStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysis;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 
@@ -44,6 +49,12 @@ import java.util.Set;
  * sampled; the per-type list comes from the throw events, which are off in most recordings. So a
  * profile can honestly report millions of exceptions and name none of them, and that is a finding
  * about the profiler's configuration rather than an empty result.
+ * <p>
+ * Every throw is also split by origin. {@code JVM_INTERNAL} is the JVM resolving and linking —
+ * class loading, reflection, method-handle linking — which throws and catches by the handful and
+ * which nobody can act on; everything else, libraries included, is {@code APPLICATION}, because a
+ * timeout inside Netty is the application's problem too. {@code topApplicationSites} names where the
+ * application throws come from; {@code jvm_exceptionSites} adds their stacks.
  */
 public record ExceptionsSection(ProfileManager profileManager) implements JvmSection<ExceptionsSection.ExceptionsDashboard> {
 
@@ -52,6 +63,7 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
     private static final String TITLE = "Exceptions";
 
     private static final int TOP_TYPES_LIMIT = 20;
+    private static final int TOP_SITES_LIMIT = 10;
     private static final int MESSAGES_LIMIT = 3;
 
     private static final Set<Type> EVENT_TYPES = Set.of(
@@ -67,6 +79,13 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
     private static final String THROW_SITE_WHY =
             "finds the hot throw sites: constructing an exception walks the stack, which shows up as "
                     + "fillInStackTrace in the on-CPU flamegraph";
+    private static final String SITES_WHY =
+            "returns the stacks behind these throw sites; pass your own packages as framePrefixes and each "
+                    + "site names the frame where your code entered the throw";
+    private static final String JVM_INTERNAL_GUIDANCE =
+            "jvmInternalThrows are the JVM resolving and linking - class loading, reflection, method-handle "
+                    + "linking - thrown and caught inside the JDK; they are noise, so read applicationThrows "
+                    + "and topApplicationSites, which keep library throws such as timeouts.";
     private static final String PER_OPERATION_WHY =
             "counts the exceptions crossing a traced boundary per operation, which says which request they "
                     + "belong to";
@@ -98,16 +117,22 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
                 .with(SectionCalls.EVENT_TYPE, eventType)
                 .with(SectionCalls.SEARCH, THROW_SITE_FRAME)
                 .why(THROW_SITE_WHY));
-        next.next(SectionCalls.on(SectionCalls.TRACES_OPERATIONS, profileId)
+        List<ApplicationSite> sites = dashboard.topApplicationSites();
+        next.nextWhen(!sites.isEmpty(), () -> SectionCalls.on(SectionCalls.JVM_EXCEPTION_SITES, profileId)
+                        .with(SectionCalls.THROWN_CLASS, sites.getFirst().thrownClass())
+                        .why(SITES_WHY))
+                .next(SectionCalls.on(SectionCalls.TRACES_OPERATIONS, profileId)
                         .with(SectionCalls.SORT, TraceOperationSortField.ERRORS)
                         .why(PER_OPERATION_WHY))
                 .guidanceWhen(dashboard.totalThrowables() > 0 && !dashboard.exceptionThrowsRecorded(),
-                        UNATTRIBUTED_GUIDANCE);
+                        UNATTRIBUTED_GUIDANCE)
+                .guidanceWhen(dashboard.jvmInternalThrows() > 0, JVM_INTERNAL_GUIDANCE);
     }
 
     @Override
     public ExceptionsDashboard render() {
-        ExceptionsOverview overview = profileManager.exceptionsManager().overview();
+        ThrowAnalysis analysis = profileManager.exceptionsManager().analysis();
+        ExceptionsOverview overview = profileManager.exceptionsManager().overview(analysis);
         return new ExceptionsDashboard(
                 overview.totalThrowables(),
                 overview.sampledThrowCount(),
@@ -115,14 +140,17 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
                 overview.distinctTypes(),
                 overview.hasExceptionThrowEvents(),
                 overview.hasErrorThrowEvents(),
-                topTypes());
-    }
-
-    private List<ThrownType> topTypes() {
-        return profileManager.exceptionsManager().topTypes().stream()
-                .limit(TOP_TYPES_LIMIT)
-                .map(ExceptionsSection::thrownType)
-                .toList();
+                overview.applicationThrowCount(),
+                overview.jvmInternalThrowCount(),
+                analysis.types().stream()
+                        .limit(TOP_TYPES_LIMIT)
+                        .map(ExceptionsSection::thrownType)
+                        .toList(),
+                analysis.sites().stream()
+                        .filter(site -> site.origin() == ThrowOrigin.APPLICATION)
+                        .limit(TOP_SITES_LIMIT)
+                        .map(ExceptionsSection::applicationSite)
+                        .toList());
     }
 
     private static ThrownType thrownType(ExceptionTypeStat stat) {
@@ -131,10 +159,28 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
                 stat.count(),
                 stat.error(),
                 stat.threadCount(),
-                stat.messages().stream()
-                        .limit(MESSAGES_LIMIT)
-                        .map(message -> new Message(message.message(), message.count()))
-                        .toList());
+                stat.applicationCount(),
+                stat.jvmInternalCount(),
+                messages(stat.messages(), MESSAGES_LIMIT));
+    }
+
+    private static ApplicationSite applicationSite(ExceptionSiteStat site) {
+        return new ApplicationSite(
+                site.thrownClass(),
+                site.error(),
+                Frame.of(site.throwingFrame()),
+                site.count(),
+                site.threadCount(),
+                messages(site.messages(), MESSAGES_LIMIT),
+                site.stacktraceId());
+    }
+
+    /** The commonest messages, as the answer carries them. */
+    static List<Message> messages(List<ExceptionMessageCount> messages, int limit) {
+        return messages.stream()
+                .limit(limit)
+                .map(message -> new Message(message.message(), message.count()))
+                .toList();
     }
 
     /**
@@ -149,8 +195,15 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
             int distinctTypes,
             boolean exceptionThrowsRecorded,
             boolean errorThrowsRecorded,
+            @McpDescription("Sampled throws the application raised, libraries included")
+            long applicationThrows,
+            @McpDescription("Sampled throws the JVM raised while loading, linking or reflecting - noise")
+            long jvmInternalThrows,
             @McpDescription("The " + TOP_TYPES_LIMIT + " types thrown most often, out of distinctTypes")
-            List<ThrownType> topTypes) {
+            List<ThrownType> topTypes,
+            @McpDescription("The " + TOP_SITES_LIMIT + " application throw sites (class + throwing frame) "
+                    + "thrown most often; jvm_exceptionSites adds their stacks")
+            List<ApplicationSite> topApplicationSites) {
     }
 
     public record ThrownType(
@@ -159,8 +212,50 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
             long count,
             boolean error,
             int threadCount,
+            @McpDescription("Throws of this type the application raised, libraries included")
+            long applicationCount,
+            @McpDescription("Throws of this type the JVM raised while loading, linking or reflecting")
+            long jvmInternalCount,
             @McpDescription("The " + MESSAGES_LIMIT + " commonest messages")
             List<Message> messages) {
+    }
+
+    /**
+     * Where an application throw came from: its class and the frame that contained the {@code throw}.
+     */
+    public record ApplicationSite(
+            String thrownClass,
+            boolean error,
+            @McpNullable
+            @McpDescription("The frame that contained the throw, below the exception's constructors; "
+                    + "null when no stack was recorded")
+            Frame throwingFrame,
+            long count,
+            int threadCount,
+            @McpDescription("The " + MESSAGES_LIMIT + " commonest messages")
+            List<Message> messages,
+            @McpNullable
+            @McpDescription("The site's commonest stack; null when no stack was recorded")
+            String stacktraceId) {
+    }
+
+    /**
+     * One stack frame.
+     */
+    public record Frame(
+            @McpNullable
+            @McpDescription("Null for a native frame the recording could not attribute")
+            String className,
+            @McpNullable
+            String methodName,
+            @McpNullable
+            @McpDescription("Null when the recording carries no line")
+            Integer lineNumber) {
+
+        /** The frame as the answer carries it; null for no frame. */
+        static Frame of(ThrowFrame frame) {
+            return frame == null ? null : new Frame(frame.className(), frame.methodName(), frame.lineNumber());
+        }
     }
 
     public record Message(

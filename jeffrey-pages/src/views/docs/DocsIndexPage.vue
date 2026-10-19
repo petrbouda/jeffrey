@@ -28,7 +28,7 @@ const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Hear
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
-const mcpComponents = ['100 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
+const mcpComponents = ['101 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 
 onMounted(() => {

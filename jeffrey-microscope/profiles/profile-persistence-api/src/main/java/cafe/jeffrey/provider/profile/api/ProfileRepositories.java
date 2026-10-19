@@ -133,4 +133,12 @@ public interface ProfileRepositories {
      * @return a new pipeline-run repository for the profile
      */
     PipelineRunRepository newPipelineRunRepository(DataSource dataSource);
+
+    /**
+     * Creates the repository that aggregates the profile's sampled throws, with their stacks.
+     *
+     * @param dataSource the profile database connection
+     * @return a new exception repository for the profile
+     */
+    ProfileExceptionRepository newExceptionRepository(DataSource dataSource);
 }

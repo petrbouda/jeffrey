@@ -17,7 +17,11 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import type { ExceptionsOverview, ExceptionTypeStat } from '@/services/api/model/ExceptionsModels';
+import type {
+  ExceptionSiteStat,
+  ExceptionsOverview,
+  ExceptionTypeStat
+} from '@/services/api/model/ExceptionsModels';
 
 export default class ProfileExceptionsClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -34,5 +38,9 @@ export default class ProfileExceptionsClient extends BaseProfileClient {
 
   public getTopTypes(): Promise<ExceptionTypeStat[]> {
     return this.get<ExceptionTypeStat[]>('/top-types');
+  }
+
+  public getSites(): Promise<ExceptionSiteStat[]> {
+    return this.get<ExceptionSiteStat[]>('/sites');
   }
 }

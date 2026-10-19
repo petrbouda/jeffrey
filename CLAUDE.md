@@ -93,7 +93,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Protos carry no `reserved`**: hub and Microscope ship together, so removed numbers are reused and survivors renumbered.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
-- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 111 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 112 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 

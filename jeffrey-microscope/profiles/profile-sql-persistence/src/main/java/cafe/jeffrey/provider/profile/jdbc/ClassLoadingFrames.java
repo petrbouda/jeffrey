@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.profile.common.exceptions.ClassLoadingFramePrefixes;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.util.List;
@@ -43,24 +44,10 @@ import java.util.List;
 final class ClassLoadingFrames {
 
     /**
-     * Class-name prefixes that appear in a class-loading stack.
-     * <p>
-     * {@code java.lang.Class} is deliberately absent, on both counts: as a prefix it would also
-     * match {@code java.lang.ClassValue} and {@code java.lang.ClassLoader}, and
-     * {@code Class.forName} reaches the file through a loader anyway, so the loader frame is already
-     * on the stack when it matters.
+     * Class-name prefixes that appear in a class-loading stack — the shared list, so this verdict and
+     * the JVM-internal throw classification never disagree about what a loader frame is.
      */
-    static final List<String> CLASS_NAME_PREFIXES = List.of(
-            // BuiltinClassLoader, ClassLoaders, Resource, URLClassPath — the modern path, and the
-            // one that produced every genuine class-loading read in the measurement above.
-            "jdk.internal.loader.",
-            "java.lang.ClassLoader",
-            "java.net.URLClassLoader",
-            "java.security.SecureClassLoader",
-            // A Spring Boot fat jar loads through its own loader rather than the built-in one.
-            "org.springframework.boot.loader.",
-            // Pre-JDK-9 launcher, still reachable through an old embedded loader.
-            "sun.misc.Launcher");
+    static final List<String> CLASS_NAME_PREFIXES = ClassLoadingFramePrefixes.PREFIXES;
 
     /** The origin written to {@code trace_spans.io_origin} when one of the prefixes above matches. */
     static final String CLASS_LOADING_ORIGIN = "CLASS_LOADING";

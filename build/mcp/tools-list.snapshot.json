@@ -14986,6 +14986,369 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "framePrefixes": {
+            "type": "array"
+          },
+          "includeJvmInternal": {
+            "type": "boolean"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "thrownClass": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profileId"
+        ]
+      },
+      "name": "jvm_exceptionSites",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "dashboard": {
+            "additionalProperties": false,
+            "properties": {
+              "applicationThrows": {
+                "type": "integer"
+              },
+              "framePrefixes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "hasMore": {
+                "type": "boolean"
+              },
+              "includeJvmInternal": {
+                "type": "boolean"
+              },
+              "jvmInternalThrows": {
+                "type": "integer"
+              },
+              "matchingSites": {
+                "type": "integer"
+              },
+              "nextCursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sites": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "error": {
+                      "type": "boolean"
+                    },
+                    "messages": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "count": {
+                            "type": "integer"
+                          },
+                          "message": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "message"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "omittedFrames": {
+                      "type": "integer"
+                    },
+                    "origin": {
+                      "enum": [
+                        "APPLICATION",
+                        "JVM_INTERNAL"
+                      ],
+                      "type": "string"
+                    },
+                    "ownFrame": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "className": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "lineNumber": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "methodName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "className",
+                        "lineNumber",
+                        "methodName"
+                      ],
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "ownFrameDepth": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "stack": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "className": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "lineNumber": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "methodName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "className",
+                          "lineNumber",
+                          "methodName"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "stacktraceId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "threadCount": {
+                      "type": "integer"
+                    },
+                    "throwingFrame": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "className": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "lineNumber": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "methodName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "className",
+                        "lineNumber",
+                        "methodName"
+                      ],
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "thrownClass": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "error",
+                    "messages",
+                    "omittedFrames",
+                    "origin",
+                    "ownFrame",
+                    "ownFrameDepth",
+                    "stack",
+                    "stacktraceId",
+                    "threadCount",
+                    "throwingFrame",
+                    "thrownClass"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "sitesWithOwnFrame": {
+                "type": "integer"
+              },
+              "thrownClass": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "applicationThrows",
+              "framePrefixes",
+              "hasMore",
+              "includeJvmInternal",
+              "jvmInternalThrows",
+              "matchingSites",
+              "nextCursor",
+              "sites",
+              "sitesWithOwnFrame",
+              "thrownClass"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "section": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "uiLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dashboard",
+          "followUp",
+          "profileId",
+          "reason",
+          "section",
+          "status",
+          "title",
+          "uiLink"
+        ],
+        "type": "object"
+      },
+      "title": "JVM: Exception Sites"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "MODERATE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
           "profileId": {
             "type": "string"
           }
@@ -15001,6 +15364,9 @@
           "dashboard": {
             "additionalProperties": false,
             "properties": {
+              "applicationThrows": {
+                "type": "integer"
+              },
               "distinctTypes": {
                 "type": "integer"
               },
@@ -15013,10 +15379,13 @@
               "exceptionThrowsRecorded": {
                 "type": "boolean"
               },
+              "jvmInternalThrows": {
+                "type": "integer"
+              },
               "sampledThrows": {
                 "type": "integer"
               },
-              "topTypes": {
+              "topApplicationSites": {
                 "items": {
                   "additionalProperties": false,
                   "properties": {
@@ -15025,6 +15394,102 @@
                     },
                     "error": {
                       "type": "boolean"
+                    },
+                    "messages": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "count": {
+                            "type": "integer"
+                          },
+                          "message": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "message"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "stacktraceId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "threadCount": {
+                      "type": "integer"
+                    },
+                    "throwingFrame": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "className": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "lineNumber": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "methodName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "className",
+                        "lineNumber",
+                        "methodName"
+                      ],
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "thrownClass": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "error",
+                    "messages",
+                    "stacktraceId",
+                    "threadCount",
+                    "throwingFrame",
+                    "thrownClass"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "topTypes": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "applicationCount": {
+                      "type": "integer"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "error": {
+                      "type": "boolean"
+                    },
+                    "jvmInternalCount": {
+                      "type": "integer"
                     },
                     "messages": {
                       "items": {
@@ -15059,8 +15524,10 @@
                     }
                   },
                   "required": [
+                    "applicationCount",
                     "count",
                     "error",
+                    "jvmInternalCount",
                     "messages",
                     "threadCount",
                     "thrownClass"
@@ -15074,11 +15541,14 @@
               }
             },
             "required": [
+              "applicationThrows",
               "distinctTypes",
               "errorThrowsRecorded",
               "errors",
               "exceptionThrowsRecorded",
+              "jvmInternalThrows",
               "sampledThrows",
+              "topApplicationSites",
               "topTypes",
               "totalThrowables"
             ],

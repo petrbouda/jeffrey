@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ExceptionsManager;
+import cafe.jeffrey.profile.manager.model.exceptions.ExceptionSiteStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypeStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -59,6 +60,12 @@ public class ExceptionsController {
     public List<ExceptionTypeStat> topTypes(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching top exception types");
         return mgr(profileId).topTypes();
+    }
+
+    @GetMapping("/sites")
+    public List<ExceptionSiteStat> sites(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching exception throw sites");
+        return mgr(profileId).sites();
     }
 
     private ExceptionsManager mgr(String profileId) {

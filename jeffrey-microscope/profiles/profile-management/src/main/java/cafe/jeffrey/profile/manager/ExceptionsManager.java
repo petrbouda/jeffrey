@@ -17,8 +17,10 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.exceptions.ExceptionSiteStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionTypeStat;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysis;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -42,6 +44,11 @@ public interface ExceptionsManager {
     ExceptionsOverview overview();
 
     /**
+     * The same headline metrics, built over an analysis the caller already read.
+     */
+    ExceptionsOverview overview(ThrowAnalysis analysis);
+
+    /**
      * Exceptions-per-second timeline derived from the cumulative {@code jdk.ExceptionStatistics}
      * gauge. Always available — the statistics event is part of the default JFR configuration.
      */
@@ -52,4 +59,15 @@ public interface ExceptionsManager {
      * {@code jdk.JavaExceptionThrow} nor {@code jdk.JavaErrorThrow} is present in the recording.
      */
     List<ExceptionTypeStat> topTypes();
+
+    /**
+     * Sampled throws grouped by throw site — the class and the frame that contained the
+     * {@code throw} — each with its origin, ordered by descending count.
+     */
+    List<ExceptionSiteStat> sites();
+
+    /**
+     * Types, sites and the sites' stacks from one read, for a caller that needs more than one view.
+     */
+    ThrowAnalysis analysis();
 }

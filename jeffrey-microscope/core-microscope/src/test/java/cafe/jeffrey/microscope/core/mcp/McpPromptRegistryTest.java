@@ -270,7 +270,7 @@ class McpPromptRegistryTest {
         void servesOnePromptPerCatalogueSkill() {
             List<String> skills = McpSkillCatalogue.fromClasspath().skills().stream().map(McpSkill::name).toList();
 
-            assertEquals(10, registry.prompts().size());
+            assertEquals(11, registry.prompts().size());
             assertEquals(skills, registry.prompts().stream().map(McpPrompt::name).toList());
         }
 

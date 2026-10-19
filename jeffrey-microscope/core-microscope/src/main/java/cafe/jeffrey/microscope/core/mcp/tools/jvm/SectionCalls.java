@@ -42,6 +42,7 @@ final class SectionCalls {
     static final String SORT = "sort";
     static final String PAGE = "page";
     static final String SECTION = "section";
+    static final String THROWN_CLASS = "thrownClass";
 
     static final String FLAMEGRAPH_EXPORT = "flamegraph_export";
     static final String FLAMEGRAPH_LIST = "flamegraph_list";
@@ -60,6 +61,7 @@ final class SectionCalls {
     static final String JVM_CONTAINER = "jvm_container";
     static final String JVM_GC_DETAIL = "jvm_gcDetail";
     static final String JVM_CONFIGURATION = "jvm_configuration";
+    static final String JVM_EXCEPTION_SITES = "jvm_exceptionSites";
 
     private SectionCalls() {
     }

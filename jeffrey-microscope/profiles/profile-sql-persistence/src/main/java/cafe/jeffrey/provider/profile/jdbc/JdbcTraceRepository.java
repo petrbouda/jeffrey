@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.profile.common.exceptions.JvmInternalThrows;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
@@ -94,10 +95,9 @@ public class JdbcTraceRepository implements TraceRepository {
      * <p>
      * Neither records a throw exactly once — an Error arrives as two {@code jdk.JavaExceptionThrow}
      * and one {@code jdk.JavaErrorThrow} — so the derivation collapses each throwable back to one
-     * row before anything counts them. See {@code DERIVE_TRACE_EXCEPTIONS}.
+     * row before anything counts them. See {@link ThrowEvents}.
      */
-    private static final List<String> THROW_EVENT_TYPES =
-            List.of(EventTypeName.JAVA_EXCEPTION_THROW, EventTypeName.JAVA_ERROR_THROW);
+    private static final List<String> THROW_EVENT_TYPES = ThrowEvents.EVENT_TYPES;
 
     /**
      * The same types as a SQL literal list, for the drill-down's exclusion predicate, whose other
@@ -107,54 +107,13 @@ public class JdbcTraceRepository implements TraceRepository {
             THROW_EVENT_TYPES.stream().map(type -> "'" + type + "'").collect(Collectors.joining(", "));
 
     /**
-     * Throws that mean the JVM or JDK failed to resolve or link something. Three closed hierarchies,
-     * enumerated because SQL cannot ask about a class hierarchy: {@link LinkageError}, the
-     * {@code java.lang.invoke} throwables, and {@link ReflectiveOperationException}.
-     * <p>
-     * The MethodHandle layer raises these by the handful while linking an {@code invokedynamic} call
-     * site, and a library probing for an optional dependency does the same through
-     * {@code Class.forName}. They land on the request thread inside the span that triggered the work,
-     * so the attribution is right — they are just not something a reader of a trace can act on.
+     * Throws that mean the JVM or JDK failed to resolve or link something — the shared list, see
+     * {@link JvmInternalThrows#RESOLUTION_FAILURE_CLASSES}.
      * <p>
      * Only ever drops a throw the code <em>caught</em>: an escaped one survives the filter, because a
      * throw that failed its span is the story whoever threw it.
-     * <p>
-     * Taken as the closure of the three roots over every module in the JDK, so a new entry is only
-     * needed if the JDK itself adds one. Deliberately absent: cancellation and timeouts, the resource
-     * errors, and ordinary application logic — those are what a trace reader is looking for.
      */
-    private static final List<String> RESOLUTION_FAILURE_CLASSES = List.of(
-            // java.lang.LinkageError and every subclass
-            "java.lang.LinkageError",
-            "java.lang.BootstrapMethodError",
-            "java.lang.ClassCircularityError",
-            "java.lang.ClassFormatError",
-            "java.lang.UnsupportedClassVersionError",
-            "java.lang.ExceptionInInitializerError",
-            "java.lang.IncompatibleClassChangeError",
-            "java.lang.AbstractMethodError",
-            "java.lang.IllegalAccessError",
-            "java.lang.InstantiationError",
-            "java.lang.NoSuchFieldError",
-            "java.lang.NoSuchMethodError",
-            "java.lang.NoClassDefFoundError",
-            "java.lang.UnsatisfiedLinkError",
-            "java.lang.VerifyError",
-            "java.lang.reflect.GenericSignatureFormatError",
-            // java.lang.invoke throwables
-            "java.lang.invoke.WrongMethodTypeException",
-            "java.lang.invoke.LambdaConversionException",
-            "java.lang.invoke.StringConcatException",
-            "java.lang.invoke.InvokerBytecodeGenerator$BytecodeGenerationException",
-            // java.lang.ReflectiveOperationException and every subclass
-            "java.lang.ReflectiveOperationException",
-            "java.lang.ClassNotFoundException",
-            "java.lang.IllegalAccessException",
-            "java.lang.InstantiationException",
-            "java.lang.NoSuchFieldException",
-            "java.lang.NoSuchMethodException",
-            "java.lang.reflect.InvocationTargetException",
-            "java.lang.reflect.Proxy$InvocationException");
+    private static final List<String> RESOLUTION_FAILURE_CLASSES = JvmInternalThrows.RESOLUTION_FAILURE_CLASSES;
 
     private static final String SPAN_EVENT_TYPES = """
             SELECT name FROM event_types
@@ -219,10 +178,7 @@ public class JdbcTraceRepository implements TraceRepository {
      * sees; without it, a blocking event whose largest field was pooled hashed to a payload row
      * that was never written, and the span pointed at nothing.
      */
-    private static final String REHYDRATED_FIELDS = """
-            CASE WHEN e.pooled_text_hash IS NULL
-                 THEN e.fields
-                 ELSE json_merge_patch(e.fields, json_object(e.pooled_field, t.text)) END""";
+    private static final String REHYDRATED_FIELDS = RawEventFields.REHYDRATED;
 
     /*
      * The distinct event_fields payloads, written before the spans so every reference the span
@@ -964,73 +920,15 @@ public class JdbcTraceRepository implements TraceRepository {
      * against the span's own error_type. A throw caught inside the span leaves it FALSE, which is
      * most of them.
      *
-     * One throwable, one row -- which takes the `distinct_throws` step, because JFR does not record
-     * these events once each. Both are emitted from constructors (jdk.jfr.internal.instrument
-     * .ThrowableTracer, woven into Throwable and Error), and the Error hook commits an
-     * ExceptionThrown of its own beside its ErrorThrown. So constructing an Error emits three
-     * events -- two jdk.JavaExceptionThrow and one jdk.JavaErrorThrow -- while an ordinary
-     * exception emits one. Counted raw, every Error is three throws and appears twice over, once
-     * under each event type, as two findings that are really one.
-     *
-     * The de-duplication is by class rather than by instant: a class either extends Error or it
-     * does not, so a class that produced any jdk.JavaErrorThrow keeps only those rows, and its
-     * jdk.JavaExceptionThrow rows are the duplicate view of the same objects. Matching on the
-     * timestamp instead would be wrong -- the Error hook and the Throwable hook read the clock
-     * separately, so the twins are not guaranteed to share a tick. OutOfMemoryError is the one
-     * Error the tracer skips, emitting no jdk.JavaErrorThrow at all; it produces no error rows to
-     * anti-join against, so its single event survives, which is the right answer for it too.
-     *
-     * A recording with jdk.JavaErrorThrow disabled has nothing to de-duplicate against and its
-     * errors stay double-counted. Nothing here can recover that -- the duplicate is
-     * indistinguishable from a second throw -- and both event types travel together in every
-     * settings file that enables either.
+     * One throwable, one row: the throws come from ThrowEvents.DISTINCT_THROWS_CTES, which
+     * collapses an Error's twin events back to one -- the same reading the Exceptions page counts.
      */
     //language=SQL
     private static final String DERIVE_TRACE_EXCEPTIONS = """
             INSERT INTO trace_exceptions (trace_id, span_id, exception_id, start_timestamp,
                                           start_timestamp_from_beginning, event_type, thrown_class,
                                           message, escaped, stacktrace_hash, thread_hash)
-            WITH thrown AS (
-                SELECT
-                    e.rowid                                       AS exception_id,
-                    e.event_type                                  AS event_type,
-                    e.start_timestamp                             AS start_timestamp,
-                    COALESCE(e.start_timestamp_from_beginning, 0)  AS start_ms,
-                    EPOCH_US(e.start_timestamp)                   AS start_us,
-                    e.thread_hash                                 AS thread_hash,
-                    e.stacktrace_hash                             AS stacktrace_hash,
-                    <<rehydrated>>                                AS fields
-                FROM events_raw e
-                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
-                WHERE e.event_type IN (:exception_event_types)
-                  AND e.thread_hash IS NOT NULL
-            ),
-            named AS (
-                SELECT
-                    x.exception_id,
-                    x.event_type,
-                    x.start_timestamp,
-                    x.start_ms,
-                    x.start_us,
-                    x.thread_hash,
-                    x.stacktrace_hash,
-                    json_extract_string(x.fields, '$.thrownClass') AS thrown_class,
-                    json_extract_string(x.fields, '$.message')     AS message
-                FROM thrown x
-            ),
-            -- One row per throwable constructed. NOT EXISTS rather than NOT IN so that a row whose
-            -- class did not extract survives to be dropped by the NOT NULL filter below, instead of
-            -- turning the whole predicate NULL and taking every other row with it.
-            distinct_throws AS (
-                SELECT n.*
-                FROM named n
-                WHERE n.event_type = :error_throw_event_type
-                   OR NOT EXISTS (
-                        SELECT 1
-                        FROM named twin
-                        WHERE twin.event_type = :error_throw_event_type
-                          AND twin.thrown_class = n.thrown_class)
-            ),
+            WITH <<distinct_throws>>,
             attributed AS (
                 SELECT
                     x.exception_id,
@@ -1074,7 +972,7 @@ public class JdbcTraceRepository implements TraceRepository {
               -- whoever threw it, so only a caught resolution failure is ever dropped.
               AND (escaped OR thrown_class NOT IN (:resolution_failure_classes))
             ORDER BY trace_id, start_timestamp
-            """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
+            """.replace("<<distinct_throws>>", ThrowEvents.DISTINCT_THROWS_CTES);
 
     //language=SQL
     private static final String TRACES_EXIST = """
@@ -2038,9 +1936,7 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.insert(
                 StatementLabel.DERIVE_TRACE_EXCEPTIONS,
                 DERIVE_TRACE_EXCEPTIONS,
-                new MapSqlParameterSource()
-                        .addValue("exception_event_types", THROW_EVENT_TYPES)
-                        .addValue("error_throw_event_type", EventTypeName.JAVA_ERROR_THROW)
+                ThrowEvents.params()
                         .addValue("resolution_failure_classes", RESOLUTION_FAILURE_CLASSES));
     }
 
