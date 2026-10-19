@@ -71,7 +71,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for the duration of the call, runs the tool, and returns a typed result, with Markdown where the agent reads prose. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and eleven tools in nineteen families:</p>
+      <p>A hundred and twelve tools in nineteen families:</p>
       <table>
         <thead>
           <tr>
@@ -103,7 +103,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jvm_</code></td>
-            <td>17</td>
+            <td>18</td>
             <td>The machine underneath: garbage collection and the pages beneath it, safepoints, JIT compilation, threads, native memory, class loading, exceptions, the host, TLS and certificates, the container, and what the JVM was started with</td>
           </tr>
           <tr>
@@ -190,7 +190,7 @@ onMounted(() => {
       <h2 id="more-than-tools">More Than Tools</h2>
       <p>Tools are what a model calls. The server offers two other things a client can use, and both exist for the same reason: a hundred tools are only usable if something says which to reach for first.</p>
 
-      <p><strong>Prompts</strong> are the plugin&rsquo;s <router-link to="/docs/microscope-mcp/skills">skills</router-link>, served over the protocol. A plugin user gets them from the plugin; every other MCP client &mdash; Cursor, VS Code, Kiro, anything registered by hand &mdash; cannot install a plugin, and would otherwise have the tools with no account of how to use them. <code>prompts/list</code> names them and <code>prompts/get</code> returns one. A client that speaks the MCP skills extension gets the same ten as skills instead, from <code>skills/list</code>, and loads them the way a plugin client does. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so the two cannot drift apart.</p>
+      <p><strong>Prompts</strong> are the plugin&rsquo;s <router-link to="/docs/microscope-mcp/skills">skills</router-link>, served over the protocol. A plugin user gets them from the plugin; every other MCP client &mdash; Cursor, VS Code, Kiro, anything registered by hand &mdash; cannot install a plugin, and would otherwise have the tools with no account of how to use them. <code>prompts/list</code> names them and <code>prompts/get</code> returns one. A client that speaks the MCP skills extension gets the same eleven as skills instead, from <code>skills/list</code>, and loads them the way a plugin client does. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so the two cannot drift apart.</p>
 
       <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for: the paginated catalogue at <code>jeffrey://profiles</code>, server build and capability information at <code>jeffrey://server</code>, runtime health at <code>jeffrey://diagnostics</code>, and templates for a profile&rsquo;s summary, its evidence snapshot, a flamegraph export, its database schema (<code>jeffrey://profile/{profileId}/schema</code>) and the findings it already holds (<code>jeffrey://profile/{profileId}/findings</code>). A tool result scrolls away; a resource a client has attached stays in view. Reading the summary, evidence or flamegraph template runs the tool that would have answered the same question, so the two never disagree; the schema and findings are documents no single tool returns, read from the profile database and the cached analysis. Reading any of them never starts an analysis.</p>
 

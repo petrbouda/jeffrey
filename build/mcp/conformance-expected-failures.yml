@@ -65,13 +65,13 @@ server:
   - resources-read-binary:resources-read-binary
   # Reads test://template/123/data from the fixture template; Jeffrey serves jeffrey:// URIs only.
   - resources-templates-read:resources-templates-read
-  # Gets the fixture prompt test_simple_prompt; Jeffrey's prompts are its ten skills.
+  # Gets the fixture prompt test_simple_prompt; Jeffrey's prompts are its eleven skills.
   - prompts-get-simple:prompts-get-simple
-  # Gets the fixture prompt test_prompt_with_arguments; Jeffrey's prompts are its ten skills.
+  # Gets the fixture prompt test_prompt_with_arguments; Jeffrey's prompts are its eleven skills.
   - prompts-get-with-args:prompts-get-with-args
-  # Gets the fixture prompt test_prompt_with_embedded_resource; Jeffrey's prompts are its ten skills.
+  # Gets the fixture prompt test_prompt_with_embedded_resource; Jeffrey's prompts are its eleven skills.
   - prompts-get-embedded-resource:prompts-get-embedded-resource
-  # Gets the fixture prompt test_prompt_with_image; Jeffrey's prompts are its ten skills.
+  # Gets the fixture prompt test_prompt_with_image; Jeffrey's prompts are its eleven skills.
   - prompts-get-with-image:prompts-get-with-image
   # Not testable: calls the fixture tool test_missing_capability to provoke a -32021. Jeffrey has no
   # such tool; its own -32021 (tasks/* without the tasks extension) is pinned by unit tests.

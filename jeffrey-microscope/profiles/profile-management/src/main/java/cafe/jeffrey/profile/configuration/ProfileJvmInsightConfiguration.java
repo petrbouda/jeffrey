@@ -253,7 +253,8 @@ public class ProfileJvmInsightConfiguration {
             return new ExceptionsManagerImpl(
                     profileInfo,
                     profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileRepositories.newEventStreamRepository(profileDb),
+                    profileRepositories.newExceptionRepository(profileDb));
         };
     }
 

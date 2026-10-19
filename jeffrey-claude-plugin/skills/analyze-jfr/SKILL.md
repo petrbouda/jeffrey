@@ -134,6 +134,7 @@ from the menu, read three things from it and route:
 | Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
 | `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
 | Two profiles of the same workload | `compare-jfr` |
+| The question is about exceptions, errors or timeouts in the application's code | `analyze-exceptions` |
 | `topFindings` is empty and `capabilityGaps` names `autoAnalysis` | The rules did not run, so their silence is a gap and not a clean result. `jvm_autoAnalysis` with `compute: true` runs them; the other families answer either way. Empty with no such gap means the rules ran and cleared the recording |
 
 When the summary points at more than one route and the user asked about only one, run that one and
@@ -147,7 +148,7 @@ offer the others as follow-ups — they are independent, so nothing is lost by w
 | `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport`, plus `attributeKeys`/`attributeValues`/`attributeSearch` |
-| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `gcDetail`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `classLoading`, `exceptions`, `system`, `security`, `container`, `configuration`, `flags` — the machine underneath the application |
+| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `gcDetail`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `classLoading`, `exceptions`, `exceptionSites`, `system`, `security`, `container`, `configuration`, `flags` — the machine underneath the application |
 | `http_` | `overview`, `endpoint` — HTTP traffic, `SERVER` (served) or `CLIENT` (called out) |
 | `jdbc_` | `overview`, `statementGroup`, `pools` — the queries it ran, and the pool in front of them |
 | `grpc_` | `overview`, `service`, `traffic` — gRPC latency and message sizes, `SERVER` or `CLIENT` |
@@ -256,7 +257,8 @@ other half is usually in another family.
 | `jvm_threadDump` | One dump in full, every thread with its state and stack |
 | `jvm_gcDetail` | The GC pages beneath the overview, one `page` at a time: `TENURING`, `IHOP`, `G1` (regions, evacuation failures), `ZGC` (stalls), `STRING_TABLES`, `FINALIZERS`, `REFERENCES`, `PHASES`, `PLAB`, `CONFIGURATION` |
 | `jvm_classLoading` | What was loaded and who loaded it: metaspace, the loaders ranked, the slowest loads, agent redefinitions |
-| `jvm_exceptions` | What the application threw, and what kinds — constructing one walks the stack, so a type thrown in a loop is a cost no frame names |
+| `jvm_exceptions` | What the application threw, and what kinds — constructing one walks the stack, so a type thrown in a loop is a cost no frame names; the application's throws (libraries included) are split from the JVM's own class-loading and linking noise |
+| `jvm_exceptionSites` | Each throw site with its stack; given your packages as `framePrefixes`, the frame of yours that led to it. Tracing exceptions to source is the `analyze-exceptions` skill |
 | `jvm_system` | The machine underneath: machine CPU against this JVM's own, and what the difference leaves for everything else on the box |
 | `jvm_security` | TLS handshakes, the protocols and ciphers negotiated, certificates expiring or weakly signed, what was deserialized |
 

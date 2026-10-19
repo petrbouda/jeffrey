@@ -23,11 +23,13 @@ package cafe.jeffrey.profile.manager.model.exceptions;
  * @param totalThrowables        cumulative throwables created since JVM start (from the periodic
  *                               {@code jdk.ExceptionStatistics} gauge; counts every constructed
  *                               throwable, far more than the sampled throw events)
- * @param sampledThrowCount      number of {@code jdk.JavaExceptionThrow} events in the recording
- * @param errorCount             number of {@code jdk.JavaErrorThrow} events in the recording
+ * @param sampledThrowCount      sampled throws of a class that is not an {@code Error}
+ * @param errorCount             sampled throws of an {@code Error}, each counted once
  * @param distinctTypes          distinct thrown classes across the sampled throw events
  * @param hasExceptionThrowEvents whether per-throw {@code jdk.JavaExceptionThrow} events are present
  * @param hasErrorThrowEvents    whether {@code jdk.JavaErrorThrow} events are present
+ * @param applicationThrowCount  sampled throws the application (or a library it uses) raised
+ * @param jvmInternalThrowCount  sampled throws the JVM's loading and linking machinery raised
  */
 public record ExceptionsOverview(
         long totalThrowables,
@@ -35,5 +37,7 @@ public record ExceptionsOverview(
         long errorCount,
         int distinctTypes,
         boolean hasExceptionThrowEvents,
-        boolean hasErrorThrowEvents) {
+        boolean hasErrorThrowEvents,
+        long applicationThrowCount,
+        long jvmInternalThrowCount) {
 }

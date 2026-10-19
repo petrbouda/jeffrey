@@ -213,6 +213,9 @@ loads a skill when the question calls for it:
 - `advise-jfr` — from a profile to a code change: the hottest CPU, wall-clock, allocation and
   blocking frames mapped to real source in your checkout, a recommendation, then the edit and a
   re-profile on request
+- `analyze-exceptions` — what an application threw and why: its own throws (libraries included)
+  set apart from the JVM's class-loading and linking noise, each throw site traced to the line of
+  your checkout that led to it, a recommendation, then the edit on request
 - `jfr-sql` — the JFR schema and the DuckDB idioms that go with it
 - `heap-sql` — the heap-dump index schema
 - `report` — the shape every finding is written in, and the evidence rules behind it: every figure
@@ -272,7 +275,7 @@ any key it does not define, and the plugin's own agents carry Claude Code's `dis
 dispatch another subagent, and dispatching the other two is that agent's whole job — so lead an
 open-ended investigation from the main conversation there.
 
-**Prompts, skills and resources.** The server also serves the ten skills over the protocol itself,
+**Prompts, skills and resources.** The server also serves the eleven skills over the protocol itself,
 as MCP prompts and over the MCP skills extension — the same files the plugin ships, copied onto the
 server's classpath when it is built, so the two cannot drift. A client that cannot install a plugin
 (Cursor, VS Code, Kiro, anything registered by hand) gets them through `skills/list` when it speaks
@@ -375,7 +378,7 @@ jeffrey-claude-plugin/
 │   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
 ├── gemini-extension.json     Gemini CLI extension manifest — the same server, skills and agents
 ├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code and Gemini)
-├── skills/                   Ten skills, read by all three formats
+├── skills/                   Eleven skills, read by all three formats
 ├── agents/
 │   ├── profile-analyst.md    Claude Code subagent
 │   ├── heap-triage.md        …the heap specialist

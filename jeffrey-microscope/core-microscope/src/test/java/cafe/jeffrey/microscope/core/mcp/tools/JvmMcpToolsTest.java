@@ -71,7 +71,13 @@ import cafe.jeffrey.profile.manager.model.classloading.ClassLoadingOverview;
 import cafe.jeffrey.profile.manager.model.classloading.RedefinitionData;
 import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
 import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ExceptionSites;
+import cafe.jeffrey.profile.common.exceptions.ThrowFrame;
+import cafe.jeffrey.provider.profile.api.ThrowCountRecord;
+import cafe.jeffrey.provider.profile.api.ThrowMessageRecord;
 import cafe.jeffrey.profile.manager.model.exceptions.ExceptionsOverview;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysis;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysisBuilder;
 import cafe.jeffrey.profile.manager.model.gc.GCEfficiency;
 import cafe.jeffrey.profile.manager.model.gc.GCHeader;
 import cafe.jeffrey.profile.manager.model.gc.GCOverviewData;
@@ -926,6 +932,14 @@ class JvmMcpToolsTest {
     @Nested
     class Exceptions {
 
+        private static final ExceptionsOverview UNATTRIBUTED =
+                new ExceptionsOverview(5000, 0, 0, 0, false, false, 0, 0);
+
+        private void unattributed() {
+            when(exceptionsManager.analysis()).thenReturn(ThrowAnalysis.EMPTY);
+            when(exceptionsManager.overview(ThrowAnalysis.EMPTY)).thenReturn(UNATTRIBUTED);
+        }
+
         /**
          * A counted total with no throw events is a gap in the recording, which is advice about the next
          * recording rather than a call.
@@ -933,7 +947,7 @@ class JvmMcpToolsTest {
         @Test
         void saysTheAttributionIsMissingWhenTheThrowEventsWereNotRecorded() {
             recorded(EventTypeName.EXCEPTION_STATISTICS);
-            when(exceptionsManager.overview()).thenReturn(new ExceptionsOverview(5000, 0, 0, 0, false, false));
+            unattributed();
 
             JsonNode out = conforming("exceptions", tools().exceptions());
 
@@ -947,12 +961,171 @@ class JvmMcpToolsTest {
         void theThrowSiteGraphNeedsOnCpuSamples() {
             sampledOnly();
             recorded(EventTypeName.EXCEPTION_STATISTICS);
-            when(exceptionsManager.overview()).thenReturn(new ExceptionsOverview(5000, 0, 0, 0, false, false));
+            unattributed();
 
             JsonNode out = conforming("exceptions", tools().exceptions());
 
             assertEquals(Set.of("traces_operations"), nextTools(out));
             assertTrue(guidance(out).contains("flamegraph_list"), guidance(out));
+        }
+
+        @Test
+        void splitsTheThrowsByOriginAndNamesOnlyApplicationSites() {
+            recorded(EventTypeName.JAVA_EXCEPTION_THROW);
+            ThrowAnalysis analysis = ThrowSamples.analysis();
+            when(exceptionsManager.analysis()).thenReturn(analysis);
+            when(exceptionsManager.overview(analysis)).thenReturn(
+                    new ExceptionsOverview(100, 11, 0, 2, true, false, 8, 3));
+
+            JsonNode out = conforming("exceptions", tools().exceptions());
+            JsonNode dashboard = out.get("dashboard");
+
+            assertEquals(8, dashboard.get("applicationThrows").asLong());
+            assertEquals(3, dashboard.get("jvmInternalThrows").asLong());
+            JsonNode sites = dashboard.get("topApplicationSites");
+            assertEquals(1, sites.size());
+            assertEquals("java.net.SocketTimeoutException", sites.get(0).get("thrownClass").asString());
+            assertEquals("io.netty.handler.timeout.ReadTimeoutHandler",
+                    sites.get(0).get("throwingFrame").get("className").asString());
+            assertTrue(guidance(out).contains("jvmInternalThrows"), guidance(out));
+            assertEquals("java.net.SocketTimeoutException",
+                    call(out, "jvm_exceptionSites").get("thrownClass").asString());
+            McpNextToolConformance.assertFollowable(out, reachable());
+        }
+    }
+
+    @Nested
+    class ExceptionSitesTool {
+
+        private static final List<String> OWN_PACKAGES = List.of("com.acme.");
+
+        private void recordedThrows() {
+            recorded(EventTypeName.JAVA_EXCEPTION_THROW);
+            when(exceptionsManager.analysis()).thenReturn(ThrowSamples.analysis());
+        }
+
+        @Test
+        void answersNotRecordedWithoutThrowEvents() {
+            recorded();
+
+            JsonNode out = conforming("exceptionSites", tools().exceptionSites(null, null, null, null, null));
+
+            assertEquals("NOT_RECORDED", out.get("status").asString());
+            assertTrue(out.get("dashboard").isNull(), out.toString());
+            verify(exceptionsManager, never()).analysis();
+        }
+
+        @Test
+        void findsTheCallersOwnFrameBelowALibraryThrow() {
+            recordedThrows();
+
+            JsonNode out = conforming("exceptionSites", tools().exceptionSites(OWN_PACKAGES, null, null, null, null));
+            JsonNode site = out.get("dashboard").get("sites").get(0);
+
+            assertEquals("java.net.SocketTimeoutException", site.get("thrownClass").asString());
+            assertEquals("APPLICATION", site.get("origin").asString());
+            assertEquals("com.acme.orders.PaymentClient", site.get("ownFrame").get("className").asString());
+            assertEquals(1, site.get("ownFrameDepth").asInt());
+            assertEquals("io.netty.handler.timeout.ReadTimeoutHandler",
+                    site.get("stack").get(0).get("className").asString());
+            assertEquals(1, out.get("dashboard").get("sitesWithOwnFrame").asInt());
+            assertTrue(guidance(out).contains("ownFrame"), guidance(out));
+        }
+
+        @Test
+        void listsApplicationSitesOnlyUnlessAskedForTheJvmsOwn() {
+            recordedThrows();
+
+            JsonNode application = conforming("exceptionSites", tools().exceptionSites(null, null, null, null, null));
+            JsonNode everything = conforming("exceptionSites", tools().exceptionSites(null, null, true, null, null));
+
+            assertEquals(1, application.get("dashboard").get("matchingSites").asInt());
+            assertTrue(application.get("dashboard").get("sites").get(0).get("ownFrame").isNull());
+            assertEquals(2, everything.get("dashboard").get("matchingSites").asInt());
+            assertTrue(guidance(application).contains("framePrefixes"), guidance(application));
+        }
+
+        @Test
+        void narrowsToOneClass() {
+            recordedThrows();
+
+            JsonNode out = conforming("exceptionSites",
+                    tools().exceptionSites(null, "java.lang.ClassNotFoundException", true, null, null));
+
+            assertEquals(1, out.get("dashboard").get("matchingSites").asInt());
+            assertEquals("JVM_INTERNAL", out.get("dashboard").get("sites").get(0).get("origin").asString());
+        }
+
+        @Test
+        void pagesWithACursorThatTheFollowUpCarries() {
+            recordedThrows();
+
+            JsonNode first = conforming("exceptionSites", tools().exceptionSites(null, null, true, 1, null));
+            String cursor = first.get("dashboard").get("nextCursor").asString();
+            JsonNode second = conforming("exceptionSites", tools().exceptionSites(null, null, true, 1, cursor));
+
+            assertTrue(first.get("dashboard").get("hasMore").asBoolean());
+            assertEquals(cursor, call(first, "jvm_exceptionSites").get("cursor").asString());
+            McpNextToolConformance.assertFollowable(first, reachable());
+            assertFalse(second.get("dashboard").get("hasMore").asBoolean());
+            assertEquals("java.lang.ClassNotFoundException",
+                    second.get("dashboard").get("sites").get(0).get("thrownClass").asString());
+        }
+
+        @Test
+        void capsTheStackAndCountsWhatItLeftOut() {
+            recorded(EventTypeName.JAVA_EXCEPTION_THROW);
+            when(exceptionsManager.analysis()).thenReturn(ThrowSamples.deepAnalysis(40));
+
+            JsonNode out = conforming("exceptionSites", tools().exceptionSites(null, null, null, null, null));
+            JsonNode site = out.get("dashboard").get("sites").get(0);
+
+            assertEquals(ExceptionSites.STACK_FRAMES_LIMIT, site.get("stack").size());
+            assertEquals(40 - ExceptionSites.STACK_FRAMES_LIMIT, site.get("omittedFrames").asInt());
+        }
+    }
+
+    /** Throws the way the repository reports them, run through the real builder. */
+    private static final class ThrowSamples {
+
+        private static final long TIMEOUT_STACK = 21L;
+        private static final long LOADER_STACK = 22L;
+        private static final long DEEP_STACK = 23L;
+
+        private ThrowSamples() {
+        }
+
+        static ThrowAnalysis analysis() {
+            Map<Long, List<ThrowFrame>> stacks = Map.of(
+                    TIMEOUT_STACK, List.of(
+                            new ThrowFrame("java.lang.Throwable", "<init>", 266),
+                            new ThrowFrame("java.net.SocketTimeoutException", "<init>", 61),
+                            new ThrowFrame("io.netty.handler.timeout.ReadTimeoutHandler", "readTimedOut", 98),
+                            new ThrowFrame("com.acme.orders.PaymentClient", "charge", 40),
+                            new ThrowFrame("java.lang.Thread", "run", 1583)),
+                    LOADER_STACK, List.of(
+                            new ThrowFrame("java.lang.Throwable", "<init>", 266),
+                            new ThrowFrame("java.lang.ClassNotFoundException", "<init>", 82),
+                            new ThrowFrame("jdk.internal.loader.BuiltinClassLoader", "loadClass", 641)));
+            return ThrowAnalysisBuilder.build(
+                    List.of(
+                            new ThrowCountRecord("java.net.SocketTimeoutException", false, TIMEOUT_STACK, 1L, 8),
+                            new ThrowCountRecord("java.lang.ClassNotFoundException", false, LOADER_STACK, 1L, 3)),
+                    List.of(new ThrowMessageRecord("java.net.SocketTimeoutException", TIMEOUT_STACK, "read timed out", 8)),
+                    stacks);
+        }
+
+        static ThrowAnalysis deepAnalysis(int depth) {
+            List<ThrowFrame> frames = new ArrayList<>();
+            frames.add(new ThrowFrame("java.lang.Throwable", "<init>", 266));
+            frames.add(new ThrowFrame("java.io.IOException", "<init>", 62));
+            for (int index = 0; index < depth; index++) {
+                frames.add(new ThrowFrame("com.acme.Deep", "level" + index, index + 1));
+            }
+            return ThrowAnalysisBuilder.build(
+                    List.of(new ThrowCountRecord("java.io.IOException", false, DEEP_STACK, 1L, 1)),
+                    List.of(),
+                    Map.of(DEEP_STACK, frames));
         }
     }
 
@@ -1996,7 +2169,7 @@ class JvmMcpToolsTest {
                     .filter(method -> method.isAnnotationPresent(Tool.class))
                     .toList();
 
-            assertEquals(17, tools.size(), tools.toString());
+            assertEquals(18, tools.size(), tools.toString());
             tools.forEach(method -> assertTrue(method.isAnnotationPresent(McpOutputSchema.class),
                     method.getName() + " declares no outputSchema"));
         }

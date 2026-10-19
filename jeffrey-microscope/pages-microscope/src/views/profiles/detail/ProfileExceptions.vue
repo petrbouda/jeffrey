@@ -56,7 +56,27 @@
         </div>
       </div>
 
-      <!-- Top Exception Types -->
+      <!-- Application throw sites -->
+      <div v-show="activeTab === 'application'">
+        <ChartDescription
+          shows="Throw sites — an exception class and the frame that threw it — with the JVM's own class-loading, reflection and linking throws left out. Library throws stay: a timeout inside an HTTP client is the application's problem too."
+          use-case="Expand a site to see its messages and stack; the frame that threw is marked and library frames fold away."
+        />
+        <ExceptionSamplingDisabledAlert
+          v-if="overview && !overview.hasExceptionThrowEvents"
+          :total-throwables="overview.totalThrowables"
+          :error-count="overview.errorCount"
+        />
+        <EmptyState
+          v-else-if="applicationSiteCount === 0"
+          icon="bi-check2-circle"
+          title="No application throws"
+          description="Every sampled throw came from the JVM's own class loading, reflection or linking; the All Exceptions tab lists them."
+        />
+        <ApplicationExceptionsTable v-else :profile-id="profileId" :sites="sites" />
+      </div>
+
+      <!-- All exception types -->
       <div v-show="activeTab === 'top-types'">
         <ExceptionSamplingDisabledAlert
           v-if="overview && !overview.hasExceptionThrowEvents"
@@ -72,12 +92,11 @@
         >
           <p>
             The per-type breakdown is built from <code>jdk.JavaExceptionThrow</code> — one event per
-            thrown <code>Exception</code> (not <code>Error</code>), with class, message and thread.
-            In the JDK's bundled <code>default</code> config this event is
-            <strong>disabled</strong>; it is only
+            throwable constructed, with class, message, thread and stack. In the JDK's bundled
+            <code>default</code> config this event is <strong>disabled</strong>; it is only
             <strong>enabled in the <code>profile</code> config</strong> (with a stack trace, and
-            throttled). So an empty Exceptions tab on a <code>default</code> recording usually just
-            means the event was never turned on.
+            throttled). So an empty tab on a <code>default</code> recording usually just means the
+            event was never turned on.
           </p>
           <p>
             <code>Error</code> throws, if any, appear separately under the
@@ -104,89 +123,15 @@
             </p>
           </template>
         </DisabledEventsNotice>
-        <DataTable v-else>
-          <template #toolbar>
-            <TableToolbar
-              v-model="exceptionTypesView.query"
-              search-placeholder="Filter exceptions..."
-            >
-              <span class="toolbar-info">Exception types</span>
-              <template #filters>
-                <Badge
-                  key-label="Total"
-                  :value="exceptionTypesView.matchCount"
-                  variant="secondary"
-                  size="s"
-                  borderless
-                />
-              </template>
-            </TableToolbar>
-          </template>
-          <thead>
-            <tr>
-              <th>Exception Class</th>
-              <th class="text-end">Throws</th>
-              <th class="text-end">Threads</th>
-              <th class="chevron-col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="type in exceptionTypesView.visible" :key="type.thrownClass">
-              <tr
-                class="exception-row"
-                :class="{
-                  expandable: hasMessages(type),
-                  'row-expanded': isExpanded(type.thrownClass)
-                }"
-                @click="toggleRow(type)"
-              >
-                <td>
-                  <div class="class-with-badge">
-                    <ClassNameDisplay :class-name="type.thrownClass" />
-                    <Badge
-                      v-if="type.error"
-                      value="Error"
-                      variant="danger"
-                      size="xs"
-                      borderless
-                      class="type-badge"
-                    />
-                  </div>
-                </td>
-                <td class="text-end">{{ FormattingService.formatNumber(type.count) }}</td>
-                <td class="text-end">{{ FormattingService.formatNumber(type.threadCount) }}</td>
-                <td class="text-end">
-                  <i
-                    v-if="hasMessages(type)"
-                    class="bi expand-icon"
-                    :class="isExpanded(type.thrownClass) ? 'bi-chevron-up' : 'bi-chevron-down'"
-                  ></i>
-                </td>
-              </tr>
-              <tr v-if="isExpanded(type.thrownClass)" class="details-row">
-                <td colspan="4" class="p-0">
-                  <div class="row-details">
-                    <span class="detail-label">
-                      Messages
-                      <span class="detail-count">{{ type.messages.length }}</span>
-                    </span>
-                    <SearchableMessageList :messages="type.messages" />
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-          <template #footer>
-            <TableShowMore
-              :shown="exceptionTypesView.visible.length"
-              :match-count="exceptionTypesView.matchCount"
-              :total="exceptionTypesView.total"
-              :expanded="exceptionTypesView.expanded"
-              :page-size="exceptionTypesView.pageSize"
-              @toggle="exceptionTypesView.toggle"
-            />
-          </template>
-        </DataTable>
+        <ExceptionTypesTable
+          v-else
+          :types="exceptionTypes"
+          title="Exception types"
+          class-header="Exception Class"
+          search-placeholder="Filter exceptions..."
+          total-variant="secondary"
+          origin-filter
+        />
       </div>
 
       <!-- Errors -->
@@ -199,7 +144,7 @@
           :command="enableCommand"
         >
           <p>
-            This tab counts <code>jdk.JavaErrorThrow</code> — one event per thrown
+            This tab counts <code>jdk.JavaErrorThrow</code> — one event per constructed
             <code>Error</code> (e.g. <code>StackOverflowError</code>,
             <code>NoSuchMethodError</code>). Unlike exception throws, this event is
             <strong
@@ -213,76 +158,14 @@
             nothing to enable.
           </p>
         </DisabledEventsNotice>
-        <DataTable v-else>
-          <template #toolbar>
-            <TableToolbar v-model="errorTypesView.query" search-placeholder="Filter errors...">
-              <span class="toolbar-info">Error types</span>
-              <template #filters>
-                <Badge
-                  key-label="Total"
-                  :value="errorTypesView.matchCount"
-                  variant="danger"
-                  size="s"
-                  borderless
-                />
-              </template>
-            </TableToolbar>
-          </template>
-          <thead>
-            <tr>
-              <th>Error Class</th>
-              <th class="text-end">Throws</th>
-              <th class="text-end">Threads</th>
-              <th class="chevron-col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template v-for="type in errorTypesView.visible" :key="type.thrownClass">
-              <tr
-                class="exception-row"
-                :class="{
-                  expandable: hasMessages(type),
-                  'row-expanded': isExpanded(type.thrownClass)
-                }"
-                @click="toggleRow(type)"
-              >
-                <td>
-                  <ClassNameDisplay :class-name="type.thrownClass" />
-                </td>
-                <td class="text-end">{{ FormattingService.formatNumber(type.count) }}</td>
-                <td class="text-end">{{ FormattingService.formatNumber(type.threadCount) }}</td>
-                <td class="text-end">
-                  <i
-                    v-if="hasMessages(type)"
-                    class="bi expand-icon"
-                    :class="isExpanded(type.thrownClass) ? 'bi-chevron-up' : 'bi-chevron-down'"
-                  ></i>
-                </td>
-              </tr>
-              <tr v-if="isExpanded(type.thrownClass)" class="details-row">
-                <td colspan="4" class="p-0">
-                  <div class="row-details">
-                    <span class="detail-label">
-                      Messages
-                      <span class="detail-count">{{ type.messages.length }}</span>
-                    </span>
-                    <SearchableMessageList :messages="type.messages" />
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-          <template #footer>
-            <TableShowMore
-              :shown="errorTypesView.visible.length"
-              :match-count="errorTypesView.matchCount"
-              :total="errorTypesView.total"
-              :expanded="errorTypesView.expanded"
-              :page-size="errorTypesView.pageSize"
-              @toggle="errorTypesView.toggle"
-            />
-          </template>
-        </DataTable>
+        <ExceptionTypesTable
+          v-else
+          :types="errorTypes"
+          title="Error types"
+          class-header="Error Class"
+          search-placeholder="Filter errors..."
+          total-variant="danger"
+        />
       </div>
 
       <!-- How It Works Tab -->
@@ -319,10 +202,10 @@
                 <code>StackOverflowError</code>) signal serious problems and are tracked separately
                 on the Errors tab — even a handful is worth investigating.
               </FeatureCard>
-              <FeatureCard icon="bi-dash-circle" variant="info" title="Pre-allocated exceptions">
-                The JIT may optimize frequently-thrown implicit exceptions (e.g. NPEs) into
-                stackless, pre-allocated singletons — so a real storm can show
-                <em>more</em> throwables than sampled throws.
+              <FeatureCard icon="bi-gear" variant="info" title="JVM-internal throws">
+                The JVM throws and catches by the handful while loading classes, reflecting and
+                linking call sites. Nobody can act on those, so the <strong>Application</strong> tab
+                leaves them out — library throws such as timeouts stay.
               </FeatureCard>
             </FeatureGrid>
           </AboutSection>
@@ -341,6 +224,35 @@
             </p>
           </AboutCallout>
 
+          <AboutSection icon="bi-diagram-3" title="Application vs JVM Internal">
+            <p>
+              Every sampled throw is classified by who threw it. A throw is
+              <strong>JVM internal</strong> when either rule matches; everything else, libraries
+              included, is <strong>Application</strong>:
+            </p>
+            <ul>
+              <li>
+                <strong>The class</strong> is one of the JVM's resolution failures — the
+                <code>LinkageError</code> family (<code>NoClassDefFoundError</code>,
+                <code>NoSuchMethodError</code>, …), the <code>java.lang.invoke</code> throwables, or
+                the <code>ReflectiveOperationException</code> family
+                (<code>ClassNotFoundException</code>, <code>NoSuchMethodException</code>,
+                <code>InvocationTargetException</code>, …).
+              </li>
+              <li>
+                <strong>The thrower</strong> — the frame below the exception's own constructors —
+                sits in a class loader (<code>jdk.internal.loader</code>,
+                <code>java.lang.ClassLoader</code>, <code>URLClassLoader</code>, Spring Boot's
+                loader) or in the <code>java.lang.invoke</code> linking layer, e.g. an
+                <code>IOException</code> raised while a loader probes a jar.
+              </li>
+            </ul>
+            <p>
+              The same rules drop caught JVM-internal throws from the trace drill-down, so both
+              views agree on what counts as noise.
+            </p>
+          </AboutSection>
+
           <AboutSection icon="bi-broadcast" title="How JFR Emits This">
             <ul>
               <li>
@@ -349,8 +261,10 @@
                 always works.
               </li>
               <li>
-                <code>jdk.JavaExceptionThrow</code> / <code>jdk.JavaErrorThrow</code> — one event
-                per thrown exception/error with class, message and thread. These power the per-type
+                <code>jdk.JavaExceptionThrow</code> / <code>jdk.JavaErrorThrow</code> — emitted from
+                the throwable's constructor, so they count throwables <em>created</em>, with class,
+                message, thread and stack. An <code>Error</code> emits both (twice over), and this
+                page collapses them back to one throw. They power the throw sites and per-type
                 tables but are <strong>often disabled</strong> (especially
                 <code>JavaExceptionThrow</code>), which is why the breakdown may show only Errors or
                 an empty state.
@@ -399,28 +313,29 @@ import StatsTable from '@shared/components/table/StatsTable.vue';
 import TabBar from '@shared/components/TabBar.vue';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import DataTable from '@shared/components/table/DataTable.vue';
-import TableToolbar from '@shared/components/table/TableToolbar.vue';
-import TableShowMore from '@shared/components/table/TableShowMore.vue';
-import SearchableMessageList from '@/components/SearchableMessageList.vue';
-import ClassNameDisplay from '@/components/heap/ClassNameDisplay.vue';
 import ChartDescription from '@shared/components/ChartDescription.vue';
 import AboutPanel from '@/components/about/AboutPanel.vue';
 import AboutCallout from '@/components/about/AboutCallout.vue';
 import AboutSection from '@/components/about/AboutSection.vue';
 import FeatureGrid from '@/components/about/FeatureGrid.vue';
 import FeatureCard from '@/components/about/FeatureCard.vue';
-import Badge from '@shared/components/Badge.vue';
 import DisabledEventsNotice from '@/components/alerts/DisabledEventsNotice.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import GenericModal from '@shared/components/GenericModal.vue';
 import ExceptionSamplingDisabledAlert from '@/components/alerts/ExceptionSamplingDisabledAlert.vue';
+import ApplicationExceptionsTable from '@/components/exceptions/ApplicationExceptionsTable.vue';
+import ExceptionTypesTable from '@/components/exceptions/ExceptionTypesTable.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ProfileExceptionsClient from '@/services/api/ProfileExceptionsClient';
-import type { ExceptionsOverview, ExceptionTypeStat } from '@/services/api/model/ExceptionsModels';
+import type {
+  ExceptionSiteStat,
+  ExceptionsOverview,
+  ExceptionTypeStat
+} from '@/services/api/model/ExceptionsModels';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import { useTableView } from '@/composables/useTableView';
+import { applicationSites } from '@/services/exceptions/exceptionViews';
 
 const route = useRoute();
 
@@ -445,51 +360,34 @@ const error = ref(false);
 const overview = ref<ExceptionsOverview>();
 const timeline = ref<TimeseriesData>();
 const topTypes = ref<ExceptionTypeStat[]>([]);
+const sites = ref<ExceptionSiteStat[]>([]);
+
+const profileId = route.params.profileId as string;
 
 const activeTab = ref('timeline');
 const showThrowablesModal = ref(false);
 
-// Expanded exception-type rows (keyed by thrown class), shared across the two tables.
-const expandedRows = ref<Set<string>>(new Set());
-
 const rateSeries = computed<number[][]>(() => timeline.value?.series?.[0]?.data ?? []);
-// jdk.JavaExceptionThrow and jdk.JavaErrorThrow share one stream; split it so the Exceptions tab
-// shows only non-error throwables and the Errors tab only errors. Without this, a recording that
-// emits errors but not exceptions would list errors under "Exceptions".
+// jdk.JavaExceptionThrow and jdk.JavaErrorThrow share one stream; split it so the All Exceptions
+// tab shows only non-error throwables and the Errors tab only errors. Without this, a recording that
+// emits errors but not exceptions would list errors under "All Exceptions".
 const exceptionTypes = computed<ExceptionTypeStat[]>(() =>
   topTypes.value.filter(type => !type.error)
 );
 const errorTypes = computed<ExceptionTypeStat[]>(() => topTypes.value.filter(type => type.error));
-
-const exceptionTypesView = useTableView<ExceptionTypeStat>(exceptionTypes, {
-  searchableText: type => type.thrownClass
-});
-const errorTypesView = useTableView<ExceptionTypeStat>(errorTypes, {
-  searchableText: type => type.thrownClass
-});
-
-const hasMessages = (type: ExceptionTypeStat): boolean => type.messages.length > 0;
-
-const isExpanded = (thrownClass: string): boolean => expandedRows.value.has(thrownClass);
-
-const toggleRow = (type: ExceptionTypeStat): void => {
-  if (!hasMessages(type)) {
-    return;
-  }
-  const next = new Set(expandedRows.value);
-  if (next.has(type.thrownClass)) {
-    next.delete(type.thrownClass);
-  } else {
-    next.add(type.thrownClass);
-  }
-  expandedRows.value = next;
-};
+const applicationSiteCount = computed<number>(() => applicationSites(sites.value).length);
 
 const tabs = computed<TabBarItem[]>(() => [
   { id: 'timeline', label: 'Rate Timeline', icon: 'graph-up' },
   {
+    id: 'application',
+    label: 'Application',
+    icon: 'code-slash',
+    badge: applicationSiteCount.value || undefined
+  },
+  {
     id: 'top-types',
-    label: 'Exceptions',
+    label: 'All Exceptions',
     icon: 'funnel',
     badge: exceptionTypes.value.length || undefined
   },
@@ -522,6 +420,12 @@ const metricsData = computed(() => {
       variant: 'info' as const
     },
     {
+      icon: 'code-slash',
+      title: 'Application Throws',
+      value: FormattingService.formatNumber(o.applicationThrowCount),
+      variant: 'success' as const
+    },
+    {
       icon: 'exclamation-triangle-fill',
       title: 'Errors',
       value: FormattingService.formatNumber(o.errorCount),
@@ -538,18 +442,24 @@ const metricsData = computed(() => {
 
 onMounted(async () => {
   try {
-    const profileId = route.params.profileId as string;
     const client = new ProfileExceptionsClient(profileId);
 
-    const [overviewResult, timelineResult, topTypesResult] = await Promise.all([
+    const [overviewResult, timelineResult, topTypesResult, sitesResult] = await Promise.all([
       client.getOverview(),
       client.getTimeline(),
-      client.getTopTypes()
+      client.getTopTypes(),
+      client.getSites()
     ]);
 
     overview.value = overviewResult;
     timeline.value = timelineResult;
     topTypes.value = topTypesResult;
+    sites.value = sitesResult;
+    // The throw sites are what a reader comes for; the timeline stays the landing tab only when the
+    // recording cannot name the throws.
+    if (overviewResult.hasExceptionThrowEvents) {
+      activeTab.value = 'application';
+    }
 
     loading.value = false;
   } catch (e) {
@@ -568,74 +478,6 @@ onMounted(async () => {
 
 .chart-container {
   width: 100%;
-}
-
-.toolbar-info {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--color-text);
-}
-
-/* Keep the Error badge aligned with the class name (top line of the cell). */
-.class-with-badge {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.type-badge {
-  margin-top: 1px;
-}
-
-.chevron-col {
-  width: 40px;
-}
-
-/* Expandable exception rows */
-.exception-row.expandable {
-  cursor: pointer;
-}
-
-.exception-row.row-expanded > td {
-  background-color: var(--color-bg-hover-alt);
-}
-
-.expand-icon {
-  font-size: 0.8rem;
-  color: var(--color-text-light);
-}
-
-.details-row:hover > td {
-  background: transparent;
-}
-
-.row-details {
-  background: var(--color-light);
-  padding: 0.85rem 1.25rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.detail-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-muted);
-}
-
-.detail-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.1rem;
-  padding: 0 0.3rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-secondary-bg);
-  color: var(--color-text-muted);
-  font-size: 0.65rem;
 }
 
 .throwables-info-icon {

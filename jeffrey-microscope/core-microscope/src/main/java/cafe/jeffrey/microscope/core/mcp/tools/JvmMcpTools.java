@@ -27,6 +27,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationSection.Configura
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationTab;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ExceptionSites;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ExceptionsSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcDetailPage;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcDetailSection;
@@ -42,14 +43,17 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.SecuritySection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SystemSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ThreadsSection;
 import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
+import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.profile.common.exceptions.ThrowOrigin;
 import cafe.jeffrey.profile.manager.FlagsData;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysis;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadState;
@@ -123,6 +127,18 @@ public class JvmMcpTools {
     private static final String JIT_TOOL = "jvm_jit";
     private static final String BLOCKING_MONITORS_TOOL = "blocking_monitors";
     private static final String OPERATIONS_STATUS_TOOL = "operations_status";
+    private static final String EXCEPTION_SITES_TOOL = "jvm_exceptionSites";
+    private static final String FRAME_PREFIXES = "framePrefixes";
+    private static final String THROWN_CLASS = "thrownClass";
+    private static final String INCLUDE_JVM_INTERNAL = "includeJvmInternal";
+    private static final String CURSOR = "cursor";
+    private static final String PREFIX_SEPARATOR = ",";
+    private static final String MORE_SITES_WHY = "reads the next page of throw sites with the same arguments";
+    private static final String NO_FRAME_PREFIXES_GUIDANCE = "Pass your source tree's root packages as "
+            + "framePrefixes and each site names ownFrame, the line of yours that led to the throw.";
+    private static final String OWN_FRAME_GUIDANCE = "Open each ownFrame's file at its line to see why it "
+            + "throws; a site with no ownFrame threw entirely inside the JDK or a library, so its stack's "
+            + "deepest frames name the caller.";
 
     private static final String NOT_RECORDED = "This profile has no data for the %s section. It is built "
             + "from %s, and this recording carries none of them: the profiler was not configured to "
@@ -356,6 +372,76 @@ public class JvmMcpTools {
     @McpOutputSchema(ExceptionsSection.Answer.class)
     public McpToolResult exceptions() {
         return McpToolResult.of(answer(exceptionsSection, ExceptionsSection.Answer::of));
+    }
+
+    @Tool(description = "Returns the throw sites behind jvm_exceptions - each exception class with the "
+            + "frame that threw it and the stack below that frame - so the code that caused a throw can "
+            + "be found and read. Pass your own packages as framePrefixes and each site also names "
+            + "ownFrame, the topmost frame of yours on its stack, which is the line to open even when a "
+            + "library threw (a timeout inside an HTTP client has your caller below it); sites reaching "
+            + "your code come first, then the rest by count. Lists application throws only - libraries "
+            + "included - unless includeJvmInternal asks for the JVM's own class-loading, reflection "
+            + "and linking throws too. thrownClass narrows to one class. Pages with cursor. status "
+            + "NOT_RECORDED: the recording has no throw events.")
+    @McpToolMeta(cost = McpToolCost.MODERATE)
+    @McpOutputSchema(ExceptionSites.Answer.class)
+    public McpToolResult exceptionSites(
+            @ToolParam(required = false, description = "Your own package prefixes, e.g. [\"com.acme.\"] - "
+                    + "the source tree's root packages. Omit to get the sites without ownFrame.")
+            List<String> framePrefixes,
+            @ToolParam(required = false, description = "Only sites throwing this class, its binary name as "
+                    + "jvm_exceptions lists it")
+            String thrownClass,
+            @ToolParam(required = false, description = "Also list the JVM's own resolution and linking "
+                    + "throws (default false)")
+            Boolean includeJvmInternal,
+            @ToolParam(required = false, description = "Maximum number of sites to return (default: "
+                    + ExceptionSites.DEFAULT_LIMIT + ", max: " + ExceptionSites.MAX_LIMIT + ")")
+            @ToolParamBounds(defaultValue = ExceptionSites.DEFAULT_LIMIT, min = 1, max = ExceptionSites.MAX_LIMIT)
+            Integer limit,
+            @ToolParam(required = false, description = "Opaque nextCursor from the preceding page with the "
+                    + "same arguments")
+            String cursor) {
+
+        if (!sections.isAvailable(exceptionsSection)) {
+            return McpToolResult.of(ExceptionSites.Answer.of(
+                    notRecorded(exceptionsSection, exceptionsSection.view()), null));
+        }
+
+        ExceptionSites.Selection selection = new ExceptionSites.Selection(
+                framePrefixes, thrownClass, Boolean.TRUE.equals(includeJvmInternal));
+        // A filter value is a scalar, so the prefixes are fingerprinted as one joined string.
+        McpCursor.Filters filters = McpCursor.Filters.of(EXCEPTION_SITES_TOOL,
+                String.join(PREFIX_SEPARATOR, selection.framePrefixes()), selection.thrownClass(),
+                selection.includeJvmInternal());
+        int offset = OffsetPaging.offset(cursor, filters);
+        int bound = ToolArguments.boundedLimit(limit, ExceptionSites.DEFAULT_LIMIT, ExceptionSites.MAX_LIMIT);
+
+        ThrowAnalysis analysis = profileManager.exceptionsManager().analysis();
+        List<ExceptionSites.Site> matching = ExceptionSites.select(analysis, selection);
+        int start = Math.min(offset, matching.size());
+        List<ExceptionSites.Site> page = matching.subList(start, Math.min(matching.size(), start + bound));
+        int withOwnFrame = (int) matching.stream().filter(site -> site.ownFrame() != null).count();
+        long applicationThrows = analysis.countOf(ThrowOrigin.APPLICATION);
+        long jvmInternalThrows = analysis.countOf(ThrowOrigin.JVM_INTERNAL);
+        String link = viewLink(exceptionsSection.view());
+
+        // Deep stacks on many sites can outgrow the answer limit inside the page asked for, so the page
+        // is the most sites that fit and the cursor continues from the last one shown.
+        IntFunction<ExceptionSites.Answer> render = shown -> {
+            McpCursor.Next next = OffsetPaging.next(filters, start, shown, start + shown < matching.size());
+            ExceptionSites.SitesPage sitesPage = new ExceptionSites.SitesPage(
+                    selection.framePrefixes(), selection.thrownClass(), selection.includeJvmInternal(),
+                    applicationThrows, jvmInternalThrows, matching.size(), withOwnFrame,
+                    page.subList(0, shown), next.hasMore(), next.nextCursor());
+            SectionHeader header = new SectionHeader(SectionStatus.OK, null, profileId(), exceptionsSection.id(),
+                    exceptionsSection.title(), exceptionSitesFollowUp(selection, bound, next), link);
+            return ExceptionSites.Answer.of(header, sitesPage);
+        };
+        ExceptionSites.Answer answer = page.isEmpty()
+                ? render.apply(0)
+                : FittingPage.largest(page.size(), render, JvmMcpTools::fits).orElseGet(() -> render.apply(0));
+        return McpToolResult.of(answer);
     }
 
     @Tool(description = "Returns the machine underneath the JVM: machine CPU against this JVM's own, "
@@ -764,6 +850,21 @@ public class JvmMcpTools {
         return new AutoAnalysisSection.Answer(AutoAnalysisStatus.NOT_COMPUTED, COMPUTING, profileId(),
                 autoAnalysisSection.id(), autoAnalysisSection.title(), null, operation.operationId(), operation,
                 followUp, link);
+    }
+
+    private McpFollowUp exceptionSitesFollowUp(ExceptionSites.Selection selection, int limit, McpCursor.Next next) {
+        List<String> prefixes = selection.framePrefixes().isEmpty() ? null : selection.framePrefixes();
+        return NextSteps.builder(advertised)
+                .nextWhen(next.hasMore(), () -> onProfile(EXCEPTION_SITES_TOOL)
+                        .with(FRAME_PREFIXES, prefixes)
+                        .with(THROWN_CLASS, selection.thrownClass())
+                        .with(INCLUDE_JVM_INTERNAL, selection.includeJvmInternal())
+                        .with(LIMIT, limit)
+                        .with(CURSOR, next.nextCursor())
+                        .why(MORE_SITES_WHY))
+                .guidanceWhen(selection.framePrefixes().isEmpty(), NO_FRAME_PREFIXES_GUIDANCE)
+                .guidanceWhen(!selection.framePrefixes().isEmpty(), OWN_FRAME_GUIDANCE)
+                .followUp();
     }
 
     private McpFollowUp threadDumpFollowUp(

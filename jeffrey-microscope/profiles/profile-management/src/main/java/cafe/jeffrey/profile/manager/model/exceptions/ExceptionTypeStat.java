@@ -21,18 +21,25 @@ import java.util.List;
 
 /**
  * Aggregated throw statistics for one exception class, derived from {@code jdk.JavaExceptionThrow}
- * and {@code jdk.JavaErrorThrow} events.
+ * and {@code jdk.JavaErrorThrow} events — one per throwable constructed, an Error's twin events
+ * collapsed.
  *
- * @param thrownClass binary name of the thrown class
- * @param count       number of sampled throws of this class
- * @param error       whether the class was recorded as an {@code Error} throw
- * @param messages    distinct exception messages with their occurrence counts (may be empty)
- * @param threadCount number of distinct threads that threw this class
+ * @param thrownClass      binary name of the thrown class
+ * @param count            number of sampled throws of this class
+ * @param error            whether the class was recorded as an {@code Error} throw
+ * @param messages         the commonest distinct messages with their occurrence counts (may be empty)
+ * @param omittedMessages  distinct messages left out of {@code messages} by its cap
+ * @param threadCount      number of distinct threads that threw this class
+ * @param applicationCount throws of this class the application (or a library it uses) raised
+ * @param jvmInternalCount throws of this class the JVM's loading and linking machinery raised
  */
 public record ExceptionTypeStat(
         String thrownClass,
         long count,
         boolean error,
         List<ExceptionMessageCount> messages,
-        int threadCount) {
+        int omittedMessages,
+        int threadCount,
+        long applicationCount,
+        long jvmInternalCount) {
 }

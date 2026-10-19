@@ -34,6 +34,7 @@ const headings = [
   { id: 'profile-run', text: 'profile-run', level: 2 },
   { id: 'regression-check', text: 'regression-check', level: 2 },
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
+  { id: 'analyze-exceptions', text: 'analyze-exceptions', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
   { id: 'report', text: 'report', level: 2 },
@@ -55,6 +56,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "profile this benchmark and tell me where it spends time" -> profile-run
 "did the last three commits regress performance?"        -> regression-check
 "what should I change in this repo to fix it?"           -> advise-jfr
+"analyze the exceptions of orders-service"               -> analyze-exceptions
 "how many events of each type are in the recording?"     -> jfr-sql
 "which threads still reference that classloader?"        -> heap-sql
 "write up what you found"                                -> report`;
@@ -67,6 +69,7 @@ const invoke = `# Claude Code
 /microscope:profile-run
 /microscope:regression-check
 /microscope:advise-jfr
+/microscope:analyze-exceptions
 /microscope:jfr-sql
 /microscope:heap-sql
 /microscope:report
@@ -79,12 +82,16 @@ $compare-jfr
 $profile-run
 $regression-check
 $advise-jfr
+$analyze-exceptions
 $jfr-sql
 $heap-sql
 $report`;
 
 const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?
 /microscope:advise-jfr 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
+
+const exceptionsPrompt = `analyze the exceptions of orders-service - which ones are ours, and why?
+/microscope:analyze-exceptions orders-service java.net.SocketTimeoutException`;
 
 const skillFrontmatter = `---
 name: analyze-jfr
@@ -107,9 +114,9 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships ten skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all ten from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
+      <p>The plugin ships eleven skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all eleven from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
 
-      <p>The ten are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
+      <p>The eleven are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
       <p>The front matter only pre-approves those tools for the turn a skill runs in; it does not hide the others. <code>advise-jfr</code> lists Jeffrey's tools with <code>Read</code>, <code>Grep</code>, <code>Glob</code> and <code>git rev-parse</code> &mdash; the reading it does in your checkout &mdash; and leaves an edit or a build to ask as usual. A skill names each tool without the prefix your client puts in front of it, and says in one sentence what the three prefixes are &mdash; <code>mcp__plugin_microscope_jeffrey__</code> in Claude Code with the plugin, <code>mcp__jeffrey__</code> in Codex or wherever the server is registered by hand, <code>mcp_jeffrey_</code> in Gemini CLI. Each skill is self-contained: nothing in one points into another skill&rsquo;s directory, because a client that loads skills from the server reads only the files a skill lists as its own.</p>
@@ -117,7 +124,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the ten cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the eleven cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>
@@ -161,6 +168,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <td>&ldquo;What should I change in this repo to fix it?&rdquo;</td>
             <td><a href="#advise-jfr"><code>advise-jfr</code></a></td>
             <td>A profile, and the checkout it was built from</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Analyse the exceptions of orders-service&rdquo; &middot; &ldquo;Why does the app throw so many timeouts?&rdquo;</td>
+            <td><a href="#analyze-exceptions"><code>analyze-exceptions</code></a></td>
+            <td>A JFR profile with throw events, and the checkout it was built from</td>
           </tr>
           <tr>
             <td>&ldquo;How many events of each type are there?&rdquo; &mdash; anything no purpose-built tool covers</td>
@@ -485,6 +497,41 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       </div>
 
       <p>What <code>advise-jfr</code> deliberately does not carry is how to read a CPU, allocation or blocking graph. Every export already opens with an analysis section written for its event type, so the skill says to follow that document rather than restating it.</p>
+
+      <h2 id="analyze-exceptions">analyze-exceptions</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Analyse the exceptions of orders-service&rdquo;</p>
+          <span class="skill-role">From a profile&rsquo;s throws to the code that causes them</span>
+        </div>
+
+        <p>The exceptions an application throws are a cost no flamegraph frame names and, as timeouts and connection resets, a symptom of a failing dependency. Jeffrey holds the throw events; the checkout holds the code that threw them. This skill joins the two.</p>
+        <DocsCodeBlock :code="exceptionsPrompt" language="bash" />
+
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li>An application name is matched against the profiles in <code>profiles_list</code>; a deployed service with no local profile is handed to <code>analyze-hub</code>, a named file to <code>recordings_analyzeFile</code>. <code>profiles_get</code> then compares the recording&rsquo;s commit with <code>HEAD</code>, as <code>advise-jfr</code> does.</li>
+            <li>The application&rsquo;s own packages are read off the checkout &mdash; the package roots under <code>src/main/java</code> and <code>src/main/kotlin</code>, else the build&rsquo;s group id &mdash; and named in one line so they can be corrected. Jeffrey stores no setting for them: the agent passes them on each call.</li>
+            <li><code>jvm_exceptions</code> for the split &mdash; application throws, libraries included, against the JVM&rsquo;s own class-loading, reflection and linking noise &mdash; and the top application throw sites. With no throw events recorded it stops and names the recording setting that would capture them.</li>
+            <li><code>jvm_exceptionSites</code> with those packages as <code>framePrefixes</code>: each site&rsquo;s stack and its <code>ownFrame</code>, the topmost frame of the application&rsquo;s own &mdash; the line to open even when a library threw.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>Every site is classified from the code that was read:</strong> exception-as-control-flow, caught and swallowed, a retry or timeout storm, a real failure, or JVM noise that leaked &mdash; each with its typical fix.</li>
+            <li><strong>Configuration findings kept apart from code</strong> &mdash; a timeout, a pool size, a retry policy &mdash; exactly as <code>advise-jfr</code> keeps them.</li>
+            <li><strong>Recommend, then stop</strong>: nothing is edited until a finding is accepted; a change is verified by re-recording and comparing the same site&rsquo;s count.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>A site with no <code>ownFrame</code> threw entirely inside the JDK or a library. The skill says so and reads the stack&rsquo;s deepest frames for what started the work, rather than blaming a line of the repository it never found.</p>
+        </aside>
+      </div>
 
       <h2 id="jfr-sql">jfr-sql</h2>
       <div class="skill-card">
