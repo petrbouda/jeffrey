@@ -41,8 +41,10 @@ final class JfrDatabaseCatalog {
 
     /** What a reader needs to know about {@code events} before writing a query against it. */
     static final String EVENTS_FIELDS_NOTE = "The 'fields' column contains event-specific data as JSON. "
-            + "Use DuckDB JSON functions to extract values, e.g., fields->>'key' or "
-            + "json_extract(fields, '$.key'). jfr_describeEventType names the keys of one event type.";
+            + "Use DuckDB JSON functions to extract values, e.g., (fields->>'key') or "
+            + "json_extract_string(fields, '$.key'). Keep every ->> in parentheses: DuckDB binds it more "
+            + "loosely than AND, OR, comparisons, arithmetic and ::, so a AND fields->>'key' = 'v' reads as "
+            + "(a AND fields)->>'key'. jfr_describeEventType names the keys of one event type.";
 
     /**
      * Both kinds, because DuckDB's driver reports a view as {@code VIEW}: asking for tables alone left

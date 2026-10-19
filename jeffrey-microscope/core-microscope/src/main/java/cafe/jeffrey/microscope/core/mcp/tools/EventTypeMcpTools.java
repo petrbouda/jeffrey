@@ -65,7 +65,8 @@ public class EventTypeMcpTools {
     private static final String QUERY_WHY =
             "reads the latest events of this type; the field names are the keys inside each row's JSON fields column";
     private static final String SQL_GUIDANCE =
-            "In SQL, read one field with fields->>'name'; jfr_executeQuery runs it.";
+            "In SQL, read one field with (fields->>'name'), in parentheses because DuckDB binds ->> more "
+                    + "loosely than AND and comparisons; jfr_executeQuery runs it.";
 
     private final ProfileManager profileManager;
     private final AdvertisedFamilies advertised;

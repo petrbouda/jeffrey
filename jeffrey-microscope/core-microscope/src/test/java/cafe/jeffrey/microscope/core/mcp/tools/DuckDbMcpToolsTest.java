@@ -496,6 +496,61 @@ class DuckDbMcpToolsTest {
             assertTrue(error.getMessage().contains("no_such_table"), error.getMessage());
             assertFalse(error.getMessage().contains("pending query result"), error.getMessage());
         }
+
+        /*
+         * DuckDB reads "a AND fields->>'k' = 'v'" as "(a AND fields)->>'k' = 'v'" and reports a cast of
+         * the whole fields column, which names neither the operator nor the fix.
+         */
+        @Test
+        @DisplayName("a JSON extraction DuckDB parsed around its neighbours is explained after the engine's message")
+        void explainsTheArrowPrecedence(DataSource dataSource) throws SQLException {
+            seedEvents(dataSource);
+
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> tools(dataSource).executeQuery("SELECT fields FROM events WHERE "
+                            + "event_type = 'jdk.ObjectAllocationSample' AND fields->>'objectClass' = 'byte[]'"));
+
+            assertTrue(error.getMessage().startsWith("Query execution failed: "), error.getMessage());
+            assertTrue(error.getMessage().endsWith(JsonArrowPrecedence.HINT), error.getMessage());
+        }
+
+        @Test
+        @DisplayName("the same filter with the extraction in parentheses runs")
+        void parenthesisedExtractionRuns(DataSource dataSource) throws SQLException {
+            seedEvents(dataSource);
+
+            JsonNode answer = query(tools(dataSource).executeQuery("SELECT weight FROM events WHERE "
+                    + "event_type = 'jdk.ObjectAllocationSample' AND (fields->>'objectClass') = '"
+                    + LONG_CLASS_NAME + "'"));
+
+            assertEquals(1, answer.get("returned").asInt(), answer.toString());
+            assertEquals("64", answer.get("rows").get(0).get(0).asString());
+        }
+
+        @Test
+        @DisplayName("a failure with nothing to do with an arrow carries no hint")
+        void unrelatedFailureCarriesNoHint(DataSource dataSource) throws SQLException {
+            seedEvents(dataSource);
+
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> tools(dataSource).executeQuery("SELECT (fields->>'weight'), nope FROM events"));
+
+            assertTrue(error.getMessage().contains("nope"), error.getMessage());
+            assertFalse(error.getMessage().contains(JsonArrowPrecedence.HINT), error.getMessage());
+        }
+
+        @Test
+        @DisplayName("a whereClause DuckDB parsed around its neighbours is explained too")
+        void explainsTheArrowPrecedenceInAWhereClause(DataSource dataSource) throws SQLException {
+            seedEvents(dataSource);
+
+            ToolExecutionException error = assertThrows(ToolExecutionException.class,
+                    () -> tools(dataSource).queryEvents("jdk.ObjectAllocationSample", 10,
+                            "weight > 0 AND fields->>'objectClass' = 'byte[]'"));
+
+            assertTrue(error.getMessage().startsWith("Failed to query events: "), error.getMessage());
+            assertTrue(error.getMessage().endsWith(JsonArrowPrecedence.HINT), error.getMessage());
+        }
     }
 
     @Nested
