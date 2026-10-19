@@ -156,6 +156,9 @@ public class DuckDbMcpTools {
     private static final String NO_EVENTS_MATCHED =
             "No %s event matched the WHERE clause; the event type itself is one this profile knows.";
 
+    private static final String QUERY_FAILED = "Query execution failed: ";
+    private static final String EVENTS_FAILED = "Failed to query events: ";
+
     private static final String MULTIPLE_STATEMENTS_MESSAGE =
             "Only one statement per call. Send the SELECT on its own, without a second statement "
                     + "after a semicolon.";
@@ -224,8 +227,9 @@ public class DuckDbMcpTools {
     @Tool(description = "Executes a read-only SQL query on the JFR profile database. Only SELECT "
             + "statements are allowed; results are limited to " + MAX_ROWS + " rows and the response size, "
             + "and truncation says which stopped them. The 'events' view holds JFR events with a JSON "
-            + "'fields' column for event-specific data. With aggregate functions (COUNT, SUM, AVG, MIN, "
-            + "MAX), every non-aggregated column of the SELECT has to appear in the GROUP BY clause. The "
+            + "'fields' column for event-specific data; parenthesise every extraction, (fields->>'key') = "
+            + "'v', because DuckDB binds ->> more loosely than AND, OR, comparisons and ::. With aggregate "
+            + "functions (COUNT, SUM, AVG, MIN, MAX), every non-aggregated column of the SELECT has to appear in the GROUP BY clause. The "
             + "text is a Markdown table; the record carries the columns and each row's cells as text, a "
             + "SQL NULL as null.")
     @McpOutputSchema(QueryResult.class)
@@ -287,8 +291,20 @@ public class DuckDbMcpTools {
                     .result();
         } catch (SQLException e) {
             LOG.error("Failed to execute query: query={} message={}", query, e.getMessage(), e);
-            throw new ToolExecutionException("Query execution failed: " + e.getMessage(), e);
+            throw new ToolExecutionException(failure(QUERY_FAILED, query, e), e);
         }
+    }
+
+    /**
+     * The engine's own message, which is the only thing a caller can correct a query from, and after
+     * it how to fix a JSON extraction DuckDB parsed differently from how it reads -- the one failure
+     * whose engine message points away from its cause.
+     */
+    private String failure(String prefix, String sql, SQLException e) {
+        String message = prefix + e.getMessage();
+        return JsonArrowPrecedence.hintFor(dataSource, sql)
+                .map(hint -> message + LINE_BREAK + hint)
+                .orElse(message);
     }
 
     private McpFollowUp queryFollowUp(TruncationReason truncation) {
@@ -342,7 +358,8 @@ public class DuckDbMcpTools {
             @ToolParam(required = false, description = "Optional SQL WHERE clause for filtering "
                     + "(without the 'WHERE' keyword), using column names exactly as they exist in "
                     + "the events table (e.g. 'duration', not 'duration_ns'). The duration column "
-                    + "stores nanoseconds as BIGINT.")
+                    + "stores nanoseconds as BIGINT. Parenthesise JSON extractions, (fields->>'key') = 'v': "
+                    + "DuckDB binds ->> more loosely than AND, OR and comparisons.")
             String whereClause) {
 
         if (eventType == null || eventType.isBlank()) {
@@ -400,7 +417,7 @@ public class DuckDbMcpTools {
             });
         } catch (SQLException e) {
             LOG.error("Failed to query events: eventType={} message={}", eventType, e.getMessage(), e);
-            throw new ToolExecutionException("Failed to query events: " + e.getMessage(), e);
+            throw new ToolExecutionException(failure(EVENTS_FAILED, queryBuilder.toString(), e), e);
         }
     }
 

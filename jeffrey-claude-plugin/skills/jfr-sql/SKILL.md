@@ -67,8 +67,14 @@ Derived from the events when the profile carries Jeffrey Tracing, and empty othe
 ## Idioms that matter
 
 - **Durations are nanoseconds.** `duration / 1000000` → milliseconds.
-- **Event-specific data is JSON** in `fields`: `fields->>'key'`, or `json_extract(fields, '$.key')`.
+- **Event-specific data is JSON** in `fields`: `(fields->>'key')`, or `json_extract_string(fields, '$.key')`.
   Cast before comparing numerically: `CAST(fields->>'bytesRead' AS BIGINT) > 100`.
+- **Parenthesise every `->>` outside a function call.** DuckDB binds `->` and `->>` more loosely
+  than `AND`, `OR`, comparisons, arithmetic and `::`, so
+  `event_type = 'jeffrey.TraceSpan' AND fields->>'traceId' = 'a07…'` reads as
+  `(event_type = '…' AND fields)->>'traceId'` and fails with "Failed to cast value to numerical …
+  from source column fields". Write `(fields->>'traceId') = 'a07…'` and `(fields->>'size')::BIGINT`;
+  inside `CAST(…)`, `SUM(…)` or any other call it is already safe.
 - **Timestamps**: `epoch_ms(start_timestamp)` for epoch millis.
 - **Stacks**: `UNNEST(frame_hashes)` and join to `frames`. The array is stored **root-first**: the
   first element is the thread entry point (`Thread.run`) and the **last** is the leaf that was
@@ -158,7 +164,7 @@ A live set that climbs across `after_bytes` is a retention problem — a heap du
 recording does not.
 
 Where a pause went inside one collection: `jdk.GCPhasePause` (children in `jdk.GCPhasePauseLevel1`
-through `Level4`), grouped by `fields->>'name'` and filtered on `fields->>'gcId'`.
+through `Level4`), grouped by `fields->>'name'` and filtered on `(fields->>'gcId')`.
 `jdk.GCPhaseConcurrent` holds the phases outside the pause.
 
 One row each, read before proposing a flag: `jdk.GCConfiguration`, `jdk.GCHeapConfiguration`,

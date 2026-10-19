@@ -102,6 +102,26 @@ class DuckDBProfileDatabaseManagerTest {
 
             assertEquals("false", setting(dataSource, "preserve_insertion_order"));
             assertEquals("false", setting(dataSource, "enable_external_access"));
+            assertEquals("true", setting(dataSource, "lock_configuration"));
+        }
+
+        /*
+         * The lock arrives with every connection's properties, so a connection opened after the
+         * first must not be refused for setting what the first one locked.
+         */
+        @Test
+        @DisplayName("more connections open after the configuration is locked")
+        void opensFurtherConnectionsOnceLocked() throws SQLException {
+            DataSource dataSource = profileDatabase();
+
+            try (Connection first = dataSource.getConnection();
+                 Connection second = dataSource.getConnection();
+                 PreparedStatement stmt = second.prepareStatement("SELECT COUNT(*) FROM events");
+                 ResultSet rs = stmt.executeQuery()) {
+
+                assertTrue(first.isValid(0));
+                assertTrue(rs.next());
+            }
         }
 
         private String setting(DataSource dataSource, String name) throws SQLException {
@@ -153,6 +173,18 @@ class DuckDBProfileDatabaseManagerTest {
                     "SELECT file FROM glob('" + baseDir.toAbsolutePath() + "/*')");
 
             assertTrue(e.getMessage().contains("disabled by configuration"), e.getMessage());
+        }
+
+        /*
+         * A setting outlives the rollback that undoes a caller's writes and stays on the pooled
+         * connection, so turning the sandbox back off would hold for the next request too.
+         */
+        @Test
+        @DisplayName("a setting cannot be changed once the database is open")
+        void refusesToChangeASetting() {
+            SQLException e = refusedBy(profileDatabase(), "SET enable_external_access = true");
+
+            assertTrue(e.getMessage().contains("locked"), e.getMessage());
         }
 
         @Test
