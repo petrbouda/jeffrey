@@ -21,16 +21,21 @@ import TimeRange from '@/services/api/model/TimeRange';
 import BothGraphData from '@/services/api/model/BothGraphData';
 import GraphComponents from '@/services/api/model/GraphComponents';
 
+/**
+ * Where a graph's flamegraph and timeseries come from. A request may be given a signal that aborts
+ * it once its answer is no longer wanted; a client without a request to abort ignores it.
+ */
 export default abstract class FlamegraphClient {
   abstract provideBoth(
     composition: GraphComponents,
     timeRange: TimeRange | null,
-    search: string | null
+    search: string | null,
+    signal?: AbortSignal
   ): Promise<BothGraphData>;
 
-  abstract provide(timeRange: TimeRange | null): Promise<FlamegraphData>;
+  abstract provide(timeRange: TimeRange | null, signal?: AbortSignal): Promise<FlamegraphData>;
 
-  abstract provideTimeseries(search: string | null): Promise<TimeseriesData>;
+  abstract provideTimeseries(search: string | null, signal?: AbortSignal): Promise<TimeseriesData>;
 
   abstract save(
     components: GraphComponents,

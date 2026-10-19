@@ -27,6 +27,7 @@ import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphC
 import StaticFlamegraphClient from '@/services/api/StaticFlamegraphClient';
 import BothGraphData from '@/services/api/model/BothGraphData';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
+import Frame from '@/services/api/model/Frame';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 vi.mock('axios', () => ({
@@ -38,11 +39,14 @@ vi.mock('axios', () => ({
 const fakeFlamegraph = { depth: 3 };
 const fakeTimeseries = { series: [] };
 
-vi.mock('@/services/flamegraphs/ProtobufConverter', () => ({
-  default: {
-    decode: vi.fn(() => ({ flamegraph: { depth: 3 }, timeseries: { series: [] } }))
-  }
-}));
+vi.mock('@/services/flamegraphs/ProtobufConverter', async () => {
+  const { default: Both } = await import('@/services/api/model/BothGraphData');
+  return {
+    default: {
+      decode: vi.fn(() => new Both({ depth: 3 } as never, { series: [] } as never))
+    }
+  };
+});
 
 /**
  * These tests pin the exact serialized request payloads of every flamegraph client operation.
@@ -84,6 +88,14 @@ describe('PrimaryFlamegraphClient payloads', () => {
       null
     );
   }
+
+  it('hands the abort signal of a request to axios, with the same headers', async () => {
+    const controller = new AbortController();
+
+    await client().provide(timeRange, controller.signal);
+
+    expect(lastPost().config).toEqual({ ...HttpUtils.PROTOBUF_HEADERS, signal: controller.signal });
+  });
 
   it('provideBoth sends the full content with timeRange and search', async () => {
     const result = await client().provideBoth(GraphComponents.BOTH, timeRange, 'lambda');
@@ -462,7 +474,7 @@ describe('DifferentialFlamegraphClient payloads', () => {
  * is ever issued.
  */
 describe('StaticFlamegraphClient behavior', () => {
-  const staticFlamegraph = new FlamegraphData(7, []);
+  const staticFlamegraph = FlamegraphData.fromFrames([[new Frame(0, 7, 'root', 'UNKNOWN')]]);
   const staticTimeseries = new TimeseriesData([]);
 
   function client(): StaticFlamegraphClient {

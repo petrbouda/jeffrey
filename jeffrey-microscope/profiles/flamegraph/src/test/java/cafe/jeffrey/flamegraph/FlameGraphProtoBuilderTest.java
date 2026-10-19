@@ -23,6 +23,9 @@ import cafe.jeffrey.profile.common.model.FrameType;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
@@ -56,6 +59,27 @@ class FlameGraphProtoBuilderTest {
             FlamegraphData data = FlameGraphProtoBuilder.simple(5.0).build(root);
 
             assertNoTruncatedFrame(data);
+        }
+    }
+
+    @Nested
+    class Titles {
+
+        private static final String QUOTED_TITLE = "Thread 'worker-1'";
+        private static final String BACKSLASHED_TITLE = "C:\\app\\native.dll";
+
+        @Test
+        void quotesAndBackslashesTravelVerbatim() {
+            cafe.jeffrey.frameir.Frame root = frame("root", 100L, 1000L);
+            root.put(QUOTED_TITLE, frame(QUOTED_TITLE, 60L, 600L));
+            root.put(BACKSLASHED_TITLE, frame(BACKSLASHED_TITLE, 40L, 400L));
+
+            FlamegraphData data = FlameGraphProtoBuilder.simple(5.0).build(root);
+
+            Set<String> titles = data.getLevels(1).getFramesList().stream()
+                    .map(f -> data.getTitlePool(f.getTitleIndex()))
+                    .collect(Collectors.toSet());
+            assertEquals(Set.of(QUOTED_TITLE, BACKSLASHED_TITLE), titles);
         }
     }
 

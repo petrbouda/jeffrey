@@ -18,14 +18,13 @@
 package cafe.jeffrey.flamegraph.export;
 
 import cafe.jeffrey.frameir.Frame;
+import cafe.jeffrey.microscope.model.SearchPattern;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * Which frames of one tree a search pattern hits, and which frames lead to a hit.
@@ -72,7 +71,7 @@ final class FrameSearch {
             throw new IllegalArgumentException("search must be at most " + MAX_PATTERN_LENGTH
                     + " characters, got " + pattern.length() + ": search for a shorter part of the frame name");
         }
-        FrameSearch search = new FrameSearch(pattern, matcher(pattern));
+        FrameSearch search = new FrameSearch(pattern, SearchPattern.of(pattern)::matches);
         search.walk(root);
         return search;
     }
@@ -132,16 +131,6 @@ final class FrameSearch {
             if (matches(entry.getKey()) || onPathToMatch.contains(child)) {
                 onPathToMatch.add(child);
             }
-        }
-    }
-
-    private static Predicate<String> matcher(String pattern) {
-        Predicate<String> literal = name -> name.contains(pattern);
-        try {
-            Pattern regex = Pattern.compile(pattern);
-            return literal.or(name -> regex.matcher(name).find());
-        } catch (PatternSyntaxException e) {
-            return literal;
         }
     }
 }

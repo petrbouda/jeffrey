@@ -18,7 +18,7 @@
 /**
  * Frontend counterpart to the Java `cafe.jeffrey.profile.common.model.FrameType` enum.
  * String values match the Java enum names exactly — they travel over protobuf as the
- * `FRAME_TYPE_*` enum suffix (see `ProtobufConverter.FRAME_TYPE_MAP`).
+ * `FRAME_TYPE_*` enum, by number (see {@link FrameType.fromProtoNumber}).
  */
 export default class FrameType {
   static C1_COMPILED = 'C1_COMPILED';
@@ -56,5 +56,38 @@ export default class FrameType {
 
   static isSynthetic(type: string): boolean {
     return FrameType.SYNTHETIC_TYPES.has(type);
+  }
+
+  // The FrameType enum of flamegraph.proto, indexed by its number. 13 is retired and reads as
+  // UNKNOWN. ProtobufConverter.test pins this table to the generated enum.
+  private static readonly BY_PROTO_NUMBER: readonly string[] = [
+    FrameType.UNKNOWN,
+    FrameType.C1_COMPILED,
+    FrameType.NATIVE,
+    FrameType.CPP,
+    FrameType.INTERPRETED,
+    FrameType.JIT_COMPILED,
+    FrameType.INLINED,
+    FrameType.KERNEL,
+    FrameType.THREAD_NAME_SYNTHETIC,
+    FrameType.ALLOCATED_OBJECT_SYNTHETIC,
+    FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
+    FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
+    FrameType.BLOCKING_OBJECT_SYNTHETIC,
+    FrameType.UNKNOWN,
+    FrameType.HIGHLIGHTED_WARNING,
+    FrameType.COLLAPSED_SYNTHETIC,
+    FrameType.TRUNCATED_SYNTHETIC,
+    FrameType.TRACED_METHOD_SYNTHETIC
+  ];
+
+  /** The type a frame carries over the wire as the proto enum number; an unknown number is UNKNOWN. */
+  static fromProtoNumber(number: number): string {
+    return FrameType.BY_PROTO_NUMBER[number] ?? FrameType.UNKNOWN;
+  }
+
+  /** The proto enum number of the type; a type the proto does not know is UNKNOWN (0). */
+  static toProtoNumber(type: string): number {
+    return Math.max(FrameType.BY_PROTO_NUMBER.indexOf(type), 0);
   }
 }

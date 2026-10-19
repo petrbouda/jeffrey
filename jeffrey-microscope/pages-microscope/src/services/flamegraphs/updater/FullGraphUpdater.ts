@@ -20,7 +20,12 @@ import TimeRange from '@/services/api/model/TimeRange';
 import FlamegraphClient from '@/services/api/FlamegraphClient.ts';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
+const MILLIS_PER_MINUTE = 60_000;
+
 export default class FullGraphUpdater extends GraphUpdater {
+  // A timeseries search is in flight: its loading states are on until it answers or is dropped
+  private searchPending: boolean = false;
+
   constructor(httpClient: FlamegraphClient, immediateInitialization: boolean) {
     super(httpClient, immediateInitialization);
   }
@@ -35,43 +40,113 @@ export default class FullGraphUpdater extends GraphUpdater {
       return;
     }
 
+    // A search of the previous initialization (e.g. before a mode toggle) no longer applies
+    this.dropPendingSearch();
+
     if (!this.timeseriesEnabled) {
-      this.flamegraphOnUpdateStartedCallback();
-      this.httpClient
-        .provide(this.linkedTimeRange())
-        .then(flamegraph => {
-          this.flamegraphOnInitCallback(flamegraph);
-          this.flamegraphOnUpdateFinishedCallback();
+      this.requestFlamegraph(
+        'initialization',
+        signal => this.httpClient.provide(this.linkedTimeRange(), signal),
+        flamegraph => {
+          this.flamegraph.onInit(flamegraph);
           this.applyLinkedSearch();
-        })
-        .catch(error => this.graphOperationFailed('initialization', error));
+        }
+      );
       return;
     }
 
-    this.flamegraphOnUpdateStartedCallback();
-    this.timeseriesOnUpdateStartedCallback();
+    const upfront = this.initialTimeRangeUpfront();
+    if (upfront !== null) {
+      this.initializeInParallel(upfront.timeRange);
+      return;
+    }
 
-    // First fetch only timeseries to know the data range
-    this.httpClient
-      .provideTimeseries(null)
+    // The timeseries is the initialization's own: a zoom started meanwhile overtakes only the
+    // flamegraph, the chart still opens on the timeseries
+    const initialization = this.initializations.start();
+    this.timeseries.onUpdateStarted();
+
+    // First fetch only timeseries to know the data range, then the flamegraph with the calculated
+    // range (zoomed or full). The flamegraph is a request like a zoom: a zoom or a reset started
+    // meanwhile overtakes it.
+    this.requestFlamegraph(
+      'initialization',
+      signal =>
+        this.httpClient.provideTimeseries(null, initialization.signal).then(timeseries => {
+          if (initialization.isLatest()) {
+            // Initialize timeseries with full data (needed for brush chart)
+            this.timeseries.onInit(timeseries);
+            this.timeseries.onUpdateFinished();
+          }
+
+          // A window a link named, otherwise the range the visibleMinutes setting opens on
+          const initialTimeRange =
+            this.linkedTimeRange() ?? this.calculateInitialTimeRange(timeseries);
+          return this.httpClient.provide(initialTimeRange, signal);
+        }),
+      flamegraph => {
+        this.flamegraph.onInit(flamegraph);
+        this.applyLinkedSearch();
+      }
+    );
+  }
+
+  /**
+   * The window the first flamegraph opens on, when it is known without the timeseries: the one a link
+   * named, the whole recording without an opening zoom, or the whole recording when it is no longer
+   * than the opening window ({@link calculateInitialTimeRange} would answer null for it). Null when
+   * only the timeseries can tell: the recording is longer, or the page does not know its duration.
+   */
+  private initialTimeRangeUpfront(): { timeRange: TimeRange | null } | null {
+    const linked = this.linkedTimeRange();
+    if (linked !== null) {
+      return { timeRange: linked };
+    }
+    if (this.initialVisibleMinutes === null) {
+      return { timeRange: null };
+    }
+    const openingWindowMillis = this.initialVisibleMinutes * MILLIS_PER_MINUTE;
+    if (
+      this.recordingDurationMillis !== null &&
+      this.recordingDurationMillis <= openingWindowMillis
+    ) {
+      return { timeRange: null };
+    }
+    return null;
+  }
+
+  /**
+   * Fetches the timeseries and the first flamegraph at once, for a window known up front. A linked
+   * search draws into the chart as well, so it waits until the chart has opened on its timeseries.
+   */
+  private initializeInParallel(timeRange: TimeRange | null): void {
+    const initialization = this.initializations.start();
+    this.timeseries.onUpdateStarted();
+    const chartOpened = this.httpClient
+      .provideTimeseries(null, initialization.signal)
       .then(timeseries => {
-        // Initialize timeseries with full data (needed for brush chart)
-        this.timeseriesOnInitCallback(timeseries);
-        this.timeseriesOnUpdateFinishedCallback();
+        if (initialization.isLatest()) {
+          this.timeseries.onInit(timeseries);
+          this.timeseries.onUpdateFinished();
+        }
+      });
+    chartOpened.catch(error => {
+      if (initialization.isLatest()) {
+        this.graphOperationFailed('initialization', error);
+      }
+    });
 
-        // A window a link named, otherwise the range the visibleMinutes setting opens on
-        const initialTimeRange =
-          this.linkedTimeRange() ?? this.calculateInitialTimeRange(timeseries);
-
-        // Fetch flamegraph with the calculated range (zoomed or full). Returned so a failure
-        // propagates into the single catch below instead of dying unobserved.
-        return this.httpClient.provide(initialTimeRange).then(flamegraph => {
-          this.flamegraphOnInitCallback(flamegraph);
-          this.flamegraphOnUpdateFinishedCallback();
-          this.applyLinkedSearch();
-        });
-      })
-      .catch(error => this.graphOperationFailed('initialization', error));
+    this.requestFlamegraph(
+      'initialization',
+      signal => this.httpClient.provide(timeRange, signal),
+      flamegraph => {
+        this.flamegraph.onInit(flamegraph);
+        chartOpened.then(
+          () => this.applyLinkedSearch(),
+          () => {}
+        );
+      }
+    );
   }
 
   /**
@@ -115,61 +190,81 @@ export default class FullGraphUpdater extends GraphUpdater {
   }
 
   public updateWithZoom(timeRange: TimeRange): void {
-    this.flamegraphOnUpdateStartedCallback();
-    this.timeseriesOnZoomCallback();
-
-    this.httpClient
-      .provide(timeRange)
-      .then(data => {
-        this.flamegraphOnZoomCallback(data);
-        this.flamegraphOnUpdateFinishedCallback();
-      })
-      .catch(error => this.graphOperationFailed('zoom', error));
+    this.timeseries.onZoom();
+    this.requestFlamegraph(
+      'zoom',
+      signal => this.httpClient.provide(timeRange, signal),
+      data => this.flamegraph.onZoom(data)
+    );
   }
 
   public resetZoom(): void {
-    this.flamegraphOnUpdateStartedCallback();
-    this.timeseriesOnResetZoomCallback();
-
-    this.httpClient
-      .provide(null)
-      .then(data => {
-        this.flamegraphOnResetZoomCallback(data);
-        this.flamegraphOnUpdateFinishedCallback();
-      })
-      .catch(error => this.graphOperationFailed('zoom reset', error));
+    this.timeseries.onResetZoom();
+    this.requestFlamegraph(
+      'zoom reset',
+      signal => this.httpClient.provide(null, signal),
+      data => this.flamegraph.onResetZoom(data)
+    );
   }
 
   public updateWithSearch(expression: string): void {
-    this.flamegraphOnUpdateStartedCallback();
-    this.searchBarOnUpdateStartedCallback();
+    const search = this.searchRequests.start();
+    this.flamegraph.onUpdateStarted();
+    this.searchBar.onUpdateStarted();
 
     if (this.timeseriesSearchEnabled) {
-      this.timeseriesOnUpdateStartedCallback();
+      this.searchPending = true;
+      this.timeseries.onUpdateStarted();
 
       this.httpClient
-        .provideTimeseries(expression)
+        .provideTimeseries(expression, search.signal)
         .then(data => {
-          this.flamegraphOnSearchCallback(expression);
-          this.timeseriesOnSearchCallback(data);
+          // A later search has taken over, or a reset or a re-initialization dropped this one
+          if (!search.isLatest()) {
+            return;
+          }
+          this.searchPending = false;
+          this.flamegraph.onSearch(expression);
+          this.timeseries.onSearch(data);
 
-          this.flamegraphOnUpdateFinishedCallback();
-          this.timeseriesOnUpdateFinishedCallback();
-          this.searchBarOnUpdateFinishedCallback();
+          this.flamegraph.onUpdateFinished();
+          this.timeseries.onUpdateFinished();
+          this.searchBar.onUpdateFinished();
         })
-        .catch(error => this.graphOperationFailed('search', error));
+        .catch(error => {
+          if (search.isLatest()) {
+            this.searchPending = false;
+            this.graphOperationFailed('search', error);
+          }
+        });
     } else {
       // Only search in flamegraph, no timeseries update
-      this.flamegraphOnSearchCallback(expression);
-      this.flamegraphOnUpdateFinishedCallback();
-      this.searchBarOnUpdateFinishedCallback();
+      this.flamegraph.onSearch(expression);
+      this.flamegraph.onUpdateFinished();
+      this.searchBar.onUpdateFinished();
     }
   }
 
   public resetSearch(): void {
-    this.flamegraphOnResetSearchCallback();
-    this.timeseriesOnResetSearchCallback();
-    this.searchBarOnMatchedCallback(null);
+    // A search still in flight must not bring its highlight back after the reset
+    this.dropPendingSearch();
+    this.flamegraph.onResetSearch();
+    this.timeseries.onResetSearch();
+    this.searchBar.onMatched(null);
+  }
+
+  /**
+   * Drops the search in flight, if any, and releases the loading states it switched on, as its answer
+   * no longer will.
+   */
+  private dropPendingSearch(): void {
+    this.searchRequests.invalidate();
+    if (this.searchPending) {
+      this.searchPending = false;
+      this.flamegraph.onUpdateFinished();
+      this.timeseries.onUpdateFinished();
+      this.searchBar.onUpdateFinished();
+    }
   }
 
   public updateModes(useThreadMode: boolean, useWeight: boolean): void {

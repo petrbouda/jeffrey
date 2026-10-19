@@ -28,48 +28,37 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
   }
 
   public initialize(): void {
-    this.flamegraphOnUpdateStartedCallback();
-    this.httpClient
-      .provide(this.timeRange)
-      .then(data => {
-        this.flamegraphOnInitCallback(data);
-        this.flamegraphOnUpdateFinishedCallback();
-      })
-      .catch(error => this.graphOperationFailed('initialization', error));
+    this.requestFlamegraph(
+      'initialization',
+      signal => this.httpClient.provide(this.timeRange, signal),
+      data => this.flamegraph.onInit(data)
+    );
   }
 
   public updateWithZoom(timeRange: TimeRange): void {
-    this.flamegraphOnUpdateStartedCallback();
-
-    this.httpClient
-      .provide(timeRange)
-      .then(data => {
-        this.flamegraphOnZoomCallback(data);
-        this.flamegraphOnUpdateFinishedCallback();
-      })
-      .catch(error => this.graphOperationFailed('zoom', error));
+    this.requestFlamegraph(
+      'zoom',
+      signal => this.httpClient.provide(timeRange, signal),
+      data => this.flamegraph.onZoom(data)
+    );
   }
 
   public resetZoom(): void {
-    this.flamegraphOnUpdateStartedCallback();
-
-    this.httpClient
-      .provide(null)
-      .then(data => {
-        this.flamegraphOnResetZoomCallback(data);
-        this.flamegraphOnUpdateFinishedCallback();
-      })
-      .catch(error => this.graphOperationFailed('zoom reset', error));
+    this.requestFlamegraph(
+      'zoom reset',
+      signal => this.httpClient.provide(null, signal),
+      data => this.flamegraph.onResetZoom(data)
+    );
   }
 
   public updateWithSearch(expression: string): void {
-    this.flamegraphOnUpdateStartedCallback();
-    this.flamegraphOnSearchCallback(expression);
-    this.flamegraphOnUpdateFinishedCallback();
+    this.flamegraph.onUpdateStarted();
+    this.flamegraph.onSearch(expression);
+    this.flamegraph.onUpdateFinished();
   }
 
   public resetSearch(): void {
-    this.flamegraphOnResetSearchCallback();
+    this.flamegraph.onResetSearch();
   }
 
   public updateModes(useThreadMode: boolean, useWeight: boolean): void {

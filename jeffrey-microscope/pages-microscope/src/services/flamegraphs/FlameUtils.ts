@@ -18,17 +18,10 @@
 import Flamegraph from '@/services/flamegraphs/Flamegraph';
 
 export default class FlameUtils {
-  static canvasResize(flamegraph: Flamegraph, minusPadding = 0) {
-    const w = document.getElementById('flamegraphCanvas')!.parentElement!.clientWidth;
-    if (flamegraph != null) {
-      flamegraph.resizeWidthCanvas(w - minusPadding);
-    }
-  }
-
   /**
    * Follows the scroll position of the element the graph sits in, so the tooltip and the highlight
    * stay on the frame under the pointer. The id of that element, not a class, despite the name the
-   * callers pass it under.
+   * callers pass it under. The graph lets go of the element when it is closed.
    *
    * <p>A caller without a scroll container passes null, and one whose container is not in the DOM
    * gets the same treatment: this runs inside the graph updater's init callback, so throwing here
@@ -47,9 +40,6 @@ export default class FlameUtils {
       return;
     }
 
-    el.addEventListener('scroll', () => {
-      flamegraph.onScroll();
-      flamegraph.removeHighlight();
-    });
+    flamegraph.followScrollOf(el);
   }
 }

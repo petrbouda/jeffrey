@@ -22,6 +22,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import cafe.jeffrey.provider.profile.api.*;
 import cafe.jeffrey.microscope.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.model.SearchPattern;
 import cafe.jeffrey.microscope.model.StacktraceTag;
 import cafe.jeffrey.microscope.model.StacktraceType;
 import cafe.jeffrey.microscope.model.Type;
@@ -41,6 +42,8 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
 public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepository {
 
     private static final String JSON_ROOT_PATH_PREFIX = "$.";
+    private static final String SEARCH_LITERAL_PARAM = "search_literal";
+    private static final String SEARCH_REGEX_PARAM = "search_regex";
 
     private record FlamegraphOptions(String sql, SqlParameterSource paramSource, RowMapper<FlamegraphRecord> mapper) {
     }
@@ -260,9 +263,14 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         }
 
         if (configurer.searchPattern() != null && !configurer.searchPattern().isBlank()) {
-            baseParams = baseParams.addValue("search_pattern", configurer.searchPattern());
+            SearchPattern searchPattern = SearchPattern.of(configurer.searchPattern());
+            baseParams = baseParams
+                    .addValue(SEARCH_LITERAL_PARAM, searchPattern.literal())
+                    .addValue(SEARCH_REGEX_PARAM, searchPattern.regexOrNull());
         } else {
-            baseParams = baseParams.addValue("search_pattern", null);
+            baseParams = baseParams
+                    .addValue(SEARCH_LITERAL_PARAM, null)
+                    .addValue(SEARCH_REGEX_PARAM, null);
         }
 
         ThreadIdParams.apply(baseParams, configurer.specifiedThreads());

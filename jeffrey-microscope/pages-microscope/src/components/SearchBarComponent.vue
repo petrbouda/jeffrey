@@ -59,11 +59,11 @@ function onModeChange() {
 }
 
 onMounted(() => {
-  props.graphUpdater.registerSearchBarCallbacks(
-    () => (isLoading.value = true),
-    () => (isLoading.value = false),
-    (matched: string | null) => (searchMatched.value = matched)
-  );
+  props.graphUpdater.registerSearchBarCallbacks({
+    onUpdateStarted: () => (isLoading.value = true),
+    onUpdateFinished: () => (isLoading.value = false),
+    onMatched: (matched: string | null) => (searchMatched.value = matched)
+  });
 });
 
 function search() {

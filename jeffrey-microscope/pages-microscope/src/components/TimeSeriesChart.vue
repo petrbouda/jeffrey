@@ -104,6 +104,7 @@ import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverte
 import { initialVisibleWindow as initialVisibleWindowOf } from '@/services/timeseries/InitialVisibleWindow';
 import TimeseriesDownsampler from '@/services/timeseries/TimeseriesDownsampler.ts';
 import MessageBus from '@/services/MessageBus.ts';
+import { profileStore } from '@/stores/profileStore';
 
 // A vertical marker drawn on the main chart at time `x` (data units), with a small chip
 // label and an optional hover tooltip body (raw HTML). Used e.g. to mark deadlocks.
@@ -1268,27 +1269,31 @@ onMounted(async () => {
     if (props.visibleMinutes) {
       props.graphUpdater.setInitialVisibleMinutes(props.visibleMinutes);
     }
+    // A recording no longer than that window opens on all of it, without waiting for the timeseries
+    props.graphUpdater.setRecordingDuration(
+      profileStore.recordingWindow.value?.durationMillis ?? null
+    );
 
-    props.graphUpdater.registerTimeseriesCallbacks(
-      () => (isLoading.value = true),
-      () => (isLoading.value = false),
-      (data: TimeseriesData) => {
+    props.graphUpdater.registerTimeseriesCallbacks({
+      onUpdateStarted: () => (isLoading.value = true),
+      onUpdateFinished: () => (isLoading.value = false),
+      onInit: (data: TimeseriesData) => {
         internalPrimaryData.value = extractPrimaryTimeseriesData(data);
         internalSecondaryData.value = extractSecondaryTimeseriesData(data);
         internalTertiaryData.value = extractTertiaryTimeseriesData(data);
         internalSearchData.value = undefined;
       },
-      (data: TimeseriesData) => {
+      onSearch: (data: TimeseriesData) => {
         internalSearchData.value = extractSecondaryTimeseriesData(data);
       },
-      () => {
+      onResetSearch: () => {
         internalSearchData.value = undefined;
       },
-      () => {},
-      () => {
+      onZoom: () => {},
+      onResetZoom: () => {
         resetBrushSelection();
       }
-    );
+    });
 
     // Register control callbacks for SearchBarComponent
     props.graphUpdater.registerTimeseriesControlCallbacks(() => {

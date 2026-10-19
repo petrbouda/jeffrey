@@ -116,6 +116,17 @@ export default class Tooltip {
     }, Tooltip.HIDE_DELAY_MS);
   }
 
+  /**
+   * Takes the tooltip out of the page for good: the owner is done with it, and a pending show or
+   * hide, or an IDE check still in flight, must not touch it anymore.
+   */
+  public destroy(): void {
+    clearTimeout(this.tooltipTimeoutId as number);
+    this.cancelPendingHide();
+    this.ideGateToken++;
+    this.tooltip.remove();
+  }
+
   private cancelPendingHide(): void {
     if (this.hideTimeoutId !== null) {
       clearTimeout(this.hideTimeoutId);

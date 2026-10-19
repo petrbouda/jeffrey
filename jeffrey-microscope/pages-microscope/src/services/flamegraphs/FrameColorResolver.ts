@@ -34,6 +34,7 @@ export default class FrameColorResolver {
     [FrameType.TRACED_METHOD_SYNTHETIC]: '#a78bfa',
     [FrameType.COLLAPSED_SYNTHETIC]: '#b3c6ff',
     [FrameType.TRUNCATED_SYNTHETIC]: '#fbcfe8',
+    [FrameType.HIGHLIGHTED_WARNING]: '#fcd34d',
     [FrameType.UNKNOWN]: '#aef27a'
   };
 
@@ -71,11 +72,12 @@ export default class FrameColorResolver {
   private static readonly NEUTRAL_COLOR = '#E6E6E6';
 
   /**
-   * Resolves color for regular flamegraphs based on frame type.
+   * Resolves color for regular flamegraphs based on frame type. A type without a colour of its own
+   * is drawn as UNKNOWN: a black fill would hide the black label on it.
    * @param frameType The type of the frame
    */
   static resolveByType(frameType: string): string {
-    return this.FRAME_TYPE_COLORS[frameType] || '#000000';
+    return this.FRAME_TYPE_COLORS[frameType] ?? this.FRAME_TYPE_COLORS[FrameType.UNKNOWN];
   }
 
   /**

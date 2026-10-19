@@ -23,6 +23,7 @@ export interface FrameTextRenderer {
   readonly frameHeight: number;
   drawText(
     ctx: CanvasRenderingContext2D,
+    labels: FrameLabels,
     title: string,
     frameType: string | undefined,
     x: number,
@@ -49,6 +50,30 @@ interface ParsedFrame {
   className: string;
   separator: string;
   methodName: string;
+}
+
+/**
+ * The parts a frame title is drawn in, split once per title and frame type: a graph is redrawn on
+ * every zoom, search and resize, and its titles repeat across frames. One instance per graph, so the
+ * cache goes with it.
+ */
+export class FrameLabels {
+  private readonly byType = new Map<string, Map<string, ParsedFrame | null>>();
+
+  parse(title: string, frameType: string | undefined): ParsedFrame | null {
+    const type = frameType ?? '';
+    let byTitle = this.byType.get(type);
+    if (byTitle === undefined) {
+      byTitle = new Map();
+      this.byType.set(type, byTitle);
+    }
+    let parsed = byTitle.get(title);
+    if (parsed === undefined) {
+      parsed = parseFrame(title, frameType);
+      byTitle.set(title, parsed);
+    }
+    return parsed;
+  }
 }
 
 function parseFrame(title: string, frameType: string | undefined): ParsedFrame | null {
@@ -93,17 +118,26 @@ function truncate(text: string, maxChars: number): string {
   return text.length <= maxChars ? text : text.substring(0, maxChars - 2) + '..';
 }
 
+/**
+ * The longest prefix of the text, marked with '..', that fits the width in the context's current
+ * font; the whole text when it fits. Binary search over the prefix length: a long title in a narrow
+ * frame would otherwise cost one measureText per character it loses.
+ */
 function truncatePx(text: string, maxWidth: number, ctx: CanvasRenderingContext2D): string {
   if (ctx.measureText(text).width <= maxWidth) {
     return text;
   }
-  for (let i = text.length - 1; i > 0; i--) {
-    const candidate = text.substring(0, i) + '..';
-    if (ctx.measureText(candidate).width <= maxWidth) {
-      return candidate;
+  let fits = 0;
+  let tooLong = text.length;
+  while (tooLong - fits > 1) {
+    const mid = (fits + tooLong) >>> 1;
+    if (ctx.measureText(text.substring(0, mid) + '..').width <= maxWidth) {
+      fits = mid;
+    } else {
+      tooLong = mid;
     }
   }
-  return '';
+  return fits > 0 ? text.substring(0, fits) + '..' : '';
 }
 
 /**
@@ -151,6 +185,7 @@ export class SingleLineFrameTextRenderer implements FrameTextRenderer {
 
   drawText(
     ctx: CanvasRenderingContext2D,
+    labels: FrameLabels,
     title: string,
     frameType: string | undefined,
     x: number,
@@ -166,7 +201,7 @@ export class SingleLineFrameTextRenderer implements FrameTextRenderer {
     const mutedColor = useLightText ? TEXT_MUTED_LIGHT : TEXT_MUTED_DARK;
     const maxW = pixelWidth - 6;
     const textY = y + 14;
-    const parsed = parseFrame(title, frameType);
+    const parsed = labels.parse(title, frameType);
 
     if (parsed) {
       const methodStr = parsed.separator + parsed.methodName;
@@ -218,6 +253,7 @@ export class TwoLineFrameTextRenderer implements FrameTextRenderer {
 
   drawText(
     ctx: CanvasRenderingContext2D,
+    labels: FrameLabels,
     title: string,
     frameType: string | undefined,
     x: number,
@@ -233,7 +269,7 @@ export class TwoLineFrameTextRenderer implements FrameTextRenderer {
     const mutedColor = useLightText ? TEXT_MUTED_LIGHT : TEXT_MUTED_DARK;
     const textX = x + 4;
     const maxTextWidth = pixelWidth - 10;
-    const parsed = parseFrame(title, frameType);
+    const parsed = labels.parse(title, frameType);
 
     // Wide frame with parseable class::method or class.method
     if (parsed && pixelWidth >= 60) {

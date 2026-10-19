@@ -191,10 +191,11 @@ onMounted(() => {
       hide: () => hideContextMenu()
     };
 
-    const rootFrame = data.levels?.[0]?.[0] ?? null;
-    const isDifferential = rootFrame?.diffDetails != null;
+    // Every graph has its root frame on level 0, shown in the header above the canvas
+    const rootFrame = data.frame(0, 0);
+    const isDifferential = rootFrame.diffDetails != null;
     differentialRootFrame.value = isDifferential ? rootFrame : null;
-    primaryRootFrame.value = !isDifferential && rootFrame != null ? rootFrame : null;
+    primaryRootFrame.value = isDifferential ? null : rootFrame;
 
     flamegraph = new Flamegraph(
       data,
@@ -202,7 +203,7 @@ onMounted(() => {
       props.flamegraphTooltip,
       customContextMenu,
       props.useWeight,
-      rootFrame != null
+      true
     );
     flamegraph.drawRoot();
     FlameUtils.registerAdjustableScrollableComponent(flamegraph, props.scrollableWrapperClass);
@@ -238,21 +239,21 @@ onMounted(() => {
     search(currentSearchValue);
   };
 
-  props.graphUpdater.registerFlamegraphCallbacks(
-    () => (preloaderActive.value = true),
-    () => {
+  props.graphUpdater.registerFlamegraphCallbacks({
+    onUpdateStarted: () => (preloaderActive.value = true),
+    onUpdateFinished: () => {
       preloaderActive.value = false;
       emit('loaded');
     },
-    flamegraphUpdate,
-    search,
-    () => {
+    onInit: flamegraphUpdate,
+    onSearch: search,
+    onResetSearch: () => {
       flamegraph.resetSearch();
       currentSearchValue = null;
     },
-    zoomUpdate,
-    zoomUpdate
-  );
+    onZoom: zoomUpdate,
+    onResetZoom: zoomUpdate
+  });
 
   // Add window resize event listener
   window.addEventListener('resize', handleResize);
@@ -323,7 +324,10 @@ function search(value: string | null) {
     :style="{ width: canvasWidth }"
     @reset="flamegraph?.resetZoom()"
   />
-  <canvas id="flamegraphCanvas" ref="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
+  <!-- Positioning context for the hover highlight and the tooltip the graph places next to the canvas -->
+  <div class="flamegraph-canvas-wrapper">
+    <canvas id="flamegraphCanvas" ref="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
+  </div>
 
   <div
     id="flamegraphTooltip"
@@ -348,6 +352,10 @@ function search(value: string | null) {
 </template>
 
 <style scoped>
+.flamegraph-canvas-wrapper {
+  position: relative;
+}
+
 .flamegraph-toolbar {
   display: flex;
   justify-content: flex-end;

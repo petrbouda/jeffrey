@@ -49,17 +49,22 @@ export default abstract class RemoteFlamegraphClient extends FlamegraphClient {
   provideBoth(
     components: GraphComponents,
     timeRange: TimeRange | null,
-    search: string | null
+    search: string | null,
+    signal?: AbortSignal
   ): Promise<BothGraphData> {
-    return this.postProtobuf(this.bothContent(components, timeRange, search));
+    return this.postProtobuf(this.bothContent(components, timeRange, search), signal);
   }
 
-  provide(timeRange: TimeRange | null): Promise<FlamegraphData> {
-    return this.postProtobuf(this.flamegraphContent(timeRange)).then(data => data.flamegraph);
+  provide(timeRange: TimeRange | null, signal?: AbortSignal): Promise<FlamegraphData> {
+    return this.postProtobuf(this.flamegraphContent(timeRange), signal).then(data =>
+      data.requireFlamegraph()
+    );
   }
 
-  provideTimeseries(search: string | null): Promise<TimeseriesData> {
-    return this.postProtobuf(this.timeseriesContent(search)).then(data => data.timeseries);
+  provideTimeseries(search: string | null, signal?: AbortSignal): Promise<TimeseriesData> {
+    return this.postProtobuf(this.timeseriesContent(search), signal).then(data =>
+      data.requireTimeseries()
+    );
   }
 
   /**
@@ -89,12 +94,17 @@ export default abstract class RemoteFlamegraphClient extends FlamegraphClient {
   }
 
   /**
-   * Posts the content to the graph endpoint and decodes the Protocol Buffers response.
+   * Posts the content to the graph endpoint and decodes the Protocol Buffers response. A signal, when
+   * given, aborts the request; the rejection then carries axios' cancellation, not a server error.
    * Protobuf is the most efficient serialization (50-60% smaller than JSON).
    */
-  protected postProtobuf(content: Record<string, unknown>): Promise<BothGraphData> {
+  protected postProtobuf(
+    content: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<BothGraphData> {
+    const config = signal ? { ...HttpUtils.PROTOBUF_HEADERS, signal } : HttpUtils.PROTOBUF_HEADERS;
     return axios
-      .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
+      .post<ArrayBuffer>(this.baseUrl, content, config)
       .then(response => ProtobufConverter.decode(response.data))
       .catch(error => {
         throw RemoteFlamegraphClient.toGraphRequestError(error);

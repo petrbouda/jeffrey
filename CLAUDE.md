@@ -60,7 +60,7 @@ $MVN -q -pl jeffrey-hub/core-hub -am test          # one module — -am is requi
 
 cd jeffrey-microscope/pages-microscope
 npm run dev | build | test | typecheck | format    # build = vue-tsc + vite; `npm run lint` is currently broken
-npm run proto:generate                             # after editing profiles/flamegraph/src/main/proto/flamegraph.proto
+npm run proto:generate                             # after editing flamegraph.proto (also update ProtobufConverter)
 
 ./run-microscope.sh [--clean]                      # Microscope under async-profiler, data in ~/.jeffrey-microscope
 ./run-hub-stub.sh                                  # local hub stub (needs hub-api installed in ~/.m2)

@@ -20,6 +20,39 @@ import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import TimeRange from '@/services/api/model/TimeRange';
 import FlamegraphClient from '@/services/api/FlamegraphClient';
 import type { LinkedGraphState } from '@/services/flamegraphs/FlamegraphLinkQuery';
+import LatestRequest from '@/services/flamegraphs/updater/LatestRequest';
+
+/** What the flamegraph panel does as the updater drives it. */
+export interface FlamegraphCallbacks {
+  onUpdateStarted(): void;
+  onUpdateFinished(): void;
+  onInit(data: FlamegraphData): void;
+  onSearch(expression: string): void;
+  onResetSearch(): void;
+  onZoom(data: FlamegraphData): void;
+  onResetZoom(data: FlamegraphData): void;
+}
+
+/** What the timeseries chart does as the updater drives it. */
+export interface TimeseriesCallbacks {
+  onUpdateStarted(): void;
+  onUpdateFinished(): void;
+  onInit(data: TimeseriesData): void;
+  onSearch(data: TimeseriesData): void;
+  onResetSearch(): void;
+  onZoom(): void;
+  onResetZoom(): void;
+}
+
+/** What the search bar does as the updater drives it. */
+export interface SearchBarCallbacks {
+  onUpdateStarted(): void;
+  onUpdateFinished(): void;
+  /** The share of the graph the search matched, null once the search is reset. */
+  onMatched(matched: string | null): void;
+}
+
+const NONE = () => {};
 
 export default abstract class GraphUpdater {
   /**
@@ -28,6 +61,38 @@ export default abstract class GraphUpdater {
    * every modal-hosted flamegraph, so the timing cannot drift apart per view.
    */
   public static readonly MODAL_INIT_DELAY_MS = 200;
+
+  // Only the answer to the latest request of a kind is applied, whatever order the answers arrive
+  // in: the flamegraph of an initialization, zoom or zoom reset; the timeseries an initialization
+  // opens the chart with; and a search, which a reset or a re-initialization drops while in flight.
+  protected readonly flamegraphRequests = new LatestRequest();
+  protected readonly initializations = new LatestRequest();
+  protected readonly searchRequests = new LatestRequest();
+
+  // A panel that has not registered yet is driven as one that does nothing
+  protected flamegraph: FlamegraphCallbacks = {
+    onUpdateStarted: NONE,
+    onUpdateFinished: NONE,
+    onInit: NONE,
+    onSearch: NONE,
+    onResetSearch: NONE,
+    onZoom: NONE,
+    onResetZoom: NONE
+  };
+  protected timeseries: TimeseriesCallbacks = {
+    onUpdateStarted: NONE,
+    onUpdateFinished: NONE,
+    onInit: NONE,
+    onSearch: NONE,
+    onResetSearch: NONE,
+    onZoom: NONE,
+    onResetZoom: NONE
+  };
+  protected searchBar: SearchBarCallbacks = {
+    onUpdateStarted: NONE,
+    onUpdateFinished: NONE,
+    onMatched: NONE
+  };
 
   protected flamegraphRegistered: boolean = false;
   protected timeseriesRegistered: boolean = false;
@@ -39,41 +104,7 @@ export default abstract class GraphUpdater {
     this.immediateInitialization = immediateInitialization;
   }
 
-  protected flamegraphOnUpdateStartedCallback: () => void = () => {};
-
-  protected flamegraphOnUpdateFinishedCallback: () => void = () => {};
-
-  protected flamegraphOnInitCallback: (data: FlamegraphData) => void = () => {};
-
-  protected flamegraphOnSearchCallback: (data: string) => void = () => {};
-
-  protected flamegraphOnResetSearchCallback: () => void = () => {};
-
-  protected flamegraphOnZoomCallback: (data: FlamegraphData) => void = () => {};
-
-  protected flamegraphOnResetZoomCallback: (data: FlamegraphData) => void = () => {};
-
-  protected timeseriesOnUpdateStartedCallback: () => void = () => {};
-
-  protected timeseriesOnUpdateFinishedCallback: () => void = () => {};
-
-  protected timeseriesOnInitCallback: (data: TimeseriesData) => void = () => {};
-
-  protected timeseriesOnSearchCallback: (data: TimeseriesData) => void = () => {};
-
-  protected timeseriesOnResetSearchCallback: () => void = () => {};
-
-  protected timeseriesOnZoomCallback: (data: void) => void = () => {};
-
-  protected timeseriesOnResetZoomCallback: () => void = () => {};
-
   protected timeseriesControlResetZoomCallback: () => void = () => {};
-
-  protected searchBarOnMatchedCallback: (matched: string | null) => void = () => {};
-
-  protected searchBarOnUpdateStartedCallback: () => void = () => {};
-
-  protected searchBarOnUpdateFinishedCallback: () => void = () => {};
 
   protected timeseriesSearchEnabled: boolean = true;
   // When false the graph has no timeseries at all (no chart is mounted, so no timeseries callbacks
@@ -81,6 +112,9 @@ export default abstract class GraphUpdater {
   // recordings without a time dimension (e.g. pprof).
   protected timeseriesEnabled: boolean = true;
   protected initialVisibleMinutes: number | null = null;
+  // How long the recording ran, when the page knows it: a recording no longer than the opening
+  // window opens on all of it, so the first flamegraph need not wait for the timeseries
+  protected recordingDurationMillis: number | null = null;
   // Where a link opened the graph: a window that replaces the opening zoom, and a search applied
   // once, after the first drawing. Both null unless a link named them.
   private linkedState: LinkedGraphState = { timeRange: null, search: null };
@@ -96,6 +130,10 @@ export default abstract class GraphUpdater {
 
   public setInitialVisibleMinutes(minutes: number): void {
     this.initialVisibleMinutes = minutes;
+  }
+
+  public setRecordingDuration(durationMillis: number | null): void {
+    this.recordingDurationMillis = durationMillis;
   }
 
   /**
@@ -139,23 +177,44 @@ export default abstract class GraphUpdater {
    */
   protected graphOperationFailed(operation: string, error: unknown): void {
     console.error(`Graph ${operation} failed:`, error);
-    this.flamegraphOnUpdateFinishedCallback();
-    this.timeseriesOnUpdateFinishedCallback();
-    this.searchBarOnUpdateFinishedCallback();
+    this.flamegraph.onUpdateFinished();
+    this.timeseries.onUpdateFinished();
+    this.searchBar.onUpdateFinished();
   }
 
-  public registerSearchBarCallbacks(
-    onUpdateStarted: () => void,
-    onUpdateFinished: () => void,
-    onMatched: (matched: string | null) => void
+  /**
+   * Runs one flamegraph request and hands its answer to `apply`, unless a later flamegraph request
+   * started in the meantime: then this one is aborted, its answer or failure is dropped, and the
+   * later request releases the loading state.
+   */
+  protected requestFlamegraph(
+    operation: string,
+    request: (signal: AbortSignal) => Promise<FlamegraphData>,
+    apply: (data: FlamegraphData) => void
   ): void {
-    this.searchBarOnUpdateStartedCallback = onUpdateStarted;
-    this.searchBarOnUpdateFinishedCallback = onUpdateFinished;
-    this.searchBarOnMatchedCallback = onMatched;
+    const ticket = this.flamegraphRequests.start();
+    this.flamegraph.onUpdateStarted();
+    request(ticket.signal)
+      .then(data => {
+        if (ticket.isLatest()) {
+          apply(data);
+          this.flamegraph.onUpdateFinished();
+        }
+      })
+      .catch(error => {
+        // An overtaken request is aborted on purpose; its failure is no failure of the graph
+        if (ticket.isLatest()) {
+          this.graphOperationFailed(operation, error);
+        }
+      });
+  }
+
+  public registerSearchBarCallbacks(callbacks: SearchBarCallbacks): void {
+    this.searchBar = callbacks;
   }
 
   public reportMatched(matched: string | null): void {
-    this.searchBarOnMatchedCallback(matched);
+    this.searchBar.onMatched(matched);
   }
 
   public registerTimeseriesControlCallbacks(onResetZoom: () => void): void {
@@ -167,22 +226,8 @@ export default abstract class GraphUpdater {
     this.resetZoom();
   }
 
-  public registerFlamegraphCallbacks(
-    onUpdateStarted: () => void,
-    onUpdateFinished: () => void,
-    onInit: (data: FlamegraphData) => void,
-    onSearch: (data: string) => void,
-    onResetSearch: () => void,
-    onZoom: (data: FlamegraphData) => void,
-    onResetZoom: (data: FlamegraphData) => void
-  ): void {
-    this.flamegraphOnUpdateStartedCallback = onUpdateStarted;
-    this.flamegraphOnUpdateFinishedCallback = onUpdateFinished;
-    this.flamegraphOnInitCallback = onInit;
-    this.flamegraphOnSearchCallback = onSearch;
-    this.flamegraphOnResetSearchCallback = onResetSearch;
-    this.flamegraphOnZoomCallback = onZoom;
-    this.flamegraphOnResetZoomCallback = onResetZoom;
+  public registerFlamegraphCallbacks(callbacks: FlamegraphCallbacks): void {
+    this.flamegraph = callbacks;
 
     this.flamegraphRegistered = true;
     if (this.immediateInitialization) {
@@ -190,22 +235,8 @@ export default abstract class GraphUpdater {
     }
   }
 
-  public registerTimeseriesCallbacks(
-    onUpdateStarted: () => void,
-    onUpdateFinished: () => void,
-    onInit: (data: TimeseriesData) => void,
-    onSearch: (data: TimeseriesData) => void,
-    onResetSearch: () => void,
-    onZoom: (data: void) => void,
-    onResetZoom: () => void
-  ): void {
-    this.timeseriesOnUpdateStartedCallback = onUpdateStarted;
-    this.timeseriesOnUpdateFinishedCallback = onUpdateFinished;
-    this.timeseriesOnInitCallback = onInit;
-    this.timeseriesOnSearchCallback = onSearch;
-    this.timeseriesOnResetSearchCallback = onResetSearch;
-    this.timeseriesOnZoomCallback = onZoom;
-    this.timeseriesOnResetZoomCallback = onResetZoom;
+  public registerTimeseriesCallbacks(callbacks: TimeseriesCallbacks): void {
+    this.timeseries = callbacks;
 
     this.timeseriesRegistered = true;
     if (this.immediateInitialization) {

@@ -36,9 +36,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Verifies the searching timeseries query (SIMPLE_SEARCH): the search pattern is a regular
- * expression tested against the composed {@code class#method} frame name, mirroring the client-side
- * flamegraph highlight. In particular a dotted search like {@code JsonReader.<init>} — the form the
+ * Verifies the searching timeseries query (SIMPLE_SEARCH): the search pattern is tested against the
+ * composed {@code class#method} frame name, literally or as a regular expression, mirroring the
+ * client-side flamegraph highlight. In particular a dotted search like {@code JsonReader.<init>} — the form the
  * flamegraph renders and users copy — must match the stored {@code JsonReader} + {@code <init>}
  * frame, which the previous per-column LIKE matching could never do.
  */
@@ -48,11 +48,12 @@ class TimeseriesSearchingStreamerTest {
     private static final String FIXTURE = "sql/events/insert-search-frame-events.sql";
     private static final Type ALLOC = Type.fromCode("alloc");
 
-    // Fixture: three single-event stacks in second 0 — constructor stack (weight 10),
-    // regular-method stack (weight 20), class-less native stack (weight 30).
-    private static final long TOTAL_WEIGHT = 60L;
+    // Fixture: four single-event stacks in second 0 — constructor stack (weight 10),
+    // regular-method stack (weight 20), class-less native stack (weight 30), inner-class stack (weight 40).
+    private static final long TOTAL_WEIGHT = 100L;
     private static final long CONSTRUCTOR_WEIGHT = 10L;
     private static final long NATIVE_WEIGHT = 30L;
+    private static final long INNER_CLASS_WEIGHT = 40L;
 
     private static ProfileEventStreamRepository streamRepository(DataSource dataSource) {
         QueryBuilderFactoryResolver resolver = new QueryBuilderFactoryResolverImpl(
@@ -132,6 +133,20 @@ class TimeseriesSearchingStreamerTest {
         @Test
         void unmatchedSearchMatchesNothing(DataSource dataSource) throws SQLException {
             assertMatched(search(dataSource, "does.not.Exist"), 0L);
+        }
+    }
+
+    @Nested
+    class LiteralSearch {
+
+        @Test
+        void exactInnerClassNameMatchesDespiteTheDollar(DataSource dataSource) throws SQLException {
+            assertMatched(search(dataSource, "com.example.Outer$Inner#run"), INNER_CLASS_WEIGHT);
+        }
+
+        @Test
+        void patternThatDoesNotCompileIsSearchedLiterally(DataSource dataSource) throws SQLException {
+            assertMatched(search(dataSource, "Outer$Inner#run("), 0L);
         }
     }
 
