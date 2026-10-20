@@ -18,9 +18,28 @@
 import FlamegraphData from '@/services/api/model/FlamegraphData';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
+/**
+ * A graph response: the parts the request asked for, null for the ones it did not.
+ */
 export default class BothGraphData {
   constructor(
-    public flamegraph: FlamegraphData,
-    public timeseries: TimeseriesData
+    public flamegraph: FlamegraphData | null,
+    public timeseries: TimeseriesData | null
   ) {}
+
+  /** The flamegraph of a response that was asked for one; its absence is a server fault. */
+  requireFlamegraph(): FlamegraphData {
+    if (this.flamegraph === null) {
+      throw new Error('Graph response carries no flamegraph');
+    }
+    return this.flamegraph;
+  }
+
+  /** The timeseries of a response that was asked for one; its absence is a server fault. */
+  requireTimeseries(): TimeseriesData {
+    if (this.timeseries === null) {
+      throw new Error('Graph response carries no timeseries');
+    }
+    return this.timeseries;
+  }
 }

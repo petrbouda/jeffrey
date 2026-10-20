@@ -17,21 +17,19 @@
 
 package cafe.jeffrey.timeseries;
 
+import cafe.jeffrey.microscope.model.SearchPattern;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
 public class SearchingTimeseriesBuilder extends SplitTimeseriesBuilder {
 
-    private final Predicate<String> searchPredicate;
+    private final SearchPattern searchPattern;
 
     public SearchingTimeseriesBuilder(RelativeTimeRange timeRange, String searchPattern) {
         super(timeRange);
-        this.searchPredicate = Pattern.compile(".*" + searchPattern + ".*").asMatchPredicate();
+        this.searchPattern = SearchPattern.of(searchPattern);
     }
 
     @Override
@@ -46,9 +44,9 @@ public class SearchingTimeseriesBuilder extends SplitTimeseriesBuilder {
 
     private boolean matchesMethod(JfrMethod method) {
         if (method.clazz() != null) {
-            return searchPredicate.test(method.className() + "#" + method.methodName());
+            return searchPattern.matches(method.className() + "#" + method.methodName());
         } else {
-            return searchPredicate.test(method.methodName());
+            return searchPattern.matches(method.methodName());
         }
     }
 }

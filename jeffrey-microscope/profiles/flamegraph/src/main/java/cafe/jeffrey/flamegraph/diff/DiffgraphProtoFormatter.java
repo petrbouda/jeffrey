@@ -23,7 +23,6 @@ import cafe.jeffrey.flamegraph.proto.Frame;
 import cafe.jeffrey.flamegraph.proto.Level;
 import cafe.jeffrey.frameir.DiffFrame;
 import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.shared.common.StringUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -85,7 +84,7 @@ public class DiffgraphProtoFormatter {
                         .setTotalSamples(diffFrame.samples())
                         .setTotalWeight(diffFrame.weight())
                         .setType(mapFrameType(diffFrame.frameType))
-                        .setTitleIndex(getOrAddTitle(StringUtils.escape(diffFrame.methodName)))
+                        .setTitleIndex(getOrAddTitle(diffFrame.methodName))
                         .setDiffDetails(resolveDetail(diffFrame));
 
                 out.get(layer).addFrames(frameBuilder);
@@ -211,7 +210,7 @@ public class DiffgraphProtoFormatter {
                 .setTotalSamples(frame.totalSamples())
                 .setTotalWeight(frame.totalWeight())
                 .setType(mapFrameType(frame.frameType()))
-                .setTitleIndex(getOrAddTitle(cafe.jeffrey.shared.common.StringUtils.escape(methodName)));
+                .setTitleIndex(getOrAddTitle(methodName));
 
         // Only include selfSamples when non-zero
         if (frame.selfSamples() > 0) {

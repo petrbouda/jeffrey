@@ -20,11 +20,15 @@ import Tooltip from '@/services/tooltip/Tooltip';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
 import Frame from '@/services/api/model/Frame';
+import FrameRef from '@/services/flamegraphs/FrameRef';
 import FrameRect from '@/services/flamegraphs/FrameRect';
+import CanvasBand, { type GraphViewport } from '@/services/flamegraphs/CanvasBand';
 import VisibleFrame from '@/services/flamegraphs/VisibleFrame';
 import FrameColorResolver from '@/services/flamegraphs/FrameColorResolver';
 import FrameType from '@/services/flamegraphs/FrameType';
+import FrameSearchPattern from '@/services/flamegraphs/FrameSearchPattern';
 import {
+  FrameLabels,
   type FrameTextRenderer,
   SingleLineFrameTextRenderer,
   TwoLineFrameTextRenderer
@@ -36,25 +40,38 @@ export default class Flamegraph {
   private static readonly SINGLE_LINE_RENDERER = new SingleLineFrameTextRenderer();
   private static readonly TWO_LINE_RENDERER = new TwoLineFrameTextRenderer();
 
+  private static readonly BACKGROUND_COLOR = '#ffffff';
+  private static readonly UNDER_ROOT_VEIL = 'rgba(255, 255, 255, 0.5)';
+  // The white gap between neighbouring frames and rows. A frame no wider than the gap shows no
+  // colour at all, so it is not drawn, and neither is its subtree, which is narrower still.
+  private static readonly FRAME_GAP_PX = 1;
+
   // set up by draw function
 
   private textRenderer: FrameTextRenderer = Flamegraph.SINGLE_LINE_RENDERER;
-  private canvasHeight: number | null = null;
-  private canvasWidth: number | null = null;
+  private canvasWidth: number = 0;
   private pxPerSample: number | null = null;
+  // The rows the canvas holds; the canvas sits at its top inside the container, which is as tall as
+  // the whole graph
+  private band: CanvasBand = CanvasBand.EMPTY;
+  private readonly labels = new FrameLabels();
 
-  private hlFrame: Frame | null = null;
-  private contextFrame: Frame | null = null;
+  // The frame under the pointer, and the tooltip made for it
+  private hlFrame: FrameRef | null = null;
+  private hlTooltip: string = '';
+  private contextFrame: FrameRef | null = null;
 
-  private currentRoot: Frame;
-
-  private currentRootLevel: number = 0;
-  private currentPattern: RegExp | null = null;
+  private currentRoot: FrameRef = FrameRef.ROOT;
+  // Per title of the pool, 1 when it matches the search; null without a search
+  private matchedTitles: Uint8Array | null = null;
   private visibleFrames: VisibleFrame[][];
 
   private readonly depth: number;
 
-  private readonly levels: Frame[][];
+  private readonly data: FlamegraphData;
+  // Per level, the left edges and widths the graph is laid out by: samples, or weight
+  private readonly lefts: Float64Array[];
+  private readonly totals: Float64Array[];
   private readonly useWeight: boolean = false;
   private readonly skipRootInCanvas: boolean = false;
   private readonly contextMenu: any;
@@ -63,13 +80,28 @@ export default class Flamegraph {
   private readonly flamegraphTooltip: FlamegraphTooltip;
   private readonly tooltip: Tooltip;
   private readonly canvas: HTMLCanvasElement;
-  private readonly canvasWrapper: HTMLDivElement;
+  private readonly container: HTMLElement;
   private readonly context: CanvasRenderingContext2D;
+
+  // Any scroll on the page and any resize of the window may move other rows into view
+  private viewportRafId: number | null = null;
+  private readonly viewportListener = () => this.scheduleViewportCheck();
+
+  // The element whose scrolling dismisses the tooltip, and the listener this graph put on it
+  private scrollContainer: HTMLElement | null = null;
+  private readonly scrollListener = () => this.onScroll();
 
   // Throttling state for mouse move events
   private mouseMoveRafId: number | null = null;
   private pendingMouseEvent: MouseEvent | null = null;
 
+  /**
+   * The canvas must sit in a positioned container of its own (FlamegraphComponent's wrapper): the
+   * container takes the height of the whole graph, the canvas only the band of rows around the
+   * window (see {@link CanvasBand}), and the highlight and the tooltip are placed into it.
+   * {@link close} takes them out again, so the next graph drawn on the same canvas starts from the
+   * same DOM.
+   */
   constructor(
     data: FlamegraphData,
     canvas: HTMLCanvasElement,
@@ -79,45 +111,53 @@ export default class Flamegraph {
     skipRootInCanvas: boolean = false
   ) {
     this.depth = data.depth;
-    this.levels = data.levels;
-    this.currentRoot = this.levels[0][0];
+    this.data = data;
     this.skipRootInCanvas = skipRootInCanvas;
+    this.useWeight = Utils.parseBoolean(useWeight);
+    this.lefts = data.levels.map(level => (this.useWeight ? level.leftWeight : level.leftSamples));
+    this.totals = data.levels.map(level =>
+      this.useWeight ? level.totalWeight : level.totalSamples
+    );
 
     this.contextMenu = contextMenu;
 
     this.canvas = canvas;
-    this.canvas.style.height = this.canvasRows() * this.textRenderer.frameHeight + 'px';
+    this.canvas.style.position = 'absolute';
+    this.canvas.style.left = '0';
     this.context = this.canvas.getContext('2d')!;
 
-    // Create wrapper for canvas and highlight - ensures proper positioning context
-    this.canvasWrapper = document.createElement('div');
-    this.canvasWrapper.style.position = 'relative';
-    this.canvas.parentNode?.insertBefore(this.canvasWrapper, this.canvas);
-    this.canvasWrapper.appendChild(this.canvas);
-
-    this.removeAllHighlight();
-    this.#createHighlightDiv(this.canvasWrapper);
-    this.hl = document.getElementById('hl')!;
+    const container = this.canvas.parentElement;
+    if (container == null) {
+      throw new Error('Flamegraph: the canvas must sit in a container');
+    }
+    this.container = container;
+    this.hl = Flamegraph.createHighlightDiv(container);
 
     this.tooltip = new Tooltip(this.canvas);
     this.flamegraphTooltip = flamegraphTooltip;
 
-    this.useWeight = Utils.parseBoolean(useWeight);
-
     this.visibleFrames = Flamegraph.initializeLevels(this.depth);
-    this.resizeCanvas(this.canvas.offsetWidth, this.canvas.offsetHeight);
+    this.resizeCanvas(this.canvas.offsetWidth);
 
-    this.canvas.addEventListener('contextmenu', e => {
-      // Prevent browser's default context menu
-      e.preventDefault();
+    // Capturing: scroll events do not bubble, and the element that scrolls differs per page
+    document.addEventListener('scroll', this.viewportListener, { capture: true, passive: true });
+    window.addEventListener('resize', this.viewportListener, { passive: true });
 
-      // Show our custom context menu
-      contextMenu.show(e);
-      this.contextFrame = this.hlFrame;
-    });
+    this.canvas.oncontextmenu = this.onContextMenu();
     this.canvas.onmousemove = this.onMouseMoveEvent();
     this.canvas.onmouseout = this.onMouseOut();
     this.canvas.ondblclick = this.onDoubleClick();
+  }
+
+  private onContextMenu() {
+    return (event: MouseEvent) => {
+      // Prevent browser's default context menu
+      event.preventDefault();
+
+      // Show our custom context menu
+      this.contextMenu.show(event);
+      this.contextFrame = this.hlFrame;
+    };
   }
 
   private onMouseMoveEvent() {
@@ -137,48 +177,31 @@ export default class Flamegraph {
   }
 
   private processMouseMove(event: MouseEvent) {
-    const level =
-      Math.floor(event.offsetY / this.textRenderer.frameHeight) + this.firstDrawnLevel();
+    // The canvas holds only the band, so the pointer is offset by where the band starts
+    const graphY = this.band.top + event.offsetY;
+    const level = Math.floor(graphY / this.textRenderer.frameHeight) + this.firstDrawnLevel();
 
-    if (level >= this.firstDrawnLevel() && level < this.levels.length) {
+    if (level >= this.firstDrawnLevel() && level < this.data.levels.length) {
       const frame = this.lookupFrame(level, event);
+      if (frame === null || !frame.equals(this.hlFrame)) {
+        this.clearHighlightSelection();
+        // Only the frame a tooltip shows is built as an object, once while the pointer is on it
+        this.hlTooltip = frame !== null ? this.generateTooltip(frame) : '';
+      }
       this.hlFrame = frame;
 
       if (frame) {
-        if (frame !== this.currentRoot) {
-          getSelection()!.removeAllRanges();
-        }
-
         // if `contextFrame` != null, then context menu is selected.
         if (this.contextFrame == null) {
-          this.hl.style.left =
-            Math.max(this.leftDistance(frame) - this.leftDistance(this.currentRoot), 0) *
-              this.pxPerSample! +
-            'px';
-          this.hl.style.width =
-            Math.min(this.totalValue(frame), this.totalValue(this.currentRoot)) *
-              this.pxPerSample! +
-            'px';
-          this.hl.style.top =
-            (level - this.firstDrawnLevel()) * this.textRenderer.frameHeight + 'px';
-          this.hl.style.height = this.textRenderer.frameHeight + 'px';
-          this.hl.style.lineHeight = this.textRenderer.frameHeight + 'px';
-          this.hl.firstChild!.textContent = '';
-          this.hl.style.display = 'block';
+          this.showHighlight(frame);
         }
 
-        const tooltipContent = this.flamegraphTooltip.generate(
-          frame,
-          this.levels[0][0].totalSamples,
-          this.levels[0][0].totalWeight ?? 0
-        );
-
-        this.tooltip.showTooltip(event, tooltipContent);
+        this.tooltip.showTooltip(event, this.hlTooltip);
 
         this.canvas.style.cursor = 'pointer';
         this.canvas.onclick = () => {
-          if (frame !== this.currentRoot) {
-            this.draw(frame, level, this.currentPattern!);
+          if (!frame.equals(this.currentRoot)) {
+            this.draw(frame);
           }
         };
         return;
@@ -190,18 +213,29 @@ export default class Flamegraph {
     this.tooltip.hideTooltip();
   }
 
+  private generateTooltip(frame: FrameRef): string {
+    const root = this.data.levels[0];
+    return this.flamegraphTooltip.generate(
+      this.data.frame(frame.level, frame.index),
+      root.totalSamples[0],
+      root.totalWeight[0]
+    );
+  }
+
   closeContextMenu() {
     this.contextFrame = null;
   }
 
-  getContextFrame() {
-    return this.contextFrame;
+  /** The frame the context menu was opened on, null without one. */
+  getContextFrame(): Frame | null {
+    return this.contextFrame !== null
+      ? this.data.frame(this.contextFrame.level, this.contextFrame.index)
+      : null;
   }
 
   setTwoLineMode(enabled: boolean) {
     this.textRenderer = enabled ? Flamegraph.TWO_LINE_RENDERER : Flamegraph.SINGLE_LINE_RENDERER;
-    this.canvas.style.height = this.canvasRows() * this.textRenderer.frameHeight + 'px';
-    this.resizeCanvas(this.canvasWidth!, this.canvasRows() * this.textRenderer.frameHeight);
+    this.resizeCanvas(this.canvasWidth);
   }
 
   // Number of frame rows actually rendered in the canvas. When `skipRootInCanvas`
@@ -218,13 +252,24 @@ export default class Flamegraph {
   }
 
   /**
-   * The graph's container scrolled. Anything anchored to a frame's old position — the tooltip, the
-   * context menu — is dismissed rather than dragged along.
+   * Follows the scrolling of the element the graph sits in, until {@link close}. Replaces an element
+   * followed before.
    */
-  onScroll() {
+  followScrollOf(container: HTMLElement) {
+    this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
+    this.scrollContainer = container;
+    container.addEventListener('scroll', this.scrollListener);
+  }
+
+  /**
+   * The graph's container scrolled. Anything anchored to a frame's old position — the tooltip, the
+   * context menu, the highlight — is dismissed rather than dragged along.
+   */
+  private onScroll() {
     this.tooltip.hideTooltip();
     this.closeContextMenu();
     this.contextMenu.hide();
+    this.removeHighlight();
   }
 
   removeHighlight() {
@@ -237,13 +282,6 @@ export default class Flamegraph {
     }
   }
 
-  removeAllHighlight() {
-    const hl = document.getElementById('hl');
-    if (hl != null) {
-      hl.outerHTML = '';
-    }
-  }
-
   private onMouseOut() {
     return () => {
       this.removeHighlight();
@@ -251,16 +289,52 @@ export default class Flamegraph {
     };
   }
 
+  /**
+   * A double click selects the frame's title, ready to be copied. Its two clicks have zoomed into the
+   * frame already, and that redraw hid the highlight, so the highlight is shown again first.
+   */
   private onDoubleClick() {
     return () => {
-      getSelection()!.selectAllChildren(this.hl);
+      if (this.hlFrame !== null) {
+        this.showHighlight(this.hlFrame);
+        getSelection()?.selectAllChildren(this.hl);
+      }
     };
   }
 
-  #createHighlightDiv(wrapper: HTMLDivElement) {
-    wrapper.insertAdjacentHTML(
+  /**
+   * Lays the highlight over the frame. It carries the frame's title in transparent text: the canvas
+   * draws the visible label, the text is there for a double click to select.
+   */
+  private showHighlight(frame: FrameRef) {
+    const root = this.currentRoot;
+    this.hl.style.left =
+      Math.max(this.leftOf(frame) - this.leftOf(root), 0) * this.pxPerSample! + 'px';
+    this.hl.style.width =
+      Math.min(this.totalOf(frame), this.totalOf(root)) * this.pxPerSample! + 'px';
+    this.hl.style.top =
+      (frame.level - this.firstDrawnLevel()) * this.textRenderer.frameHeight + 'px';
+    this.hl.style.height = this.textRenderer.frameHeight + 'px';
+    this.hl.style.lineHeight = this.textRenderer.frameHeight + 'px';
+    this.hl.firstChild!.textContent = this.data.title(frame.level, frame.index);
+    this.hl.style.display = 'block';
+  }
+
+  /**
+   * Drops the selection a double click made on the highlight, once the pointer moves on to another
+   * frame. A selection anywhere else on the page is left alone.
+   */
+  private clearHighlightSelection() {
+    const selection = getSelection();
+    if (selection?.anchorNode != null && this.hl.contains(selection.anchorNode)) {
+      selection.removeAllRanges();
+    }
+  }
+
+  private static createHighlightDiv(container: HTMLElement): HTMLElement {
+    container.insertAdjacentHTML(
       'beforeend',
-      '<div id="hl" style="' +
+      '<div style="' +
         ' position: absolute;' +
         ' display: none;' +
         ' overflow: hidden;' +
@@ -268,8 +342,9 @@ export default class Flamegraph {
         ' pointer-events: none;' +
         ' background-color: rgba(255,255,255,0.4);' +
         ' font: 12px Arial;' +
-        ' height: 20px;"><span style="padding: 0 3px"></span></div>'
+        ' height: 20px;"><span style="padding: 0 3px; color: transparent"></span></div>'
     );
+    return container.lastElementChild as HTMLElement;
   }
 
   private static pct(a: number, b: number) {
@@ -280,7 +355,7 @@ export default class Flamegraph {
    * Binary search for frame lookup - O(log n) instead of O(n)
    * Frames are sorted by x position (leftSamples/leftWeight)
    */
-  private lookupFrame(level: number, event: MouseEvent): Frame | null {
+  private lookupFrame(level: number, event: MouseEvent): FrameRef | null {
     const frames = this.visibleFrames[level];
     if (!frames || frames.length === 0) {
       return null;
@@ -300,32 +375,79 @@ export default class Flamegraph {
         left = mid + 1;
       } else {
         // Found the frame containing x
-        return frames[mid].frame;
+        return new FrameRef(level, frames[mid].index);
       }
     }
     return null;
   }
 
   resizeWidthCanvas(width: number) {
-    this.resizeCanvas(width, this.canvasHeight!);
+    this.resizeCanvas(width);
   }
 
-  resizeCanvas(width: number, height: number) {
-    if (height != null) {
-      this.canvasHeight = height;
-      this.canvas.height = this.canvasHeight * (devicePixelRatio || 1);
-    }
-
+  /**
+   * Lays the graph out at the given width: the container takes the height of every row, and the
+   * canvas is sized to the band of rows around the window and redrawn.
+   */
+  private resizeCanvas(width: number) {
     this.canvasWidth = width;
-    this.canvas.style.width = this.canvasWidth + 'px';
+    this.canvas.style.width = width + 'px';
+    this.container.style.height = this.graphHeight() + 'px';
+    this.applyBand(CanvasBand.around(this.viewport()), true);
+  }
 
-    this.canvas.width = this.canvasWidth * (devicePixelRatio || 1);
+  private graphHeight(): number {
+    return this.canvasRows() * this.textRenderer.frameHeight;
+  }
 
-    if (devicePixelRatio) {
-      this.context.scale(devicePixelRatio, devicePixelRatio);
+  private viewport(): GraphViewport {
+    return {
+      graphHeight: this.graphHeight(),
+      rowHeight: this.textRenderer.frameHeight,
+      graphTop: this.container.getBoundingClientRect().top,
+      windowHeight: window.innerHeight
+    };
+  }
+
+  private scheduleViewportCheck() {
+    if (this.viewportRafId === null) {
+      this.viewportRafId = requestAnimationFrame(() => {
+        this.viewportRafId = null;
+        this.checkViewport();
+      });
     }
-    this.context.font = '12px Arial';
+  }
 
+  /** Redraws around the window once rows outside the drawn band have scrolled into view. */
+  private checkViewport() {
+    const viewport = this.viewport();
+    if (!this.band.covers(viewport)) {
+      this.applyBand(CanvasBand.around(viewport), false);
+    }
+  }
+
+  /**
+   * Moves the canvas to the band and redraws it. The backing store is reallocated only when its size
+   * changes; it is sized in device pixels, rounded, and scaled per axis by what the rounding left.
+   */
+  private applyBand(band: CanvasBand, resized: boolean) {
+    if (resized || band.height !== this.band.height) {
+      const ratio = window.devicePixelRatio || 1;
+      this.canvas.width = Math.round(this.canvasWidth * ratio);
+      this.canvas.height = Math.round(band.height * ratio);
+      this.canvas.style.height = band.height + 'px';
+      // Resizing the backing store resets the context, its transform included
+      this.context.setTransform(
+        this.canvasWidth > 0 ? this.canvas.width / this.canvasWidth : ratio,
+        0,
+        0,
+        band.height > 0 ? this.canvas.height / band.height : ratio,
+        0,
+        0
+      );
+    }
+    this.band = band;
+    this.canvas.style.top = band.top + 'px';
     this.drawRoot();
   }
 
@@ -339,28 +461,35 @@ export default class Flamegraph {
 
   private clearCanvas() {
     this.removeHighlight();
-    this.context.fillStyle = '#ffffff';
-    this.context.fillRect(0, 0, this.canvasWidth!, this.canvasHeight!);
+    this.context.fillStyle = Flamegraph.BACKGROUND_COLOR;
+    this.context.fillRect(0, 0, this.canvasWidth, this.band.height);
   }
 
   drawRoot() {
-    this.draw(this.currentRoot, this.currentRootLevel, this.currentPattern!);
+    this.draw(this.currentRoot);
   }
 
+  /**
+   * Highlights the frames whose title the pattern matches and returns their share of the current
+   * root. Each title of the pool is tested once, not each frame.
+   */
   search(pattern: string) {
-    this.currentPattern = RegExp(pattern);
-    const highlighted = this.draw(this.currentRoot, this.currentRootLevel, this.currentPattern);
-    const highlightedTotal = this.calculateHighlighted(highlighted);
-    return Flamegraph.pct(highlightedTotal, this.totalValue(this.currentRoot));
+    const searchPattern = new FrameSearchPattern(pattern);
+    this.matchedTitles = Uint8Array.from(this.data.titles, title =>
+      searchPattern.matches(title) ? 1 : 0
+    );
+    this.draw(this.currentRoot);
+    const highlightedTotal = this.matchedValue(this.matchedTitles);
+    return Flamegraph.pct(highlightedTotal, this.totalOf(this.currentRoot));
   }
 
   resetSearch() {
-    this.currentPattern = null;
-    this.draw(this.currentRoot, this.currentRootLevel, this.currentPattern!);
+    this.matchedTitles = null;
+    this.draw(this.currentRoot);
   }
 
   resetZoom() {
-    this.draw(this.levels[0][0], 0, this.currentPattern!);
+    this.draw(FrameRef.ROOT);
   }
 
   close() {
@@ -370,167 +499,191 @@ export default class Flamegraph {
     }
     this.pendingMouseEvent = null;
 
+    this.canvas.oncontextmenu = null;
     this.canvas.onmousemove = null;
     this.canvas.onmouseout = null;
     this.canvas.ondblclick = null;
     this.canvas.onclick = null;
 
-    this.removeAllHighlight();
-    this.tooltip.hideTooltip();
+    this.scrollContainer?.removeEventListener('scroll', this.scrollListener);
+    this.scrollContainer = null;
+
+    document.removeEventListener('scroll', this.viewportListener, { capture: true });
+    window.removeEventListener('resize', this.viewportListener);
+    if (this.viewportRafId !== null) {
+      cancelAnimationFrame(this.viewportRafId);
+      this.viewportRafId = null;
+    }
+
+    this.hl.remove();
+    this.tooltip.destroy();
     this.contextMenu.hide();
   }
 
-  private draw(root: Frame, rootLevel: number, pattern: RegExp) {
+  /**
+   * Draws the rows of the band under the given root. Within a level the frames are ordered and do
+   * not overlap, so the ones under the root are found by a binary search and the walk stops at the
+   * first frame past it.
+   */
+  private draw(root: FrameRef) {
     this.clearCanvas();
     this.visibleFrames = Flamegraph.initializeLevels(this.depth);
-
     this.currentRoot = root;
-    this.currentRootLevel = rootLevel;
 
-    this.pxPerSample = this.canvasWidth! / this.totalValue(root);
+    const xStart = this.leftOf(root);
+    const xEnd = xStart + this.totalOf(root);
+    const pxPerSample = this.canvasWidth / this.totalOf(root);
+    this.pxPerSample = pxPerSample;
 
-    const xStart = this.leftDistance(root);
-    const xEnd = xStart + this.totalValue(root);
-    const highlighted = new Map<number, number>();
-
-    // Render all levels - canvas shows full flamegraph, container handles scrolling.
-    // When `skipRootInCanvas` is true, level 0 is rendered in the HTML root header
-    // above the canvas, so the draw loop starts at level 1 and shifts y up by one row.
+    // When `skipRootInCanvas` is true, level 0 is rendered in the HTML root header above the
+    // canvas, so the rows start at level 1.
+    const rowHeight = this.textRenderer.frameHeight;
     const firstLevel = this.firstDrawnLevel();
-    for (let level = firstLevel; level < this.levels.length; level++) {
-      const y = (level - firstLevel) * this.textRenderer.frameHeight;
-      const frames = this.levels[level];
+    const firstRow = this.band.top / rowHeight;
+    const endRow = this.band.bottom / rowHeight;
+    for (let row = firstRow; row < endRow; row++) {
+      const level = row + firstLevel;
+      if (level >= this.data.levels.length) {
+        break;
+      }
+      const y = row * rowHeight - this.band.top;
+      const lefts = this.lefts[level];
+      const totals = this.totals[level];
+      const isUnderRoot = level < root.level;
 
-      for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i];
-        if (this.frame_not_overflow(frame, xStart, xEnd)) {
-          const isHighlighted = this.isMethodHighlighted(highlighted, frame, pattern);
-          const isUnderRoot = level < rootLevel;
+      for (let i = Flamegraph.firstEndingAfter(lefts, totals, xStart); i < lefts.length; i++) {
+        const left = lefts[i];
+        if (left >= xEnd) {
+          break;
+        }
+        const width = totals[i] * pxPerSample;
+        if (width <= Flamegraph.FRAME_GAP_PX) {
+          continue;
+        }
+        const rect = new FrameRect((left - xStart) * pxPerSample, y, width, rowHeight);
+        this.visibleFrames[level].push(new VisibleFrame(rect, i));
+        this.drawFrame(level, i, rect, isUnderRoot);
+      }
+    }
+  }
 
-          const rectangle = this.createRectangle(this.pxPerSample, frame, y, xStart);
-          this.visibleFrames[level].push({ rect: rectangle, frame: frame });
-          this.drawFrame(this.pxPerSample, frame, y, xStart, rectangle, isHighlighted, isUnderRoot);
+  /** Index of the first frame that ends after `x`; the frames are ordered by their left edge. */
+  private static firstEndingAfter(lefts: Float64Array, totals: Float64Array, x: number): number {
+    let low = 0;
+    let high = lefts.length;
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (lefts[mid] + totals[mid] > x) {
+        high = mid;
+      } else {
+        low = mid + 1;
+      }
+    }
+    return low;
+  }
+
+  /**
+   * What the search matches under the current root, every row of it and not only the drawn band:
+   * the frames that match, without counting again a match nested in another.
+   */
+  private matchedValue(matchedTitles: Uint8Array): number {
+    const xStart = this.leftOf(this.currentRoot);
+    const xEnd = xStart + this.totalOf(this.currentRoot);
+    // left edge -> widest match starting there
+    const highlighted = new Map<number, number>();
+    for (let level = this.firstDrawnLevel(); level < this.data.levels.length; level++) {
+      const lefts = this.lefts[level];
+      const totals = this.totals[level];
+      const titleIndex = this.data.levels[level].titleIndex;
+      for (let i = Flamegraph.firstEndingAfter(lefts, totals, xStart); i < lefts.length; i++) {
+        const left = lefts[i];
+        if (left >= xEnd) {
+          break;
+        }
+        if (matchedTitles[titleIndex[i]] === 1 && (highlighted.get(left) ?? -1) < totals[i]) {
+          highlighted.set(left, totals[i]);
         }
       }
     }
-
-    return highlighted;
+    return Flamegraph.nonOverlappingTotal(highlighted);
   }
 
-  private isMethodHighlighted(
-    highlighted: Map<number, number>,
-    frame: Frame,
-    pattern: RegExp
-  ): boolean {
-    const matched = pattern && frame.title.match(pattern) != null;
-    if (matched) {
-      const highlightedValue = highlighted.get(this.leftDistance(frame));
-      const alreadyHighlighted =
-        highlightedValue !== undefined && highlightedValue >= this.totalValue(frame);
-      if (!alreadyHighlighted) {
-        highlighted.set(this.leftDistance(frame), this.totalValue(frame));
-      }
-      return true;
-    }
-    return false;
-  }
-
-  private frame_not_overflow(frame: Frame, xStart: number, xEnd: number) {
-    return (
-      this.leftDistance(frame) < xEnd && this.leftDistance(frame) + this.totalValue(frame) > xStart
-    );
-  }
-
-  private calculateHighlighted(highlighted: Map<number, number>) {
+  private static nonOverlappingTotal(highlighted: Map<number, number>): number {
     let total = 0;
-    let left = 0;
-    const obj = Object.fromEntries(highlighted);
-    Object.keys(obj)
-      .sort(function (a, b) {
-        return +a - +b;
-      })
-      .forEach(function (x) {
-        if (+x >= left) {
-          const valueX: number = obj[x];
-          total += valueX;
-          left = +x + valueX;
-        }
-      });
+    let coveredUntil = 0;
+    const lefts = [...highlighted.keys()].sort((a, b) => a - b);
+    for (const left of lefts) {
+      if (left >= coveredUntil) {
+        const value = highlighted.get(left)!;
+        total += value;
+        coveredUntil = left + value;
+      }
+    }
     return total;
   }
 
-  private toPath2D(rect: FrameRect) {
-    const path = new Path2D();
-    path.rect(rect.x, rect.y, rect.width, rect.height);
-    return path;
-  }
+  private drawFrame(level: number, index: number, rect: FrameRect, isUnderRoot: boolean) {
+    const columns = this.data.levels[level];
+    const titleIndex = columns.titleIndex[index];
+    const type = this.data.type(level, index);
+    const isHighlighted = this.matchedTitles !== null && this.matchedTitles[titleIndex] === 1;
 
-  private createRectangle(pxPerSample: number, frame: Frame, y: number, xStart: number) {
-    const x = (this.leftDistance(frame) - xStart) * pxPerSample;
-    const width = this.totalValue(frame) * pxPerSample;
-    return new FrameRect(x, y, width, this.textRenderer.frameHeight);
-  }
+    // The gap is left unpainted on the background instead of stroking every frame in white, which
+    // looks the same: one fillRect per frame and no path to build
+    const gap = Flamegraph.FRAME_GAP_PX;
+    const x = rect.x + gap / 2;
+    const y = rect.y + gap / 2;
+    const width = rect.width - gap;
+    const height = rect.height - gap;
 
-  private drawFrame(
-    pxPerSample: number,
-    frame: Frame,
-    y: number,
-    xStart: number,
-    rect: FrameRect,
-    isHighlighted: boolean,
-    isUnderRoot: boolean
-  ) {
-    const path = this.toPath2D(rect);
-
-    const fill = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : this.color(frame);
+    const fill = isHighlighted ? Flamegraph.HIGHLIGHTED_COLOR : this.color(level, index, type);
     this.context.fillStyle = fill;
-    this.context.strokeStyle = 'white';
-    this.context.fill(path);
-    this.context.lineWidth = 1;
-    this.context.stroke(path);
+    this.context.fillRect(x, y, width, height);
 
-    const pixelWidth = this.totalValue(frame) * pxPerSample;
-    const textX = Math.max(this.leftDistance(frame) - xStart, 0) * pxPerSample + 3;
+    const textX = Math.max(rect.x, 0) + 3;
+    const prunedChildren = columns.prunedChildren[index];
     const label =
-      frame.type === FrameType.TRUNCATED_SYNTHETIC && frame.prunedChildrenCount
-        ? `▾ ${frame.prunedChildrenCount} children pruned`
-        : frame.title;
+      type === FrameType.TRUNCATED_SYNTHETIC && prunedChildren
+        ? `▾ ${prunedChildren} children pruned`
+        : (this.data.titles[titleIndex] ?? '');
     const useLightText = !isHighlighted && FrameColorResolver.isDarkFill(fill);
-    this.textRenderer.drawText(this.context, label, frame.type, textX, y, pixelWidth, useLightText);
+    this.textRenderer.drawText(
+      this.context,
+      this.labels,
+      label,
+      type,
+      textX,
+      rect.y,
+      rect.width,
+      useLightText
+    );
 
     if (isUnderRoot) {
-      this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      this.context.fill(path);
+      this.context.fillStyle = Flamegraph.UNDER_ROOT_VEIL;
+      this.context.fillRect(x, y, width, height);
     }
   }
 
-  private color(frame: Frame): string {
+  private color(level: number, index: number, type: string): string {
+    const columns = this.data.levels[level];
     // Differential flamegraph - compute color from diff details
-    if (frame.diffDetails) {
-      const totalValue = (this.useWeight ? frame.totalWeight : frame.totalSamples) ?? 0;
-      const diffValue = this.useWeight ? frame.diffDetails.weight : frame.diffDetails.samples;
+    if (columns.hasDiff[index] === 1) {
+      const totalValue = this.totals[level][index];
+      const diffValue = this.useWeight ? columns.diffWeight[index] : columns.diffSamples[index];
       // Reconstruct primary and secondary from total (primary + secondary) and diff (primary - secondary)
       const primary = (totalValue + diffValue) / 2;
       const secondary = (totalValue - diffValue) / 2;
-      return FrameColorResolver.resolveDiffColor(primary, secondary, frame.type);
+      return FrameColorResolver.resolveDiffColor(primary, secondary, type);
     }
     // Regular flamegraph - use frame type color
-    return FrameColorResolver.resolveByType(frame.type);
+    return FrameColorResolver.resolveByType(type);
   }
 
-  private totalValue(frame: Frame): number {
-    if (this.useWeight) {
-      return frame.totalWeight ?? 0;
-    } else {
-      return frame.totalSamples;
-    }
+  private leftOf(frame: FrameRef): number {
+    return this.lefts[frame.level][frame.index];
   }
 
-  private leftDistance(frame: Frame): number {
-    if (this.useWeight) {
-      return frame.leftWeight ?? 0;
-    } else {
-      return frame.leftSamples;
-    }
+  private totalOf(frame: FrameRef): number {
+    return this.totals[frame.level][frame.index];
   }
 }

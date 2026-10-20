@@ -20,7 +20,6 @@ package cafe.jeffrey.flamegraph;
 import cafe.jeffrey.shared.common.BytesUtils;
 import cafe.jeffrey.shared.common.DurationUtils;
 import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.flamegraph.proto.FlamegraphData;
 import cafe.jeffrey.flamegraph.proto.Frame;
 import cafe.jeffrey.flamegraph.proto.FramePosition;
@@ -141,7 +140,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
         Frame.Builder frameBuilder = Frame.newBuilder()
                 .setLeftSamples(leftSamples)
                 .setTotalSamples(frame.totalSamples())
-                .setTitleIndex(getOrAddTitle(StringUtils.escape(title)))
+                .setTitleIndex(getOrAddTitle(title))
                 .setType(mapFrameType(frame.frameType()));
 
         // Only include weight fields when flamegraph uses weight

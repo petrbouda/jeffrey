@@ -16,11 +16,11 @@
  */
 
 import FrameRect from '@/services/flamegraphs/FrameRect';
-import Frame from '@/services/api/model/Frame';
 
+/** A drawn frame: where it sits on the canvas, and its index in its level. */
 export default class VisibleFrame {
   constructor(
     public rect: FrameRect,
-    public frame: Frame
+    public index: number
   ) {}
 }

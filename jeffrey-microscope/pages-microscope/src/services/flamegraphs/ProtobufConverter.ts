@@ -15,165 +15,382 @@
  * limitations under the License.
  */
 
-import { cafe } from '@/proto/flamegraph';
 import BothGraphData from '@/services/api/model/BothGraphData';
-import FlamegraphData from '@/services/api/model/FlamegraphData';
-import Frame from '@/services/api/model/Frame';
+import FlamegraphData, { type FrameDetails } from '@/services/api/model/FlamegraphData';
+import FrameLevel from '@/services/api/model/FrameLevel';
 import FramePosition from '@/services/api/model/FramePosition';
 import FrameSampleTypes from '@/services/api/model/FrameSampleTypes';
 import DiffDetails from '@/services/api/model/DiffDetails';
-import FrameType from '@/services/flamegraphs/FrameType';
+import ProtoWireReader, { WireType } from '@/services/flamegraphs/ProtoWireReader';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import Serie from '@/services/timeseries/model/Serie';
 
-type ProtoGraphData = cafe.jeffrey.flamegraph.proto.GraphData;
-type ProtoFlamegraphData = cafe.jeffrey.flamegraph.proto.IFlamegraphData;
-type ProtoFrame = cafe.jeffrey.flamegraph.proto.IFrame;
-type ProtoTimeseriesData = cafe.jeffrey.flamegraph.proto.ITimeseriesData;
+// Field numbers of flamegraph.proto (profiles/flamegraph/src/main/proto). ProtobufConverter.test
+// encodes every field with the code generated from that file and checks this decoder reads it back.
+const GRAPH_DATA = { FLAMEGRAPH: 1, TIMESERIES: 2 } as const;
+const FLAMEGRAPH_DATA = { DEPTH: 1, LEVELS: 2, TITLE_POOL: 3 } as const;
+const LEVEL = { FRAMES: 1 } as const;
+const FRAME = {
+  LEFT_SAMPLES: 1,
+  TOTAL_SAMPLES: 2,
+  TITLE_INDEX: 3,
+  TYPE: 4,
+  LEFT_WEIGHT: 5,
+  TOTAL_WEIGHT: 6,
+  SELF_SAMPLES: 7,
+  POSITION: 8,
+  SAMPLE_TYPES: 9,
+  DIFF_DETAILS: 10,
+  PRUNED_CHILDREN_COUNT: 11,
+  HIDDEN: 12
+} as const;
+const FRAME_POSITION = { BCI: 1, LINE: 2 } as const;
+const FRAME_SAMPLE_TYPES = { INLINED: 1, C1: 2, INTERPRET: 3, JIT: 4 } as const;
+const DIFF_DETAILS = {
+  SAMPLES: 1,
+  WEIGHT: 2,
+  PERCENT_SAMPLES: 3,
+  PERCENT_WEIGHT: 4,
+  SECONDARY_SAMPLES: 5,
+  SECONDARY_WEIGHT: 6
+} as const;
+const TIMESERIES_DATA = { SERIES: 1 } as const;
+const TIMESERIES_SERIES = { NAME: 1, DATA: 2 } as const;
+const TIMESERIES_POINT = { TIMESTAMP: 1, VALUE: 2 } as const;
 
-const FrameTypeEnum = cafe.jeffrey.flamegraph.proto.FrameType;
+const FIELD_NUMBER_SHIFT = 3;
+// The frame type column is a Uint8Array
+const MAX_FRAME_TYPE_NUMBER = 255;
+const WIRE_TYPE_MASK = 7;
+
+/** Where each frame's message sits in the response, to read its tooltip-only fields later. */
+interface FrameSpans {
+  start: Uint32Array;
+  end: Uint32Array;
+}
 
 /**
- * Maps protobuf FrameType enum to string representation used in frontend.
- */
-const FRAME_TYPE_MAP: Record<number, string> = {
-  [FrameTypeEnum.FRAME_TYPE_UNKNOWN]: FrameType.UNKNOWN,
-  [FrameTypeEnum.FRAME_TYPE_C1_COMPILED]: FrameType.C1_COMPILED,
-  [FrameTypeEnum.FRAME_TYPE_NATIVE]: FrameType.NATIVE,
-  [FrameTypeEnum.FRAME_TYPE_CPP]: FrameType.CPP,
-  [FrameTypeEnum.FRAME_TYPE_INTERPRETED]: FrameType.INTERPRETED,
-  [FrameTypeEnum.FRAME_TYPE_JIT_COMPILED]: FrameType.JIT_COMPILED,
-  [FrameTypeEnum.FRAME_TYPE_INLINED]: FrameType.INLINED,
-  [FrameTypeEnum.FRAME_TYPE_KERNEL]: FrameType.KERNEL,
-  [FrameTypeEnum.FRAME_TYPE_THREAD_NAME_SYNTHETIC]: FrameType.THREAD_NAME_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC]: FrameType.ALLOCATED_OBJECT_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC]:
-    FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC]:
-    FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC]: FrameType.BLOCKING_OBJECT_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_TRACED_METHOD_SYNTHETIC]: FrameType.TRACED_METHOD_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_COLLAPSED_SYNTHETIC]: FrameType.COLLAPSED_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_TRUNCATED_SYNTHETIC]: FrameType.TRUNCATED_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_HIGHLIGHTED_WARNING]: FrameType.HIGHLIGHTED_WARNING
-};
-
-/**
- * Converts Protocol Buffers data to internal frontend types.
- * Handles title deduplication by resolving title indices from the title pool.
+ * Decodes a graph response, the GraphData message of flamegraph.proto, straight from its bytes: the
+ * flamegraph into the columns of {@link FlamegraphData}, without an object per frame on the way,
+ * and the timeseries into {@link TimeseriesData}.
+ *
+ * The fields only a tooltip reads (self samples, source position, compilation types, the full diff
+ * details, the hidden-class mark) are not decoded up front. The graph keeps the response bytes and
+ * the span of every frame's message, and reads those fields for the one frame a tooltip shows.
+ *
+ * A field number this decoder does not know, or one with an unexpected wire type, is skipped, as
+ * any protobuf reader does.
  */
 export default class ProtobufConverter {
-  /**
-   * Decodes binary protobuf data and converts to BothGraphData.
-   */
   static decode(data: ArrayBuffer): BothGraphData {
-    const protoData = cafe.jeffrey.flamegraph.proto.GraphData.decode(new Uint8Array(data));
-    return this.convert(protoData);
-  }
+    const bytes = new Uint8Array(data);
+    const reader = new ProtoWireReader(bytes);
+    let flamegraph: FlamegraphData | null = null;
+    let timeseries: TimeseriesData | null = null;
 
-  /**
-   * Converts decoded protobuf GraphData to BothGraphData.
-   */
-  static convert(protoData: ProtoGraphData): BothGraphData {
-    const flamegraph = protoData.flamegraph ? this.convertFlamegraph(protoData.flamegraph) : null;
-    const timeseries = protoData.timeseries ? this.convertTimeseries(protoData.timeseries) : null;
-    return new BothGraphData(flamegraph!, timeseries!);
-  }
-
-  private static convertFlamegraph(proto: ProtoFlamegraphData): FlamegraphData {
-    const titlePool = proto.titlePool || [];
-    const levels: Frame[][] = [];
-
-    for (const protoLevel of proto.levels || []) {
-      const frames: Frame[] = [];
-      for (const protoFrame of protoLevel.frames || []) {
-        frames.push(this.convertFrame(protoFrame, titlePool));
+    while (reader.pos < bytes.length) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (field === GRAPH_DATA.FLAMEGRAPH && wireType === WireType.LENGTH_DELIMITED) {
+        flamegraph = this.readFlamegraph(reader, reader.delimitedEnd());
+      } else if (field === GRAPH_DATA.TIMESERIES && wireType === WireType.LENGTH_DELIMITED) {
+        timeseries = this.readTimeseries(reader, reader.delimitedEnd());
+      } else {
+        reader.skip(wireType);
       }
-      levels.push(frames);
     }
-
-    return new FlamegraphData(proto.depth || 0, levels);
+    return new BothGraphData(flamegraph, timeseries);
   }
 
-  private static convertFrame(proto: ProtoFrame, titlePool: string[]): Frame {
-    // Resolve title from pool using titleIndex
-    const title = titlePool[proto.titleIndex || 0] || '';
+  private static readFlamegraph(reader: ProtoWireReader, end: number): FlamegraphData {
+    let depth = 0;
+    const levels: FrameLevel[] = [];
+    const spans: FrameSpans[] = [];
+    const titles: string[] = [];
 
-    // Map frame type enum to string
-    const typeString = FRAME_TYPE_MAP[proto.type || 0] || 'UNKNOWN';
-
-    // Convert position if present
-    let position: FramePosition | undefined;
-    if (proto.position) {
-      position = new FramePosition(proto.position.bci || 0, proto.position.line || 0);
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (field === FLAMEGRAPH_DATA.DEPTH && wireType === WireType.VARINT) {
+        depth = reader.int32();
+      } else if (field === FLAMEGRAPH_DATA.LEVELS && wireType === WireType.LENGTH_DELIMITED) {
+        const levelEnd = reader.delimitedEnd();
+        const frameCount = this.countFrames(reader, levelEnd);
+        const level = new FrameLevel(frameCount);
+        const levelSpans = { start: new Uint32Array(frameCount), end: new Uint32Array(frameCount) };
+        this.readLevel(reader, levelEnd, level, levelSpans);
+        levels.push(level);
+        spans.push(levelSpans);
+      } else if (field === FLAMEGRAPH_DATA.TITLE_POOL && wireType === WireType.LENGTH_DELIMITED) {
+        titles.push(reader.string());
+      } else {
+        reader.skip(wireType);
+      }
     }
 
-    // Convert sample types if present
-    let sampleTypes: FrameSampleTypes | undefined;
-    if (proto.sampleTypes) {
-      sampleTypes = new FrameSampleTypes(
-        this.toLong(proto.sampleTypes.inlined),
-        this.toLong(proto.sampleTypes.c1),
-        this.toLong(proto.sampleTypes.interpret),
-        this.toLong(proto.sampleTypes.jit)
-      );
+    // Every flamegraph the server builds has its root frame on level 0, even one of no samples
+    if (levels.length === 0 || levels[0].length === 0) {
+      throw new Error('Flamegraph response carries no root frame');
     }
 
-    // Convert diff details if present
-    let diffDetails: DiffDetails | undefined;
-    if (proto.diffDetails) {
-      diffDetails = new DiffDetails(
-        this.toLong(proto.diffDetails.samples),
-        this.toLong(proto.diffDetails.weight),
-        proto.diffDetails.percentSamples || 0,
-        proto.diffDetails.percentWeight || 0,
-        this.toLong(proto.diffDetails.secondarySamples),
-        this.toLong(proto.diffDetails.secondaryWeight)
-      );
-    }
-
-    return new Frame(
-      this.toLong(proto.leftSamples),
-      this.toLong(proto.totalSamples),
-      title,
-      typeString,
-      proto.leftWeight !== undefined ? this.toLong(proto.leftWeight) : undefined,
-      proto.totalWeight !== undefined ? this.toLong(proto.totalWeight) : undefined,
-      proto.selfSamples ? this.toLong(proto.selfSamples) : undefined,
-      position,
-      sampleTypes,
-      diffDetails,
-      proto.prunedChildrenCount || undefined,
-      proto.hidden || undefined
+    const bytes = reader.bytes;
+    return new FlamegraphData(depth, levels, titles, (level, index) =>
+      this.readDetails(
+        new ProtoWireReader(bytes, spans[level].start[index]),
+        spans[level].end[index]
+      )
     );
   }
 
-  private static convertTimeseries(proto: ProtoTimeseriesData): TimeseriesData {
-    const series: Serie[] = [];
-
-    for (const protoSeries of proto.series || []) {
-      const data: number[][] = [];
-      for (const point of protoSeries.data || []) {
-        data.push([this.toLong(point.timestamp), this.toLong(point.value)]);
+  /** The number of frames in a level, for sizing its columns; leaves the reader where it was. */
+  private static countFrames(reader: ProtoWireReader, end: number): number {
+    const start = reader.pos;
+    let count = 0;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (tag >>> FIELD_NUMBER_SHIFT === LEVEL.FRAMES && wireType === WireType.LENGTH_DELIMITED) {
+        count++;
       }
-      series.push(new Serie(data, protoSeries.name || ''));
+      reader.skip(wireType);
     }
+    reader.pos = start;
+    return count;
+  }
 
+  private static readLevel(
+    reader: ProtoWireReader,
+    end: number,
+    level: FrameLevel,
+    spans: FrameSpans
+  ): void {
+    let index = 0;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (tag >>> FIELD_NUMBER_SHIFT === LEVEL.FRAMES && wireType === WireType.LENGTH_DELIMITED) {
+        const frameEnd = reader.delimitedEnd();
+        spans.start[index] = reader.pos;
+        spans.end[index] = frameEnd;
+        this.readFrameColumns(reader, frameEnd, level, index);
+        index++;
+      } else {
+        reader.skip(wireType);
+      }
+    }
+  }
+
+  /** Reads the fields of a frame the columns hold, skipping the tooltip-only ones. */
+  private static readFrameColumns(
+    reader: ProtoWireReader,
+    end: number,
+    level: FrameLevel,
+    index: number
+  ): void {
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (wireType === WireType.VARINT) {
+        switch (field) {
+          case FRAME.LEFT_SAMPLES:
+            level.leftSamples[index] = reader.int64();
+            continue;
+          case FRAME.TOTAL_SAMPLES:
+            level.totalSamples[index] = reader.int64();
+            continue;
+          case FRAME.TITLE_INDEX:
+            level.titleIndex[index] = reader.int32();
+            continue;
+          case FRAME.TYPE:
+            level.type[index] = this.frameTypeNumber(reader.int32());
+            continue;
+          case FRAME.LEFT_WEIGHT:
+            level.leftWeight[index] = reader.int64();
+            continue;
+          case FRAME.TOTAL_WEIGHT:
+            level.totalWeight[index] = reader.int64();
+            continue;
+          case FRAME.PRUNED_CHILDREN_COUNT:
+            level.prunedChildren[index] = reader.int32();
+            continue;
+        }
+      } else if (field === FRAME.DIFF_DETAILS && wireType === WireType.LENGTH_DELIMITED) {
+        // The two deltas colour every frame of a differential graph, so they are columns too
+        const diff = this.readDiffDetails(reader, reader.delimitedEnd());
+        level.hasDiff[index] = 1;
+        level.diffSamples[index] = diff.samples;
+        level.diffWeight[index] = diff.weight;
+        continue;
+      }
+      reader.skip(wireType);
+    }
+  }
+
+  /** A type number past what the column holds is one this client does not know: UNKNOWN (0). */
+  private static frameTypeNumber(value: number): number {
+    return value >= 0 && value <= MAX_FRAME_TYPE_NUMBER ? value : 0;
+  }
+
+  /** Reads the tooltip-only fields of one frame message. */
+  private static readDetails(reader: ProtoWireReader, end: number): FrameDetails {
+    const details: FrameDetails = {};
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (field === FRAME.SELF_SAMPLES && wireType === WireType.VARINT) {
+        details.selfSamples = reader.int64();
+      } else if (field === FRAME.HIDDEN && wireType === WireType.VARINT) {
+        details.hidden = reader.bool();
+      } else if (field === FRAME.POSITION && wireType === WireType.LENGTH_DELIMITED) {
+        details.position = this.readPosition(reader, reader.delimitedEnd());
+      } else if (field === FRAME.SAMPLE_TYPES && wireType === WireType.LENGTH_DELIMITED) {
+        details.sampleTypes = this.readSampleTypes(reader, reader.delimitedEnd());
+      } else if (field === FRAME.DIFF_DETAILS && wireType === WireType.LENGTH_DELIMITED) {
+        details.diffDetails = this.readDiffDetails(reader, reader.delimitedEnd());
+      } else {
+        reader.skip(wireType);
+      }
+    }
+    return details;
+  }
+
+  private static readPosition(reader: ProtoWireReader, end: number): FramePosition {
+    const position = new FramePosition(0, 0);
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (field === FRAME_POSITION.BCI && wireType === WireType.VARINT) {
+        position.bci = reader.int32();
+      } else if (field === FRAME_POSITION.LINE && wireType === WireType.VARINT) {
+        position.line = reader.int32();
+      } else {
+        reader.skip(wireType);
+      }
+    }
+    return position;
+  }
+
+  private static readSampleTypes(reader: ProtoWireReader, end: number): FrameSampleTypes {
+    const types = new FrameSampleTypes(0, 0, 0, 0);
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (wireType !== WireType.VARINT) {
+        reader.skip(wireType);
+        continue;
+      }
+      switch (field) {
+        case FRAME_SAMPLE_TYPES.INLINED:
+          types.inlined = reader.int64();
+          break;
+        case FRAME_SAMPLE_TYPES.C1:
+          types.c1 = reader.int64();
+          break;
+        case FRAME_SAMPLE_TYPES.INTERPRET:
+          types.interpret = reader.int64();
+          break;
+        case FRAME_SAMPLE_TYPES.JIT:
+          types.jit = reader.int64();
+          break;
+        default:
+          reader.skip(wireType);
+      }
+    }
+    return types;
+  }
+
+  private static readDiffDetails(reader: ProtoWireReader, end: number): DiffDetails {
+    const diff = new DiffDetails(0, 0, 0, 0, 0, 0);
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (wireType === WireType.VARINT) {
+        switch (field) {
+          case DIFF_DETAILS.SAMPLES:
+            diff.samples = reader.int64();
+            continue;
+          case DIFF_DETAILS.WEIGHT:
+            diff.weight = reader.int64();
+            continue;
+          case DIFF_DETAILS.SECONDARY_SAMPLES:
+            diff.secondarySamples = reader.int64();
+            continue;
+          case DIFF_DETAILS.SECONDARY_WEIGHT:
+            diff.secondaryWeight = reader.int64();
+            continue;
+        }
+      } else if (wireType === WireType.FIXED32) {
+        switch (field) {
+          case DIFF_DETAILS.PERCENT_SAMPLES:
+            diff.percentSamples = reader.float();
+            continue;
+          case DIFF_DETAILS.PERCENT_WEIGHT:
+            diff.percentWeight = reader.float();
+            continue;
+        }
+      }
+      reader.skip(wireType);
+    }
+    return diff;
+  }
+
+  private static readTimeseries(reader: ProtoWireReader, end: number): TimeseriesData {
+    const series: Serie[] = [];
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (
+        tag >>> FIELD_NUMBER_SHIFT === TIMESERIES_DATA.SERIES &&
+        wireType === WireType.LENGTH_DELIMITED
+      ) {
+        series.push(this.readSerie(reader, reader.delimitedEnd()));
+      } else {
+        reader.skip(wireType);
+      }
+    }
     return new TimeseriesData(series);
   }
 
-  /**
-   * Converts Long or number to number.
-   * Protobuf int64 values can be Long objects when using protobufjs.
-   */
-  private static toLong(value: number | Long | null | undefined): number {
-    if (value == null) {
-      return 0;
+  private static readSerie(reader: ProtoWireReader, end: number): Serie {
+    let name = '';
+    const points: number[][] = [];
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (field === TIMESERIES_SERIES.NAME && wireType === WireType.LENGTH_DELIMITED) {
+        name = reader.string();
+      } else if (field === TIMESERIES_SERIES.DATA && wireType === WireType.LENGTH_DELIMITED) {
+        points.push(this.readPoint(reader, reader.delimitedEnd()));
+      } else {
+        reader.skip(wireType);
+      }
     }
-    if (typeof value === 'number') {
-      return value;
+    return new Serie(points, name);
+  }
+
+  private static readPoint(reader: ProtoWireReader, end: number): number[] {
+    let timestamp = 0;
+    let value = 0;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      const field = tag >>> FIELD_NUMBER_SHIFT;
+      const wireType = tag & WIRE_TYPE_MASK;
+      if (field === TIMESERIES_POINT.TIMESTAMP && wireType === WireType.VARINT) {
+        timestamp = reader.int64();
+      } else if (field === TIMESERIES_POINT.VALUE && wireType === WireType.VARINT) {
+        value = reader.int64();
+      } else {
+        reader.skip(wireType);
+      }
     }
-    // Long object from protobufjs
-    return (value as any).toNumber?.() ?? 0;
+    return [timestamp, value];
   }
 }

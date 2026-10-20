@@ -28,8 +28,8 @@ export default class StaticFlamegraphClient extends FlamegraphClient {
 
   constructor(bothGraphData: BothGraphData) {
     super();
-    this.flamegraphData = bothGraphData.flamegraph;
-    this.timeseriesData = bothGraphData.timeseries;
+    this.flamegraphData = bothGraphData.requireFlamegraph();
+    this.timeseriesData = bothGraphData.requireTimeseries();
   }
 
   provideBoth(

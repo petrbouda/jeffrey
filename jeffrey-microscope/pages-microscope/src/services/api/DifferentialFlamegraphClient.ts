@@ -70,11 +70,14 @@ export default class DifferentialFlamegraphClient extends RemoteFlamegraphClient
     };
   }
 
-  override provideTimeseries(_ignored: string | null): Promise<TimeseriesData> {
+  override provideTimeseries(
+    _ignored: string | null,
+    signal?: AbortSignal
+  ): Promise<TimeseriesData> {
     // Differential flamegraph doesn't support search in timeseries, but we can still fetch timeseries
     // data. Delegates with explicit nulls so the payload keeps the `timeRange`/`search` keys present.
-    return this.provideBoth(GraphComponents.TIMESERIES_ONLY, null, null).then(
-      data => data.timeseries
+    return this.provideBoth(GraphComponents.TIMESERIES_ONLY, null, null, signal).then(data =>
+      data.requireTimeseries()
     );
   }
 

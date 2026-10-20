@@ -61,11 +61,14 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             ORDER BY seconds
             """;
 
-    // The search pattern is a regular expression tested against the composed `class#method` frame
-    // name — the same contract as the client-side flamegraph highlight (RegExp over the frame title,
-    // built as `className#methodName` by FrameNameBuilder) and SearchingTimeseriesBuilder. A dotted
-    // search like `JsonReader.<init>` therefore matches `JsonReader#<init>` via the `.` wildcard.
-    // concat_ws skips NULL columns, so class-less native frames still match on the method alone.
+    // The search is tested against the composed `class#method` frame name with the SearchPattern
+    // contract — the same as the client-side flamegraph highlight (FrameSearchPattern over the frame
+    // title, built as `className#methodName` by FrameNameBuilder) and SearchingTimeseriesBuilder: the
+    // name contains the pattern literally, or the pattern read as a regular expression is found in it.
+    // The literal reading keeps `Outer$Inner#run` matching itself; :search_regex is NULL for a pattern
+    // that does not compile, which leaves only the literal reading. A dotted search like
+    // `JsonReader.<init>` matches `JsonReader#<init>` via the `.` wildcard. concat_ws skips NULL
+    // columns, so class-less native frames still match on the method alone.
     //language=SQL
     private static final String SIMPLE_SEARCH = """
             WITH relevant_events AS (
@@ -91,7 +94,8 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             matching_frame_hashes AS (
                 SELECT LIST(DISTINCT f.frame_hash) AS matched_hashes
                 FROM frames f
-                WHERE regexp_matches(concat_ws('#', f.class_name, f.method_name), :search_pattern)
+                WHERE (contains(concat_ws('#', f.class_name, f.method_name), :search_literal)
+                        OR regexp_matches(concat_ws('#', f.class_name, f.method_name), :search_regex))
                     AND EXISTS (
                         SELECT 1
                         FROM relevant_stacktraces rs

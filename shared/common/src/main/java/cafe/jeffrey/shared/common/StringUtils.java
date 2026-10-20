@@ -19,16 +19,6 @@ package cafe.jeffrey.shared.common;
 
 public abstract class StringUtils {
 
-    public static String escape(String s) {
-        if (s.indexOf('\\') >= 0) {
-            s = s.replace("\\", "\\\\");
-        }
-        if (s.indexOf('\'') >= 0) {
-            s = s.replace("'", "\\'");
-        }
-        return s;
-    }
-
     public static boolean isNullOrBlank(String s) {
         return s == null || s.isBlank();
     }
