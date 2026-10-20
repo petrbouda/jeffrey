@@ -749,6 +749,36 @@ class InitConfigTest {
         }
 
         @Test
+        void jfrAddEventSettings_noneByDefault() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
+
+            assertNull(config.getJfrAddEventSettings());
+        }
+
+        @Test
+        void envJfrEventSettings_winsOverHocon() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "jfr { add-event-settings = \"jdk.ThreadSleep#threshold=1ms\" }"
+            ));
+
+            InitConfig hocon = InitConfig.fromHoconFile(configFile, null, name -> null);
+            InitConfig env = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_JFR_ADD_EVENT_SETTINGS") ? "jdk.JavaExceptionThrow#stackTrace=true" : null);
+
+            assertEquals("jdk.ThreadSleep#threshold=1ms", hocon.getJfrAddEventSettings());
+            assertEquals("jdk.JavaExceptionThrow#stackTrace=true", env.getJfrAddEventSettings());
+        }
+
+        @Test
         void tracingJfrEventSettings_defaultsToTheBuiltInList() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(

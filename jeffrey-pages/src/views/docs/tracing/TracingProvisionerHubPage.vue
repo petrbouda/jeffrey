@@ -50,9 +50,9 @@ tracing {
 }`;
 
 const generatedOptions = `# Written into the @argfile the entrypoint hands to the JVM
--XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,<event settings below>`;
+-XX:StartFlightRecording:name=jeffrey-events,maxage=30m,settings=<session>/.jeffrey-events.jfc`;
 
-const thresholds = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
+const thresholds = `# Written to <session>/.jeffrey-events.jfc, the recording's only settings
 jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
 jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
 jdk.FileRead#enabled=true,jdk.FileRead#threshold=0ms,jdk.FileRead#throttle=1000000/s,\\
@@ -131,7 +131,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <p>A second recording sidesteps that entirely: <strong>JFR resolves every setting to the most verbose value across all active recordings</strong>, so this one lowers the thresholds for the profiler's recording as well, without either knowing about the other. The events land in the same repository chunks, which is what puts them in both places they are read from — the dumped <code>.jfr</code> files and the stream the Hub follows.</p>
 
-      <p>Two details follow from that design. It names no <code>settings=</code> on purpose — that would leave it on the JVM's default configuration, the same one the profiler uses, changing nothing; naming <code>settings=none</code> to keep it bare is what a reader expects and is exactly wrong, because it drops the event settings spelled out beside it. And <code>maxage=30m</code> bounds how long the recording pins repository chunks.</p>
+      <p>Three details follow from that design. Its <code>settings=</code> names <code>&lt;session&gt;/.jeffrey-events.jfc</code>, a file holding just these settings. Without <code>settings=</code> the recording would run the JVM's whole <code>default.jfc</code> on top of the profiler's, switching back on what async-profiler turned off for its own engines (<code>jdk.ExecutionSample</code>, allocation samples); and <code>settings=none</code> drops the event settings spelled out beside it, leaving the recording empty. Because async-profiler only switches events off in its own <code>jfrsync</code> recording, this one keeps <code>jdk.ThreadPark</code> and <code>jdk.JavaMonitorEnter</code> even while the <code>lock</code> engine runs. And <code>maxage=30m</code> bounds how long the recording pins repository chunks.</p>
 
       <p><code>tracing.jfr-event-settings</code> replaces the built-in list; setting it to <code>none</code> drops this recording while leaving method tracing on.</p>
 

@@ -21,7 +21,9 @@ import cafe.jeffrey.provisioner.feature.JvmFeature;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -49,9 +51,17 @@ public record JvmFeatures(List<JvmFeature> features) {
                 new JvmFeature.HeapDump(config.resolveHeapDumpType()),
                 new JvmFeature.Heartbeat(),
                 agent,
-                new JvmFeature.TracingEventThresholds(
-                        config.isSpanTracingEnabled(), config.getTracingJfrEventSettings()),
+                new JvmFeature.JfrEvents(
+                        config.isSpanTracingEnabled() ? config.getTracingJfrEventSettings() : null,
+                        config.getJfrAddEventSettings()),
                 new JvmFeature.AdditionalOptions(config.getAdditionalJvmOptions())));
+    }
+
+    /** The files the switched-on features' options refer to, by name. */
+    public Map<String, String> files() {
+        Map<String, String> files = new LinkedHashMap<>();
+        features.forEach(feature -> files.putAll(feature.files()));
+        return files;
     }
 
     /** The JVM options for every feature that is switched on, space-separated. */

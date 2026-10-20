@@ -61,9 +61,11 @@ Lock wait            12.0 ms       (synthesized from jdk.JavaMonitorEnter)
   previousOwner  worker-7`;
 
 const thresholdsExample = `# What the Provisioner generates with tracing.enabled = true — a second
-# recording whose only job is to out-vote the profiler's settings. Line
-# breaks added for reading; it is emitted as one unbroken option.
--XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
+# recording whose only job is to out-vote the profiler's settings:
+-XX:StartFlightRecording:name=jeffrey-events,maxage=30m,settings=<session>/.jeffrey-events.jfc
+
+# .jeffrey-events.jfc holds these settings and nothing else (shown in the
+# event#setting=value form they are configured in; line breaks for reading):
 jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
 jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
 jdk.FileRead#enabled=true,jdk.FileRead#threshold=0ms,jdk.FileRead#throttle=1000000/s,\\

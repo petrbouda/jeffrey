@@ -86,6 +86,10 @@ public class InitConfig {
             # jfr-event-settings left empty means the built-in event list
             # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
             tracing { enabled = true, jfr-event-settings = "" }
+            # Extra JFR events to record beside the profiler, event#setting=value, comma-separated;
+            # every listed event is enabled. They can enable events and lower thresholds, never
+            # switch an event off.
+            jfr { add-event-settings = "" }
             heap-dump { enabled = false, type = "exit" }
             jdk-java-options { enabled = false }
             additional-jvm-options = ""
@@ -174,6 +178,7 @@ public class InitConfig {
     private final boolean perfCountersEnabled;
     private final boolean spanTracingEnabled;
     private final String tracingJfrEventSettings;
+    private final String jfrAddEventSettings;
     private final boolean debugNonSafepointsEnabled;
     private final boolean jdkJavaOptionsEnabled;
     private final HeapDumpType heapDumpType;
@@ -228,6 +233,7 @@ public class InitConfig {
         this.spanTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
         this.tracingJfrEventSettings = valueOrDefault(
                 resolved.getString(ConfigPaths.TRACING_JFR_EVENT_SETTINGS), TracingJfrEvents.DEFAULT_SETTINGS);
+        this.jfrAddEventSettings = nullIfBlank(resolved.getString(ConfigPaths.JFR_ADD_EVENT_SETTINGS));
         this.debugNonSafepointsEnabled = resolved.getBoolean(ConfigPaths.DEBUG_NON_SAFEPOINTS_ENABLED);
         this.jdkJavaOptionsEnabled = resolved.getBoolean(ConfigPaths.JDK_JAVA_OPTIONS_ENABLED);
         this.heapDumpType = resolved.getBoolean(ConfigPaths.HEAP_DUMP_ENABLED)
@@ -366,6 +372,14 @@ public class InitConfig {
      */
     public String getTracingJfrEventSettings() {
         return tracingJfrEventSettings;
+    }
+
+    /**
+     * The deployment's own JFR events to record beside the profiler ({@code jfr.add-event-settings}),
+     * {@code event#setting=value} entries, or {@code null} when it lists none.
+     */
+    public String getJfrAddEventSettings() {
+        return jfrAddEventSettings;
     }
 
     public boolean isDebugNonSafepointsEnabled() {

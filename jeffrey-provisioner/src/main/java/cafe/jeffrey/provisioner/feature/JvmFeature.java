@@ -23,7 +23,9 @@ import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * One diagnostic capability, and the JVM options that switch it on.
@@ -42,6 +44,11 @@ public sealed interface JvmFeature {
 
     /** The options this feature contributes, or empty when it is switched off. */
     Optional<String> render(Path sessionPath, Placeholders placeholders);
+
+    /** Files the options refer to, by name, to be written into the session directory beside them. */
+    default Map<String, String> files() {
+        return Map.of();
+    }
 
     /**
      * The async-profiler agent that records the session.
@@ -131,42 +138,69 @@ public sealed interface JvmFeature {
     }
 
     /**
-     * The JFR thresholds a traced session needs, carried by a recording of their own.
+     * JFR events Jeffrey records beside the profiler: the thresholds a traced session needs, and
+     * whatever events the deployment lists in {@code jfr.add-event-settings}, carried by a recording of
+     * their own. The deployment's entries come after the tracing ones, so they win where both name
+     * the same setting.
      *
-     * <p>The profiler starts its recording from a stock JFR configuration that keeps these events
-     * above the durations a trace is read at, and its options come either from the configured
-     * {@code profiler-command} or from the built-in default, so lowering the thresholds by
-     * rewriting them would mean parsing whatever a deployment wrote. A second recording sidesteps
-     * that: JFR applies the
-     * most verbose setting across every active recording, so this one lowers the thresholds for the
-     * profiler's recording as well without either knowing about the other.
+     * <p>The profiler starts its recording from a configuration that comes either from the
+     * configured {@code profiler-command} or from the built-in default, so changing its settings
+     * would mean rewriting whatever a deployment wrote. A second recording sidesteps that: JFR
+     * enables an event while any active recording enables it and applies the most verbose
+     * threshold across them, so this one switches events on and lowers thresholds for the
+     * profiler's recording as well, without either knowing about the other. It cannot switch an
+     * event off, which {@link EventSettingsJfc} refuses. It is also untouched by async-profiler,
+     * which switches events off only in its own {@code jfrsync} recording — so lock waits keep
+     * their spans while the lock engine runs.
      *
      * <p>The events all land in the same repository chunks, so the profiler's dumped
      * {@code .jfr} files carry them for analysis.
      *
-     * <p>No {@code settings=} is given, which leaves this recording on the JVM's default
-     * configuration — the same one the profiler records with, so the union is unchanged by it.
-     * Naming {@code settings=none} to keep the recording bare is what a reader expects here and is
-     * exactly wrong: it drops the event settings spelled out beside it and the recording carries
-     * nothing at all. {@code maxage} bounds how long this recording pins repository chunks.
+     * <p>{@code settings=} names a configuration holding just these settings ({@link #FILE}). Both
+     * shorter spellings are wrong: without {@code settings=} the recording runs the JVM's whole
+     * {@code default.jfc} on top of the profiler's, switching back on what async-profiler switched
+     * off for its own engines ({@code jdk.ExecutionSample}, allocation samples); and
+     * {@code settings=none} drops the event settings given inline, so the recording carries nothing.
+     * {@code maxage} bounds how long this recording pins repository chunks. The option is quoted
+     * when the session path carries a space, which {@code JvmOptions} reads back as one option.
+     *
+     * @param tracingSettings the tracing thresholds, {@code null} when tracing is off, or
+     *                        {@code "none"} when a deployment opted out of them
+     * @param eventSettings   the deployment's own event settings, {@code null} when it lists none
      */
-    record TracingEventThresholds(boolean tracingEnabled, String eventSettings) implements JvmFeature {
+    record JfrEvents(String tracingSettings, String eventSettings) implements JvmFeature {
 
-        /** Opts a deployment out while leaving tracing itself on. */
+        public static final String FILE = ".jeffrey-events.jfc";
+
+        /** Opts a deployment out of the tracing thresholds while leaving tracing itself on. */
         static final String DISABLED = "none";
 
         private static final String OPTIONS_PREFIX =
-                "-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,";
+                "-XX:StartFlightRecording:name=jeffrey-events,maxage=30m,settings=";
+        private static final String SETTINGS_SEPARATOR = ",";
+        private static final String QUOTE = "\"";
 
         @Override
         public Optional<String> render(Path sessionPath, Placeholders placeholders) {
-            if (!tracingEnabled || eventSettings == null || eventSettings.isBlank()) {
+            if (settings().isEmpty()) {
                 return Optional.empty();
             }
-            if (DISABLED.equalsIgnoreCase(eventSettings.trim())) {
-                return Optional.empty();
-            }
-            return Optional.of(OPTIONS_PREFIX + eventSettings.trim());
+            String option = OPTIONS_PREFIX + placeholders.resolve(CURRENT_SESSION + "/" + FILE);
+            boolean hasWhitespace = option.chars().anyMatch(Character::isWhitespace);
+            return Optional.of(hasWhitespace ? QUOTE + option + QUOTE : option);
+        }
+
+        @Override
+        public Map<String, String> files() {
+            return settings().map(settings -> Map.of(FILE, EventSettingsJfc.render(settings))).orElse(Map.of());
+        }
+
+        /** The tracing settings, then the deployment's, or empty when neither lists anything. */
+        private Optional<String> settings() {
+            return Stream.of(tracingSettings, eventSettings)
+                    .filter(settings -> settings != null && !settings.isBlank())
+                    .filter(settings -> !DISABLED.equalsIgnoreCase(settings.trim()))
+                    .reduce((tracing, deployment) -> tracing + SETTINGS_SEPARATOR + deployment);
         }
     }
 

@@ -23,7 +23,9 @@ import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Files;
 import java.time.Clock;
+import java.util.Map;
 
 /**
  * Provisions a Jeffrey session for one JVM: lays down its directories, declares it to the hub,
@@ -74,8 +76,11 @@ public class InitExecutor {
         JvmFeature.JeffreyAgent agent =
                 agentResolver.resolve(config.isJeffreyAgentEnabled(), config.getJeffreyAgentPath());
 
-        String jvmOptions = JvmFeatures.of(config, profiler.feature(), agent)
-                .render(session.layout().session(), placeholders);
+        JvmFeatures features = JvmFeatures.of(config, profiler.feature(), agent);
+        String jvmOptions = features.render(session.layout().session(), placeholders);
+        for (Map.Entry<String, String> file : features.files().entrySet()) {
+            Files.writeString(session.layout().session().resolve(file.getKey()), file.getValue());
+        }
 
         registrar.recordSession(session);
         outputWriter.write(config, session.layout(), jvmOptions);

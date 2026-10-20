@@ -83,6 +83,7 @@ onMounted(() => {
 ├── jfr.jvm-log                  # JVM log (if enabled)
 ├── perf-counters.hsperfdata     # Performance counters (if enabled)
 ├── hs-jvm-err.log               # HotSpot error log (written on JVM crash)
+├── .jeffrey-events.jfc         # Settings of the jeffrey-events JFR recording (tracing thresholds + jfr.add-event-settings)
 ├── .retained                    # Written by the Hub while the session is pinned against retention
 └── .session-info.json           # Session metadata</code></pre>
         </div>

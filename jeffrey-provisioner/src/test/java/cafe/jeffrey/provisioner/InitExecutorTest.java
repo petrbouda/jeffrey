@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.provisioner.feature.JvmFeature;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
@@ -232,6 +233,64 @@ class InitExecutorTest {
                     "export JEFFREY_HEARTBEAT_DIR=" + session + "/.heartbeat"),
                     layoutExports);
             assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
+        }
+    }
+
+    @Nested
+    class JfrEvents {
+
+        private Path eventsJfc() throws IOException {
+            return sessionPath().resolve(JvmFeature.JfrEvents.FILE);
+        }
+
+        @Test
+        void startsTheRecordingFromTheSessionsOwnConfiguration() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config());
+
+            List<String> options = argFileOptions();
+            assertTrue(options.contains("-XX:StartFlightRecording:name=jeffrey-events,"
+                    + "maxage=30m,settings=" + eventsJfc()), () -> "argfile: " + options);
+            assertTrue(Files.readString(eventsJfc()).contains("<event name=\"jdk.ThreadPark\">"));
+        }
+
+        /** The deployment's own events go into the same file, after the tracing thresholds. */
+        @Test
+        void addsTheDeploymentsEvents() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config(Map.of(
+                    "JEFFREY_JFR_ADD_EVENT_SETTINGS", "jdk.JavaExceptionThrow#stackTrace=true")));
+
+            String jfc = Files.readString(eventsJfc());
+            assertTrue(jfc.contains("<event name=\"jdk.ThreadPark\">"), jfc);
+            assertTrue(jfc.contains("<event name=\"jdk.JavaExceptionThrow\">"), jfc);
+        }
+
+        @Test
+        void recordsTheDeploymentsEventsWithTracingOff() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config(Map.of(
+                    "JEFFREY_TRACING_ENABLED", "false",
+                    "JEFFREY_JFR_ADD_EVENT_SETTINGS", "jdk.JavaExceptionThrow#stackTrace=true")));
+
+            String jfc = Files.readString(eventsJfc());
+            assertFalse(jfc.contains("jdk.ThreadPark"), jfc);
+            assertTrue(jfc.contains("<event name=\"jdk.JavaExceptionThrow\">"), jfc);
+        }
+
+        @Test
+        void writesNothingWhenTracingIsOff() throws Exception {
+            new InitExecutor(Clock.systemUTC()).execute(config(Map.of("JEFFREY_TRACING_ENABLED", "false")));
+
+            assertFalse(Files.exists(eventsJfc()));
+            assertTrue(argFileOptions().stream().noneMatch(option -> option.contains("StartFlightRecording")));
+        }
+
+        /** Unquoted, the launcher would read the # as a comment and cut the profiler's options short. */
+        @Test
+        void quotesAnEventSettingInTheArgFile() throws Exception {
+            String command = "start,event=cpu,jfrsync=+jdk.JavaExceptionThrow#stackTrace=true,file=out.jfr";
+            new InitExecutor(Clock.systemUTC()).execute(config(Map.of("JEFFREY_PROFILER_COMMAND", command)));
+
+            String agentLine = argFileOptions().getFirst();
+            assertTrue(agentLine.startsWith("\"-agentpath:") && agentLine.endsWith(command + "\""), agentLine);
         }
     }
 

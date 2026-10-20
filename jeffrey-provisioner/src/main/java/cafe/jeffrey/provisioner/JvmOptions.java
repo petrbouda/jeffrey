@@ -35,6 +35,7 @@ public abstract class JvmOptions {
     private static final char DOUBLE_QUOTE = '"';
     private static final char SINGLE_QUOTE = '\'';
     private static final char BACKSLASH = '\\';
+    private static final char ARGFILE_COMMENT = '#';
 
     /** No quote is currently open. */
     private static final char NOT_QUOTED = 0;
@@ -89,14 +90,19 @@ public abstract class JvmOptions {
     }
 
     /**
-     * Wraps {@code option} in double quotes when it carries whitespace, escaping the characters
-     * the JVM's argfile parser treats specially. An option without whitespace is written as-is,
-     * which keeps the generated file readable for the common case.
+     * Wraps {@code option} in double quotes when it carries whitespace or a {@code #}, escaping the
+     * characters the JVM's argfile parser treats specially. An option without either is written
+     * as-is, which keeps the generated file readable for the common case.
+     *
+     * <p>The launcher reads an unquoted {@code #} in an argfile as the start of a comment, which
+     * would cut a JFR event setting ({@code jdk.ThreadPark#enabled=true}) or async-profiler's
+     * {@code jfrsync=+event#setting=value} short.
      */
     public static String quoteForArgFile(String option) {
         boolean needsQuotes = false;
         for (int i = 0; i < option.length(); i++) {
-            if (Character.isWhitespace(option.charAt(i))) {
+            char current = option.charAt(i);
+            if (Character.isWhitespace(current) || current == ARGFILE_COMMENT) {
                 needsQuotes = true;
                 break;
             }

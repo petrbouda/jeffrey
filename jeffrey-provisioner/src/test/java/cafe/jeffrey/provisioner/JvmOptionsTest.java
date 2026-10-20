@@ -99,6 +99,13 @@ class JvmOptionsTest {
                     JvmOptions.quoteForArgFile("-Djeffrey.dir=/opt/my app"));
         }
 
+        /** An unquoted # starts a comment in an argfile, which would cut a JFR setting short. */
+        @Test
+        void quotesAnOptionCarryingAHash() {
+            assertEquals("\"-agentpath:/p.so=start,jfrsync=+jdk.ThreadPark#enabled=true\"",
+                    JvmOptions.quoteForArgFile("-agentpath:/p.so=start,jfrsync=+jdk.ThreadPark#enabled=true"));
+        }
+
         @Test
         void escapesQuotesAndBackslashesInsideAQuotedOption() {
             assertEquals(

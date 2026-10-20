@@ -90,7 +90,9 @@ const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned l
     -Dlogging.logback.rollingpolicy.max-history=2
     -Djeffrey.hub.workspaces.auto-create=true`;
 
-const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
+const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-events,maxage=30m,settings=<session>/.jeffrey-events.jfc
+
+# .jeffrey-events.jfc holds only these settings:
   jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
   jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
   jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,...`;
@@ -336,6 +338,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>JFR thresholds for the blocking and I/O events a trace is drawn from. Left empty, the <a href="#tracing-thresholds">built-in list</a> is used. Set to <code>none</code> to opt out while leaving method tracing on. Ignored when <code>tracing.enabled = false</code></td>
             </tr>
             <tr>
+              <td><code>jfr.add-event-settings</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_JFR_ADD_EVENT_SETTINGS</code></td>
+              <td>Extra JFR events to record beside the profiler, as comma-separated <code>event#setting=value</code> entries, e.g. <code>jdk.JavaExceptionThrow#stackTrace=true,jdk.ThreadSleep#threshold=0ms</code>. Every listed event is enabled; they go into the same <code>.jeffrey-events.jfc</code> recording as the <a href="#tracing-thresholds">tracing thresholds</a>, after them, so they win where both name a setting. They can only add — <code>enabled=false</code> is refused; to switch events off, point <code>profiler-command</code> at a <code>.jfc</code> of your own</td>
+            </tr>
+            <tr>
               <td><code>heap-dump</code></td>
               <td>No</td>
               <td><code>JEFFREY_HEAP_DUMP</code></td>
@@ -551,7 +559,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           1&nbsp;ms, because a parked or waiting thread is also how an idle thread pool spends its
           life — at 0&nbsp;ms that churn would outweigh the waits worth reading. Set
           <code>tracing.jfr-event-settings</code> to your own list to change that, or to
-          <code>none</code> to drop the recording while leaving method tracing on.
+          <code>none</code> to drop the thresholds while leaving method tracing on. Events of your
+          own go into the same recording through <code>jfr.add-event-settings</code>.
         </p>
 
         <DocsCallout type="warning">
@@ -561,7 +570,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           drops the I/O a trace hangs its leaf spans on. JFR resolves the rate limit to the
           highest <em>numeric</em> rate across the running recordings — <code>throttle=off</code>
           never parses as a rate, so next to the profiler's <code>100/s</code> it loses. That is
-          why the thresholds recording lifts the cap with <code>1000000/s</code>: a number high
+          why the tracing thresholds lift the cap with <code>1000000/s</code>: a number high
           enough to out-vote the profiler's configuration the same way the lowered thresholds do,
           without <code>jfrsync</code> being touched.
         </DocsCallout>

@@ -129,111 +129,98 @@ class JvmFeatureTest {
     }
 
     @Nested
-    class TracingEventThresholds {
+    class JfrEvents {
 
         private static final String SETTINGS =
                 "jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms";
 
-        @Test
-        void startsARecordingCarryingTheThresholds() {
-            String options = render(new JvmFeature.TracingEventThresholds(true, SETTINGS));
-
-            assertTrue(options.startsWith("-XX:StartFlightRecording:"), options);
-            assertTrue(options.endsWith(SETTINGS), options);
+        private static String configuration(JvmFeature.JfrEvents feature) {
+            return feature.files().get(JvmFeature.JfrEvents.FILE);
         }
 
-        /**
-         * {@code settings=none} reads like the way to keep this recording bare, and instead makes
-         * the JVM discard every event setting given with it — the recording then carries nothing.
-         */
         @Test
-        void neverNamesASettingsConfiguration() {
-            String options = render(
-                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
+        void startsARecordingFromItsOwnConfiguration() {
+            String options = render(new JvmFeature.JfrEvents(SETTINGS, null));
 
-            assertTrue(!options.contains("settings="), options);
+            assertEquals("-XX:StartFlightRecording:name=jeffrey-events,maxage=30m,settings="
+                    + SESSION + "/" + JvmFeature.JfrEvents.FILE, options);
+        }
+
+        @Test
+        void writesTheSettingsIntoThatConfiguration() {
+            String jfc = configuration(new JvmFeature.JfrEvents(SETTINGS, null));
+
+            assertTrue(jfc.contains("<event name=\"jdk.SocketRead\">"), jfc);
+            assertTrue(jfc.contains("<setting name=\"threshold\">0ms</setting>"), jfc);
+        }
+
+        /** The deployment's events come after the tracing ones, so its settings win. */
+        @Test
+        void appliesTheDeploymentsSettingsAfterTheTracingOnes() {
+            String jfc = configuration(new JvmFeature.JfrEvents(
+                    SETTINGS, "jdk.SocketRead#threshold=5ms,jdk.JavaExceptionThrow#stackTrace=true"));
+
+            assertTrue(jfc.contains("<setting name=\"threshold\">5ms</setting>"), jfc);
+            assertFalse(jfc.contains("<setting name=\"threshold\">0ms</setting>"), jfc);
+            assertTrue(jfc.contains("<event name=\"jdk.JavaExceptionThrow\">"), jfc);
+        }
+
+        /** A deployment's own events are recorded with tracing off too. */
+        @Test
+        void recordsTheDeploymentsEventsWithoutTracing() {
+            JvmFeature.JfrEvents feature = new JvmFeature.JfrEvents(null, "jdk.JavaExceptionThrow#stackTrace=true");
+
+            assertTrue(render(feature).startsWith("-XX:StartFlightRecording:name=jeffrey-events,"));
+            assertFalse(configuration(feature).contains("jdk.SocketRead"));
         }
 
         /** An unbounded recording would pin repository chunks for the life of the JVM. */
         @Test
         void boundsHowLongItPinsChunks() {
-            String options = render(new JvmFeature.TracingEventThresholds(true, SETTINGS));
+            String options = render(new JvmFeature.JfrEvents(SETTINGS, null));
 
             assertTrue(options.contains("maxage="), options);
+        }
+
+        /** A session path with a space must still reach the JVM as one option. */
+        @Test
+        void quotesASessionPathCarryingASpace() {
+            Path session = Path.of("/data/my sessions/s1");
+            Placeholders placeholders = Placeholders.of(JeffreyPlaceholderSource.ofSession(session));
+
+            String options = new JvmFeature.JfrEvents(SETTINGS, null)
+                    .render(session, placeholders).orElseThrow();
+
+            assertEquals(List.of("-XX:StartFlightRecording:name=jeffrey-events,maxage=30m,"
+                    + "settings=/data/my sessions/s1/" + JvmFeature.JfrEvents.FILE),
+                    JvmOptions.split(options));
         }
 
         /** The default list is what a session gets when nothing overrides it. */
         @Test
         void defaultSettingsCoverEveryPromotedEvent() {
-            String options = render(
-                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
-
-            assertTrue(options.contains("jdk.SocketRead#threshold=0ms"), options);
-            assertTrue(options.contains("jdk.SocketWrite#threshold=0ms"), options);
-            assertTrue(options.contains("jdk.FileRead#threshold=0ms"), options);
-            assertTrue(options.contains("jdk.FileWrite#threshold=0ms"), options);
-            assertTrue(options.contains("jdk.FileForce#threshold=0ms"), options);
-            assertTrue(options.contains("jdk.JavaMonitorEnter#threshold=1ms"), options);
-            assertTrue(options.contains("jdk.JavaMonitorWait#threshold=1ms"), options);
-            assertTrue(options.contains("jdk.ThreadPark#threshold=1ms"), options);
-            assertTrue(options.contains("jdk.ThreadSleep#threshold=1ms"), options);
-            assertTrue(options.contains("jdk.VirtualThreadPinned#threshold=1ms"), options);
-            assertTrue(options.contains("jdk.ZAllocationStall#threshold=0ms"), options);
-        }
-
-        /** A threshold is ignored for an event a custom profiler configuration switched off. */
-        @Test
-        void everyEventIsEnabledAlongsideItsThreshold() {
-            String options = render(
-                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
+            String jfc = configuration(new JvmFeature.JfrEvents(TracingJfrEvents.DEFAULT_SETTINGS, null));
 
             for (TracingJfrEvents.EventThreshold event : TracingJfrEvents.DEFAULT_EVENTS) {
-                assertTrue(options.contains(event.eventType() + "#enabled=true"), event.eventType());
+                assertTrue(jfc.contains("<event name=\"" + event.eventType() + "\">"), event.eventType());
             }
-        }
-
-        /**
-         * Java 25 rate-limits socket and file I/O to 100 events a second, which a threshold does
-         * not lift. The lift must be a numeric rate: JFR resolves {@code throttle} to the highest
-         * parseable rate across the active recordings, and {@code off} never parses as one, so it
-         * loses to the {@code 100/s} the profiler's {@code default.jfc} recording carries.
-         * {@code jdk.FileForce} has no such limit, and naming a setting an event does not have
-         * costs a JFR warning at startup.
-         */
-        @Test
-        void liftsTheRateLimitOnlyWhereThereIsOneToLift() {
-            String options = render(
-                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
-
-            assertTrue(options.contains("jdk.SocketRead#throttle=1000000/s"), options);
-            assertTrue(options.contains("jdk.SocketWrite#throttle=1000000/s"), options);
-            assertTrue(options.contains("jdk.FileRead#throttle=1000000/s"), options);
-            assertTrue(options.contains("jdk.FileWrite#throttle=1000000/s"), options);
-            assertTrue(!options.contains("jdk.FileForce#throttle"), options);
-            assertTrue(!options.contains("jdk.ThreadPark#throttle"), options);
-        }
-
-        @Test
-        void rendersNothingWhenTracingIsOff() {
-            assertEquals(Optional.empty(),
-                    new JvmFeature.TracingEventThresholds(false, SETTINGS).render(SESSION, PLACEHOLDERS));
         }
 
         @Test
         void rendersNothingWithoutSettings() {
-            assertEquals(Optional.empty(),
-                    new JvmFeature.TracingEventThresholds(true, null).render(SESSION, PLACEHOLDERS));
-            assertEquals(Optional.empty(),
-                    new JvmFeature.TracingEventThresholds(true, "  ").render(SESSION, PLACEHOLDERS));
+            JvmFeature.JfrEvents feature = new JvmFeature.JfrEvents(null, null);
+
+            assertEquals(Optional.empty(), feature.render(SESSION, PLACEHOLDERS));
+            assertEquals(Map.of(), feature.files());
+            assertEquals(Map.of(), new JvmFeature.JfrEvents("  ", " ").files());
         }
 
-        /** The documented opt-out: keep method tracing, drop the extra recording. */
+        /** The documented opt-out: keep method tracing, drop its thresholds. */
         @Test
         void rendersNothingForTheNoneOptOut() {
             assertEquals(Optional.empty(),
-                    new JvmFeature.TracingEventThresholds(true, "none").render(SESSION, PLACEHOLDERS));
-            assertEquals(Optional.empty(),
-                    new JvmFeature.TracingEventThresholds(true, " NONE ").render(SESSION, PLACEHOLDERS));
+                    new JvmFeature.JfrEvents("none", null).render(SESSION, PLACEHOLDERS));
+            assertEquals(Map.of(), new JvmFeature.JfrEvents(" NONE ", null).files());
         }
     }
 
