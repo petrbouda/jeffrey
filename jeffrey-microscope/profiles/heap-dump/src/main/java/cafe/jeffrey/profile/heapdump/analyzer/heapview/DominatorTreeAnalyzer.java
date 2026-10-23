@@ -16,6 +16,7 @@
  */
 package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -65,6 +66,54 @@ public final class DominatorTreeAnalyzer {
     /** Max distinct referrer class names to attach per opaque-array row. */
     private static final int REFERRER_HINT_LIMIT = 3;
 
+    private static final String ID_ARRAY_TYPE = "BIGINT";
+
+    /**
+     * One page of a node's children, largest retained size first. The page is chosen from
+     * {@code dominator} and {@code retained_size} alone and only its rows are joined to their
+     * instance and class -- the top level of a dump holds a hundred thousand children, and joining
+     * every one of them before keeping a hundred was most of this view's time (50 ms against 16 ms
+     * on a 144 MB dump). Whether a row has children of its own is asked of the dominator rows whose
+     * parent is on the page, which the table's sort by {@code dominator_id} lets DuckDB find without
+     * reading the rest.
+     *
+     * <p>A node is either an instance (join via instance -> class) or a class object (statics
+     * holder; join class directly and label it "class <name>"). instance_id is the tie-break so
+     * retained-size ties paginate deterministically.
+     */
+    private static final String CHILDREN_PAGE_SQL = """
+            WITH page AS (
+                SELECT d.instance_id, r.bytes
+                FROM dominator d
+                JOIN retained_size r ON r.instance_id = d.instance_id
+                WHERE d.dominator_id = ?
+                ORDER BY r.bytes DESC, d.instance_id
+                LIMIT ? OFFSET ?
+            )
+            SELECT p.instance_id,
+                   COALESCE(ic.name, '%1$s' || cc.name) AS name,
+                   COALESCE(i.shallow_size, cc.static_fields_size, 0) AS shallow,
+                   p.bytes,
+                   p.instance_id IN (
+                       SELECT d2.dominator_id
+                       FROM dominator d2
+                       WHERE d2.dominator_id IN (SELECT instance_id FROM page)
+                   ) AS has_children
+            FROM page p
+            LEFT JOIN instance i ON i.instance_id = p.instance_id
+            LEFT JOIN class ic ON i.class_id = ic.class_id
+            LEFT JOIN class cc ON cc.class_id = p.instance_id
+            ORDER BY p.bytes DESC, p.instance_id
+            """.formatted(CLASS_NODE_NAME_PREFIX);
+
+    /** How each of the given instances is rooted, the lowest kind when it is rooted several ways. */
+    private static final String ROOT_KINDS_SQL = """
+            SELECT instance_id, min(root_kind)
+            FROM gc_root
+            WHERE instance_id IN (SELECT UNNEST(?::BIGINT[]))
+            GROUP BY instance_id
+            """;
+
     private DominatorTreeAnalyzer() {
     }
 
@@ -99,38 +148,16 @@ public final class DominatorTreeAnalyzer {
                 ? totalHeapSize
                 : loadRetainedSize(view, parentId);
 
-        // GC root kind lookup (for top-level nodes) cached in one query.
-        Map<Long, Integer> rootKindByInstance = parentId == DominatorTreeBuilder.VIRTUAL_ROOT
-                ? loadGcRootKinds(view)
-                : Map.of();
-
-        // children: dominator(d.dominator_id = parent) joined to instance + class + retained.
-        // A node is either an instance (join via instance -> class) or a class
-        // object (statics holder; join class directly and label it "class <name>").
-        // instance_id is the tie-break so retained-size ties paginate deterministically.
-        String sql = "SELECT d.instance_id, "
-                + "       COALESCE(ic.name, '" + CLASS_NODE_NAME_PREFIX + "' || cc.name) AS name, "
-                + "       COALESCE(i.shallow_size, cc.static_fields_size, 0) AS shallow, "
-                + "       r.bytes, "
-                + "       EXISTS (SELECT 1 FROM dominator d2 WHERE d2.dominator_id = d.instance_id) AS has_children "
-                + "FROM dominator d "
-                + "LEFT JOIN instance i ON i.instance_id = d.instance_id "
-                + "LEFT JOIN class ic ON i.class_id = ic.class_id "
-                + "LEFT JOIN class cc ON cc.class_id = d.instance_id "
-                + "JOIN retained_size r ON r.instance_id = d.instance_id "
-                + "WHERE d.dominator_id = ? "
-                + "ORDER BY r.bytes DESC, d.instance_id "
-                + "LIMIT ? OFFSET ?";
-
         // First pass: pull child rows and remember which byte[] (opaque-array) ids we need
         // to enrich with referrer hints. Building the final DominatorNode list is deferred
-        // to a second pass so we can attach the batch-fetched referrer classes.
+        // to a second pass so we can attach the batch-fetched referrer classes and, at the
+        // top level, the root kinds -- both looked up for this page's rows only.
         record Row(long instanceId, String className, long shallow, long retained,
-                   boolean hasChildren, double percent, String rootKind) {
+                   boolean hasChildren, double percent) {
         }
         List<Row> rawRows = new ArrayList<>();
         List<Long> opaqueArrayIds = new ArrayList<>();
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(CHILDREN_PAGE_SQL)) {
             stmt.setLong(1, parentId);
             stmt.setInt(2, limit);
             stmt.setInt(3, offset);
@@ -147,10 +174,7 @@ public final class DominatorTreeAnalyzer {
                     double percent = parentRetainedSize == 0
                             ? 0.0
                             : (retained * 100.0) / parentRetainedSize;
-                    String rootKind = rootKindByInstance.containsKey(instanceId)
-                            ? HprofTag.Sub.rootKindName(rootKindByInstance.get(instanceId))
-                            : null;
-                    rawRows.add(new Row(instanceId, className, shallow, retained, hasChildren, percent, rootKind));
+                    rawRows.add(new Row(instanceId, className, shallow, retained, hasChildren, percent));
                     if (REFERRER_HINT_CLASS_NAMES.contains(className)) {
                         opaqueArrayIds.add(instanceId);
                     }
@@ -158,6 +182,9 @@ public final class DominatorTreeAnalyzer {
             }
         }
 
+        Map<Long, Integer> rootKindByInstance = parentId == DominatorTreeBuilder.VIRTUAL_ROOT && !rawRows.isEmpty()
+                ? loadGcRootKinds(view, rawRows.stream().map(Row::instanceId).toList())
+                : Map.of();
         Map<Long, List<String>> referrersByInstance = opaqueArrayIds.isEmpty()
                 ? Map.of()
                 : loadReferrerClasses(view, opaqueArrayIds);
@@ -165,10 +192,12 @@ public final class DominatorTreeAnalyzer {
         List<DominatorNode> nodes = new ArrayList<>(rawRows.size());
         for (Row row : rawRows) {
             List<String> referrers = referrersByInstance.getOrDefault(row.instanceId(), List.of());
+            Integer rootKind = rootKindByInstance.get(row.instanceId());
             nodes.add(new DominatorNode(
                     row.instanceId(), row.className(), Map.of(),
                     null, // fieldName: not applicable at this aggregation level
-                    row.shallow(), row.retained(), row.percent(), row.hasChildren(), row.rootKind(),
+                    row.shallow(), row.retained(), row.percent(), row.hasChildren(),
+                    rootKind == null ? null : HprofTag.Sub.rootKindName(rootKind),
                     referrers));
         }
         boolean hasMore = nodes.size() == limit && countChildren(view, parentId) > offset + limit;
@@ -198,13 +227,15 @@ public final class DominatorTreeAnalyzer {
         }
     }
 
-    private static Map<Long, Integer> loadGcRootKinds(HeapView view) throws SQLException {
+    private static Map<Long, Integer> loadGcRootKinds(HeapView view, List<Long> instanceIds) throws SQLException {
         Map<Long, Integer> out = new HashMap<>();
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT instance_id, root_kind FROM gc_root");
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                out.put(rs.getLong(1), rs.getInt(2));
+        Connection conn = view.databaseClient().connection();
+        try (PreparedStatement stmt = conn.prepareStatement(ROOT_KINDS_SQL)) {
+            stmt.setArray(1, conn.createArrayOf(ID_ARRAY_TYPE, instanceIds.toArray()));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    out.put(rs.getLong(1), rs.getInt(2));
+                }
             }
         }
         return out;
