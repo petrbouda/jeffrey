@@ -401,13 +401,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         Jeffrey Hub is designed for recording collection and does not perform profile analysis —
         every flamegraph and trace is computed in Jeffrey Microscope.
       </p>
-      <p>
-        There is no server property for this. <strong>Collector-only mode</strong> is a per-project
-        toggle in Microscope's own UI, remembered in the browser: with it on, the Profiles and
-        Recordings navigation is hidden and the Download actions are disabled, so a project
-        that exists purely to collect does not offer analysis entry points. It affects only the
-        browser it was set in.
-      </p>
 
       <h2 id="session-liveness">Session Liveness</h2>
       <p>

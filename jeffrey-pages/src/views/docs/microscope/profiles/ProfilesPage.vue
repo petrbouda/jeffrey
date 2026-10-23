@@ -414,7 +414,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-box"
           title="Convert to OTLP"
-          description="Export a single stack-based event type to an OpenTelemetry profiles (.otlp) file — download it or add it back to Recordings. Each frame keeps its profile.frame.type attribute so Java, native, and kernel frames survive the round-trip."
+          description="Export one or more stack-based event types into a single OpenTelemetry profiles (.otlp) file — download it or add it back to Recordings. Each type exports its sample count, or its weight (bytes/nanoseconds) when Weight is enabled. Each frame keeps its profile.frame.type attribute so Java, native, and kernel frames survive the round-trip."
         />
         <DocsFeatureCard
           icon="bi bi-fire"

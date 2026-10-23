@@ -326,7 +326,7 @@ const exPeak = `hubs_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" }
           </tr>
           <tr>
             <td><a href="#jvm"><code>jvm_</code></a></td>
-            <td class="map-count">17</td>
+            <td class="map-count">18</td>
             <td>Garbage collection and the pages beneath it, safepoints, JIT compilation, threads, native memory, class loading, exceptions, the host and who else is on it, TLS and certificates, the container quota, and what the JVM was actually started with.</td>
           </tr>
           <tr class="map-group">

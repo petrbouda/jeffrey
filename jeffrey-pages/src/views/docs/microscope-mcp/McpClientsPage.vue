@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'one-package', text: 'One Package, Three Manifests', level: 2 },
-  { id: 'the-skills', text: 'The Ten Skills', level: 2 },
+  { id: 'the-skills', text: 'The Eleven Skills', level: 2 },
   { id: 'the-agents', text: 'The Three Agents', level: 2 },
   { id: 'what-writes', text: 'The Eleven Tools That Write', level: 2 },
   { id: 'long-calls', text: 'Long Calls', level: 2 },
@@ -108,7 +108,7 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap,operations`;
         </tbody>
       </table>
 
-      <h2 id="the-skills">The Ten Skills</h2>
+      <h2 id="the-skills">The Eleven Skills</h2>
       <p>Every client gets the same eleven skills, which the agent picks up on its own when a question calls for one: <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>advise-jfr</code>, <code>analyze-exceptions</code>, <code>jfr-sql</code>, <code>heap-sql</code>, <code>report</code>. They are one set of files in the <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> format, which all three clients read, so the directory is shared rather than duplicated. What each one carries is on the <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page; how each client invokes one directly is on that client's page.</p>
 
       <p>The same skills are also served by Jeffrey itself, so a client with no plugin at all can still read them: over the MCP skills extension, where a client that speaks <code>2026-07-28</code> with that extension gets all eleven and loads them on its own, and as MCP <strong>prompts</strong> &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the calls.</p>
