@@ -95,13 +95,15 @@
           Compile-time only: every framework dependency below is `provided`, so a
           consumer brings its own version and nothing here is imposed on them.
         -->
-        <spring-boot.version>4.1.1</spring-boot.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
         <hikaricp.version>7.1.0</hikaricp.version>
         <duckdb.version>2.0.0.0</duckdb.version>
-        <mybatis.version>3.5.19</mybatis.version>
-        <grpc.version>1.84.0</grpc.version>
-        <protobuf.version>4.36.1</protobuf.version>
-        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <mybatis.version>3.6.0</mybatis.version>
+        <grpc.version>1.85.1</grpc.version>
+        <protobuf.version>4.36.2</protobuf.version>
+        <mockito.version>5.24.0</mockito.version>
+        <jackson2.version>2.22.4</jackson2.version>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
     </properties>
 
@@ -116,6 +118,31 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-bom</artifactId>
                 <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!--
+              Ahead of spring-boot-dependencies, which manages these too: the first import wins.
+              Drop a pin once the Boot version catches up with it.
+            -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-bom</artifactId>
+                <version>${mockito.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson2.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -203,7 +230,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.3.0</version>
+                        <version>3.4.0</version>
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -217,7 +244,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.6.3</version>
+                        <version>3.6.4</version>
                         <executions>
                             <execution>
                                 <id>attach-javadoc</id>

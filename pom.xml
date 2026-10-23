@@ -41,7 +41,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <picocli.version>4.7.7</picocli.version>
         <typesafe-config.version>1.4.9</typesafe-config.version>
-        <lz4.version>1.11.2</lz4.version>
+        <lz4.version>1.12.1</lz4.version>
         <junit.version>6.1.3</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <!--
@@ -51,14 +51,19 @@
             -Djeffrey-events.version=<released> to build against what is on Maven Central.
         -->
         <jeffrey-events.version>1.0-SNAPSHOT</jeffrey-events.version>
-        <spring-boot.version>4.1.1</spring-boot.version>
-        <spring-ai.version>2.0.1</spring-ai.version>
+        <spring-boot.version>4.1.2</spring-boot.version>
+        <spring-ai.version>2.0.2</spring-ai.version>
         <duckdb.version>2.0.0.0</duckdb.version>
-        <flyway.version>10.24.0</flyway.version>
-        <flyway-core.version>13.5.0</flyway-core.version>
-        <grpc.version>1.84.0</grpc.version>
-        <netty.version>4.2.17.Final</netty.version>
-        <protobuf.version>4.36.1</protobuf.version>
+        <flyway.version>10.26.0</flyway.version>
+        <flyway-core.version>13.11.1</flyway-core.version>
+        <grpc.version>1.85.1</grpc.version>
+        <netty.version>4.2.19.Final</netty.version>
+        <protobuf.version>4.36.2</protobuf.version>
+        <mockito.version>5.24.0</mockito.version>
+        <jackson.version>3.2.4</jackson.version>
+        <logback.version>1.6.5</logback.version>
+        <hikaricp.version>7.1.0</hikaricp.version>
+        <snakeyaml.version>2.7</snakeyaml.version>
         <antlr4.version>4.13.2</antlr4.version>
     </properties>
 
@@ -71,6 +76,60 @@
                 <version>${netty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!--
+                Ahead of spring-boot-dependencies on purpose: the first import of an artifact wins, and
+                Boot's BOM also manages gRPC, JUnit, Mockito, Jackson, Logback, HikariCP and SnakeYAML.
+                Imported after it, these versions would silently lose to Boot's. Drop a pin once the
+                Boot version catches up with it.
+            -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-bom</artifactId>
+                <version>${mockito.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${hikaricp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${snakeyaml.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -317,14 +376,7 @@
                 <version>${jeffrey-events.version}</version>
             </dependency>
 
-            <!-- gRPC -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-bom</artifactId>
-                <version>${grpc.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+            <!-- gRPC (grpc-bom is imported at the top, ahead of spring-boot-dependencies) -->
             <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
@@ -364,12 +416,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.6.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
+                <version>3.16.0</version>
                 <configuration>
                     <release>25</release>
                     <parameters>true</parameters>
