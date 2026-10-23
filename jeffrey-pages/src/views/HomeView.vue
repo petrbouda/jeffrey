@@ -120,8 +120,8 @@ const productTabs: ProductTab[] = [
     tagline: 'The profiler your coding agent can call.',
     oneLiner: 'The same analysis you see in the UI, served over MCP 2026-07-28 to Claude Code, Codex and any MCP client — next to your source code.',
     features: [
-      { icon: 'bi-plug-fill', title: '111 tools, 100 read-only', desc: 'Profiles, flamegraphs, JVM dashboards, heap dumps, traces and DuckDB SQL. Every tool declares whether it writes.' },
-      { icon: 'bi-magic', title: 'Skills that know the method', desc: 'profile-run, analyze-jfr, analyze-heap, advise-jfr, regression-check and five more.' },
+      { icon: 'bi-plug-fill', title: '112 tools, 101 read-only', desc: 'Profiles, flamegraphs, JVM dashboards, heap dumps, traces and DuckDB SQL. Every tool declares whether it writes.' },
+      { icon: 'bi-magic', title: 'Skills that know the method', desc: 'profile-run, analyze-jfr, analyze-heap, advise-jfr, regression-check and six more.' },
       { icon: 'bi-people', title: 'Sub-agents', desc: 'profile-lead dispatches profile-analyst and heap-triage, and gets back findings rather than raw exports.' },
       { icon: 'bi-shield-lock', title: 'No model inside', desc: 'Jeffrey never calls a model provider. Your agent calls in; your profiles stay local.' }
     ],
