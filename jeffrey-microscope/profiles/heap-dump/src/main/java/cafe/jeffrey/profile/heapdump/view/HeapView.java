@@ -21,7 +21,9 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
@@ -189,6 +191,13 @@ public interface HeapView extends AutoCloseable {
     List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException;
 
     /**
+     * The same decoded field values as {@link #readInstanceFields(long)}, for an instance the caller
+     * already holds as a row -- a page or a list read in one query, with {@link InstanceColumns} --
+     * so decoding it costs no lookup of its own. Requires an attached .hprof.
+     */
+    List<InstanceFieldValue> readInstanceFields(InstanceRow instance) throws SQLException;
+
+    /**
      * Returns the raw payload bytes of a PRIMITIVE_ARRAY_DUMP. Caller decodes
      * according to the instance's {@code primitiveType}. Requires an attached
      * .hprof. Returns empty bytes if the instance is not a primitive array.
@@ -247,6 +256,13 @@ public interface HeapView extends AutoCloseable {
      * is {@code NULL}), or when no row exists at all.
      */
     Optional<String> findStringContent(long instanceId) throws SQLException;
+
+    /**
+     * {@link #findStringContent(long)} for many instances in one query, keyed by instance id: an id
+     * with no content to show is absent from the map. What it learns is remembered by the same
+     * session cache, so a later {@code findStringContent} of one of these ids costs nothing.
+     */
+    Map<Long, String> findStringContents(Collection<Long> instanceIds) throws SQLException;
 
     /**
      * Looks up the GC-retained size of an instance from the {@code

@@ -16,6 +16,7 @@
  */
 package cafe.jeffrey.profile.heapdump.persistence;
 
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ import cafe.jeffrey.profile.heapdump.view.HistogramRow;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
 import cafe.jeffrey.profile.heapdump.view.InstanceFieldDescriptor;
+import cafe.jeffrey.profile.heapdump.view.InstanceColumns;
 import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
 import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
@@ -61,8 +63,7 @@ public final class DuckDbHeapView implements HeapView {
             "class_id, class_serial, name, is_array, super_class_id, classloader_id, signers_id, "
                     + "protection_domain_id, instance_size, static_fields_size, file_offset";
 
-    private static final String INSTANCE_COLUMNS =
-            "instance_id, class_id, file_offset, record_kind, shallow_size, array_length, primitive_type";
+    private static final String INSTANCE_COLUMNS = InstanceColumns.unqualified();
 
     private static final String GC_ROOT_COLUMNS =
             "instance_id, root_kind, thread_serial, frame_index, file_offset";
@@ -145,6 +146,11 @@ public final class DuckDbHeapView implements HeapView {
     private static final String SELECT_STRING_CONTENT_BY_INSTANCE =
             "SELECT content FROM string_content WHERE instance_id = ?";
 
+    private static final String SELECT_STRING_CONTENTS_BY_INSTANCES =
+            "SELECT instance_id, content FROM string_content WHERE instance_id IN (SELECT UNNEST(?::BIGINT[]))";
+
+    private static final String ID_ARRAY_TYPE = "BIGINT";
+
     // LEFT JOIN so primitive arrays (class_id NULL) and instances pointing to
     // missing class rows still appear in the histogram with className=NULL.
     private static final String SELECT_CLASS_HISTOGRAM =
@@ -182,6 +188,15 @@ public final class DuckDbHeapView implements HeapView {
      */
     private final ConcurrentMap<Long, List<InstanceFieldDescriptor>> fieldChainCache = new ConcurrentHashMap<>();
 
+    /**
+     * Per-session cache for {@link #findClassById(long)}. A dump holds thousands of classes and
+     * millions of instances, so the callers that resolve one class per instance -- an OQL graph
+     * function fanning out over fifty thousand reached objects, a GC-root path naming each step --
+     * ask for the same few classes over and over, and each ask was a DuckDB PK round-trip.
+     * Lifetime matches this view's open session; dropped when {@link #close()} runs.
+     */
+    private final ConcurrentMap<Long, Optional<JavaClassRow>> classByIdCache = new ConcurrentHashMap<>();
+
     private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) throws SQLException {
         this.path = path;
         this.connection = connection;
@@ -210,6 +225,7 @@ public final class DuckDbHeapView implements HeapView {
         props.setProperty("enable_external_access", "false");
         props.setProperty("autoinstall_known_extensions", "false");
         props.setProperty("autoload_known_extensions", "false");
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_INDEX);
         Connection conn = DriverManager.getConnection(url, props);
         LOG.debug("Opened heap dump index for reading: path={} hprof_attached={}",
                 indexDbPath, hprof != null);
@@ -256,10 +272,16 @@ public final class DuckDbHeapView implements HeapView {
 
     @Override
     public Optional<JavaClassRow> findClassById(long classId) throws SQLException {
+        Optional<JavaClassRow> cached = classByIdCache.get(classId);
+        if (cached != null) {
+            return cached;
+        }
         try (PreparedStatement stmt = connection.prepareStatement(SELECT_CLASS_BY_ID)) {
             stmt.setLong(1, classId);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(mapClass(rs)) : Optional.empty();
+                Optional<JavaClassRow> found = rs.next() ? Optional.of(mapClass(rs)) : Optional.empty();
+                classByIdCache.put(classId, found);
+                return found;
             }
         }
     }
@@ -349,14 +371,7 @@ public final class DuckDbHeapView implements HeapView {
     }
 
     private static InstanceRow mapInstance(ResultSet rs) throws SQLException {
-        return new InstanceRow(
-                rs.getLong(1),
-                nullableLong(rs, 2),
-                rs.getLong(3),
-                InstanceRow.Kind.fromOrdinal(rs.getInt(4)),
-                rs.getInt(5),
-                nullableInt(rs, 6),
-                nullableInt(rs, 7));
+        return InstanceColumns.read(rs, 1);
     }
 
     // ---- GC roots --------------------------------------------------------
@@ -480,13 +495,15 @@ public final class DuckDbHeapView implements HeapView {
 
     @Override
     public List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException {
-        if (hprof == null) {
-            throw new IllegalStateException(
-                    "HeapView opened without a .hprof file; field-value reads are unavailable. "
-                            + "Use HeapView.open(indexDb, hprof).");
-        }
+        requireHprofForFields();
         InstanceRow inst = findInstanceById(instanceId).orElse(null);
-        if (inst == null || inst.kind() != InstanceRow.Kind.INSTANCE || inst.classId() == null) {
+        return inst == null ? List.of() : readInstanceFields(inst);
+    }
+
+    @Override
+    public List<InstanceFieldValue> readInstanceFields(InstanceRow inst) throws SQLException {
+        requireHprofForFields();
+        if (inst.kind() != InstanceRow.Kind.INSTANCE || inst.classId() == null) {
             return List.of();
         }
         List<InstanceFieldDescriptor> chain = instanceFieldsWithChain(inst.classId());
@@ -504,6 +521,14 @@ public final class DuckDbHeapView implements HeapView {
             cursor += sz;
         }
         return out;
+    }
+
+    private void requireHprofForFields() {
+        if (hprof == null) {
+            throw new IllegalStateException(
+                    "HeapView opened without a .hprof file; field-value reads are unavailable. "
+                            + "Use HeapView.open(indexDb, hprof).");
+        }
     }
 
     @Override
@@ -687,6 +712,40 @@ public final class DuckDbHeapView implements HeapView {
         Optional<String> fresh = queryStringContent(instanceId);
         stringContentCache.put(instanceId, fresh);
         return fresh;
+    }
+
+    @Override
+    public Map<Long, String> findStringContents(Collection<Long> instanceIds) throws SQLException {
+        Map<Long, String> found = new HashMap<>();
+        List<Long> missing = new ArrayList<>();
+        for (long id : instanceIds) {
+            Optional<String> cached = stringContentCache.get(id);
+            if (cached == null) {
+                missing.add(id);
+            } else {
+                cached.ifPresent(content -> found.put(id, content));
+            }
+        }
+        if (missing.isEmpty()) {
+            return found;
+        }
+        Map<Long, String> fresh = new HashMap<>();
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_STRING_CONTENTS_BY_INSTANCES)) {
+            stmt.setArray(1, connection.createArrayOf(ID_ARRAY_TYPE, missing.toArray()));
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String content = rs.getString(2);
+                    if (content != null) {
+                        fresh.put(rs.getLong(1), content);
+                    }
+                }
+            }
+        }
+        for (long id : missing) {
+            stringContentCache.put(id, Optional.ofNullable(fresh.get(id)));
+        }
+        found.putAll(fresh);
+        return found;
     }
 
     private Optional<String> queryStringContent(long instanceId) throws SQLException {

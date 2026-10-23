@@ -29,7 +29,8 @@ Tool names here omit the prefix your client puts in front of them — `mcp__plug
 - **`instance`** — `instance_id`, `class_id` (nullable for primitive arrays), `shallow_size`,
   `array_length`, `record_kind` (TINYINT: `0` instance, `1` object array, `2` primitive array).
 - **`outbound_ref`** — `source_id`, `target_id`, `field_kind`, `field_id`. The whole reference graph;
-  indexed both directions.
+  indexed on `target_id` only, so "who points at X" is a lookup and "what X points at" is a scan —
+  cheap once, slow when repeated per row.
 - **`gc_root`** — `instance_id`, `root_kind`, `thread_serial`, `frame_index`.
 - **`dominator`** — `instance_id`, `dominator_id`. **Built lazily** — empty until something asks for it.
 - **`retained_size`** — `instance_id`, `bytes`. Populated alongside `dominator`, so LEFT JOIN it and
@@ -75,6 +76,25 @@ GROUP BY c.name ORDER BY retained DESC NULLS LAST LIMIT 25
 ```
 
 What one object points at: `SELECT target_id FROM outbound_ref WHERE source_id = <objectId>`.
+
+Who holds an object, transitively — every instance within five hops that leads to it, nearest
+first. `USING KEY` keeps one row per instance, so the heap's cycles end the walk instead of
+repeating it, and the `recurring` table is what has been visited so far. Swap `source_id` and
+`target_id` for what it keeps reachable instead:
+
+```sql
+WITH RECURSIVE walk(instance_id, depth) USING KEY (instance_id) AS (
+  SELECT <objectId>::BIGINT, 0
+  UNION
+  SELECT r.source_id, min(w.depth) + 1
+  FROM walk w JOIN outbound_ref r ON r.target_id = w.instance_id
+  WHERE w.depth < 5 AND r.source_id NOT IN (SELECT instance_id FROM recurring.walk)
+  GROUP BY r.source_id
+)
+SELECT w.depth, w.instance_id, c.name
+FROM walk w JOIN instance i USING (instance_id) LEFT JOIN class c USING (class_id)
+WHERE w.depth > 0 ORDER BY w.depth, w.instance_id
+```
 
 Subclasses, recursively over `super_class_id`:
 

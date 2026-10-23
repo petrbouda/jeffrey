@@ -498,8 +498,9 @@ class DuckDbMcpToolsTest {
         }
 
         /*
-         * DuckDB reads "a AND fields->>'k' = 'v'" as "(a AND fields)->>'k' = 'v'" and reports a cast of
-         * the whole fields column, which names neither the operator nor the fix.
+         * DuckDB binds :: tighter than ->>, so "fields->>'k'::BIGINT" casts the key 'k' rather than the
+         * value, and the engine reports a conversion of the key, which names neither the operator nor
+         * the fix.
          */
         @Test
         @DisplayName("a JSON extraction DuckDB parsed around its neighbours is explained after the engine's message")
@@ -507,8 +508,8 @@ class DuckDbMcpToolsTest {
             seedEvents(dataSource);
 
             ToolExecutionException error = assertThrows(ToolExecutionException.class,
-                    () -> tools(dataSource).executeQuery("SELECT fields FROM events WHERE "
-                            + "event_type = 'jdk.ObjectAllocationSample' AND fields->>'objectClass' = 'byte[]'"));
+                    () -> tools(dataSource).executeQuery("SELECT fields->>'objectClass'::BIGINT FROM events "
+                            + "WHERE event_type = 'jdk.ObjectAllocationSample'"));
 
             assertTrue(error.getMessage().startsWith("Query execution failed: "), error.getMessage());
             assertTrue(error.getMessage().endsWith(JsonArrowPrecedence.HINT), error.getMessage());
@@ -525,6 +526,22 @@ class DuckDbMcpToolsTest {
 
             assertEquals(1, answer.get("returned").asInt(), answer.toString());
             assertEquals("64", answer.get("rows").get(0).get(0).asString());
+        }
+
+        /*
+         * Before DuckDB 2.0 this read as "(a AND fields)->>'k' = 'v'"; the PEG parser binds ->> tighter
+         * than AND and comparisons, so the unparenthesised filter is the honest one it looks like.
+         */
+        @Test
+        @DisplayName("an unparenthesised extraction beside AND and a comparison runs")
+        void unparenthesisedExtractionInAConjunctionRuns(DataSource dataSource) throws SQLException {
+            seedEvents(dataSource);
+
+            JsonNode answer = query(tools(dataSource).executeQuery("SELECT weight FROM events WHERE "
+                    + "event_type = 'jdk.ObjectAllocationSample' AND fields->>'objectClass' = '"
+                    + LONG_CLASS_NAME + "'"));
+
+            assertEquals(1, answer.get("returned").asInt(), answer.toString());
         }
 
         @Test
@@ -546,7 +563,7 @@ class DuckDbMcpToolsTest {
 
             ToolExecutionException error = assertThrows(ToolExecutionException.class,
                     () -> tools(dataSource).queryEvents("jdk.ObjectAllocationSample", 10,
-                            "weight > 0 AND fields->>'objectClass' = 'byte[]'"));
+                            "weight > 0 AND fields->'objectClass' = 'byte[]'"));
 
             assertTrue(error.getMessage().startsWith("Failed to query events: "), error.getMessage());
             assertTrue(error.getMessage().endsWith(JsonArrowPrecedence.HINT), error.getMessage());

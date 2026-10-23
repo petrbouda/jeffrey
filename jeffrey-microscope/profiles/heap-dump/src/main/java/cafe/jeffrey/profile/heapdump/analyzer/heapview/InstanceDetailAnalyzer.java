@@ -20,7 +20,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceField;
@@ -52,6 +55,20 @@ public final class InstanceDetailAnalyzer {
 
     private static final int STRING_PREVIEW_MAX_CHARS = 200;
 
+    private static final String UNKNOWN_CLASS = "<unknown>";
+
+    /**
+     * The class of every referenced instance, asked of {@code instance} alone with the ids as a
+     * literal list, which DuckDB answers from the index on {@code instance_id}; the names then come
+     * from the view's class cache. Showing an object used to cost a query per reference field --
+     * which DuckDB 2.0's dearer statement preparation made the bulk of this view -- and joining
+     * {@code class} here instead turns the lookup into a scan.
+     */
+    private static final String REFERENCED_CLASS_IDS_SQL =
+            "SELECT instance_id, class_id FROM instance WHERE class_id IS NOT NULL AND instance_id IN (%s)";
+
+    private static final String PLACEHOLDER = "?";
+
     private InstanceDetailAnalyzer() {
     }
 
@@ -61,10 +78,10 @@ public final class InstanceDetailAnalyzer {
             return Optional.empty();
         }
         String className = inst.classId() != null
-                ? view.findClassById(inst.classId()).map(JavaClassRow::name).orElse("<unknown>")
+                ? view.findClassById(inst.classId()).map(JavaClassRow::name).orElse(UNKNOWN_CLASS)
                 : kindClassName(inst);
 
-        List<InstanceField> fields = decodeFields(view, objectId);
+        List<InstanceField> fields = decodeFields(view, inst);
         Long retained = view.hasDominatorTree() ? view.findRetainedSize(objectId).orElse(null) : null;
 
         String stringValue = String.class.getName().equals(className)
@@ -108,13 +125,21 @@ public final class InstanceDetailAnalyzer {
                 .orElse(null);
     }
 
-    private static List<InstanceField> decodeFields(HeapView view, long instanceId) throws SQLException {
+    private static List<InstanceField> decodeFields(HeapView view, InstanceRow instance) throws SQLException {
         List<InstanceFieldValue> raw;
         try {
-            raw = view.readInstanceFields(instanceId);
+            raw = view.readInstanceFields(instance);
         } catch (IllegalStateException noHprof) {
             return List.of();
         }
+        List<Long> refs = new ArrayList<>();
+        for (InstanceFieldValue f : raw) {
+            if (f.basicType() == HprofTag.BasicType.OBJECT && f.value() instanceof Long ref && ref != 0L) {
+                refs.add(ref);
+            }
+        }
+        Map<Long, String> refClassNames = resolveClassNamesByInstance(view, refs);
+
         List<InstanceField> out = new ArrayList<>(raw.size());
         for (InstanceFieldValue f : raw) {
             String typeName = typeName(f.basicType());
@@ -130,7 +155,7 @@ public final class InstanceDetailAnalyzer {
                     value = "null";
                 } else {
                     refId = ref;
-                    refClassName = resolveClassNameByInstance(view, ref);
+                    refClassName = refClassNames.get(ref);
                     // Leave value null for non-null refs — the refClassName +
                     // refId pair (delivered alongside) is the real data; any
                     // "Foo@hex" string here would just be a synthetic copy of
@@ -143,22 +168,39 @@ public final class InstanceDetailAnalyzer {
         return out;
     }
 
-    private static String resolveClassNameByInstance(HeapView view, long instanceId) throws SQLException {
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(
-                "SELECT c.name FROM instance i JOIN class c ON i.class_id = c.class_id "
-                        + "WHERE i.instance_id = ?")) {
-            stmt.setLong(1, instanceId);
+    private static Map<Long, String> resolveClassNamesByInstance(HeapView view, List<Long> instanceIds)
+            throws SQLException {
+        if (instanceIds.isEmpty()) {
+            return Map.of();
+        }
+        String sql = REFERENCED_CLASS_IDS_SQL.formatted(
+                String.join(", ", Collections.nCopies(instanceIds.size(), PLACEHOLDER)));
+        Map<Long, Long> classIds = new HashMap<>();
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
+            for (int i = 0; i < instanceIds.size(); i++) {
+                stmt.setLong(i + 1, instanceIds.get(i));
+            }
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getString(1) : null;
+                while (rs.next()) {
+                    classIds.put(rs.getLong(1), rs.getLong(2));
+                }
             }
         }
+        Map<Long, String> out = new HashMap<>();
+        for (Map.Entry<Long, Long> entry : classIds.entrySet()) {
+            Optional<JavaClassRow> cls = view.findClassById(entry.getValue());
+            if (cls.isPresent()) {
+                out.put(entry.getKey(), cls.get().name());
+            }
+        }
+        return out;
     }
 
     private static String kindClassName(InstanceRow inst) {
         return switch (inst.kind()) {
             case PRIMITIVE_ARRAY -> primitiveArrayName(inst.primitiveType());
             case OBJECT_ARRAY -> "Object[]";
-            case INSTANCE -> "<unknown>";
+            case INSTANCE -> UNKNOWN_CLASS;
         };
     }
 

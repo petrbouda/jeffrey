@@ -23,6 +23,7 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.DataSourceProvider;
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -152,6 +153,7 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .additionalProperty(AUTOINSTALL_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
                 .additionalProperty(AUTOLOAD_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
                 .additionalProperty(LOCK_CONFIGURATION_SETTING, LOCK_CONFIGURATION_VALUE)
+                .additionalProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.PROFILE_DATABASE_PREFIX + profileId)
                 .build();
 
         return DataSourceProvider.open(params);

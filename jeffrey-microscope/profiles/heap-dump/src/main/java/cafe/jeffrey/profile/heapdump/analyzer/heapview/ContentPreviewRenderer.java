@@ -24,11 +24,18 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 
 /**
@@ -61,6 +68,22 @@ import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 public final class ContentPreviewRenderer {
 
     private static final int MAX_LEN = 80;
+
+    private static final String STRING_CLASS = String.class.getName();
+
+    /** Classes whose preview is the String their {@code name} field points at (enums too). */
+    private static final Set<String> NAME_FIELD_CLASSES = Set.of("java.lang.Thread", "java.lang.Class");
+
+    /** Classes, beyond the boxed wrappers, whose preview is decoded from their own fields. */
+    private static final Set<String> FIELD_RENDERED_CLASSES = Set.of(
+            "java.math.BigDecimal",
+            "java.util.UUID",
+            "java.time.Instant",
+            "java.time.Duration",
+            "java.time.LocalDate",
+            "java.time.LocalTime",
+            "java.lang.Thread",
+            "java.lang.Class");
 
     private static final Set<String> BOXED_WRAPPERS = Set.of(
             "java.lang.Long",
@@ -101,55 +124,133 @@ public final class ContentPreviewRenderer {
         return renderTyped(view, className, instanceId, isEnum);
     }
 
+    /**
+     * Previews for a page of instances of one class, keyed by instance id; an instance with nothing
+     * to show is absent. The same previews {@link #renderOrNull} gives one at a time, but the strings
+     * a page needs -- the instances themselves for {@code String}, the name each one points at for
+     * {@code Thread}, {@code Class} and enums -- are read in one query instead of one per instance,
+     * and the fields come from rows the caller already holds.
+     */
+    public static Map<Long, String> renderPage(HeapView view, String className, List<InstanceRow> rows, boolean isEnum)
+            throws SQLException {
+        if (STRING_CLASS.equals(className)) {
+            return renderStrings(view, rows.stream().map(InstanceRow::instanceId).toList());
+        }
+        Map<Long, String> previews = new HashMap<>();
+        if (!rendersFromFields(className, isEnum)) {
+            return previews;
+        }
+        Map<Long, List<InstanceFieldValue>> fieldsById = new LinkedHashMap<>();
+        for (InstanceRow row : rows) {
+            fieldsById.put(row.instanceId(), view.readInstanceFields(row));
+        }
+        Map<Long, String> names = namesOf(view, className, isEnum, fieldsById.values());
+        for (Map.Entry<Long, List<InstanceFieldValue>> entry : fieldsById.entrySet()) {
+            String preview = renderFields(className, entry.getValue(), isEnum, names);
+            if (preview != null) {
+                previews.put(entry.getKey(), preview);
+            }
+        }
+        return previews;
+    }
+
+    /**
+     * Previews of {@code String} instances keyed by id, their contents read in one query; a String
+     * whose content was not materialised at index time is decoded from the dump on its own.
+     */
+    public static Map<Long, String> renderStrings(HeapView view, Collection<Long> stringIds) throws SQLException {
+        Map<Long, String> contents = view.findStringContents(stringIds);
+        Map<Long, String> previews = new HashMap<>();
+        for (long id : stringIds) {
+            String preview = renderString(view, id, Optional.ofNullable(contents.get(id)));
+            if (preview != null) {
+                previews.put(id, preview);
+            }
+        }
+        return previews;
+    }
+
     private static String renderTyped(HeapView view, String className, long instanceId, boolean isEnum)
             throws SQLException {
-        if (String.class.getName().equals(className)) {
-            return renderString(view, instanceId);
+        if (STRING_CLASS.equals(className)) {
+            return renderString(view, instanceId, view.findStringContent(instanceId));
         }
+        if (!rendersFromFields(className, isEnum)) {
+            return null;
+        }
+        List<InstanceFieldValue> fields = view.readInstanceFields(instanceId);
+        return renderFields(className, fields, isEnum, namesOf(view, className, isEnum, List.of(fields)));
+    }
+
+    private static boolean rendersFromFields(String className, boolean isEnum) {
+        return isEnum || BOXED_WRAPPERS.contains(className) || FIELD_RENDERED_CLASSES.contains(className);
+    }
+
+    private static boolean rendersNameField(String className, boolean isEnum) {
+        return isEnum || NAME_FIELD_CLASSES.contains(className);
+    }
+
+    /** The content of every {@code name} String the instances point at, when their preview is that name. */
+    private static Map<Long, String> namesOf(
+            HeapView view, String className, boolean isEnum, Collection<List<InstanceFieldValue>> instances)
+            throws SQLException {
+        if (!rendersNameField(className, isEnum)) {
+            return Map.of();
+        }
+        List<Long> nameRefs = new ArrayList<>();
+        for (List<InstanceFieldValue> fields : instances) {
+            Long ref = nameRef(fields);
+            if (ref != null) {
+                nameRefs.add(ref);
+            }
+        }
+        return nameRefs.isEmpty() ? Map.of() : view.findStringContents(nameRefs);
+    }
+
+    private static String renderFields(
+            String className, List<InstanceFieldValue> fields, boolean isEnum, Map<Long, String> names) {
         if (BOXED_WRAPPERS.contains(className)) {
-            return renderBoxedValue(view, instanceId);
+            return renderBoxedValue(fields);
         }
-        if (isEnum) {
-            return capRaw(renderNameField(view, instanceId));
+        if (rendersNameField(className, isEnum)) {
+            Long ref = nameRef(fields);
+            return ref == null ? null : capRaw(names.get(ref));
         }
         return switch (className) {
-            case "java.math.BigDecimal" -> capRaw(renderBigDecimal(view, instanceId));
-            case "java.util.UUID" -> capRaw(renderUuid(view, instanceId));
-            case "java.time.Instant" -> capRaw(renderInstant(view, instanceId));
-            case "java.time.Duration" -> capRaw(renderDuration(view, instanceId));
-            case "java.time.LocalDate" -> capRaw(renderLocalDate(view, instanceId));
-            case "java.time.LocalTime" -> capRaw(renderLocalTime(view, instanceId));
-            case "java.lang.Thread" -> capRaw(renderNameField(view, instanceId));
-            case "java.lang.Class" -> capRaw(renderNameField(view, instanceId));
+            case "java.math.BigDecimal" -> capRaw(renderBigDecimal(fields));
+            case "java.util.UUID" -> capRaw(renderUuid(fields));
+            case "java.time.Instant" -> capRaw(renderInstant(fields));
+            case "java.time.Duration" -> capRaw(renderDuration(fields));
+            case "java.time.LocalDate" -> capRaw(renderLocalDate(fields));
+            case "java.time.LocalTime" -> capRaw(renderLocalTime(fields));
             default -> null;
         };
     }
 
     /**
-     * Resolves the {@code name} String reference on an instance (Thread, Class, Enum) and
-     * returns its decoded content. The name field is rendered unquoted because identifiers
-     * like {@code MainThread} or {@code java.util.HashMap} read better without quotes.
+     * The {@code name} String reference on an instance (Thread, Class, Enum), or null when it has
+     * none. The name is rendered unquoted because identifiers like {@code MainThread} or
+     * {@code java.util.HashMap} read better without quotes.
      */
-    private static String renderNameField(HeapView view, long instanceId) throws SQLException {
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+    private static Long nameRef(List<InstanceFieldValue> fields) {
+        for (InstanceFieldValue f : fields) {
             if (JdkFieldNames.THREAD_NAME.equals(f.name()) && f.value() instanceof Long ref && ref != 0L) {
-                return view.findStringContent(ref).orElse(null);
+                return ref;
             }
         }
         return null;
     }
 
-    private static String renderString(HeapView view, long instanceId) throws SQLException {
-        Optional<String> cached = view.findStringContent(instanceId);
-        if (cached.isPresent()) {
-            return quoteAndCap(cached.get());
+    private static String renderString(HeapView view, long instanceId, Optional<String> content) throws SQLException {
+        if (content.isPresent()) {
+            return quoteAndCap(content.get());
         }
         Optional<JavaStringDecoder.Decoded> decoded = JavaStringDecoder.decode(view, instanceId);
         return decoded.map(d -> quoteAndCap(d.content())).orElse(null);
     }
 
-    private static String renderBoxedValue(HeapView view, long instanceId) throws SQLException {
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+    private static String renderBoxedValue(List<InstanceFieldValue> fields) {
+        for (InstanceFieldValue f : fields) {
             if (JdkFieldNames.STRING_VALUE.equals(f.name())) {
                 Object v = f.value();
                 return v == null ? null : String.valueOf(v);
@@ -158,11 +259,11 @@ public final class ContentPreviewRenderer {
         return null;
     }
 
-    private static String renderBigDecimal(HeapView view, long instanceId) throws SQLException {
+    private static String renderBigDecimal(List<InstanceFieldValue> fields) {
         Long intCompact = null;
         Integer scale = null;
         Long intValId = null;
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+        for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case "intCompact" -> {
                     if (f.value() instanceof Long v) {
@@ -194,10 +295,10 @@ public final class ContentPreviewRenderer {
         return new BigDecimal(BigInteger.valueOf(intCompact), scale).toPlainString();
     }
 
-    private static String renderUuid(HeapView view, long instanceId) throws SQLException {
+    private static String renderUuid(List<InstanceFieldValue> fields) {
         Long msb = null;
         Long lsb = null;
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+        for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case "mostSigBits" -> {
                     if (f.value() instanceof Long v) {
@@ -218,10 +319,10 @@ public final class ContentPreviewRenderer {
         return new UUID(msb, lsb).toString();
     }
 
-    private static String renderInstant(HeapView view, long instanceId) throws SQLException {
+    private static String renderInstant(List<InstanceFieldValue> fields) {
         Long seconds = null;
         Integer nanos = null;
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+        for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case "seconds" -> {
                     if (f.value() instanceof Long v) {
@@ -246,10 +347,10 @@ public final class ContentPreviewRenderer {
         }
     }
 
-    private static String renderDuration(HeapView view, long instanceId) throws SQLException {
+    private static String renderDuration(List<InstanceFieldValue> fields) {
         Long seconds = null;
         Integer nanos = null;
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+        for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case "seconds" -> {
                     if (f.value() instanceof Long v) {
@@ -274,11 +375,11 @@ public final class ContentPreviewRenderer {
         }
     }
 
-    private static String renderLocalDate(HeapView view, long instanceId) throws SQLException {
+    private static String renderLocalDate(List<InstanceFieldValue> fields) {
         Integer year = null;
         Short month = null;
         Short day = null;
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+        for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case "year" -> {
                     if (f.value() instanceof Integer v) {
@@ -308,12 +409,12 @@ public final class ContentPreviewRenderer {
         }
     }
 
-    private static String renderLocalTime(HeapView view, long instanceId) throws SQLException {
+    private static String renderLocalTime(List<InstanceFieldValue> fields) {
         Byte hour = null;
         Byte minute = null;
         Byte second = null;
         Integer nano = null;
-        for (InstanceFieldValue f : view.readInstanceFields(instanceId)) {
+        for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case "hour" -> {
                     if (f.value() instanceof Byte v) {

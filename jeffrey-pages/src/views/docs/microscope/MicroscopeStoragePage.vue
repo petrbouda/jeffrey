@@ -143,6 +143,10 @@ onMounted(() => {
         </ul>
       </DocsCallout>
 
+      <DocsCallout type="warning">
+        <strong>Profile files follow the DuckDB version.</strong> Microscope runs on DuckDB 2.0, which still opens every profile an older Microscope wrote, but a profile it writes uses DuckDB 2.0's storage format, which an older Microscope cannot open. Moving back to an older release means analysing those recordings again.
+      </DocsCallout>
+
       <h2 id="write-once-read-many">Write-Once-Read-Many</h2>
       <p>Profile databases use a strict write-once-read-many (WORM) pattern. Microscope writes the entire profile up-front during parsing; from there on, every analysis feature is a pure read.</p>
 

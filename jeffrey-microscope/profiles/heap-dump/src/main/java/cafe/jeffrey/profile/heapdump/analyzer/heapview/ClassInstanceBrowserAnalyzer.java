@@ -29,8 +29,12 @@ import cafe.jeffrey.profile.heapdump.model.ClassInstanceEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceColumns;
 import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
+
+import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableLong;
 
 /**
  * HeapView-backed equivalent of
@@ -60,17 +64,24 @@ public final class ClassInstanceBrowserAnalyzer {
 
     private static final String STRING_CLASS = String.class.getName();
 
-    private static final String SQL_BY_OBJECT_ID =
-            "SELECT instance_id, shallow_size FROM instance "
-                    + "WHERE class_id = ? ORDER BY instance_id LIMIT ? OFFSET ?";
+    /**
+     * One page of a class's instances, each as a whole row plus its retained size, so the page is
+     * decoded without looking any instance up again: a query per instance was what this view cost,
+     * and on DuckDB 2.0, whose parser makes every statement dearer to prepare, a page of a hundred
+     * took twice as long as it had.
+     */
+    private static final String SQL_PAGE = "SELECT " + InstanceColumns.of("i") + ", r.bytes "
+            + "FROM instance i "
+            + "LEFT JOIN retained_size r ON i.instance_id = r.instance_id "
+            + "WHERE i.class_id = ? "
+            + "ORDER BY %s "
+            + "LIMIT ? OFFSET ?";
 
-    private static final String SQL_BY_RETAINED_SIZE =
-            "SELECT i.instance_id, i.shallow_size, r.bytes "
-                    + "FROM instance i "
-                    + "LEFT JOIN retained_size r ON i.instance_id = r.instance_id "
-                    + "WHERE i.class_id = ? "
-                    + "ORDER BY r.bytes DESC NULLS LAST, i.instance_id "
-                    + "LIMIT ? OFFSET ?";
+    private static final String SQL_BY_OBJECT_ID = SQL_PAGE.formatted("i.instance_id");
+
+    private static final String SQL_BY_RETAINED_SIZE = SQL_PAGE.formatted("r.bytes DESC NULLS LAST, i.instance_id");
+
+    private static final int RETAINED_BYTES_COLUMN = InstanceColumns.COUNT + 1;
 
     private ClassInstanceBrowserAnalyzer() {
     }
@@ -106,9 +117,9 @@ public final class ClassInstanceBrowserAnalyzer {
 
         boolean isByteArray = BYTE_ARRAY.equals(className);
 
-        record Row(long instanceId, int shallow, Long retained, Map<String, String> params) {
+        record Row(InstanceRow instance, Long retained) {
         }
-        List<Row> rawRows = new ArrayList<>();
+        List<Row> rows = new ArrayList<>();
         String sql = joinRetained ? SQL_BY_RETAINED_SIZE : SQL_BY_OBJECT_ID;
         try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             stmt.setLong(1, classId);
@@ -116,42 +127,39 @@ public final class ClassInstanceBrowserAnalyzer {
             stmt.setInt(3, offset);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    long instanceId = rs.getLong(1);
-                    int shallow = rs.getInt(2);
-                    Map<String, String> params = readFieldsAsParams(view, instanceId);
-                    Long retained;
-                    if (joinRetained) {
-                        long bytes = rs.getLong(3);
-                        retained = rs.wasNull() ? null : bytes;
-                    } else {
-                        retained = haveDom ? view.findRetainedSize(instanceId).orElse(null) : null;
-                    }
-                    rawRows.add(new Row(instanceId, shallow, retained, params));
+                    Long retained = nullableLong(rs, RETAINED_BYTES_COLUMN);
+                    rows.add(new Row(InstanceColumns.read(rs, 1), haveDom ? retained : null));
                 }
             }
         }
+        List<InstanceRow> instances = rows.stream().map(Row::instance).toList();
 
-        // byte[] rows are enriched in a second pass: batch-fetch one dominant referrer
-        // per page-of-instances, and when that referrer is a String, render its decoded
-        // content as the preview. Other classes use the standard per-instance preview path.
+        // byte[] rows are enriched with one dominant referrer per instance, fetched for the whole
+        // page; when that referrer is a String, its decoded content is the preview. Every other
+        // class renders its previews for the page at once.
         Map<Long, ByteArrayHint> byteArrayHints = isByteArray
-                ? loadByteArrayHints(view, rawRows.stream().map(Row::instanceId).toList())
+                ? loadByteArrayHints(view, instances.stream().map(InstanceRow::instanceId).toList())
                 : Map.of();
+        Map<Long, String> previews = isByteArray
+                ? Map.of()
+                : ContentPreviewRenderer.renderPage(view, className, instances, isEnum);
 
-        List<ClassInstanceEntry> entries = new ArrayList<>(rawRows.size());
-        for (Row row : rawRows) {
+        List<ClassInstanceEntry> entries = new ArrayList<>(rows.size());
+        for (Row row : rows) {
+            long instanceId = row.instance().instanceId();
             String preview;
             String referrerClass;
             if (isByteArray) {
-                ByteArrayHint hint = byteArrayHints.getOrDefault(row.instanceId(), ByteArrayHint.NONE);
+                ByteArrayHint hint = byteArrayHints.getOrDefault(instanceId, ByteArrayHint.NONE);
                 referrerClass = hint.referrerClass();
                 preview = hint.preview();
             } else {
                 referrerClass = null;
-                preview = ContentPreviewRenderer.renderOrNull(view, className, row.instanceId(), isEnum);
+                preview = previews.get(instanceId);
             }
             entries.add(new ClassInstanceEntry(
-                    row.instanceId(), row.shallow(), row.retained(), row.params(), preview, referrerClass));
+                    instanceId, row.instance().shallowSize(), row.retained(),
+                    readFieldsAsParams(view, row.instance()), preview, referrerClass));
         }
 
         boolean hasMore = (long) offset + entries.size() < totalLong;
@@ -189,22 +197,31 @@ public final class ClassInstanceBrowserAnalyzer {
                 + "LEFT JOIN class c ON c.class_id = r.class_id "
                 + "WHERE r.rn = 1";
 
-        Map<Long, ByteArrayHint> out = new HashMap<>();
+        record Referrer(long targetId, long sourceId, String className) {
+        }
+        List<Referrer> referrers = new ArrayList<>();
         try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
             for (int i = 0; i < instanceIds.size(); i++) {
                 stmt.setLong(i + 1, instanceIds.get(i));
             }
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    long targetId = rs.getLong(1);
-                    long sourceId = rs.getLong(2);
-                    String className = rs.getString(3);
-                    String preview = STRING_CLASS.equals(className)
-                            ? ContentPreviewRenderer.renderOrNull(view, STRING_CLASS, sourceId, false)
-                            : null;
-                    out.put(targetId, new ByteArrayHint(className, preview));
+                    referrers.add(new Referrer(rs.getLong(1), rs.getLong(2), rs.getString(3)));
                 }
             }
+        }
+        List<Long> stringReferrers = referrers.stream()
+                .filter(referrer -> STRING_CLASS.equals(referrer.className()))
+                .map(Referrer::sourceId)
+                .toList();
+        Map<Long, String> stringPreviews = ContentPreviewRenderer.renderStrings(view, stringReferrers);
+
+        Map<Long, ByteArrayHint> out = new HashMap<>();
+        for (Referrer referrer : referrers) {
+            String preview = STRING_CLASS.equals(referrer.className())
+                    ? stringPreviews.get(referrer.sourceId())
+                    : null;
+            out.put(referrer.targetId(), new ByteArrayHint(referrer.className(), preview));
         }
         return out;
     }
@@ -233,9 +250,9 @@ public final class ClassInstanceBrowserAnalyzer {
         return false;
     }
 
-    private static Map<String, String> readFieldsAsParams(HeapView view, long instanceId) throws SQLException {
+    private static Map<String, String> readFieldsAsParams(HeapView view, InstanceRow instance) throws SQLException {
         try {
-            List<InstanceFieldValue> fields = view.readInstanceFields(instanceId);
+            List<InstanceFieldValue> fields = view.readInstanceFields(instance);
             Map<String, String> out = new LinkedHashMap<>(fields.size());
             for (InstanceFieldValue f : fields) {
                 out.put(f.name(), stringify(f.value()));

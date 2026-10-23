@@ -105,6 +105,65 @@ class InstanceDetailAnalyzerTest {
         }
     }
 
+    /**
+     * Every reference field is resolved to its own class, all of them together: two fields pointing
+     * at different classes, one pointing at an id that is no instance, and a null.
+     */
+    @Test
+    void resolvesEachReferenceFieldToItsOwnClass(@TempDir Path tmp) throws IOException, SQLException {
+        long holderClass = 0xC001L;
+        long leftClass = 0xC002L;
+        long rightClass = 0xC003L;
+        long holder = 0x1001L;
+        long left = 0x1002L;
+        long right = 0x1003L;
+        long dangling = 0xDEADL;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "com.example.Holder")
+                .string(0xA002L, "com.example.Left")
+                .string(0xA003L, "com.example.Right")
+                .string(0xA004L, "a")
+                .string(0xA005L, "b")
+                .string(0xA006L, "c")
+                .string(0xA007L, "d")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .loadClass(2, leftClass, 0, 0xA002L)
+                .loadClass(3, rightClass, 0, 0xA003L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(holderClass, 0L, 0L, 4 * ID_SIZE,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA005L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA006L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA007L, HprofTag.BasicType.OBJECT))
+                        .classDumpWithFields(leftClass, 0L, 0L, 0)
+                        .classDumpWithFields(rightClass, 0L, 0L, 0)
+                        .instanceDump(holder, holderClass, ids(left, right, dangling, 0L))
+                        .instanceDump(left, leftClass, new byte[0])
+                        .instanceDump(right, rightClass, new byte[0]))
+                .heapDumpEnd()
+                .writeTo(tmp, "refs.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            InstanceDetail detail = InstanceDetailAnalyzer.analyze(view, holder).orElseThrow();
+            assertEquals(4, detail.fields().size());
+
+            assertEquals(left, detail.fields().get(0).referencedObjectId());
+            assertEquals("com.example.Left", detail.fields().get(0).referencedClassName());
+            assertEquals(right, detail.fields().get(1).referencedObjectId());
+            assertEquals("com.example.Right", detail.fields().get(1).referencedClassName());
+            assertEquals(dangling, detail.fields().get(2).referencedObjectId());
+            assertNull(detail.fields().get(2).referencedClassName(), "an id with no instance has no class");
+            assertNull(detail.fields().get(3).referencedObjectId());
+            assertEquals("null", detail.fields().get(3).value());
+        }
+    }
+
     @Test
     void decodesStringValueForJavaLangString(@TempDir Path tmp) throws IOException, SQLException {
         long stringClass = 0xC001L;
@@ -160,6 +219,19 @@ class InstanceDetailAnalyzerTest {
             DataOutputStream d = new DataOutputStream(b);
             d.writeLong(objectRef);
             d.writeInt(intValue);
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static byte[] ids(long... refs) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            for (long ref : refs) {
+                d.writeLong(ref);
+            }
             return b.toByteArray();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

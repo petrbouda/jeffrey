@@ -42,13 +42,13 @@ class JsonArrowPrecedenceTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
-                "SELECT fields FROM events WHERE event_type = 'jeffrey.TraceSpan' AND fields->>'traceId' = 'a07'",
-                "SELECT fields FROM events WHERE fields->>'id' = '1' OR fields->>'parentId' = '0'",
                 "SELECT fields FROM events WHERE duration > 0 AND fields->'traceId' = 'a07'",
                 "SELECT fields->>'endTime' - fields->>'startTime' FROM events",
+                "SELECT 2 * fields->>'endTime' FROM events",
                 "SELECT fields->>'size'::BIGINT FROM events",
                 "SELECT fields FROM events WHERE fields->'parentId' = 0",
-                "SELECT * FROM events WHERE event_type = ? AND (duration > 0 AND fields->>'a' = 'b')"
+                "SELECT fields FROM events WHERE fields->'parentId' IS NOT NULL",
+                "SELECT fields FROM events WHERE NOT fields->'name' = 'main'"
         })
         @DisplayName("is recognised")
         void isRecognised(String sql, DataSource dataSource) {
@@ -62,11 +62,15 @@ class JsonArrowPrecedenceTest {
 
         @ParameterizedTest
         @ValueSource(strings = {
+                "SELECT fields FROM events WHERE event_type = 'jeffrey.TraceSpan' AND fields->>'traceId' = 'a07'",
+                "SELECT fields FROM events WHERE fields->>'id' = '1' OR fields->>'parentId' = '0'",
+                "SELECT * FROM events WHERE event_type = ? AND (duration > 0 AND fields->>'a' = 'b')",
                 "SELECT fields FROM events WHERE event_type = 'jeffrey.TraceSpan' AND (fields->>'traceId') = 'a07'",
                 "SELECT fields FROM events WHERE fields->>'traceId' = 'a07' AND event_type = 'jeffrey.TraceSpan'",
                 "SELECT (fields->>'size')::BIGINT, CAST(fields->>'size' AS BIGINT) FROM events",
                 "SELECT fields->'outer'->>'inner', json_extract(fields, '$.a')->>'b' FROM events",
                 "SELECT SUM(CAST(fields->>'bytes' AS BIGINT)) / 1000000.0 FROM events",
+                "SELECT list_filter([1, 2, 3], lambda x: x > 1), list_transform([1, 2], lambda x, i: x + i)",
                 "SELECT list_filter([1, 2, 3], x -> x > 1), list_transform([1, 2], (x, i) -> x + i)",
                 "SELECT nope FROM events",
                 "not a query at all"

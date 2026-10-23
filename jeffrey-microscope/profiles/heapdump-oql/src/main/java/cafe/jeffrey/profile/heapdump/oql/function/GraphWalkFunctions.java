@@ -17,17 +17,15 @@
 package cafe.jeffrey.profile.heapdump.oql.function;
 
 import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceColumns;
 import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Heap-graph traversal helpers used by the Plan C executor.
@@ -44,6 +42,45 @@ public final class GraphWalkFunctions {
 
     /** Maximum number of instances visited by a transitive walk per call. */
     private static final int MAX_TRAVERSAL_VISITS = 50_000;
+
+    /**
+     * The transitive walk, one statement for either direction: {@code %1$s} is the column the walk
+     * moves to, {@code %2$s} the one it moves from, and {@code %3$s} the instance columns answered.
+     * Breadth-first, with {@code USING KEY} keeping one row per instance as the visited set, and no
+     * level started once the visit cap is reached; the answer is the instances visited, nearest
+     * first, without the start itself. Ids that name no instance (a class, the null reference) are
+     * walked through but not answered.
+     *
+     * <p>It replaced a Java walk that issued a query per visited instance -- and in the forward
+     * direction a query against {@code source_id}, which has no index, so each one scanned the
+     * reference table: {@code reachables} of one thread on a 144 MB dump took over three minutes
+     * that way and takes a quarter of a second this way, on DuckDB 2.0's recursive CTEs.
+     */
+    private static final String TRANSITIVE_WALK_SQL = """
+            WITH RECURSIVE walk(instance_id, depth) USING KEY (instance_id) AS (
+                SELECT ?::BIGINT, 0
+                UNION
+                SELECT r.%1$s, min(w.depth) + 1
+                FROM walk w
+                JOIN outbound_ref r ON r.%2$s = w.instance_id
+                WHERE r.%1$s <> 0
+                  AND r.%1$s NOT IN (SELECT instance_id FROM recurring.walk)
+                  AND (SELECT count(*) FROM recurring.walk) < ?
+                GROUP BY r.%1$s
+            )
+            SELECT %3$s
+            FROM walk w
+            JOIN instance i ON i.instance_id = w.instance_id
+            WHERE w.depth > 0
+            ORDER BY w.depth, w.instance_id
+            LIMIT ?
+            """;
+
+    private static final String REACHABLES_SQL =
+            TRANSITIVE_WALK_SQL.formatted("target_id", "source_id", InstanceColumns.of("i"));
+
+    private static final String REFERRERS_SQL =
+            TRANSITIVE_WALK_SQL.formatted("source_id", "target_id", InstanceColumns.of("i"));
 
     private GraphWalkFunctions() {
     }
@@ -67,25 +104,15 @@ public final class GraphWalkFunctions {
     }
 
     private static List<InstanceRow> bfs(HeapView view, long startId, boolean forward) throws SQLException {
-        Set<Long> visited = new HashSet<>();
-        Deque<Long> frontier = new ArrayDeque<>();
+        String sql = forward ? REACHABLES_SQL : REFERRERS_SQL;
         List<InstanceRow> out = new ArrayList<>();
-        frontier.add(startId);
-        visited.add(startId);
-        while (!frontier.isEmpty() && visited.size() < MAX_TRAVERSAL_VISITS) {
-            long id = frontier.poll();
-            List<OutboundRefRow> refs = forward
-                    ? view.outboundRefs(id)
-                    : view.inboundRefs(id);
-            for (OutboundRefRow ref : refs) {
-                long next = forward ? ref.targetId() : ref.sourceId();
-                if (next == 0L) {
-                    continue;
-                }
-                if (visited.add(next)) {
-                    Optional<InstanceRow> inst = view.findInstanceById(next);
-                    inst.ifPresent(out::add);
-                    frontier.add(next);
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
+            stmt.setLong(1, startId);
+            stmt.setInt(2, MAX_TRAVERSAL_VISITS);
+            stmt.setInt(3, MAX_TRAVERSAL_VISITS);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    out.add(InstanceColumns.read(rs, 1));
                 }
             }
         }

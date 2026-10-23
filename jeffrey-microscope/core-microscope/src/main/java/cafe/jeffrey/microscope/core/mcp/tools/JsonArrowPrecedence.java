@@ -21,6 +21,8 @@ import cafe.jeffrey.shared.common.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -32,19 +34,20 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Recognises the one DuckDB parse that turns an honest JSON filter into a baffling engine error.
+ * Recognises the DuckDB parses that turn an honest JSON extraction into a baffling engine error.
  * <p>
- * DuckDB binds {@code ->} and {@code ->>} more loosely than {@code AND}, {@code OR}, comparisons,
- * arithmetic and {@code ::}. {@code event_type = 'x' AND fields->>'traceId' = 'y'} therefore reads as
- * {@code ((event_type = 'x' AND fields) ->> 'traceId') = 'y'}, and the engine answers "Failed to cast
- * value to numerical ... from source column fields" -- a message that names neither the operator nor
- * the fix, so a caller retries the same query. The same filter with its conditions in the other order
- * runs, which makes the trap harder still to see from the outside.
+ * DuckDB binds {@code ->>} more loosely than {@code ::}, arithmetic and {@code ||}, and {@code ->} more
+ * loosely than comparisons, {@code NOT}, {@code AND} and {@code OR} as well. {@code fields->>'size'::BIGINT}
+ * therefore casts the key {@code 'size'} rather than the value, {@code fields->>'end' - fields->>'start'}
+ * subtracts a JSON document from a string, and {@code fields->'parentId' = 0} reads as
+ * {@code fields->('parentId' = 0)}. The engine answers with a conversion or binder error that names
+ * neither the operator nor the fix, so a caller retries the same query. (Before DuckDB 2.0 {@code ->>}
+ * also lost to {@code AND}, {@code OR} and comparisons; the PEG parser fixed that half of the trap.)
  * <p>
  * The check reads DuckDB's own parse tree ({@code json_serialize_sql}), never the text, and only after a
  * query has already failed: an arrow whose operand is a conjunction, a comparison or an operator is
  * never what anyone wrote, but a query that ran is left alone, so the check can never refuse a valid
- * one. A real lambda ({@code list_filter(l, x -> x > 1)}) parses to the same node as {@code ->}; it
+ * one. A real lambda ({@code list_filter(l, lambda x: x > 1)}) parses to the same node as {@code ->}; it
  * always sits in a function's arguments with a bare parameter on its left, and only its left side is
  * judged there.
  */
@@ -52,10 +55,11 @@ final class JsonArrowPrecedence {
 
     private static final Logger LOG = LoggerFactory.getLogger(JsonArrowPrecedence.class);
 
-    static final String HINT = "DuckDB binds -> and ->> more loosely than AND, OR, comparisons, arithmetic "
-            + "and ::, so a filter like event_type = 'x' AND fields->>'key' = 'v' reads as "
-            + "(event_type = 'x' AND fields)->>'key'. Wrap every extraction in parentheses -- "
-            + "(fields->>'key') = 'v', (fields->>'size')::BIGINT -- or use json_extract_string(fields, '$.key').";
+    static final String HINT = "DuckDB binds ->> more loosely than ::, arithmetic and ||, and -> more loosely "
+            + "than comparisons, AND and OR too, so fields->>'size'::BIGINT casts the key 'size', not the value, "
+            + "and fields->'id' = 1 reads as fields->('id' = 1). Wrap every extraction in parentheses -- "
+            + "(fields->>'size')::BIGINT, (fields->>'end') - (fields->>'start') -- or use "
+            + "json_extract_string(fields, '$.key').";
 
     /** The cast is required: the function refuses a parameter whose type it cannot see at prepare time. */
     private static final String SERIALIZE_SQL = "SELECT json_serialize_sql(?::VARCHAR)";
@@ -64,7 +68,9 @@ final class JsonArrowPrecedence {
     private static final String CLASS = "class";
     private static final String FUNCTION_NAME = "function_name";
     private static final String IS_OPERATOR = "is_operator";
-    private static final String CHILDREN = "children";
+    /** A function's operands: each an object holding its {@code expression} (and a {@code name}). */
+    private static final String ARGUMENTS = "arguments";
+    private static final String EXPRESSION = "expression";
     private static final String LHS = "lhs";
     private static final String EXPR = "expr";
 
@@ -127,8 +133,9 @@ final class JsonArrowPrecedence {
         }
         boolean argumentsBelow = isPlainFunction(node);
         for (Map.Entry<String, JsonNode> property : node.properties()) {
-            boolean arguments = argumentsBelow && CHILDREN.equals(property.getKey());
-            if (misreads(property.getValue(), arguments)) {
+            boolean operands = ARGUMENTS.equals(property.getKey());
+            JsonNode value = operands ? operands(property.getValue()) : property.getValue();
+            if (misreads(value, argumentsBelow && operands)) {
                 return true;
             }
         }
@@ -138,13 +145,22 @@ final class JsonArrowPrecedence {
     private static boolean swallowedNeighbour(JsonNode node, boolean functionArgument) {
         String nodeClass = node.path(CLASS).asString("");
         if (FUNCTION_CLASS.equals(nodeClass) && ARROWS.contains(node.path(FUNCTION_NAME).asString(""))) {
-            JsonNode operands = node.path(CHILDREN);
+            JsonNode operands = operands(node.path(ARGUMENTS));
             return swallowedOnTheLeft(operands.path(0)) || swallowedOnTheRight(operands.path(1));
         }
         if (LAMBDA_CLASS.equals(nodeClass)) {
             return swallowedOnTheLeft(node.path(LHS)) || (!functionArgument && swallowedOnTheRight(node.path(EXPR)));
         }
         return false;
+    }
+
+    /** The expressions of a function's {@code arguments}, unwrapped from their name/expression pairs. */
+    private static JsonNode operands(JsonNode arguments) {
+        ArrayNode expressions = JsonNodeFactory.instance.arrayNode();
+        for (JsonNode argument : arguments) {
+            expressions.add(argument.path(EXPRESSION));
+        }
+        return expressions;
     }
 
     private static boolean swallowedOnTheLeft(JsonNode operand) {

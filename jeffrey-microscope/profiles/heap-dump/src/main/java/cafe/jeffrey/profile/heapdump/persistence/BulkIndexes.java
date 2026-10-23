@@ -18,6 +18,7 @@ package cafe.jeffrey.profile.heapdump.persistence;
 
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.profile.heapdump.parser.FutureJoin;
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import org.duckdb.DuckDBConnection;
 
@@ -27,6 +28,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -117,7 +119,9 @@ public final class BulkIndexes {
      * the whole difference between this phase reporting one bar and reporting a statement each.
      */
     private static void createGroupOnOwnConnection(String url, IndexGroup group) {
-        try (Connection raw = DriverManager.getConnection(url);
+        Properties props = new Properties();
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_INDEX);
+        try (Connection raw = DriverManager.getConnection(url, props);
              DuckDBConnection conn = raw.unwrap(DuckDBConnection.class)) {
             createGroup(new HeapDumpDatabaseClient(conn, GroupLabel.HEAP_DUMP_INDEX), group);
         } catch (SQLException e) {

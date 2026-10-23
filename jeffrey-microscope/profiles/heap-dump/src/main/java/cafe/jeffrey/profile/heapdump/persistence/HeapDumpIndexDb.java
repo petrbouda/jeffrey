@@ -16,6 +16,7 @@
  */
 package cafe.jeffrey.profile.heapdump.persistence;
 
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 
 import java.io.IOException;
@@ -27,6 +28,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +94,9 @@ public final class HeapDumpIndexDb implements AutoCloseable {
         }
 
         String url = "jdbc:duckdb:" + path.toAbsolutePath();
-        Connection raw = DriverManager.getConnection(url);
+        Properties props = new Properties();
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_INDEX);
+        Connection raw = DriverManager.getConnection(url, props);
         DuckDBConnection duckConn;
         try {
             duckConn = raw.unwrap(DuckDBConnection.class);

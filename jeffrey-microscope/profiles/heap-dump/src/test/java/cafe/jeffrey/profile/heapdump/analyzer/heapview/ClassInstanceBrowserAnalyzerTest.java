@@ -43,6 +43,7 @@ import cafe.jeffrey.profile.heapdump.parser.SyntheticHprof;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -227,6 +228,64 @@ class ClassInstanceBrowserAnalyzerTest {
             assertEquals(2, response.instances().size());
             assertEquals("\"hello\"", response.instances().get(0).contentPreview());
             assertEquals("\"world\"", response.instances().get(1).contentPreview());
+        }
+    }
+
+    /**
+     * A page of Threads previews each by the String its {@code name} field points at -- the names
+     * are resolved for the whole page together -- and a thread with no name has no preview.
+     */
+    @Test
+    void populatesContentPreviewFromTheNameFieldForThreads(@TempDir Path tmp) throws IOException, SQLException {
+        long stringClass = 0xC001L;
+        long threadClass = 0xC002L;
+        long mainName = 0x1001L;
+        long workerName = 0x1002L;
+        long mainBytes = 0x2001L;
+        long workerBytes = 0x2002L;
+        long mainThread = 0x3001L;
+        long workerThread = 0x3002L;
+        long unnamedThread = 0x3003L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "java.lang.String")
+                .string(0xA002L, "value")
+                .string(0xA003L, "coder")
+                .string(0xA004L, "hash")
+                .string(0xA005L, "java.lang.Thread")
+                .string(0xA006L, "name")
+                .loadClass(1, stringClass, 0, 0xA001L)
+                .loadClass(2, threadClass, 0, 0xA005L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(stringClass, 0L, 0L, ID_SIZE + 1 + 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.BYTE),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.INT))
+                        .topLevelObjectClassDump(threadClass, 0xA006L)
+                        .primitiveArrayDump(mainBytes, HprofTag.BasicType.BYTE,
+                                "main".getBytes(StandardCharsets.ISO_8859_1), 4)
+                        .primitiveArrayDump(workerBytes, HprofTag.BasicType.BYTE,
+                                "worker-1".getBytes(StandardCharsets.ISO_8859_1), 8)
+                        .instanceDump(mainName, stringClass, stringFields(mainBytes, (byte) 0))
+                        .instanceDump(workerName, stringClass, stringFields(workerBytes, (byte) 0))
+                        .instanceDump(mainThread, threadClass, idBytes(mainName))
+                        .instanceDump(workerThread, threadClass, idBytes(workerName))
+                        .instanceDump(unnamedThread, threadClass, idBytes(0L)))
+                .heapDumpEnd()
+                .writeTo(tmp, "thread-preview.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, threadClass);
+            assertEquals(3, response.instances().size());
+            assertEquals("main", response.instances().get(0).contentPreview());
+            assertEquals("worker-1", response.instances().get(1).contentPreview());
+            assertNull(response.instances().get(2).contentPreview(), "a thread with no name has no preview");
+            assertEquals("0x" + Long.toHexString(mainName), response.instances().get(0).objectParams().get("name"));
         }
     }
 

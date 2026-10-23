@@ -111,7 +111,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             )
             SELECT
                 fd.stacktrace_hash,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -182,7 +182,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             SELECT
                 fd.stacktrace_hash,
                 fd.weight_entity,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -192,23 +192,40 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
     /**
      * Optimized version that returns frame_hashes for Java-side resolution.
      * ~10x faster than SQL-side frame resolution. Use with FramesCache for frame lookup.
+     *
+     * <p>The events are aggregated by stacktrace hash and only then joined to their frames. Grouping
+     * by {@code frame_hashes} as well, the shape this replaced, asked DuckDB to hash and compare a
+     * list per event when the hash alone already identifies it -- it is the stacktrace's primary key.
+     * Whether the planner found its way around that depended on the file: on profiles written by
+     * DuckDB 2.0 a wall-clock graph took 290 ms against 130 ms for the same data written by 1.5, and
+     * aggregating first takes 55 ms on either. The join inside {@code aggregated} stays because the
+     * stacktrace filters read {@code s}, and because it keeps out events whose stack was not stored.
      */
     //language=SQL
     public static final String BY_WEIGHT_OPTIMIZED = """
+            WITH aggregated AS (
+                SELECT
+                    e.stacktrace_hash,
+                    e.weight_entity,
+                    SUM(e.samples) AS total_samples,
+                    SUM(e.weight) AS total_weight
+                FROM events e
+                INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+                WHERE e.event_type = <<event_type>>
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<stacktrace_filters>>
+                    <<additional_filters>>
+                GROUP BY e.stacktrace_hash, e.weight_entity
+            )
             SELECT
-                s.stacktrace_hash,
-                e.weight_entity,
+                a.stacktrace_hash,
+                a.weight_entity,
                 s.frame_hashes,
-                SUM(e.samples) AS total_samples,
-                SUM(e.weight) AS total_weight
-            FROM events e
-            INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-            WHERE e.event_type = <<event_type>>
-                <<time_filters>>
-                <<span_filter>>
-                <<stacktrace_filters>>
-                <<additional_filters>>
-            GROUP BY s.stacktrace_hash, s.frame_hashes, e.weight_entity;
+                a.total_samples,
+                a.total_weight
+            FROM aggregated a
+            INNER JOIN stacktraces s ON s.stacktrace_hash = a.stacktrace_hash;
             """;
 
     /**
@@ -269,7 +286,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             SELECT
                 fd.thread,
                 fd.stacktrace_hash,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -328,7 +345,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 fd.thread,
                 fd.stacktrace_hash,
                 fd.weight_entity,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -367,31 +384,46 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
     /**
      * Optimized version of byThreadAndWeight that returns frame_hashes for Java-side resolution.
      * ~10x faster than SQL-side frame resolution. Use with FramesCache for frame lookup.
+     *
+     * <p>Aggregated by thread and stacktrace hash first and joined to the thread and the frames
+     * after, for the reason {@link #BY_WEIGHT_OPTIMIZED} gives; both hashes are primary keys, so
+     * each aggregated row meets exactly one thread and one stack.
      */
     //language=SQL
     public static final String BY_THREAD_AND_WEIGHT_OPTIMIZED = """
+            WITH aggregated AS (
+                SELECT
+                    e.thread_hash,
+                    e.stacktrace_hash,
+                    e.weight_entity,
+                    SUM(e.samples) AS total_samples,
+                    SUM(e.weight) AS total_weight
+                FROM events e
+                INNER JOIN threads t ON t.thread_hash = e.thread_hash
+                INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+                WHERE e.event_type = <<event_type>>
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<thread_filters>>
+                    <<stacktrace_filters>>
+                    <<additional_filters>>
+                GROUP BY e.thread_hash, e.stacktrace_hash, e.weight_entity
+            )
             SELECT
                 STRUCT_PACK(
-                    os_id := ANY_VALUE(t.os_id),
-                    java_id := ANY_VALUE(t.java_id),
-                    name := ANY_VALUE(t.name),
-                    is_virtual := ANY_VALUE(t.is_virtual)
+                    os_id := t.os_id,
+                    java_id := t.java_id,
+                    name := t.name,
+                    is_virtual := t.is_virtual
                 ) AS thread,
-                s.stacktrace_hash,
+                a.stacktrace_hash,
                 s.frame_hashes,
-                e.weight_entity,
-                SUM(e.samples) AS total_samples,
-                SUM(e.weight) AS total_weight
-            FROM events e
-            INNER JOIN threads t ON t.thread_hash = e.thread_hash
-            INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-            WHERE e.event_type = <<event_type>>
-                <<time_filters>>
-                <<span_filter>>
-                <<thread_filters>>
-                <<stacktrace_filters>>
-                <<additional_filters>>
-            GROUP BY e.thread_hash, s.stacktrace_hash, s.frame_hashes, e.weight_entity;
+                a.weight_entity,
+                a.total_samples,
+                a.total_weight
+            FROM aggregated a
+            INNER JOIN threads t ON t.thread_hash = a.thread_hash
+            INNER JOIN stacktraces s ON s.stacktrace_hash = a.stacktrace_hash;
             """;
 
     @Override

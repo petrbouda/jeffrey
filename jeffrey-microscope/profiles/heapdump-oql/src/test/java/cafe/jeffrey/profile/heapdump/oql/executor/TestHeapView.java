@@ -35,6 +35,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -83,6 +84,15 @@ final class TestHeapView implements HeapView {
     @Override
     public Optional<String> findStringContent(long instanceId) {
         return Optional.ofNullable(cannedStrings.get(instanceId));
+    }
+
+    @Override
+    public Map<Long, String> findStringContents(Collection<Long> instanceIds) {
+        Map<Long, String> found = new HashMap<>();
+        for (long id : instanceIds) {
+            findStringContent(id).ifPresent(content -> found.put(id, content));
+        }
+        return found;
     }
 
     @Override
@@ -350,6 +360,11 @@ final class TestHeapView implements HeapView {
     @Override
     public List<InstanceFieldValue> readInstanceFields(long instanceId) {
         return cannedFields.getOrDefault(instanceId, List.of());
+    }
+
+    @Override
+    public List<InstanceFieldValue> readInstanceFields(InstanceRow instance) {
+        return readInstanceFields(instance.instanceId());
     }
 
     @Override
