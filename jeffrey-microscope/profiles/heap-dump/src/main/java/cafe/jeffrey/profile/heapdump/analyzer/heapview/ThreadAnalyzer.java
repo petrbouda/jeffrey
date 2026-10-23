@@ -21,12 +21,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadState;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.profile.heapdump.view.InstanceColumns;
 import cafe.jeffrey.profile.heapdump.view.InstanceFieldValue;
+import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
 
 import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableInt;
@@ -54,6 +57,8 @@ import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableLong;
  */
 public final class ThreadAnalyzer {
 
+    private static final String UNKNOWN_NAME = "<unknown>";
+
     private ThreadAnalyzer() {
     }
 
@@ -61,7 +66,11 @@ public final class ThreadAnalyzer {
      * Pulls every ROOT_THREAD_OBJECT row joined to its top-of-stack frame, frame
      * count, and locals stats in a single SQL pass. LEFT JOINs cover threads
      * with no STACK_TRACE record (which we still want to surface — just with
-     * null stack stats).
+     * null stack stats). The thread's own instance row and retained size come
+     * along, so decoding a thread costs no lookup of its own: three per thread
+     * was what this analysis spent, and DuckDB 2.0's parser makes each one dearer.
+     * A thread object with no instance row has no fields to decode and is left out.
+     * Ordered by object id, so two threads a caller ranks equal keep one order.
      */
     private static final String THREAD_BULK_SQL = """
             WITH frame_counts AS (
@@ -84,40 +93,68 @@ public final class ThreadAnalyzer {
                 WHERE gr.root_kind = """ + HprofTag.Sub.ROOT_JAVA_FRAME + """
                 GROUP BY gr.thread_serial
             )
-            SELECT  gr.instance_id,
-                    gr.thread_serial,
-                    fc.frame_count,
+            SELECT  fc.frame_count,
                     tf.class_name  AS top_class,
                     tf.method_name AS top_method,
                     tf.line_number AS top_line,
                     ls.locals_count,
-                    ls.locals_bytes
+                    ls.locals_bytes,
+                    ret.bytes      AS retained_bytes,
+                    """ + InstanceColumns.of("i") + "\n" + """
             FROM gc_root gr
+            JOIN instance i ON i.instance_id = gr.instance_id
+            LEFT JOIN retained_size ret ON ret.instance_id = gr.instance_id
             LEFT JOIN frame_counts fc ON fc.thread_serial = gr.thread_serial
             LEFT JOIN top_frame    tf ON tf.thread_serial = gr.thread_serial
             LEFT JOIN local_stats  ls ON ls.thread_serial = gr.thread_serial
-            WHERE gr.root_kind = """ + HprofTag.Sub.ROOT_THREAD_OBJECT;
+            WHERE gr.root_kind = """ + HprofTag.Sub.ROOT_THREAD_OBJECT + " ORDER BY gr.instance_id";
+
+    private static final int FIRST_INSTANCE_COLUMN = 8;
 
     public static List<HeapThreadInfo> analyze(HeapView view) throws SQLException {
         boolean haveRetained = view.hasDominatorTree();
-        List<HeapThreadInfo> out = new ArrayList<>();
 
+        record ThreadRow(InstanceRow instance, List<InstanceFieldValue> fields, Long retained,
+                         Integer frameCount, Integer localsCount, Long localsBytes, HeapThreadState state) {
+        }
+        List<ThreadRow> threads = new ArrayList<>();
         try (Statement stmt = view.databaseClient().connection().createStatement();
              ResultSet rs = stmt.executeQuery(THREAD_BULK_SQL)) {
             while (rs.next()) {
-                long threadInstanceId = rs.getLong(1);
-                Integer frameCount = nullableInt(rs, 3);
-                String topClass = rs.getString(4);
-                String topMethod = rs.getString(5);
-                Integer topLine = nullableInt(rs, 6);
-                Integer localsCount = nullableInt(rs, 7);
-                Long localsBytes = nullableLong(rs, 8);
-                HeapThreadState state = deriveState(topClass, topMethod, topLine);
-                Optional<HeapThreadInfo> info = decodeThread(
-                        view, threadInstanceId, haveRetained,
-                        frameCount, localsCount, localsBytes, state);
-                info.ifPresent(out::add);
+                Integer frameCount = nullableInt(rs, 1);
+                String topClass = rs.getString(2);
+                String topMethod = rs.getString(3);
+                Integer topLine = nullableInt(rs, 4);
+                Integer localsCount = nullableInt(rs, 5);
+                Long localsBytes = nullableLong(rs, 6);
+                Long retained = haveRetained ? nullableLong(rs, 7) : null;
+                InstanceRow instance = InstanceColumns.read(rs, FIRST_INSTANCE_COLUMN);
+                List<InstanceFieldValue> fields;
+                try {
+                    fields = view.readInstanceFields(instance);
+                } catch (IllegalStateException noHprof) {
+                    return List.of();
+                }
+                if (!fields.isEmpty()) {
+                    threads.add(new ThreadRow(instance, fields, retained, frameCount, localsCount, localsBytes,
+                            deriveState(topClass, topMethod, topLine)));
+                }
             }
+        }
+
+        List<Long> nameRefs = new ArrayList<>();
+        for (ThreadRow thread : threads) {
+            Long ref = nameRef(thread.fields());
+            if (ref != null) {
+                nameRefs.add(ref);
+            }
+        }
+        Map<Long, String> names = view.findStringContents(nameRefs);
+
+        List<HeapThreadInfo> out = new ArrayList<>(threads.size());
+        for (ThreadRow thread : threads) {
+            out.add(decodeThread(view, thread.instance().instanceId(), thread.fields(), names, thread.retained(),
+                    thread.frameCount(), thread.localsCount(), thread.localsBytes(), thread.state()));
         }
         return out;
     }
@@ -164,29 +201,34 @@ public final class ThreadAnalyzer {
         return HeapThreadState.RUNNABLE;
     }
 
-    private static Optional<HeapThreadInfo> decodeThread(
-            HeapView view, long instanceId, boolean haveRetained,
-            Integer frameCount, Integer localsCount, Long localsBytes, HeapThreadState state) throws SQLException {
-        List<InstanceFieldValue> fields;
-        try {
-            fields = view.readInstanceFields(instanceId);
-        } catch (IllegalStateException noHprof) {
-            return Optional.empty();
+    /** The String the thread's {@code name} field points at, or null when it has none. */
+    private static Long nameRef(List<InstanceFieldValue> fields) {
+        for (InstanceFieldValue f : fields) {
+            if (JdkFieldNames.THREAD_NAME.equals(f.name()) && f.value() instanceof Long stringRef && stringRef != 0L) {
+                return stringRef;
+            }
         }
-        if (fields.isEmpty()) {
-            return Optional.empty();
-        }
+        return null;
+    }
 
-        String name = "<unknown>";
+    /**
+     * Builds the thread from its decoded fields. Its name comes from {@code names}, the contents read
+     * for every thread at once; a name too long to have been stored at index time is decoded from
+     * the dump on its own.
+     */
+    private static HeapThreadInfo decodeThread(
+            HeapView view, long instanceId, List<InstanceFieldValue> fields, Map<Long, String> names, Long retained,
+            Integer frameCount, Integer localsCount, Long localsBytes, HeapThreadState state) throws SQLException {
+        String name = UNKNOWN_NAME;
         boolean daemon = false;
         int priority = 0;
         for (InstanceFieldValue f : fields) {
             switch (f.name()) {
                 case JdkFieldNames.THREAD_NAME -> {
                     if (f.value() instanceof Long stringRef && stringRef != 0L) {
-                        Optional<String> cached = view.findStringContent(stringRef);
-                        if (cached.isPresent()) {
-                            name = cached.get();
+                        String stored = names.get(stringRef);
+                        if (stored != null) {
+                            name = stored;
                         } else {
                             Optional<JavaStringDecoder.Decoded> decoded =
                                     JavaStringDecoder.decode(view, stringRef);
@@ -212,10 +254,9 @@ public final class ThreadAnalyzer {
             }
         }
 
-        Long retained = haveRetained ? view.findRetainedSize(instanceId).orElse(null) : null;
-        return Optional.of(new HeapThreadInfo(
+        return new HeapThreadInfo(
                 instanceId, name, daemon, priority, retained,
-                frameCount, localsCount, localsBytes, state));
+                frameCount, localsCount, localsBytes, state);
     }
 
 }

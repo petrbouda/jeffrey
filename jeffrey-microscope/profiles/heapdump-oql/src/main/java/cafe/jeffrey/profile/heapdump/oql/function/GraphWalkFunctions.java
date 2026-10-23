@@ -17,6 +17,7 @@
 package cafe.jeffrey.profile.heapdump.oql.function;
 
 import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.InstanceColumns;
 import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
 
@@ -44,10 +45,11 @@ public final class GraphWalkFunctions {
 
     /**
      * The transitive walk, one statement for either direction: {@code %1$s} is the column the walk
-     * moves to and {@code %2$s} the one it moves from. Breadth-first, with {@code USING KEY} keeping
-     * one row per instance as the visited set, and no level started once the visit cap is reached;
-     * the answer is the instances visited, nearest first, without the start itself. Ids that name no
-     * instance (a class, the null reference) are walked through but not answered.
+     * moves to, {@code %2$s} the one it moves from, and {@code %3$s} the instance columns answered.
+     * Breadth-first, with {@code USING KEY} keeping one row per instance as the visited set, and no
+     * level started once the visit cap is reached; the answer is the instances visited, nearest
+     * first, without the start itself. Ids that name no instance (a class, the null reference) are
+     * walked through but not answered.
      *
      * <p>It replaced a Java walk that issued a query per visited instance -- and in the forward
      * direction a query against {@code source_id}, which has no index, so each one scanned the
@@ -66,8 +68,7 @@ public final class GraphWalkFunctions {
                   AND (SELECT count(*) FROM recurring.walk) < ?
                 GROUP BY r.%1$s
             )
-            SELECT i.instance_id, i.class_id, i.file_offset, i.record_kind, i.shallow_size,
-                   i.array_length, i.primitive_type
+            SELECT %3$s
             FROM walk w
             JOIN instance i ON i.instance_id = w.instance_id
             WHERE w.depth > 0
@@ -75,9 +76,11 @@ public final class GraphWalkFunctions {
             LIMIT ?
             """;
 
-    private static final String REACHABLES_SQL = TRANSITIVE_WALK_SQL.formatted("target_id", "source_id");
+    private static final String REACHABLES_SQL =
+            TRANSITIVE_WALK_SQL.formatted("target_id", "source_id", InstanceColumns.of("i"));
 
-    private static final String REFERRERS_SQL = TRANSITIVE_WALK_SQL.formatted("source_id", "target_id");
+    private static final String REFERRERS_SQL =
+            TRANSITIVE_WALK_SQL.formatted("source_id", "target_id", InstanceColumns.of("i"));
 
     private GraphWalkFunctions() {
     }
@@ -109,14 +112,7 @@ public final class GraphWalkFunctions {
             stmt.setInt(3, MAX_TRAVERSAL_VISITS);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    out.add(new InstanceRow(
-                            rs.getLong(1),
-                            rs.getObject(2, Long.class),
-                            rs.getLong(3),
-                            InstanceRow.Kind.fromOrdinal(rs.getInt(4)),
-                            rs.getInt(5),
-                            rs.getObject(6, Integer.class),
-                            rs.getObject(7, Integer.class)));
+                    out.add(InstanceColumns.read(rs, 1));
                 }
             }
         }
