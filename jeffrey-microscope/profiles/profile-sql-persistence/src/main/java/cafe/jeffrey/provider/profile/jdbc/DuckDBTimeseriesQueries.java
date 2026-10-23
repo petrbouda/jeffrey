@@ -180,7 +180,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             )
             SELECT
                 ats.stacktrace_hash,
-                list_transform(ats.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(ats.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 ats.event_values
             FROM aggregated_timeseries ats
             CROSS JOIN frame_lookup fl;
@@ -227,7 +227,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             )
             SELECT
                 ae.stacktrace_hash,
-                list_transform(ae.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(ae.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 ae.event_values
             FROM aggregated_events ae
             CROSS JOIN frame_lookup fl;

@@ -97,7 +97,7 @@
         -->
         <spring-boot.version>4.1.1</spring-boot.version>
         <hikaricp.version>7.1.0</hikaricp.version>
-        <duckdb.version>1.5.5.1</duckdb.version>
+        <duckdb.version>2.0.0.0</duckdb.version>
         <mybatis.version>3.5.19</mybatis.version>
         <grpc.version>1.84.0</grpc.version>
         <protobuf.version>4.36.1</protobuf.version>

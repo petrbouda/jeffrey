@@ -104,8 +104,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- Event API contracts are a test-only dependency, not part of the persistence module. -->
-                    <argLine>--add-reads cafe.jeffrey.microscope.profile.persistence.jdbc=cafe.jeffrey.jfr.events,cafe.jeffrey.jfr.events.trace</argLine>
+                    <!-- Event API contracts are a test-only dependency, not part of the persistence module; so is
+                         jdk.jfr, which ProfileDatabaseMemoryMonitorTest streams the driver's events through. -->
+                    <argLine>--add-reads cafe.jeffrey.microscope.profile.persistence.jdbc=cafe.jeffrey.jfr.events,cafe.jeffrey.jfr.events.trace,jdk.jfr</argLine>
                 </configuration>
             </plugin>
         </plugins>

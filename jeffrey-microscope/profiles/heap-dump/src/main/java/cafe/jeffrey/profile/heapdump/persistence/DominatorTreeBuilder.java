@@ -19,6 +19,7 @@ package cafe.jeffrey.profile.heapdump.persistence;
 import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 
 import java.io.IOException;
@@ -167,6 +168,7 @@ public final class DominatorTreeBuilder {
 
         String url = "jdbc:duckdb:" + indexDbPath.toAbsolutePath();
         Properties props = new Properties();
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_INDEX);
         try (Connection raw = DriverManager.getConnection(url, props);
              DuckDBConnection conn = raw.unwrap(DuckDBConnection.class)) {
 

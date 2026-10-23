@@ -21,6 +21,7 @@ import org.flywaydb.core.Flyway;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.DataSourceProvider;
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 
 import javax.sql.DataSource;
 
@@ -46,7 +47,8 @@ public class DuckDBPlatformDatabaseManager implements DatabaseManager {
                 .url(databaseUri)
                 .poolName("core-database-pool")
                 .maxPoolSize(MAX_POOL_SIZE)
-                .enableMetrics(true);
+                .enableMetrics(true)
+                .additionalProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.CORE_DATABASE);
 
         return DataSourceProvider.open(dataSourceParams.build());
     }

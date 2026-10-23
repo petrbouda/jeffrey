@@ -227,8 +227,9 @@ public class DuckDbMcpTools {
     @Tool(description = "Executes a read-only SQL query on the JFR profile database. Only SELECT "
             + "statements are allowed; results are limited to " + MAX_ROWS + " rows and the response size, "
             + "and truncation says which stopped them. The 'events' view holds JFR events with a JSON "
-            + "'fields' column for event-specific data; parenthesise every extraction, (fields->>'key') = "
-            + "'v', because DuckDB binds ->> more loosely than AND, OR, comparisons and ::. With aggregate "
+            + "'fields' column for event-specific data; parenthesise every extraction, "
+            + "(fields->>'size')::BIGINT, because DuckDB binds ::, arithmetic and || tighter than ->>, and "
+            + "comparisons, AND and OR tighter than ->. With aggregate "
             + "functions (COUNT, SUM, AVG, MIN, MAX), every non-aggregated column of the SELECT has to appear in the GROUP BY clause. The "
             + "text is a Markdown table; the record carries the columns and each row's cells as text, a "
             + "SQL NULL as null.")
@@ -358,8 +359,8 @@ public class DuckDbMcpTools {
             @ToolParam(required = false, description = "Optional SQL WHERE clause for filtering "
                     + "(without the 'WHERE' keyword), using column names exactly as they exist in "
                     + "the events table (e.g. 'duration', not 'duration_ns'). The duration column "
-                    + "stores nanoseconds as BIGINT. Parenthesise JSON extractions, (fields->>'key') = 'v': "
-                    + "DuckDB binds ->> more loosely than AND, OR and comparisons.")
+                    + "stores nanoseconds as BIGINT. Parenthesise JSON extractions, (fields->>'size')::BIGINT "
+                    + "> 0: DuckDB binds ::, arithmetic and || tighter than ->>, and comparisons tighter than ->.")
             String whereClause) {
 
         if (eventType == null || eventType.isBlank()) {

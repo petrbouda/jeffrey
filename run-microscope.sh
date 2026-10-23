@@ -269,6 +269,15 @@ awk '
     /<event name="jdk\.OldObjectSample">/           { ev = "enable" }
     /<event name="jdk\.CPUTimeSample">/             { ev = "enable" }
     /<event name="jdk\.VirtualThreadPinned">/       { ev = "pin" }
+    # DuckDB keeps its memory outside the Java heap, where no JDK event sees it. The driver reports it
+    # per database (core, each profile, the heap-dump index) as duckdb.MemoryUsage, but only while a
+    # recording enables the event -- profile.jfc does not name it, so it is added here.
+    /<\/configuration>/ {
+        print "  <event name=\"duckdb.MemoryUsage\">"
+        print "    <setting name=\"enabled\">true</setting>"
+        print "    <setting name=\"period\">1 s</setting>"
+        print "  </event>"
+    }
     {
         if (ev == "enable") {
             sub(/<setting name="enabled">false<\/setting>/, "<setting name=\"enabled\">true</setting>")

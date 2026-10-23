@@ -69,12 +69,13 @@ Derived from the events when the profile carries Jeffrey Tracing, and empty othe
 - **Durations are nanoseconds.** `duration / 1000000` → milliseconds.
 - **Event-specific data is JSON** in `fields`: `(fields->>'key')`, or `json_extract_string(fields, '$.key')`.
   Cast before comparing numerically: `CAST(fields->>'bytesRead' AS BIGINT) > 100`.
-- **Parenthesise every `->>` outside a function call.** DuckDB binds `->` and `->>` more loosely
-  than `AND`, `OR`, comparisons, arithmetic and `::`, so
-  `event_type = 'jeffrey.TraceSpan' AND fields->>'traceId' = 'a07…'` reads as
-  `(event_type = '…' AND fields)->>'traceId'` and fails with "Failed to cast value to numerical …
-  from source column fields". Write `(fields->>'traceId') = 'a07…'` and `(fields->>'size')::BIGINT`;
-  inside `CAST(…)`, `SUM(…)` or any other call it is already safe.
+- **Parenthesise every `->>` outside a function call.** DuckDB binds `::`, arithmetic and `||`
+  more tightly than `->>`, so `fields->>'size'::BIGINT` casts the key `'size'` (and fails with
+  "Could not convert string 'size' to INT64") and `fields->>'end' - fields->>'start'` subtracts a
+  document from a string. `->` is looser still, below comparisons, `AND` and `OR` too:
+  `fields->'id' = 1` reads as `fields->('id' = 1)`. Write `(fields->>'size')::BIGINT` and
+  `(fields->>'end') - (fields->>'start')`; inside `CAST(…)`, `SUM(…)` or any other call it is
+  already safe.
 - **Timestamps**: `epoch_ms(start_timestamp)` for epoch millis.
 - **Stacks**: `UNNEST(frame_hashes)` and join to `frames`. The array is stored **root-first**: the
   first element is the thread entry point (`Thread.run`) and the **last** is the leaf that was

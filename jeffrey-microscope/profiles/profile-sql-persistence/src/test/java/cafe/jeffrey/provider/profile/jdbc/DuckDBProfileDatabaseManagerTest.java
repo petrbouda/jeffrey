@@ -32,6 +32,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -194,6 +195,23 @@ class DuckDBProfileDatabaseManagerTest {
                     "ATTACH '" + baseDir.resolve("elsewhere.db").toAbsolutePath() + "' AS other");
 
             assertTrue(e.getMessage().contains("disabled by configuration"), e.getMessage());
+        }
+
+        /*
+         * DuckDB 2.0 accepts COPY inside a CTE, so a statement that starts with WITH -- the shape
+         * jfr_executeQuery lets through -- can name a file to write. The rollback that undoes a
+         * caller's DELETE cannot take back a file, so it is the engine that has to refuse.
+         */
+        @Test
+        @DisplayName("a COPY inside a CTE cannot write a file")
+        void refusesACopyInsideACte() {
+            Path target = baseDir.resolve("exported.csv");
+
+            SQLException e = refusedBy(profileDatabase(),
+                    "WITH x AS (COPY (SELECT 1) TO '" + target.toAbsolutePath() + "') SELECT 1");
+
+            assertTrue(e.getMessage().contains("disabled by configuration"), e.getMessage());
+            assertFalse(Files.exists(target), "the refused COPY must not have written its file");
         }
     }
 }

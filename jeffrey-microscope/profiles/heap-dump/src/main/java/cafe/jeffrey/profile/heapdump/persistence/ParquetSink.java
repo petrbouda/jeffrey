@@ -16,6 +16,7 @@
  */
 package cafe.jeffrey.profile.heapdump.persistence;
 
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 
@@ -25,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 /**
@@ -93,8 +95,10 @@ public final class ParquetSink implements AutoCloseable {
             throw new IllegalArgumentException("outputPaths must cover every entry in tableDdls");
         }
 
+        Properties props = new Properties();
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_STAGING);
         DuckDBConnection conn = (DuckDBConnection)
-                DriverManager.getConnection(JDBC_URL).unwrap(DuckDBConnection.class);
+                DriverManager.getConnection(JDBC_URL, props).unwrap(DuckDBConnection.class);
 
         Map<String, TableSink> sinks = new LinkedHashMap<>();
         try {

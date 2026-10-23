@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.profile.heapdump.model.PathStep;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.HprofIndex;
@@ -214,6 +215,113 @@ class PathToGCRootAnalyzerTest {
         try (HeapView view = HeapView.open(indexDb)) {
             assertEquals(1, PathToGCRootAnalyzer.findPaths(view, target, false, 1).size());
             assertEquals(2, PathToGCRootAnalyzer.findPaths(view, target, false, 5).size());
+        }
+    }
+
+    /**
+     * Topology:
+     *   ROOT root1 (Holder) → weakRef (CacheRef extends java.lang.ref.WeakReference) → target
+     *   ROOT root2 (Holder) → holder (Holder) → target
+     *
+     * The weak path is the shorter one, so it comes first while weak references count; excluding
+     * them leaves only the strong path, and the exclusion has to reach CacheRef through its
+     * superclass, since only the JDK classes are named.
+     */
+    @Test
+    void excludesPathsThroughSubclassesOfWeakReference(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long holderClass = 0xC001L;
+        long weakClass = 0xC002L;
+        long cacheRefClass = 0xC003L;
+        long root1 = 0x1001L;
+        long root2 = 0x1002L;
+        long weakRef = 0x2001L;
+        long holder = 0x2002L;
+        long target = 0x3000L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .string(0xA003L, "java.lang.ref.WeakReference")
+                .string(0xA004L, "CacheRef")
+                .string(0xA005L, "referent")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .loadClass(2, weakClass, 0, 0xA003L)
+                .loadClass(3, cacheRefClass, 0, 0xA004L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(holderClass, 0xA002L)
+                        .classDumpWithFields(weakClass, 0L, 0L, 0)
+                        .objectFieldClassDumpWithSuper(cacheRefClass, weakClass, 0xA005L)
+                        .gcRootJavaFrame(root1, 1, 1)
+                        .gcRootJavaFrame(root2, 2, 2)
+                        .instanceDump(root1, holderClass, idBytes(weakRef, idSize))
+                        .instanceDump(root2, holderClass, idBytes(holder, idSize))
+                        .instanceDump(weakRef, cacheRefClass, idBytes(target, idSize))
+                        .instanceDump(holder, holderClass, idBytes(target, idSize))
+                        .instanceDump(target, holderClass, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "weak.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HeapView view = HeapView.open(indexDb)) {
+            List<GCRootPath> all = PathToGCRootAnalyzer.findPaths(view, target, false, 5);
+            assertEquals(List.of(root1, root2), all.stream().map(GCRootPath::rootObjectId).toList(),
+                    "both roots hold the target while weak references count, shallowest first");
+
+            List<GCRootPath> strong = PathToGCRootAnalyzer.findPaths(view, target, true, 5);
+            assertEquals(1, strong.size());
+            assertEquals(root2, strong.get(0).rootObjectId());
+            assertEquals(List.of(root2, holder, target),
+                    strong.get(0).steps().stream().map(PathStep::objectId).toList());
+        }
+    }
+
+    /**
+     * Topology:
+     *   ROOT near → target, and ROOT far → a → b → target
+     *
+     * Breadth-first, so with room for one path it is the shorter one, whatever the ids.
+     */
+    @Test
+    void answersTheShortestPathFirst(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long far = 0x1001L;
+        long near = 0x1009L;
+        long a = 0x2001L;
+        long b = 0x2002L;
+        long target = 0x3000L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRootJavaFrame(far, 1, 1)
+                        .gcRootJavaFrame(near, 2, 2)
+                        .instanceDump(far, classId, idBytes(a, idSize))
+                        .instanceDump(a, classId, idBytes(b, idSize))
+                        .instanceDump(b, classId, idBytes(target, idSize))
+                        .instanceDump(near, classId, idBytes(target, idSize))
+                        .instanceDump(target, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "shortest.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HeapView view = HeapView.open(indexDb)) {
+            List<GCRootPath> one = PathToGCRootAnalyzer.findPaths(view, target, false, 1);
+            assertEquals(1, one.size());
+            assertEquals(near, one.get(0).rootObjectId());
+
+            List<GCRootPath> both = PathToGCRootAnalyzer.findPaths(view, target, false, 5);
+            assertEquals(List.of(2, 4), both.stream().map(path -> path.steps().size()).toList());
         }
     }
 

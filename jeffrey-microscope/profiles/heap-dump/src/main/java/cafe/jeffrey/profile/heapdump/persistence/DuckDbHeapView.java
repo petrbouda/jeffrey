@@ -16,6 +16,7 @@
  */
 package cafe.jeffrey.profile.heapdump.persistence;
 
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
@@ -182,6 +183,15 @@ public final class DuckDbHeapView implements HeapView {
      */
     private final ConcurrentMap<Long, List<InstanceFieldDescriptor>> fieldChainCache = new ConcurrentHashMap<>();
 
+    /**
+     * Per-session cache for {@link #findClassById(long)}. A dump holds thousands of classes and
+     * millions of instances, so the callers that resolve one class per instance -- an OQL graph
+     * function fanning out over fifty thousand reached objects, a GC-root path naming each step --
+     * ask for the same few classes over and over, and each ask was a DuckDB PK round-trip.
+     * Lifetime matches this view's open session; dropped when {@link #close()} runs.
+     */
+    private final ConcurrentMap<Long, Optional<JavaClassRow>> classByIdCache = new ConcurrentHashMap<>();
+
     private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) throws SQLException {
         this.path = path;
         this.connection = connection;
@@ -210,6 +220,7 @@ public final class DuckDbHeapView implements HeapView {
         props.setProperty("enable_external_access", "false");
         props.setProperty("autoinstall_known_extensions", "false");
         props.setProperty("autoload_known_extensions", "false");
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_INDEX);
         Connection conn = DriverManager.getConnection(url, props);
         LOG.debug("Opened heap dump index for reading: path={} hprof_attached={}",
                 indexDbPath, hprof != null);
@@ -256,10 +267,16 @@ public final class DuckDbHeapView implements HeapView {
 
     @Override
     public Optional<JavaClassRow> findClassById(long classId) throws SQLException {
+        Optional<JavaClassRow> cached = classByIdCache.get(classId);
+        if (cached != null) {
+            return cached;
+        }
         try (PreparedStatement stmt = connection.prepareStatement(SELECT_CLASS_BY_ID)) {
             stmt.setLong(1, classId);
             try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? Optional.of(mapClass(rs)) : Optional.empty();
+                Optional<JavaClassRow> found = rs.next() ? Optional.of(mapClass(rs)) : Optional.empty();
+                classByIdCache.put(classId, found);
+                return found;
             }
         }
     }

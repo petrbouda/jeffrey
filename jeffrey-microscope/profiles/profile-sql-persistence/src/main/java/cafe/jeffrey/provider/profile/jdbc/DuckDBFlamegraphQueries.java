@@ -111,7 +111,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             )
             SELECT
                 fd.stacktrace_hash,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -182,7 +182,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             SELECT
                 fd.stacktrace_hash,
                 fd.weight_entity,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -269,7 +269,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
             SELECT
                 fd.thread,
                 fd.stacktrace_hash,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd
@@ -328,7 +328,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                 fd.thread,
                 fd.stacktrace_hash,
                 fd.weight_entity,
-                list_transform(fd.frame_hashes, fh -> fl.frames_map[fh]) AS frames,
+                list_transform(fd.frame_hashes, lambda fh: fl.frames_map[fh]) AS frames,
                 fd.total_samples,
                 fd.total_weight
             FROM filtered_data fd

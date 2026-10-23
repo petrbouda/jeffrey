@@ -19,15 +19,14 @@ package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.PathStep;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
@@ -41,10 +40,16 @@ import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
  * HeapView-backed equivalent of
  * {@link cafe.jeffrey.profile.heapdump.analyzer.PathToGCRootAnalyzer}.
  *
- * Reverse BFS from the target object via {@code outbound_ref} (queried as
- * inbound — DuckDB's idx_outbound_target makes this cheap). Walks until a GC
- * root is reached or {@code MAX_DEPTH} is exceeded, then reconstructs the
- * path forward to the target.
+ * Breadth-first search backwards from the target along {@code outbound_ref}, until
+ * {@code maxPaths} GC roots are reached or {@code MAX_DEPTH} is exceeded, then the path
+ * forward from each root to the target. Being breadth-first, the paths found are the
+ * shortest ones, shortest first.
+ *
+ * The whole search is one recursive query ({@link #FIND_PATHS_SQL}) rather than a walk
+ * in Java issuing a query per visited instance: a target deep in a large heap visits
+ * hundreds of thousands of instances, and the round trips, not the walk, were the cost --
+ * on a 144 MB dump the slowest target took 5.4 s that way and takes 0.2 s this way. It
+ * leans on DuckDB 2.0's rewritten recursive CTEs: on 1.5 the same query took 2.4 s there.
  *
  * Limitations vs the NetBeans-backed version:
  * <ul>
@@ -53,9 +58,8 @@ import cafe.jeffrey.profile.heapdump.view.OutboundRefRow;
  *   <li>{@code threadName} and {@code stackFrame} on thread-rooted paths are
  *       null until PR #10's {@link cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadAnalyzer}
  *       is in and the necessary {@code Thread.name} decoder ships with it.</li>
- *   <li>Weak-reference exclusion is best-effort by class name only — the
- *       NetBeans path also walks the super-class chain; we do that via
- *       {@link HeapView#findClassById}.</li>
+ *   <li>Weak-reference exclusion is best-effort by class name only, the classes below and
+ *       every subclass of them.</li>
  * </ul>
  * The path itself (root → target with field names) is exact.
  */
@@ -71,6 +75,91 @@ public final class PathToGCRootAnalyzer {
             "java.lang.ref.FinalReference",
             "java.lang.ref.Finalizer");
 
+    private static final String WEAK_REF_CLASS_LITERALS = WEAK_REF_CLASSES.stream()
+            .sorted()
+            .map(name -> "'" + name + "'")
+            .collect(Collectors.joining(", "));
+
+    /**
+     * The search, parameterised by target, depth limit, path limit and whether weak references
+     * are skipped, answering one row per step of each found path, root first.
+     *
+     * <ul>
+     *   <li>{@code weak_class} -- the weak-reference classes and all their subclasses; empty
+     *       unless they are excluded. An instance of one is never a step on a path.</li>
+     *   <li>{@code walk} -- the BFS. {@code USING KEY (instance_id)} makes the recursion's state
+     *       one row per instance, which is the visited set: an instance already in
+     *       {@code recurring.walk} is not reached again. Each row keeps the reference it was
+     *       reached through ({@code child_id}, {@code field_kind}, {@code field_id}); when one
+     *       level reaches an instance through several references the lowest child id wins, so
+     *       the answer does not depend on the engine's scheduling. A root is not walked past, and
+     *       the next level is not started once {@code max_paths} roots are in hand -- the search
+     *       answers the shortest paths, so it stops where the Java walk it replaces stopped. The
+     *       target itself never counts as a root: it is the start, not a path.</li>
+     *   <li>{@code chosen} -- the shallowest {@code max_paths} roots, ties by id.</li>
+     *   <li>{@code path} -- each root's chain of {@code child_id}s forward to the target.</li>
+     * </ul>
+     * A root is accepted only below {@link #MAX_DEPTH} hops, as it was when the walk lived in
+     * Java: the last level the search starts is {@code MAX_DEPTH - 2}, whose instances are one
+     * hop short of the limit.
+     */
+    private static final String FIND_PATHS_SQL = """
+            WITH RECURSIVE search AS (
+                SELECT ?::BIGINT AS target_id, ?::INTEGER AS max_depth, ?::BIGINT AS max_paths,
+                       ?::BOOLEAN AS exclude_weak
+            ),
+            weak_class(class_id) AS (
+                SELECT c.class_id
+                FROM class c, search s
+                WHERE s.exclude_weak AND c.name IN (%s)
+                UNION
+                SELECT c.class_id
+                FROM class c
+                JOIN weak_class w ON c.super_class_id = w.class_id
+            ),
+            walk(instance_id, child_id, field_kind, field_id, depth, is_root) USING KEY (instance_id) AS (
+                SELECT target_id, NULL::BIGINT, NULL::TINYINT, NULL::INTEGER, 0, FALSE
+                FROM search
+                UNION
+                SELECT r.source_id,
+                       arg_min(r.target_id, (r.target_id, r.field_id)),
+                       arg_min(r.field_kind, (r.target_id, r.field_id)),
+                       arg_min(r.field_id, (r.target_id, r.field_id)),
+                       min(w.depth) + 1,
+                       r.source_id IN (SELECT instance_id FROM gc_root)
+                FROM walk w
+                CROSS JOIN search s
+                JOIN outbound_ref r ON r.target_id = w.instance_id
+                LEFT JOIN instance i ON i.instance_id = r.source_id
+                WHERE NOT w.is_root
+                  AND w.depth < s.max_depth - 1
+                  AND r.source_id NOT IN (SELECT instance_id FROM recurring.walk)
+                  AND (i.class_id IS NULL OR i.class_id NOT IN (SELECT class_id FROM weak_class))
+                  AND (SELECT count(*) FROM recurring.walk x WHERE x.is_root) < s.max_paths
+                GROUP BY r.source_id
+            ),
+            chosen AS (
+                SELECT w.instance_id AS root_id, row_number() OVER (ORDER BY w.depth, w.instance_id) AS path_no
+                FROM walk w
+                WHERE w.is_root
+                ORDER BY w.depth, w.instance_id
+                LIMIT (SELECT max_paths FROM search)
+            ),
+            path(path_no, step, instance_id, child_id, field_kind, field_id) AS (
+                SELECT ch.path_no, 0, w.instance_id, w.child_id, w.field_kind, w.field_id
+                FROM chosen ch
+                JOIN walk w ON w.instance_id = ch.root_id
+                UNION ALL
+                SELECT p.path_no, p.step + 1, w.instance_id, w.child_id, w.field_kind, w.field_id
+                FROM path p
+                JOIN walk w ON w.instance_id = p.child_id
+            )
+            SELECT p.path_no, p.instance_id, p.field_kind, p.field_id,
+                   (SELECT min(g.root_kind) FROM gc_root g WHERE g.instance_id = p.instance_id AND p.step = 0)
+            FROM path p
+            ORDER BY p.path_no, p.step
+            """.formatted(WEAK_REF_CLASS_LITERALS);
+
     private PathToGCRootAnalyzer() {
     }
 
@@ -84,134 +173,57 @@ public final class PathToGCRootAnalyzer {
             return List.of();
         }
 
-        // Cheap GC-root lookup via a single SELECT.
-        Map<Long, Integer> rootKindByInstance = loadGcRoots(view);
-
-        // Cache class metadata + weak-ref decisions so we don't re-query for repeat ids.
         Map<Long, JavaClassRow> classCache = new HashMap<>();
-        Map<Long, Boolean> weakRefCache = new HashMap<>();
-
-        // BFS frontier carries (currentInstanceId, parentInstanceId, refUsedToReach).
-        // We track per-instance parents to reconstruct the eventual path.
-        Map<Long, ParentLink> parents = new HashMap<>();
-        parents.put(targetId, null);
-        Queue<Long> queue = new ArrayDeque<>();
-        queue.add(targetId);
-
-        List<Long> foundRoots = new ArrayList<>();
-        Map<Long, Integer> depths = new HashMap<>();
-        depths.put(targetId, 0);
-
-        while (!queue.isEmpty() && foundRoots.size() < maxPaths) {
-            long current = queue.poll();
-            int depth = depths.get(current);
-            if (depth >= MAX_DEPTH) {
-                continue;
-            }
-            // Don't treat the target itself as a root if it happens to be one.
-            if (current != targetId && rootKindByInstance.containsKey(current)) {
-                foundRoots.add(current);
-                continue;
-            }
-            for (OutboundRefRow ref : view.inboundRefs(current)) {
-                long parent = ref.sourceId();
-                if (parents.containsKey(parent)) {
-                    continue;
-                }
-                if (excludeWeakRefs && isWeakReferenceClass(view, parent, classCache, weakRefCache)) {
-                    continue;
-                }
-                parents.put(parent, new ParentLink(current, ref));
-                depths.put(parent, depth + 1);
-                queue.add(parent);
-            }
-        }
-
         List<GCRootPath> paths = new ArrayList<>();
-        for (long root : foundRoots) {
-            paths.add(reconstructPath(view, targetId, root, parents, rootKindByInstance, classCache));
+        for (List<PathRow> rows : searchPaths(view, targetId, excludeWeakRefs, maxPaths)) {
+            paths.add(toPath(view, targetId, rows, classCache));
         }
         return paths;
     }
 
-    private static Map<Long, Integer> loadGcRoots(HeapView view) throws SQLException {
-        Map<Long, Integer> out = new HashMap<>();
-        try (Statement stmt = view.databaseClient().connection().createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT instance_id, root_kind FROM gc_root")) {
-            while (rs.next()) {
-                // If an instance is rooted multiple ways, the most recent kind wins — fine for path display.
-                out.put(rs.getLong(1), rs.getInt(2));
-            }
-        }
-        return out;
-    }
-
-    private static boolean isWeakReferenceClass(
-            HeapView view, long instanceId, Map<Long, JavaClassRow> classCache,
-            Map<Long, Boolean> weakRefCache) throws SQLException {
-        InstanceRow inst = view.findInstanceById(instanceId).orElse(null);
-        if (inst == null || inst.classId() == null) {
-            return false;
-        }
-        Long classId = inst.classId();
-        Boolean cached = weakRefCache.get(classId);
-        if (cached != null) {
-            return cached;
-        }
-        long current = classId;
-        boolean weak = false;
-        while (current != 0L) {
-            JavaClassRow cls = classCache.computeIfAbsent(current, id -> {
-                try {
-                    return view.findClassById(id).orElse(null);
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
+    /** Each found path's steps, root first, in the order the search ranked the paths. */
+    private static List<List<PathRow>> searchPaths(
+            HeapView view, long targetId, boolean excludeWeakRefs, int maxPaths) throws SQLException {
+        Map<Long, List<PathRow>> byPath = new LinkedHashMap<>();
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(FIND_PATHS_SQL)) {
+            stmt.setLong(1, targetId);
+            stmt.setInt(2, MAX_DEPTH);
+            stmt.setLong(3, maxPaths);
+            stmt.setBoolean(4, excludeWeakRefs);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    PathRow row = new PathRow(
+                            rs.getLong(2),
+                            rs.getObject(3, Integer.class),
+                            rs.getObject(4, Integer.class),
+                            rs.getObject(5, Integer.class));
+                    byPath.computeIfAbsent(rs.getLong(1), _ -> new ArrayList<>()).add(row);
                 }
-            });
-            if (cls == null) {
-                break;
             }
-            if (WEAK_REF_CLASSES.contains(cls.name())) {
-                weak = true;
-                break;
-            }
-            current = cls.superClassId() == null ? 0L : cls.superClassId();
         }
-        weakRefCache.put(classId, weak);
-        return weak;
+        return List.copyOf(byPath.values());
     }
 
-    private static GCRootPath reconstructPath(
-            HeapView view, long targetId, long rootId, Map<Long, ParentLink> parents,
-            Map<Long, Integer> rootKindByInstance, Map<Long, JavaClassRow> classCache) throws SQLException {
-        // Walk from root forward to target by following the parent chain.
-        List<Long> ids = new ArrayList<>();
-        List<OutboundRefRow> edges = new ArrayList<>();
-        long cursor = rootId;
-        while (cursor != targetId) {
-            ParentLink link = parents.get(cursor);
-            if (link == null) {
-                break; // shouldn't happen if BFS reached cursor
+    private static GCRootPath toPath(
+            HeapView view, long targetId, List<PathRow> rows, Map<Long, JavaClassRow> classCache)
+            throws SQLException {
+        List<PathStep> steps = new ArrayList<>(rows.size());
+        for (int i = 0; i < rows.size(); i++) {
+            PathRow row = rows.get(i);
+            String fieldName = null;
+            if (i + 1 < rows.size()) {
+                OutboundRefRow ref = new OutboundRefRow(
+                        row.instanceId(), rows.get(i + 1).instanceId(), row.fieldKind(), row.fieldId());
+                fieldName = resolveFieldName(view, row.instanceId(), ref, classCache);
             }
-            ids.add(cursor);
-            edges.add(link.refToChild());
-            cursor = link.child();
+            steps.add(buildStep(view, row.instanceId(), fieldName, row.instanceId() == targetId, classCache));
         }
-        ids.add(targetId);
-        // edges[i] is the outbound ref from ids[i] to ids[i+1]. ids has one more entry than edges.
 
-        List<PathStep> steps = new ArrayList<>(ids.size());
-        for (int i = 0; i < ids.size(); i++) {
-            long id = ids.get(i);
-            String fieldName = i + 1 < ids.size() ? resolveFieldName(view, id, edges.get(i), classCache) : null;
-            steps.add(buildStep(view, id, fieldName, id == targetId, classCache));
-        }
-        // ids are already root→target by construction (BFS reverses parent-pointers).
-
-        int rootKind = rootKindByInstance.getOrDefault(rootId, HprofTag.Sub.ROOT_UNKNOWN);
-        String rootClassName = optionalClassName(view, rootId, classCache);
+        PathRow root = rows.getFirst();
+        int rootKind = root.rootKind() != null ? root.rootKind() : HprofTag.Sub.ROOT_UNKNOWN;
+        String rootClassName = optionalClassName(view, root.instanceId(), classCache);
         return new GCRootPath(
-                rootId,
+                root.instanceId(),
                 rootClassName,
                 HprofTag.Sub.rootKindName(rootKind),
                 null,           // threadName — populated once ThreadAnalyzer (PR #10) lands
@@ -282,7 +294,11 @@ public final class PathToGCRootAnalyzer {
         })).map(JavaClassRow::name).orElse("<unknown>");
     }
 
-    /** A back-pointer in the BFS: this node was reached via {@code refToChild} from {@code child}. */
-    private record ParentLink(long child, OutboundRefRow refToChild) {
+    /**
+     * One step of a found path as the search returns it: the instance, the reference it holds to the
+     * next step ({@code fieldKind}/{@code fieldId}, null on the target), and on the root step the
+     * kind of root it is.
+     */
+    private record PathRow(long instanceId, Integer fieldKind, Integer fieldId, Integer rootKind) {
     }
 }
