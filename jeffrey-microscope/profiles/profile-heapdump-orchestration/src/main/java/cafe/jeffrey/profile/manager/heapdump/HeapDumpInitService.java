@@ -110,6 +110,27 @@ public final class HeapDumpInitService {
         return startPreparation(profileId, manager, null, compressedOopsOverride, onFinished, true).started();
     }
 
+    /**
+     * Drops the built index and every cached analysis, then starts a fresh run. A run that is already in
+     * flight is left alone, and its cache with it: deleting the index under a running build would fail
+     * that build rather than restart it.
+     *
+     * @return {@code false} when a run is already in progress (the caller should just poll)
+     */
+    public synchronized boolean reinitialize(
+            String profileId, HeapDumpManager manager, Boolean compressedOopsOverride) {
+        if (registry.isRunning(profileId)) {
+            return false;
+        }
+        manager.deleteCache();
+        return start(profileId, manager, compressedOopsOverride);
+    }
+
+    /** Whether a run for this profile is in flight right now. */
+    public boolean isRunning(String profileId) {
+        return registry.isRunning(profileId);
+    }
+
     /** Live progress of the current (or last finished) run; idle when none exists. */
     public PipelineProgress progress(String profileId) {
         return registry.progress(profileId);

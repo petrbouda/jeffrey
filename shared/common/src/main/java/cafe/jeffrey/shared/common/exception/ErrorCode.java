@@ -44,10 +44,6 @@ public enum ErrorCode {
     // Remote operation errors
     REMOTE_OPERATION_FAILED,
 
-    // Heap dump errors
-    HEAP_DUMP_CORRUPTED,
-    HEAP_DUMP_NEEDS_SANITIZATION,
-
     // Generic not-found error for Jersey WebApplicationExceptions
     RESOURCE_NOT_FOUND;
 

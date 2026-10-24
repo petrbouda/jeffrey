@@ -422,8 +422,8 @@ public final class PipelineRunRegistry<K> {
     }
 
     /**
-     * Jeffrey's own exceptions carry a code the frontend reacts to (the heap dump turns one into a
-     * repair prompt). Anything else has no code, which is honest — a message is all we have.
+     * Jeffrey's own exceptions carry a code a caller can react to. Anything else has no code, which
+     * is honest — a message is all we have.
      */
     private static String errorCodeOf(Throwable e) {
         Throwable cause = e;

@@ -33,10 +33,15 @@ import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitStages;
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
@@ -66,6 +71,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -106,6 +113,12 @@ class ProfileRecordingsManagerAnalyzeTest {
     private RecordingRepository recordingRepository;
     @Mock
     private ProfileRepository profileRepository;
+    @Mock
+    private HeapDumpInitService heapDumpInitService;
+    @Mock
+    private ProfileManager profileManager;
+    @Mock
+    private HeapDumpManager heapDumpManager;
 
     private PipelineRunRegistry<String> runRegistry;
 
@@ -121,6 +134,8 @@ class ProfileRecordingsManagerAnalyzeTest {
         when(localCoreRepositories.newRecordingRepository()).thenReturn(recordingRepository);
         when(localCoreRepositories.newProfileRepository(any())).thenReturn(profileRepository);
         when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording()));
+        when(profileManagerFactory.apply(any())).thenReturn(profileManager);
+        when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
         runRegistry = new PipelineRunRegistry<>(
                 ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), FIXED_CLOCK);
 
@@ -134,7 +149,8 @@ class ProfileRecordingsManagerAnalyzeTest {
                 profileManagerFactory,
                 localCoreRepositories,
                 profileCleanup,
-                runRegistry);
+                runRegistry,
+                heapDumpInitService);
     }
 
     private static Recording recording() {
@@ -386,6 +402,102 @@ class ProfileRecordingsManagerAnalyzeTest {
             } finally {
                 release.countDown();
             }
+        }
+    }
+
+    /**
+     * A heap dump is initialized in the background by its own pipeline, started by the same Analyze
+     * that creates its profile, so the recordings list can follow its stages the way it follows a JFR
+     * parse. A later Analyze keeps the profile whenever its copy of the dump survives.
+     */
+    @Nested
+    class HeapDumpInitialization {
+
+        private static final String HEAP_PROFILE_ID = "heap-profile";
+
+        @BeforeEach
+        void heapDumpRecording() throws IOException {
+            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-heap.hprof"));
+            when(jeffreyDirs.profileDir(any())).thenReturn(recordingsDir.resolve("profiles"));
+            when(recordingRepository.findRecording(RECORDING_ID))
+                    .thenReturn(Optional.of(ProfileRecordingsManagerAnalyzeTest.heapDumpRecording()));
+            when(heapDumpInitService.progress(any())).thenReturn(PipelineProgress.idle(HeapDumpStages.PIPELINE_ID));
+        }
+
+        @Test
+        void startsTheHeapRunForANewProfileWithCompressedOopsAutoDetected() {
+            String profileId = manager.analyzeRecording(RECORDING_ID);
+
+            verify(heapDumpInitService).start(eq(profileId), eq(heapDumpManager), isNull());
+        }
+
+        @Test
+        void joinsARunThatIsStillInFlight() {
+            withExistingHeapProfile();
+            when(heapDumpInitService.isRunning(HEAP_PROFILE_ID)).thenReturn(true);
+
+            assertEquals(HEAP_PROFILE_ID, manager.analyzeRecording(RECORDING_ID));
+            verify(heapDumpInitService, never()).start(any(), any(), any());
+            verify(profileCleanup, never()).deleteProfile(any());
+        }
+
+        @Test
+        void restartsAnUnbuiltIndexOnTheSameCopy() {
+            withExistingHeapProfile();
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(false);
+
+            assertEquals(HEAP_PROFILE_ID, manager.analyzeRecording(RECORDING_ID));
+            verify(heapDumpInitService).start(eq(HEAP_PROFILE_ID), eq(heapDumpManager), isNull());
+            verify(profileCleanup, never()).deleteProfile(any());
+        }
+
+        @Test
+        void leavesABuiltIndexAlone() {
+            withExistingHeapProfile();
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+            assertEquals(HEAP_PROFILE_ID, manager.analyzeRecording(RECORDING_ID));
+            verify(heapDumpInitService, never()).start(any(), any(), any());
+        }
+
+        /**
+         * A run can fail in a report after the index was built. The index alone does not make the
+         * dump ready, so Retry has to start the run again rather than read it as done.
+         */
+        @Test
+        void retriesARunThatFailedAfterTheIndexWasBuilt() {
+            withExistingHeapProfile();
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(heapDumpInitService.progress(HEAP_PROFILE_ID)).thenReturn(new PipelineProgress(
+                    HeapDumpStages.PIPELINE_ID, "", PipelineState.FAILED, null, "dominator failed", List.of()));
+
+            assertEquals(HEAP_PROFILE_ID, manager.analyzeRecording(RECORDING_ID));
+            verify(heapDumpInitService).start(eq(HEAP_PROFILE_ID), eq(heapDumpManager), isNull());
+        }
+
+        @Test
+        void rebuildsAProfileThatLostItsCopyOfTheDump() {
+            withExistingHeapProfile();
+            when(heapDumpManager.heapDumpExists()).thenReturn(false);
+
+            String profileId = manager.analyzeRecording(RECORDING_ID);
+
+            verify(profileCleanup).deleteProfile(HEAP_PROFILE_ID);
+            verify(heapDumpInitService).start(eq(profileId), eq(heapDumpManager), isNull());
+        }
+
+        private void withExistingHeapProfile() {
+            Recording base = ProfileRecordingsManagerAnalyzeTest.heapDumpRecording();
+            when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(new Recording(
+                    base.id(), base.recordingName(), base.groupId(), base.eventSource(),
+                    base.createdAt(), base.recordingStartedAt(), base.recordingFinishedAt(),
+                    true, HEAP_PROFILE_ID, base.recordingName(), base.files())));
+            when(profileRepository.find()).thenReturn(Optional.of(new ProfileInfo(
+                    HEAP_PROFILE_ID, null, null, "heap.hprof", RecordingEventSource.HEAP_DUMP,
+                    NOW, NOW, NOW, true, false, RECORDING_ID)));
         }
     }
 

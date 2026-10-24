@@ -31,8 +31,7 @@ import java.util.List;
  *                     the pipeline runs once per profile
  * @param state        {@code idle} when no run exists for this key
  * @param errorCode    machine-readable error code when failed, else {@code null}; lets a caller react
- *                     to a specific failure (the heap dump turns one into a repair prompt) without
- *                     parsing a message
+ *                     to a specific failure without parsing a message
  * @param errorMessage human-readable failure description when failed, else {@code null}
  * @param stages       per-stage live statuses in pipeline order; empty when idle
  */

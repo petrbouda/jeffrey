@@ -214,13 +214,13 @@ class PipelineRunTest {
         @DisplayName("carries the failure code so a caller can react to a specific failure")
         void carriesFailureCode() {
             PipelineRun run = newRun();
-            run.fail("HEAP_DUMP_NEEDS_SANITIZATION", "needs repair");
+            run.fail("INVALID_REQUEST", "bad input");
 
             PipelineRunResult result = run.result(Instant.parse("2026-01-01T00:05:00Z"));
 
             assertEquals(PipelineState.FAILED, result.state());
-            assertEquals("HEAP_DUMP_NEEDS_SANITIZATION", result.errorCode());
-            assertEquals("needs repair", result.errorMessage());
+            assertEquals("INVALID_REQUEST", result.errorCode());
+            assertEquals("bad input", result.errorMessage());
         }
 
         @Test

@@ -54,6 +54,7 @@ import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
@@ -93,6 +94,7 @@ public class MicroscopeAppConfiguration {
             // The same registry the project-profile path uses: a Recordings profile is a profile
             // like any other as far as progress is concerned, and both are keyed by profile id.
             PipelineRunRegistry<String> profileInitRunRegistry,
+            HeapDumpInitService heapDumpInitService,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             ObjectProvider<McpProfileContextCache> contextCacheProvider,
             @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
@@ -147,7 +149,8 @@ public class MicroscopeAppConfiguration {
                 profileManagerFactory,
                 repos,
                 profileCleanup,
-                profileInitRunRegistry);
+                profileInitRunRegistry,
+                heapDumpInitService);
     }
 
     @Bean
@@ -195,8 +198,10 @@ public class MicroscopeAppConfiguration {
     @Bean
     public RecordingProfileInfoProvider recordingProfileInfoProvider(
             RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> profileInitRunRegistry) {
-        return new MicroscopeRecordingProfileInfoProvider(recordingsManager, profileInitRunRegistry);
+            PipelineRunRegistry<String> profileInitRunRegistry,
+            HeapDumpInitService heapDumpInitService) {
+        return new MicroscopeRecordingProfileInfoProvider(
+                recordingsManager, profileInitRunRegistry, heapDumpInitService);
     }
 
     @Bean

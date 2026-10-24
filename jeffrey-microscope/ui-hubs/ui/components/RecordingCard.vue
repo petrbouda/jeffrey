@@ -21,9 +21,9 @@ import FormattingService from '@shared/services/FormattingService';
 import StageChips from '@shared/components/StageChips.vue';
 import type { ProfileInitProgress } from '../services/api/model/Recording';
 import {
-  PROFILE_INIT_CHIPS,
   failedStageLabel,
   hasFailed,
+  initChipsFor,
   isInitializing,
   toTimelineSteps
 } from './profileInitChips';
@@ -78,6 +78,7 @@ const emit = defineEmits<{
   (e: 'edit-profile'): void;
   (e: 'delete-profile'): void;
   (e: 'delete-recording'): void;
+  (e: 'reinitialize'): void;
   (e: 'toggle-expand'): void;
   (e: 'dragend'): void;
 }>();
@@ -138,7 +139,8 @@ const typeTagClass = computed(() => {
 const initializing = computed(() => isInitializing(props.initProgress));
 const initFailed = computed(() => hasFailed(props.initProgress));
 const initSteps = computed(() => toTimelineSteps(props.initProgress, props.tickNow));
-const failedStage = computed(() => failedStageLabel(props.initProgress));
+const initChips = computed(() => initChipsFor(props.sourceType));
+const failedStage = computed(() => failedStageLabel(props.initProgress, initChips.value));
 
 /** Shown whenever there is a run to show, whether it is still going or ended badly. */
 const showsChips = computed(() => initializing.value || initFailed.value);
@@ -168,7 +170,7 @@ const formatRelativeTime = (timestamp: number) => {
 };
 
 // In-card action bar (no popover — sidesteps overflow/positioning issues)
-type MenuAction = 'edit-profile' | 'delete-profile' | 'delete-recording';
+type MenuAction = 'edit-profile' | 'reinitialize' | 'delete-profile' | 'delete-recording';
 const cardRef = ref<HTMLElement | null>(null);
 const menuOpen = ref(false);
 
@@ -180,6 +182,8 @@ const menuAction = (action: MenuAction) => {
   menuOpen.value = false;
   if (action === 'edit-profile') {
     emit('edit-profile');
+  } else if (action === 'reinitialize') {
+    emit('reinitialize');
   } else if (action === 'delete-profile') {
     emit('delete-profile');
   } else {
@@ -277,7 +281,7 @@ onBeforeUnmount(() => {
             </span>
           </template>
           <span
-            v-if="!isTransitional()"
+            v-if="!isTransitional() && !initFailed"
             class="rec-card__hint"
             :class="{
               'rec-card__hint--analyze': !hasProfile,
@@ -293,7 +297,7 @@ onBeforeUnmount(() => {
         <StageChips
           v-if="showsChips"
           class="rec-card__stages"
-          :groups="PROFILE_INIT_CHIPS"
+          :groups="initChips"
           :steps="initSteps"
           :tick-now="tickNow"
         />
@@ -334,20 +338,28 @@ onBeforeUnmount(() => {
           <span class="rec-card__spinner"></span>
           Initializing…
         </span>
-        <span v-else-if="initFailed" class="rec-card__spinner-pill rec-card__spinner-pill--danger">
-          Failed
-        </span>
+        <template v-else>
+          <!-- A failed run is retried in place: Analyze is the retry boundary on the backend. -->
+          <button
+            v-if="initFailed"
+            class="rec-card__retry"
+            title="Start initialization again"
+            @click.stop="emit('create-profile')"
+          >
+            <i class="bi bi-arrow-clockwise"></i>
+            Retry
+          </button>
 
-        <!-- Actions toggle (⋯ / chevron) -->
-        <button
-          v-else
-          class="rec-card__menu-btn"
-          :class="{ 'rec-card__menu-btn--active': menuOpen }"
-          :title="menuOpen ? 'Close actions' : 'More actions'"
-          @click.stop="toggleMenu"
-        >
-          <i class="bi" :class="menuOpen ? 'bi-chevron-up' : 'bi-three-dots'"></i>
-        </button>
+          <!-- Actions toggle (⋯ / chevron) -->
+          <button
+            class="rec-card__menu-btn"
+            :class="{ 'rec-card__menu-btn--active': menuOpen }"
+            :title="menuOpen ? 'Close actions' : 'More actions'"
+            @click.stop="toggleMenu"
+          >
+            <i class="bi" :class="menuOpen ? 'bi-chevron-up' : 'bi-three-dots'"></i>
+          </button>
+        </template>
         <div
           v-if="draggable"
           class="rec-card__drag-handle"
@@ -368,6 +380,14 @@ onBeforeUnmount(() => {
         <button class="rec-card__action" @click="menuAction('edit-profile')">
           <i class="bi bi-pencil"></i>
           Edit profile name
+        </button>
+        <button
+          v-if="sourceType === SOURCE_HEAP_DUMP"
+          class="rec-card__action"
+          @click="menuAction('reinitialize')"
+        >
+          <i class="bi bi-arrow-repeat"></i>
+          Re-initialize
         </button>
         <button
           class="rec-card__action rec-card__action--danger"
@@ -939,6 +959,28 @@ onBeforeUnmount(() => {
 .rec-card__spinner-pill--danger {
   color: var(--color-danger-hover);
   background: var(--color-danger-light);
+}
+
+.rec-card__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-danger-border-light);
+  background: var(--color-danger-light);
+  color: var(--color-danger-hover);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rec-card__retry:hover {
+  background: var(--color-danger-bg-lighter);
+  border-color: var(--color-danger);
 }
 
 /* Spinner */

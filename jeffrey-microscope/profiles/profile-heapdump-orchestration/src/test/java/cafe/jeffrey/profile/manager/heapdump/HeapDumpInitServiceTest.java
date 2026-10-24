@@ -55,6 +55,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 
 @ExtendWith(MockitoExtension.class)
 class HeapDumpInitServiceTest {
@@ -256,6 +257,42 @@ class HeapDumpInitServiceTest {
                 "parse must be active while its phase runs, not queued behind a completed load");
 
         releaseParsePhase.countDown();
+        await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
+                PipelineState.COMPLETED, service.progress(PROFILE_ID).state()));
+    }
+
+    @Test
+    void reinitializeDropsTheBuiltIndexBeforeStartingAgain() {
+        HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
+
+        assertTrue(service.reinitialize(PROFILE_ID, manager, false));
+        await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
+                PipelineState.COMPLETED, service.progress(PROFILE_ID).state()));
+
+        var order = inOrder(manager);
+        order.verify(manager).deleteCache();
+        order.verify(manager).initialize(eq(false), any());
+    }
+
+    @Test
+    void reinitializeLeavesARunningBuildAndItsIndexAlone() throws InterruptedException {
+        HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(manager.initialize(eq(null), any())).thenAnswer(invocation -> {
+            entered.countDown();
+            release.await();
+            return null;
+        });
+
+        assertTrue(service.start(PROFILE_ID, manager, null));
+        try {
+            assertTrue(entered.await(5, SECONDS));
+            assertFalse(service.reinitialize(PROFILE_ID, manager, true));
+            verify(manager, never()).deleteCache();
+        } finally {
+            release.countDown();
+        }
         await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
                 PipelineState.COMPLETED, service.progress(PROFILE_ID).state()));
     }

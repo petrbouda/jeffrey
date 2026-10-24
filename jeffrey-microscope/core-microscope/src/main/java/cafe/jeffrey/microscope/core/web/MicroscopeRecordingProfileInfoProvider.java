@@ -18,7 +18,9 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
@@ -30,7 +32,9 @@ import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
 /**
  * Microscope's {@link RecordingProfileInfoProvider}: resolves the profile size/modified info for a
  * recording that has an associated analysis profile, via the microscope {@link RecordingsManager},
- * and how far its initialization has got, via the pipeline registry those runs are tracked in.
+ * and how far its initialization has got, via the pipeline registry those runs are tracked in. A heap
+ * dump is initialized by its own pipeline, so its progress comes from {@link HeapDumpInitService}
+ * instead; the stage ids differ and the frontend groups each set into its own chips.
  * <p>
  * Progress is read from the in-memory registry only, never from the persisted {@code pipeline_runs}
  * row. That row lives in the profile's own database, so consulting it would mean opening every
@@ -42,13 +46,16 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
 
     private final RecordingsManager recordingsManager;
     private final PipelineRunRegistry<String> initRunRegistry;
+    private final HeapDumpInitService heapDumpInitService;
 
     public MicroscopeRecordingProfileInfoProvider(
             RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> initRunRegistry) {
+            PipelineRunRegistry<String> initRunRegistry,
+            HeapDumpInitService heapDumpInitService) {
 
         this.recordingsManager = recordingsManager;
         this.initRunRegistry = initRunRegistry;
+        this.heapDumpInitService = heapDumpInitService;
     }
 
     @Override
@@ -56,7 +63,7 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
         if (!recording.hasProfile()) {
             return ProfileInfo.NONE;
         }
-        ProfileInitProgress initProgress = initProgress(recording.profileId());
+        ProfileInitProgress initProgress = initProgress(pipelineProgress(recording));
 
         ProfileManager profileManager = recordingsManager.profile(recording.profileId()).orElse(null);
         if (profileManager == null) {
@@ -72,8 +79,14 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
                 initProgress);
     }
 
-    private ProfileInitProgress initProgress(String profileId) {
-        PipelineProgress progress = initRunRegistry.progress(profileId);
+    private PipelineProgress pipelineProgress(Recording recording) {
+        if (recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
+            return heapDumpInitService.progress(recording.profileId());
+        }
+        return initRunRegistry.progress(recording.profileId());
+    }
+
+    private static ProfileInitProgress initProgress(PipelineProgress progress) {
         if (progress.state() == PipelineState.IDLE) {
             return ProfileInitProgress.NONE;
         }

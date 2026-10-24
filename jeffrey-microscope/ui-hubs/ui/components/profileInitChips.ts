@@ -42,6 +42,33 @@ export const PROFILE_INIT_CHIPS: StageChipGroup[] = [
 ];
 
 /**
+ * How the thirteen stages of heap-dump initialization are shown on a heap dump's card: one chip per
+ * phase of the Heap Dump Overview's timeline, so the row and the page that later shows the same run
+ * in full group it the same way. Index is the atomic index build, surfaced by the backend as three
+ * stages; Analyze and Hotspots are the cached reports.
+ */
+export const HEAP_DUMP_INIT_CHIPS: StageChipGroup[] = [
+  { id: 'index', label: 'Index', stepIds: ['load', 'parse', 'index'] },
+  {
+    id: 'analyze',
+    label: 'Analyze',
+    stepIds: ['strings', 'dominator', 'threads', 'biggest', 'collections', 'leaks']
+  },
+  {
+    id: 'hotspots',
+    label: 'Hotspots',
+    stepIds: ['classloaders', 'biggest-collections', 'consumers', 'duplicates']
+  }
+];
+
+const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
+
+/** The chips for a recording: a heap dump runs its own pipeline, everything else profile initialization. */
+export function initChipsFor(sourceType: string | undefined): StageChipGroup[] {
+  return sourceType === HEAP_DUMP_SOURCE ? HEAP_DUMP_INIT_CHIPS : PROFILE_INIT_CHIPS;
+}
+
+/**
  * Converts what the list reports into what the chips render.
  *
  * The backend sends how long the running stage has been going; the components want when it started,
@@ -80,11 +107,14 @@ export function hasFailed(progress: ProfileInitProgress | undefined): boolean {
 }
 
 /** The stage that failed, so the card can name it rather than only saying something went wrong. */
-export function failedStageLabel(progress: ProfileInitProgress | undefined): string | null {
+export function failedStageLabel(
+  progress: ProfileInitProgress | undefined,
+  groups: StageChipGroup[] = PROFILE_INIT_CHIPS
+): string | null {
   const failed = progress?.stages?.find(stage => stage.status === 'failed');
   if (!failed) {
     return null;
   }
-  const group = PROFILE_INIT_CHIPS.find(chip => chip.stepIds.includes(failed.id));
+  const group = groups.find(chip => chip.stepIds.includes(failed.id));
   return group ? group.label : failed.id;
 }

@@ -15,9 +15,16 @@
   - limitations under the License.
   -->
 
+<!--
+  Heap Dump Overview: the summary of a built heap dump, the timeline of its last initialization, and
+  re-initialization (optionally forcing compressed oops when auto-detection guessed wrong).
+
+  A standalone heap dump is initialized from its row on the Recordings page, so this page only
+  follows a run that is already going and offers to start one when none has finished. A heap dump
+  attached to a JFR profile has no row of its own: it is uploaded and initialized here.
+-->
 <template>
   <div>
-    <!-- Delete Heap Dump Confirmation Modal -->
     <ConfirmationDialog
       v-model:show="deleteHeapDumpDialog"
       title="Delete Heap Dump"
@@ -30,18 +37,96 @@
       @confirm="confirmDeleteHeapDump"
     />
 
+    <GenericModal
+      modal-id="reinitializeHeapDumpModal"
+      :show="reinitializeDialog"
+      title="Re-initialize Heap Dump"
+      icon="bi-arrow-repeat"
+      size="md"
+      modal-dialog-class="modal-dialog-centered"
+      @update:show="reinitializeDialog = $event"
+    >
+      <p class="reinit-lead">
+        Rebuilds the index and every analysis. Progress shows here and on the recording's row.
+      </p>
+      <fieldset class="reinit-options">
+        <legend class="reinit-legend">Compressed oops</legend>
+        <label
+          v-for="option in COMPRESSED_OOPS_OPTIONS"
+          :key="option.value"
+          class="reinit-option"
+          :class="{ 'reinit-option--selected': compressedOopsChoice === option.value }"
+          :for="`compressedOops-${option.value}`"
+        >
+          <input
+            :id="`compressedOops-${option.value}`"
+            v-model="compressedOopsChoice"
+            class="form-check-input"
+            type="radio"
+            name="compressedOops"
+            :value="option.value"
+          />
+          <span>
+            <span class="reinit-option-title">{{ option.title }}</span>
+            <span class="reinit-option-detail">{{ optionDetail(option) }}</span>
+          </span>
+        </label>
+      </fieldset>
+      <p class="reinit-note">
+        Force a value only when object sizes look wrong, which means auto-detection guessed
+        incorrectly.
+      </p>
+      <template #footer>
+        <button class="btn btn-secondary" @click="reinitializeDialog = false">Cancel</button>
+        <button class="btn btn-primary" @click="confirmReinitialize">Re-initialize</button>
+      </template>
+    </GenericModal>
+
     <LoadingState v-if="loading" message="Loading heap dump status..." />
 
-    <div v-else-if="!heapExists">
+    <ErrorState v-else-if="error" :message="error" />
+
+    <div v-else>
       <PageHeader
         title="Heap Dump Overview"
         description="Memory analysis summary and processing status"
         icon="bi-memory"
       >
+        <template v-if="heapExists && !processing" #actions>
+          <button
+            v-if="initializedOnce"
+            class="btn btn-outline-primary btn-sm"
+            @click="openReinitialize"
+          >
+            <i class="bi bi-arrow-repeat me-1"></i>Re-initialize
+          </button>
+          <button
+            v-if="!isHeapDumpOnlyProfile"
+            class="btn btn-outline-danger btn-sm"
+            @click="deleteHeapDumpDialog = true"
+          >
+            <i class="bi bi-trash me-1"></i>Delete heap dump
+          </button>
+        </template>
       </PageHeader>
 
-      <!-- Upload Dropzone -->
+      <!-- A standalone heap dump whose copy is gone: only a new Analyze can bring it back. -->
+      <EmptyState
+        v-if="!heapExists && isHeapDumpOnlyProfile"
+        icon="bi-file-earmark-x"
+        title="Heap dump file is missing"
+        description="Analyze the recording again on the Recordings page to rebuild this profile."
+      >
+        <template #action>
+          <router-link to="/recordings" class="btn btn-primary btn-sm">
+            <i class="bi bi-arrow-right me-1"></i>Go to Recordings
+          </router-link>
+        </template>
+      </EmptyState>
+
+      <!-- A JFR profile's heap dump: uploaded here, since it has no Recordings row. -->
       <div
+        v-else-if="!heapExists"
         ref="dropzoneRef"
         class="upload-dropzone p-4"
         :class="{ active: dragActive, 'has-file': uploadFile, clickable: !uploadFile }"
@@ -52,10 +137,9 @@
         @click="handleDropzoneClick"
         @keyup.enter="handleEnterKey"
       >
-        <!-- No file selected -->
         <div v-if="!uploadFile" class="text-center py-4">
-          <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
-          <h5>Drag & Drop Heap Dump Here</h5>
+          <i class="bi bi-cloud-upload upload-icon text-primary mb-3"></i>
+          <h5>Drag &amp; Drop Heap Dump Here</h5>
           <p class="text-muted small mb-3">or click anywhere to browse files</p>
           <input
             id="heapDumpFileInput"
@@ -70,24 +154,21 @@
           </label>
         </div>
 
-        <!-- File selected -->
         <div v-else>
           <div class="d-flex justify-content-between mb-3">
-            <div>
-              <h6 class="mb-0"><i class="bi bi-file-earmark-binary me-2"></i>Selected File</h6>
-            </div>
+            <h6 class="mb-0"><i class="bi bi-file-earmark-binary me-2"></i>Selected File</h6>
             <div>
               <button
                 class="btn btn-success btn-sm me-2"
                 :disabled="uploading"
-                @click="uploadHeapDump"
+                @click.stop="uploadHeapDump"
               >
                 <i class="bi bi-cloud-upload me-1"></i>Upload
               </button>
               <button
                 class="btn btn-outline-secondary btn-sm"
                 :disabled="uploading"
-                @click="removeFile"
+                @click.stop="removeFile"
               >
                 <i class="bi bi-x-lg me-1"></i>Clear
               </button>
@@ -131,230 +212,50 @@
         </div>
       </div>
 
-      <!-- Initialization Error Panel -->
-      <transition name="slide-fade">
-        <div v-if="initError" class="upload-error-panel">
-          <div class="error-panel-content">
-            <div class="error-icon-wrapper">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-            </div>
-            <div class="error-details">
-              <h5 class="error-title">Heap Dump Initialization Failed</h5>
-              <p class="error-message">{{ initError }}</p>
-              <div class="error-suggestions">
-                <h6><i class="bi bi-lightbulb me-2"></i>Possible Solutions</h6>
-                <ul>
-                  <li>
-                    Verify the original heap dump file is valid using <code>jhat</code> or VisualVM
-                  </li>
-                  <li>Ensure the heap dump process completed successfully without interruption</li>
-                  <li>The file may have been truncated during upload - try uploading again</li>
-                  <li>For large files (>2GB), ensure sufficient server resources are available</li>
-                </ul>
-              </div>
-            </div>
-            <button class="error-dismiss-btn" title="Dismiss" @click="dismissInitError">
-              <i class="bi bi-x-lg"></i>
+      <template v-else>
+        <StatsTable v-if="lastSummary" :metrics="summaryMetrics" class="mb-4" />
+
+        <HeapDumpInitTimeline v-if="processing" :steps="processingSteps" :tick-now="tickNow" />
+
+        <!-- Not built, and nothing running: a first run for an attached dump, or a failed one. -->
+        <EmptyState
+          v-else-if="!cacheReady"
+          icon="bi-cpu"
+          :title="lastRunFailed ? 'Heap Dump Initialization Failed' : 'Heap Dump Not Initialized'"
+          :description="notInitializedDescription"
+        >
+          <template #action>
+            <button class="btn btn-primary btn-sm" @click="initializeHeapDump">
+              <i class="bi bi-lightning-charge-fill me-1"></i>
+              {{ lastRunFailed ? 'Try again' : 'Initialize' }}
             </button>
-          </div>
-        </div>
-      </transition>
-    </div>
+          </template>
+        </EmptyState>
 
-    <ErrorState v-else-if="error" :message="error" />
-
-    <div v-else>
-      <PageHeader
-        title="Heap Dump Overview"
-        description="Memory analysis summary and processing status"
-        icon="bi-memory"
-      >
-      </PageHeader>
-
-      <!-- Summary Stats -->
-      <StatsTable v-if="lastSummary" :metrics="summaryMetrics" class="mb-4" />
-
-      <!-- Heap Dump Corruption Recovery Panel -->
-      <transition name="slide-fade">
-        <div v-if="needsSanitization && !processing" class="sanitize-panel">
-          <div class="sanitize-panel-content">
-            <div class="sanitize-icon-wrapper">
-              <i class="bi bi-wrench-adjustable"></i>
-            </div>
-            <div class="sanitize-details">
-              <h5 class="sanitize-title">Heap Dump Needs Repair</h5>
-              <p class="sanitize-message">
-                The heap dump file appears to be corrupted, likely due to an ungraceful JVM shutdown
-                (OOMKill, SIGKILL, or crash). The file structure is incomplete but may be
-                recoverable.
-              </p>
-              <div class="sanitize-info">
-                <h6><i class="bi bi-info-circle me-2"></i>What will happen</h6>
-                <ul>
-                  <li>The repair tool will scan the binary file and fix structural issues</li>
-                  <li>Missing end markers and truncated records will be corrected</li>
-                  <li>A repaired copy will be created (original is preserved)</li>
-                  <li>Some objects near the end of the file may be lost</li>
-                </ul>
-              </div>
-              <div class="sanitize-actions">
-                <button
-                  class="btn btn-warning-gradient"
-                  :disabled="sanitizing"
-                  @click="sanitizeHeapDump"
-                >
-                  <span v-if="sanitizing">
-                    <span class="spinner-border spinner-border-sm me-2"></span>Repairing...
-                  </span>
-                  <span v-else> <i class="bi bi-wrench me-2"></i>Repair &amp; Initialize </span>
-                </button>
-                <button class="btn btn-outline-secondary btn-sm ms-2" @click="deleteHeapDump">
-                  <i class="bi bi-trash me-1"></i>Delete Instead
-                </button>
-              </div>
-            </div>
-            <button class="sanitize-dismiss-btn" title="Dismiss" @click="dismissSanitize">
-              <i class="bi bi-x-lg"></i>
-            </button>
-          </div>
-        </div>
-      </transition>
-
-      <!-- Initialize Card - Not Processed State -->
-      <div
-        v-if="!cacheReady && !processing && !lastSummary && !needsSanitization"
-        class="init-section"
-      >
-        <div class="init-main-card">
-          <div class="init-header">
-            <div class="init-header-icon">
-              <i class="bi bi-cpu"></i>
-            </div>
-            <h4>Heap Dump Not Initialized</h4>
-            <p>
-              Process the heap dump to build indexes and enable memory analysis features. This may
-              take a few minutes for large heap dumps.
-            </p>
-          </div>
-          <button class="ready-card action primary init-panel-btn" @click="processHeapDump">
-            <div class="ready-card-icon primary large">
-              <i class="bi bi-lightning-charge-fill"></i>
-            </div>
-            <div class="ready-card-content">
-              <h6>Initialize Heap Dump</h6>
-              <p>Build indexes and prepare for analysis</p>
-            </div>
-          </button>
-          <div class="init-options">
-            <div class="init-options-row">
-              <div class="init-option-group">
-                <label class="option-label mb-2">Compressed Oops</label>
-                <div class="form-check">
-                  <input
-                    id="coopsAuto"
-                    v-model="compressedOopsChoice"
-                    class="form-check-input"
-                    type="radio"
-                    name="compressedOops"
-                    value="auto"
-                  />
-                  <label class="form-check-label" for="coopsAuto">
-                    Auto-detect <small class="text-muted">(recommended)</small>
-                  </label>
-                </div>
-                <div class="form-check">
-                  <input
-                    id="coopsEnabled"
-                    v-model="compressedOopsChoice"
-                    class="form-check-input"
-                    type="radio"
-                    name="compressedOops"
-                    value="enabled"
-                  />
-                  <label class="form-check-label" for="coopsEnabled">Enabled</label>
-                </div>
-                <div class="form-check">
-                  <input
-                    id="coopsDisabled"
-                    v-model="compressedOopsChoice"
-                    class="form-check-input"
-                    type="radio"
-                    name="compressedOops"
-                    value="disabled"
-                  />
-                  <label class="form-check-label" for="coopsDisabled">Disabled</label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <button class="ready-card action" @click="deleteHeapDump">
-          <div class="ready-card-icon">
-            <i class="bi bi-trash"></i>
-          </div>
-          <div class="ready-card-content">
-            <h6>Delete Heap Dump</h6>
-            <p>Remove heap dump file</p>
-          </div>
-        </button>
-      </div>
-
-      <!-- Live processing progress -->
-      <HeapDumpInitTimeline v-if="processing" :steps="processingSteps" :tick-now="tickNow" />
-
-      <!-- Success State with Management Actions -->
-      <div v-if="cacheReady && lastSummary" class="ready-section">
-        <div class="ready-card success">
-          <div class="ready-card-icon success">
-            <i class="bi bi-check-lg"></i>
-          </div>
-          <div class="ready-card-content">
-            <h6>Heap Dump Ready</h6>
-            <p>Analysis complete. Use the sidebar to explore memory insights.</p>
-          </div>
-        </div>
-        <button class="ready-card action" @click="clearCache">
-          <div class="ready-card-icon">
-            <i class="bi bi-arrow-repeat"></i>
-          </div>
-          <div class="ready-card-content">
-            <h6>Clear Cache</h6>
-            <p>Rebuild indexes on next analysis</p>
-          </div>
-        </button>
-        <button class="ready-card action danger" @click="deleteHeapDump">
-          <div class="ready-card-icon danger">
-            <i class="bi bi-trash"></i>
-          </div>
-          <div class="ready-card-content">
-            <h6>Delete Heap Dump</h6>
-            <p>Remove heap dump and cached data</p>
-          </div>
-        </button>
-      </div>
-
-      <!-- Persisted Initialization Result -->
-      <HeapDumpInitTimeline
-        v-if="!processing && lastInitResult"
-        class="last-init-result"
-        :steps="lastInitResultSteps"
-        :tick-now="0"
-        title="Last Initialization Result"
-        :subtitle="lastInitResultSubtitle"
-        :show-progress-bar="false"
-      />
+        <HeapDumpInitTimeline
+          v-if="!processing && lastInitResult"
+          class="last-init-result"
+          :steps="lastInitResultSteps"
+          :tick-now="0"
+          title="Last Initialization Result"
+          :subtitle="lastInitResultSubtitle"
+          :show-progress-bar="false"
+        />
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import HeapDumpInitTimeline, { type TimelineStep } from '@/components/HeapDumpInitTimeline.vue';
@@ -362,14 +263,17 @@ import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
 import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
 import type HeapDumpInitProgress from '@/services/api/model/HeapDumpInitProgress';
+import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource.ts';
 import FormattingService from '@shared/services/FormattingService';
 import { ToastService } from '@shared/services/ToastService';
 import MessageBus from '@/services/MessageBus';
-import { ApiError } from '@/services/HttpInterceptor';
+import { profileStore } from '@/stores/profileStore';
 
 const route = useRoute();
 
 const profileId = route.params.profileId as string;
+
+const client = new HeapDumpClient(profileId);
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -377,22 +281,52 @@ const heapExists = ref(false);
 const cacheReady = ref(false);
 const lastSummary = ref<HeapSummary | null>(null);
 const heapConfig = ref<HeapDumpConfig | null>(null);
-
-// Processing state
 const processing = ref(false);
-const initError = ref<string | null>(null);
 
-// Sanitization state
-const needsSanitization = ref(false);
-const sanitizing = ref(false);
+/** A heap-dump-only profile was built from a Recordings row; a JFR profile only carries a dump. */
+const isHeapDumpOnlyProfile = computed(
+  () => profileStore.currentProfile.value?.eventSource === RecordingEventSource.HEAP_DUMP
+);
 
-// Compressed oops choice: 'auto' | 'enabled' | 'disabled'
-const compressedOopsChoice = ref<string>('auto');
+// --- Re-initialization -------------------------------------------------------------------------
 
-// Pipeline stage tracking — see HeapDumpInitTimeline.vue for layout / labels.
-interface ProcessingStep extends TimelineStep {
-  /** Frontend ordering keys; the timeline component owns rendering. */
+type CompressedOopsChoice = 'auto' | 'enabled' | 'disabled';
+
+interface CompressedOopsOption {
+  value: CompressedOopsChoice;
+  title: string;
+  detail: string;
 }
+
+const COMPRESSED_OOPS_OPTIONS: CompressedOopsOption[] = [
+  { value: 'auto', title: 'Auto-detect', detail: 'Recommended' },
+  { value: 'enabled', title: 'Force enabled', detail: 'References are 4 bytes (heap under 32 GiB)' },
+  {
+    value: 'disabled',
+    title: 'Force disabled',
+    detail: 'References are 8 bytes (large heap or -XX:-UseCompressedOops)'
+  }
+];
+
+const COMPRESSED_OOPS_OVERRIDE: Record<CompressedOopsChoice, boolean | undefined> = {
+  auto: undefined,
+  enabled: true,
+  disabled: false
+};
+
+const reinitializeDialog = ref(false);
+const compressedOopsChoice = ref<CompressedOopsChoice>('auto');
+
+/** The auto-detect option says what the last run detected, so forcing it is an informed choice. */
+const optionDetail = (option: CompressedOopsOption): string => {
+  if (option.value !== 'auto' || !heapConfig.value) {
+    return option.detail;
+  }
+  const detected = heapConfig.value.compressedOops ? 'Enabled' : 'Disabled';
+  return `${option.detail} · ${detected} last time`;
+};
+
+// --- Pipeline steps — see HeapDumpInitTimeline.vue for layout / labels --------------------------
 
 const STAGE_IDS: string[] = [
   'load',
@@ -405,28 +339,19 @@ const STAGE_IDS: string[] = [
   'collections',
   'leaks',
   'classloaders',
+  'biggest-collections',
   'consumers',
-  'duplicates',
-  'biggest-collections'
+  'duplicates'
 ];
 
-const initialStatus = (_id: string): ProcessingStep['status'] => 'pending';
+const pendingSteps = (): TimelineStep[] => STAGE_IDS.map(id => ({ id, status: 'pending' }));
 
-const getProcessingSteps = (): ProcessingStep[] =>
-  STAGE_IDS.map(id => ({ id, status: initialStatus(id) }));
+const processingSteps = ref<TimelineStep[]>(pendingSteps());
 
-// Mutable copy for status updates during processing
-const processingSteps = ref<ProcessingStep[]>(getProcessingSteps());
+const findStep = (id: string): TimelineStep | undefined =>
+  processingSteps.value.find(step => step.id === id);
 
-const findStep = (id: string): ProcessingStep | undefined =>
-  processingSteps.value.find(s => s.id === id);
-
-const resetSteps = () => {
-  // Rebuild steps based on current checkbox state
-  processingSteps.value = getProcessingSteps();
-};
-
-// Live tick for in-progress elapsed display
+// Live tick for the in-progress elapsed display
 const tickNow = ref(Date.now());
 let tickInterval: ReturnType<typeof setInterval> | null = null;
 const startTick = () => {
@@ -445,19 +370,24 @@ const stopTick = () => {
   }
 };
 
-// Persisted "last run" snapshot — populated on mount and right after a
-// successful processHeapDump completion. Cleared by clearCache.
+// --- Last run ---------------------------------------------------------------------------------
+
 const lastInitResult = ref<InitPipelineResult | null>(null);
+
+const lastRunFailed = computed(() => lastInitResult.value?.state === 'failed');
+
+/** Whether a run has ever finished, so there is something to re-initialize. */
+const initializedOnce = computed(() => cacheReady.value || lastInitResult.value !== null);
 
 const lastInitResultSteps = computed<TimelineStep[]>(() => {
   if (!lastInitResult.value) {
     return [];
   }
-  return lastInitResult.value.stages.map(s => ({
-    id: s.id,
-    status: s.status as TimelineStep['status'],
-    durationMs: s.durationMs ?? undefined,
-    subPhases: s.subPhases ?? undefined
+  return lastInitResult.value.stages.map(stage => ({
+    id: stage.id,
+    status: stage.status as TimelineStep['status'],
+    durationMs: stage.durationMs ?? undefined,
+    subPhases: stage.subPhases ?? undefined
   }));
 });
 
@@ -477,22 +407,18 @@ const lastInitResultSubtitle = computed<string>(() => {
   return when ? `Completed${when}` : '';
 });
 
-// Upload state
-const uploadFile = ref<File | null>(null);
-const uploading = ref(false);
-const uploadProgress = ref(0);
-const dragActive = ref(false);
+const notInitializedDescription = computed<string>(() => {
+  if (lastRunFailed.value) {
+    return lastInitResult.value?.errorMessage ?? 'The last initialization did not finish.';
+  }
+  if (isHeapDumpOnlyProfile.value) {
+    return 'Heap dumps are initialized from the Recordings page. This one has not been built yet.';
+  }
+  return 'Build the index to enable the memory analysis pages.';
+});
 
-// Delete heap dump dialog state
-const deleteHeapDumpDialog = ref(false);
+// --- Summary ----------------------------------------------------------------------------------
 
-// File input ref
-const fileInputRef = ref<HTMLInputElement | null>(null);
-const dropzoneRef = ref<HTMLDivElement | null>(null);
-
-let client: HeapDumpClient;
-
-// Summary metrics for StatsTable
 const summaryMetrics = computed(() => {
   if (!lastSummary.value) {
     return [];
@@ -528,12 +454,16 @@ const summaryMetrics = computed(() => {
   ];
 });
 
+// --- Following a run --------------------------------------------------------------------------
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const POLL_INTERVAL_MS = 750;
 
 /** Consecutive idle polls tolerated before treating the run as lost (e.g. backend restart). */
 const MAX_IDLE_POLLS = 5;
+
+let unmounted = false;
 
 /** Maps backend per-stage statuses onto the live timeline steps. */
 const applyProgress = (progress: HeapDumpInitProgress) => {
@@ -554,37 +484,39 @@ const applyProgress = (progress: HeapDumpInitProgress) => {
       step.durationMs = stage.durationMs ?? undefined;
       step.subPhases = stage.subPhases ?? undefined;
     }
-    // 'failed' stages stay visually pending; the error panel reports the failure.
+    // 'failed' stages stay visually pending; the stored result reports the failure.
   }
 };
 
-const handleInitFailure = (code: string | null, message: string | null) => {
-  if (code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
-    needsSanitization.value = true;
-    // File still exists - don't set heapExists to false
-  } else if (code === 'HEAP_DUMP_CORRUPTED') {
-    initError.value = message ?? 'Heap dump is corrupted';
-    heapExists.value = false; // File was deleted by backend
-  } else {
-    error.value = message ?? 'Failed to process heap dump';
+const loadBuiltState = async () => {
+  cacheReady.value = await client.isCacheReady();
+  if (cacheReady.value) {
+    lastSummary.value = await client.getSummary();
+    heapConfig.value = await client.getConfig();
+  }
+  try {
+    lastInitResult.value = await client.getInitPipelineResult();
+  } catch (snapshotErr) {
+    // A missing or unreadable snapshot only hides the last-run timeline.
+    console.warn('Failed to load init pipeline result', snapshotErr);
+    lastInitResult.value = null;
   }
 };
 
 /**
- * Mirrors the backend init run until it reaches a terminal state, then loads
- * the results. Shared by processHeapDump (right after the kick-off POST) and
- * loadData (resuming a run that is already in flight when the page opens).
+ * Mirrors the backend run until it reaches a terminal state, then loads what it built. Used right
+ * after starting a run here and when the page opens on a run started elsewhere (the Recordings row).
  */
 const followInitRun = async () => {
   processing.value = true;
-  resetSteps();
+  processingSteps.value = pendingSteps();
   startTick();
 
   try {
     let idlePolls = 0;
     let failedPolls = 0;
     let progress = await client.getInitProgress();
-    while (progress.state === 'running' || progress.state === 'idle') {
+    while (!unmounted && (progress.state === 'running' || progress.state === 'idle')) {
       if (progress.state === 'idle') {
         idlePolls++;
         if (idlePolls > MAX_IDLE_POLLS) {
@@ -606,86 +538,54 @@ const followInitRun = async () => {
         }
       }
     }
-    applyProgress(progress);
-
-    if (progress.state === 'failed') {
-      handleInitFailure(progress.errorCode, progress.errorMessage);
+    if (unmounted) {
       return;
     }
-
-    // Completed — the backend owns the persisted snapshot now.
-    lastSummary.value = await client.getSummary();
-    heapConfig.value = await client.getConfig();
-    cacheReady.value = true;
-    MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, true);
-    try {
-      lastInitResult.value = await client.getInitPipelineResult();
-    } catch (snapshotErr) {
-      console.warn('Failed to load init pipeline result', snapshotErr);
-    }
+    applyProgress(progress);
+    await loadBuiltState();
+    MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, cacheReady.value);
   } catch (err) {
-    // Polling errors (the pipeline itself reports failures via progress).
-    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
-      needsSanitization.value = true;
-    } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
-      initError.value = err.errorResponse.message;
-      heapExists.value = false;
-    } else {
-      error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
-    }
+    error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
   } finally {
     stopTick();
     processing.value = false;
   }
 };
 
-const processHeapDump = async () => {
-  processing.value = true;
-  resetSteps();
-
+/** First run, or a retry after a failed one: compressed oops auto-detected. */
+const initializeHeapDump = async () => {
   try {
-    const compressedOopsOverride =
-      compressedOopsChoice.value === 'enabled'
-        ? true
-        : compressedOopsChoice.value === 'disabled'
-          ? false
-          : undefined;
-
-    // One POST kicks off the whole pipeline server-side; from here on the
-    // frontend only mirrors the backend's per-stage progress.
-    await client.initializeAll(compressedOopsOverride);
-  } catch (err) {
-    processing.value = false;
-    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
-      needsSanitization.value = true;
-    } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
-      initError.value = err.errorResponse.message;
-      heapExists.value = false;
-    } else {
-      error.value = err instanceof Error ? err.message : 'Failed to process heap dump';
-    }
+    await client.initializeAll();
+  } catch {
+    // Toast shown by HttpInterceptor
     return;
   }
-
   await followInitRun();
 };
 
-const clearCache = async () => {
-  try {
-    await client.deleteCache();
-    cacheReady.value = false;
-    lastSummary.value = null;
-    heapConfig.value = null;
-    lastInitResult.value = null;
-    MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to clear cache';
-  }
+const openReinitialize = () => {
+  compressedOopsChoice.value = 'auto';
+  reinitializeDialog.value = true;
 };
 
-const deleteHeapDump = () => {
-  deleteHeapDumpDialog.value = true;
+const confirmReinitialize = async () => {
+  reinitializeDialog.value = false;
+  try {
+    await client.reinitialize(COMPRESSED_OOPS_OVERRIDE[compressedOopsChoice.value]);
+  } catch {
+    // Toast shown by HttpInterceptor
+    return;
+  }
+  // The index is gone until the new run builds it again: the analysis pages wait for it.
+  cacheReady.value = false;
+  lastSummary.value = null;
+  MessageBus.emit(MessageBus.HEAP_DUMP_STATUS_CHANGED, false);
+  await followInitRun();
 };
+
+// --- Attached heap dump: delete and upload ----------------------------------------------------
+
+const deleteHeapDumpDialog = ref(false);
 
 const confirmDeleteHeapDump = async () => {
   try {
@@ -705,23 +605,32 @@ const confirmDeleteHeapDump = async () => {
   }
 };
 
-// Upload handlers
-const handleFileSelect = (event: Event) => {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    const file = input.files[0];
-    if (isValidHeapDumpFile(file.name)) {
-      uploadFile.value = file;
-      nextTick(() => focusDropzone());
-    } else {
-      ToastService.warn('Invalid File', 'Only .hprof and .hprof.gz files are supported');
-    }
-  }
-};
+const uploadFile = ref<File | null>(null);
+const uploading = ref(false);
+const uploadProgress = ref(0);
+const dragActive = ref(false);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const dropzoneRef = ref<HTMLDivElement | null>(null);
 
 const isValidHeapDumpFile = (filename: string): boolean => {
   const lower = filename.toLowerCase();
   return lower.endsWith('.hprof') || lower.endsWith('.hprof.gz');
+};
+
+const selectFile = (file: File) => {
+  if (isValidHeapDumpFile(file.name)) {
+    uploadFile.value = file;
+    nextTick(() => dropzoneRef.value?.focus());
+  } else {
+    ToastService.warn('Invalid File', 'Only .hprof and .hprof.gz files are supported');
+  }
+};
+
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    selectFile(input.files[0]);
+  }
 };
 
 const handleDragOver = (event: DragEvent) => {
@@ -737,15 +646,8 @@ const handleDragLeave = (event: DragEvent) => {
 const handleDrop = (event: DragEvent) => {
   event.preventDefault();
   dragActive.value = false;
-
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-    const file = event.dataTransfer.files[0];
-    if (isValidHeapDumpFile(file.name)) {
-      uploadFile.value = file;
-      nextTick(() => focusDropzone());
-    } else {
-      ToastService.warn('Invalid File', 'Only .hprof and .hprof.gz files are supported');
-    }
+    selectFile(event.dataTransfer.files[0]);
   }
 };
 
@@ -761,77 +663,40 @@ const handleEnterKey = () => {
   }
 };
 
-const focusDropzone = () => {
-  dropzoneRef.value?.focus();
-};
-
 const removeFile = () => {
   uploadFile.value = null;
 };
 
 const uploadHeapDump = async () => {
-  if (!uploadFile.value || !client) {
+  if (!uploadFile.value) {
     return;
   }
 
   uploading.value = true;
   uploadProgress.value = 0;
+  const progressInterval = setInterval(() => {
+    if (uploadProgress.value < 90) {
+      uploadProgress.value += Math.floor(Math.random() * 10) + 5;
+    }
+  }, 300);
 
   try {
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      if (uploadProgress.value < 90) {
-        uploadProgress.value += Math.floor(Math.random() * 10) + 5;
-      }
-    }, 300);
-
     await client.uploadHeapDump(uploadFile.value);
-
-    clearInterval(progressInterval);
     uploadProgress.value = 100;
-
     ToastService.success('Upload Complete', 'Heap dump uploaded successfully');
-
-    // Clear any previous initialization error
-    initError.value = null;
-
-    // Reload data to show the heap dump
-    await loadData();
-
-    // Reset upload state
     uploadFile.value = null;
+    await loadData();
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to upload heap dump';
     ToastService.error('Upload Failed', errorMessage);
   } finally {
+    clearInterval(progressInterval);
     uploading.value = false;
     uploadProgress.value = 0;
   }
 };
 
-const dismissInitError = () => {
-  initError.value = null;
-};
-
-const sanitizeHeapDump = async () => {
-  sanitizing.value = true;
-  try {
-    await client.sanitize();
-    needsSanitization.value = false;
-    // Now proceed with normal initialization
-    await processHeapDump();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Repair failed';
-    initError.value = msg;
-    needsSanitization.value = false;
-  } finally {
-    sanitizing.value = false;
-  }
-};
-
-const dismissSanitize = () => {
-  needsSanitization.value = false;
-};
+// --- Loading ----------------------------------------------------------------------------------
 
 const scrollToTop = () => {
   const workspaceContent = document.querySelector('.workspace-content');
@@ -845,18 +710,12 @@ const loadData = async () => {
     loading.value = true;
     error.value = null;
 
-    client = new HeapDumpClient(profileId);
-
-    // Check if heap dump exists
     heapExists.value = await client.exists();
-
     if (!heapExists.value) {
-      loading.value = false;
       return;
     }
 
-    // An init run may already be in flight (page reopened mid-initialization) —
-    // resume mirroring its progress instead of showing the "not initialized" card.
+    // A run may already be in flight — started from the Recordings row, or before a reload.
     const initProgress = await client.getInitProgress();
     if (initProgress.state === 'running') {
       loading.value = false;
@@ -864,35 +723,9 @@ const loadData = async () => {
       return;
     }
 
-    // Check if cache is ready
-    cacheReady.value = await client.isCacheReady();
-
-    if (cacheReady.value) {
-      // Load summary and config automatically
-      const summary = await client.getSummary();
-      lastSummary.value = summary;
-      heapConfig.value = await client.getConfig();
-      // Restore the persisted timeline so the user sees per-stage timings
-      // of the last successful run on subsequent visits.
-      try {
-        lastInitResult.value = await client.getInitPipelineResult();
-      } catch (loadErr) {
-        // Missing or corrupt snapshot is non-fatal — just hide the section.
-        console.warn('Failed to load init pipeline result', loadErr);
-        lastInitResult.value = null;
-      }
-    }
+    await loadBuiltState();
   } catch (err) {
-    // Check if this is a heap dump corruption error that can be repaired
-    if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_NEEDS_SANITIZATION') {
-      needsSanitization.value = true;
-      // File still exists - keep heapExists as true
-    } else if (err instanceof ApiError && err.errorResponse?.code === 'HEAP_DUMP_CORRUPTED') {
-      initError.value = err.errorResponse.message;
-      heapExists.value = false; // File was deleted by backend
-    } else {
-      error.value = err instanceof Error ? err.message : 'Failed to load heap dump status';
-    }
+    error.value = err instanceof Error ? err.message : 'Failed to load heap dump status';
   } finally {
     loading.value = false;
   }
@@ -902,242 +735,91 @@ onMounted(() => {
   scrollToTop();
   loadData();
 });
+
+onBeforeUnmount(() => {
+  unmounted = true;
+  stopTick();
+});
 </script>
 
 <style scoped>
-/* Separate the persisted "Last Initialization Result" card from the
-   Clear Cache / Delete Heap Dump buttons above it. */
 .last-init-result {
   margin-top: 2rem;
 }
 
-/* Init Section */
-.init-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.init-main-card {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 2.5rem 2rem;
-  text-align: center;
-}
-
-.init-header {
-  margin-bottom: 1.5rem;
-}
-
-.init-header-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 1.25rem;
-  background-color: rgba(111, 66, 193, 0.1);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.init-header-icon i {
-  font-size: 1.5rem;
-  color: var(--color-purple);
-}
-
-.init-header h4 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-  margin-bottom: 0.5rem;
-}
-
-.init-header p {
+/* Re-initialize dialog */
+.reinit-lead {
   color: var(--color-text-muted);
   font-size: 0.875rem;
-  line-height: 1.6;
-  margin: 0 auto;
-  max-width: 420px;
+  margin-bottom: 1rem;
 }
 
-.init-panel-btn.ready-card.action.primary {
-  max-width: 340px;
-  margin: 0 auto;
-  border: none !important;
-  background: linear-gradient(
-    135deg,
-    var(--color-accent-blue) 0%,
-    var(--color-accent-blue-hover) 100%
-  ) !important;
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+.reinit-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.init-panel-btn.ready-card.action.primary:hover {
-  background: linear-gradient(
-    135deg,
-    var(--color-accent-blue-dark) 0%,
-    var(--color-accent-blue-darker) 100%
-  ) !important;
-  box-shadow: 0 6px 16px rgba(13, 110, 253, 0.4);
-  transform: translateY(-1px);
+.reinit-legend {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
 }
 
-.init-panel-btn .ready-card-icon.primary {
-  background-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-.init-panel-btn .ready-card-icon.primary i {
-  color: white !important;
-}
-
-.init-panel-btn .ready-card-content h6 {
-  color: white !important;
-  font-size: 0.9375rem;
-}
-
-.init-panel-btn .ready-card-content p {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-
-/* Ready Section - Success Card + Management */
-.ready-section {
+.reinit-option {
   display: flex;
   gap: 0.75rem;
-}
-
-.ready-card {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 1rem 1.25rem;
-  background: white;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  text-align: left;
-}
-
-.ready-card.action {
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.ready-card.action:hover {
-  border-color: var(--color-text-light);
-  background-color: var(--color-light);
+.reinit-option:hover {
+  background: var(--color-primary-lighter);
 }
 
-.ready-card.action.danger:hover {
-  border-color: var(--color-danger-input-border);
-  background-color: var(--color-danger-bg-light);
+.reinit-option--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-lighter);
 }
 
-.ready-card-icon {
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-neutral-light);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.reinit-option .form-check-input {
+  margin-top: 0.2rem;
   flex-shrink: 0;
 }
 
-.ready-card-icon i {
-  font-size: 1.125rem;
+.reinit-option-title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-heading-dark);
+}
+
+.reinit-option-detail {
+  display: block;
+  font-size: 0.78rem;
   color: var(--color-text-muted);
 }
 
-.ready-card-icon.success {
-  background-color: rgba(25, 135, 84, 0.1);
+.reinit-note {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 0.75rem 0 0;
 }
 
-.ready-card-icon.success i {
-  color: var(--color-success);
-}
-
-.ready-card-icon.info {
-  background-color: rgba(111, 66, 193, 0.1);
-}
-
-.ready-card-icon.info i {
-  color: var(--color-purple);
-}
-
-.ready-card-icon.primary {
-  background-color: rgba(13, 110, 253, 0.1);
-}
-
-.ready-card-icon.primary i {
-  color: var(--color-accent-blue);
-}
-
-.ready-card-icon.danger {
-  background-color: var(--color-danger-bg-lighter);
-}
-
-.ready-card-icon.danger i {
-  color: var(--color-danger);
-}
-
-.ready-card.action.primary:hover {
-  border-color: var(--color-blue-border-light);
-  background-color: var(--color-blue-bg-lighter);
-}
-
-/* Dominant button style */
-.ready-card.action.dominant {
-  flex: 2;
-  border-color: var(--color-accent-blue);
-  background-color: var(--color-blue-bg-light);
-}
-
-.ready-card.action.dominant:hover {
-  background-color: var(--color-blue-bg-lighter);
-}
-
-.ready-card.action.dominant .ready-card-content h6 {
-  color: var(--color-accent-blue);
-}
-
-.ready-card-icon.large {
-  width: 48px;
-  height: 48px;
-}
-
-.ready-card-icon.large i {
-  font-size: 1.375rem;
-}
-
-.ready-card-content h6 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-  margin: 0 0 0.125rem 0;
-}
-
-.ready-card-content p {
-  font-size: 0.75rem;
-  color: var(--color-text-light);
-  margin: 0;
-}
-
-.btn-outline-purple {
-  border-color: var(--color-purple);
-  color: var(--color-purple);
-}
-
-.btn-outline-purple:hover {
-  background-color: var(--color-purple);
-  border-color: var(--color-purple);
-  color: white;
-}
-
-/* Upload dropzone styles */
+/* Upload dropzone (heap dump attached to a JFR profile) */
 .upload-dropzone {
   border: 2px dashed var(--color-grey-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   transition: all 0.3s ease;
   background-color: var(--color-neutral-lightest);
 }
@@ -1150,7 +832,7 @@ onMounted(() => {
 .upload-dropzone.has-file {
   border-style: solid;
   border-color: var(--color-border);
-  background-color: white;
+  background-color: var(--color-white);
 }
 
 .upload-dropzone.clickable {
@@ -1162,384 +844,20 @@ onMounted(() => {
   background-color: var(--color-blue-bg-light);
 }
 
-.file-item {
-  border: 1px solid var(--color-border-row);
-  border-radius: 4px;
-  background-color: var(--color-neutral-bg);
-}
-
-.display-4 {
+.upload-icon {
+  display: inline-block;
   font-size: 3.5rem;
   line-height: 1.2;
 }
 
+.file-item {
+  border: 1px solid var(--color-border-row);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-neutral-bg);
+}
+
 .progress {
   height: 8px;
-  border-radius: 4px;
-}
-
-/* Upload Error Panel */
-.upload-error-panel {
-  margin-top: 1rem;
-  background: linear-gradient(
-    135deg,
-    var(--color-danger-bg-light) 0%,
-    var(--color-danger-bg-lighter) 100%
-  );
-  border: 1px solid var(--color-danger-border-light);
-  border-left: 4px solid var(--color-danger);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
-}
-
-.error-panel-content {
-  display: flex;
-  padding: 1.25rem;
-  gap: 1rem;
-  position: relative;
-}
-
-.error-icon-wrapper {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--color-danger) 0%, var(--color-danger-hover) 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
-}
-
-.error-icon-wrapper i {
-  font-size: 1.5rem;
-  color: white;
-}
-
-.error-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.error-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-danger-title);
-  margin: 0 0 0.5rem 0;
-}
-
-.error-message {
-  font-size: 0.875rem;
-  color: var(--color-danger-dark);
-  margin: 0 0 1rem 0;
-  line-height: 1.5;
-}
-
-.error-suggestions {
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  padding: 0.875rem 1rem;
-}
-
-.error-suggestions h6 {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-amber-text);
-  margin: 0 0 0.5rem 0;
-  display: flex;
-  align-items: center;
-}
-
-.error-suggestions h6 i {
-  color: var(--color-amber);
-}
-
-.error-suggestions ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.8125rem;
-  color: var(--color-amber-dark);
-}
-
-.error-suggestions li {
-  margin-bottom: 0.25rem;
-  line-height: 1.5;
-}
-
-.error-suggestions li:last-child {
-  margin-bottom: 0;
-}
-
-.error-suggestions code {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger-hover);
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.error-dismiss-btn {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(239, 68, 68, 0.1);
-  border-radius: 6px;
-  color: var(--color-danger-hover);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.error-dismiss-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--color-danger-title);
-}
-
-.error-dismiss-btn i {
-  font-size: 0.875rem;
-}
-
-/* Slide fade transition */
-.slide-fade-enter-active {
-  transition: all 0.3s ease-out;
-}
-
-.slide-fade-leave-active {
-  transition: all 0.2s ease-in;
-}
-
-.slide-fade-enter-from {
-  transform: translateY(-10px);
-  opacity: 0;
-}
-
-.slide-fade-leave-to {
-  transform: translateY(-10px);
-  opacity: 0;
-}
-
-/* Init Options */
-.init-options {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
-  text-align: left;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.init-options-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-}
-
-.init-option-group {
-  flex: 1;
-  min-width: 0;
-}
-
-.init-options .option-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text);
-  display: block;
-}
-
-.init-options .form-check {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  cursor: pointer;
-  padding-left: 1.5rem;
-}
-
-.init-options .form-check-input {
-  margin-top: 0.25rem;
-}
-
-.init-options .form-check-label {
-  font-size: 0.8125rem;
-  color: var(--color-text);
-}
-
-.init-options .form-check-label small {
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-  .ready-section {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 768px) {
-  .init-panel-btn {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 576px) {
-  .processing-card,
-  .init-header-card {
-    padding: 2rem 1.5rem;
-  }
-}
-
-/* Sanitize Recovery Panel */
-.sanitize-panel {
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, var(--color-amber-bg) 0%, var(--color-amber-light) 100%);
-  border: 1px solid var(--color-amber-badge-border);
-  border-left: 4px solid var(--color-amber);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
-}
-
-.sanitize-panel-content {
-  display: flex;
-  padding: 1.25rem;
-  gap: 1rem;
-  position: relative;
-}
-
-.sanitize-icon-wrapper {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--color-amber) 0%, var(--color-amber-highlight) 100%);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
-}
-
-.sanitize-icon-wrapper i {
-  font-size: 1.5rem;
-  color: white;
-}
-
-.sanitize-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.sanitize-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-amber-text);
-  margin: 0 0 0.5rem 0;
-}
-
-.sanitize-message {
-  font-size: 0.875rem;
-  color: var(--color-amber-message);
-  margin: 0 0 1rem 0;
-  line-height: 1.5;
-}
-
-.sanitize-info {
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  padding: 0.875rem 1rem;
-  margin-bottom: 1rem;
-}
-
-.sanitize-info h6 {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-amber-text);
-  margin: 0 0 0.5rem 0;
-  display: flex;
-  align-items: center;
-}
-
-.sanitize-info h6 i {
-  color: var(--color-amber);
-}
-
-.sanitize-info ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.8125rem;
-  color: var(--color-amber-dark);
-}
-
-.sanitize-info li {
-  margin-bottom: 0.25rem;
-  line-height: 1.5;
-}
-
-.sanitize-info li:last-child {
-  margin-bottom: 0;
-}
-
-.sanitize-actions {
-  display: flex;
-  align-items: center;
-}
-
-.btn-warning-gradient {
-  background: linear-gradient(135deg, var(--color-amber) 0%, var(--color-amber-highlight) 100%);
-  color: white;
-  border: none;
-  padding: 0.5rem 1.25rem;
-  border-radius: 6px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-  transition: all 0.15s ease;
-}
-
-.btn-warning-gradient:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    var(--color-amber-highlight) 0%,
-    var(--color-amber-darkest) 100%
-  );
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
-  transform: translateY(-1px);
-  color: white;
-}
-
-.btn-warning-gradient:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.sanitize-dismiss-btn {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(245, 158, 11, 0.1);
-  border-radius: 6px;
-  color: var(--color-amber-highlight);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.sanitize-dismiss-btn:hover {
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--color-amber-text);
-}
-
-.sanitize-dismiss-btn i {
-  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
 }
 </style>

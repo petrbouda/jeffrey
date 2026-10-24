@@ -35,7 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * File-system side of heap-dump lifecycle: upload, sanitize, and delete the
+ * File-system side of heap-dump lifecycle: upload and delete the
  * heap-dump file along with its sidecars (gzip companion, DuckDB index, and
  * cached analysis JSON files).
  */
@@ -103,14 +103,6 @@ public final class HeapDumpUploadService {
             LOG.error("Failed to upload heap dump: profileId={} filename={}", profileInfo.id(), filename, e);
             throw Exceptions.internal("Failed to upload heap dump: " + e.getMessage(), e);
         }
-    }
-
-    public void sanitize() {
-        // The native parser is fault-tolerant by design — framing recovery is
-        // applied inline during indexing rather than as a separate pre-pass.
-        // Kept as a no-op so any frontend that still calls /sanitize gets a
-        // clean response.
-        LOG.debug("sanitizeHeapDump is a no-op on the native parser path: profileId={}", profileInfo.id());
     }
 
     public void unloadHeap() {

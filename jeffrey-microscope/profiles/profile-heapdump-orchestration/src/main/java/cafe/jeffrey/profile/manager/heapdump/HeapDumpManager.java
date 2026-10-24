@@ -216,13 +216,6 @@ public interface HeapDumpManager {
     void deleteHeapDump();
 
     /**
-     * Sanitize a corrupted heap dump. On the native parser path this is a
-     * no-op — framing recovery is applied inline during indexing rather than
-     * as a separate pre-pass. Kept on the interface for API compatibility.
-     */
-    void sanitizeHeapDump();
-
-    /**
      * Upload a heap dump file.
      *
      * @param inputStream the input stream of the heap dump file
@@ -336,11 +329,6 @@ public interface HeapDumpManager {
     Optional<HeapDumpConfig> getHeapDumpConfig();
 
     // --- Init pipeline result ---
-
-    /**
-     * Check whether the per-profile initialization-pipeline snapshot exists.
-     */
-    boolean initPipelineResultExists();
 
     /**
      * Read the stored snapshot of the last initialization pipeline run, so the Overview page can show

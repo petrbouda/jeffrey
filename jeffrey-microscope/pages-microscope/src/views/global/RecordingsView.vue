@@ -267,6 +267,7 @@
               @edit-profile="startEditProfile(recording)"
               @delete-profile="deleteProfileFromRecording(recording.id)"
               @delete-recording="deleteRecording(recording.id)"
+              @reinitialize="reinitializeHeapDump(recording)"
               @toggle-expand="toggleRecordingFiles(recording.id)"
               @dragend="onDragEnd"
             >
@@ -339,7 +340,8 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
-import { isInitializing } from '@hubs/components/profileInitChips';
+import { hasFailed, isInitializing } from '@hubs/components/profileInitChips';
+import HeapDumpClient from '@/services/api/HeapDumpClient';
 import {
   HEAP_DUMP_SOURCE,
   OTEL_SOURCE,
@@ -983,10 +985,27 @@ const handleCardClick = (recording: Recording) => {
   if (analyzingRecordings.value.has(recording.id)) {
     return;
   }
-  if (recording.hasProfile) {
+  // A failed run is retried rather than opened: its profile has nothing in it to show.
+  if (recording.hasProfile && !hasFailed(recording.initProgress)) {
     openProfile(recording);
   } else {
     analyzeRecording(recording.id);
+  }
+};
+
+/**
+ * Drops a heap dump's index and builds it again, compressed oops auto-detected. The run shows on the
+ * card like the first one; forcing compressed oops is the Heap Dump Overview's own re-initialize.
+ */
+const reinitializeHeapDump = async (recording: Recording) => {
+  if (!recording.profileId) {
+    return;
+  }
+  try {
+    await new HeapDumpClient(recording.profileId).reinitialize();
+    await loadData();
+  } catch {
+    // Toast shown by HttpInterceptor
   }
 };
 
