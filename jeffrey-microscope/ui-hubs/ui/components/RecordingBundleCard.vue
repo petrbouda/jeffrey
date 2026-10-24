@@ -17,9 +17,10 @@
 
 <!--
   A bundle: the items a hub session download brought in together, as one row of the recordings list.
-  Collapsed, it names the bundle and shows a badge per item kind with its state; expanded, each item is
-  an ordinary recording card — initialized, opened and retried on its own — followed by the bundle's
-  download-only files (logs, crash files).
+  Collapsed, it names the bundle and shows a badge per item with its state; expanded, it lists the items
+  still to initialize as ordinary recording cards, followed by the bundle's download-only files (logs,
+  crash files). An initialized item is a profile row of its own in the recordings list, outside the
+  bundle.
 -->
 <script setup lang="ts">
 import '@shared/styles/shared-components.css';
@@ -36,8 +37,10 @@ import { BUNDLE_DRAG_PREFIX, bundleItemsLabel, bundleSize, memberBadges } from '
 const props = withDefaults(
   defineProps<{
     bundle: Bundle;
-    /** The bundle's items, its recording first. */
+    /** The bundle's items, its recording first: the badges, size and counts describe all of them. */
     members: Recording[];
+    /** The items listed when expanded; all of them when not given. */
+    listedMembers?: Recording[];
     origin?: RecordingOrigin;
     tickNow?: number;
     expanded?: boolean;
@@ -48,6 +51,7 @@ const props = withDefaults(
     draggable?: boolean;
   }>(),
   {
+    listedMembers: undefined,
     origin: undefined,
     tickNow: 0,
     expanded: false,
@@ -78,6 +82,8 @@ const memberBadgeList = computed(() => memberBadges(props.members, props.analyzi
 const totalBytes = computed(() => bundleSize(props.bundle, props.members));
 
 const itemsLabel = computed(() => bundleItemsLabel(props.bundle, props.members));
+
+const listed = computed(() => props.listedMembers ?? props.members);
 
 const onDragStart = (event: DragEvent) => {
   if (!props.draggable || !event.dataTransfer) {
@@ -151,7 +157,7 @@ const onDragStart = (event: DragEvent) => {
 
     <div v-if="expanded" class="bundle-card__body">
       <RecordingCard
-        v-for="member in members"
+        v-for="member in listed"
         :key="member.id"
         :recording-id="member.id"
         :name="member.profileName ?? member.filename"

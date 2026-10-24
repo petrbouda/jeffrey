@@ -203,7 +203,7 @@
             <i class="bi bi-grid-fill"></i>
           </span>
           All
-          <span class="type-count">{{ filteredItems.length }}</span>
+          <span class="type-count">{{ selectionCount }}</span>
         </button>
         <button
           v-for="tf in TYPE_FILTERS"
@@ -222,7 +222,7 @@
       </div>
 
       <EmptyState
-        v-if="searchText && filteredItems.length === 0"
+        v-if="searchText && selectionCount === 0"
         icon="bi-search"
         title="No recordings match the current filter"
       />
@@ -244,6 +244,7 @@
                 v-if="item.kind === 'bundle'"
                 :bundle="item.bundle"
                 :members="item.members"
+                :listed-members="item.pending"
                 :origin="buildOrigin(item.bundle.tags)"
                 :tick-now="tickNow"
                 :expanded="expandedBundles.has(item.bundle.id)"
@@ -280,7 +281,7 @@
                 :analyzing="analyzingRecordings.has(item.recording.id)"
                 :init-progress="item.recording.initProgress"
                 :tick-now="tickNow"
-                :draggable="true"
+                :draggable="!item.recording.bundleId"
                 :origin="buildOrigin(item.recording.tags)"
                 :file-count="item.recording.files?.length ?? 0"
                 :expandable="(item.recording.files?.length ?? 0) > 1"
@@ -382,7 +383,12 @@ import type { RecordingTag } from '@hubs/services/api/model/Recording';
 import type Bundle from '@hubs/services/api/model/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
 import { BUNDLE_DRAG_PREFIX, compareMembers } from '@hubs/components/bundleSummary';
-import { hasFailed, isInitializing } from '@hubs/components/profileInitChips';
+import {
+  splitColumns,
+  type BundleWithMembers,
+  type ListItem
+} from '@hubs/components/recordingColumns';
+import { hasFailed } from '@hubs/components/profileInitChips';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import { HEAP_DUMP_SOURCE, profileLandingRoute } from '@/services/ProfileLandingRoute';
 
@@ -712,11 +718,6 @@ const browseLinkLabel = computed<string>(() => {
   return uploadFiles.value.length > 0 ? 'add more from your computer' : 'browse your computer';
 });
 
-/** One row of the list: a recording on its own, or a bundle with its items. */
-type ListItem =
-  | { kind: 'recording'; key: string; recording: Recording }
-  | { kind: 'bundle'; key: string; bundle: Bundle; members: Recording[] };
-
 const inSelectedGroup = (groupId: string | null): boolean => {
   if (viewFilter.value === UNGROUPED_KEY) {
     return groupId === null;
@@ -729,14 +730,12 @@ const matchesSearch = (recording: Recording, search: string): boolean =>
   (recording.profileName ?? '').toLowerCase().includes(search);
 
 // The group/search selection. A bundle is found by its own name or by any of its items.
-const filteredItems = computed<ListItem[]>(() => {
+const selection = computed<{ recordings: Recording[]; bundles: BundleWithMembers[] }>(() => {
   const search = searchText.value.toLowerCase();
-  const items: ListItem[] = [];
-  for (const recording of standaloneRecordings.value) {
-    if (inSelectedGroup(recording.groupId) && (!search || matchesSearch(recording, search))) {
-      items.push({ kind: 'recording', key: recording.id, recording });
-    }
-  }
+  const recordings = standaloneRecordings.value.filter(
+    recording => inSelectedGroup(recording.groupId) && (!search || matchesSearch(recording, search))
+  );
+  const bundles: BundleWithMembers[] = [];
   for (const bundle of allBundles.value) {
     const members = membersByBundle.value.get(bundle.id) ?? [];
     const found =
@@ -744,15 +743,15 @@ const filteredItems = computed<ListItem[]>(() => {
       bundle.name.toLowerCase().includes(search) ||
       members.some(member => matchesSearch(member, search));
     if (inSelectedGroup(bundle.groupId) && found) {
-      items.push({ kind: 'bundle', key: bundle.id, bundle, members });
+      bundles.push({ bundle, members });
     }
   }
-  return items;
+  return { recordings, bundles };
 });
 
-/** The recordings an item stands for: itself, or a bundle's items. */
-const recordingsOf = (item: ListItem): Recording[] =>
-  item.kind === 'recording' ? [item.recording] : item.members;
+const selectionCount = computed(
+  () => selection.value.recordings.length + selection.value.bundles.length
+);
 
 // Recording format taxonomy — recordingKinds is the single source of truth for how a recording is typed.
 type RecordingType = RecordingKindKey;
@@ -766,27 +765,15 @@ const typeFilter = ref<TypeFilter>('all');
 // Counts per format within the current group/search selection — drives the type filter pills.
 const typeCounts = computed<Record<RecordingType, number>>(() => {
   const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, OTLP: 0, HEAP: 0, PERF: 0 };
-  for (const item of filteredItems.value) {
-    for (const recording of recordingsOf(item)) {
-      counts[recordingType(recording)]++;
-    }
+  const { recordings, bundles } = selection.value;
+  for (const recording of [...recordings, ...bundles.flatMap(entry => entry.members)]) {
+    counts[recordingType(recording)]++;
   }
   return counts;
 });
 
-// Items shown in the list: the group/search selection, narrowed by the active type filter. A bundle
-// stays when any of its items is of the type, and shows all of them.
-const visibleItems = computed<ListItem[]>(() => {
-  if (typeFilter.value === 'all') {
-    return filteredItems.value;
-  }
-  return filteredItems.value.filter(item =>
-    recordingsOf(item).some(recording => recordingType(recording) === typeFilter.value)
-  );
-});
-
-// The list is split into two columns by whether the recording has a built profile: not-initialized
-// (raw uploads, "Click to analyze") on the left, initialized (has a profile) on the right.
+// The list is split into two columns: what is left to initialize on the left (recordings, and bundles
+// with their remaining items and files), the initialized profiles on the right, one row each.
 interface RecordingColumn {
   key: 'raw' | 'initialized';
   label: string;
@@ -795,41 +782,22 @@ interface RecordingColumn {
   emptyText: string;
 }
 
-// A recording whose profile row exists only because its initialization is running belongs on the
-// left with its stage chips, not on the right among the profiles you can open. A bundle moves right
-// once any of its items is built.
-const isBuilt = (recording: Recording): boolean =>
-  recording.hasProfile && !isInitializing(recording.initProgress);
-
-const uploadedAtOf = (item: ListItem): number =>
-  item.kind === 'recording' ? item.recording.uploadedAt : item.bundle.createdAt;
-
-const analyzedAtOf = (item: ListItem): number =>
-  Math.max(
-    ...recordingsOf(item).map(recording => recording.profileCreatedAt || recording.uploadedAt),
-    0
-  );
-
 const recordingColumns = computed<RecordingColumn[]>(() => {
-  const notInitialized: ListItem[] = [];
-  const initialized: ListItem[] = [];
-  for (const item of visibleItems.value) {
-    (recordingsOf(item).some(isBuilt) ? initialized : notInitialized).push(item);
-  }
-  // Not-initialized: newest upload first. Initialized: most recently analyzed first (falling back to
-  // upload time) so a recording you just analyzed surfaces at the top instead of sinking to its upload slot.
-  notInitialized.sort((a, b) => uploadedAtOf(b) - uploadedAtOf(a));
-  initialized.sort((a, b) => analyzedAtOf(b) - analyzedAtOf(a));
+  const type = typeFilter.value;
+  const { pending, initialized } = splitColumns({
+    ...selection.value,
+    shows: type === 'all' ? null : recording => recordingType(recording) === type
+  });
+  const nothingShown = pending.length === 0 && initialized.length === 0;
   return [
     {
       key: 'raw',
       label: 'Not initialized',
-      items: notInitialized,
-      emptyIcon: visibleItems.value.length === 0 ? 'bi-inbox' : 'bi-check2-all',
-      emptyText:
-        visibleItems.value.length === 0
-          ? 'No recordings yet — drop a file above'
-          : 'All recordings here are initialized'
+      items: pending,
+      emptyIcon: nothingShown ? 'bi-inbox' : 'bi-check2-all',
+      emptyText: nothingShown
+        ? 'No recordings yet — drop a file above'
+        : 'All recordings here are initialized'
     },
     {
       key: 'initialized',
