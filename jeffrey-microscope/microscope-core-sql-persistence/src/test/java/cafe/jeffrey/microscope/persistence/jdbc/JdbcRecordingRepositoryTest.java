@@ -22,6 +22,8 @@ import cafe.jeffrey.microscope.persistence.api.*;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
@@ -39,6 +41,7 @@ import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -461,6 +464,111 @@ class JdbcRecordingRepositoryTest {
             // Recording in group should also be deleted
             Optional<Recording> result = repository.findRecording("rec-002");
             assertTrue(result.isEmpty());
+        }
+    }
+
+    /**
+     * A bundle is several items that arrived together: each initializable one a recording of its own
+     * pointing back to the bundle, the rest download-only files of the bundle itself.
+     */
+    @Nested
+    class BundleMethods {
+
+        private static final String BUNDLE_ID = "bundle-1";
+
+        private static Recording member(String id, String name, RecordingEventSource source, String... files) {
+            List<RecordingFile> recordingFiles = Arrays.stream(files)
+                    .map(filename -> new RecordingFile(id + "-" + filename, id, filename,
+                            ManagedFile.of(filename), FIXED_TIME, 1024))
+                    .toList();
+            return new Recording(id, name, null, source, FIXED_TIME, null, null,
+                    false, null, null, recordingFiles, BUNDLE_ID);
+        }
+
+        private static Bundle bundle(String groupId) {
+            return new Bundle(BUNDLE_ID, "checkout_2026-03-01T12-00-00Z", groupId, FIXED_TIME, List.of(
+                    new BundleFile("log-1", BUNDLE_ID, "gc.jvm-log", ManagedFile.JVM_LOG, FIXED_TIME, 512)));
+        }
+
+        private static void insertBundle(JdbcRecordingRepository repository, String groupId) {
+            repository.insertBundle(bundle(groupId), List.of(
+                    member("rec-jfr", "checkout", RecordingEventSource.JDK, "chunk-1.jfr", "chunk-2.jfr"),
+                    member("rec-heap", "heap.hprof", RecordingEventSource.HEAP_DUMP, "heap.hprof")));
+        }
+
+        @Test
+        void insertsTheBundleItsFilesAndEveryMemberWithItsFiles(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            insertBundle(repository, null);
+
+            Bundle bundle = repository.findBundle(BUNDLE_ID).orElseThrow();
+            assertEquals("checkout_2026-03-01T12-00-00Z", bundle.bundleName());
+            assertEquals(List.of("gc.jvm-log"), bundle.files().stream().map(BundleFile::filename).toList());
+
+            List<Recording> members = repository.findBundleMembers(BUNDLE_ID);
+            assertEquals(2, members.size());
+            Recording jfr = members.stream().filter(r -> r.id().equals("rec-jfr")).findFirst().orElseThrow();
+            assertEquals(BUNDLE_ID, jfr.bundleId());
+            assertEquals(2, jfr.files().size());
+        }
+
+        @Test
+        void membersAreListedWithTheRecordingsAndCarryTheirBundle(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            insertBundle(repository, null);
+
+            List<Recording> all = repository.findAllRecordings();
+            assertEquals(2, all.size());
+            assertTrue(all.stream().allMatch(recording -> BUNDLE_ID.equals(recording.bundleId())));
+            assertEquals(1, repository.findAllBundles().size());
+        }
+
+        @Test
+        void aBundlesOneFileMemberIsFoundByItsFileNameAndSize(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            insertBundle(repository, null);
+
+            assertEquals("rec-heap", repository.findByFileNameAndSize("heap.hprof", 1024).orElseThrow().id());
+            assertTrue(repository.findByFileNameAndSize("chunk-1.jfr", 1024).isEmpty());
+        }
+
+        @Test
+        void aMemberWithoutFilesRollsTheWholeBundleBack(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            assertThrows(IllegalArgumentException.class, () -> repository.insertBundle(bundle(null), List.of(
+                    member("rec-jfr", "checkout", RecordingEventSource.JDK, "chunk-1.jfr"),
+                    member("rec-empty", "empty", RecordingEventSource.HEAP_DUMP))));
+
+            assertTrue(repository.findBundle(BUNDLE_ID).isEmpty());
+            assertTrue(repository.findAllRecordings().isEmpty());
+        }
+
+        @Test
+        void deletingTheBundleRemovesItsRowAndFilesButNotItsMembers(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            insertBundle(repository, null);
+
+            repository.deleteBundle(BUNDLE_ID);
+
+            assertTrue(repository.findBundle(BUNDLE_ID).isEmpty());
+            assertEquals(0, countRows(dataSource, "SELECT count(*) FROM bundle_files"));
+            assertEquals(2, repository.findBundleMembers(BUNDLE_ID).size());
+        }
+
+        @Test
+        void aBundleMovesBetweenGroupsAsAWhole(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            String groupId = repository.insertGroup("Checkout");
+            insertBundle(repository, null);
+
+            repository.updateBundleGroup(BUNDLE_ID, groupId);
+
+            assertEquals(List.of(BUNDLE_ID), repository.findBundlesByGroupId(groupId).stream().map(Bundle::id).toList());
+            assertTrue(repository.findRecordingsByGroupId(groupId).isEmpty());
         }
     }
 }

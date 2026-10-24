@@ -726,15 +726,37 @@ public class HubsArtifactsMcpTools {
             return null;
         }
         if (local.recording() != null) {
-            for (RecordingFile recordingFile : local.recording().files()) {
-                if (recordingFile.filename().equals(file.name())) {
-                    return recordings.findRecordingFile(local.recording().id(), recordingFile.id())
-                            .map(path -> path.toAbsolutePath().toString())
-                            .orElse(null);
+            return broughtByDownload(local.recording(), file.name())
+                    .map(path -> path.toAbsolutePath().toString())
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    /**
+     * A file the session's download brought, wherever it was stored: a file of one of the bundle's
+     * items (a heap dump is a recording of its own), or a download-only file of the bundle itself (a
+     * log). A copy made before downloads were bundled holds everything as files of its recording.
+     */
+    private Optional<Path> broughtByDownload(Recording recording, String filename) {
+        List<Recording> items = recording.inBundle()
+                ? recordings.findBundleMembers(recording.bundleId())
+                : List.of(recording);
+        for (Recording item : items) {
+            for (RecordingFile recordingFile : item.files()) {
+                if (recordingFile.filename().equals(filename)) {
+                    return recordings.findRecordingFile(item.id(), recordingFile.id());
                 }
             }
         }
-        return null;
+        if (!recording.inBundle()) {
+            return Optional.empty();
+        }
+        return recordings.findBundle(recording.bundleId())
+                .flatMap(bundle -> bundle.files().stream()
+                        .filter(bundleFile -> bundleFile.filename().equals(filename))
+                        .findFirst()
+                        .flatMap(bundleFile -> recordings.findBundleFile(bundle.id(), bundleFile.id())));
     }
 
     /** What the table's {@code local} column says: the path, or the recording or profile a chunk came with. */

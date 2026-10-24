@@ -19,40 +19,21 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.profile.ProfileInitializer;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.provider.profile.api.RecordingInformation;
-import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -62,59 +43,39 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import cafe.jeffrey.shared.notification.NotificationCategory;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
 
 /**
  * Microscope's profile-aware {@link RecordingsManager}. Delegates all deployment-agnostic recording
  * store operations to the shared {@link RecordingsCoreManager} and adds the profile-creation /
  * profile-lifecycle operations that are specific to the full microscope deployment.
+ * <p>
+ * A recording becomes at most one profile, built by the {@link ProfileBuilder} of its kind.
  */
 public class ProfileRecordingsManager implements RecordingsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileRecordingsManager.class);
 
     private final RecordingsCoreManager core;
-    private final Clock clock;
-    private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final Path recordingsDir;
-    private final RecordingInformationParser recordingInformationParser;
-    private final ProfileInitializer profileInitializer;
     private final ProfileManager.Factory profileManagerFactory;
     private final MicroscopeCoreRepositories localCoreRepositories;
     private final MicroscopeProfileCleanup profileCleanup;
     private final RecordingRepository recordingRepository;
-    private final PipelineRunRegistry<String> runRegistry;
-    private final HeapDumpInitService heapDumpInitService;
+    private final ProfileBuilders builders;
     private final ConcurrentMap<String, CompletableFuture<String>> analyses = new ConcurrentHashMap<>();
 
     public ProfileRecordingsManager(
             RecordingsCoreManager core,
-            Clock clock,
-            MicroscopeJeffreyDirs jeffreyDirs,
-            Path recordingsDir,
-            RecordingInformationParser recordingInformationParser,
-            ProfileInitializer profileInitializer,
             ProfileManager.Factory profileManagerFactory,
             MicroscopeCoreRepositories localCoreRepositories,
             MicroscopeProfileCleanup profileCleanup,
-            PipelineRunRegistry<String> runRegistry,
-            HeapDumpInitService heapDumpInitService) {
+            ProfileBuilders builders) {
 
         this.core = core;
-        this.clock = clock;
-        this.jeffreyDirs = jeffreyDirs;
-        this.recordingsDir = recordingsDir;
-        this.recordingInformationParser = recordingInformationParser;
-        this.profileInitializer = profileInitializer;
         this.profileManagerFactory = profileManagerFactory;
         this.localCoreRepositories = localCoreRepositories;
         this.profileCleanup = profileCleanup;
         this.recordingRepository = localCoreRepositories.newRecordingRepository();
-        this.runRegistry = runRegistry;
-        this.heapDumpInitService = heapDumpInitService;
+        this.builders = builders;
     }
 
     // --- Delegated store operations (deployment-agnostic) ---
@@ -150,12 +111,12 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     @Override
-    public String createDownloadedRecording(
-            String recordingName,
+    public String createDownloadedBundle(
+            String bundleName,
             List<Path> recordingFiles,
             List<Path> artifactFiles,
             Map<String, String> originTags) {
-        return core.createDownloadedRecording(recordingName, recordingFiles, artifactFiles, originTags);
+        return core.createDownloadedBundle(bundleName, recordingFiles, artifactFiles, originTags);
     }
 
     @Override
@@ -186,6 +147,36 @@ public class ProfileRecordingsManager implements RecordingsManager {
     @Override
     public Optional<Path> findRecordingFile(String recordingId, String fileId) {
         return core.findRecordingFile(recordingId, fileId);
+    }
+
+    @Override
+    public List<Bundle> listBundles() {
+        return core.listBundles();
+    }
+
+    @Override
+    public Optional<Bundle> findBundle(String bundleId) {
+        return core.findBundle(bundleId);
+    }
+
+    @Override
+    public List<Recording> findBundleMembers(String bundleId) {
+        return core.findBundleMembers(bundleId);
+    }
+
+    @Override
+    public void moveBundleToGroup(String bundleId, String groupId) {
+        core.moveBundleToGroup(bundleId, groupId);
+    }
+
+    @Override
+    public void deleteBundle(String bundleId) {
+        core.deleteBundle(bundleId);
+    }
+
+    @Override
+    public Optional<Path> findBundleFile(String bundleId, String fileId) {
+        return core.findBundleFile(bundleId, fileId);
     }
 
     // --- Profile creation (microscope-specific) ---
@@ -220,80 +211,18 @@ public class ProfileRecordingsManager implements RecordingsManager {
         Recording recording = recordingRepository.findRecording(recordingId)
                 .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
 
-        if (recording.hasProfile() && recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
-            Optional<String> reused = resumeHeapDump(recording.profileId());
+        ProfileBuilder builder = builders.of(recording.eventSource());
+        if (recording.hasProfile()) {
+            Optional<String> reused = builder.reuse(recording);
             if (reused.isPresent()) {
                 return reused.get();
             }
-        } else if (recording.hasProfile()) {
-            String profileId = recording.profileId();
-            // A second request while initialization is active joins the attempt already represented
-            // by this row. Deleting it would pull the database out from under the parser.
-            if (runRegistry.isRunning(profileId)) {
-                return profileId;
-            }
-
-            ProfileRepository existing = localCoreRepositories.newProfileRepository(profileId);
-            if (existing.find().map(ProfileInfo::enabled).orElse(false)) {
-                return profileId;
-            }
-
-            // Disabled with no live run means either a terminal failed attempt retained for diagnosis,
-            // or work interrupted by a process restart. An explicit Analyze is the retry boundary:
-            // remove that attempt here, then build a fresh profile id below.
-            profileCleanup.deleteProfile(profileId);
         }
 
-        // A heap dump is decided first, and deliberately: it is one file by nature and it is an
-        // ARTIFACT by category, so the recording-file filter below finds nothing for it.
-        String profileId;
-        if (recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
-            profileId = analyzeHeapDump(recording, recording.files().getFirst());
-        } else {
-            // The recording's own files, not its artifacts. A downloaded session holds both in the
-            // same table, told apart only by their type -- and it holds as many recording files as
-            // the session rolled chunks, so taking the first of them would analyse a few minutes of
-            // a run that lasted hours, with nothing anywhere saying the rest was dropped.
-            List<RecordingFile> recordingFiles = recording.files().stream()
-                    .filter(file -> file.recordingFileType().fileCategory() == FileCategory.RECORDING)
-                    .toList();
-
-            if (recordingFiles.isEmpty()) {
-                throw Exceptions.internal("Recording has no recording files: %s".formatted(recordingId));
-            }
-
-            profileId = analyzeJfr(recording, recordingFiles);
-        }
-
-        LOG.info("Quick analysis recording analyzed: recordingId={} profileId={}", recordingId, profileId);
+        String profileId = builder.build(recording);
+        LOG.info("Quick analysis recording analyzed: recordingId={} profileId={} eventSource={}",
+                recordingId, profileId, recording.eventSource());
         return profileId;
-    }
-
-    /**
-     * An explicit Analyze on a heap dump that already has a profile. The profile is kept whenever its
-     * copy of the dump is still there: a run in flight is joined, a fully built dump is left alone, and
-     * anything else -- a failed run (even one that got past the index build and failed in a report), or
-     * one a restart interrupted -- is started again on the same copy.
-     * Only a profile that lost its dump is dropped, so the caller builds a fresh one from the recording.
-     *
-     * @return the profile to report, or empty when the caller has to build a new one
-     */
-    private Optional<String> resumeHeapDump(String profileId) {
-        if (heapDumpInitService.isRunning(profileId)) {
-            return Optional.of(profileId);
-        }
-
-        Optional<HeapDumpManager> heapDumpManager = profile(profileId).map(ProfileManager::heapDumpManager);
-        if (heapDumpManager.isPresent() && heapDumpManager.get().heapDumpExists()) {
-            boolean lastRunFailed = heapDumpInitService.progress(profileId).state() == PipelineState.FAILED;
-            if (lastRunFailed || !heapDumpManager.get().isCacheReady()) {
-                heapDumpInitService.start(profileId, heapDumpManager.get(), null);
-            }
-            return Optional.of(profileId);
-        }
-
-        profileCleanup.deleteProfile(profileId);
-        return Optional.empty();
     }
 
     private static String join(CompletableFuture<String> analysis) {
@@ -309,135 +238,6 @@ public class ProfileRecordingsManager implements RecordingsManager {
             }
             throw e;
         }
-    }
-
-    private String analyzeJfr(Recording recording, List<RecordingFile> recordingFiles) {
-        List<Path> filePaths = recordingFiles.stream()
-                .map(this::resolveRecordingFilePath)
-                .toList();
-
-        // A downloaded session brings its heap dumps, logs and perf counters along, stored beside
-        // the recording files rather than in a directory of their own. They are handed to the
-        // initializer because nothing downstream can find them from the recording id alone.
-        List<Path> artifactPaths = recording.files().stream()
-                .filter(file -> file.recordingFileType().fileCategory() == FileCategory.ARTIFACT)
-                .map(this::resolveRecordingFilePath)
-                .filter(Files::exists)
-                .toList();
-
-        for (Path filePath : filePaths) {
-            if (!Files.exists(filePath)) {
-                throw Exceptions.internal("Recording file does not exist: %s".formatted(filePath));
-            }
-        }
-
-        RecordingSources sources = new RecordingSources(filePaths);
-        String profileId = IDGenerator.generate();
-        Instant createdAt = clock.instant();
-
-        RecordingInformation recordingInfo = resolveRecordingInformation(recording, sources);
-
-        // Named after the recording rather than after one of its files: a session's files are
-        // chunk-<timestamp>.jfr.lz4 and naming the profile after the first of them says nothing.
-        String profileName = recording.recordingName();
-
-        ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, profileName,
-                recordingInfo.eventSource(),
-                recordingInfo.recordingStartedAt(),
-                recordingInfo.recordingFinishedAt(),
-                createdAt, false, false, recording.id());
-
-        // Insert the profile row before initializing. The recordings list reaches a run's progress
-        // through the recording's profile, so a row that appears only once the pipeline has finished
-        // leaves the whole run invisible -- the card can say nothing but "Initializing..." for as
-        // long as it takes.
-        ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
-        profileRepository.insert(new ProfileRepository.InsertProfile(
-                profileName,
-                recordingInfo.eventSource(), createdAt,
-                recording.id(),
-                recordingInfo.recordingStartedAt(),
-                recordingInfo.recordingFinishedAt()));
-
-        try {
-            profileInitializer.initialize(profileInfo, sources, artifactPaths);
-        } catch (RuntimeException e) {
-            // Keep the disabled row. It is the durable recording-to-profile link through which the
-            // in-memory pipeline can report the failed attempt, and after a restart it is the evidence
-            // that an initialization was interrupted rather than never requested. A later explicit
-            // Analyze removes it before retrying.
-            Notifications.of(NotificationType.PROFILE_ANALYSIS_FAILED)
-                    .attribute("recordingId", recording.id())
-                    .attribute("profileId", profileId)
-                    .errorType(e)
-                    .emit();
-
-            throw e;
-        }
-        profileRepository.enableProfile(createdAt);
-
-        return profileId;
-    }
-
-    /**
-     * Prefers the recording metadata persisted at upload time (event source + profiling start/end)
-     * and re-parses the JFR file only when any of them is missing — e.g. when the metadata parse
-     * failed during the upload.
-     */
-    private RecordingInformation resolveRecordingInformation(Recording recording, RecordingSources sources) {
-        boolean persistedInfoComplete = recording.eventSource() != null
-                && recording.eventSource() != RecordingEventSource.UNKNOWN
-                && recording.recordingStartedAt() != null
-                && recording.recordingFinishedAt() != null;
-
-        if (persistedInfoComplete) {
-            return new RecordingInformation(
-                    sources.files().stream().mapToLong(FileSystemUtils::size).sum(),
-                    recording.eventSource(),
-                    recording.recordingStartedAt(),
-                    recording.recordingFinishedAt());
-        }
-        return recordingInformationParser.provide(sources);
-    }
-
-    private String analyzeHeapDump(Recording recording, RecordingFile file) {
-        String profileId = IDGenerator.generate();
-        Instant createdAt = clock.instant();
-
-        Path heapDumpAnalysisPath = jeffreyDirs.profileDir(profileId).resolve(MicroscopeJeffreyDirs.HEAP_DUMP_ANALYSIS_DIR);
-        FileSystemUtils.createDirectories(heapDumpAnalysisPath);
-
-        Path sourcePath = resolveRecordingFilePath(file);
-        Path targetPath = heapDumpAnalysisPath.resolve(file.filename());
-
-        try {
-            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to copy heap dump to analysis directory", e);
-        }
-
-        ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, file.filename(),
-                RecordingEventSource.HEAP_DUMP,
-                createdAt, createdAt, createdAt, true, false, recording.id());
-
-        ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
-        profileRepository.insert(new ProfileRepository.InsertProfile(
-                file.filename(),
-                RecordingEventSource.HEAP_DUMP, createdAt,
-                recording.id(),
-                createdAt, createdAt));
-        profileRepository.enableProfile(createdAt);
-
-        // Initialization runs in the background, like the JFR pipeline's stages it mirrors on the
-        // recordings list: the request returns as soon as the run is registered, and the list polls
-        // its progress. Compressed oops are always auto-detected here; forcing them is a
-        // re-initialization from the heap dump's overview.
-        HeapDumpManager heapDumpManager = profileManagerFactory.apply(profileInfo).heapDumpManager();
-        heapDumpInitService.start(profileId, heapDumpManager, null);
-
-        return profileId;
     }
 
     @Override
@@ -461,12 +261,13 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     @Override
+    public PipelineProgress initProgress(Recording recording) {
+        return builders.of(recording.eventSource()).progress(recording.profileId());
+    }
+
+    @Override
     public Optional<ProfileManager> profile(String profileId) {
         return localCoreRepositories.newProfileRepository(profileId).find()
                 .map(profileManagerFactory);
-    }
-
-    private Path resolveRecordingFilePath(RecordingFile file) {
-        return RecordingStorageLayout.storagePath(recordingsDir, file.recordingId(), file.filename());
     }
 }

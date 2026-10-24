@@ -38,8 +38,10 @@ import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.hub.dto.BundleResponse;
 import cafe.jeffrey.shared.ui.hub.dto.RecordingGroupResponse;
 import cafe.jeffrey.shared.ui.hub.dto.RecordingResponse;
 
@@ -47,7 +49,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Shared local recordings store: groups + uploads + listing + per-file download + deletion. Backed
@@ -92,11 +97,16 @@ public class RecordingsController {
     @GetMapping(value = "/groups", produces = MediaType.APPLICATION_JSON_VALUE)
     public List<RecordingGroupResponse> listGroups() {
         List<RecordingGroup> groups = recordingsManager.listGroups();
-        List<Recording> recordings = recordingsManager.listRecordings();
 
-        Map<String, Long> countByGroup = recordings.stream()
-                .filter(r -> r.groupId() != null)
-                .collect(Collectors.groupingBy(Recording::groupId, Collectors.counting()));
+        // A group holds standalone recordings and bundles; a bundle's members sit in no group of
+        // their own, so each bundle counts once, however many items it holds.
+        Stream<String> recordingGroups = recordingsManager.listRecordings().stream()
+                .map(Recording::groupId);
+        Stream<String> bundleGroups = recordingsManager.listBundles().stream()
+                .map(Bundle::groupId);
+        Map<String, Long> countByGroup = Stream.concat(recordingGroups, bundleGroups)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 
         return groups.stream()
                 .map(g -> RecordingGroupResponse.from(g, countByGroup.getOrDefault(g.id(), 0L).intValue()))
@@ -196,6 +206,54 @@ public class RecordingsController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
                 .body(resource);
+    }
+
+    // --- Bundle endpoints ---
+
+    @GetMapping(value = "/bundles", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<BundleResponse> listBundles() {
+        List<Bundle> bundles = recordingsManager.listBundles();
+
+        // Every member carries the session's origin tags; the first member's speak for the bundle.
+        Map<String, String> firstMemberByBundle = recordingsManager.listRecordings().stream()
+                .filter(Recording::inBundle)
+                .collect(Collectors.toMap(Recording::bundleId, Recording::id, (first, _) -> first));
+        Map<String, List<RecordingTag>> tagsByRecording = recordingsManager.tagsForRecordings(
+                firstMemberByBundle.values());
+
+        return bundles.stream()
+                .map(bundle -> BundleResponse.from(bundle, tagsByRecording.getOrDefault(
+                        firstMemberByBundle.get(bundle.id()), List.of())))
+                .toList();
+    }
+
+    @PutMapping(value = "/bundles/{bundleId}/group", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public void moveBundleToGroup(
+            @PathVariable("bundleId") String bundleId,
+            @RequestBody MoveToGroupRequest request) {
+        LOG.debug("Moving bundle to group: bundleId={} groupId={}", bundleId, request.groupId());
+        recordingsManager.moveBundleToGroup(bundleId, request.groupId());
+    }
+
+    @DeleteMapping("/bundles/{bundleId}")
+    public void deleteBundle(@PathVariable("bundleId") String bundleId) {
+        recordingsManager.deleteBundle(bundleId);
+    }
+
+    @GetMapping("/bundles/{bundleId}/files/{fileId}/download")
+    public ResponseEntity<Resource> downloadBundleFile(
+            @PathVariable("bundleId") String bundleId,
+            @PathVariable("fileId") String fileId) {
+
+        Path filePath = recordingsManager.findBundleFile(bundleId, fileId)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Bundle file not found: bundleId=" + bundleId + " fileId=" + fileId));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
+                .body(new FileSystemResource(filePath));
     }
 
     private static String normalizeString(String value) {

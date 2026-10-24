@@ -27,7 +27,6 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.profile.common.pipeline.StageStatus;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.ui.hub.bridge.ProfileInitProgress;
@@ -44,6 +43,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,10 +61,11 @@ class MicroscopeRecordingProfileInfoProviderTest {
 
     private final RecordingsManager recordingsManager = mock(RecordingsManager.class);
 
-    private final HeapDumpInitService heapDumpInitService = mock(HeapDumpInitService.class);
-
     private MicroscopeRecordingProfileInfoProvider provider() {
-        return new MicroscopeRecordingProfileInfoProvider(recordingsManager, registry, heapDumpInitService);
+        // The manager answers from the pipeline of the recording's kind; here that is the registry,
+        // unless a test answers for a heap dump itself.
+        when(recordingsManager.initProgress(any())).thenAnswer(_ -> registry.progress(PROFILE_ID));
+        return new MicroscopeRecordingProfileInfoProvider(recordingsManager);
     }
 
     private static Recording recordingWithProfile() {
@@ -141,8 +142,8 @@ class MicroscopeRecordingProfileInfoProviderTest {
     }
 
     /**
-     * A heap dump is built by the heap pipeline, not by profile initialization, so its row follows
-     * that run's stages: nothing in the profile-init registry is ever about it.
+     * The stages are whatever the pipeline of the recording's kind reports — for a heap dump the heap
+     * pipeline's, whose stage ids are not profile initialization's.
      */
     @Test
     @DisplayName("a heap dump reports the stages of its own initialization pipeline")
@@ -150,12 +151,13 @@ class MicroscopeRecordingProfileInfoProviderTest {
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.empty());
         Recording recording = recordingWithProfile();
         when(recording.eventSource()).thenReturn(RecordingEventSource.HEAP_DUMP);
-        when(heapDumpInitService.progress(PROFILE_ID)).thenReturn(new PipelineProgress(
+        MicroscopeRecordingProfileInfoProvider provider = provider();
+        when(recordingsManager.initProgress(recording)).thenReturn(new PipelineProgress(
                 HeapDumpStages.PIPELINE_ID, "", PipelineState.RUNNING, null, null, List.of(
                         new StageProgress(HeapDumpStages.LOAD, StageStatus.COMPLETED, 1_200L, null, null),
                         new StageProgress(HeapDumpStages.PARSE, StageStatus.IN_PROGRESS, null, 800L, null))));
 
-        ProfileInitProgress progress = provider().profileInfo(recording).initProgress();
+        ProfileInitProgress progress = provider.profileInfo(recording).initProgress();
 
         assertEquals("running", progress.state());
         assertEquals(HeapDumpStages.LOAD, progress.stages().getFirst().id());

@@ -417,7 +417,8 @@ public class RecordingsMcpTools {
                 case DeleteConfirmation.Confirmation.Withheld withheld -> {
                     LOG.info("Recording deletion was not confirmed over MCP: recording_id={}", recording.id());
                     return McpToolResult.of(new RecordingDeletion(DeletionStatus.NOT_CONFIRMED, recording.id(),
-                            recording.recordingName(), recording.profileId(), withheld.reason(), UiLinks.page(MicroscopePage.RECORDINGS)));
+                            recording.recordingName(), recording.profileId(), withheld.reason(), recording.bundleId(),
+                            UiLinks.page(MicroscopePage.RECORDINGS)));
                 }
                 case DeleteConfirmation.Confirmation.Confirmed _ -> { }
             }
@@ -427,7 +428,7 @@ public class RecordingsMcpTools {
         LOG.info("Deleting a recording over MCP: recording_id={} profile_id={}", id, recording.profileId());
         recordingsManager.deleteRecording(id);
         return McpToolResult.of(new RecordingDeletion(DeletionStatus.DELETED, id, recording.recordingName(),
-                recording.profileId(), null, UiLinks.page(MicroscopePage.RECORDINGS)));
+                recording.profileId(), null, recording.bundleId(), UiLinks.page(MicroscopePage.RECORDINGS)));
     }
 
     /**
@@ -961,6 +962,10 @@ public class RecordingsMcpTools {
             String profileId,
             @McpNullable
             String reason,
+            @McpNullable
+            @McpDescription("The bundle the recording was an item of; its other items stay, and the bundle "
+                    + "goes with its last item. Null for a recording imported or uploaded alone")
+            String bundleId,
             @McpDescription("The recordings page in the Microscope UI, for the user")
             String uiLink) {
     }

@@ -21,6 +21,8 @@ import cafe.jeffrey.microscope.persistence.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
@@ -65,8 +67,28 @@ public abstract class Mappers {
                     rs.getBoolean("has_profile"),
                     rs.getString("profile_id"),
                     rs.getString("profile_name"),
-                    List.of());
+                    List.of(),
+                    rs.getString("bundle_id"));
         };
+    }
+
+    public static RowMapper<Bundle> bundleMapper() {
+        return (rs, _) -> new Bundle(
+                rs.getString("id"),
+                rs.getString("bundle_name"),
+                rs.getString("group_id"),
+                Mappers.instant(rs, "created_at"),
+                List.of());
+    }
+
+    public static RowMapper<BundleFile> bundleFileMapper() {
+        return (rs, _) -> new BundleFile(
+                rs.getString("id"),
+                rs.getString("bundle_id"),
+                rs.getString("filename"),
+                ManagedFile.ofType(rs.getString("supported_type")),
+                Mappers.instant(rs, "uploaded_at"),
+                rs.getLong("size_in_bytes"));
     }
 
     public static RowMapper<RecordingFile> projectRecordingFileMapper() {

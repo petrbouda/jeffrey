@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.persistence.api;
 
+import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 
@@ -131,4 +132,41 @@ public interface RecordingRepository {
      * @return a list of recordings in the group
      */
     List<Recording> findRecordingsByGroupId(String groupId);
+
+    // --- Bundles ---
+
+    /**
+     * Inserts a bundle with everything it holds in one transaction: the bundle row, its download-only
+     * files, and each member recording with its files. A crash midway leaves no bundle at all rather
+     * than one missing its recording.
+     *
+     * @param bundle  the bundle, carrying its own download-only files
+     * @param members the bundle's recordings, each with its files and {@link Recording#bundleId()} set
+     */
+    void insertBundle(Bundle bundle, List<Recording> members);
+
+    /**
+     * @return every bundle with its download-only files; members are listed with the recordings
+     */
+    List<Bundle> findAllBundles();
+
+    Optional<Bundle> findBundle(String bundleId);
+
+    /**
+     * @return the bundle's member recordings with their files
+     */
+    List<Recording> findBundleMembers(String bundleId);
+
+    /**
+     * Deletes the bundle row and its download-only file rows. Members are deleted by the caller,
+     * which owns their profiles and files.
+     */
+    void deleteBundle(String bundleId);
+
+    void updateBundleGroup(String bundleId, String groupId);
+
+    /**
+     * @return the bundles sitting in a group
+     */
+    List<Bundle> findBundlesByGroupId(String groupId);
 }

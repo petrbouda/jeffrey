@@ -574,7 +574,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         if (window != null) {
             originTags.put(OriginContext.TAG_WINDOW, windowTag(window));
         }
-        return recordingsManager.createDownloadedRecording(
+        return recordingsManager.createDownloadedBundle(
                 recordingName(session, window), recordingPaths, artifactPaths, originTags);
     }
 

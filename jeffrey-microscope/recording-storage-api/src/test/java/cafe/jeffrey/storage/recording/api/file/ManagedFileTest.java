@@ -20,7 +20,11 @@ package cafe.jeffrey.storage.recording.api.file;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -145,6 +149,32 @@ class ManagedFileTest {
         @Test
         void aMissingNameIsNotAnyType() {
             assertFalse(ManagedFile.JFR.matches((String) null));
+        }
+    }
+
+    /**
+     * Which files become a recording of their own. Pinned per type, because the answer decides what a
+     * bundle makes of a download and which single files an upload accepts.
+     */
+    @Nested
+    class ProfileSource {
+
+        @Test
+        void recordingsAndHeapDumpsAreInitializable() {
+            assertEquals(Optional.of(RecordingEventSource.UNKNOWN), ManagedFile.JFR.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.UNKNOWN), ManagedFile.JFR_LZ4.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.PPROF), ManagedFile.PPROF.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.OPEN_TELEMETRY), ManagedFile.OTLP_PROFILE.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.HEAP_DUMP), ManagedFile.HEAP_DUMP.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.HEAP_DUMP), ManagedFile.HEAP_DUMP_GZ.profileSource());
+        }
+
+        @Test
+        void logsCrashFilesAndScratchFilesAreNot() {
+            for (ManagedFile file : List.of(ManagedFile.JVM_LOG, ManagedFile.APP_LOG, ManagedFile.HS_JVM_ERROR_LOG,
+                    ManagedFile.ASPROF_TEMP, ManagedFile.UNKNOWN)) {
+                assertFalse(file.isInitializable(), file.name());
+            }
         }
     }
 }

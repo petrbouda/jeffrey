@@ -71,6 +71,9 @@ public enum NotificationType {
     RECORDING_GROUP_DELETED(NotificationCategory.RECORDING, Severity.HIGH,
             "A group was removed, taking every recording inside it"),
 
+    BUNDLE_DELETED(NotificationCategory.RECORDING, Severity.HIGH,
+            "A bundle was removed, taking every recording and file inside it"),
+
     PROFILE_DELETED(NotificationCategory.PROFILE, Severity.MEDIUM,
             "The profile's database and its whole directory were removed"),
 

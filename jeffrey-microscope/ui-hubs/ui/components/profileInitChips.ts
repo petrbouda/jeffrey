@@ -61,13 +61,6 @@ export const HEAP_DUMP_INIT_CHIPS: StageChipGroup[] = [
   }
 ];
 
-const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
-
-/** The chips for a recording: a heap dump runs its own pipeline, everything else profile initialization. */
-export function initChipsFor(sourceType: string | undefined): StageChipGroup[] {
-  return sourceType === HEAP_DUMP_SOURCE ? HEAP_DUMP_INIT_CHIPS : PROFILE_INIT_CHIPS;
-}
-
 /**
  * Converts what the list reports into what the chips render.
  *

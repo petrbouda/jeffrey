@@ -30,6 +30,7 @@ import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.DownloadedSessionIndex;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.BundleItem;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.ChosenWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Download;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.DownloadStatus;
@@ -55,6 +56,8 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
@@ -89,6 +92,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -213,6 +217,9 @@ public class HubsMcpTools {
     private static final String WHOLE_ANALYSED_GUIDANCE =
             "The whole session is also here, already analysed as profile %s.";
     private static final String WHOLE_RECORDING_GUIDANCE = "The whole session is also here as recording %s.";
+    private static final String HEAP_ITEMS_GUIDANCE = "The download is a bundle: each heap dump in it is a "
+            + "recording of its own (%s). recordings_analyzeRecording with that recordingId builds its profile "
+            + "for the heap_ tools; the session's recording above is the JFR profile.";
 
     private static final String WINDOW_WITH_FILE_IDS = "Choose the part of the session one way: a window or "
             + "fileIds, not both.";
@@ -606,16 +613,16 @@ public class HubsMcpTools {
      * because the tool list is the same for every client.
      */
     @McpToolHints(readOnly = false, openWorld = true)
-    @Tool(description = "Downloads a recording session from its hub into this Jeffrey as one local "
-            + "recording, by the sessionRef of a hubs_sessions row, and returns a recordingId for "
-            + "recordings_analyzeRecording. With no selection it brings the session's finished "
-            + "recording files, kept as the several files they are, and its artifacts - heap dumps, "
-            + "JVM and application logs. A part instead: window names one - the last minutes, the "
+    @Tool(description = "Downloads a recording session from its hub into this Jeffrey as one bundle, by "
+            + "the sessionRef of a hubs_sessions row, and returns the recordingId of its recording for "
+            + "recordings_analyzeRecording. With no selection it brings the session's finished recording "
+            + "files as one recording, each heap dump as a recording of its own (items lists them), and "
+            + "the JVM and application logs as files of the bundle. A part instead: window names one - the last minutes, the "
             + "startup, latest or peak chunk, the minutes before or around a moment, or a custom span; "
             + "startEpochMs and/or endEpochMs bring every chunk whose span touches them; or fileIds "
             + "bring named hubs_files rows - an unbroken run of chunks and any artifacts beside them. "
             + "The answer reports the span actually covered, and what a window picked and why. A whole "
-            + "session already downloaded is returned as it is; a part always makes a recording of its "
+            + "session already downloaded is returned as it is; a part always makes a bundle of its "
             + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the hub no longer holds the first "
             + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
             + "it. Every started transfer carries an operationId for operations_status and "
@@ -961,6 +968,7 @@ public class HubsMcpTools {
     private McpToolResult answer(DownloadKey key, ChosenWindow chosen, DownloadFacts facts,
                                  String operationId, String base) {
         McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+        LandedBundle bundle = LandedBundle.of(recordingsManager, facts.recordingId());
         String uiLink = facts.profileId() != null
                 ? UiLinks.profile(base, facts.profileId())
                 : facts.recordingId() != null
@@ -969,11 +977,13 @@ public class HubsMcpTools {
         return McpToolResult.of(new Download(facts.status(), facts.reason(), key.ref().encode(), key.ref().sessionId(),
                 facts.sessionName(), facts.hub(), facts.project(), key.startEpochMs(), key.endEpochMs(),
                 key.fileIds() == null ? List.of() : key.fileIds(), facts.recordingId(), facts.profileId(),
+                bundle.bundleId(), bundle.items(),
                 facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), facts.coveredStartEpochMs(),
-                facts.coveredEndEpochMs(), chosen, operationId, operation, followUp(key, facts, operationId), uiLink));
+                facts.coveredEndEpochMs(), chosen, operationId, operation, followUp(key, facts, bundle, operationId),
+                uiLink));
     }
 
-    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, String operationId) {
+    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, LandedBundle bundle, String operationId) {
         NextSteps.Builder next = NextSteps.builder(advertised);
         return switch (facts.status()) {
             case DOWNLOADED -> next
@@ -981,6 +991,8 @@ public class HubsMcpTools {
                     .nextWhen(facts.profileId() == null, HubCalls.analyse(facts.recordingId()))
                     .guidanceWhen(!key.wholeSession(), PART_GUIDANCE)
                     .guidance(facts.wholeCopyNote())
+                    .guidanceWhen(!bundle.heapDumpIds().isEmpty(),
+                            () -> HEAP_ITEMS_GUIDANCE.formatted(String.join(", ", bundle.heapDumpIds())))
                     .followUp();
             case RUNNING -> next
                     .next(HubCalls.poll(operationId))
@@ -1182,6 +1194,47 @@ public class HubsMcpTools {
      * the transfer that follows starts from the same read within the same budget.
      */
     private record SessionRead(Deadline responseDeadline, DownloadPreflight preflight) {
+    }
+
+    /**
+     * The bundle a landed download is in, as the answer lists it: the session's recording first, then
+     * the other items. A copy made before downloads were bundled is its recording alone.
+     */
+    private record LandedBundle(String bundleId, List<BundleItem> items) {
+
+        private static final LandedBundle NONE = new LandedBundle(null, List.of());
+
+        static LandedBundle of(RecordingsManager recordings, String recordingId) {
+            if (recordingId == null) {
+                return NONE;
+            }
+            Optional<Recording> recording = recordings.findRecording(recordingId);
+            if (recording.isEmpty()) {
+                return NONE;
+            }
+            if (!recording.get().inBundle()) {
+                return new LandedBundle(null, List.of(item(recording.get())));
+            }
+            String bundleId = recording.get().bundleId();
+            List<BundleItem> items = recordings.findBundleMembers(bundleId).stream()
+                    .sorted(Comparator.comparing((Recording member) -> !member.id().equals(recordingId))
+                            .thenComparing(Recording::recordingName))
+                    .map(LandedBundle::item)
+                    .toList();
+            return new LandedBundle(bundleId, items);
+        }
+
+        private static BundleItem item(Recording recording) {
+            return new BundleItem(recording.id(), recording.eventSource(), recording.recordingName(),
+                    recording.hasProfile() ? recording.profileId() : null);
+        }
+
+        List<String> heapDumpIds() {
+            return items.stream()
+                    .filter(item -> item.eventSource().kind() == ProfileKind.HEAP_DUMP)
+                    .map(BundleItem::recordingId)
+                    .toList();
+        }
     }
 
     /**

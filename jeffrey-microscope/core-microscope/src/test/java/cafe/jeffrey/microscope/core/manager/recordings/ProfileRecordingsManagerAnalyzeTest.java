@@ -28,6 +28,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.HeapDumpProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.PipelineProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
@@ -46,6 +50,8 @@ import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
@@ -59,6 +65,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -139,18 +146,18 @@ class ProfileRecordingsManagerAnalyzeTest {
         runRegistry = new PipelineRunRegistry<>(
                 ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), FIXED_CLOCK);
 
+        PipelineProfileBuilder pipelineBuilder = new PipelineProfileBuilder(
+                FIXED_CLOCK, recordingsDir, recordingInformationParser, profileInitializer,
+                localCoreRepositories, profileCleanup, runRegistry);
+        ProfileBuilders builders = new ProfileBuilders(Map.of(
+                ProfileKind.JFR, pipelineBuilder,
+                ProfileKind.STACK_SAMPLES, pipelineBuilder,
+                ProfileKind.HEAP_DUMP, new HeapDumpProfileBuilder(
+                        FIXED_CLOCK, jeffreyDirs, recordingsDir, localCoreRepositories, profileManagerFactory,
+                        heapDumpInitService, profileCleanup)));
+
         manager = new ProfileRecordingsManager(
-                core,
-                FIXED_CLOCK,
-                jeffreyDirs,
-                recordingsDir,
-                recordingInformationParser,
-                profileInitializer,
-                profileManagerFactory,
-                localCoreRepositories,
-                profileCleanup,
-                runRegistry,
-                heapDumpInitService);
+                core, profileManagerFactory, localCoreRepositories, profileCleanup, builders);
     }
 
     private static Recording recording() {
@@ -193,12 +200,24 @@ class ProfileRecordingsManagerAnalyzeTest {
                             .toList());
         }
 
+        /**
+         * A heap dump is a recording of its own now and never handed to the JFR profile. The bundle's
+         * perf-counters snapshot still is, until perf counters become a profile of their own.
+         */
         @Test
-        void handsTheArtifactsToTheInitializerRatherThanDroppingThem() throws IOException {
+        void handsOnlyTheBundlesPerfCountersToTheInitializer() throws IOException {
+            String bundleId = "bundle-1";
             Files.createFile(recordingsDir.resolve(RECORDING_ID + "-profile-2.jfr"));
-            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-heap.hprof"));
-            when(recordingRepository.findRecording(RECORDING_ID))
-                    .thenReturn(Optional.of(sessionRecording()));
+            Files.createFile(recordingsDir.resolve(bundleId + "-perf-counters.hsperfdata"));
+            Recording session = sessionRecording();
+            when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(new Recording(
+                    session.id(), session.recordingName(), null, session.eventSource(), session.createdAt(),
+                    session.recordingStartedAt(), session.recordingFinishedAt(), false, null, null,
+                    session.files(), bundleId)));
+            when(recordingRepository.findBundle(bundleId)).thenReturn(Optional.of(new Bundle(
+                    bundleId, "session", null, NOW, List.of(
+                            new BundleFile("f-1", bundleId, "perf-counters.hsperfdata", ManagedFile.PERF_COUNTERS, NOW, 64L),
+                            new BundleFile("f-2", bundleId, "gc.jvm-log", ManagedFile.JVM_LOG, NOW, 64L)))));
 
             manager.analyzeRecording(RECORDING_ID);
 
@@ -207,7 +226,7 @@ class ProfileRecordingsManagerAnalyzeTest {
             verify(profileInitializer).initialize(any(), any(), artifacts.capture());
 
             assertEquals(
-                    List.of(RECORDING_ID + "-heap.hprof"),
+                    List.of(bundleId + "-perf-counters.hsperfdata"),
                     artifacts.getValue().stream()
                             .map(path -> path.getFileName().toString())
                             .toList());

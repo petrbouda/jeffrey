@@ -101,7 +101,7 @@ class RemoteRecordingsDownloadManagerTest {
         manager = new RemoteRecordingsDownloadManager(
                 tempDirProvider, streamClient, repositoryClient, recordingsManager, originContext, SCOPE);
 
-        when(recordingsManager.createDownloadedRecording(any(), anyList(), anyList(), any()))
+        when(recordingsManager.createDownloadedBundle(any(), anyList(), anyList(), any()))
                 .thenReturn(RECORDING_ID);
     }
 
@@ -289,7 +289,7 @@ class RemoteRecordingsDownloadManagerTest {
             manager.downloadSession(SESSION_ID);
 
             Map<String, String> expectedTags = originContext.toTagMap(SESSION_ID);
-            verify(recordingsManager).createDownloadedRecording(any(), anyList(), anyList(), eq(expectedTags));
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
         }
 
         /**
@@ -311,7 +311,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadSession(SESSION_ID);
 
-            verify(recordingsManager).createDownloadedRecording(
+            verify(recordingsManager).createDownloadedBundle(
                     any(), recordingFiles.capture(), anyList(), any());
 
             assertEquals(
@@ -336,7 +336,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadSession(SESSION_ID);
 
-            verify(recordingsManager).createDownloadedRecording(
+            verify(recordingsManager).createDownloadedBundle(
                     any(), recordingFiles.capture(), anyList(), any());
 
             Path landed = recordingFiles.getValue().getFirst();
@@ -362,7 +362,7 @@ class RemoteRecordingsDownloadManagerTest {
             verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
             verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
             verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-3"), any());
-            verify(recordingsManager).createDownloadedRecording(
+            verify(recordingsManager).createDownloadedBundle(
                     any(), recordingFiles.capture(), anyList(), any());
 
             assertEquals(
@@ -383,7 +383,7 @@ class RemoteRecordingsDownloadManagerTest {
             manager.downloadSession(SESSION_ID);
 
             verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-4"), any());
-            verify(recordingsManager).createDownloadedRecording(any(), anyList(), artifacts.capture(), any());
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), artifacts.capture(), any());
             assertEquals(List.of("heap.hprof"), artifacts.getValue().stream()
                     .map(path -> path.getFileName().toString())
                     .toList());
@@ -413,7 +413,7 @@ class RemoteRecordingsDownloadManagerTest {
             verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
             ArgumentCaptor<List<Path>> recordings = capturedRecordingFiles();
             verify(recordingsManager)
-                    .createDownloadedRecording(any(), recordings.capture(), anyList(), any());
+                    .createDownloadedBundle(any(), recordings.capture(), anyList(), any());
             assertEquals(
                     List.of("profile-1.jfr"),
                     recordings.getValue().stream().map(path -> path.getFileName().toString()).toList());
@@ -432,7 +432,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertThrows(RuntimeException.class, () -> manager.downloadSession(SESSION_ID));
 
-            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
         /**
@@ -450,7 +450,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
 
-            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
         /**
@@ -490,7 +490,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
 
-            verify(recordingsManager).createDownloadedRecording(any(), anyList(), artifacts.capture(), any());
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), artifacts.capture(), any());
             assertTrue(artifacts.getValue().isEmpty(), "the lost artifact is simply absent");
         }
     }
@@ -531,7 +531,7 @@ class RemoteRecordingsDownloadManagerTest {
             Map<String, String> expectedTags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
             expectedTags.put(OriginContext.TAG_WINDOW,
                     CREATED_AT.plusSeconds(40).toEpochMilli() + "-" + SESSION_END.toEpochMilli());
-            verify(recordingsManager).createDownloadedRecording(
+            verify(recordingsManager).createDownloadedBundle(
                     recordingName.capture(), anyList(), anyList(), eq(expectedTags));
             assertEquals("checkout_2026-03-01T12-00-00Z_2026-03-01T12-00-40Z_2026-03-01T12-01-00Z",
                     recordingName.getValue());
@@ -543,7 +543,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertThrows(IllegalArgumentException.class, () -> manager.downloadWindow(SESSION_ID,
                     new ChunkWindow(SESSION_END.plusSeconds(600), SESSION_END.plusSeconds(1200))));
-            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
         /**
@@ -560,7 +560,7 @@ class RemoteRecordingsDownloadManagerTest {
             assertThrows(IllegalArgumentException.class, () -> manager.downloadWindow(SESSION_ID,
                     new ChunkWindow(CREATED_AT.plusSeconds(45), CREATED_AT.plusSeconds(55))));
             verify(streamClient, never()).streamFile(any(), any(), any(), any());
-            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
         /** The last finished chunk of a live session ends where the open one starts, and is tagged so. */
@@ -577,7 +577,7 @@ class RemoteRecordingsDownloadManagerTest {
             Map<String, String> expectedTags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
             expectedTags.put(OriginContext.TAG_WINDOW,
                     CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli());
-            verify(recordingsManager).createDownloadedRecording(any(), anyList(), anyList(), eq(expectedTags));
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
             verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-3"), any());
         }
 
@@ -589,7 +589,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadSession(SESSION_ID);
 
-            verify(recordingsManager).createDownloadedRecording(
+            verify(recordingsManager).createDownloadedBundle(
                     recordingName.capture(), anyList(), anyList(), any());
             assertEquals("checkout_2026-03-01T12-00-00Z", recordingName.getValue());
         }
@@ -609,7 +609,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertTrue(e.getMessage().contains("f-mistyped"), e.getMessage());
             verify(streamClient, never()).streamFile(any(), any(), any(), any());
-            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
         /**
@@ -643,7 +643,7 @@ class RemoteRecordingsDownloadManagerTest {
 
             assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
             verify(streamClient, never()).streamFile(any(), any(), any(), any());
-            verify(recordingsManager, never()).createDownloadedRecording(any(), anyList(), anyList(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
         @Test
@@ -677,7 +677,7 @@ class RemoteRecordingsDownloadManagerTest {
             manager.downloadRecordings(SESSION_ID, List.of("f-2", "f-4"));
 
             verify(recordingsManager, times(2))
-                    .createDownloadedRecording(any(), anyList(), anyList(), tags.capture());
+                    .createDownloadedBundle(any(), anyList(), anyList(), tags.capture());
             assertFalse(tags.getAllValues().get(0).containsKey(OriginContext.TAG_WINDOW));
             assertEquals(CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli(),
                     tags.getAllValues().get(1).get(OriginContext.TAG_WINDOW));

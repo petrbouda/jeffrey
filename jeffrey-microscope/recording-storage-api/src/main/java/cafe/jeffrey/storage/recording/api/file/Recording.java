@@ -23,6 +23,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * One initializable item: a JFR recording (all its chunk files), a heap dump, a pprof or OTLP profile,
+ * a perf-counters snapshot. It becomes at most one profile.
+ *
+ * @param bundleId the bundle this recording belongs to, or {@code null} for a standalone upload or
+ *                 import. A bundle groups the items a multi-file download brought in together.
+ */
 public record Recording(
         String id,
         String recordingName,
@@ -34,7 +41,30 @@ public record Recording(
         boolean hasProfile,
         String profileId,
         String profileName,
-        List<RecordingFile> files) {
+        List<RecordingFile> files,
+        String bundleId) {
+
+    /** A standalone recording: one that belongs to no bundle. */
+    public Recording(
+            String id,
+            String recordingName,
+            String groupId,
+            RecordingEventSource eventSource,
+            Instant createdAt,
+            Instant recordingStartedAt,
+            Instant recordingFinishedAt,
+            boolean hasProfile,
+            String profileId,
+            String profileName,
+            List<RecordingFile> files) {
+
+        this(id, recordingName, groupId, eventSource, createdAt, recordingStartedAt, recordingFinishedAt,
+                hasProfile, profileId, profileName, files, null);
+    }
+
+    public boolean inBundle() {
+        return bundleId != null;
+    }
 
     public Duration recordingDuration() {
         if (recordingStartedAt == null || recordingFinishedAt == null) {
@@ -47,6 +77,6 @@ public record Recording(
         return new Recording(
                 id, recordingName, groupId, eventSource, createdAt,
                 recordingStartedAt, recordingFinishedAt, hasProfile, profileId, profileName,
-                List.copyOf(files));
+                List.copyOf(files), bundleId);
     }
 }
