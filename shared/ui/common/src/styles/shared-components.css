@@ -909,6 +909,31 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Drag handle of a recording or bundle card in the recordings list */
+.recording-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  color: var(--color-slate-light);
+  cursor: grab;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  font-size: 1rem;
+}
+
+.recording-drag-handle:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.recording-drag-handle:active {
+  cursor: grabbing;
+}
+
 .recording-group-action-btn {
   display: inline-flex;
   align-items: center;

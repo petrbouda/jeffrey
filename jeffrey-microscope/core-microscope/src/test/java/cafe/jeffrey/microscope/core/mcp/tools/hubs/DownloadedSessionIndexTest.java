@@ -111,6 +111,30 @@ class DownloadedSessionIndexTest {
         assertEquals("rec-ready", index.find(REF).orElseThrow().recordingId());
     }
 
+    /**
+     * Every item of a downloaded bundle carries the session's origin tags. Only the session's own
+     * recording is its local copy: a heap dump item with a profile ready is still not the session.
+     */
+    @Test
+    void aHeapItemWithAReadyProfileIsNeverTheSessionsLocalCopy() {
+        profileReady("profile-heap", true);
+        Recording heapItem = new Recording(
+                "rec-heap", "app.hprof", null, RecordingEventSource.HEAP_DUMP, CREATED_AT.plusSeconds(60),
+                null, null, true, "profile-heap", "app.hprof", List.of(), "bundle-1");
+        Recording session = new Recording(
+                "rec-jfr", "session", null, RecordingEventSource.JDK, CREATED_AT, CREATED_AT, CREATED_AT,
+                false, null, null, List.of(), "bundle-1");
+        DownloadedSessionIndex index = indexOf(
+                List.of(heapItem, session),
+                Map.of("rec-heap", originTags(REF), "rec-jfr", originTags(REF)));
+
+        DownloadedSessionIndex.LocalCopy copy = index.find(REF).orElseThrow();
+
+        assertEquals("rec-jfr", copy.recordingId());
+        assertEquals("bundle-1", copy.bundleId());
+        assertFalse(copy.analysed());
+    }
+
     @Nested
     class Matching {
 

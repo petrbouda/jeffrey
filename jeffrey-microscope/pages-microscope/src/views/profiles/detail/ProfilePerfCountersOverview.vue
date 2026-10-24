@@ -27,7 +27,7 @@
 
     <EmptyState
       v-else-if="!overview"
-      icon="bi-speedometer"
+      icon="bi-speedometer2"
       title="No perf counters"
       description="This profile holds no perf-counters snapshot."
     />

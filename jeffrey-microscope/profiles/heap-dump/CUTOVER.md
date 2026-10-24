@@ -178,7 +178,8 @@ And remove the now-unused property:
 
 `heap-dump-analysis` → `heap-dump`. Two known references:
 
-- `jeffrey-microscope/profiles/profile-management/.../AdditionalFilesManagerImpl.java:129-145`
+- `jeffrey-microscope/profiles/profile-heapdump-orchestration/.../HeapDumpFiles.java` (`ANALYSIS_DIR`, the one
+  place the directory is named since the additional-files manager was removed)
 - `jeffrey-microscope/profiles/profile-management/.../HeapDumpManagerImpl.java:208`
 
 Search the repo for `heap-dump-analysis` to confirm there are no other call sites

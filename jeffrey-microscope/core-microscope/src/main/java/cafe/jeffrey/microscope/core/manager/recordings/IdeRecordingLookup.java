@@ -34,15 +34,16 @@ import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileKind;
 
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Matches a file on the developer's disk to what Microscope already holds, for the IDE panel.
@@ -58,6 +59,12 @@ import java.util.Optional;
  * lives in a request handler is a rule that gets tested through HTTP or not at all.
  */
 public class IdeRecordingLookup {
+
+    /**
+     * Kinds whose profile holds events, so the panel's recording figures mean something. A
+     * perf-counters snapshot holds none and reports no figures rather than zeroes.
+     */
+    private static final Set<ProfileKind> EVENT_KINDS = Set.of(ProfileKind.JFR, ProfileKind.STACK_SAMPLES);
 
     /**
      * How many findings the panel shows. Auto-analysis is ordered by severity, so the first few are
@@ -117,7 +124,7 @@ public class IdeRecordingLookup {
                         profileId,
                         filename,
                         sizeInBytes,
-                        summarize(profileManager, filename)))
+                        summarize(profileManager)))
                 // A recording that claims a profile the resolver cannot open describes a profile that
                 // was deleted underneath it. Offering to analyse again beats reporting a broken link.
                 .orElseGet(() -> new IdeRecordingStateResponse(
@@ -147,18 +154,19 @@ public class IdeRecordingLookup {
      * them. They separate the two ways a ready profile can carry no findings — a run that failed,
      * which can be run again, and a recording whose file has gone, which cannot.
      */
-    private ProfileSummary summarize(ProfileManager profileManager, String filename) {
+    private ProfileSummary summarize(ProfileManager profileManager) {
         ProfileInfo info = profileManager.info();
         AutoAnalysisManager autoAnalysisManager = profileManager.autoAnalysisManager();
         List<AutoAnalysisResult> findings = autoAnalysisManager.analysisResults();
-        boolean heapDump = isHeapDump(filename);
+        ProfileKind kind = info.eventSource().kind();
+        boolean heapDump = kind == ProfileKind.HEAP_DUMP;
 
         return new ProfileSummary(
                 heapDump ? Kind.HEAP_DUMP : Kind.RECORDING,
                 info.name(),
                 InstantUtils.toEpochMilli(info.profilingStartedAt()),
                 InstantUtils.toEpochMilli(info.profilingFinishedAt()),
-                heapDump ? null : recordingFigures(profileManager, info),
+                EVENT_KINDS.contains(kind) ? recordingFigures(profileManager, info) : null,
                 heapDump ? heapFigures(profileManager) : null,
                 autoAnalysisManager.isComputed(),
                 autoAnalysisManager.canGenerate(),
@@ -170,16 +178,6 @@ public class IdeRecordingLookup {
                                 result.summary()))
                         .toList(),
                 disabledFeatures(profileManager));
-    }
-
-    /**
-     * What the developer double-clicked decides the kind, not what the profile happens to carry. A
-     * recording can have a heap dump attached to it, and opening the {@code .jfr} should still show
-     * the recording's figures rather than the dump's.
-     */
-    private static boolean isHeapDump(String filename) {
-        ManagedFile type = ManagedFile.of(filename);
-        return type == ManagedFile.HEAP_DUMP || type == ManagedFile.HEAP_DUMP_GZ;
     }
 
     private static RecordingFigures recordingFigures(ProfileManager profileManager, ProfileInfo info) {

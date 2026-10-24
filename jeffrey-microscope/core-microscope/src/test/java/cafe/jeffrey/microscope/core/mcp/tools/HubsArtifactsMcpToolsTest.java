@@ -49,6 +49,8 @@ import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
@@ -346,6 +348,30 @@ class HubsArtifactsMcpToolsTest {
             assertTrue(answer.get("files").get(0).get("localPath").isNull(), "a chunk is named by its recording");
             assertEquals(copy.toString(), answer.get("files").get(1).get("localPath").asString());
             assertEquals("rec-1", StructuredAnswers.call(answer, "recordings_analyzeRecording").get("recordingId").asString());
+        }
+
+        /** A downloaded session is a bundle now: its log is a download-only file of the bundle. */
+        @Test
+        void aLogThatCameWithABundledDownloadShowsTheBundlesCopy() {
+            hubHolds(session(
+                    finished("f-jfr", "profile-1.jfr", ManagedFile.JFR),
+                    finished("f-log", "service-app.log", ManagedFile.APP_LOG)));
+            RecordingFile chunk = new RecordingFile("rf-1", "rec-1", "profile-1.jfr", ManagedFile.JFR, NOW, 4096L);
+            Recording bundled = new Recording("rec-1", "rec-1", null, RecordingEventSource.JDK, NOW, NOW, NOW,
+                    false, null, null, List.of(chunk), "bundle-1");
+            sessionAlreadyDownloadedAs("rec-1", null, chunk);
+            when(recordingsManager.listRecordings()).thenReturn(List.of(bundled));
+            when(recordingsManager.findRecording("rec-1")).thenReturn(Optional.of(bundled));
+            when(recordingsManager.findBundleMembers("bundle-1")).thenReturn(List.of(bundled));
+            BundleFile log = new BundleFile("bf-1", "bundle-1", "service-app.log", ManagedFile.APP_LOG, NOW, 2048L);
+            when(recordingsManager.findBundle("bundle-1")).thenReturn(Optional.of(
+                    new Bundle("bundle-1", "checkout", null, NOW, List.of(log))));
+            Path copy = home.resolve("recordings").resolve("bundle-1-service-app.log");
+            when(recordingsManager.findBundleFile("bundle-1", "bf-1")).thenReturn(Optional.of(copy));
+
+            JsonNode answer = listed(tools.files(REF.encode(), null, null));
+
+            assertEquals(copy.toString(), answer.get("files").get(1).get("localPath").asString());
         }
 
         @Test

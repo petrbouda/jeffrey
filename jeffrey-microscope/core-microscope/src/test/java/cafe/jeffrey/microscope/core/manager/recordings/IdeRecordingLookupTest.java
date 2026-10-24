@@ -53,7 +53,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -329,22 +328,48 @@ class IdeRecordingLookupTest {
         }
 
         /**
-         * What was double-clicked decides the kind. A recording with a heap dump attached still shows
-         * the recording's figures when the .jfr is what was opened.
+         * A downloaded session's heap dump is an item of its bundle, a recording of its own: opening
+         * the .hprof finds that item, not the session's JFR recording beside it.
          */
         @Test
-        void readsAJfrAsARecordingEvenWhenItCarriesAHeapDump() {
-            ProfileManager profileManager = readyProfile();
-            when(profileManager.heapDumpManager().heapDumpExists()).thenReturn(true);
-            when(profileManager.heapDumpManager().isCacheReady()).thenReturn(true);
-            stubReadyProfile(profileManager, FILENAME);
+        void resolvesADumpToItsBundlesHeapItem() {
+            Recording session = new Recording(
+                    "rec-jfr", "checkout", null, RecordingEventSource.JDK,
+                    Instant.parse("2026-09-04T18:02:00Z"), Instant.parse("2026-09-04T18:01:00Z"),
+                    Instant.parse("2026-09-04T18:01:42Z"), true, "p-jfr", "checkout",
+                    List.of(new RecordingFile("file-1", "rec-jfr", "chunk-1.jfr", ManagedFile.JFR,
+                            Instant.parse("2026-09-04T18:02:00Z"), SIZE)),
+                    "bundle-1");
+            Recording heapItem = new Recording(
+                    "rec-heap", "app.hprof", null, RecordingEventSource.HEAP_DUMP,
+                    Instant.parse("2026-09-04T18:02:00Z"), null, null, true, PROFILE_ID, "app.hprof",
+                    List.of(new RecordingFile("file-2", "rec-heap", "app.hprof", ManagedFile.HEAP_DUMP,
+                            Instant.parse("2026-09-04T18:02:00Z"), SIZE)),
+                    "bundle-1");
+            ProfileManager heapProfile = readyHeapDump(true);
+            when(recordingsManager.listRecordings()).thenReturn(List.of(session, heapItem));
+            when(profileInitRunRegistry.isRunning(PROFILE_ID)).thenReturn(false);
+            when(profileManagerResolver.find(PROFILE_ID)).thenReturn(Optional.of(heapProfile));
 
-            var summary = lookup.byPath(RECORDING_PATH, SIZE).summary();
+            var state = lookup.byPath(DUMP_PATH, SIZE);
 
-            assertEquals(Kind.RECORDING, summary.kind());
-            assertNotNull(summary.recording());
-            assertNull(summary.heap());
+            assertEquals("rec-heap", state.recordingId());
+            assertEquals(Kind.HEAP_DUMP, state.summary().kind());
         }
+    }
+
+    /** A perf-counters snapshot holds no events: the panel gets no figures rather than zeroes. */
+    @Test
+    void reportsNoFiguresForAPerfCountersSnapshot() {
+        ProfileManager profileManager = readyProfile();
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.PERF_COUNTERS));
+        stubReadyProfile(profileManager, "perf-counters.hsperfdata");
+
+        var summary = lookup.byPath(Path.of("/home/dev/jeffrey/perf-counters.hsperfdata"), SIZE).summary();
+
+        assertEquals(Kind.RECORDING, summary.kind());
+        assertNull(summary.recording());
+        assertNull(summary.heap());
     }
 
     /** Points the lookup at a matching recording whose profile is ready, under the given file name. */
@@ -356,6 +381,7 @@ class IdeRecordingLookupTest {
 
     private static ProfileManager readyHeapDump(boolean cacheReady) {
         ProfileManager profileManager = readyProfile();
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.HEAP_DUMP));
         when(profileManager.heapDumpManager().heapDumpExists()).thenReturn(true);
         when(profileManager.heapDumpManager().isCacheReady()).thenReturn(cacheReady);
         when(profileManager.heapDumpManager().getSummary()).thenReturn(new HeapSummary(
@@ -376,18 +402,7 @@ class IdeRecordingLookupTest {
 
     private static ProfileManager readyProfile() {
         ProfileManager profileManager = mock(ProfileManager.class, RETURNS_DEEP_STUBS);
-        when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID,
-                null,
-                null,
-                "jeffrey-20260904-180108",
-                RecordingEventSource.JDK,
-                Instant.parse("2026-09-04T18:01:00Z"),
-                Instant.parse("2026-09-04T18:01:42Z"),
-                Instant.parse("2026-09-04T18:02:00Z"),
-                true,
-                false,
-                "rec-1"));
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JDK));
         when(profileManager.samplerHealthManager().cpuTimeSampleLoss())
                 .thenReturn(new CpuTimeSampleLoss(980_000L, 0L, 0L));
         when(profileManager.autoAnalysisManager().analysisResults()).thenReturn(List.of(
@@ -403,6 +418,21 @@ class IdeRecordingLookupTest {
                 eventSummary("jdk.ExecutionSample", 1_000_000L),
                 eventSummary("jdk.ObjectAllocationSample", 240_000L)));
         return profileManager;
+    }
+
+    private static ProfileInfo profileInfo(RecordingEventSource eventSource) {
+        return new ProfileInfo(
+                PROFILE_ID,
+                null,
+                null,
+                "jeffrey-20260904-180108",
+                eventSource,
+                Instant.parse("2026-09-04T18:01:00Z"),
+                Instant.parse("2026-09-04T18:01:42Z"),
+                Instant.parse("2026-09-04T18:02:00Z"),
+                true,
+                false,
+                "rec-1");
     }
 
     private static EventSummaryResult eventSummary(String code, long samples) {

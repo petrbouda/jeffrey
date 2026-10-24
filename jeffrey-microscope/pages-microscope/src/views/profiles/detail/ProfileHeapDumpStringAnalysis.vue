@@ -420,39 +420,6 @@
       </div>
     </div>
 
-    <!-- JVM Configuration Tab -->
-    <div v-show="activeTab === 'jvm-config'">
-      <div v-if="report?.jvmFlags && report.jvmFlags.length > 0">
-        <DataTable>
-          <thead>
-            <tr>
-              <th>Flag</th>
-              <th>Value</th>
-              <th>Origin</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="flag in report.jvmFlags" :key="flag.name">
-              <td>
-                <code class="flag-name">{{ flag.name }}</code>
-              </td>
-              <td>
-                <span :class="getFlagValueClass(flag)">{{ flag.value }}</span>
-              </td>
-              <td class="text-muted">{{ flag.origin }}</td>
-              <td>{{ flag.description }}</td>
-            </tr>
-          </tbody>
-        </DataTable>
-      </div>
-      <div v-else class="text-center text-muted py-5">
-        <i class="bi bi-gear fs-1 mb-3 d-block"></i>
-        <p>No JVM flags information available.</p>
-        <small>JVM flag data was not found in the JFR recording.</small>
-      </div>
-    </div>
-
     <!-- About Tab -->
     <div v-show="activeTab === 'about'">
       <AboutPanel
@@ -616,7 +583,7 @@ import InstanceActionButtons from '@/components/heap/InstanceActionButtons.vue';
 import InstanceTreeModal from '@/components/heap/InstanceTreeModal.vue';
 import InstanceDetailPanel from '@/components/heap/InstanceDetailPanel.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import StringAnalysisReport, { JvmStringFlag } from '@/services/api/model/StringAnalysisReport';
+import StringAnalysisReport from '@/services/api/model/StringAnalysisReport';
 import StringDeduplicationEntry from '@/services/api/model/StringDeduplicationEntry';
 import StringInstanceEntry from '@/services/api/model/StringInstanceEntry';
 import StringTopEntry from '@/services/api/model/StringTopEntry';
@@ -666,7 +633,6 @@ const analysisTabs = [
   { id: 'overview', label: 'Overview', icon: 'pie-chart' },
   { id: 'deduplicated', label: 'Deduplicated', icon: 'check-circle' },
   { id: 'opportunities', label: 'Opportunities', icon: 'exclamation-triangle' },
-  { id: 'jvm-config', label: 'JVM Configuration', icon: 'gear' },
   { id: 'about', label: 'How It Works', icon: 'info-circle' }
 ];
 
@@ -973,13 +939,6 @@ const getOpportunityPercentage = (entry: StringDeduplicationEntry): number => {
   return (entry.savings / maxOpportunitySavings.value) * 100;
 };
 
-const getFlagValueClass = (flag: JvmStringFlag): string => {
-  if (flag.type === 'Boolean') {
-    return flag.value === 'true' ? 'badge bg-success' : 'badge bg-secondary';
-  }
-  return 'font-monospace';
-};
-
 const loadAnalysis = async () => {
   report.value = await client.getStringAnalysis();
 };
@@ -1061,12 +1020,6 @@ onMounted(() => {
 
 .actions-nowrap :deep(.instance-action-buttons) {
   flex-wrap: nowrap;
-}
-
-.flag-name {
-  font-size: 0.8rem;
-  background-color: transparent;
-  color: var(--color-text);
 }
 
 .toolbar-info {

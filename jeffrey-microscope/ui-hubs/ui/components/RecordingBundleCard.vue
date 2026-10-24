@@ -22,6 +22,7 @@
   download-only files (logs, crash files).
 -->
 <script setup lang="ts">
+import '@shared/styles/shared-components.css';
 import { computed } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
@@ -30,8 +31,7 @@ import type Recording from '../services/api/model/Recording';
 import RecordingCard from './RecordingCard.vue';
 import RecordingFileGroupList from './RecordingFileGroupList.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
-import { hasFailed, isInitializing } from './profileInitChips';
-import { recordingKindOf } from './recordingKinds';
+import { BUNDLE_DRAG_PREFIX, bundleItemsLabel, bundleSize, memberBadges } from './bundleSummary';
 
 const props = withDefaults(
   defineProps<{
@@ -73,54 +73,11 @@ const emit = defineEmits<{
   (e: 'dragend'): void;
 }>();
 
-/** The drag payload a group chip reads to tell a bundle from a recording card. */
-const BUNDLE_DRAG_PREFIX = 'bundle:';
+const memberBadgeList = computed(() => memberBadges(props.members, props.analyzingMembers));
 
-type MemberState = 'built' | 'running' | 'failed' | 'new';
+const totalBytes = computed(() => bundleSize(props.bundle, props.members));
 
-const STATE_TITLES: Record<MemberState, string> = {
-  built: 'initialized',
-  running: 'initializing',
-  failed: 'initialization failed',
-  new: 'not initialized'
-};
-
-const stateOf = (member: Recording): MemberState => {
-  if (isInitializing(member.initProgress) || props.analyzingMembers.has(member.id)) {
-    return 'running';
-  }
-  if (hasFailed(member.initProgress)) {
-    return 'failed';
-  }
-  return member.hasProfile ? 'built' : 'new';
-};
-
-const memberBadges = computed(() =>
-  props.members.map(member => {
-    const kind = recordingKindOf(member.eventSource);
-    const state = stateOf(member);
-    return {
-      id: member.id,
-      label: kind.label,
-      variant: kind.badgeVariant,
-      state,
-      title: `${kind.name} · ${STATE_TITLES[state]}`
-    };
-  })
-);
-
-const totalBytes = computed(
-  () =>
-    props.members.reduce((sum, member) => sum + member.sizeInBytes, 0) +
-    props.bundle.files.reduce((sum, file) => sum + file.sizeInBytes, 0)
-);
-
-const itemsLabel = computed(() => {
-  const items = props.members.length;
-  const files = props.bundle.files.length;
-  const itemsText = `${items} item${items === 1 ? '' : 's'}`;
-  return files === 0 ? itemsText : `${itemsText} · ${files} file${files === 1 ? '' : 's'}`;
-});
+const itemsLabel = computed(() => bundleItemsLabel(props.bundle, props.members));
 
 const onDragStart = (event: DragEvent) => {
   if (!props.draggable || !event.dataTransfer) {
@@ -146,7 +103,7 @@ const onDragStart = (event: DragEvent) => {
       <i class="bi bi-box-seam bundle-card__icon"></i>
       <div class="bundle-card__info" @click="emit('toggle-expand')">
         <div class="bundle-card__line1">
-          <span class="bundle-card__type">Bundle</span>
+          <Badge value="Bundle" variant="grey" size="xxs" :uppercase="false" />
           <span class="bundle-card__name">{{ bundle.name }}</span>
           <RecordingOriginChip v-if="origin" :origin="origin" />
         </div>
@@ -158,7 +115,7 @@ const onDragStart = (event: DragEvent) => {
           <span>{{ FormattingService.formatRelativeTime(bundle.createdAt) }}</span>
           <span class="bundle-card__kinds">
             <span
-              v-for="badge in memberBadges"
+              v-for="badge in memberBadgeList"
               :key="badge.id"
               class="bundle-card__kind"
               :title="badge.title"
@@ -180,7 +137,7 @@ const onDragStart = (event: DragEvent) => {
         </button>
         <div
           v-if="draggable"
-          class="bundle-card__drag-handle"
+          class="recording-drag-handle"
           draggable="true"
           title="Drag to move to another group"
           @dragstart="onDragStart"
@@ -308,23 +265,10 @@ const onDragStart = (event: DragEvent) => {
   min-width: 0;
 }
 
-.bundle-card__type {
-  flex: none;
-  font-size: 0.625rem;
-  font-weight: 700;
-  line-height: 1;
-  padding: 3px 7px;
-  border-radius: var(--radius-pill);
-  letter-spacing: 0.02em;
-  background: var(--color-grey-bg);
-  color: var(--color-grey-text);
-  border: 1px solid var(--color-grey-border);
-}
-
 .bundle-card__name {
-  font-weight: 500;
-  color: var(--color-heading-dark);
-  font-size: 0.9rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  font-size: 0.88rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -407,30 +351,6 @@ const onDragStart = (event: DragEvent) => {
   background: var(--color-danger-light);
 }
 
-.bundle-card__drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  color: var(--color-slate-light);
-  cursor: grab;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-  font-size: 1rem;
-}
-
-.bundle-card__drag-handle:hover {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.bundle-card__drag-handle:active {
-  cursor: grabbing;
-}
-
 .bundle-card__body {
   display: flex;
   flex-direction: column;
@@ -447,7 +367,7 @@ const onDragStart = (event: DragEvent) => {
 
 .bundle-card__files-title {
   font-size: 0.65rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--color-text-muted);

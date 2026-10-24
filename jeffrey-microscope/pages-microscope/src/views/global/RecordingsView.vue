@@ -381,6 +381,7 @@ import type Recording from '@hubs/services/api/model/Recording';
 import type { RecordingTag } from '@hubs/services/api/model/Recording';
 import type Bundle from '@hubs/services/api/model/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
+import { BUNDLE_DRAG_PREFIX } from '@hubs/components/bundleSummary';
 import { hasFailed, isInitializing } from '@hubs/components/profileInitChips';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import { HEAP_DUMP_SOURCE, profileLandingRoute } from '@/services/ProfileLandingRoute';
@@ -1354,9 +1355,6 @@ const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
     await loadData();
   }
 };
-
-/** What a dragged bundle card carries, set by RecordingBundleCard. */
-const BUNDLE_DRAG_PREFIX = 'bundle:';
 
 const moveBundle = async (bundleId: string, targetGroupId: string | null) => {
   const bundle = allBundles.value.find(b => b.id === bundleId);

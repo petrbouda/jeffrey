@@ -16,6 +16,7 @@
   -->
 
 <script setup lang="ts">
+import '@shared/styles/shared-components.css';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import StageChips from '@shared/components/StageChips.vue';
@@ -302,7 +303,7 @@ onBeforeUnmount(() => {
         </template>
         <div
           v-if="draggable"
-          class="rec-card__drag-handle"
+          class="recording-drag-handle"
           draggable="true"
           title="Drag to move to another group"
           @dragstart="onDragStart"
@@ -959,28 +960,6 @@ onBeforeUnmount(() => {
 }
 
 /* Drag handle */
-.rec-card__drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  color: var(--color-slate-light);
-  cursor: grab;
-  transition: all 0.15s ease;
-  font-size: 1rem;
-}
-
-.rec-card__drag-handle:hover {
-  background: rgba(94, 100, 255, 0.1);
-  color: var(--color-primary);
-}
-
-.rec-card__drag-handle:active {
-  cursor: grabbing;
-}
-
 /* Expanded content */
 .rec-card__expanded {
   margin-top: 8px;

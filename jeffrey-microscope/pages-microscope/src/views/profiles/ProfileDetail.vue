@@ -20,7 +20,7 @@
     <!-- Feature Collection Navigation -->
     <div class="feature-collection-nav normal-nav content-aligned">
       <div class="nav-container">
-        <!-- The modes this kind of profile offers (ProfileKind); Heap Dump only while one is attached -->
+        <!-- The modes this kind of profile offers (ProfileKind) -->
         <div
           v-for="pill in visiblePills"
           :key="pill.mode"
@@ -51,7 +51,7 @@
         </div>
 
         <!-- Comparison Panel Toggle (in Heap Dump mode the secondary profile is the diff baseline) -->
-        <div class="comparison-toggle-wrapper">
+        <div v-if="profileKind.comparable" class="comparison-toggle-wrapper">
           <button
             class="comparison-toggle-btn"
             :class="{ active: comparisonPanelVisible, 'has-profile': secondaryProfile }"
@@ -86,7 +86,10 @@
       <!-- Main Content -->
       <div class="detail-main-content" :class="{ 'no-sidebar': isTechnologiesHub }">
         <!-- Compact Differential Analysis Bar -->
-        <div v-if="!sidebarCollapsed && comparisonPanelVisible" class="compact-comparison-bar mb-3">
+        <div
+          v-if="profileKind.comparable && !sidebarCollapsed && comparisonPanelVisible"
+          class="compact-comparison-bar mb-3"
+        >
           <div class="comparison-cards">
             <!-- Primary Profile -->
             <div class="compact-card primary">
@@ -457,20 +460,21 @@ onMounted(async () => {
       directProfileClient.getById(profileId) as Promise<ProfileWithContext>,
       loadDisabledFeatures()
     ]);
-    disabledFeatures.value = features;
-    profile.value = profileWithContext;
-
-    // Store profile context in profileStore for navigation
-    profileStore.setProfile(profileWithContext);
-
     // A profile offers only the modes of its kind: a URL that landed anywhere else -- the bare
     // profile URL's /dashboard default on a heap dump, a JFR page on a pprof import -- goes to the
-    // kind's landing page instead.
+    // kind's landing page instead. Before `profile` is set, so the wrong page never mounts and
+    // calls endpoints this kind of profile cannot answer.
     const kind = profileKindOf(profileWithContext.eventSource);
     if (!kind.modes.has(getModeForPath(route.path))) {
       await router.replace(`/profiles/${profileId}/${kind.landing}`);
     }
     selectedMode.value = getModeForPath(route.path);
+
+    disabledFeatures.value = features;
+    profile.value = profileWithContext;
+
+    // Store profile context in profileStore for navigation
+    profileStore.setProfile(profileWithContext);
 
     // Restore the baseline picked for this profile earlier in the session; retainFor above has
     // already discarded any that belonged to another one.

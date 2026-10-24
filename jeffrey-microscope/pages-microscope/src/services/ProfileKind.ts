@@ -18,8 +18,9 @@
 import type { ProfileMode } from '@/views/profiles/navigation/profileNavConfig';
 
 /**
- * What each kind of profile is in its Profile Detail: the mode pills it offers and the page it opens
- * at. One table instead of an `isHeapDumpOnly` / `isPprofOnly` check per pill.
+ * What each kind of profile is in its Profile Detail: the mode pills it offers, the page it opens
+ * at, and whether it can be compared with a secondary profile. One table rather than a check per
+ * pill.
  *
  * The kind is read from the profile's event source. A source this table does not name is a JFR
  * recording, which is right for the common case and never hides a page a JFR profile has.
@@ -29,6 +30,11 @@ export interface ProfileKind {
   modes: ReadonlySet<ProfileMode>;
   /** The sub-path under `/profiles/{profileId}` the profile opens at. */
   landing: string;
+  /**
+   * Whether a secondary profile means anything: a baseline for flamegraphs and timelines, or for a
+   * heap dump the earlier dump to diff against. A perf-counters snapshot has nothing to compare.
+   */
+  comparable: boolean;
 }
 
 const JFR: ProfileKind = {
@@ -41,29 +47,34 @@ const JFR: ProfileKind = {
     'Technologies',
     'Tools'
   ]),
-  landing: 'dashboard'
+  landing: 'dashboard',
+  comparable: true
 };
 
 /** Stack samples only: none of the GC, safepoint or thread data the Summary dashboard is built from. */
 const PPROF: ProfileKind = {
   modes: new Set<ProfileMode>(['Visualization']),
-  landing: 'flamegraphs/primary'
+  landing: 'flamegraphs/primary',
+  comparable: true
 };
 
 /** Stack samples like pprof, but re-exportable, so it keeps Tools. */
 const OPEN_TELEMETRY: ProfileKind = {
   modes: new Set<ProfileMode>(['Visualization', 'Tools']),
-  landing: 'flamegraphs/primary'
+  landing: 'flamegraphs/primary',
+  comparable: true
 };
 
 const HEAP_DUMP: ProfileKind = {
   modes: new Set<ProfileMode>(['HeapDump']),
-  landing: 'heap-dump/overview'
+  landing: 'heap-dump/overview',
+  comparable: true
 };
 
 const PERF_COUNTERS: ProfileKind = {
   modes: new Set<ProfileMode>(['PerfCounters']),
-  landing: 'perf-counters/overview'
+  landing: 'perf-counters/overview',
+  comparable: false
 };
 
 const KINDS_BY_SOURCE: ReadonlyMap<string, ProfileKind> = new Map([

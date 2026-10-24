@@ -54,6 +54,13 @@ describe('profileKindOf', () => {
     expect(profileKindOf('PPROF').landing).toBe('flamegraphs/primary');
   });
 
+  it('offers a secondary profile to every kind but a perf-counters snapshot', () => {
+    for (const source of ['JDK', 'PPROF', 'OPEN_TELEMETRY', 'HEAP_DUMP']) {
+      expect(profileKindOf(source).comparable).toBe(true);
+    }
+    expect(profileKindOf('PERF_COUNTERS').comparable).toBe(false);
+  });
+
   // A profile is opened before its event source is known; until then it is treated as JFR.
   it('reads an unknown or missing source as JFR', () => {
     expect(profileKindOf(undefined)).toBe(profileKindOf('JDK'));
