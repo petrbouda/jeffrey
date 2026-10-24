@@ -21,19 +21,14 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 
-import java.nio.file.Path;
-import java.util.List;
-
 public interface ProfileInitializer {
 
     /**
-     * Builds the profile out of the recording's files.
+     * Builds the profile out of the recording's files. Heap dumps and perf-counters snapshots are
+     * recordings of their own, so nothing else is handed over.
      *
-     * @param sources   the recording files to parse
-     * @param artifacts the recording's supplementary files — perf counters, heap dumps — or an
-     *                  empty list. Passed in rather than looked up by recording id: where they
-     *                  live depends on how the recording arrived, and the caller is what knows.
+     * @param sources the recording files to parse
      */
-    ProfileManager initialize(ProfileInfo profileInfo, RecordingSources sources, List<Path> artifacts);
+    ProfileManager initialize(ProfileInfo profileInfo, RecordingSources sources);
 
 }

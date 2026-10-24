@@ -16,11 +16,7 @@
   -->
 
 <template>
-  <!-- Performance Counters Not Available State -->
-  <PerformanceCountersNotAvailableAlert v-if="isPerformanceCountersDisabled" />
-
   <PageHeader
-    v-else
     title="Performance Counters"
     description="Overview of JVM/HotSpot Performance Counters and Metrics"
     icon="bi-speedometer2"
@@ -207,8 +203,6 @@ import * as bootstrap from 'bootstrap';
 import ProfilePerformanceCountersClient from '@/services/api/ProfilePerformanceCountersClient';
 import PerformanceCounter from '@/services/api/model/PerformanceCounter.ts';
 import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterEnhanced.ts';
-import FeatureType from '@/services/api/model/FeatureType';
-import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
 import type { Variant } from '@shared/types/ui';
 import EmptyState from '@shared/components/EmptyState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -217,23 +211,9 @@ import Badge from '@shared/components/Badge.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
-import type { PropType } from 'vue';
 import '@shared/styles/shared-components.css';
 
-// Define props
-const props = defineProps({
-  disabledFeatures: {
-    type: Array as PropType<string[]>,
-    default: () => []
-  }
-});
-
 const route = useRoute();
-
-// Check if performance counters dashboard is disabled
-const isPerformanceCountersDisabled = computed(() => {
-  return props.disabledFeatures.includes(FeatureType.PERF_COUNTERS_DASHBOARD);
-});
 
 // State
 const loading = ref(true);
@@ -445,10 +425,7 @@ const collapseAll = () => {
 };
 
 onMounted(() => {
-  // Only load data if the feature is not disabled
-  if (!isPerformanceCountersDisabled.value) {
-    loadPerformanceCounters();
-  }
+  loadPerformanceCounters();
 
   // Initialize Bootstrap tooltips after the DOM has been updated
   nextTick(() => {

@@ -50,15 +50,6 @@ public interface ProfileEventRepository {
     boolean containsEventType(Type type);
 
     /**
-     * Retrieves JVM flags related to String handling from JFR flag events.
-     * Queries jdk.BooleanFlag, jdk.IntFlag, and jdk.UnsignedIntFlag events
-     * for flags related to string deduplication, GC, and string representation.
-     *
-     * @return list of JVM flags related to string handling
-     */
-    List<JvmFlag> getStringRelatedFlags();
-
-    /**
      * Retrieves all JVM flags from JFR flag events with full details.
      * Queries all flag event types (BooleanFlag, IntFlag, UnsignedIntFlag, LongFlag, StringFlag)
      * and includes change detection to show if flag values changed during the recording.

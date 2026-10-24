@@ -33,6 +33,8 @@ describe('profileKindOf', () => {
       expect(jfr.modes.has(mode)).toBe(true);
     }
     expect(jfr.modes.has('PerfCounters')).toBe(false);
+    // Heap dumps are profiles of their own; a recording never offers one.
+    expect(jfr.modes.has('HeapDump')).toBe(false);
     expect(profileKindOf('ASYNC_PROFILER')).toBe(jfr);
   });
 

@@ -43,12 +43,6 @@ public class PerformanceCountersController {
         this.resolver = resolver;
     }
 
-    @GetMapping("/exists")
-    public boolean exists(@PathVariable("profileId") String profileId) {
-        LOG.debug("Checking performance counters existence");
-        return mgr(profileId).exists();
-    }
-
     @GetMapping
     public List<PerfCounter> performanceCounters(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching performance counters");

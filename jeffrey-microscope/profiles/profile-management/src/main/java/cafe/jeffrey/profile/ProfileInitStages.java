@@ -53,9 +53,6 @@ public final class ProfileInitStages {
     /** Lifts spans out of the events into the trace tables. Skipped when the recording has none. */
     public static final String TRACES = "traces";
 
-    /** Perf counters and other artifacts uploaded beside the recording. */
-    public static final String ADDITIONAL_FILES = "additional-files";
-
     /** Merges the write-ahead log into the database file. */
     public static final String CHECKPOINT = "checkpoint";
 
@@ -72,8 +69,7 @@ public final class ProfileInitStages {
 
     public static final PipelineDefinition DEFINITION = new PipelineDefinition(
             PIPELINE_ID,
-            List.of(PROFILE_INFO, PARSE, FLUSH, METHOD_TRACE_WEIGHTS, RECLUSTER, TRACES,
-                    ADDITIONAL_FILES, CHECKPOINT, WARMUP));
+            List.of(PROFILE_INFO, PARSE, FLUSH, METHOD_TRACE_WEIGHTS, RECLUSTER, TRACES, CHECKPOINT, WARMUP));
 
     private ProfileInitStages() {
     }

@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
@@ -72,8 +73,13 @@ public class HeapDiffMcpTools {
     private static final String CLASS_NAME = "className";
 
     private static final String NO_PRIMARY_DUMP =
-            "This profile has no heap dump to compare. profiles_list shows which profiles are heap "
-                    + "dumps - their event source reads HEAP_DUMP.";
+            "This profile is not a heap dump, so there is nothing to compare. profiles_list shows which "
+                    + "profiles are heap dumps - their event source reads HEAP_DUMP - and a heap dump "
+                    + "downloaded with a recording is another item of its bundle, which hubs_download lists.";
+
+    private static final String PRIMARY_DUMP_LOST =
+            "This heap dump profile has lost its copy of the dump, so there is nothing to compare. "
+                    + "recordings_analyzeRecording on its recording builds it again.";
 
     private static final String NO_BASELINE_DUMP =
             "The baseline profile '%s' has no heap dump. A comparison needs two of them; "
@@ -136,22 +142,26 @@ public class HeapDiffMcpTools {
 
         String profileId = profileManager.info().id();
         int top = ToolArguments.boundedLimit(topN, DEFAULT_TOP, MAX_TOP);
-        HeapDumpManager primary = profileManager.heapDumpManager();
-        if (!primary.heapDumpExists()) {
-            return absent(DiffStatus.NO_HEAP_DUMP, NO_PRIMARY_DUMP, profileId, baselineProfileId, top,
+        if (!HeapDumpProfiles.holdsHeapDump(profileManager)) {
+            String reason = profileManager.info().eventSource().kind() == ProfileKind.HEAP_DUMP
+                    ? PRIMARY_DUMP_LOST
+                    : NO_PRIMARY_DUMP;
+            return absent(DiffStatus.NO_HEAP_DUMP, reason, profileId, baselineProfileId, top,
                     steps().next(NextCalls.to(PROFILES_LIST_TOOL).why(WHY_PROFILES)).followUp());
         }
+        HeapDumpManager primary = profileManager.heapDumpManager();
         if (!primary.isCacheReady()) {
             return absent(DiffStatus.NOT_INDEXED, NOT_INDEXED.formatted("this profile"), profileId, baselineProfileId,
                     top, preparing(profileId));
         }
 
         String baselineId = requireBaseline(baselineProfileId);
-        HeapDumpManager baseline = baselineResolver.apply(baselineId).heapDumpManager();
-        if (!baseline.heapDumpExists()) {
+        ProfileManager baselineManager = baselineResolver.apply(baselineId);
+        if (!HeapDumpProfiles.holdsHeapDump(baselineManager)) {
             return absent(DiffStatus.BASELINE_NO_HEAP_DUMP, NO_BASELINE_DUMP.formatted(baselineId), profileId,
                     baselineId, top, steps().next(NextCalls.to(PROFILES_LIST_TOOL).why(WHY_PROFILES)).followUp());
         }
+        HeapDumpManager baseline = baselineManager.heapDumpManager();
         if (!baseline.isCacheReady()) {
             return absent(DiffStatus.BASELINE_NOT_INDEXED, NOT_INDEXED.formatted("baseline profile " + baselineId),
                     profileId, baselineId, top, preparing(baselineId));

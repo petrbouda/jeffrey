@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.memory.AllocationManager;
@@ -70,8 +69,6 @@ public interface ProfileManager {
     JITCompilationManager jitCompilationManager();
 
     JITDeoptimizationManager jitDeoptimizationManager();
-
-    AdditionalFilesManager additionalFilesManager();
 
     PerfCountersManager perfCountersManager();
 

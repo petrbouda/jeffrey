@@ -177,7 +177,7 @@ import RecordingsClient from '@hubs/services/api/RecordingsClient';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
 import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource';
-import RecordingFileType from '@hubs/services/api/model/RecordingFileType';
+import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
 
 const recordingsClient = new RecordingsClient();
 import FormattingService from '@shared/services/FormattingService';
@@ -216,10 +216,6 @@ const RECORDINGS_WORKSPACE_ID = 'recordings';
 const RECORDINGS_WORKSPACE_NAME = 'Recordings';
 const ALL_GROUP_KEY = 'all';
 const UNGROUPED_KEY = '__ungrouped__';
-const HEAP_DUMP_FILE_TYPES = new Set<RecordingFileType>([
-  RecordingFileType.HEAP_DUMP,
-  RecordingFileType.HEAP_DUMP_GZ
-]);
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -241,13 +237,14 @@ const modalTitle = computed(() =>
   props.heapDumpBaseline ? 'Select Baseline Heap Dump' : 'Select Secondary Profile'
 );
 
-// A profile qualifies as a heap-dump baseline when the recording itself is a heap dump
-// or carries an attached heap-dump file next to its JFR data.
-const hasHeapDump = (recording: Recording): boolean => {
-  if (recording.eventSource === RecordingEventSource.HEAP_DUMP) {
-    return true;
-  }
-  return (recording.files ?? []).some(file => HEAP_DUMP_FILE_TYPES.has(file.type));
+/** Kinds that hold no events, so a flamegraph or timeline baseline has nothing to compare with. */
+const NO_EVENT_KINDS = new Set<RecordingKindKey>(['HEAP', 'PERF']);
+
+// A heap dump is compared only with another heap dump; everything else only with a profile that has
+// events to compare.
+const isCandidate = (recording: Recording): boolean => {
+  const kind = recordingKindOf(recording.eventSource).key;
+  return props.heapDumpBaseline ? kind === 'HEAP' : !NO_EVENT_KINDS.has(kind);
 };
 
 // Computed properties
@@ -402,7 +399,7 @@ const loadAllProfiles = async () => {
       recordingsClient.listProfiles(),
       recordingsClient.listGroups()
     ]);
-    const candidates = props.heapDumpBaseline ? profiles.filter(hasHeapDump) : profiles;
+    const candidates = profiles.filter(isCandidate);
     allProfiles.value = candidates.map(p => ({
       id: p.profileId!,
       name: p.profileName || p.filename,

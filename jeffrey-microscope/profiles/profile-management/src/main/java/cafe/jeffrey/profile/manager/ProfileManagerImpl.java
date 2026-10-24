@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.memory.AllocationManager;
@@ -131,11 +130,6 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public JITDeoptimizationManager jitDeoptimizationManager() {
         return registry.jvmInsight().jitDeoptimization().apply(profileInfo);
-    }
-
-    @Override
-    public AdditionalFilesManager additionalFilesManager() {
-        return registry.additionalFiles().apply(profileInfo);
     }
 
     @Override

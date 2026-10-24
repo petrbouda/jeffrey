@@ -39,9 +39,7 @@ const JFR: ProfileKind = {
     'Traces',
     'Visualization',
     'Technologies',
-    'Tools',
-    // Only shown while a heap dump is still attached to the JFR profile.
-    'HeapDump'
+    'Tools'
   ]),
   landing: 'dashboard'
 };

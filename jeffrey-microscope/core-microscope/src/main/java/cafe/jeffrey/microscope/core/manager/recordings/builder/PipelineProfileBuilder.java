@@ -156,7 +156,7 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
                 recordingInfo.recordingFinishedAt()));
 
         try {
-            profileInitializer.initialize(profileInfo, sources, List.of());
+            profileInitializer.initialize(profileInfo, sources);
         } catch (RuntimeException e) {
             // Keep the disabled row. It is the durable recording-to-profile link through which the
             // in-memory pipeline can report the failed attempt, and after a restart it is the evidence

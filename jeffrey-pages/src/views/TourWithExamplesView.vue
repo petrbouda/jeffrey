@@ -71,7 +71,7 @@
                 </div>
                 <h4>Profile Concepts</h4>
                 <ul>
-                  <li><strong>Recording:</strong> Profiling data, in most case a single JFR recording file, but can contain some additional files (Logs, PerfData Heap Dumps, ...)</li>
+                  <li><strong>Recording:</strong> Profiling data of one kind &mdash; a JFR recording (one or more files), a heap dump, a perf-counters snapshot, a pprof or OTLP profile. A hub session download arrives as a bundle of such recordings, with its logs as download-only files</li>
                   <li><strong>Profile:</strong> Parsed and initialized data from the recordings to a single unit for investigation</li>
                   <li><strong>Primary:</strong> Main profile</li>
                   <li><strong>Secondary:</strong> Profile to be used for comparison</li>

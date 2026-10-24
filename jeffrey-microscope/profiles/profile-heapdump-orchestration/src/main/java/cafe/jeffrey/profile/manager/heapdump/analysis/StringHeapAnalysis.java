@@ -18,12 +18,10 @@
 package cafe.jeffrey.profile.manager.heapdump.analysis;
 
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.StringAnalyzer;
-import cafe.jeffrey.profile.heapdump.model.JvmStringFlag;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
-import java.util.List;
 
 public final class StringHeapAnalysis implements CachedAnalysis<StringAnalysisReport> {
 
@@ -33,15 +31,12 @@ public final class StringHeapAnalysis implements CachedAnalysis<StringAnalysisRe
 
     private final int topN;
 
-    private final List<JvmStringFlag> jvmFlags;
-
-    public StringHeapAnalysis(int topN, List<JvmStringFlag> jvmFlags) {
+    public StringHeapAnalysis(int topN) {
         this.topN = topN;
-        this.jvmFlags = jvmFlags;
     }
 
     public StringHeapAnalysis() {
-        this(0, List.of());
+        this(0);
     }
 
     @Override
@@ -66,20 +61,6 @@ public final class StringHeapAnalysis implements CachedAnalysis<StringAnalysisRe
 
     @Override
     public StringAnalysisReport compute(HeapView view) throws SQLException {
-        StringAnalysisReport base = StringAnalyzer.analyze(view, topN);
-        return new StringAnalysisReport(
-                base.totalStrings(),
-                base.totalStringShallowSize(),
-                base.uniqueArrays(),
-                base.sharedArrays(),
-                base.totalSharedStrings(),
-                base.memorySavedByDedup(),
-                base.potentialSavings(),
-                base.topByRetained(),
-                base.topInstancesByRetained(),
-                base.alreadyDeduplicated(),
-                base.opportunities(),
-                jvmFlags,
-                base.topN());
+        return StringAnalyzer.analyze(view, topN);
     }
 }

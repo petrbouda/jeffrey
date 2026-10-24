@@ -194,6 +194,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/HeapDumpAnalysisPage.vue')
       },
       {
+        path: 'microscope/profiles/perf-counters',
+        name: 'DocsProfilesPerfCounters',
+        component: () => import('@/views/docs/microscope/profiles/PerfCountersProfilePage.vue')
+      },
+      {
         path: 'microscope/profiles/garbage-collection',
         name: 'DocsProfilesGarbageCollection',
         component: () => import('@/views/docs/microscope/profiles/ProfileGarbageCollectionPage.vue')

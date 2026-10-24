@@ -53,7 +53,6 @@ const ALL_STAGE_IDS = [
   'method-trace-weights',
   'recluster',
   'traces',
-  'additional-files',
   'checkpoint',
   'warmup'
 ];
@@ -177,7 +176,6 @@ describe('chips over a real run', () => {
         stage('flush', 'completed', { durationMs: 20 }),
         stage('recluster', 'completed', { durationMs: 120 }),
         stage('traces', 'skipped'),
-        stage('additional-files', 'completed', { durationMs: 5 }),
         stage('checkpoint', 'completed', { durationMs: 10 }),
         stage('warmup', 'completed', { durationMs: 2 })
       ]),

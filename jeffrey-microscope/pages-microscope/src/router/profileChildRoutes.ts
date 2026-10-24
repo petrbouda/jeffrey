@@ -70,12 +70,6 @@ const analysisRoutes = [
     name: 'profile-flags',
     component: () => import('@/views/profiles/detail/ProfileFlags.vue'),
     meta: { layout: 'profile' }
-  },
-  {
-    path: 'performance-counters',
-    name: 'profile-performance-counters',
-    component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
-    meta: { layout: 'profile' }
   }
 ];
 

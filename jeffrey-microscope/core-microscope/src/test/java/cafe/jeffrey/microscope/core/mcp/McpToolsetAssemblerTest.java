@@ -372,39 +372,42 @@ class McpToolsetAssemblerTest {
 
     /**
      * OQL reads the same index as the rest of the heap family, so a JFR recording asked an OQL
-     * question gets the same refusal naming the families to use instead, rather than a failure from
+     * question gets the same refusal pointing at its bundle's heap dump, rather than a failure from
      * deep inside the engine.
      */
     @Nested
     class HeapGate {
 
-        private Exception oqlOn(boolean heapDumpExists, boolean indexed) {
+        private Exception oqlOn(RecordingEventSource source, boolean indexed) {
             ProfileManager profileManager = mock(ProfileManager.class);
-            HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
             McpProfileContextCache.Lease lease = mock(McpProfileContextCache.Lease.class);
             when(lease.profileManager()).thenReturn(profileManager);
-            when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
-            when(heapDumpManager.heapDumpExists()).thenReturn(heapDumpExists);
-            if (heapDumpExists) {
+            when(profileManager.info()).thenReturn(new ProfileInfo(
+                    "p-oql", "project-1", "workspace-1", "Profile", source,
+                    Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "recording-1"));
+            if (source == RecordingEventSource.HEAP_DUMP) {
+                HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
+                when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
+                when(heapDumpManager.heapDumpExists()).thenReturn(true);
                 when(heapDumpManager.isCacheReady()).thenReturn(indexed);
             }
-            when(contextCache.acquire("jfr-only")).thenReturn(lease);
+            when(contextCache.acquire("p-oql")).thenReturn(lease);
 
             return assertThrows(Exception.class, () -> assembler(true).toolset().call("heap_oql",
-                    Json.createObject().put("profileId", "jfr-only").put("query", "SELECT * FROM java.lang.String")));
+                    Json.createObject().put("profileId", "p-oql").put("query", "SELECT * FROM java.lang.String")));
         }
 
         @Test
-        void refusesOqlOnAProfileWithoutAHeapDump() {
-            Exception refusal = oqlOn(false, false);
+        void refusesOqlOnAJfrProfilePointingAtItsBundlesHeapDump() {
+            Exception refusal = oqlOn(RecordingEventSource.JDK, false);
 
-            assertTrue(refusal.getMessage().contains("has no heap dump"), refusal.getMessage());
-            assertTrue(refusal.getMessage().contains("profiles_features"), refusal.getMessage());
+            assertTrue(refusal.getMessage().contains("is not a heap dump"), refusal.getMessage());
+            assertTrue(refusal.getMessage().contains("hubs_download"), refusal.getMessage());
         }
 
         @Test
         void refusesOqlOnADumpNotYetIndexed() {
-            Exception refusal = oqlOn(true, false);
+            Exception refusal = oqlOn(RecordingEventSource.HEAP_DUMP, false);
 
             assertTrue(refusal.getMessage().contains("heap_prepare"), refusal.getMessage());
         }
@@ -1138,6 +1141,8 @@ class McpToolsetAssemblerTest {
         private static final int EVENT_ROWS = 20_000;
 
         private static final String BASELINE_PROFILE_ID = "profile-0";
+        /** A heap dump of the same run: the heap_ tools read a heap dump profile, never the recording's. */
+        private static final String HEAP_PROFILE_ID = "profile-heap";
         /** The length both fixture profiles report, from their {@code ProfileInfo}. */
         private static final Duration RECORDING_LENGTH = Duration.ofSeconds(600);
         /** The handler the baseline did half the work in: the regression the diff has to find. */
@@ -1184,7 +1189,7 @@ class McpToolsetAssemblerTest {
             defaultCalls.put("traces_spanFlamegraphExport", profile.deepCopy()
                     .put("traceId", TRACE_ID).put("spanId", SPAN_ID).put("eventType", "jdk.ExecutionSample"));
             defaultCalls.put("jfr_executeQuery", profile.deepCopy().put("query", "SELECT * FROM events"));
-            defaultCalls.put("heap_getDominatorTreeRoots", profile.deepCopy());
+            defaultCalls.put("heap_getDominatorTreeRoots", Json.createObject().put("profileId", HEAP_PROFILE_ID));
             defaultCalls.put("compare_flamegraph", profile.deepCopy()
                     .put("baselineProfileId", BASELINE_PROFILE_ID).put("eventType", "jdk.ExecutionSample"));
             defaultCalls.put("traces_traceExport", profile.deepCopy().put("traceId", TRACE_ID));
@@ -1299,8 +1304,16 @@ class McpToolsetAssemblerTest {
             stubTraces(traceManager);
             stubBaseline();
 
+            ProfileManager heapProfileManager = mock(ProfileManager.class);
+            McpProfileContextCache.Lease heapLease = mock(McpProfileContextCache.Lease.class);
+            lenient().when(heapLease.profileManager()).thenReturn(heapProfileManager);
+            lenient().when(heapLease.dataSource()).thenReturn(dataSource);
+            lenient().when(contextCache.acquire(HEAP_PROFILE_ID)).thenReturn(heapLease);
+            lenient().when(heapProfileManager.info()).thenReturn(new ProfileInfo(
+                    HEAP_PROFILE_ID, "project-1", "workspace-1", "Heap dump", RecordingEventSource.HEAP_DUMP,
+                    Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "recording-2"));
             HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
-            lenient().when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
+            lenient().when(heapProfileManager.heapDumpManager()).thenReturn(heapDumpManager);
             lenient().when(heapDumpManager.heapDumpExists()).thenReturn(true);
             lenient().when(heapDumpManager.isCacheReady()).thenReturn(true);
             lenient().when(heapDumpManager.getDominatorTreeRoots(anyInt())).thenAnswer(invocation -> {

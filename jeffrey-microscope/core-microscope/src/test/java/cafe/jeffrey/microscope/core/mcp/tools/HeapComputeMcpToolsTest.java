@@ -310,15 +310,30 @@ class HeapComputeMcpToolsTest {
          * than starting a run that fails on its first stage and reads like a broken dump.
          */
         @Test
-        void refusesAProfileWithNoHeapDump() {
+        void refusesAJfrProfilePointingAtItsBundlesHeapDump() {
+            when(profileManager.info()).thenReturn(new ProfileInfo(
+                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JDK,
+                    Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
+
+            IllegalArgumentException e =
+                    assertThrows(IllegalArgumentException.class,
+                            () -> complete(tools().prepare(null, true, RESOURCE_READ)));
+
+            assertTrue(e.getMessage().contains("is not a heap dump"), e.getMessage());
+            assertTrue(e.getMessage().contains("hubs_download"), e.getMessage());
+        }
+
+        /** A heap dump profile whose copy of the dump is gone is rebuilt by analysing its recording again. */
+        @Test
+        void refusesAHeapDumpProfileThatLostItsDump() {
             when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
             IllegalArgumentException e =
                     assertThrows(IllegalArgumentException.class,
                             () -> complete(tools().prepare(null, true, RESOURCE_READ)));
 
-            assertTrue(e.getMessage().contains("no heap dump"));
-            assertTrue(e.getMessage().contains("profiles_features"));
+            assertTrue(e.getMessage().contains("lost its copy"), e.getMessage());
+            assertTrue(e.getMessage().contains("recordings_analyzeRecording"), e.getMessage());
         }
 
         @Test

@@ -313,9 +313,6 @@ export const profileNavSections: Record<
       title: 'RUNTIME',
       items: [
         item('JVM Flags', 'bi-flag', '/flags'),
-        item('Performance Counters', 'bi-speedometer2', '/performance-counters', {
-          disabledKeys: ['performance-counters']
-        }),
         item('VM Operations', 'bi-stopwatch', '/vm-operations'),
         item('Modules', 'bi-boxes', '/modules')
       ]

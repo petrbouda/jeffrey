@@ -614,7 +614,7 @@ class HeapDumpMcpToolsTest {
                     List.of(), List.of(), List.of(), List.of(
                     new StringDeduplicationEntry(preview, 4, 5_000, 15_000),
                     new StringDeduplicationEntry("short", 3, 40, 80)),
-                    List.of(), 100));
+                    100));
 
             JsonNode out = conforming("getStringAnalysis", tools().getStringAnalysis());
 
@@ -632,7 +632,7 @@ class HeapDumpMcpToolsTest {
                     .mapToObj(i -> new StringDeduplicationEntry("s" + i, 2, 40, 40))
                     .toList();
             return new StringAnalysisReport(10, 400, 5, 5, 2, 100, 300, List.of(), List.of(), List.of(), entries,
-                    List.of(), topN);
+                    topN);
         }
 
         /** A report built from the UI with topN=10 and ten opportunities may have cut more: unknown. */

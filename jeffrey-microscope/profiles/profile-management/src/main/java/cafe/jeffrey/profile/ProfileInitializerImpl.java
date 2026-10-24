@@ -19,7 +19,6 @@ package cafe.jeffrey.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineRun;
@@ -42,7 +41,6 @@ import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 
 import javax.sql.DataSource;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -96,9 +94,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     }
 
     @Override
-    public ProfileManager initialize(ProfileInfo profileInfo, RecordingSources sources, List<Path> artifacts) {
-        LOG.debug("Initializing profile: profileId={} sources={} artifacts={}",
-                profileInfo.id(), sources.size(), artifacts.size());
+    public ProfileManager initialize(ProfileInfo profileInfo, RecordingSources sources) {
+        LOG.debug("Initializing profile: profileId={} sources={}", profileInfo.id(), sources.size());
         Instant startedAt = clock.instant();
 
         // Open database connection for the new profile (creating the database file on disk if it
@@ -120,7 +117,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             // by profile id while it happens.
             AtomicReference<ProfileManager> initialized = new AtomicReference<>();
             runRegistry.runInline(PipelineRunRequest.of(profileInfo.id(),
-                    run -> initialized.set(runStages(run, profileInfo, sources, artifacts, lease))));
+                    run -> initialized.set(runStages(run, profileInfo, sources, lease))));
 
             long elapsedMs = clock.instant().toEpochMilli() - startedAt.toEpochMilli();
             LOG.info("Profile parsed and initialized: profile_id={} profile_name={} elapsed_ms={}",
@@ -134,7 +131,6 @@ public class ProfileInitializerImpl implements ProfileInitializer {
             PipelineRun run,
             ProfileInfo profileInfo,
             RecordingSources sources,
-            List<Path> artifacts,
             DatabaseLease lease) {
 
         DataSource dataSource = lease.dataSource();
@@ -186,18 +182,6 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         deriveTraces(run, profileInfo, dataSource);
 
         ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
-
-        // Process additional files (like logs, metrics, heap-dumps, perf-counters etc.)
-        // Currently only perf-counters are supported.
-        // Skipped only when the recording brought nothing along, which is what the stage being
-        // skipped was always meant to say. It used to key on whether the recording came from a
-        // project, so a downloaded session's heap dump and perf counters never reached the profile.
-        if (artifacts.isEmpty()) {
-            run.skipStage(ProfileInitStages.ADDITIONAL_FILES);
-        } else {
-            run.runStage(ProfileInitStages.ADDITIONAL_FILES,
-                    () -> profileManager.additionalFilesManager().processAdditionalFiles(artifacts));
-        }
 
         // Ensure all data is flushed to disk - especially important for WAL mode databases.
         // WAL checkpointing merges the WAL (Write-Ahead Log) into the main database file.

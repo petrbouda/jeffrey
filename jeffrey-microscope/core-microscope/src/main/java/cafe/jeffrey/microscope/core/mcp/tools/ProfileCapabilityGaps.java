@@ -99,10 +99,16 @@ final class ProfileCapabilityGaps {
             "The user sees its overview and every counter at the profile's uiLink; the JFR recording of the "
                     + "same run, analysed as its own profile, answers the rest.";
     private static final String NO_HEAP_DUMP_GAP =
-            "This profile has no heap dump, so the heap_ family does not apply: what is retained, the "
-                    + "dominators and the GC-root paths need a dump.";
+            "A recording holds no heap dump, so the heap_ family does not apply to this profile: what is "
+                    + "retained, the dominators and the GC-root paths are read from a heap dump profile.";
     private static final String NO_HEAP_DUMP_REMEDY =
-            "Capture one (jcmd <pid> GC.heap_dump) and analyse it with recordings_analyzeFile as its own profile.";
+            "A heap dump downloaded with this recording is another item of its bundle: hubs_download lists "
+                    + "the items with their recordingIds, and recordings_analyzeRecording builds its profile. Otherwise "
+                    + "capture one (jcmd <pid> GC.heap_dump) and analyse it with recordings_analyzeFile.";
+    private static final String HEAP_DUMP_MISSING_GAP =
+            "This heap dump profile has lost its copy of the dump, so every heap_ tool answers empty.";
+    private static final String HEAP_DUMP_MISSING_REMEDY =
+            "recordings_analyzeRecording on its recording builds the profile again from the stored dump.";
     private static final String HEAP_DUMP_UNINDEXED_GAP =
             "The heap dump's index has not been built, so every heap_ tool answers empty until it is.";
     private static final String HEAP_DUMP_UNINDEXED_REMEDY =
@@ -141,8 +147,8 @@ final class ProfileCapabilityGaps {
     private static final double PERCENT = 100.0;
 
     /**
-     * Features whose gap another pass words better: the heap dump by {@link #addHeapDumpGap}, which
-     * tells a missing dump from an unindexed one, and the GC dashboard by the jvm_gc section gap,
+     * Features whose gap another pass words better: the heap dump by kind -- a recording never holds
+     * one, a heap dump profile tells a missing dump from an unindexed one -- and the GC dashboard by the jvm_gc section gap,
      * which names the GC events the recording lacks.
      */
     private static final Set<FeatureType> FEATURES_REPORTED_ELSEWHERE =
@@ -197,11 +203,6 @@ final class ProfileCapabilityGaps {
                             + " events, so jvm_container cannot say whether the scheduler throttled the "
                             + "process: either the JVM did not run in a container, or those events were off.",
                     REMEDY_ENABLE_EVENTS)),
-            entry(FeatureType.PERF_COUNTERS_DASHBOARD, new FeatureGap(
-                    "No perf-counters file accompanied the recording, so the perf-counter dashboard is empty.",
-                    "If the session is on a hub, hubs_files shows whether it holds one and hubs_fetchFile "
-                            + "pulls it down as a file. Otherwise upload the recording together with its "
-                            + "perf-counters file next time.")),
             entry(FeatureType.SUBSECOND, new FeatureGap(
                     "This profile carries no per-sample timestamps, so timeline_zoom cannot resolve below a second.",
                     "Record a JFR or OTLP profile when the shape over time matters.")),
@@ -247,7 +248,7 @@ final class ProfileCapabilityGaps {
             // A dump is not a recording: listing every JFR family as missing would bury the one
             // sentence that explains all of them.
             gaps.add(new CapabilityGap(SUBJECT_FORMAT, HEAP_DUMP_ONLY_GAP, HEAP_DUMP_ONLY_REMEDY));
-            addHeapDumpGap(gaps, disabledFeatures);
+            addIndexGap(gaps, disabledFeatures);
             return List.copyOf(gaps);
         }
         if (source.kind() == ProfileKind.PERF_COUNTERS) {
@@ -261,7 +262,7 @@ final class ProfileCapabilityGaps {
             return List.copyOf(gaps);
         }
         addFeatureGaps(gaps, disabledFeatures);
-        addHeapDumpGap(gaps, disabledFeatures);
+        gaps.add(new CapabilityGap(SUBJECT_HEAP_DUMP, NO_HEAP_DUMP_GAP, NO_HEAP_DUMP_REMEDY));
         addFlamegraphGroupGaps(gaps);
         addJvmSectionGaps(gaps);
         addSamplerGap(gaps);
@@ -278,14 +279,15 @@ final class ProfileCapabilityGaps {
         }
     }
 
-    private void addHeapDumpGap(List<CapabilityGap> gaps, List<FeatureType> disabledFeatures) {
+    /** A heap dump profile whose views are empty: the index is not built yet, or the dump is gone. */
+    private void addIndexGap(List<CapabilityGap> gaps, List<FeatureType> disabledFeatures) {
         if (!disabledFeatures.contains(FeatureType.HEAP_DUMP)) {
             return;
         }
         if (profileManager.heapDumpManager().heapDumpExists()) {
             gaps.add(new CapabilityGap(SUBJECT_HEAP_DUMP, HEAP_DUMP_UNINDEXED_GAP, HEAP_DUMP_UNINDEXED_REMEDY));
         } else {
-            gaps.add(new CapabilityGap(SUBJECT_HEAP_DUMP, NO_HEAP_DUMP_GAP, NO_HEAP_DUMP_REMEDY));
+            gaps.add(new CapabilityGap(SUBJECT_HEAP_DUMP, HEAP_DUMP_MISSING_GAP, HEAP_DUMP_MISSING_REMEDY));
         }
     }
 

@@ -25,11 +25,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -47,19 +44,6 @@ public class ProfileFeaturesController {
     @GetMapping("/disabled")
     public List<FeatureType> disabledFeatures(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching disabled features");
-        ProfileManager pm = resolver.resolve(profileId);
-        HeapDumpManager heapDumpManager = pm.heapDumpManager();
-        List<FeatureType> disabled = new ArrayList<>(pm.featuresManager().getDisabledFeatures());
-        if (!heapDumpManager.heapDumpExists() || !heapDumpManager.isCacheReady()) {
-            disabled.add(FeatureType.HEAP_DUMP);
-        }
-        // pprof profiles are aggregated and carry no per-sample timestamps, so the time-resolved
-        // views (subsecond section + the timeseries strip above the flamegraph) collapse into a
-        // single spike and convey no information.
-        if (pm.info().eventSource() == RecordingEventSource.PPROF) {
-            disabled.add(FeatureType.SUBSECOND);
-            disabled.add(FeatureType.TIMESERIES);
-        }
-        return disabled;
+        return ProfileDisabledFeatures.of(resolver.resolve(profileId));
     }
 }

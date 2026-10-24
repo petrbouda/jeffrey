@@ -287,14 +287,7 @@ public class HeapComputeMcpTools {
      * the failure as a broken dump rather than as the wrong question.
      */
     private HeapDumpManager requireHeapDump() {
-        HeapDumpManager heapDumpManager = profileManager.heapDumpManager();
-        if (!heapDumpManager.heapDumpExists()) {
-            throw new IllegalArgumentException(
-                    "Profile " + profileManager.info().id() + " has no heap dump. Use profiles_features "
-                            + "to see what a profile can answer; for a JFR recording use the jfr_, "
-                            + "flamegraph_ and traces_ tools instead.");
-        }
-        return heapDumpManager;
+        return HeapDumpProfiles.require(profileManager);
     }
 
     private static List<HeapReport> reports(List<String> stageIds) {

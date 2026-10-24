@@ -87,11 +87,11 @@ describe('profileNavConfig', () => {
   const allItems = collectAllItems();
 
   it('collects a sane number of nav items', () => {
-    // 5 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
+    // 5 Overview (incl. Dashboards) + 18 JVM (incl. GC/JIT submenu parents + children)
     // + 16 Application (incl. Memory Issues submenu) + 4 Traces (Traces by Operation,
     // Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
     // + 16 HeapDump + 2 PerfCounters + 4 Tools + 35 Technologies
-    expect(allItems.length).toBe(105);
+    expect(allItems.length).toBe(104);
   });
 
   it('every item has a label and a bootstrap icon', () => {

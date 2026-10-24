@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.profile.manager.registry;
 
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
@@ -34,7 +33,6 @@ public record ProfileManagerFactoryRegistry(
         JvmInsightFactories jvmInsight,
         ProfileConfigurationManager.Factory configuration,
         ProfileFeaturesManager.Factory features,
-        AdditionalFilesManager.Factory additionalFiles,
         PerfCountersManager.Factory perfCounters,
         ProfileToolsManager.Factory tools,
         CollapseFramesManager.Factory collapseFrames,

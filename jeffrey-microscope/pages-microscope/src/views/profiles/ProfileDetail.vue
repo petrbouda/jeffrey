@@ -217,7 +217,6 @@ import DirectProfileClient from '@/services/api/DirectProfileClient.ts';
 
 const directProfileClient = new DirectProfileClient();
 import ProfileInfo from '@/services/api/model/ProfileInfo.ts';
-import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource.ts';
 import SecondaryProfileService from '@/services/SecondaryProfileService.ts';
 import { BASELINE_QUERY_PARAM, baselineIdFromQuery } from '@/services/BaselineQuery.ts';
 import { adoptLinkedBaseline } from '@/services/LinkedBaseline';
@@ -225,7 +224,6 @@ import SecondaryProfileSelectionModal from '@/components/SecondaryProfileSelecti
 import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
 import ProfileFeaturesClient from '@/services/api/ProfileFeaturesClient';
-import HeapDumpClient from '@/services/api/HeapDumpClient';
 import FeatureType from '@/services/api/model/FeatureType';
 import { profileStore, ProfileWithContext } from '@/stores/profileStore';
 import IdeTargetBar from '@/components/IdeTargetBar.vue';
@@ -253,9 +251,6 @@ const loading = ref(true);
 const sidebarCollapsed = ref(false);
 const showSecondaryProfileSelectionModal = ref(false);
 const disabledFeatures = ref<FeatureType[]>([]);
-// True when the recording carries a heap dump (heap-dump-only profile or an attached .hprof file);
-// the Heap Dump pill is hidden entirely when there is none.
-const heapDumpAttached = ref(false);
 
 interface ModePill {
   mode: ProfileMode;
@@ -311,10 +306,7 @@ const MODE_PILLS: ModePill[] = [
 const profileKind = computed(() => profileKindOf(profile.value?.eventSource));
 
 const visiblePills = computed(() =>
-  MODE_PILLS.filter(
-    pill =>
-      profileKind.value.modes.has(pill.mode) && (pill.mode !== 'HeapDump' || heapDumpAttached.value)
-  )
+  MODE_PILLS.filter(pill => profileKind.value.modes.has(pill.mode))
 );
 
 // Mapping function to determine which features are associated with menu items
@@ -328,7 +320,6 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'grpc-client': FeatureType.GRPC_CLIENT_DASHBOARD,
     'jdbc-statements': FeatureType.JDBC_STATEMENTS_DASHBOARD,
     'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
-    'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,
     'method-tracing': FeatureType.METHOD_TRACING_DASHBOARD,
     'async-profiler': FeatureType.ASYNC_PROFILER_SPANS,
     traces: FeatureType.TRACES,
@@ -481,17 +472,6 @@ onMounted(async () => {
     }
     selectedMode.value = getModeForPath(route.path);
 
-    // A heap dump profile is one; a JFR profile asks the backend whether a dump is attached.
-    if (profileWithContext.eventSource === RecordingEventSource.HEAP_DUMP) {
-      heapDumpAttached.value = true;
-    } else if (kind.modes.has('HeapDump')) {
-      try {
-        heapDumpAttached.value = await new HeapDumpClient(profileId).exists();
-      } catch (error) {
-        console.error('Failed to check heap dump existence:', error);
-      }
-    }
-
     // Restore the baseline picked for this profile earlier in the session; retainFor above has
     // already discarded any that belonged to another one.
     const savedProfile = SecondaryProfileService.get();
@@ -628,11 +608,9 @@ const handleSecondaryProfileCleared = () => {
   SecondaryProfileService.remove();
 };
 
-// Handle heap dump status changes
+// A heap dump profile's views open up once its index is built, and close again when it is dropped.
 const handleHeapDumpStatusChanged = (ready: boolean) => {
   if (ready) {
-    // A ready heap dump implies one is attached (e.g. just uploaded on the settings page).
-    heapDumpAttached.value = true;
     disabledFeatures.value = disabledFeatures.value.filter(f => f !== FeatureType.HEAP_DUMP);
   } else {
     if (!disabledFeatures.value.includes(FeatureType.HEAP_DUMP)) {

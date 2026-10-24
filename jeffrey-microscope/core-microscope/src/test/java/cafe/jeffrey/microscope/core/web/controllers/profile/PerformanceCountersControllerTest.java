@@ -49,19 +49,6 @@ class PerformanceCountersControllerTest {
     PerfCountersManager perfCountersManager;
 
     @Test
-    void existsReportsFalseWhenAbsent() {
-        when(resolver.resolve("p-1")).thenReturn(profileManager);
-        when(profileManager.perfCountersManager()).thenReturn(perfCountersManager);
-        when(perfCountersManager.exists()).thenReturn(false);
-
-        MockMvcTester mvc = mockMvcTesterFor(new PerformanceCountersController(resolver));
-
-        assertThat(mvc.get().uri("/api/internal/profiles/p-1/perfcounters/exists"))
-                .hasStatusOk()
-                .bodyText().isEqualTo("false");
-    }
-
-    @Test
     void overviewAnswersTheHeadlineFigures() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.perfCountersManager()).thenReturn(perfCountersManager);
@@ -99,7 +86,7 @@ class PerformanceCountersControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new PerformanceCountersController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/profiles/ghost/perfcounters/exists"))
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/perfcounters/overview"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");

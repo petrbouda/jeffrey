@@ -26,7 +26,6 @@ module cafe.jeffrey.microscope.profile.heapdump.orchestration {
     requires tools.jackson.databind;
     requires org.slf4j;
 
-    exports cafe.jeffrey.profile.manager.additional;
     exports cafe.jeffrey.profile.manager.heapdump;
     exports cafe.jeffrey.profile.manager.heapdump.analysis;
 }

@@ -19,7 +19,6 @@ package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import org.slf4j.Logger;
@@ -43,17 +42,17 @@ public final class HeapDumpSessionTemplate {
 
     private final ProfileInfo profileInfo;
 
-    private final AdditionalFilesManager additionalFilesManager;
+    private final HeapDumpFiles files;
 
     private final HeapDumpSessionCache sessionCache;
 
     public HeapDumpSessionTemplate(
             ProfileInfo profileInfo,
-            AdditionalFilesManager additionalFilesManager,
+            HeapDumpFiles files,
             HeapDumpSessionCache sessionCache) {
 
         this.profileInfo = profileInfo;
-        this.additionalFilesManager = additionalFilesManager;
+        this.files = files;
         this.sessionCache = sessionCache;
     }
 
@@ -71,7 +70,7 @@ public final class HeapDumpSessionTemplate {
      * index build so callers can observe sub-phase progress on a cold session.
      */
     public <R> Optional<R> execute(SessionWork<R> work, IndexBuildProgressListener listener) {
-        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
+        Optional<Path> heapPath = files.dumpPath();
         if (heapPath.isEmpty()) {
             LOG.debug("No heap dump available: profileId={}", profileInfo.id());
             return Optional.empty();
@@ -87,11 +86,11 @@ public final class HeapDumpSessionTemplate {
     }
 
     public boolean heapDumpExists() {
-        return additionalFilesManager.heapDumpExists();
+        return files.dumpExists();
     }
 
     public boolean isCacheReady() {
-        Optional<Path> heapPath = additionalFilesManager.getHeapDumpPath();
+        Optional<Path> heapPath = files.dumpPath();
         if (heapPath.isEmpty()) {
             return false;
         }

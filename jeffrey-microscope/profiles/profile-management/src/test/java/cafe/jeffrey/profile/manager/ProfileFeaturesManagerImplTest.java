@@ -26,7 +26,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
@@ -50,9 +49,6 @@ class ProfileFeaturesManagerImplTest {
     ProfileEventTypeRepository eventTypeRepository;
 
     @Mock
-    ProfileCacheRepository cacheRepository;
-
-    @Mock
     TraceRepository traceRepository;
 
     private static EventSummary summary(Type type, long samples) {
@@ -69,10 +65,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of());
             // Container checker: no container events
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            // Perf counter checker: no cache
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertTrue(disabledFeatures.contains(FeatureType.HTTP_SERVER_DASHBOARD));
@@ -82,7 +76,6 @@ class ProfileFeaturesManagerImplTest {
             assertTrue(disabledFeatures.contains(FeatureType.METHOD_TRACING_DASHBOARD));
             assertTrue(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
             assertTrue(disabledFeatures.contains(FeatureType.CONTAINER_DASHBOARD));
-            assertTrue(disabledFeatures.contains(FeatureType.PERF_COUNTERS_DASHBOARD));
             assertTrue(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
         }
     }
@@ -97,9 +90,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
                     summary(Type.HTTP_SERVER_EXCHANGE, 10)));
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.HTTP_SERVER_DASHBOARD));
@@ -112,9 +104,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
                     summary(Type.METHOD_TRACE, 5)));
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.METHOD_TRACING_DASHBOARD));
@@ -126,9 +117,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
                     summary(Type.JDBC_QUERY, 3)));
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.JDBC_STATEMENTS_DASHBOARD));
@@ -140,9 +130,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
                     summary(Type.SPAN, 7)));
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
@@ -154,9 +143,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
                     summary(Type.GC_CONFIGURATION, 1)));
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertFalse(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
@@ -168,9 +156,8 @@ class ProfileFeaturesManagerImplTest {
             when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
                     summary(Type.GC_HEAP_SUMMARY, 21)));
             when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
-            when(cacheRepository.contains(any())).thenReturn(false);
 
-            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, cacheRepository, traceRepository);
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
             List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
 
             assertTrue(disabledFeatures.contains(FeatureType.GC_DASHBOARD));

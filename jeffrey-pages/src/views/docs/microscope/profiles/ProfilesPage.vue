@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-are-profiles', text: 'What are Profiles?', level: 2 },
+  { id: 'profile-kinds', text: 'Profile Kinds', level: 2 },
   { id: 'profile-storage', text: 'Profile Storage', level: 2 },
   { id: 'summary-dashboard', text: 'Summary Dashboard', level: 2 },
   { id: 'insights', text: 'Insights', level: 2 },
@@ -36,6 +37,7 @@ const headings = [
   { id: 'traces', text: 'Traces', level: 2 },
   { id: 'technologies', text: 'Technologies', level: 2 },
   { id: 'heap-dump-analysis', text: 'Heap Dump Analysis', level: 2 },
+  { id: 'perf-counters', text: 'Perf Counters', level: 2 },
   { id: 'tools', text: 'Tools', level: 2 }
 ];
 
@@ -45,11 +47,13 @@ onMounted(() => {
 
 const folderStructure = `$JEFFREY_HOME/
 └── profiles/
-    ├── {profile-id-1}/
-    │   ├── profile-data.db       # DuckDB database with all events
-    │   └── heap-dump-analysis/   # Heap dump analysis data (if available)
-    ├── {profile-id-2}/
-    │   └── profile-data.db
+    ├── {jfr-profile-id}/
+    │   └── profile-data.db       # DuckDB database with all events
+    ├── {heap-dump-profile-id}/
+    │   ├── profile-data.db       # its initialization runs
+    │   └── heap-dump/            # the copied dump, its index and cached reports
+    ├── {perf-counters-profile-id}/
+    │   └── profile-data.db       # the snapshot's counters
     └── ...`;
 </script>
 
@@ -61,14 +65,62 @@ const folderStructure = `$JEFFREY_HOME/
     />
 
     <div class="docs-content">
-      <p>Profiles are the core analysis unit in Jeffrey — they represent <strong>processed and analyzed JFR recordings</strong> optimized for fast querying and interactive visualization. Each profile contains several analysis sections.</p>
+      <p>Profiles are the core analysis unit in Jeffrey — they represent <strong>processed and analyzed recordings</strong> optimized for fast querying and interactive visualization. A JFR recording, a heap dump, a perf-counters snapshot, a pprof or an OpenTelemetry profile each becomes a profile of its own, and each <a href="#profile-kinds">kind</a> offers the analysis sections its data can answer.</p>
 
       <h2 id="what-are-profiles">What are Profiles?</h2>
-      <p>A profile is created when Jeffrey processes a JFR recording. Unlike raw JFR files, profiles are stored in a database format that enables fast querying, pre-computed visualizations, indexed data, and cached analysis. Think of a profile as a "materialized view" of your JFR recording — all the data is there, but organized for analysis.</p>
+      <p>A profile is created when Jeffrey initializes a recording from the <router-link to="/docs/microscope/recordings">Recordings</router-link> page — one uploaded on its own, or one item of a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> downloaded from a hub session. Unlike raw JFR files, profiles are stored in a database format that enables fast querying, pre-computed visualizations, indexed data, and cached analysis. Think of a profile as a "materialized view" of your JFR recording — all the data is there, but organized for analysis.</p>
 
       <DocsCallout type="tip">
         <strong>Storage strategy:</strong> Keep recordings as your source of truth. Profiles can be deleted and recreated anytime — they're just a processed view of the recording data.
       </DocsCallout>
+
+      <h2 id="profile-kinds">Profile Kinds</h2>
+      <p>Every profile has its own Profile Detail, and the mode pills along its top are the ones its kind can fill. A profile never mixes kinds: a heap dump or a perf-counters file that came down with a JFR recording is another item of the same bundle, initialized into a profile of its own, and never a page inside the JFR profile.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Kind</th>
+            <th>Built from</th>
+            <th>Modes</th>
+            <th>Opens at</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>JFR</strong></td>
+            <td><code>.jfr</code>, <code>.jfr.lz4</code> &mdash; one file, or every chunk of a hub session</td>
+            <td>Overview, JVM Internals, Application, Traces, Visualization, Technologies, Tools</td>
+            <td>Summary dashboard</td>
+          </tr>
+          <tr>
+            <td><strong>pprof</strong></td>
+            <td><code>.pprof</code>, <code>.pb.gz</code></td>
+            <td>Visualization</td>
+            <td>Primary flamegraph</td>
+          </tr>
+          <tr>
+            <td><strong>OpenTelemetry</strong></td>
+            <td><code>.otlp</code></td>
+            <td>Visualization, Tools</td>
+            <td>Primary flamegraph</td>
+          </tr>
+          <tr>
+            <td><strong>Heap Dump</strong></td>
+            <td><code>.hprof</code>, <code>.hprof.gz</code></td>
+            <td>Heap Dump</td>
+            <td>Heap Dump Overview</td>
+          </tr>
+          <tr>
+            <td><strong>Perf Counters</strong></td>
+            <td><code>.hsperfdata</code></td>
+            <td>Perf Counters</td>
+            <td>Perf Counters Overview</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>pprof and OpenTelemetry profiles carry stack samples only, so they have flamegraphs and none of the GC, safepoint or thread data the Summary dashboard is built from; an OpenTelemetry profile keeps Tools because it can be re-exported. The sections below describe the JFR profile first, then the heap-dump and perf-counters kinds.</p>
 
       <h2 id="profile-storage">Profile Storage</h2>
       <p>Every profile has its own dedicated <strong>DuckDB database</strong> — independent, portable, and easy to clean up.</p>
@@ -185,11 +237,6 @@ const folderStructure = `$JEFFREY_HOME/
           icon="bi bi-bug"
           title="Memory Leak Candidates"
           description="Long-lived objects flagged by JFR's old-object sampler — leaked class, size, age, and heap usage at sample time."
-        />
-        <DocsFeatureCard
-          icon="bi bi-speedometer2"
-          title="Performance Counters"
-          description="HotSpot performance counters from an hsperfdata artifact — JIT compilation time, loaded classes, GC generations and the rest of what jstat reads, each with its description."
         />
         <DocsFeatureCard
           icon="bi bi-box"
@@ -332,7 +379,7 @@ const folderStructure = `$JEFFREY_HOME/
       </DocsCallout>
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>
-      <p>Memory analysis from heap dump snapshots (.hprof files). Requires a heap dump to be associated with the profile.</p>
+      <p>Memory analysis from heap dump snapshots (.hprof files). A heap dump is a recording of its own &mdash; uploaded on its own, or an item of a downloaded bundle &mdash; and initializing it from its Recordings row builds a <strong>heap-dump profile</strong> whose only mode is <strong>Heap Dump</strong>, opening on the Heap Dump Overview.</p>
       <p>A heap dump is analyzed through a one-time <strong>initialization pipeline</strong> shown as staged progress: <strong>Heap Indexing</strong> (Loading heap dump &rarr; Parsing heap structure &rarr; Building indexes) builds a sibling index next to the <code>.hprof</code>; <strong>Memory Analysis</strong> then precomputes strings, the dominator tree, threads, biggest objects, collections and leak suspects; and <strong>Hotspots</strong> finishes class loaders, memory consumers, duplicate data and biggest collections. Once initialized, every feature below reads from the index instantly. A build that fails or is interrupted publishes nothing, so reopening the dump simply starts a clean rebuild.</p>
 
       <div class="docs-grid docs-grid-2">
@@ -395,6 +442,26 @@ const folderStructure = `$JEFFREY_HOME/
 
       <p class="docs-read-more">
         <router-link to="/docs/microscope/profiles/heap-dump">Read the Heap Dump Analysis reference &rarr;</router-link>
+      </p>
+
+      <h2 id="perf-counters">Perf Counters</h2>
+      <p>HotSpot&rsquo;s own counters from an <code>hsperfdata</code> snapshot &mdash; what <code>jstat</code> reads. A <code>.hsperfdata</code> file is a recording of its own, uploaded or an item of a downloaded bundle, and its profile has one mode, <strong>Perf Counters</strong>, with two pages.</p>
+
+      <div class="docs-grid docs-grid-2">
+        <DocsFeatureCard
+          icon="bi bi-speedometer2"
+          title="Overview"
+          description="Headline figures — uptime, heap used against capacity, GC time and its share of uptime, safepoints, metaspace, classes, JIT compilations and threads — then the JVM's identity, command and VM arguments, and a table each for the garbage collectors and the heap generations."
+        />
+        <DocsFeatureCard
+          icon="bi bi-list-ul"
+          title="Counters"
+          description="Every counter the JVM wrote, as a tree grouped by subsystem, with a filter, expand/collapse-all and each counter's description where HotSpot provides one."
+        />
+      </div>
+
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/perf-counters">Read the Perf Counters reference &rarr;</router-link>
       </p>
 
       <h2 id="tools">Tools</h2>

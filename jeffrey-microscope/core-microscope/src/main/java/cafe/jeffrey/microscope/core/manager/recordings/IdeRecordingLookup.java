@@ -27,21 +27,19 @@ import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.R
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.State;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -229,26 +227,13 @@ public class IdeRecordingLookup {
      * Which features this profile has no data for, so the panel can mark a view as empty rather than
      * link the reader to a page with nothing on it.
      *
-     * <p>Narrower than {@code ProfileFeaturesController.disabledFeatures}, on purpose: that one also
-     * reports whether Jeffrey's own AI assistant is configured, which says nothing about what this
-     * profile holds, and the panel offers no AI view to disable. The two heap-dump conditions are kept
-     * because a heap dump that exists but has no cache built is, to a reader, a view with nothing in
-     * it — the same thing.
+     * <p>The same decision the Profile Detail and the MCP tools make, as sorted names.
      */
     private static List<String> disabledFeatures(ProfileManager profileManager) {
-        List<FeatureType> disabled = new ArrayList<>(profileManager.featuresManager().getDisabledFeatures());
-
-        HeapDumpManager heapDumpManager = profileManager.heapDumpManager();
-        if (!heapDumpManager.heapDumpExists() || !heapDumpManager.isCacheReady()) {
-            disabled.add(FeatureType.HEAP_DUMP);
-        }
-        // pprof profiles are aggregated and carry no per-sample timestamps, so the time-resolved views
-        // collapse into a single spike and convey nothing.
-        if (profileManager.info().eventSource() == RecordingEventSource.PPROF) {
-            disabled.add(FeatureType.SUBSECOND);
-            disabled.add(FeatureType.TIMESERIES);
-        }
-
-        return disabled.stream().map(Enum::name).distinct().sorted().toList();
+        return ProfileDisabledFeatures.of(profileManager).stream()
+                .map(Enum::name)
+                .distinct()
+                .sorted()
+                .toList();
     }
 }

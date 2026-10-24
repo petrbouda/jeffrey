@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.profile.configuration;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.heapdump.oql.OqlEngine;
 import cafe.jeffrey.profile.manager.*;
 // Explicit import: disambiguates from java.lang.SecurityManager (both match the wildcard above)
 import cafe.jeffrey.profile.manager.SecurityManager;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.memory.AllocationManager;
 import cafe.jeffrey.profile.manager.memory.AllocationManagerImpl;
@@ -35,6 +35,7 @@ import cafe.jeffrey.profile.manager.memory.NativeMemoryManagerImpl;
 import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManagerImpl;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManagerImpl;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpFiles;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManagerImpl;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
@@ -57,6 +58,7 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 
 import javax.sql.DataSource;
+import java.nio.file.Path;
 import java.time.Clock;
 
 public class ProfileJvmInsightConfiguration {
@@ -208,7 +210,7 @@ public class ProfileJvmInsightConfiguration {
 
     @Bean
     public HeapDumpManager.Factory heapDumpManagerFactory(
-            AdditionalFilesManager.Factory additionalFilesManagerFactory,
+            @Qualifier(ProfilesConfiguration.PROFILES_PATH) Path profilesPath,
             HeapDumpSessionCache heapDumpSessionCache,
             OqlEngine oqlEngine) {
 
@@ -216,8 +218,7 @@ public class ProfileJvmInsightConfiguration {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             return new HeapDumpManagerImpl(
                     profileInfo,
-                    additionalFilesManagerFactory.apply(profileInfo),
-                    profileRepositories.newEventRepository(profileDb),
+                    HeapDumpFiles.inProfileDir(profilesPath.resolve(profileInfo.id())),
                     heapDumpSessionCache,
                     oqlEngine,
                     profileRepositories.newPipelineRunRepository(profileDb));

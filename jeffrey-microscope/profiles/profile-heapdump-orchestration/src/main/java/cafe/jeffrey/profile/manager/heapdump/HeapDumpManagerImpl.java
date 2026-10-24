@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
@@ -81,8 +80,6 @@ import cafe.jeffrey.profile.manager.heapdump.CachedAnalysisRunner;
 import cafe.jeffrey.profile.manager.heapdump.CompressedOopsResolver;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpReportStore;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpSessionTemplate;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpUploadService;
-import cafe.jeffrey.profile.manager.heapdump.JvmStringFlagsProvider;
 import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
@@ -92,13 +89,11 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
-import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -143,29 +138,24 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final HeapDumpReportStore reports;
     private final HeapDumpSessionTemplate sessions;
     private final CachedAnalysisRunner runner;
-    private final JvmStringFlagsProvider jvmStringFlagsProvider;
     private final CompressedOopsResolver compressedOopsResolver;
-    private final HeapDumpUploadService uploadService;
+    private final HeapDumpCacheService cacheService;
     private final PipelineRunRepository pipelineRuns;
 
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
-            AdditionalFilesManager additionalFilesManager,
-            ProfileEventRepository eventRepository,
+            HeapDumpFiles files,
             HeapDumpSessionCache sessionCache,
             OqlEngine oqlEngine,
             PipelineRunRepository pipelineRuns) {
 
         this.oqlEngine = oqlEngine;
         this.pipelineRuns = pipelineRuns;
-        this.reports = new HeapDumpReportStore(additionalFilesManager.getHeapDumpAnalysisPath());
-        this.sessions = new HeapDumpSessionTemplate(profileInfo, additionalFilesManager, sessionCache);
+        this.reports = new HeapDumpReportStore(files.analysisDir());
+        this.sessions = new HeapDumpSessionTemplate(profileInfo, files, sessionCache);
         this.runner = new CachedAnalysisRunner(sessions, reports);
-        this.jvmStringFlagsProvider = new JvmStringFlagsProvider(eventRepository);
-        this.compressedOopsResolver = new CompressedOopsResolver(profileInfo, sessions, eventRepository, reports);
-        this.uploadService = new HeapDumpUploadService(
-                profileInfo, additionalFilesManager, reports,
-                additionalFilesManager.getHeapDumpAnalysisPath(), sessionCache);
+        this.compressedOopsResolver = new CompressedOopsResolver(profileInfo, sessions, reports);
+        this.cacheService = new HeapDumpCacheService(profileInfo, files, reports, sessionCache);
     }
 
     // --- Lifecycle helpers ------------------------------------------------
@@ -345,7 +335,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void unloadHeap() {
-        uploadService.unloadHeap();
+        cacheService.unloadHeap();
     }
 
     /**
@@ -354,19 +344,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
      */
     @Override
     public void deleteCache() {
-        uploadService.deleteCache();
+        cacheService.deleteCache();
         pipelineRuns.deleteAll(HeapDumpStages.PIPELINE_ID);
-    }
-
-    @Override
-    public void deleteHeapDump() {
-        uploadService.deleteHeapDump();
-        pipelineRuns.deleteAll(HeapDumpStages.PIPELINE_ID);
-    }
-
-    @Override
-    public void uploadHeapDump(InputStream inputStream, String filename) {
-        uploadService.upload(inputStream, filename);
     }
 
     // --- String analysis -------------------------------------------------
@@ -383,7 +362,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public void runStringAnalysis(int topN) {
-        runner.run(new StringHeapAnalysis(topN, jvmStringFlagsProvider.stringFlags()));
+        runner.run(new StringHeapAnalysis(topN));
     }
 
     // --- Thread analysis -------------------------------------------------

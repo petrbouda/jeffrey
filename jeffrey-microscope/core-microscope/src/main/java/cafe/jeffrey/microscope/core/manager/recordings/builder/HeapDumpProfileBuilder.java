@@ -26,6 +26,7 @@ import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpFiles;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.shared.common.IDGenerator;
@@ -110,7 +111,7 @@ public final class HeapDumpProfileBuilder implements ProfileBuilder {
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
 
-        Path heapDumpAnalysisPath = jeffreyDirs.profileDir(profileId).resolve(MicroscopeJeffreyDirs.HEAP_DUMP_ANALYSIS_DIR);
+        Path heapDumpAnalysisPath = HeapDumpFiles.inProfileDir(jeffreyDirs.profileDir(profileId)).analysisDir();
         FileSystemUtils.createDirectories(heapDumpAnalysisPath);
 
         Path sourcePath = RecordingStorageLayout.storagePath(recordingsDir, file.recordingId(), file.filename());

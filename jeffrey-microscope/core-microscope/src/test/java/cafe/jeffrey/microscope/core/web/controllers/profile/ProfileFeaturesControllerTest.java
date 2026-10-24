@@ -53,14 +53,13 @@ class ProfileFeaturesControllerTest {
     HeapDumpManager heapDumpManager;
 
 
+    /** A recording never holds a heap dump: heap dumps are profiles of their own. */
     @Test
-    void disabledIncludesAiAndHeapDumpWhenUnavailable() {
+    void aRecordingHasNoHeapDumpViews() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);
-        when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
         when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JDK));
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
-        when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
         MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver));
 
@@ -68,6 +67,24 @@ class ProfileFeaturesControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$", v -> assertThat(v).asArray().contains("HEAP_DUMP"));
+    }
+
+    @Test
+    void aHeapDumpWithItsIndexBuiltHasItsViews() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.featuresManager()).thenReturn(featuresManager);
+        when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.HEAP_DUMP));
+        when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
+        when(heapDumpManager.heapDumpExists()).thenReturn(true);
+        when(heapDumpManager.isCacheReady()).thenReturn(true);
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/features/disabled"))
+                .hasStatusOk()
+                .bodyJson()
+                .hasPathSatisfying("$", v -> assertThat(v).asArray().doesNotContain("HEAP_DUMP"));
     }
 
     @Test

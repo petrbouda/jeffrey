@@ -49,14 +49,14 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Jeffrey analyzes Java heap dump snapshots (<code>.hprof</code> files, plain or gzipped) to show what is on the heap, which objects retain the most memory, where leaks hide, and how much memory is wasted on duplicates and over-allocated collections. Attach a heap dump to a profile, then open the <strong>Heap Dump</strong> mode from the profile sidebar.</p>
+      <p>Jeffrey analyzes Java heap dump snapshots (<code>.hprof</code> files, plain or gzipped) to show what is on the heap, which objects retain the most memory, where leaks hide, and how much memory is wasted on duplicates and over-allocated collections. A heap dump is a <strong>recording of its own</strong> and becomes a <strong>profile of its own</strong>: initialize it from its row on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page and its profile opens on the Heap Dump Overview, with <strong>Heap Dump</strong> as its only mode.</p>
 
       <DocsCallout type="info">
-        <strong>Prerequisites:</strong> a heap dump (<code>.hprof</code> or <code>.hprof.gz</code>) associated with the profile. Everything below is available once the dump has been initialized.
+        <strong>Where a heap dump comes from:</strong> a <code>.hprof</code> or <code>.hprof.gz</code> uploaded on the Recordings page, or one taken by a JVM a Jeffrey Hub collects &mdash; a downloaded session lands as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> in which every heap dump is an item beside the session&rsquo;s JFR recording, initialized separately. A heap dump is never part of a JFR profile. Everything below is available once the dump has been initialized.
       </DocsCallout>
 
       <h2 id="initialization">Initialization</h2>
-      <p>A heap dump does not parse into the per-profile database like a JFR recording. Instead, a one-time <strong>initialization pipeline</strong> builds a compact index next to the <code>.hprof</code> — a <code>.idx.duckdb</code> sibling, plus a scratch database and a <code>.idx.staging</code> directory that exist only while the build runs — and every analysis then reads from that index instantly. Deleting a dump should take its siblings with it. A standalone heap dump is initialized from its row on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page, which shows the run as one chip per phase; the Heap Dump Overview shows the same run in full, across three phases:</p>
+      <p>A heap dump does not parse into the per-profile database like a JFR recording. Instead, a one-time <strong>initialization pipeline</strong> copies the dump into the profile&rsquo;s own <code>heap-dump/</code> directory and builds a compact index next to it — a <code>.idx.duckdb</code> sibling, plus a scratch database and a <code>.idx.staging</code> directory that exist only while the build runs — and every analysis then reads from that index instantly. Deleting the heap dump&rsquo;s recording or profile takes the copy and its siblings with it. A heap dump is initialized from its row on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page — standalone, or inside its expanded bundle — which shows the run as one chip per phase; the Heap Dump Overview shows the same run in full, across three phases:</p>
 
       <div class="docs-grid docs-grid-3">
         <DocsFeatureCard
@@ -85,7 +85,7 @@ onMounted(() => {
 
       <h3 id="compressed-oops">Compressed oops and re-initialization</h3>
       <p>Initialization auto-detects whether the dumped JVM used compressed object pointers, which decides how big every reference and object header is. When object sizes look wrong, auto-detection guessed incorrectly: <strong>Re-initialize</strong> on the Heap Dump Overview drops the index and every cached analysis and builds them again, either auto-detecting again or forcing compressed oops <strong>enabled</strong> (4-byte references, heaps under 32&nbsp;GiB) or <strong>disabled</strong> (8-byte references). The <strong>Compressed Oops</strong> figure in the summary shows what the last run used.</p>
-      <p>A heap dump attached to a JFR profile — one of a downloaded session's files, or uploaded on the Overview — has no Recordings row, so the Overview initializes it itself with an <strong>Initialize</strong> button, and deletes it with <strong>Delete heap dump</strong>.</p>
+      <p>The Overview neither uploads nor deletes a heap dump: a dump arrives through the Recordings page and is removed there, with its row. When a run failed or never finished, the Overview offers <strong>Initialize</strong> (or <strong>Try again</strong>) to start it on the profile&rsquo;s copy without going back to the list.</p>
 
       <DocsCallout type="info">
         <strong>A failed build leaves nothing behind.</strong> The index is assembled in a scratch
@@ -191,7 +191,9 @@ onMounted(() => {
       </div>
 
       <h2 id="from-an-agent">From a Coding Agent</h2>
-      <p>Every view above is also a tool of the <strong>Microscope MCP</strong> server, so a coding-agent session in your repository that speaks MCP <code>2026-07-28</code> (Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> flag on) can ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language and drive the same analysis — with the <code>analyze-heap</code> skill as its method and <code>heap_oql</code> for the questions the reports do not answer.</p>
+      <p>Every view above is also a tool of the <strong>Microscope MCP</strong> server, called with the heap-dump profile&rsquo;s id, so a coding-agent session in your repository that speaks MCP <code>2026-07-28</code> (Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> flag on) can ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language and drive the same analysis — with the <code>analyze-heap</code> skill as its method and <code>heap_oql</code> for the questions the reports do not answer.</p>
+
+      <p>A dump downloaded from a hub session is the bundle&rsquo;s heap-dump item: <code>hubs_download</code> lists it under <code>items</code>, <code>recordings_analyzeRecording</code> on its <code>recordingId</code> builds the profile, and the <code>heap_</code> tools take that profile. Called on a JFR profile, they are refused with exactly that pointer.</p>
 
       <p class="docs-read-more">
         <router-link to="/docs/microscope-mcp/tools#heap">Read the heap tool reference &rarr;</router-link>

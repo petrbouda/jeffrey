@@ -330,11 +330,20 @@ class ProfileMcpToolsTest {
         }
 
         @Test
-        void tellsAMissingHeapDumpFromAnUnindexedOne() {
+        void pointsARecordingAtItsBundlesHeapDump() {
             stubProfile(RecordingEventSource.JDK);
+
+            String result = tools().summary().text();
+            assertTrue(result.contains("A recording holds no heap dump"), result);
+            assertTrue(result.contains("hubs_download lists the items"), result);
+        }
+
+        @Test
+        void tellsAHeapDumpThatLostItsDumpFromAnUnindexedOne() {
+            stubProfile(RecordingEventSource.HEAP_DUMP);
             when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
-            assertTrue(tools().summary().text().contains("This profile has no heap dump"));
+            assertTrue(tools().summary().text().contains("lost its copy of the dump"));
 
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(false);

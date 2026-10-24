@@ -27,10 +27,6 @@ export default class ProfilePerformanceCountersClient extends BaseProfileClient 
     super(profileId, 'perfcounters');
   }
 
-  async exists(): Promise<boolean> {
-    return super.get<boolean>('/exists');
-  }
-
   /** The headline figures, or null when the profile holds no snapshot (the backend answers 204). */
   async getOverview(): Promise<PerfCountersOverview | null> {
     const overview = await super.get<PerfCountersOverview | ''>('/overview');
