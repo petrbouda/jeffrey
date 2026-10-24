@@ -19,7 +19,6 @@ import axios from 'axios';
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import HttpUtils from '@shared/services/HttpUtils';
 import HeapSummary from '@/services/api/model/HeapSummary';
-import type InitializeResult from '@/services/api/model/InitializeResult';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import GCRootSummary from '@/services/api/model/GCRootSummary';
@@ -67,12 +66,21 @@ export default class HeapDumpClient extends BaseProfileClient {
   }
 
   /**
-   * Starts the full server-side init pipeline in the background; poll
-   * getInitProgress() for per-stage statuses.
+   * Starts the full server-side init pipeline in the background, compressed oops auto-detected;
+   * poll getInitProgress() for per-stage statuses.
    */
-  public initializeAll(compressedOops?: boolean): Promise<void> {
+  public initializeAll(): Promise<void> {
+    return this.post<void>('/initialize-all', {});
+  }
+
+  /**
+   * Drops the built index and every cached analysis and starts the pipeline again in the background;
+   * poll getInitProgress() as for initializeAll(). Leave compressedOops out to auto-detect it, or force
+   * it when auto-detection guessed wrong.
+   */
+  public reinitialize(compressedOops?: boolean): Promise<void> {
     const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
-    return this.post<void>(`/initialize-all${params}`, {});
+    return this.post<void>(`/reinitialize${params}`, {});
   }
 
   public getInitProgress(): Promise<HeapDumpInitProgress> {
@@ -132,29 +140,12 @@ export default class HeapDumpClient extends BaseProfileClient {
     return this.post<void>('/unload', {});
   }
 
-  public deleteCache(): Promise<void> {
-    return this.post<void>('/delete-cache', {});
-  }
-
   public deleteHeapDump(): Promise<void> {
     return this.post<void>('/delete', {});
   }
 
-  public sanitize(): Promise<void> {
-    return this.post<void>('/sanitize', {});
-  }
-
-  public initialize(compressedOops?: boolean): Promise<InitializeResult> {
-    const params = compressedOops !== undefined ? `?compressedOops=${compressedOops}` : '';
-    return this.post<InitializeResult>(`/initialize${params}`, {});
-  }
-
   public getConfig(): Promise<HeapDumpConfig> {
     return this.get<HeapDumpConfig>('/config');
-  }
-
-  public initPipelineResultExists(): Promise<boolean> {
-    return this.get<boolean>('/init-result/exists');
   }
 
   public getInitPipelineResult(): Promise<InitPipelineResult | null> {

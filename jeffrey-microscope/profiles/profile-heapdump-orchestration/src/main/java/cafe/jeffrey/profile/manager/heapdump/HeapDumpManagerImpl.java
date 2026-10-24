@@ -369,11 +369,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         uploadService.upload(inputStream, filename);
     }
 
-    @Override
-    public void sanitizeHeapDump() {
-        uploadService.sanitize();
-    }
-
     // --- String analysis -------------------------------------------------
 
     @Override
@@ -466,11 +461,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     // --- Init pipeline result --------------------------------------------
-
-    @Override
-    public boolean initPipelineResultExists() {
-        return getInitPipelineResult().isPresent();
-    }
 
     @Override
     public Optional<PipelineRunResult> getInitPipelineResult() {

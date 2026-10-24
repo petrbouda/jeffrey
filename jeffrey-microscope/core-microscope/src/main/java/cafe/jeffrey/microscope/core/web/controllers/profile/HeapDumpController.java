@@ -35,7 +35,6 @@ import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -43,8 +42,8 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import java.io.IOException;
 
 /**
- * Heap-dump lifecycle endpoints: existence/status checks, upload, initialization,
- * configuration and cache management.
+ * Heap-dump lifecycle endpoints: existence/status checks, upload, initialization and
+ * re-initialization, and configuration.
  * <p>
  * Object-graph browsing lives in {@link HeapDumpObjectsController}; analysis
  * reports live in {@link HeapDumpAnalysisController}.
@@ -84,19 +83,9 @@ public class HeapDumpController {
         mgr(profileId).unloadHeap();
     }
 
-    @PostMapping("/delete-cache")
-    public void deleteCache(@PathVariable("profileId") String profileId) {
-        mgr(profileId).deleteCache();
-    }
-
     @PostMapping("/delete")
     public void deleteHeapDump(@PathVariable("profileId") String profileId) {
         mgr(profileId).deleteHeapDump();
-    }
-
-    @PostMapping("/sanitize")
-    public void sanitize(@PathVariable("profileId") String profileId) {
-        mgr(profileId).sanitizeHeapDump();
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -118,24 +107,29 @@ public class HeapDumpController {
         }
     }
 
-    @PostMapping("/initialize")
-    public InitializeResult initialize(
-            @PathVariable("profileId") String profileId,
-            @RequestParam(value = "compressedOops", required = false) Boolean compressedOops) {
-        return mgr(profileId).initialize(compressedOops);
+    /**
+     * Starts the full initialization pipeline (index build, dominator tree and
+     * every cached analysis) as a background run, compressed oops auto-detected;
+     * poll {@code /init-progress} for per-stage statuses. Returns 202 whether a new
+     * run was started or one was already in flight. Forcing compressed oops is
+     * {@code /reinitialize}.
+     */
+    @PostMapping("/initialize-all")
+    public ResponseEntity<Void> initializeAll(@PathVariable("profileId") String profileId) {
+        initService.start(profileId, mgr(profileId), null);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
     /**
-     * Starts the full initialization pipeline (index build, dominator tree and
-     * every cached analysis) as a background run; poll {@code /init-progress}
-     * for per-stage statuses. Returns 202 whether a new run was started or one
-     * was already in flight.
+     * Drops the built index and every cached analysis and starts the full pipeline again, optionally
+     * forcing compressed oops on or off when auto-detection guessed wrong. Returns 202 whether a new
+     * run was started or one was already in flight; the in-flight one is left to finish.
      */
-    @PostMapping("/initialize-all")
-    public ResponseEntity<Void> initializeAll(
+    @PostMapping("/reinitialize")
+    public ResponseEntity<Void> reinitialize(
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "compressedOops", required = false) Boolean compressedOops) {
-        initService.start(profileId, mgr(profileId), compressedOops);
+        initService.reinitialize(profileId, mgr(profileId), compressedOops);
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
@@ -147,11 +141,6 @@ public class HeapDumpController {
     @GetMapping("/config")
     public HeapDumpConfig getConfig(@PathVariable("profileId") String profileId) {
         return mgr(profileId).getHeapDumpConfig().orElse(null);
-    }
-
-    @GetMapping("/init-result/exists")
-    public boolean initPipelineResultExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).initPipelineResultExists();
     }
 
     /**

@@ -108,10 +108,6 @@ function getErrorTitle(error: ApiError): string {
         return 'Profiler Configuration Error';
       case 'REMOTE_OPERATION_FAILED':
         return 'Remote Operation Failed';
-      case 'HEAP_DUMP_CORRUPTED':
-        return 'Heap Dump Corrupted';
-      case 'HEAP_DUMP_NEEDS_SANITIZATION':
-        return 'Heap Dump Needs Repair';
       case 'REPOSITORY_NOT_FOUND':
         return 'Repository Not Found';
       case 'RESOURCE_NOT_FOUND':

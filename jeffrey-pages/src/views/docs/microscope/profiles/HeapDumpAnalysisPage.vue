@@ -27,6 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'initialization', text: 'Initialization', level: 2 },
+  { id: 'compressed-oops', text: 'Compressed oops and re-initialization', level: 3 },
   { id: 'memory-analysis', text: 'Memory Analysis', level: 2 },
   { id: 'retention', text: 'Retention & GC Roots', level: 2 },
   { id: 'waste', text: 'Wasted Memory', level: 2 },
@@ -55,7 +56,7 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="initialization">Initialization</h2>
-      <p>A heap dump does not parse into the per-profile database like a JFR recording. Instead, a one-time <strong>initialization pipeline</strong> builds a compact index next to the <code>.hprof</code> — a <code>.idx.duckdb</code> sibling, plus a scratch database and a <code>.idx.staging</code> directory that exist only while the build runs — and every analysis then reads from that index instantly. Deleting a dump should take its siblings with it. The Heap Dump Overview shows the pipeline as staged progress across three phases:</p>
+      <p>A heap dump does not parse into the per-profile database like a JFR recording. Instead, a one-time <strong>initialization pipeline</strong> builds a compact index next to the <code>.hprof</code> — a <code>.idx.duckdb</code> sibling, plus a scratch database and a <code>.idx.staging</code> directory that exist only while the build runs — and every analysis then reads from that index instantly. Deleting a dump should take its siblings with it. A standalone heap dump is initialized from its row on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page, which shows the run as one chip per phase; the Heap Dump Overview shows the same run in full, across three phases:</p>
 
       <div class="docs-grid docs-grid-3">
         <DocsFeatureCard
@@ -79,8 +80,12 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        Initialization runs in the background — you can watch each stage complete with its elapsed time. If the page is reopened mid-run, it resumes showing live progress. Once finished, opening any feature is instant because it reads the prebuilt index.
+        Initialization runs in the background — you can watch each stage complete with its elapsed time, on the recording's row or on the Overview. If the Overview is opened mid-run, it picks up the live progress. Once finished, opening any feature is instant because it reads the prebuilt index.
       </DocsCallout>
+
+      <h3 id="compressed-oops">Compressed oops and re-initialization</h3>
+      <p>Initialization auto-detects whether the dumped JVM used compressed object pointers, which decides how big every reference and object header is. When object sizes look wrong, auto-detection guessed incorrectly: <strong>Re-initialize</strong> on the Heap Dump Overview drops the index and every cached analysis and builds them again, either auto-detecting again or forcing compressed oops <strong>enabled</strong> (4-byte references, heaps under 32&nbsp;GiB) or <strong>disabled</strong> (8-byte references). The <strong>Compressed Oops</strong> figure in the summary shows what the last run used.</p>
+      <p>A heap dump attached to a JFR profile — one of a downloaded session's files, or uploaded on the Overview — has no Recordings row, so the Overview initializes it itself with an <strong>Initialize</strong> button, and deletes it with <strong>Delete heap dump</strong>.</p>
 
       <DocsCallout type="info">
         <strong>A failed build leaves nothing behind.</strong> The index is assembled in a scratch

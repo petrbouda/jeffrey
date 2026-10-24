@@ -352,13 +352,13 @@ class PipelineRunRegistryTest {
 
             registry.start(new PipelineRunRequest<>("profile-1", "", run -> run.runStage("first", () -> {
                 throw new JeffreyException(
-                        ErrorType.CLIENT, ErrorCode.HEAP_DUMP_NEEDS_SANITIZATION, "needs repair");
+                        ErrorType.CLIENT, ErrorCode.INVALID_REQUEST, "bad input");
             }), stored::set));
 
             await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
             PipelineRunResult result = stored.get();
             assertEquals(PipelineState.FAILED, result.state());
-            assertEquals(ErrorCode.HEAP_DUMP_NEEDS_SANITIZATION.name(), result.errorCode());
+            assertEquals(ErrorCode.INVALID_REQUEST.name(), result.errorCode());
             assertEquals(StageStatus.FAILED, result.stages().getFirst().status());
         }
 

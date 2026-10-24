@@ -19,8 +19,10 @@ import { describe, expect, it } from 'vitest';
 import { groupStatus } from '@shared/services/timelineStatus';
 import type { ProfileInitProgress, ProfileInitStage } from '../services/api/model/Recording';
 import {
+  HEAP_DUMP_INIT_CHIPS,
   PROFILE_INIT_CHIPS,
   failedStageLabel,
+  initChipsFor,
   hasFailed,
   isInitializing,
   toTimelineSteps
@@ -66,6 +68,44 @@ describe('PROFILE_INIT_CHIPS', () => {
 
   it('stays narrow enough to read on one line', () => {
     expect(PROFILE_INIT_CHIPS.length).toBeLessThanOrEqual(5);
+  });
+});
+
+/** Every stage the heap-dump pipeline declares (HeapDumpStages.DEFINITION), in its order. */
+const ALL_HEAP_DUMP_STAGE_IDS = [
+  'load',
+  'parse',
+  'index',
+  'strings',
+  'dominator',
+  'threads',
+  'biggest',
+  'collections',
+  'leaks',
+  'classloaders',
+  'biggest-collections',
+  'consumers',
+  'duplicates'
+];
+
+describe('HEAP_DUMP_INIT_CHIPS', () => {
+  it('covers every stage the heap-dump pipeline declares exactly once', () => {
+    const covered = HEAP_DUMP_INIT_CHIPS.flatMap(chip => chip.stepIds);
+
+    expect([...covered].sort()).toEqual([...ALL_HEAP_DUMP_STAGE_IDS].sort());
+    expect(new Set(covered).size).toBe(covered.length);
+  });
+
+  it('is what a heap dump gets, and only a heap dump', () => {
+    expect(initChipsFor('HEAP_DUMP')).toBe(HEAP_DUMP_INIT_CHIPS);
+    expect(initChipsFor('JDK')).toBe(PROFILE_INIT_CHIPS);
+    expect(initChipsFor(undefined)).toBe(PROFILE_INIT_CHIPS);
+  });
+
+  it('names the heap-dump phase a failure happened in', () => {
+    const failed = progress('failed', [stage('index', 'completed'), stage('dominator', 'failed')]);
+
+    expect(failedStageLabel(failed, HEAP_DUMP_INIT_CHIPS)).toBe('Analyze');
   });
 });
 

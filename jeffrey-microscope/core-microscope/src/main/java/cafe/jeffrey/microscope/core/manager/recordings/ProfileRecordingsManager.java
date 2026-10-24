@@ -27,7 +27,10 @@ import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
@@ -84,6 +87,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
     private final MicroscopeProfileCleanup profileCleanup;
     private final RecordingRepository recordingRepository;
     private final PipelineRunRegistry<String> runRegistry;
+    private final HeapDumpInitService heapDumpInitService;
     private final ConcurrentMap<String, CompletableFuture<String>> analyses = new ConcurrentHashMap<>();
 
     public ProfileRecordingsManager(
@@ -96,7 +100,8 @@ public class ProfileRecordingsManager implements RecordingsManager {
             ProfileManager.Factory profileManagerFactory,
             MicroscopeCoreRepositories localCoreRepositories,
             MicroscopeProfileCleanup profileCleanup,
-            PipelineRunRegistry<String> runRegistry) {
+            PipelineRunRegistry<String> runRegistry,
+            HeapDumpInitService heapDumpInitService) {
 
         this.core = core;
         this.clock = clock;
@@ -109,6 +114,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
         this.profileCleanup = profileCleanup;
         this.recordingRepository = localCoreRepositories.newRecordingRepository();
         this.runRegistry = runRegistry;
+        this.heapDumpInitService = heapDumpInitService;
     }
 
     // --- Delegated store operations (deployment-agnostic) ---
@@ -214,7 +220,12 @@ public class ProfileRecordingsManager implements RecordingsManager {
         Recording recording = recordingRepository.findRecording(recordingId)
                 .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
 
-        if (recording.hasProfile()) {
+        if (recording.hasProfile() && recording.eventSource() == RecordingEventSource.HEAP_DUMP) {
+            Optional<String> reused = resumeHeapDump(recording.profileId());
+            if (reused.isPresent()) {
+                return reused.get();
+            }
+        } else if (recording.hasProfile()) {
             String profileId = recording.profileId();
             // A second request while initialization is active joins the attempt already represented
             // by this row. Deleting it would pull the database out from under the parser.
@@ -256,6 +267,33 @@ public class ProfileRecordingsManager implements RecordingsManager {
 
         LOG.info("Quick analysis recording analyzed: recordingId={} profileId={}", recordingId, profileId);
         return profileId;
+    }
+
+    /**
+     * An explicit Analyze on a heap dump that already has a profile. The profile is kept whenever its
+     * copy of the dump is still there: a run in flight is joined, a fully built dump is left alone, and
+     * anything else -- a failed run (even one that got past the index build and failed in a report), or
+     * one a restart interrupted -- is started again on the same copy.
+     * Only a profile that lost its dump is dropped, so the caller builds a fresh one from the recording.
+     *
+     * @return the profile to report, or empty when the caller has to build a new one
+     */
+    private Optional<String> resumeHeapDump(String profileId) {
+        if (heapDumpInitService.isRunning(profileId)) {
+            return Optional.of(profileId);
+        }
+
+        Optional<HeapDumpManager> heapDumpManager = profile(profileId).map(ProfileManager::heapDumpManager);
+        if (heapDumpManager.isPresent() && heapDumpManager.get().heapDumpExists()) {
+            boolean lastRunFailed = heapDumpInitService.progress(profileId).state() == PipelineState.FAILED;
+            if (lastRunFailed || !heapDumpManager.get().isCacheReady()) {
+                heapDumpInitService.start(profileId, heapDumpManager.get(), null);
+            }
+            return Optional.of(profileId);
+        }
+
+        profileCleanup.deleteProfile(profileId);
+        return Optional.empty();
     }
 
     private static String join(CompletableFuture<String> analysis) {
@@ -392,7 +430,12 @@ public class ProfileRecordingsManager implements RecordingsManager {
                 createdAt, createdAt));
         profileRepository.enableProfile(createdAt);
 
-        profileManagerFactory.apply(profileInfo);
+        // Initialization runs in the background, like the JFR pipeline's stages it mirrors on the
+        // recordings list: the request returns as soon as the run is registered, and the list polls
+        // its progress. Compressed oops are always auto-detected here; forcing them is a
+        // re-initialization from the heap dump's overview.
+        HeapDumpManager heapDumpManager = profileManagerFactory.apply(profileInfo).heapDumpManager();
+        heapDumpInitService.start(profileId, heapDumpManager, null);
 
         return profileId;
     }

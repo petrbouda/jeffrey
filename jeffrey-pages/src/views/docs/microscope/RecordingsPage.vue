@@ -165,6 +165,7 @@ onMounted(() => {
           <div class="step-content">
             <h4><i class="bi bi-cpu"></i> Analyze</h4>
             <p>Click <strong>Analyze</strong> on a recording or heap dump to create a profile. Jeffrey parses the file and builds a dedicated profile database.</p>
+            <p>A heap dump is built the same way from its row: the click starts its initialization (index build plus the cached memory analyses) in the background, and the row shows the run as three stage chips &mdash; <strong>Index</strong>, <strong>Analyze</strong>, <strong>Hotspots</strong> &mdash; each with its time, the way a JFR recording shows <strong>Parse</strong> through <strong>Warm-up</strong>. Compressed oops are always auto-detected here. A run that fails keeps its chips with the failed one marked and offers <strong>Retry</strong>; a heap dump that is already initialized can be rebuilt from its <strong>&ctdot;</strong> menu with <strong>Re-initialize</strong>.</p>
             <p>Auto Analysis runs as part of that build, not on first view &mdash; when the profile is ready, its findings are ready with it, so the verdict chips and the IDE recording panel have something to show immediately. A profile created before this behaviour existed carries no findings until it is recomputed.</p>
           </div>
         </div>

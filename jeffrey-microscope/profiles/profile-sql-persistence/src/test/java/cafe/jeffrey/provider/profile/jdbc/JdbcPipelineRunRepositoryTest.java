@@ -110,15 +110,15 @@ class JdbcPipelineRunRepositoryTest {
             JdbcPipelineRunRepository repository = repository(dataSource);
             PipelineRunResult failed = new PipelineRunResult(
                     HEAP_DUMP, "", PipelineState.FAILED, 4_000L, 13, 2,
-                    "HEAP_DUMP_NEEDS_SANITIZATION", "The dump needs repair",
+                    "INVALID_REQUEST", "The request was invalid",
                     STARTED_AT, COMPLETED_AT, List.of(stage("load", 130L)));
 
             repository.upsert(failed);
 
             PipelineRunResult found = repository.find(HEAP_DUMP, "").orElseThrow();
             assertEquals(PipelineState.FAILED, found.state());
-            assertEquals("HEAP_DUMP_NEEDS_SANITIZATION", found.errorCode());
-            assertEquals("The dump needs repair", found.errorMessage());
+            assertEquals("INVALID_REQUEST", found.errorCode());
+            assertEquals("The request was invalid", found.errorMessage());
         }
 
         @Test
