@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import cafe.jeffrey.profile.heapdump.model.JvmStringFlag;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.StringDeduplicationEntry;
 import cafe.jeffrey.profile.heapdump.model.StringInstanceEntry;
@@ -58,9 +57,6 @@ import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
  * <p>Top-N previews are pulled from {@code string_content} via
  * {@link HeapView#findStringContent(long)} keyed by a sample String id, so
  * each preview costs at most one PK lookup.
- *
- * <p>JVM-flag enrichment from JFR events stays the caller's job — this
- * analyzer returns an empty {@link JvmStringFlag} list.
  */
 public final class StringAnalyzer {
 
@@ -361,7 +357,6 @@ public final class StringAnalyzer {
                 topInstances,
                 already,
                 opps,
-                List.<JvmStringFlag>of(),
                 topN);
     }
 
@@ -476,7 +471,6 @@ public final class StringAnalyzer {
                 List.<StringInstanceEntry>of(),
                 List.<StringDeduplicationEntry>of(),
                 List.<StringDeduplicationEntry>of(),
-                List.<JvmStringFlag>of(),
                 topN);
     }
 

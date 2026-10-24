@@ -20,14 +20,17 @@ import PerformanceCounter from '@/services/api/model/PerformanceCounter.ts';
 import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterEnhanced.ts';
 import PerformanceCounterDataType from '@/services/api/model/PerformanceCounterDataType.ts';
 import FormattingService from '@shared/services/FormattingService.ts';
+import type { PerfCountersOverview } from '@/services/api/model/PerfCountersOverview';
 
 export default class ProfilePerformanceCountersClient extends BaseProfileClient {
   constructor(profileId: string) {
     super(profileId, 'perfcounters');
   }
 
-  async exists(): Promise<boolean> {
-    return super.get<boolean>('/exists');
+  /** The headline figures, or null when the profile holds no snapshot (the backend answers 204). */
+  async getOverview(): Promise<PerfCountersOverview | null> {
+    const overview = await super.get<PerfCountersOverview | ''>('/overview');
+    return overview ? overview : null;
   }
 
   async getAll(): Promise<PerformanceCounterEnhanced[]> {

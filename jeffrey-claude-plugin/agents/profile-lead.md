@@ -77,9 +77,14 @@ comparison evidence interpretation, and the shape and evidence rules for every f
    | Execution or CPU-time samples dominate | `profile-analyst`: the CPU flamegraph — which frames, which paths, steady or a spike |
    | The complaint is latency and traces or the technology dashboards exist | `profile-analyst`: the traces route, or `http_`/`jdbc_` in aggregate, then `blocking_` and `io_` for the waiting |
    | GC in `topFindings`, or allocation samples are large | `profile-analyst`: `jvm_gc` for whether it hurts, the allocation flamegraph for why |
-   | `jdk.OldObjectSample` recorded, or the heap grows across the recording | `profile-analyst` for `memory_leakCandidates`; `heap-triage` when a dump is attached |
-   | A heap dump is attached and the question touches memory | `heap-triage` |
+   | `jdk.OldObjectSample` recorded, or the heap grows across the recording | `profile-analyst` for `memory_leakCandidates`; `heap-triage` when a heap-dump profile was given too |
+   | A heap-dump profile id was given beside this one and the question touches memory | `heap-triage`, with the heap-dump profile's id |
    | A baseline was given | Run `compare_list` and then `compare_quality` yourself first. Apply `compare-jfr` to their evidence; neither missing workload normalization nor a duration difference alone prohibits every comparison. If no shared event type supports the question, report that gap. Otherwise dispatch `profile-analyst` with both ids, the baseline identity, supported dimensions and evidence limitations |
+
+   A JFR profile never holds a heap dump. A dump downloaded with the session is another item of its
+   bundle with a profile of its own; when the question needs it and no heap-dump `profileId` was
+   given, say so in the report — the caller takes the heap item's `recordingId` from `hubs_download`'s
+   `items` and builds it with `recordings_analyzeRecording`. You create no profile yourself.
 
    The table says how a chosen area is delegated, not which areas to choose. Dispatching every
    specialist on every profile wastes turns and produces padding; an area nobody chose is not

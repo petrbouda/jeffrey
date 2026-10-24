@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-import axios from 'axios';
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import HttpUtils from '@shared/services/HttpUtils';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import ClassHistogramEntry from '@/services/api/model/ClassHistogramEntry';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
@@ -140,24 +138,12 @@ export default class HeapDumpClient extends BaseProfileClient {
     return this.post<void>('/unload', {});
   }
 
-  public deleteHeapDump(): Promise<void> {
-    return this.post<void>('/delete', {});
-  }
-
   public getConfig(): Promise<HeapDumpConfig> {
     return this.get<HeapDumpConfig>('/config');
   }
 
   public getInitPipelineResult(): Promise<InitPipelineResult | null> {
     return this.get<InitPipelineResult | null>('/init-result');
-  }
-
-  public uploadHeapDump(file: File): Promise<void> {
-    const formData = new FormData();
-    formData.append('file', file, file.name);
-    return axios
-      .post(`${this.baseUrl}/upload`, formData, HttpUtils.MULTIPART_FORM_DATA_HEADER)
-      .then(HttpUtils.RETURN_DATA);
   }
 
   public stringAnalysisExists(): Promise<boolean> {

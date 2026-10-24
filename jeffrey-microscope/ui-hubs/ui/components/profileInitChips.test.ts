@@ -22,11 +22,11 @@ import {
   HEAP_DUMP_INIT_CHIPS,
   PROFILE_INIT_CHIPS,
   failedStageLabel,
-  initChipsFor,
   hasFailed,
   isInitializing,
   toTimelineSteps
 } from './profileInitChips';
+import { recordingKindOf } from './recordingKinds';
 
 const stage = (
   id: string,
@@ -53,7 +53,6 @@ const ALL_STAGE_IDS = [
   'method-trace-weights',
   'recluster',
   'traces',
-  'additional-files',
   'checkpoint',
   'warmup'
 ];
@@ -97,9 +96,9 @@ describe('HEAP_DUMP_INIT_CHIPS', () => {
   });
 
   it('is what a heap dump gets, and only a heap dump', () => {
-    expect(initChipsFor('HEAP_DUMP')).toBe(HEAP_DUMP_INIT_CHIPS);
-    expect(initChipsFor('JDK')).toBe(PROFILE_INIT_CHIPS);
-    expect(initChipsFor(undefined)).toBe(PROFILE_INIT_CHIPS);
+    expect(recordingKindOf('HEAP_DUMP').chips).toBe(HEAP_DUMP_INIT_CHIPS);
+    expect(recordingKindOf('JDK').chips).toBe(PROFILE_INIT_CHIPS);
+    expect(recordingKindOf(undefined).chips).toBe(PROFILE_INIT_CHIPS);
   });
 
   it('names the heap-dump phase a failure happened in', () => {
@@ -177,7 +176,6 @@ describe('chips over a real run', () => {
         stage('flush', 'completed', { durationMs: 20 }),
         stage('recluster', 'completed', { durationMs: 120 }),
         stage('traces', 'skipped'),
-        stage('additional-files', 'completed', { durationMs: 5 }),
         stage('checkpoint', 'completed', { durationMs: 10 }),
         stage('warmup', 'completed', { durationMs: 2 })
       ]),

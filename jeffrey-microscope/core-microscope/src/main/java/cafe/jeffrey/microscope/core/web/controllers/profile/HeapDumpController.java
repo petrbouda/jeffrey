@@ -17,19 +17,14 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
@@ -37,13 +32,11 @@ import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-
-import java.io.IOException;
 
 /**
- * Heap-dump lifecycle endpoints: existence/status checks, upload, initialization and
- * re-initialization, and configuration.
+ * Heap-dump lifecycle endpoints: existence/status checks, initialization and re-initialization,
+ * and configuration. The dump itself arrives as a recording of its own; a profile is never given
+ * one afterwards.
  * <p>
  * Object-graph browsing lives in {@link HeapDumpObjectsController}; analysis
  * reports live in {@link HeapDumpAnalysisController}.
@@ -51,8 +44,6 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/heap")
 public class HeapDumpController {
-
-    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpController.class);
 
     private final ProfileManagerResolver resolver;
 
@@ -81,30 +72,6 @@ public class HeapDumpController {
     @PostMapping("/unload")
     public void unload(@PathVariable("profileId") String profileId) {
         mgr(profileId).unloadHeap();
-    }
-
-    @PostMapping("/delete")
-    public void deleteHeapDump(@PathVariable("profileId") String profileId) {
-        mgr(profileId).deleteHeapDump();
-    }
-
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public void uploadHeapDump(
-            @PathVariable("profileId") String profileId,
-            @RequestParam("file") MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw Exceptions.invalidRequest("File is required");
-        }
-        String filename = file.getOriginalFilename();
-        if (filename == null || filename.isBlank()) {
-            throw Exceptions.invalidRequest("Filename is required");
-        }
-        LOG.debug("Uploading heap dump: filename={}", filename);
-        try {
-            mgr(profileId).uploadHeapDump(file.getInputStream(), filename);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read uploaded heap dump", e);
-        }
     }
 
     /**

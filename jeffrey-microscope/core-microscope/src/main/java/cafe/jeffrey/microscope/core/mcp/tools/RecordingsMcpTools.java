@@ -212,8 +212,8 @@ public class RecordingsMcpTools {
         this.jobs = jobs;
     }
 
-    @Tool(description = "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .pprof or "
-            + ".otlp file in the user's repository or filesystem - by importing it into the Quick "
+    @Tool(description = "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, "
+            + ".pprof or .otlp file in the user's repository or filesystem - by importing it into the Quick "
             + "Analysis store and building a profile, and returns the profile id every other tool "
             + "takes. The Jeffrey process opens the path, so the file has to be on the machine "
             + "Jeffrey runs on. A file whose name and size match a stored recording is not imported "
@@ -417,7 +417,8 @@ public class RecordingsMcpTools {
                 case DeleteConfirmation.Confirmation.Withheld withheld -> {
                     LOG.info("Recording deletion was not confirmed over MCP: recording_id={}", recording.id());
                     return McpToolResult.of(new RecordingDeletion(DeletionStatus.NOT_CONFIRMED, recording.id(),
-                            recording.recordingName(), recording.profileId(), withheld.reason(), UiLinks.page(MicroscopePage.RECORDINGS)));
+                            recording.recordingName(), recording.profileId(), withheld.reason(), recording.bundleId(),
+                            UiLinks.page(MicroscopePage.RECORDINGS)));
                 }
                 case DeleteConfirmation.Confirmation.Confirmed _ -> { }
             }
@@ -427,7 +428,7 @@ public class RecordingsMcpTools {
         LOG.info("Deleting a recording over MCP: recording_id={} profile_id={}", id, recording.profileId());
         recordingsManager.deleteRecording(id);
         return McpToolResult.of(new RecordingDeletion(DeletionStatus.DELETED, id, recording.recordingName(),
-                recording.profileId(), null, UiLinks.page(MicroscopePage.RECORDINGS)));
+                recording.profileId(), null, recording.bundleId(), UiLinks.page(MicroscopePage.RECORDINGS)));
     }
 
     /**
@@ -816,10 +817,10 @@ public class RecordingsMcpTools {
                     "No such recording file: " + resolved + ". The path is opened by the Jeffrey "
                             + "process, so the file has to be on the machine Jeffrey runs on.");
         }
-        if (ManagedFile.of(resolved.getFileName().toString()) == ManagedFile.UNKNOWN) {
+        if (!ManagedFile.of(resolved.getFileName().toString()).isInitializable()) {
             throw new IllegalArgumentException(
                     "Unsupported recording file: " + resolved.getFileName()
-                            + ". Jeffrey analyses .jfr, .jfr.lz4, .hprof, .hprof.gz, .pprof and .otlp files.");
+                            + ". Jeffrey analyses .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, .pprof and .otlp files.");
         }
         return resolved;
     }
@@ -961,6 +962,10 @@ public class RecordingsMcpTools {
             String profileId,
             @McpNullable
             String reason,
+            @McpNullable
+            @McpDescription("The bundle the recording was an item of; its other items stay, and the bundle "
+                    + "goes with its last item. Null for a recording imported or uploaded alone")
+            String bundleId,
             @McpDescription("The recordings page in the Microscope UI, for the user")
             String uiLink) {
     }

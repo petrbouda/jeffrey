@@ -69,7 +69,6 @@ public class RealResponseTest {
                   "HTTP_SERVER_DASHBOARD",
                   "JDBC_STATEMENTS_DASHBOARD",
                   "METHOD_TRACING_DASHBOARD",
-                  "PERF_COUNTERS_DASHBOARD",
                   "TRACES"
                 ]
               }
@@ -108,7 +107,6 @@ public class RealResponseTest {
                   "JDBC_POOL_DASHBOARD",
                   "JDBC_STATEMENTS_DASHBOARD",
                   "METHOD_TRACING_DASHBOARD",
-                  "PERF_COUNTERS_DASHBOARD",
                   "TRACES"
                 ]
               }

@@ -29,6 +29,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpProfiles;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
@@ -381,16 +382,11 @@ public class McpToolsetAssembler {
 
     /**
      * The heap dump the {@code heap_} reading tools — {@link HeapDumpMcpTools} and
-     * {@link HeapOqlMcpTools} alike — answer from, refused for a JFR recording or a dump not yet indexed.
+     * {@link HeapOqlMcpTools} alike — answer from, refused for a profile that is not a heap dump or a
+     * dump not yet indexed.
      */
     private static HeapDumpManager requireIndexedHeapDump(ProfileManager profileManager, String profileId) {
-        HeapDumpManager heapDumpManager = profileManager.heapDumpManager();
-        if (!heapDumpManager.heapDumpExists()) {
-            throw new IllegalArgumentException(
-                    "Profile " + profileId + " has no heap dump. Use profiles_features to see what a "
-                            + "profile can answer; for a JFR recording use the jfr_, flamegraph_ and "
-                            + "traces_ tools instead.");
-        }
+        HeapDumpManager heapDumpManager = HeapDumpProfiles.require(profileManager);
         if (!heapDumpManager.isCacheReady()) {
             throw new IllegalArgumentException(
                     "The heap dump of profile " + profileId + " is not indexed yet, and the analysis "

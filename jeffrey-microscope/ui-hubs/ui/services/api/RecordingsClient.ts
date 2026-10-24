@@ -20,6 +20,7 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import HttpUtils from '@shared/services/HttpUtils';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
+import type Bundle from '@hubs/services/api/model/Bundle';
 
 /** What an import answers with: the recording's id and its event source, e.g. HEAP_DUMP. */
 export interface ImportedRecording {
@@ -58,7 +59,9 @@ export default class RecordingsClient extends BasePlatformClient {
     return axios
       .post<{
         recordingId: string;
-      }>(this.baseUrl, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      }>(this.baseUrl, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
       .then(response => response.data.recordingId);
   }
 
@@ -109,6 +112,28 @@ export default class RecordingsClient extends BasePlatformClient {
 
   async deleteProfile(recordingId: string): Promise<void> {
     return super.del<void>(`/recordings/${recordingId}/profile`);
+  }
+
+  // --- Bundles ---
+
+  /** Every bundle with its download-only files; its items are recordings carrying its bundleId. */
+  async listBundles(): Promise<Bundle[]> {
+    return super.get<Bundle[]>('/bundles');
+  }
+
+  async moveBundleToGroup(bundleId: string, groupId: string | null): Promise<void> {
+    return super.put<void>(`/bundles/${bundleId}/group`, { groupId });
+  }
+
+  /** Deletes the bundle with every item in it, their profiles, and its files. */
+  async deleteBundle(bundleId: string): Promise<void> {
+    return super.del<void>(`/bundles/${bundleId}`);
+  }
+
+  async downloadBundleFile(bundleId: string, fileId: string): Promise<void> {
+    const downloadUrl =
+      this.baseUrl + '/bundles/' + bundleId + '/files/' + encodeURIComponent(fileId) + '/download';
+    return HttpUtils.downloadFile(downloadUrl, fileId);
   }
 
   async listProfiles(): Promise<Recording[]> {

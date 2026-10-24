@@ -27,6 +27,8 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-you-can-drop', text: 'What You Can Drop Here', level: 2 },
   { id: 'workflow', text: 'Workflow', level: 2 },
+  { id: 'bundles', text: 'Bundles', level: 2 },
+  { id: 'columns-and-filters', text: 'Columns and Filters', level: 2 },
   { id: 'recording-groups', text: 'Recording Groups', level: 2 },
   { id: 'recordings-vs-projects', text: 'Recordings vs Projects', level: 2 }
 ];
@@ -51,8 +53,9 @@ onMounted(() => {
         <p class="hero-lede">
           The <strong>Recordings</strong> page is where every artifact you investigate lands —
           whether you uploaded it yourself or it was auto-downloaded from a live project session.
-          Drop a JFR recording or a heap dump, click <em>Analyze</em>, and you're a profile away
-          from flame graphs, timelines, dominator trees, and your coding agent over MCP.
+          Drop a JFR recording, a heap dump or a perf-counters snapshot, click <em>Analyze</em>, and
+          you're a profile away from flame graphs, timelines, dominator trees, and your coding agent
+          over MCP.
         </p>
       </section>
 
@@ -116,7 +119,23 @@ onMounted(() => {
             <code>.pprof</code> &nbsp;·&nbsp; <code>.pb.gz</code>
           </p>
         </div>
+
+        <div class="artifact-tile tile-perf">
+          <div class="artifact-icon"><i class="bi bi-speedometer2"></i></div>
+          <h3>Perf Counters</h3>
+          <p>A HotSpot <code>hsperfdata</code> snapshot &mdash; the counters <code>jstat</code> reads, saved by <code>-XX:PerfDataSaveFile</code> or collected by a Jeffrey Hub session.</p>
+          <ul class="artifact-features">
+            <li><i class="bi bi-speedometer2"></i> Uptime, heap, GC, safepoint &amp; JIT figures</li>
+            <li><i class="bi bi-info-circle"></i> JVM identity, command &amp; VM arguments</li>
+            <li><i class="bi bi-list-ul"></i> The full, searchable counter tree</li>
+          </ul>
+          <p class="artifact-extension">
+            <code>.hsperfdata</code>
+          </p>
+        </div>
       </section>
+
+      <p>Each of these is a <strong>recording</strong> of its own, and each is initialized into a <strong>profile</strong> of its own &mdash; see <router-link to="/docs/microscope/profiles#profile-kinds">Profile kinds</router-link> for what each kind offers. Logs, crash files and anything Jeffrey cannot initialize are not accepted here; a log that a hub session wrote arrives as a download-only file of its <a href="#bundles">bundle</a>.</p>
 
       <DocsCallout type="tip">
         <strong>Why OpenTelemetry profiles matter.</strong> OTLP carries a <code>profile.frame.type</code>
@@ -129,8 +148,9 @@ onMounted(() => {
       <DocsCallout type="info">
         <strong>Where do recordings come from?</strong> Manual upload directly on this page <em>or</em>
         the <strong>Download</strong> button on a recording session inside a project's Instances view.
-        Both paths persist the file to local storage; the download path additionally tags the artifact
-        with <code>server › workspace › project</code> so you can trace it back to its source.
+        Both paths persist the files to local storage; the download path lands as a
+        <a href="#bundles">bundle</a> and additionally tags it with <code>hub › workspace › project</code>
+        so you can trace it back to its source.
       </DocsCallout>
 
       <h2 id="workflow">Workflow</h2>
@@ -141,7 +161,7 @@ onMounted(() => {
           <div class="step-number">1a</div>
           <div class="step-content">
             <h4><i class="bi bi-upload"></i> Manual upload</h4>
-            <p>Drop one or more files onto the <strong>Drop recordings to analyze</strong> zone at the top of the page, or click the round upload button in its centre (or the <strong>browse your computer</strong> link beneath the title) to pick them from disk. The line at the top of the zone names the group the files will land in — <strong>Uploads into &lt;group&gt;</strong> — which is the active <strong>group</strong> chip on the row below; switch it before dropping to land in a different group. Below the title sits one pill per format Jeffrey can parse — <strong>JFR</strong>, <strong>pprof</strong>, <strong>OpenTelemetry</strong> and <strong>Heap dump</strong> — each listing its own extensions, so only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, <code>.otlp</code>, <code>.pprof</code>, and <code>.pb.gz</code> are accepted; anything else is rejected inline with an error message and the valid files keep uploading.</p>
+            <p>Drop one or more files onto the <strong>Drop recordings to analyze</strong> zone at the top of the page, or click the round upload button in its centre (or the <strong>browse your computer</strong> link beneath the title) to pick them from disk. The line at the top of the zone names the group the files will land in — <strong>Uploads into &lt;group&gt;</strong> — which is the active <strong>group</strong> chip on the row below; switch it before dropping to land in a different group. Below the title sits one pill per format Jeffrey can initialize — <strong>JFR</strong>, <strong>pprof</strong>, <strong>OpenTelemetry</strong>, <strong>Heap dump</strong> and <strong>Perf counters</strong> — each listing its own extensions, so only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, <code>.hsperfdata</code>, <code>.otlp</code>, <code>.pprof</code>, and <code>.pb.gz</code> are accepted; anything else &mdash; a log, a crash file, an unknown type &mdash; is rejected inline with an error message and the valid files keep uploading. Every uploaded file is a recording on its own; uploads never form a bundle.</p>
             <p>Uploads start <strong>automatically</strong> the moment files are dropped or selected — there is no &ldquo;Upload all&rdquo; button. The zone title follows what is happening: <strong>Release to upload N files</strong> while files are held over it, <strong>Uploading N files</strong> while they move, then <strong>Upload complete</strong> or <strong>Some uploads failed</strong>, and the group line gains a <strong>N done · M failed</strong> tally. The format pills stay visible and each file gets its own progress row under them, carrying the dot of the format it was recognised as; a completed row disappears about 5 seconds after that individual file finishes, so adding new files mid-batch (the button and link switch to <strong>Add more files</strong>) never wipes earlier ones. Failed rows stay visible with a dismiss button.</p>
           </div>
         </div>
@@ -149,7 +169,7 @@ onMounted(() => {
           <div class="step-number">1b</div>
           <div class="step-content">
             <h4><i class="bi bi-cloud-arrow-down"></i> Auto-download from a project session</h4>
-            <p>From a project's <strong>Instances</strong> view, open a session and click <strong>Download</strong>. The session's JFR files are streamed to local storage separately and in parallel (five at a time), and land as the several files one recording is made of — nothing is joined, here or later — with the heap dumps and logs beside them, all tagged with their origin. The recording's window is taken across those files: the earliest start to the latest end.</p>
+            <p>From a project's <strong>Instances</strong> view, open a session and click <strong>Download</strong>. The session's files are streamed to local storage separately and in parallel (five at a time) and land as one <a href="#bundles"><strong>bundle</strong></a>, tagged with its origin. All of the session's JFR chunks become <strong>one JFR item</strong>, named after the session &mdash; the several files one recording is made of, never joined, here or later &mdash; whose window is taken across those files: the earliest start to the latest end. Each heap dump becomes a <strong>heap-dump item</strong> and the perf-counters file a <strong>Perf Counters item</strong>, each a recording of its own; the logs and the crash file stay download-only files of the bundle.</p>
             <p>A coding agent can do the same without the UI: the <router-link to="/docs/microscope-mcp/tools#hubs"><code>hubs_</code> tools</router-link> list the sessions across every connected hub and pull one down, writing the same origin tags. Those tags are what lets a later listing say a session is already here rather than fetching it twice.</p>
           </div>
         </div>
@@ -164,8 +184,9 @@ onMounted(() => {
           <div class="step-number">2</div>
           <div class="step-content">
             <h4><i class="bi bi-cpu"></i> Analyze</h4>
-            <p>Click <strong>Analyze</strong> on a recording or heap dump to create a profile. Jeffrey parses the file and builds a dedicated profile database.</p>
+            <p>Click <strong>Analyze</strong> on a recording &mdash; standalone, or an item of an expanded bundle &mdash; to create its profile. Jeffrey parses the file and builds a dedicated profile database. Every item of a bundle is initialized separately, so a session's JFR recording can be analysed without waiting for its heap dump, and the other way round.</p>
             <p>A heap dump is built the same way from its row: the click starts its initialization (index build plus the cached memory analyses) in the background, and the row shows the run as three stage chips &mdash; <strong>Index</strong>, <strong>Analyze</strong>, <strong>Hotspots</strong> &mdash; each with its time, the way a JFR recording shows <strong>Parse</strong> through <strong>Warm-up</strong>. Compressed oops are always auto-detected here. A run that fails keeps its chips with the failed one marked and offers <strong>Retry</strong>; a heap dump that is already initialized can be rebuilt from its <strong>&ctdot;</strong> menu with <strong>Re-initialize</strong>.</p>
+            <p>A perf-counters snapshot takes milliseconds to read, so it is built within the click and shows no stage chips: its profile appears initialized, or the row reports the error.</p>
             <p>Auto Analysis runs as part of that build, not on first view &mdash; when the profile is ready, its findings are ready with it, so the verdict chips and the IDE recording panel have something to show immediately. A profile created before this behaviour existed carries no findings until it is recomputed.</p>
           </div>
         </div>
@@ -178,11 +199,28 @@ onMounted(() => {
         </div>
       </div>
 
+      <h2 id="bundles">Bundles</h2>
+      <p>A <strong>bundle</strong> is what every download from a hub session becomes: one row on the Recordings page standing for everything that download brought. The row is tagged <strong>Bundle</strong>, names the session, carries the origin chip (<code>hub › workspace › project</code>) and, on its second line, the item and file count, total size, age, and one badge per item &mdash; <strong>JFR</strong>, <strong>Heap</strong>, <strong>Perf</strong> &mdash; with a dot for its state (not initialized, initializing, initialized, failed).</p>
+      <ul class="usecase-list">
+        <li><i class="bi bi-check2-circle"></i> <strong>Expand</strong> the row with its chevron (or a click on its name) to see the items still to initialize. Each is an ordinary recording card &mdash; the session's JFR item first, then its perf counters and heap dumps &mdash; analysed and retried on its own, each into a profile of its own. Once initialized, an item leaves the bundle and becomes a row of its own under <em>Initialized</em>, carrying the session's origin chip; the badges on the bundle's header still show it, with a green dot.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Download-only files</strong> &mdash; the <code>gc.jvm-log</code>, the application log, the <code>hs_err</code> crash file &mdash; are listed under the items, in the bundle&rsquo;s <strong>Files</strong> section, each with a download button. Jeffrey does not parse or index them; a coding agent reaches them as a path through <router-link to="/docs/microscope-mcp/tools#hubs"><code>hubs_fetchFile</code></router-link>.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Delete an item</strong> with <strong>Delete recording</strong> in its own <strong>&ctdot;</strong> menu to remove only that recording and its profile; the rest of the bundle stays. The bundle goes with its last item.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Delete bundle</strong> &mdash; the trash button on the bundle header &mdash; removes every item, every profile built from them and the download-only files, after a <strong>Delete Bundle</strong> confirmation.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Move</strong> the bundle between groups by dragging its handle onto a group chip; its items always travel with it and belong to no group of their own.</li>
+      </ul>
+      <DocsCallout type="info">
+        <strong>One profile per kind, never one profile for everything.</strong> A heap dump downloaded with a recording is never attached to the JFR profile: it is another item of the bundle, initialized into a heap-dump profile. A window of a session &mdash; the last hour, the peak chunk &mdash; lands as a bundle of its own, named after its span.
+      </DocsCallout>
+
+      <h2 id="columns-and-filters">Columns and Filters</h2>
+      <p>The list is split into two columns: <strong>Not initialized</strong> on the left, newest upload first, and <strong>Initialized</strong> on the right, most recently analysed first. A recording whose initialization is still running stays on the left with its stage chips. <em>Initialized</em> lists profiles only, one row per initialized recording, with no bundle around them. A bundle stays under <em>Not initialized</em> while it has items left to initialize or download-only files, and drops out of the column once every item is initialized and it has no files.</p>
+      <p>Above the columns, the type filter has one chip per kind &mdash; <strong>All</strong>, <strong>JFR</strong>, <strong>pprof</strong>, <strong>OpenTelemetry</strong>, <strong>Heap Dumps</strong> and <strong>Perf Counters</strong> &mdash; each with its count. A bundle counts under every kind it holds; under a filter it shows only its matching items, and its download-only files only under <strong>All</strong>. The search box finds a bundle by its own name or by the name of any item.</p>
+
       <h2 id="recording-groups">Recording Groups</h2>
       <p>Recordings can be organized into named <strong>groups</strong>:</p>
       <ul class="usecase-list">
         <li><i class="bi bi-check2-circle"></i> <strong>Create groups</strong> to categorise artifacts (e.g. by investigation topic, incident, or date).</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Move artifacts</strong> with drag-and-drop or the move action; each artifact belongs to at most one group.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Move artifacts</strong> with drag-and-drop or the move action; each artifact belongs to at most one group. A bundle moves as a whole.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Delete groups</strong> to remove the group and its artifacts together.</li>
       </ul>
       <p>Groups are flat (one level) and orthogonal to the origin breadcrumb. A "Load tests" group can mix manually-uploaded files and auto-downloaded artifacts from any project — the breadcrumb still tells you where each came from.</p>
@@ -203,7 +241,7 @@ onMounted(() => {
             <td>Project → Instances → session</td>
           </tr>
           <tr>
-            <td>Analyzing a captured JFR or heap dump</td>
+            <td>Analyzing a captured JFR, heap dump or perf-counters snapshot</td>
             <td><strong>Recordings</strong> (top nav)</td>
           </tr>
           <tr>
@@ -339,6 +377,9 @@ onMounted(() => {
 
 .tile-pprof .artifact-icon { background: #dcfce7; color: #15803d; }
 .tile-pprof:hover         { border-color: #86efac; }
+
+.tile-perf .artifact-icon { background: #fce7f3; color: #be185d; }
+.tile-perf:hover         { border-color: #f9a8d4; }
 
 .artifact-features {
   list-style: none;

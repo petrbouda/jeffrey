@@ -25,8 +25,6 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManagerImpl;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileCustomManagerImpl;
@@ -48,6 +46,9 @@ import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
+import cafe.jeffrey.profile.perfcounters.PerfCountersCatalog;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManagerImpl;
 import cafe.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
@@ -109,7 +110,7 @@ public class ProfileCoreConfiguration {
             JvmInsightFactories jvmInsightFactories,
             ProfileConfigurationManager.Factory configurationFactory,
             ProfileFeaturesManager.Factory featuresFactory,
-            AdditionalFilesManager.Factory additionalFilesFactory,
+            PerfCountersManager.Factory perfCountersFactory,
             ProfileToolsManager.Factory toolsFactory,
             CollapseFramesManager.Factory collapseFramesFactory,
             PprofExportManager.Factory pprofExportFactory,
@@ -122,7 +123,7 @@ public class ProfileCoreConfiguration {
                 jvmInsightFactories,
                 configurationFactory,
                 featuresFactory,
-                additionalFilesFactory,
+                perfCountersFactory,
                 toolsFactory,
                 collapseFramesFactory,
                 pprofExportFactory,
@@ -196,31 +197,17 @@ public class ProfileCoreConfiguration {
             return new ProfileFeaturesManagerImpl(
                     profileRepositories.newEventRepository(profileDb),
                     profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newProfileCacheRepository(profileDb),
                     profileRepositories.newTraceRepository(profileDb));
         };
     }
 
-    /**
-     * The manager is the same whichever kind of profile this is. It used to be a no-op for
-     * Recordings profiles because it resolved a project recording's artifacts itself and a
-     * Recordings profile has no project — so a downloaded session's heap dump and perf counters
-     * were stored, listed, and then ignored. The files are handed to it now, so there is nothing
-     * left for it to be unable to find.
-     */
+    /** The catalog is read once; it describes the counters of every Perf Counters profile alike. */
     @Bean
-    public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
-            @Qualifier(ProfilesConfiguration.PROFILES_PATH) Path profilesPath) {
-        return profileInfo -> {
-            Path heapDumpAnalysisPath = profilesPath
-                    .resolve(profileInfo.id())
-                    .resolve("heap-dump");
-
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            return new AdditionalFilesManagerImpl(
-                    profileRepositories.newProfileCacheRepository(profileDb),
-                    heapDumpAnalysisPath);
-        };
+    public PerfCountersManager.Factory perfCountersManagerFactory() {
+        PerfCountersCatalog catalog = PerfCountersCatalog.load();
+        return profileInfo -> new PerfCountersManagerImpl(
+                profileRepositories.newProfileCacheRepository(databaseManagerResolver.open(profileInfo)),
+                catalog);
     }
 
     /**

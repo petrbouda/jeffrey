@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.hubs;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.recordings.core.OriginContext;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.util.Comparator;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Which hub sessions are already in this Jeffrey, so a listing can say so and a download can decline
@@ -38,6 +40,10 @@ import java.util.Optional;
  * {@link HubSessionRef} from those four tags is what makes the hub's non-unique session id harmless:
  * the same session id under a different project is a different key, and does not match.
  * <p>
+ * A download is a bundle: the session's recording item, plus a recording for each heap dump it brought,
+ * every one carrying the same tags. Only the recording item is the session's local copy — a heap dump
+ * analysed on its own must never be reported as the session's analysis.
+ * <p>
  * Built forward and in bulk — one listing plus one tag query — because nothing looks recordings up
  * by tag value, and adding such a query for this would be a schema change to save a pass over a list
  * that is small by construction.
@@ -48,6 +54,9 @@ import java.util.Optional;
 public final class DownloadedSessionIndex {
 
 
+    /** The kinds a session's recording item is: what a download is analysed as, never a heap dump. */
+    private static final Set<ProfileKind> SESSION_KINDS = Set.of(ProfileKind.JFR, ProfileKind.STACK_SAMPLES);
+
     private final Map<HubSessionRef, LocalCopy> byRef;
 
     private DownloadedSessionIndex(Map<HubSessionRef, LocalCopy> byRef) {
@@ -56,8 +65,11 @@ public final class DownloadedSessionIndex {
 
     /**
      * The local copy of a hub session: always a recording, and a profile once it has been analysed.
+     *
+     * @param bundleId the bundle the recording came in, holding the session's other items; {@code null}
+     *                 for a copy made before downloads were bundled
      */
-    public record LocalCopy(String recordingId, String profileId) {
+    public record LocalCopy(String bundleId, String recordingId, String profileId) {
 
         public boolean analysed() {
             return profileId != null;
@@ -65,7 +77,9 @@ public final class DownloadedSessionIndex {
     }
 
     public static DownloadedSessionIndex build(RecordingsManager recordings) {
-        List<Recording> local = recordings.listRecordings();
+        List<Recording> local = recordings.listRecordings().stream()
+                .filter(recording -> SESSION_KINDS.contains(recording.eventSource().kind()))
+                .toList();
         if (local.isEmpty()) {
             return new DownloadedSessionIndex(Map.of());
         }
@@ -88,6 +102,7 @@ public final class DownloadedSessionIndex {
 
         Map<HubSessionRef, LocalCopy> byRef = new HashMap<>();
         newest.forEach((ref, recording) -> byRef.put(ref, new LocalCopy(
+                recording.bundleId(),
                 recording.id(),
                 Boolean.TRUE.equals(readyProfiles.get(recording.profileId())) ? recording.profileId() : null)));
         return new DownloadedSessionIndex(byRef);

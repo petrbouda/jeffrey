@@ -31,10 +31,13 @@ import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
 import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser.RecordingMetadata;
 import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -43,7 +46,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -51,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -106,7 +108,7 @@ class RecordingsCoreManagerImplTest {
             Path unsupported = Files.writeString(sourceDir.resolve("notes.txt"), "hello");
             IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                     () -> manager.importRecordingFromPath(unsupported));
-            assertEquals("Unsupported recording file type: notes.txt", ex.getMessage());
+            assertTrue(ex.getMessage().startsWith("Unsupported recording file type: notes.txt"), ex.getMessage());
         }
 
         @Test
@@ -160,30 +162,95 @@ class RecordingsCoreManagerImplTest {
         }
 
         @Test
-        void keepsEveryDownloadedFileUnderItsSessionName() throws Exception {
+        void storesADownloadAsABundleOfOneRecordingPerItemAndItsLogsAsFiles() throws Exception {
             Path first = Files.writeString(sourceDir.resolve("profile-1.jfr"), "chunk-one");
             Path second = Files.writeString(sourceDir.resolve("profile-2.jfr"), "chunk-two");
             Path heapDump = Files.writeString(sourceDir.resolve("heap.hprof"), "dump");
+            Path gcLog = Files.writeString(sourceDir.resolve("gc.jvm-log"), "log");
             when(recordingMetadataParser.parse(anyList())).thenReturn(Optional.empty());
 
-            String recordingId = manager.createDownloadedRecording(
-                    "checkout_2026-03-01T12-00-00Z", List.of(first, second), List.of(heapDump), Map.of());
+            String recordingId = manager.createDownloadedBundle(
+                    "checkout_2026-03-01T12-00-00Z", List.of(first, second), List.of(heapDump, gcLog),
+                    Map.of("origin.hubId", "hub-1"));
 
-            ArgumentCaptor<RecordingFile> firstFile = ArgumentCaptor.forClass(RecordingFile.class);
-            verify(recordingRepository).insertRecording(any(Recording.class), firstFile.capture());
-            ArgumentCaptor<RecordingFile> restOfFiles = ArgumentCaptor.forClass(RecordingFile.class);
-            verify(recordingRepository, times(2)).insertRecordingFile(restOfFiles.capture());
+            ArgumentCaptor<Bundle> bundle = ArgumentCaptor.forClass(Bundle.class);
+            ArgumentCaptor<List<Recording>> members = ArgumentCaptor.captor();
+            verify(recordingRepository).insertBundle(bundle.capture(), members.capture());
 
-            List<String> names = Stream.concat(
-                            Stream.of(firstFile.getValue()), restOfFiles.getAllValues().stream())
-                    .map(RecordingFile::filename)
-                    .toList();
-            assertEquals(List.of("profile-1.jfr", "profile-2.jfr", "heap.hprof"), names);
+            Recording jfr = members.getValue().getFirst();
+            assertEquals(recordingId, jfr.id(), "the download answers its recording item");
+            assertEquals("checkout_2026-03-01T12-00-00Z", jfr.recordingName());
+            assertEquals(List.of("profile-1.jfr", "profile-2.jfr"),
+                    jfr.files().stream().map(RecordingFile::filename).toList());
 
-            for (String name : names) {
-                assertTrue(Files.exists(recordingsDir.resolve(recordingId + "-" + name)),
-                        "every row must resolve to a stored file: " + name);
+            Recording heap = members.getValue().get(1);
+            assertEquals(RecordingEventSource.HEAP_DUMP, heap.eventSource());
+            assertEquals("heap.hprof", heap.recordingName());
+
+            assertTrue(members.getValue().stream().allMatch(member -> bundle.getValue().id().equals(member.bundleId())));
+            assertEquals(List.of("gc.jvm-log"), bundle.getValue().files().stream().map(BundleFile::filename).toList());
+
+            for (Recording member : members.getValue()) {
+                for (RecordingFile file : member.files()) {
+                    assertTrue(Files.exists(recordingsDir.resolve(member.id() + "-" + file.filename())),
+                            "every member row must resolve to a stored file: " + file.filename());
+                }
+                verify(recordingTagsRepository).insert(member.id(), Map.of("origin.hubId", "hub-1"));
             }
+            assertTrue(Files.exists(recordingsDir.resolve(bundle.getValue().id() + "-gc.jvm-log")));
+        }
+    }
+
+    @Nested
+    class OnlyInitializableFiles {
+
+        @Test
+        void refusesALogUploadedOnItsOwn() {
+            assertThrows(IllegalArgumentException.class, () -> manager.uploadRecording(
+                    "app.log", new ByteArrayInputStream(new byte[]{1}), null));
+        }
+
+        @Test
+        void refusesALogImportedFromAPath() throws Exception {
+            Path log = Files.writeString(sourceDir.resolve("hs-jvm-err.log"), "crash");
+
+            assertThrows(IllegalArgumentException.class, () -> manager.importRecordingFromPath(log));
+        }
+    }
+
+    @Nested
+    class DeletingABundleMember {
+
+        private static final String BUNDLE_ID = "bundle-1";
+
+        private Recording member(String id) {
+            return new Recording(id, id, null, RecordingEventSource.HEAP_DUMP, NOW, NOW, NOW,
+                    false, null, null, List.of(), BUNDLE_ID);
+        }
+
+        @Test
+        void removesTheBundleWithItsLastItem() {
+            when(recordingRepository.findRecording("heap-1")).thenReturn(Optional.of(member("heap-1")));
+            when(recordingRepository.findBundle(BUNDLE_ID))
+                    .thenReturn(Optional.of(new Bundle(BUNDLE_ID, "session", null, NOW, List.of())));
+            when(recordingRepository.findBundleMembers(BUNDLE_ID)).thenReturn(List.of());
+
+            manager.deleteRecording("heap-1");
+
+            verify(recordingRepository).deleteRecordingWithFiles("heap-1");
+            verify(recordingRepository).deleteBundle(BUNDLE_ID);
+        }
+
+        @Test
+        void keepsTheBundleWhileOtherItemsRemain() {
+            when(recordingRepository.findRecording("heap-1")).thenReturn(Optional.of(member("heap-1")));
+            when(recordingRepository.findBundle(BUNDLE_ID))
+                    .thenReturn(Optional.of(new Bundle(BUNDLE_ID, "session", null, NOW, List.of())));
+            when(recordingRepository.findBundleMembers(BUNDLE_ID)).thenReturn(List.of(member("jfr-1")));
+
+            manager.deleteRecording("heap-1");
+
+            verify(recordingRepository, never()).deleteBundle(BUNDLE_ID);
         }
     }
 

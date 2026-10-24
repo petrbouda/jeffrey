@@ -140,7 +140,7 @@
           @click="selectFilter('all', null)"
         >
           All
-          <span class="chip-count">{{ allRecordings.length }}</span>
+          <span class="chip-count">{{ listedCount }}</span>
         </button>
         <button
           v-if="ungroupedCount > 0"
@@ -175,7 +175,7 @@
         >
           <i class="bi bi-folder"></i>
           {{ group.name }}
-          <span class="chip-count">{{ getGroupCount(group.id, 'total') }}</span>
+          <span class="chip-count">{{ getGroupCount(group.id) }}</span>
           <span class="chip-delete" title="Delete group" @click.stop="confirmDeleteGroup(group.id)">
             <i class="bi bi-trash"></i>
           </span>
@@ -203,7 +203,7 @@
             <i class="bi bi-grid-fill"></i>
           </span>
           All
-          <span class="type-count">{{ filteredRecordings.length }}</span>
+          <span class="type-count">{{ selectionCount }}</span>
         </button>
         <button
           v-for="tf in TYPE_FILTERS"
@@ -222,7 +222,7 @@
       </div>
 
       <EmptyState
-        v-if="searchText && filteredRecordings.length === 0"
+        v-if="searchText && selectionCount === 0"
         icon="bi-search"
         title="No recordings match the current filter"
       />
@@ -239,51 +239,75 @@
             <span class="rec-col__count">{{ column.items.length }}</span>
           </div>
           <div v-if="column.items.length > 0" class="card-stack recordings-list">
-            <RecordingCard
-              v-for="recording in column.items"
-              :key="recording.id"
-              :recording-id="recording.id"
-              :name="recording.profileName ?? recording.filename"
-              :size-in-bytes="recording.sizeInBytes"
-              :duration-in-millis="recording.durationInMillis"
-              :uploaded-at="recording.uploadedAt"
-              :source-type="recording.eventSource"
-              :has-profile="recording.hasProfile"
-              :profile-id="recording.profileId"
-              :profile-size-in-bytes="recording.profileSizeInBytes"
-              :profile-created-at="recording.profileCreatedAt"
-              :profile-modified="recording.profileModified"
-              :analyzing="analyzingRecordings.has(recording.id)"
-              :init-progress="recording.initProgress"
-              :tick-now="tickNow"
-              :draggable="true"
-              :origin="buildOrigin(recording)"
-              :file-count="recording.files?.length ?? 0"
-              :expandable="(recording.files?.length ?? 0) > 1"
-              :expanded="expandedRecordings.has(recording.id)"
-              @click="handleCardClick(recording)"
-              @create-profile="analyzeRecording(recording.id)"
-              @open-profile="openProfile(recording)"
-              @edit-profile="startEditProfile(recording)"
-              @delete-profile="deleteProfileFromRecording(recording.id)"
-              @delete-recording="deleteRecording(recording.id)"
-              @reinitialize="reinitializeHeapDump(recording)"
-              @toggle-expand="toggleRecordingFiles(recording.id)"
-              @dragend="onDragEnd"
-            >
-              <template #expanded-content>
-                <RecordingFileGroupList
-                  v-if="recording.files && recording.files.length > 0"
-                  :recording-id="recording.id"
-                  :files="recording.files"
-                  @download="downloadFile"
-                />
-                <div v-else class="small py-1 text-muted">
-                  <i class="bi bi-exclamation-circle me-1"></i>
-                  No recording files available
-                </div>
-              </template>
-            </RecordingCard>
+            <template v-for="item in column.items" :key="item.key">
+              <RecordingBundleCard
+                v-if="item.kind === 'bundle'"
+                :bundle="item.bundle"
+                :members="item.members"
+                :listed-members="item.pending"
+                :origin="buildOrigin(item.bundle.tags)"
+                :tick-now="tickNow"
+                :expanded="expandedBundles.has(item.bundle.id)"
+                :expanded-members="expandedRecordings"
+                :analyzing-members="analyzingRecordings"
+                :draggable="true"
+                @toggle-expand="toggleBundle(item.bundle.id)"
+                @delete-bundle="deletingBundle = item.bundle"
+                @download-file="fileId => downloadBundleFile(item.bundle.id, fileId)"
+                @download-member-file="downloadFile"
+                @member-click="handleCardClick"
+                @member-create-profile="member => analyzeRecording(member.id)"
+                @member-edit-profile="startEditProfile"
+                @member-delete-profile="member => deleteProfileFromRecording(member.id)"
+                @member-delete-recording="member => deleteRecording(member.id)"
+                @member-reinitialize="reinitializeHeapDump"
+                @member-toggle-expand="member => toggleRecordingFiles(member.id)"
+                @dragend="onDragEnd"
+              />
+              <RecordingCard
+                v-else
+                :recording-id="item.recording.id"
+                :name="item.recording.profileName ?? item.recording.filename"
+                :size-in-bytes="item.recording.sizeInBytes"
+                :duration-in-millis="item.recording.durationInMillis"
+                :uploaded-at="item.recording.uploadedAt"
+                :source-type="item.recording.eventSource"
+                :has-profile="item.recording.hasProfile"
+                :profile-id="item.recording.profileId"
+                :profile-size-in-bytes="item.recording.profileSizeInBytes"
+                :profile-created-at="item.recording.profileCreatedAt"
+                :profile-modified="item.recording.profileModified"
+                :analyzing="analyzingRecordings.has(item.recording.id)"
+                :init-progress="item.recording.initProgress"
+                :tick-now="tickNow"
+                :draggable="!item.recording.bundleId"
+                :origin="buildOrigin(item.recording.tags)"
+                :file-count="item.recording.files?.length ?? 0"
+                :expandable="(item.recording.files?.length ?? 0) > 1"
+                :expanded="expandedRecordings.has(item.recording.id)"
+                @click="handleCardClick(item.recording)"
+                @create-profile="analyzeRecording(item.recording.id)"
+                @edit-profile="startEditProfile(item.recording)"
+                @delete-profile="deleteProfileFromRecording(item.recording.id)"
+                @delete-recording="deleteRecording(item.recording.id)"
+                @reinitialize="reinitializeHeapDump(item.recording)"
+                @toggle-expand="toggleRecordingFiles(item.recording.id)"
+                @dragend="onDragEnd"
+              >
+                <template #expanded-content>
+                  <RecordingFileGroupList
+                    v-if="item.recording.files && item.recording.files.length > 0"
+                    :recording-id="item.recording.id"
+                    :files="item.recording.files"
+                    @download="downloadFile"
+                  />
+                  <div v-else class="small py-1 text-muted">
+                    <i class="bi bi-exclamation-circle me-1"></i>
+                    No recording files available
+                  </div>
+                </template>
+              </RecordingCard>
+            </template>
           </div>
           <div v-else class="rec-col__empty">
             <i class="bi" :class="column.emptyIcon"></i>
@@ -312,6 +336,18 @@
       @close="editingRecording = null"
     />
 
+    <!-- Delete Bundle confirmation -->
+    <ConfirmationDialog
+      :show="!!deletingBundle"
+      title="Delete Bundle"
+      :message="`This will delete the bundle ${deletingBundle?.name ?? ''} with every item in it, their profiles and its files. This action cannot be undone.`"
+      confirm-label="Delete"
+      confirm-button-class="btn-danger"
+      @confirm="deleteBundle"
+      @cancel="deletingBundle = null"
+      @update:show="deletingBundle = null"
+    />
+
     <!-- Delete Group confirmation -->
     <ConfirmationDialog
       :show="!!deletingGroupId"
@@ -332,6 +368,7 @@ import { useRouter } from 'vue-router';
 import RecordingsClient from '@hubs/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
 import RecordingCard from '@hubs/components/RecordingCard.vue';
+import RecordingBundleCard from '@hubs/components/RecordingBundleCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
@@ -340,14 +377,19 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
-import { hasFailed, isInitializing } from '@hubs/components/profileInitChips';
-import HeapDumpClient from '@/services/api/HeapDumpClient';
+import type { RecordingTag } from '@hubs/services/api/model/Recording';
+import type { RecordingOrigin } from '@hubs/components/RecordingOriginChip.vue';
+import type Bundle from '@hubs/services/api/model/Bundle';
+import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
+import { BUNDLE_DRAG_PREFIX, compareMembers } from '@hubs/components/bundleSummary';
 import {
-  HEAP_DUMP_SOURCE,
-  OTEL_SOURCE,
-  PPROF_SOURCE,
-  profileLandingRoute
-} from '@/services/ProfileLandingRoute';
+  splitColumns,
+  type BundleWithMembers,
+  type ListItem
+} from '@hubs/components/recordingColumns';
+import { hasFailed } from '@hubs/components/profileInitChips';
+import HeapDumpClient from '@/services/api/HeapDumpClient';
+import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
 const UNGROUPED_KEY = '__ungrouped__';
 
@@ -383,6 +425,12 @@ const RECORDING_FORMATS: RecordingFormat[] = [
     label: 'Heap dump',
     icon: 'bi bi-pie-chart-fill',
     extensions: ['.hprof', '.hprof.gz']
+  },
+  {
+    id: 'perf',
+    label: 'Perf counters',
+    icon: 'bi bi-speedometer2',
+    extensions: ['.hsperfdata']
   }
 ];
 
@@ -407,12 +455,6 @@ type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 interface UploadProgressEntry {
   progress: number;
   status: 'pending' | 'uploading' | 'complete' | 'error';
-}
-
-interface GroupCounts {
-  total: number;
-  jfr: number;
-  heap: number;
 }
 
 const router = useRouter();
@@ -453,6 +495,7 @@ const cancelAutoRemove = (filename: string) => {
   }
 };
 const allRecordings = ref<Recording[]>([]);
+const allBundles = ref<Bundle[]>([]);
 const allGroups = ref<RecordingGroup[]>([]);
 
 // Filter + upload target
@@ -462,6 +505,8 @@ const selectedGroupId = ref<string | null>(null);
 const searchText = ref('');
 const analyzingRecordings = ref<Set<string>>(new Set());
 const expandedRecordings = ref<Set<string>>(new Set());
+const expandedBundles = ref<Set<string>>(new Set());
+const deletingBundle = ref<Bundle | null>(null);
 
 // Drop zone. dragDepth counts enter/leave pairs, because the pills and buttons inside the zone
 // each fire dragleave as the cursor crosses them and a plain flag would flicker.
@@ -490,33 +535,55 @@ watch(showCreateGroupModal, val => {
 
 // --- Computeds ---
 
-const groupCountsMap = computed<Map<string | null, GroupCounts>>(() => {
-  const map = new Map<string | null, GroupCounts>();
+// A bundle's items sit in no group of their own: the bundle is what a group holds.
+const standaloneRecordings = computed<Recording[]>(() =>
+  allRecordings.value.filter(recording => !recording.bundleId)
+);
+
+/** Each bundle's items, its recording first, then its perf counters and heap dumps. */
+const membersByBundle = computed<Map<string, Recording[]>>(() => {
+  const map = new Map<string, Recording[]>();
   for (const recording of allRecordings.value) {
-    const key = recording.groupId;
-    let counts = map.get(key);
-    if (!counts) {
-      counts = { total: 0, jfr: 0, heap: 0 };
-      map.set(key, counts);
+    if (recording.bundleId) {
+      const members = map.get(recording.bundleId) ?? [];
+      members.push(recording);
+      map.set(recording.bundleId, members);
     }
-    counts.total++;
-    if (recording.eventSource === HEAP_DUMP_SOURCE) {
-      counts.heap++;
-    } else {
-      counts.jfr++;
-    }
+  }
+  for (const members of map.values()) {
+    members.sort(compareMembers);
   }
   return map;
 });
 
-const ungroupedCount = computed(() => groupCountsMap.value.get(null)?.total ?? 0);
+const listedCount = computed(() => standaloneRecordings.value.length + allBundles.value.length);
+
+// Entries per group: a standalone recording or a bundle counts once.
+const groupCountsMap = computed<Map<string | null, number>>(() => {
+  const map = new Map<string | null, number>();
+  const groupIds = [
+    ...standaloneRecordings.value.map(recording => recording.groupId),
+    ...allBundles.value.map(bundle => bundle.groupId)
+  ];
+  for (const groupId of groupIds) {
+    map.set(groupId, (map.get(groupId) ?? 0) + 1);
+  }
+  return map;
+});
+
+const ungroupedCount = computed(() => groupCountsMap.value.get(null) ?? 0);
 
 const sortedGroups = computed<RecordingGroup[]>(() => {
   const newestUpload = (groupId: string): number => {
     let max = 0;
-    for (const r of allRecordings.value) {
+    for (const r of standaloneRecordings.value) {
       if (r.groupId === groupId && r.uploadedAt > max) {
         max = r.uploadedAt;
+      }
+    }
+    for (const bundle of allBundles.value) {
+      if (bundle.groupId === groupId && bundle.createdAt > max) {
+        max = bundle.createdAt;
       }
     }
     return max;
@@ -625,108 +692,86 @@ const browseLinkLabel = computed<string>(() => {
   return uploadFiles.value.length > 0 ? 'add more from your computer' : 'browse your computer';
 });
 
-const filteredRecordings = computed<Recording[]>(() => {
-  let recs = allRecordings.value;
-
+const inSelectedGroup = (groupId: string | null): boolean => {
   if (viewFilter.value === UNGROUPED_KEY) {
-    recs = recs.filter(r => r.groupId === null);
-  } else if (viewFilter.value !== 'all') {
-    const groupId = viewFilter.value;
-    recs = recs.filter(r => r.groupId === groupId);
+    return groupId === null;
   }
+  return viewFilter.value === 'all' || groupId === viewFilter.value;
+};
 
-  if (searchText.value) {
-    const search = searchText.value.toLowerCase();
-    recs = recs.filter(r => {
-      const filename = r.filename.toLowerCase();
-      const profile = (r.profileName ?? '').toLowerCase();
-      return filename.includes(search) || profile.includes(search);
-    });
+const matchesSearch = (recording: Recording, search: string): boolean =>
+  recording.filename.toLowerCase().includes(search) ||
+  (recording.profileName ?? '').toLowerCase().includes(search);
+
+// The group/search selection. A bundle is found by its own name or by any of its items.
+const selection = computed<{ recordings: Recording[]; bundles: BundleWithMembers[] }>(() => {
+  const search = searchText.value.toLowerCase();
+  const recordings = standaloneRecordings.value.filter(
+    recording => inSelectedGroup(recording.groupId) && (!search || matchesSearch(recording, search))
+  );
+  const bundles: BundleWithMembers[] = [];
+  for (const bundle of allBundles.value) {
+    const members = membersByBundle.value.get(bundle.id) ?? [];
+    const found =
+      !search ||
+      bundle.name.toLowerCase().includes(search) ||
+      members.some(member => matchesSearch(member, search));
+    if (inSelectedGroup(bundle.groupId) && found) {
+      bundles.push({ bundle, members });
+    }
   }
-  return recs;
+  return { recordings, bundles };
 });
 
-const sortRecordings = (recs: Recording[]): Recording[] => {
-  return [...recs].sort((a, b) => {
-    if (a.hasProfile !== b.hasProfile) {
-      return a.hasProfile ? -1 : 1;
-    }
-    return b.uploadedAt - a.uploadedAt;
-  });
-};
+const selectionCount = computed(
+  () => selection.value.recordings.length + selection.value.bundles.length
+);
 
-// Recording format taxonomy — the single source of truth for how a recording is typed in the UI.
-type RecordingType = 'JFR' | 'PPROF' | 'OTLP' | 'HEAP';
+// Recording format taxonomy — recordingKinds is the single source of truth for how a recording is typed.
+type RecordingType = RecordingKindKey;
 type TypeFilter = 'all' | RecordingType;
 
-const recordingType = (recording: Recording): RecordingType => {
-  if (recording.eventSource === HEAP_DUMP_SOURCE) {
-    return 'HEAP';
-  }
-  if (recording.eventSource === PPROF_SOURCE) {
-    return 'PPROF';
-  }
-  if (recording.eventSource === OTEL_SOURCE) {
-    return 'OTLP';
-  }
-  return 'JFR';
-};
+const recordingType = (recording: Recording): RecordingType =>
+  recordingKindOf(recording.eventSource).key;
 
 const typeFilter = ref<TypeFilter>('all');
 
 // Counts per format within the current group/search selection — drives the type filter pills.
 const typeCounts = computed<Record<RecordingType, number>>(() => {
-  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, OTLP: 0, HEAP: 0 };
-  for (const recording of filteredRecordings.value) {
+  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, OTLP: 0, HEAP: 0, PERF: 0 };
+  const { recordings, bundles } = selection.value;
+  for (const recording of [...recordings, ...bundles.flatMap(entry => entry.members)]) {
     counts[recordingType(recording)]++;
   }
   return counts;
 });
 
-// Recordings shown in the list: the group/search selection, narrowed by the active type filter.
-const visibleRecordings = computed(() => {
-  let recs = filteredRecordings.value;
-  if (typeFilter.value !== 'all') {
-    recs = recs.filter(recording => recordingType(recording) === typeFilter.value);
-  }
-  return sortRecordings(recs);
-});
-
-// The list is split into two columns by whether the recording has a built profile: not-initialized
-// (raw uploads, "Click to analyze") on the left, initialized (has a profile) on the right.
+// The list is split into two columns: what is left to initialize on the left (recordings, and bundles
+// with their remaining items and files), the initialized profiles on the right, one row each.
 interface RecordingColumn {
   key: 'raw' | 'initialized';
   label: string;
-  items: Recording[];
+  items: ListItem[];
   emptyIcon: string;
   emptyText: string;
 }
 
 const recordingColumns = computed<RecordingColumn[]>(() => {
-  const notInitialized: Recording[] = [];
-  const initialized: Recording[] = [];
-  for (const recording of visibleRecordings.value) {
-    // A recording whose profile row exists only because its initialization is running belongs on the
-    // left with its stage chips, not on the right among the profiles you can open.
-    const built = recording.hasProfile && !isInitializing(recording.initProgress);
-    (built ? initialized : notInitialized).push(recording);
-  }
-  // Not-initialized: newest upload first. Initialized: most recently analyzed first (falling back to
-  // upload time) so a recording you just analyzed surfaces at the top instead of sinking to its upload slot.
-  notInitialized.sort((a, b) => b.uploadedAt - a.uploadedAt);
-  initialized.sort(
-    (a, b) => (b.profileCreatedAt || b.uploadedAt) - (a.profileCreatedAt || a.uploadedAt)
-  );
+  const type = typeFilter.value;
+  const { pending, initialized } = splitColumns({
+    ...selection.value,
+    shows: type === 'all' ? null : recording => recordingType(recording) === type
+  });
+  const nothingShown = pending.length === 0 && initialized.length === 0;
   return [
     {
       key: 'raw',
       label: 'Not initialized',
-      items: notInitialized,
-      emptyIcon: visibleRecordings.value.length === 0 ? 'bi-inbox' : 'bi-check2-all',
-      emptyText:
-        visibleRecordings.value.length === 0
-          ? 'No recordings yet — drop a file above'
-          : 'All recordings here are initialized'
+      items: pending,
+      emptyIcon: nothingShown ? 'bi-inbox' : 'bi-check2-all',
+      emptyText: nothingShown
+        ? 'No recordings yet — drop a file above'
+        : 'All recordings here are initialized'
     },
     {
       key: 'initialized',
@@ -745,7 +790,8 @@ const TYPE_FILTERS: { key: RecordingType; label: string; format: string }[] = [
   { key: 'JFR', label: 'JFR', format: 'jfr' },
   { key: 'PPROF', label: 'pprof', format: 'pprof' },
   { key: 'OTLP', label: 'OpenTelemetry', format: 'otlp' },
-  { key: 'HEAP', label: 'Heap Dumps', format: 'heap' }
+  { key: 'HEAP', label: 'Heap Dumps', format: 'heap' },
+  { key: 'PERF', label: 'Perf Counters', format: 'perf' }
 ];
 
 const selectTypeFilter = (type: TypeFilter) => {
@@ -753,14 +799,8 @@ const selectTypeFilter = (type: TypeFilter) => {
 };
 
 // Origin breadcrumb derivation
-interface RecordingOrigin {
-  hub: string;
-  workspace: string;
-  project: string;
-}
-
-const buildOrigin = (recording: Recording): RecordingOrigin | undefined => {
-  const tags = recording.tags ?? [];
+const buildOrigin = (recordingTags: RecordingTag[] | undefined): RecordingOrigin | undefined => {
+  const tags = recordingTags ?? [];
   const sys = Object.fromEntries(
     tags.filter(t => t.key.startsWith('origin.')).map(t => [t.key, t.value])
   );
@@ -776,8 +816,8 @@ const buildOrigin = (recording: Recording): RecordingOrigin | undefined => {
 
 // --- Helpers ---
 
-const getGroupCount = (groupId: string, kind: 'total' | 'jfr' | 'heap'): number => {
-  return groupCountsMap.value.get(groupId)?.[kind] ?? 0;
+const getGroupCount = (groupId: string): number => {
+  return groupCountsMap.value.get(groupId) ?? 0;
 };
 
 /**
@@ -816,6 +856,38 @@ const toggleRecordingFiles = (recordingId: string) => {
     next.add(recordingId);
   }
   expandedRecordings.value = next;
+};
+
+const toggleBundle = (bundleId: string) => {
+  const next = new Set(expandedBundles.value);
+  if (next.has(bundleId)) {
+    next.delete(bundleId);
+  } else {
+    next.add(bundleId);
+  }
+  expandedBundles.value = next;
+};
+
+const downloadBundleFile = async (bundleId: string, fileId: string) => {
+  try {
+    await recordingsClient.downloadBundleFile(bundleId, fileId);
+  } catch {
+    // Toast shown by HttpInterceptor
+  }
+};
+
+const deleteBundle = async () => {
+  const bundle = deletingBundle.value;
+  if (!bundle) {
+    return;
+  }
+  try {
+    await recordingsClient.deleteBundle(bundle.id);
+    deletingBundle.value = null;
+    await loadData();
+  } catch {
+    // Toast shown by HttpInterceptor
+  }
 };
 
 const downloadFile = async (recordingId: string, fileId: string) => {
@@ -1101,11 +1173,13 @@ const deleteRecording = async (recordingId: string) => {
 
 const loadData = async () => {
   try {
-    const [recordings, groups] = await Promise.all([
+    const [recordings, bundles, groups] = await Promise.all([
       recordingsClient.listRecordings(),
+      recordingsClient.listBundles(),
       recordingsClient.listGroups()
     ]);
     allRecordings.value = recordings;
+    allBundles.value = bundles;
     allGroups.value = groups;
   } catch (error) {
     console.error('Failed to load data:', error);
@@ -1195,6 +1269,10 @@ const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
   if (!recordingId) {
     return;
   }
+  if (recordingId.startsWith(BUNDLE_DRAG_PREFIX)) {
+    await moveBundle(recordingId.slice(BUNDLE_DRAG_PREFIX.length), targetGroupId);
+    return;
+  }
   const recording = allRecordings.value.find(r => r.id === recordingId);
   if (!recording) {
     return;
@@ -1205,6 +1283,19 @@ const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
   recording.groupId = targetGroupId;
   try {
     await recordingsClient.moveRecordingToGroup(recordingId, targetGroupId);
+  } catch {
+    await loadData();
+  }
+};
+
+const moveBundle = async (bundleId: string, targetGroupId: string | null) => {
+  const bundle = allBundles.value.find(b => b.id === bundleId);
+  if (!bundle || (bundle.groupId || null) === targetGroupId) {
+    return;
+  }
+  bundle.groupId = targetGroupId;
+  try {
+    await recordingsClient.moveBundleToGroup(bundleId, targetGroupId);
   } catch {
     await loadData();
   }
@@ -1440,6 +1531,10 @@ const onDragEnd = () => {
   background: var(--color-purple);
 }
 
+.format-perf .format-ic {
+  background: var(--color-pink-text);
+}
+
 .drop-file-dot {
   width: 8px;
   height: 8px;
@@ -1462,6 +1557,10 @@ const onDragEnd = () => {
 
 .dot-heap {
   background: var(--color-purple);
+}
+
+.dot-perf {
+  background: var(--color-pink-text);
 }
 
 /* ============ Files (auto-uploading, inside the drop zone) ============ */
@@ -1807,6 +1906,12 @@ const onDragEnd = () => {
   --type-solid: var(--color-purple);
   --type-soft: var(--color-purple-bg);
   --type-text: var(--color-purple-text);
+}
+
+.type-chip--perf {
+  --type-solid: var(--color-pink-text);
+  --type-soft: var(--color-pink-bg);
+  --type-text: var(--color-pink-text);
 }
 
 .type-chip:hover {

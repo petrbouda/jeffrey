@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * Persisted configuration resolved during heap dump initialization.
  *
  * @param compressedOops       whether compressed oops are enabled
- * @param compressedOopsSource how compressed oops was determined: MANUAL, JFR, or INFERRED
+ * @param compressedOopsSource how compressed oops was determined: MANUAL, INFERRED or DEFAULTED
  * @param totalOvercount       heap-wide reference size overcount (only meaningful when compressedOops is true)
  */
 @JsonIgnoreProperties(ignoreUnknown = true)

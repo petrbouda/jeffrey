@@ -19,6 +19,7 @@ package cafe.jeffrey.recordings.core.manager;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.io.InputStream;
@@ -58,8 +59,15 @@ public interface RecordingsCoreManager {
      */
     Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes);
 
-    String createDownloadedRecording(
-            String recordingName,
+    /**
+     * Stores a downloaded session as a bundle: its recording files as one recording, each artifact that
+     * can be initialized on its own (a heap dump) as a recording of its own, everything else as
+     * download-only files of the bundle.
+     *
+     * @return the id of the bundle's recording item, the one built from the recording files
+     */
+    String createDownloadedBundle(
+            String bundleName,
             List<Path> recordingFiles,
             List<Path> artifactFiles,
             Map<String, String> originTags);
@@ -81,4 +89,22 @@ public interface RecordingsCoreManager {
     void deleteRecording(String recordingId);
 
     Optional<Path> findRecordingFile(String recordingId, String fileId);
+
+    // --- Bundles ---
+
+    /** Every bundle with its download-only files; its members are listed with the recordings. */
+    List<Bundle> listBundles();
+
+    Optional<Bundle> findBundle(String bundleId);
+
+    /** The bundle's member recordings, each with its files. */
+    List<Recording> findBundleMembers(String bundleId);
+
+    void moveBundleToGroup(String bundleId, String groupId);
+
+    /** Deletes the bundle with every member recording, their profiles, and its files. */
+    void deleteBundle(String bundleId);
+
+    /** Where one of the bundle's download-only files sits, if the bundle holds it. */
+    Optional<Path> findBundleFile(String bundleId, String fileId);
 }

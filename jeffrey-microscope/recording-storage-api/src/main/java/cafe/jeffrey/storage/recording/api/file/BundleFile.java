@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.provider.profile.api;
+package cafe.jeffrey.storage.recording.api.file;
+
+import java.time.Instant;
 
 /**
- * Represents a JVM flag extracted from JFR flag events.
- *
- * @param name   Flag name (e.g., "UseStringDeduplication")
- * @param value  Flag value as string
- * @param type   Flag type (Boolean, Int, UnsignedInt, etc.) derived from event type
- * @param origin How the flag was set (Default, Ergonomic, Command line, Management)
+ * A file of a {@link Bundle} that never becomes a profile — a GC or JVM log, an application log, a
+ * crash file. Listed with the bundle and downloadable; an agent reads it as a path, never parsed here.
  */
-public record JvmFlag(
-        String name,
-        String value,
-        String type,
-        String origin
-) {
+public record BundleFile(
+        String id,
+        String bundleId,
+        String filename,
+        ManagedFile fileType,
+        Instant uploadedAt,
+        long sizeInBytes) {
 }

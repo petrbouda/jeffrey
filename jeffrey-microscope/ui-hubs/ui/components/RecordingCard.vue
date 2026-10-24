@@ -16,23 +16,14 @@
   -->
 
 <script setup lang="ts">
+import '@shared/styles/shared-components.css';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import StageChips from '@shared/components/StageChips.vue';
 import type { ProfileInitProgress } from '../services/api/model/Recording';
-import {
-  failedStageLabel,
-  hasFailed,
-  initChipsFor,
-  isInitializing,
-  toTimelineSteps
-} from './profileInitChips';
-
-interface RecordingOrigin {
-  hub: string;
-  workspace: string;
-  project: string;
-}
+import { failedStageLabel, hasFailed, isInitializing, toTimelineSteps } from './profileInitChips';
+import { recordingKindOf } from './recordingKinds';
+import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 
 interface Props {
   recordingId: string;
@@ -74,7 +65,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'click'): void;
   (e: 'create-profile'): void;
-  (e: 'open-profile'): void;
   (e: 'edit-profile'): void;
   (e: 'delete-profile'): void;
   (e: 'delete-recording'): void;
@@ -84,8 +74,6 @@ const emit = defineEmits<{
 }>();
 
 const SOURCE_HEAP_DUMP = 'HEAP_DUMP';
-const SOURCE_PPROF = 'PPROF';
-const SOURCE_OTEL = 'OPEN_TELEMETRY';
 
 // Initialized recordings show when their profile was built; everything else shows the upload time.
 const showsInitializedTime = computed(
@@ -95,51 +83,14 @@ const displayedTime = computed(() =>
   showsInitializedTime.value ? props.profileCreatedAt! : props.uploadedAt
 );
 
-// The recording's format drives its icon (the same one the Recordings drop zone shows), colored type tag, and left-border accent so JFR, pprof,
-// OTLP and heap-dump recordings are visually distinct at a glance.
-const iconClass = computed(() => {
-  if (props.sourceType === SOURCE_HEAP_DUMP) {
-    return 'bi bi-pie-chart-fill';
-  }
-  if (props.sourceType === SOURCE_PPROF) {
-    return 'bi bi-bar-chart-fill';
-  }
-  if (props.sourceType === SOURCE_OTEL) {
-    return 'bi bi-broadcast';
-  }
-  return 'bi bi-activity';
-});
-
-const typeLabel = computed(() => {
-  if (props.sourceType === SOURCE_HEAP_DUMP) {
-    return 'Heap';
-  }
-  if (props.sourceType === SOURCE_PPROF) {
-    return 'PPROF';
-  }
-  if (props.sourceType === SOURCE_OTEL) {
-    return 'OTLP';
-  }
-  return 'JFR';
-});
-
-const typeTagClass = computed(() => {
-  if (props.sourceType === SOURCE_HEAP_DUMP) {
-    return 'rec-card__type--heap';
-  }
-  if (props.sourceType === SOURCE_PPROF) {
-    return 'rec-card__type--pprof';
-  }
-  if (props.sourceType === SOURCE_OTEL) {
-    return 'rec-card__type--otel';
-  }
-  return 'rec-card__type--jfr';
-});
+// The recording's kind drives its icon (the same one the Recordings drop zone shows), coloured type
+// tag, left-border accent and stage chips, so each kind is visually distinct at a glance.
+const kind = computed(() => recordingKindOf(props.sourceType));
 
 const initializing = computed(() => isInitializing(props.initProgress));
 const initFailed = computed(() => hasFailed(props.initProgress));
 const initSteps = computed(() => toTimelineSteps(props.initProgress, props.tickNow));
-const initChips = computed(() => initChipsFor(props.sourceType));
+const initChips = computed(() => kind.value.chips);
 const failedStage = computed(() => failedStageLabel(props.initProgress, initChips.value));
 
 /** Shown whenever there is a run to show, whether it is still going or ended badly. */
@@ -160,7 +111,9 @@ const handleClick = () => {
 };
 
 const onDragStart = (event: DragEvent) => {
-  if (!props.draggable || !event.dataTransfer) {return;}
+  if (!props.draggable || !event.dataTransfer) {
+    return;
+  }
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', props.recordingId);
 };
@@ -214,16 +167,16 @@ onBeforeUnmount(() => {
   <div
     ref="cardRef"
     class="rec-card"
-    :class="{
-      'rec-card--analyzed': hasProfile && !initializing && !initFailed && !deletingProfile,
-      'rec-card--analyzing': analyzing || creatingProfile || (initializing && !deletingProfile),
-      'rec-card--failed': initFailed && !deletingProfile,
-      'rec-card--deleting': deletingProfile,
-      'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
-      'rec-card--pprof': sourceType === 'PPROF',
-      'rec-card--otel': sourceType === 'OPEN_TELEMETRY',
-      'rec-card--menu-open': menuOpen
-    }"
+    :class="[
+      {
+        'rec-card--analyzed': hasProfile && !initializing && !initFailed && !deletingProfile,
+        'rec-card--analyzing': analyzing || creatingProfile || (initializing && !deletingProfile),
+        'rec-card--failed': initFailed && !deletingProfile,
+        'rec-card--deleting': deletingProfile,
+        'rec-card--menu-open': menuOpen
+      },
+      kind.cardClass
+    ]"
     @click="handleClick"
   >
     <!-- Two-column layout: left (name + metadata), right (actions) -->
@@ -231,23 +184,10 @@ onBeforeUnmount(() => {
       <!-- Left: info -->
       <div class="rec-card__info">
         <div class="rec-card__line1">
-          <i class="rec-card__icon" :class="iconClass"></i>
-          <span class="rec-card__type" :class="typeTagClass">{{ typeLabel }}</span>
+          <i class="rec-card__icon" :class="kind.icon"></i>
+          <span class="rec-card__type" :class="kind.tagClass">{{ kind.label }}</span>
           <span class="rec-card__name">{{ name }}</span>
-          <span
-            v-if="origin"
-            class="rec-card__origin"
-            :title="`From ${origin.hub} › ${origin.workspace} › ${origin.project}`"
-          >
-            <i class="bi bi-arrow-down-circle-fill"></i>
-            <span class="rec-card__origin-part">{{ origin.hub }}</span>
-            <span class="rec-card__origin-sep">›</span>
-            <span class="rec-card__origin-part">{{ origin.workspace }}</span>
-            <span class="rec-card__origin-sep">›</span>
-            <span class="rec-card__origin-part rec-card__origin-part--project">{{
-              origin.project
-            }}</span>
-          </span>
+          <RecordingOriginChip v-if="origin" :origin="origin" />
         </div>
         <div class="rec-card__line2">
           <span class="rec-card__meta">{{ FormattingService.formatBytes(sizeInBytes) }}</span>
@@ -362,7 +302,7 @@ onBeforeUnmount(() => {
         </template>
         <div
           v-if="draggable"
-          class="rec-card__drag-handle"
+          class="recording-drag-handle"
           draggable="true"
           title="Drag to move to another group"
           @dragstart="onDragStart"
@@ -603,7 +543,54 @@ onBeforeUnmount(() => {
   color: var(--color-orange);
 }
 
-/* Format type tag (JFR / pprof / OTLP / Heap) */
+.rec-card--perf {
+  border-left: 3px dashed color-mix(in srgb, var(--color-pink-text) 40%, transparent);
+}
+
+.rec-card--perf:hover {
+  border-color: color-mix(in srgb, var(--color-pink-text) 30%, transparent);
+  border-left-color: var(--color-pink-text);
+  border-left-style: solid;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-pink-text) 4%, transparent),
+    color-mix(in srgb, var(--color-pink-text) 2%, transparent)
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+/* Perf counters: analyzed */
+.rec-card--perf.rec-card--analyzed {
+  border-left: 3px solid var(--color-pink-text);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-pink-text) 3%, transparent),
+    var(--color-white)
+  );
+}
+
+.rec-card--perf.rec-card--analyzed:hover {
+  border-color: color-mix(in srgb, var(--color-pink-text) 30%, transparent);
+  border-left-color: var(--color-pink-text);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-pink-text) 8%, transparent),
+    color-mix(in srgb, var(--color-pink-text) 4%, transparent)
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+.rec-card--perf .rec-card__icon,
+.rec-card--perf.rec-card--analyzed .rec-card__icon {
+  color: var(--color-pink-text);
+  background: var(--color-pink-bg);
+}
+
+.rec-card--perf.rec-card--analyzed .rec-card__profile-info {
+  color: var(--color-pink-text);
+}
+
+/* Format type tag (JFR / pprof / OTLP / Heap / Perf) */
 .rec-card__type {
   flex: none;
   font-size: 0.625rem;
@@ -632,6 +619,11 @@ onBeforeUnmount(() => {
 .rec-card__type--heap {
   background: var(--color-purple-bg);
   color: var(--color-purple-text);
+}
+
+.rec-card__type--perf {
+  background: var(--color-pink-bg);
+  color: var(--color-pink-text);
 }
 
 @keyframes rec-card-pulse {
@@ -690,45 +682,6 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
-}
-
-/* Origin breadcrumb (auto-downloaded recordings) */
-.rec-card__origin {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-weight: 500;
-  max-width: 50%;
-  overflow: hidden;
-}
-
-.rec-card__origin > i {
-  color: var(--color-success-hover);
-  font-size: 0.7rem;
-}
-
-.rec-card__origin-part {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.rec-card__origin-part--project {
-  color: var(--color-dark);
-  font-weight: 600;
-}
-
-.rec-card__origin-sep {
-  color: var(--color-muted-separator);
-  flex-shrink: 0;
 }
 
 /* Line 2: metadata */
@@ -1006,28 +959,6 @@ onBeforeUnmount(() => {
 }
 
 /* Drag handle */
-.rec-card__drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  color: var(--color-slate-light);
-  cursor: grab;
-  transition: all 0.15s ease;
-  font-size: 1rem;
-}
-
-.rec-card__drag-handle:hover {
-  background: rgba(94, 100, 255, 0.1);
-  color: var(--color-primary);
-}
-
-.rec-card__drag-handle:active {
-  cursor: grabbing;
-}
-
 /* Expanded content */
 .rec-card__expanded {
   margin-top: 8px;

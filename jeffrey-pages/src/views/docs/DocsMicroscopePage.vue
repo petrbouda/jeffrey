@@ -110,7 +110,7 @@ onMounted(() => {
       </div>
 
       <h3 id="server-connection">Connection to Jeffrey Hub</h3>
-      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>HubClients</code> record. Every file a session holds streams as 64&nbsp;KB chunks, and Microscope assembles a recording from the chunks it downloads. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
+      <p>When a workspace is bound to a remote, Microscope opens one cached gRPC client per service, all bundled into a <code>HubClients</code> record. Every file a session holds streams as 64&nbsp;KB chunks, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no remote bound, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>
@@ -122,7 +122,7 @@ onMounted(() => {
       </div>
 
       <h3 id="recording-pipeline">Recording → Profile Pipeline</h3>
-      <p>A recording is just a file on disk — a JFR recording, or an OpenTelemetry (<code>.otlp</code>) or pprof (<code>.pprof</code>, <code>.pb.gz</code>) profile. Initializing a profile runs the matching parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization builds a sibling index next to the <code>.hprof</code> (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference). See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
+      <p>A recording is just a file on disk — a JFR recording, or an OpenTelemetry (<code>.otlp</code>) or pprof (<code>.pprof</code>, <code>.pb.gz</code>) profile. Initializing a profile runs the matching parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization copies the <code>.hprof</code> into its own profile and builds an index beside it (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference) — and a perf-counters snapshot (<code>.hsperfdata</code>) is read into its profile within the request (see <router-link to="/docs/microscope/profiles/perf-counters">Perf Counters</router-link>). Every kind is a profile of its own; a hub session that brings several lands as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> of such recordings. See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-file-earmark-binary"></i><span>Recording (JFR)</span></div>

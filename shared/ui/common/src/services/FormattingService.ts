@@ -208,6 +208,17 @@ export default class FormattingService {
     }
   }
 
+  /**
+   * An exact count with its digits grouped — 21506 renders as "21,506". Fixed to one locale so a
+   * figure reads the same in every browser; {@link formatNumber} is the compact "21.5K" form.
+   */
+  static formatCount(num: number | null | undefined): string {
+    if (num === undefined || num === null) {
+      return '-';
+    }
+    return num.toLocaleString('en-US');
+  }
+
   static formatNumber(num: number): string {
     if (num === undefined || num === null) {
       return '-';

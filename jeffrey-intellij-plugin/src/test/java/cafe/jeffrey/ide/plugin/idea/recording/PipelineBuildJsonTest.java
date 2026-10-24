@@ -186,7 +186,7 @@ public class PipelineBuildJsonTest {
     }
 
     /**
-     * Two of the profile pipeline's nine stages are routinely skipped — method trace weights unless
+     * Two of the profile pipeline's eight stages are routinely skipped — method trace weights unless
      * the recording traced methods, traces unless it carries spans — so counting a skipped stage as
      * finished matters more here than for a dump, where skipping is the exception.
      */
@@ -217,7 +217,7 @@ public class PipelineBuildJsonTest {
      * A real answer, taken off a running Microscope while it analysed one of the repository's own
      * recordings. Two things in it are worth pinning: the very first stage came back
      * {@code skipped} — a recording imported by path has no workspace details to read — and the
-     * pipeline reports nine stages, so the numbering a reader sees has to count that skip as behind
+     * pipeline reports eight stages, so the numbering a reader sees has to count that skip as behind
      * them rather than ahead.
      */
     @Test
@@ -231,14 +231,13 @@ public class PipelineBuildJsonTest {
                         + "{\"id\":\"method-trace-weights\",\"status\":\"pending\"},"
                         + "{\"id\":\"recluster\",\"status\":\"pending\"},"
                         + "{\"id\":\"traces\",\"status\":\"pending\"},"
-                        + "{\"id\":\"additional-files\",\"status\":\"pending\"},"
                         + "{\"id\":\"checkpoint\",\"status\":\"pending\"},"
                         + "{\"id\":\"warmup\",\"status\":\"pending\"}],\"running\":true}",
                 PROFILE_INIT);
 
         assertFalse(build.failed());
         assertEquals(3, build.stageNumber());
-        assertEquals(9, build.stageCount());
+        assertEquals(8, build.stageCount());
         assertEquals("Collecting event types and threads", build.stageTitle());
         assertEquals(267L, build.elapsedMs());
     }

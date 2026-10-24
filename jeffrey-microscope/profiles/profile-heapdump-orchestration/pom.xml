@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>profile-heapdump-orchestration</artifactId>
-    <description>Heap dump orchestration: HeapDumpManager, cached analyses, upload/session services and additional-files processing</description>
+    <description>Heap dump orchestration: HeapDumpManager, cached analyses and session services</description>
 
     <dependencies>
         <dependency>

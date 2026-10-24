@@ -210,6 +210,13 @@ class HubsMcpToolsTest {
         return hub;
     }
 
+    /** The recording a download landed as: a JFR recording outside any bundle. */
+    private static Recording landedRecording() {
+        Recording recording = mock(Recording.class);
+        when(recording.eventSource()).thenReturn(RecordingEventSource.JDK);
+        return recording;
+    }
+
     private void noLocalRecordings() {
         when(recordingsManager.listRecordings()).thenReturn(List.of());
     }
@@ -1611,7 +1618,8 @@ class HubsMcpToolsTest {
                     .thenReturn("rec-first", "rec-second");
             resolvesTo(projectWith(activeFourChunks(), downloads));
             noLocalRecordings();
-            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(mock(Recording.class)));
+            Recording landed = landedRecording();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             assertTrue(complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ))
@@ -1629,7 +1637,8 @@ class HubsMcpToolsTest {
             when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
             resolvesTo(projectWith(fourChunks(), downloads));
             noLocalRecordings();
-            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(mock(Recording.class)));
+            Recording landed = landedRecording();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             long end = NOW.plusSeconds(320).toEpochMilli();
@@ -1809,7 +1818,7 @@ class HubsMcpToolsTest {
             CountDownLatch release = new CountDownLatch(1);
             AtomicInteger transfers = new AtomicInteger();
             AtomicBoolean persisted = new AtomicBoolean();
-            Recording recording = mock(Recording.class);
+            Recording recording = landedRecording();
             when(recordingsManager.findRecording("rec-new"))
                     .thenAnswer(_ -> persisted.get() ? Optional.of(recording) : Optional.empty());
 
@@ -1858,7 +1867,7 @@ class HubsMcpToolsTest {
             AtomicInteger preflightCalls = new AtomicInteger();
             AtomicInteger transfers = new AtomicInteger();
             AtomicBoolean persisted = new AtomicBoolean();
-            Recording recording = mock(Recording.class);
+            Recording recording = landedRecording();
             when(recordingsManager.findRecording("rec-new"))
                     .thenAnswer(_ -> persisted.get() ? Optional.of(recording) : Optional.empty());
             RepositoryManager repository = mock(RepositoryManager.class);

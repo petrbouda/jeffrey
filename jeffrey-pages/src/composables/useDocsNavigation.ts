@@ -153,6 +153,7 @@ export const microscopeNavigation: DocSection[] = [
       { title: 'Overview', to: '/docs/microscope/profiles' },
       { title: 'Auto Analysis', to: '/docs/microscope/profiles/auto-analysis' },
       { title: 'Heap Dump Analysis', to: '/docs/microscope/profiles/heap-dump' },
+      { title: 'Perf Counters', to: '/docs/microscope/profiles/perf-counters' },
       {
         title: 'Garbage Collection',
         path: 'garbage-collection',

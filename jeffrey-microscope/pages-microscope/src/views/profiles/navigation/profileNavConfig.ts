@@ -30,6 +30,7 @@ export type ProfileMode =
   | 'Technologies'
   | 'Visualization'
   | 'HeapDump'
+  | 'PerfCounters'
   | 'Tools';
 
 export type DifferentialType = 'flamegraphs' | 'subsecond';
@@ -312,9 +313,6 @@ export const profileNavSections: Record<
       title: 'RUNTIME',
       items: [
         item('JVM Flags', 'bi-flag', '/flags'),
-        item('Performance Counters', 'bi-speedometer2', '/performance-counters', {
-          disabledKeys: ['performance-counters']
-        }),
         item('VM Operations', 'bi-stopwatch', '/vm-operations'),
         item('Modules', 'bi-boxes', '/modules')
       ]
@@ -477,6 +475,15 @@ export const profileNavSections: Record<
       ]
     }
   ],
+  PerfCounters: [
+    {
+      title: 'PERF COUNTERS',
+      items: [
+        item('Overview', 'bi-speedometer2', '/perf-counters/overview'),
+        item('Counters', 'bi-list-ul', '/perf-counters/counters')
+      ]
+    }
+  ],
   Tools: [
     {
       title: 'TRANSFORM',
@@ -560,6 +567,9 @@ export function getModeForPath(path: string): ProfileMode {
   }
   if (path.includes('/heap-dump/')) {
     return 'HeapDump';
+  }
+  if (path.includes('/perf-counters/')) {
+    return 'PerfCounters';
   }
   if (path.includes('/tools/')) {
     return 'Tools';

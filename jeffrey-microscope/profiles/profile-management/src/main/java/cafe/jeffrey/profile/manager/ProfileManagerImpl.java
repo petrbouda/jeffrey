@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.memory.AllocationManager;
@@ -30,6 +29,7 @@ import cafe.jeffrey.profile.manager.memory.NativeMemoryManager;
 import cafe.jeffrey.profile.manager.memory.NativeMemoryTrackingManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
 import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
@@ -133,8 +133,8 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
-    public AdditionalFilesManager additionalFilesManager() {
-        return registry.additionalFiles().apply(profileInfo);
+    public PerfCountersManager perfCountersManager() {
+        return registry.perfCounters().apply(profileInfo);
     }
 
     @Override

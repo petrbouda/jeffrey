@@ -28,6 +28,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.HeapDumpProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.PipelineProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
@@ -59,6 +63,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -70,7 +75,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
@@ -139,18 +143,18 @@ class ProfileRecordingsManagerAnalyzeTest {
         runRegistry = new PipelineRunRegistry<>(
                 ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), FIXED_CLOCK);
 
+        PipelineProfileBuilder pipelineBuilder = new PipelineProfileBuilder(
+                FIXED_CLOCK, recordingsDir, recordingInformationParser, profileInitializer,
+                localCoreRepositories, profileCleanup, runRegistry);
+        ProfileBuilders builders = new ProfileBuilders(Map.of(
+                ProfileKind.JFR, pipelineBuilder,
+                ProfileKind.STACK_SAMPLES, pipelineBuilder,
+                ProfileKind.HEAP_DUMP, new HeapDumpProfileBuilder(
+                        FIXED_CLOCK, jeffreyDirs, recordingsDir, localCoreRepositories, profileManagerFactory,
+                        heapDumpInitService, profileCleanup)));
+
         manager = new ProfileRecordingsManager(
-                core,
-                FIXED_CLOCK,
-                jeffreyDirs,
-                recordingsDir,
-                recordingInformationParser,
-                profileInitializer,
-                profileManagerFactory,
-                localCoreRepositories,
-                profileCleanup,
-                runRegistry,
-                heapDumpInitService);
+                core, profileManagerFactory, localCoreRepositories, profileCleanup, builders);
     }
 
     private static Recording recording() {
@@ -184,31 +188,11 @@ class ProfileRecordingsManagerAnalyzeTest {
             manager.analyzeRecording(RECORDING_ID);
 
             ArgumentCaptor<RecordingSources> sources = ArgumentCaptor.forClass(RecordingSources.class);
-            verify(profileInitializer).initialize(any(), sources.capture(), anyList());
+            verify(profileInitializer).initialize(any(), sources.capture());
 
             assertEquals(
                     List.of(RECORDING_ID + "-" + FILENAME, RECORDING_ID + "-profile-2.jfr"),
                     sources.getValue().files().stream()
-                            .map(path -> path.getFileName().toString())
-                            .toList());
-        }
-
-        @Test
-        void handsTheArtifactsToTheInitializerRatherThanDroppingThem() throws IOException {
-            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-profile-2.jfr"));
-            Files.createFile(recordingsDir.resolve(RECORDING_ID + "-heap.hprof"));
-            when(recordingRepository.findRecording(RECORDING_ID))
-                    .thenReturn(Optional.of(sessionRecording()));
-
-            manager.analyzeRecording(RECORDING_ID);
-
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<Path>> artifacts = ArgumentCaptor.forClass(List.class);
-            verify(profileInitializer).initialize(any(), any(), artifacts.capture());
-
-            assertEquals(
-                    List.of(RECORDING_ID + "-heap.hprof"),
-                    artifacts.getValue().stream()
                             .map(path -> path.getFileName().toString())
                             .toList());
         }
@@ -264,7 +248,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
             var order = inOrder(profileRepository, profileInitializer);
             order.verify(profileRepository).insert(any());
-            order.verify(profileInitializer).initialize(any(), any(), any());
+            order.verify(profileInitializer).initialize(any(), any());
             order.verify(profileRepository).enableProfile(any());
         }
 
@@ -284,7 +268,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
             assertEquals(existingProfileId, manager.analyzeRecording(RECORDING_ID));
             verify(profileCleanup, never()).deleteProfile(existingProfileId);
-            verify(profileInitializer, never()).initialize(any(), any(), any());
+            verify(profileInitializer, never()).initialize(any(), any());
         }
 
         @Test
@@ -308,7 +292,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
             assertEquals(first.get(5, SECONDS), second.get(5, SECONDS));
             verify(recordingRepository, times(1)).findRecording(RECORDING_ID);
-            verify(profileInitializer).initialize(any(), any(), any());
+            verify(profileInitializer).initialize(any(), any());
         }
 
         @Test
@@ -336,7 +320,7 @@ class ProfileRecordingsManagerAnalyzeTest {
             assertEquals(first.get(5, SECONDS), second.get(5, SECONDS));
             verify(recordingRepository, times(1)).findRecording(RECORDING_ID);
             verify(profileCleanup, never()).deleteProfile(any());
-            verify(profileInitializer).initialize(any(), any(), any());
+            verify(profileInitializer).initialize(any(), any());
         }
     }
 
@@ -346,7 +330,7 @@ class ProfileRecordingsManagerAnalyzeTest {
         @Test
         void retainsTheDisabledProfileRowSoTheFailedAttemptCanBeInspected() {
             RuntimeException failure = new RuntimeException("parse failed");
-            when(profileInitializer.initialize(any(), any(), any())).thenThrow(failure);
+            when(profileInitializer.initialize(any(), any())).thenThrow(failure);
 
             RuntimeException thrown = assertThrows(
                     RuntimeException.class, () -> manager.analyzeRecording(RECORDING_ID));

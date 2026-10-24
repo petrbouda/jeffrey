@@ -21,6 +21,8 @@ import cafe.jeffrey.microscope.persistence.api.*;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
@@ -53,8 +55,10 @@ public class JdbcRecordingRepository implements RecordingRepository {
     private static final String NO_PROJECT = "project_id IS NULL";
 
     /**
-     * The recording made of one file with a given name and size. A recording of several files — a
-     * downloaded session — never matches, even when one of its files has that name and size. Among
+     * The recording made of one file with a given name and size. A recording of several files — the
+     * JFR chunks of a downloaded session — never matches, even when one of its files has that name and
+     * size. A one-file member of a bundle does: the heap dump a download brought in is the same file a
+     * later import of it would be, and handing back its profile is the point. Among
      * several matches one that already has a profile wins, since handing that profile back is the
      * point; newest first within each group.
      */
@@ -188,8 +192,8 @@ public class JdbcRecordingRepository implements RecordingRepository {
     public void insertRecording(Recording recording, RecordingFile recordingFile) {
         //language=SQL
         String sql = """
-                INSERT INTO recordings (id, recording_name, group_id, event_source, created_at, recording_started_at, recording_finished_at)
-                    VALUES (:id, :recording_name, :group_id, :event_source, :created_at, :recording_started_at, :recording_finished_at)""";
+                INSERT INTO recordings (id, recording_name, group_id, event_source, created_at, recording_started_at, recording_finished_at, bundle_id)
+                    VALUES (:id, :recording_name, :group_id, :event_source, :created_at, :recording_started_at, :recording_finished_at, :bundle_id)""";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", recording.id())
@@ -200,7 +204,8 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 .addValue("recording_started_at", recording.recordingStartedAt() != null
                         ? recording.recordingStartedAt().atOffset(ZoneOffset.UTC) : null)
                 .addValue("recording_finished_at", recording.recordingFinishedAt() != null
-                        ? recording.recordingFinishedAt().atOffset(ZoneOffset.UTC) : null);
+                        ? recording.recordingFinishedAt().atOffset(ZoneOffset.UTC) : null)
+                .addValue("bundle_id", recording.bundleId());
 
         databaseClient.inTransaction(() -> {
             databaseClient.insert(StatementLabel.INSERT_RECORDING, sql, params);
@@ -334,5 +339,159 @@ public class JdbcRecordingRepository implements RecordingRepository {
                 new LabeledQuery(StatementLabel.FIND_ALL_RECORDINGS, recordingsSql),
                 new LabeledQuery(StatementLabel.FIND_ALL_RECORDING_FILES, filesSql),
                 params);
+    }
+
+    // --- Bundle operations ---
+
+    //language=sql
+    private static final String FIND_BUNDLES = "SELECT * FROM bundles WHERE " + NO_PROJECT;
+
+    //language=sql
+    private static final String BUNDLE_FILES_ORDER = " ORDER BY uploaded_at, filename";
+
+    private static final String PARAM_BUNDLE_ID = "bundle_id";
+    private static final String PARAM_GROUP_ID = "group_id";
+
+    @Override
+    public void insertBundle(Bundle bundle, List<Recording> members) {
+        //language=SQL
+        String sql = """
+                INSERT INTO bundles (id, bundle_name, group_id, created_at)
+                    VALUES (:id, :bundle_name, :group_id, :created_at)""";
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", bundle.id())
+                .addValue("bundle_name", bundle.bundleName())
+                .addValue(PARAM_GROUP_ID, bundle.groupId())
+                .addValue("created_at", bundle.createdAt().atOffset(ZoneOffset.UTC));
+
+        databaseClient.inTransaction(() -> {
+            databaseClient.insert(StatementLabel.INSERT_BUNDLE, sql, params);
+            bundle.files().forEach(this::insertBundleFile);
+            for (Recording member : members) {
+                if (member.files().isEmpty()) {
+                    throw new IllegalArgumentException("A bundle member needs at least one file: " + member.id());
+                }
+                insertRecording(member, member.files().getFirst());
+                member.files().stream().skip(1).forEach(this::insertRecordingFile);
+            }
+        });
+    }
+
+    private void insertBundleFile(BundleFile file) {
+        //language=SQL
+        String sql = """
+                INSERT INTO bundle_files (id, bundle_id, filename, supported_type, uploaded_at, size_in_bytes)
+                    VALUES (:id, :bundle_id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", file.id())
+                .addValue(PARAM_BUNDLE_ID, file.bundleId())
+                .addValue("filename", file.filename())
+                .addValue("supported_type", file.fileType().name())
+                .addValue("uploaded_at", file.uploadedAt().atOffset(ZoneOffset.UTC))
+                .addValue("size_in_bytes", file.sizeInBytes());
+
+        databaseClient.insert(StatementLabel.INSERT_BUNDLE_FILE, sql, params);
+    }
+
+    @Override
+    public List<Bundle> findAllBundles() {
+        //language=sql
+        String filesSql = "SELECT * FROM bundle_files WHERE " + NO_PROJECT + BUNDLE_FILES_ORDER;
+        return withBundleFiles(
+                databaseClient.query(StatementLabel.FIND_ALL_BUNDLES, FIND_BUNDLES,
+                        new MapSqlParameterSource(), Mappers.bundleMapper()),
+                new LabeledQuery(StatementLabel.FIND_ALL_BUNDLE_FILES, filesSql),
+                new MapSqlParameterSource());
+    }
+
+    @Override
+    public Optional<Bundle> findBundle(String bundleId) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARAM_BUNDLE_ID, bundleId);
+        //language=sql
+        String filesSql = "SELECT * FROM bundle_files WHERE " + NO_PROJECT
+                + " AND bundle_id = :bundle_id" + BUNDLE_FILES_ORDER;
+        return withBundleFiles(
+                databaseClient.query(StatementLabel.FIND_BUNDLE, FIND_BUNDLES + " AND id = :bundle_id",
+                        params, Mappers.bundleMapper()),
+                new LabeledQuery(StatementLabel.FIND_BUNDLE_FILES, filesSql),
+                params)
+                .stream()
+                .findFirst();
+    }
+
+    @Override
+    public List<Bundle> findBundlesByGroupId(String groupId) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARAM_GROUP_ID, groupId);
+        //language=sql
+        String filesSql = "SELECT bf.* FROM bundle_files bf JOIN bundles b ON bf.bundle_id = b.id WHERE b."
+                + NO_PROJECT + " AND b.group_id = :group_id ORDER BY bf.uploaded_at, bf.filename";
+        return withBundleFiles(
+                databaseClient.query(StatementLabel.FIND_BUNDLES_IN_GROUP, FIND_BUNDLES + " AND group_id = :group_id",
+                        params, Mappers.bundleMapper()),
+                new LabeledQuery(StatementLabel.FIND_ALL_BUNDLE_FILES, filesSql),
+                params);
+    }
+
+    /**
+     * Attaches the download-only files to their bundles, the way {@link #findRecordingsWithFiles} does
+     * for recordings: one query for the files, skipped when there are no bundles.
+     */
+    private List<Bundle> withBundleFiles(
+            List<Bundle> bundles, LabeledQuery filesQuery, MapSqlParameterSource params) {
+
+        if (bundles.isEmpty()) {
+            return bundles;
+        }
+        Map<String, List<BundleFile>> filesPerBundle = databaseClient.query(
+                        filesQuery.label(), filesQuery.sql(), params, Mappers.bundleFileMapper())
+                .stream()
+                .collect(Collectors.groupingBy(BundleFile::bundleId));
+
+        return bundles.stream()
+                .map(bundle -> bundle.withFiles(filesPerBundle.getOrDefault(bundle.id(), List.of())))
+                .toList();
+    }
+
+    @Override
+    public List<Recording> findBundleMembers(String bundleId) {
+        String recordingsSql = SELECT_RECORDINGS_WITH_PROFILE + NO_PROJECT + " AND r.bundle_id = :bundle_id";
+        //language=sql
+        String filesSql = "SELECT rf.* FROM recording_files rf JOIN recordings r ON rf.recording_id = r.id WHERE r."
+                + NO_PROJECT + " AND r.bundle_id = :bundle_id ORDER BY rf.uploaded_at, rf.filename";
+
+        return findRecordingsWithFiles(
+                new LabeledQuery(StatementLabel.FIND_ALL_RECORDINGS, recordingsSql),
+                new LabeledQuery(StatementLabel.FIND_ALL_RECORDING_FILES, filesSql),
+                new MapSqlParameterSource().addValue(PARAM_BUNDLE_ID, bundleId));
+    }
+
+    @Override
+    public void deleteBundle(String bundleId) {
+        // No 'project_id IS NULL' in a DELETE: it triggers the DuckDB ART index bug noted above.
+        //language=sql
+        String deleteFilesSql = "DELETE FROM bundle_files WHERE bundle_id = :bundle_id";
+        //language=sql
+        String deleteBundleSql = "DELETE FROM bundles WHERE id = :bundle_id";
+
+        var params = new MapSqlParameterSource().addValue(PARAM_BUNDLE_ID, bundleId);
+
+        databaseClient.inTransaction(() -> {
+            databaseClient.delete(StatementLabel.DELETE_BUNDLE_FILES, deleteFilesSql, params);
+            databaseClient.delete(StatementLabel.DELETE_BUNDLE, deleteBundleSql, params);
+        });
+    }
+
+    @Override
+    public void updateBundleGroup(String bundleId, String groupId) {
+        //language=sql
+        String sql = "UPDATE bundles SET group_id = :group_id WHERE " + NO_PROJECT + " AND id = :bundle_id";
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue(PARAM_BUNDLE_ID, bundleId)
+                .addValue(PARAM_GROUP_ID, groupId);
+
+        databaseClient.update(StatementLabel.UPDATE_BUNDLE_GROUP, sql, params);
     }
 }

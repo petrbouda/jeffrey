@@ -29,15 +29,16 @@ meantime, and call `hubs_list` again once they say it is connected.
 ```
 hubs_sessions(withinLastMinutes=60)                  → rows, newest first, each with a sessionRef
   … which interval? — ask, with started/duration in front of the user
-hubs_download(sessionRef, window=LAST_MINUTES)       → recordingId, or RUNNING with an operationId
+hubs_download(sessionRef, window=LAST_MINUTES)       → recordingId + bundleId + items, or RUNNING with an operationId
    or hubs_download(sessionRef, window=STARTUP|LATEST|PEAK|WHOLE)
    or hubs_download(sessionRef, window=BEFORE|AROUND, atEpochMs, minutes)
    or hubs_download(sessionRef, startEpochMs, endEpochMs) → a span of your own
    or hubs_download(sessionRef, fileIds=["…"])       → the same, for files picked from hubs_files
    or hubs_download(sessionRef)                      → the whole session, when it is short
 recordings_analyzeRecording(recordingId)             → profileId, or RUNNING with an operationId
-operations_status(operationId)                       → where either of the last two has got to
-… then analyze-jfr (or analyze-heap for a dump)
+   and, for a memory question, recordings_analyzeRecording(<heap item's recordingId>) → its own profileId
+operations_status(operationId)                       → where any of these has got to
+… then analyze-jfr (or analyze-heap on the heap item's profile)
 recordings_delete(recordingId)                       → when the question is answered
 
 hubs_files(sessionRef)                               → the files beside the recording: logs, crash file, perf counters
@@ -47,7 +48,7 @@ hubs_fetchFile(sessionRef, fileId)                   → one of them, as a path 
 Three calls on the main path, and the third is a tool you already know; the question in between
 is what keeps a day-long session from being pulled for an hour's worth of answer, and
 `operations_status` is how the two long ones are followed. There is no hub-specific analysis:
-once a part of a session is downloaded it is a normal Jeffrey recording.
+once a part of a session is downloaded it is a bundle of normal Jeffrey recordings.
 
 ## 1. Find the session — one call, not four
 
@@ -181,18 +182,26 @@ confirmed on the window that matters. A single chunk may equally go `hubs_fetchF
 
 ## 4. Pull it in
 
-`hubs_download(sessionRef, startEpochMs, endEpochMs)` brings the recording files covering the window as
-one local recording, nothing else; `hubs_download(sessionRef, fileIds=["…"])` brings the named files,
-the recording files and any artifact beside them; and `hubs_download(sessionRef)` alone brings every
-finished file of the session — its recording files, with heap dumps and logs beside them. The
-recording files are kept as the several files they are and fetched in parallel; nothing joins them,
-and the parser reads them as independent inputs. Each answers `status: DOWNLOADED` with a `recordingId`, and a part
-of a session reports `coveredStartEpochMs` / `coveredEndEpochMs`, the span its files cover. A part is a recording of
-its own: it is never answered from a whole-session copy that is already here, and the Recordings
-list names it after its span so two windows of one session read apart.
+Every download lands as one **bundle**. `hubs_download(sessionRef, startEpochMs, endEpochMs)` brings
+the recording files covering the window, nothing else; `hubs_download(sessionRef, fileIds=["…"])` brings
+the named files, the recording files and any artifact beside them; and `hubs_download(sessionRef)`
+alone brings every finished file of the session. In the bundle all the recording files are **one**
+JFR recording — kept as the several files they are and fetched in parallel; nothing joins them, and
+the parser reads them as independent inputs. Each heap dump (`.hprof`, `.hprof.gz`) and the
+perf-counters file are **recordings of their own**, and the logs and crash file are download-only
+files of the bundle. Each answers `status: DOWNLOADED` with the JFR recording's `recordingId`, the
+`bundleId`, and `items` — every item that is analysed on its own, the session's recording first, each
+with its `recordingId`, `eventSource` (`JDK` or `ASYNC_PROFILER` for the recording, `HEAP_DUMP`,
+`PERF_COUNTERS`), `name` and `profileId` once it has one; when there are heap dumps the answer's
+guidance names them. A part of a session reports `coveredStartEpochMs` / `coveredEndEpochMs`, the span
+its files cover. A part is a bundle of its own: it is never answered from a whole-session copy that
+is already here, and the Recordings list names it after its span so two windows of one session read
+apart.
 
-It does **not** build the profile; `recordings_analyzeRecording(recordingId)` does that and returns
-the `profileId` every analysis tool takes. The two are separate on purpose: a large session is a
+It does **not** build a profile; `recordings_analyzeRecording(recordingId)` does that, one item at a
+time, and returns the `profileId` every analysis tool takes. The `recordingId` at the top of the
+answer is the JFR item; a heap dump is analysed by its own item's `recordingId`, into a profile of
+its own. The two are separate on purpose: a large session is a
 long transfer and then a long analysis, and one call doing both is the shape that hits a tool
 timeout with nothing to show for it.
 
@@ -237,7 +246,8 @@ the GC log say" — or the session has no finished recording at all — do not d
    and `hubs_fetchFile` name the profile and its zero point (`profilingStartedAtEpochMs`), so that uptime is `zero point + 12.345s`
    on the JFR timeline and `jvm_gc` on the profile can be read against it.
 4. A fetched heap dump is a profile's input, not a text: pass its path to `recordings_analyzeFile`
-   and hand off to **analyze-heap**.
+   and hand off to **analyze-heap**. A heap dump the session's download already brought needs no
+   fetch — it is an item of the bundle; analyse that item's `recordingId` instead.
 
 The path is where the file stays: beside the profile (`profiles/<id>/artifacts/`) when the
 session is analysed, under `artifacts/<hub>/<project>/<session>/` otherwise. A file fetched
@@ -255,18 +265,22 @@ You now have a `profileId` and the hub is out of the picture.
 
 - A JFR recording → the **analyze-jfr** skill: `profiles_summary` first to see what the profile
   can answer, then the route it points at.
-- A session whose recording is a heap dump → the **analyze-heap** skill instead.
+- A heap dump → the **analyze-heap** skill instead, on the heap item's own profile.
 
-A session often carries both a JFR recording and a heap dump; the dump arrives as an artifact
-alongside the recording. `profiles_summary` on the resulting profile says which of the two you
-actually have.
+A session often carries both a JFR recording and a heap dump. The dump is never inside the JFR
+profile: it arrives as another item of the bundle — the `items` entry with `eventSource: HEAP_DUMP`.
+For a memory question, `recordings_analyzeRecording` on that item's `recordingId` builds its profile,
+and the `heap_` tools take *that* `profileId`; called on the JFR profile they are refused with a
+pointer back to the bundle. A perf-counters item builds a profile too, but no tool reads its
+counters yet: `profiles_summary` describes it in one line, and the user reads it at its `uiLink`.
 
 ## 6. Clean up
 
 The hub is the copy of record; Microscope holds what is being read. A window that has answered its
 question, and a partial look once the real window is downloaded, are removed with
 `recordings_delete(recordingId)` — recording, profile and files together, nothing on the hub
-touched. Say which one you are deleting; a profile the user opened in the browser stops working
+touched. It deletes one item of the bundle and reports the `bundleId`; the other items stay, and
+the bundle goes with its last item, so removing a whole window means deleting each of its items. Say which one you are deleting; a profile the user opened in the browser stops working
 the moment it goes. Leave a profile the user asked to keep, or one another skill is still reading.
 
 ## Link what you name

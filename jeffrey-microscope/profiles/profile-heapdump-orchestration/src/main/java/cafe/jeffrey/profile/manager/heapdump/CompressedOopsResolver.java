@@ -17,13 +17,9 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
-import cafe.jeffrey.profile.common.event.GCHeapConfiguration;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
-import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
-import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +29,7 @@ import java.util.Optional;
 /**
  * Determines whether a heap dump uses compressed oops, recording the chosen
  * value and its provenance to the heap-dump-config sidecar. Detection priority:
- * manual override → JFR event → heap inference → defaulted.
+ * manual override → heap inference → defaulted.
  *
  * <p>Two entry points: {@link #resolveAndStore} opens its own session for
  * heap inference; {@link #resolveAndStoreInSession} reuses a session that the
@@ -51,7 +47,7 @@ public final class CompressedOopsResolver {
     private static final long DEFAULT_TOTAL_OVERCOUNT = 0L;
 
     private enum Source {
-        MANUAL, JFR, INFERRED, DEFAULTED;
+        MANUAL, INFERRED, DEFAULTED;
 
         @Override
         public String toString() {
@@ -63,19 +59,15 @@ public final class CompressedOopsResolver {
 
     private final HeapDumpSessionTemplate sessions;
 
-    private final ProfileEventRepository eventRepository;
-
     private final HeapDumpReportStore reports;
 
     public CompressedOopsResolver(
             ProfileInfo profileInfo,
             HeapDumpSessionTemplate sessions,
-            ProfileEventRepository eventRepository,
             HeapDumpReportStore reports) {
 
         this.profileInfo = profileInfo;
         this.sessions = sessions;
-        this.eventRepository = eventRepository;
         this.reports = reports;
     }
 
@@ -95,10 +87,6 @@ public final class CompressedOopsResolver {
         if (manualOverride != null) {
             return new Resolution(manualOverride, Source.MANUAL);
         }
-        Optional<Boolean> jfrValue = detectFromJfr();
-        if (jfrValue.isPresent()) {
-            return new Resolution(jfrValue.get(), Source.JFR);
-        }
         Optional<Boolean> inferred = inferFromHeap();
         if (inferred.isPresent()) {
             return new Resolution(inferred.get(), Source.INFERRED);
@@ -110,10 +98,6 @@ public final class CompressedOopsResolver {
         if (manualOverride != null) {
             return new Resolution(manualOverride, Source.MANUAL);
         }
-        Optional<Boolean> jfrValue = detectFromJfr();
-        if (jfrValue.isPresent()) {
-            return new Resolution(jfrValue.get(), Source.JFR);
-        }
         return new Resolution(session.view().metadata().compressedOops(), Source.INFERRED);
     }
 
@@ -123,17 +107,6 @@ public final class CompressedOopsResolver {
         LOG.info("Compressed oops resolved: compressedOops={} source={} profileId={}",
                 resolution.compressedOops(), resolution.source(), profileInfo.id());
         return config;
-    }
-
-    private Optional<Boolean> detectFromJfr() {
-        try {
-            return eventRepository.latestJsonFields(Type.GC_HEAP_CONFIGURATION)
-                    .map(fields -> Json.treeToValue(fields, GCHeapConfiguration.class))
-                    .map(GCHeapConfiguration::usesCompressedOops);
-        } catch (Exception e) {
-            LOG.debug("Could not detect compressed oops from JFR events: {}", e.getMessage());
-            return Optional.empty();
-        }
     }
 
     private Optional<Boolean> inferFromHeap() {

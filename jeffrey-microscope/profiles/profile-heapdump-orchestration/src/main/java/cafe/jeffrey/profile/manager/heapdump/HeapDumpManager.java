@@ -53,7 +53,6 @@ import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -210,20 +209,6 @@ public interface HeapDumpManager {
     void deleteCache();
 
     /**
-     * Delete all heap dump files (cache, heap dump, and compressed heap dump).
-     * This completely removes all heap dump data for this profile.
-     */
-    void deleteHeapDump();
-
-    /**
-     * Upload a heap dump file.
-     *
-     * @param inputStream the input stream of the heap dump file
-     * @param filename    the original filename (must end with .hprof or .hprof.gz)
-     */
-    void uploadHeapDump(InputStream inputStream, String filename);
-
-    /**
      * Check if string analysis results exist for this profile.
      *
      * @return true if string-analysis.json exists
@@ -314,7 +299,7 @@ public interface HeapDumpManager {
 
     /**
      * Resolve compressed oops setting and store it to disk as heap-dump-config.json.
-     * Detection priority: manual override -> JFR events -> heap inference.
+     * Detection priority: manual override -> heap inference -> defaulted.
      *
      * @param manualOverride if non-null, uses this value directly (source = MANUAL)
      * @return the resolved config

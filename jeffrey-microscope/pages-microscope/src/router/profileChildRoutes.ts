@@ -70,12 +70,6 @@ const analysisRoutes = [
     name: 'profile-flags',
     component: () => import('@/views/profiles/detail/ProfileFlags.vue'),
     meta: { layout: 'profile' }
-  },
-  {
-    path: 'performance-counters',
-    name: 'profile-performance-counters',
-    component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
-    meta: { layout: 'profile' }
   }
 ];
 
@@ -328,6 +322,22 @@ const runtimeRoutes = [
     path: 'container/cpu-throttling',
     name: 'profile-container-cpu-throttling',
     component: () => import('@/views/profiles/detail/ProfileContainerCpuThrottling.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
+// Perf-counters snapshot: a profile of its own, built from a .hsperfdata file
+const perfCountersRoutes = [
+  {
+    path: 'perf-counters/overview',
+    name: 'profile-perf-counters-overview',
+    component: () => import('@/views/profiles/detail/ProfilePerfCountersOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'perf-counters/counters',
+    name: 'profile-perf-counters-counters',
+    component: () => import('@/views/profiles/detail/ProfilePerformanceCounters.vue'),
     meta: { layout: 'profile' }
   }
 ];
@@ -692,6 +702,7 @@ export const profileChildRoutes = [
   ...memoryRoutes,
   ...runtimeRoutes,
   ...heapDumpRoutes,
+  ...perfCountersRoutes,
   ...technologyRoutes,
   ...traceRoutes,
   ...toolsRoutes

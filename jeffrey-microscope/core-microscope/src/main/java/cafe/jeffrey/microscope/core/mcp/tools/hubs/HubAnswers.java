@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.hub.HubSource;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
@@ -294,6 +295,14 @@ public final class HubAnswers {
             @McpDescription("The profile already built from it; null when it is not analysed")
             String profileId,
             @McpNullable
+            @McpDescription("The bundle the download landed in, holding every item it brought; null until "
+                    + "the transfer lands, and for a copy made before downloads were bundled")
+            String bundleId,
+            @McpDescription("Every item of the bundle that is analysed on its own - the recording first, then "
+                    + "the heap dumps and the perf counters by name - with its recordingId for "
+                    + "recordings_analyzeRecording; empty until the transfer lands")
+            List<BundleItem> items,
+            @McpNullable
             @McpMinimum(0)
             @McpDescription("JFR chunks the recording holds; null when this answer did not count them")
             Integer recordingFiles,
@@ -327,6 +336,20 @@ public final class HubAnswers {
             @McpDescription("The profile once analysed, else the recordings page once downloaded, else the hub "
                     + "browser, in the Microscope UI, for the user")
             String uiLink) {
+    }
+
+    /**
+     * One item of a downloaded bundle: a recording of its own, analysed into a profile of its own.
+     */
+    public record BundleItem(
+            String recordingId,
+            @McpDescription("What the item is: JDK or ASYNC_PROFILER for the session's recording, HEAP_DUMP for "
+                    + "a heap dump, PERF_COUNTERS for the perf counters")
+            RecordingEventSource eventSource,
+            String name,
+            @McpNullable
+            @McpDescription("The profile built from the item; null until it is analysed")
+            String profileId) {
     }
 
     /** Where a fetch stands. */

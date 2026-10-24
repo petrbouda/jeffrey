@@ -84,7 +84,7 @@ public record PipelineBuild(
                         Map.entry("biggest-collections", "Biggest collections"))),
 
         /**
-         * Turning a recording into a profile. Two of its nine stages are routinely skipped — method
+         * Turning a recording into a profile. Two of its eight stages are routinely skipped — method
          * trace weights unless the recording traced methods, traces unless it carries spans — which
          * is why a skipped stage has to count as finished rather than as pending.
          */
@@ -97,7 +97,6 @@ public record PipelineBuild(
                         Map.entry("method-trace-weights", "Method trace weights"),
                         Map.entry("recluster", "Re-sorting events"),
                         Map.entry("traces", "Extracting spans"),
-                        Map.entry("additional-files", "Reading the uploaded artifacts"),
                         Map.entry("checkpoint", "Writing the database"),
                         Map.entry("warmup", "Preparing the views")));
 

@@ -9158,6 +9158,12 @@
               "null"
             ]
           },
+          "bundleId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "chosen": {
             "additionalProperties": false,
             "properties": {
@@ -9295,6 +9301,45 @@
               "string",
               "null"
             ]
+          },
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "eventSource": {
+                  "enum": [
+                    "ASYNC_PROFILER",
+                    "JDK",
+                    "UNKNOWN",
+                    "HEAP_DUMP",
+                    "PPROF",
+                    "OPEN_TELEMETRY",
+                    "PERF_COUNTERS"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "profileId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "recordingId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventSource",
+                "name",
+                "profileId",
+                "recordingId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "operation": {
             "additionalProperties": false,
@@ -9643,6 +9688,7 @@
         },
         "required": [
           "artifactFiles",
+          "bundleId",
           "chosen",
           "coveredEndEpochMs",
           "coveredStartEpochMs",
@@ -9650,6 +9696,7 @@
           "fileIds",
           "followUp",
           "hub",
+          "items",
           "operation",
           "operationId",
           "profileId",
@@ -24168,6 +24215,12 @@
       "outputSchema": {
         "additionalProperties": false,
         "properties": {
+          "bundleId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "name": {
             "type": [
               "string",
@@ -24201,6 +24254,7 @@
           }
         },
         "required": [
+          "bundleId",
           "name",
           "profileId",
           "reason",

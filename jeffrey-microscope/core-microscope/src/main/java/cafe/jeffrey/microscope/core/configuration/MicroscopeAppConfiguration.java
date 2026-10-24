@@ -29,6 +29,11 @@ import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParse
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.HeapDumpProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.PerfCountersProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.PipelineProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
@@ -63,6 +68,7 @@ import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
@@ -139,18 +145,19 @@ public class MicroscopeAppConfiguration {
                 new JfrRecordingMetadataParserAdapter(recordingInformationParser),
                 profileCleanup);
 
-        return new ProfileRecordingsManager(
-                core,
-                clock,
-                jeffreyDirs,
-                recordingsPath,
-                recordingInformationParser,
-                recordingsProfileInitializer,
-                profileManagerFactory,
-                repos,
-                profileCleanup,
-                profileInitRunRegistry,
-                heapDumpInitService);
+        ProfileBuilder pipelineBuilder = new PipelineProfileBuilder(
+                clock, recordingsPath, recordingInformationParser, recordingsProfileInitializer,
+                repos, profileCleanup, profileInitRunRegistry);
+        ProfileBuilders builders = new ProfileBuilders(Map.of(
+                ProfileKind.JFR, pipelineBuilder,
+                ProfileKind.STACK_SAMPLES, pipelineBuilder,
+                ProfileKind.HEAP_DUMP, new HeapDumpProfileBuilder(
+                        clock, jeffreyDirs, recordingsPath, repos, profileManagerFactory,
+                        heapDumpInitService, profileCleanup),
+                ProfileKind.PERF_COUNTERS, new PerfCountersProfileBuilder(
+                        clock, jeffreyDirs, recordingsPath, repos, profileManagerFactory, profileCleanup)));
+
+        return new ProfileRecordingsManager(core, profileManagerFactory, repos, profileCleanup, builders);
     }
 
     @Bean
@@ -197,11 +204,8 @@ public class MicroscopeAppConfiguration {
 
     @Bean
     public RecordingProfileInfoProvider recordingProfileInfoProvider(
-            RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> profileInitRunRegistry,
-            HeapDumpInitService heapDumpInitService) {
-        return new MicroscopeRecordingProfileInfoProvider(
-                recordingsManager, profileInitRunRegistry, heapDumpInitService);
+            RecordingsManager recordingsManager) {
+        return new MicroscopeRecordingProfileInfoProvider(recordingsManager);
     }
 
     @Bean

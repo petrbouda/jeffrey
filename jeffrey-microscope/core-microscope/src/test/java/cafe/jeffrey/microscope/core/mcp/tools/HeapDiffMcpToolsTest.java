@@ -94,6 +94,9 @@ class HeapDiffMcpToolsTest {
                 PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.heapDumpManager()).thenReturn(primaryDump);
+        when(baselineProfileManager.info()).thenReturn(new ProfileInfo(
+                BASELINE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.HEAP_DUMP,
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-0"));
         when(baselineProfileManager.heapDumpManager()).thenReturn(baselineDump);
         when(baselineResolver.apply(any())).thenReturn(baselineProfileManager);
     }
@@ -269,16 +272,30 @@ class HeapDiffMcpToolsTest {
          */
         @Test
         void saysWhichProfilesAreHeapDumpsWhenThisOneIsNot() {
+            when(profileManager.info()).thenReturn(new ProfileInfo(
+                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JDK,
+                    Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
+
+            JsonNode out = conforming(tools().diff(BASELINE_ID, null));
+
+            assertEquals("NO_HEAP_DUMP", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains("is not a heap dump"), out.toString());
+            assertTrue(out.get("reason").asString().contains("hubs_download"), out.toString());
+            assertTrue(out.get("primaryDump").isNull());
+            assertTrue(out.get("classes").isEmpty());
+            assertTrue(out.get("omittedClasses").isNull(), "nothing was compared, so nothing was left out");
+            call(out, "profiles_list");
+            verify(baselineResolver, never()).apply(any());
+        }
+
+        @Test
+        void saysAHeapDumpProfileLostItsDump() {
             when(primaryDump.heapDumpExists()).thenReturn(false);
 
             JsonNode out = conforming(tools().diff(BASELINE_ID, null));
 
             assertEquals("NO_HEAP_DUMP", out.get("status").asString());
-            assertTrue(out.get("reason").asString().contains("no heap dump to compare"), out.toString());
-            assertTrue(out.get("primaryDump").isNull());
-            assertTrue(out.get("classes").isEmpty());
-            assertTrue(out.get("omittedClasses").isNull(), "nothing was compared, so nothing was left out");
-            call(out, "profiles_list");
+            assertTrue(out.get("reason").asString().contains("lost its copy"), out.toString());
             verify(baselineResolver, never()).apply(any());
         }
 

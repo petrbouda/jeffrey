@@ -58,7 +58,9 @@ CREATE TABLE IF NOT EXISTS recordings
     event_source          VARCHAR NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL,
     recording_started_at  TIMESTAMPTZ,
-    recording_finished_at TIMESTAMPTZ
+    recording_finished_at TIMESTAMPTZ,
+    -- The bundle this recording came in with, or NULL for a standalone upload or import.
+    bundle_id             VARCHAR
 );
 
 CREATE TABLE IF NOT EXISTS recording_files
@@ -72,6 +74,33 @@ CREATE TABLE IF NOT EXISTS recording_files
     size_in_bytes  BIGINT  NOT NULL
 );
 
+
+--
+-- BUNDLES
+-- Several files that arrived together (a hub session download). Each initializable item in it is a
+-- recording of its own pointing back through recordings.bundle_id; what cannot be initialized (logs,
+-- crash files) is a bundle file, download-only. The bundle, not its members, sits in a group.
+--
+
+CREATE TABLE IF NOT EXISTS bundles
+(
+    id          VARCHAR NOT NULL PRIMARY KEY,
+    project_id  VARCHAR,
+    bundle_name VARCHAR NOT NULL,
+    group_id    VARCHAR,
+    created_at  TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bundle_files
+(
+    id             VARCHAR NOT NULL PRIMARY KEY,
+    project_id     VARCHAR,
+    bundle_id      VARCHAR NOT NULL,
+    filename       VARCHAR NOT NULL,
+    supported_type VARCHAR NOT NULL,
+    uploaded_at    TIMESTAMPTZ NOT NULL,
+    size_in_bytes  BIGINT  NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS recording_groups
 (

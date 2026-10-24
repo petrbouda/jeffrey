@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.storage.recording.api.file;
 
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.repository.FileExtensions;
 import cafe.jeffrey.microscope.model.repository.matcher.AppLogFileMatcher;
 import cafe.jeffrey.microscope.model.repository.matcher.AsprofCacheFileMatcher;
@@ -27,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
@@ -45,75 +47,87 @@ public enum ManagedFile {
             "LZ4 Compressed JDK Flight Recording",
             FileExtensions.JFR_LZ4,
             filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            RecordingEventSource.UNKNOWN
     ),
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
             filename -> filename.endsWith("." + FileExtensions.JFR),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            RecordingEventSource.UNKNOWN
     ),
     ASPROF_TEMP(
             "Async Profiler Cache File",
             FileExtensions.ASPROF_TEMP,
             new AsprofCacheFileMatcher(),
-            FileCategory.TEMPORARY
+            FileCategory.TEMPORARY,
+            null
     ),
     HEAP_DUMP_GZ(
             "GZ Compressed  Heap Dump",
             FileExtensions.HPROF_GZ,
             filename -> filename.endsWith("." + FileExtensions.HPROF_GZ),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            RecordingEventSource.HEAP_DUMP
     ),
     HEAP_DUMP(
             "Heap Dump",
             FileExtensions.HPROF,
             filename -> filename.endsWith("." + FileExtensions.HPROF),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            RecordingEventSource.HEAP_DUMP
     ),
     PERF_COUNTERS(
             "HotSpot Performance Counters",
             FileExtensions.PERF_COUNTERS,
             filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            RecordingEventSource.PERF_COUNTERS
     ),
     JVM_LOG(
             "JVM Log",
             FileExtensions.JVM_LOG,
             new JvmLogFileMatcher(),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            null
     ),
     // Both crash-log spellings end in .log, so this must stay before APP_LOG
     HS_JVM_ERROR_LOG(
             "HotSpot JVM Error Log",
             FileExtensions.HS_JVM_ERROR_LOG,
             new HsJvmErrorLogFileMatcher(),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            null
     ),
     APP_LOG(
             "Application Log",
             FileExtensions.APP_LOG,
             new AppLogFileMatcher(),
-            FileCategory.ARTIFACT
+            FileCategory.ARTIFACT,
+            null
     ),
     PPROF(
             "pprof Profile",
             FileExtensions.PPROF,
             filename -> filename.endsWith("." + FileExtensions.PPROF)
                     || filename.endsWith("." + FileExtensions.PPROF_PB_GZ),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            RecordingEventSource.PPROF
     ),
     OTLP_PROFILE(
             "OpenTelemetry Profiles",
             FileExtensions.OTLP,
             filename -> filename.endsWith("." + FileExtensions.OTLP),
-            FileCategory.RECORDING
+            FileCategory.RECORDING,
+            RecordingEventSource.OPEN_TELEMETRY
     ),
     UNKNOWN(
             "Unsupported File Type",
             null,
             _ -> true,
-            FileCategory.UNRECOGNIZED
+            FileCategory.UNRECOGNIZED,
+            null
     );
 
     private final static List<ManagedFile> KNOWN_TYPES;
@@ -128,17 +142,20 @@ public enum ManagedFile {
     private final String fileExtension;
     private final Predicate<String> filenameMatcher;
     private final FileCategory fileCategory;
+    private final RecordingEventSource profileSource;
 
     ManagedFile(
             String description,
             String fileExtension,
             Predicate<String> filenameMatcher,
-            FileCategory fileCategory) {
+            FileCategory fileCategory,
+            RecordingEventSource profileSource) {
 
         this.description = description;
         this.fileExtension = fileExtension;
         this.filenameMatcher = filenameMatcher;
         this.fileCategory = fileCategory;
+        this.profileSource = profileSource;
     }
 
     public static ManagedFile of(Path path) {
@@ -200,5 +217,22 @@ public enum ManagedFile {
 
     public FileCategory fileCategory() {
         return fileCategory;
+    }
+
+    /**
+     * What a recording of this one file is initialized as, or empty when a file of this type is never
+     * made into a profile — a log, a crash file, a profiler's scratch file. Those travel in a bundle as
+     * download-only files and are refused as an upload of their own.
+     *
+     * <p>A JFR file answers {@link RecordingEventSource#UNKNOWN}: whether it came from the JDK or from
+     * async-profiler is read from its metadata once it is stored.
+     */
+    public Optional<RecordingEventSource> profileSource() {
+        return Optional.ofNullable(profileSource);
+    }
+
+    /** Whether a file of this type becomes a recording that can be initialized into a profile. */
+    public boolean isInitializable() {
+        return profileSource != null;
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,16 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.profile.manager.additional;
+package cafe.jeffrey.profile.perfcounters;
 
+/**
+ * One counter of a perf-data snapshot.
+ *
+ * @param value       a {@link Long} or a {@link String}; ticks already in nanoseconds
+ * @param datatype    what the value measures (count, bytes, duration, timestamp, string), or
+ *                    {@code null} for a counter the catalog does not describe
+ * @param description what the counter means, or {@code null} likewise
+ */
 public record PerfCounter(String key, Object value, String datatype, String description) {
 
     public PerfCounter(String key, Object value) {

@@ -60,4 +60,6 @@ export default interface Recording {
   initProgress: ProfileInitProgress;
   files: RecordingFile[];
   tags: RecordingTag[];
+  /** The bundle the recording came in with, or null for one uploaded or imported alone. */
+  bundleId: string | null;
 }

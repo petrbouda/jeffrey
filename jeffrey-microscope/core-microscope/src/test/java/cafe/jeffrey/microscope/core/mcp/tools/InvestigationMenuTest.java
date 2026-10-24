@@ -300,6 +300,12 @@ class InvestigationMenuTest {
             assertTrue(InvestigationMenu.of(new Facts().source(RecordingEventSource.HEAP_DUMP).build(), EVERY_FAMILY)
                     .isEmpty());
         }
+
+        @Test
+        void aPerfCountersSnapshotHasNoMenu() {
+            assertTrue(InvestigationMenu.of(new Facts().source(RecordingEventSource.PERF_COUNTERS).build(), EVERY_FAMILY)
+                    .isEmpty());
+        }
     }
 
     @Nested

@@ -17,7 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
@@ -60,16 +60,17 @@ final class InvestigationMenu {
     private static final String SHARE_EVIDENCE = "%s holds %.0f%% of the stack samples (%,d of %,d)";
     private static final String EVENT_TYPE_SEPARATOR = " + ";
     private static final double PERCENT = 100.0;
+    private static final Set<ProfileKind> NO_MENU_KINDS = Set.of(ProfileKind.HEAP_DUMP, ProfileKind.PERF_COUNTERS);
 
     private InvestigationMenu() {
     }
 
     /**
-     * The menu for one profile. A heap dump has none: it answers one question, what is retained, and
-     * fifteen lines of recording areas it cannot answer would bury that.
+     * The menu for one profile. A heap dump and a perf-counters snapshot have none: they hold no
+     * events, and fifteen lines of recording areas they cannot answer would bury what they are.
      */
     static List<InvestigationOption> of(ProfileFacts facts, AdvertisedFamilies advertised) {
-        if (facts.eventSource() == RecordingEventSource.HEAP_DUMP) {
+        if (NO_MENU_KINDS.contains(facts.eventSource().kind())) {
             return List.of();
         }
         Map<InvestigationArea, InvestigationOption> options = new EnumMap<>(InvestigationArea.class);

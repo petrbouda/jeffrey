@@ -24,8 +24,6 @@ import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.feature.checker.ContainerDashboardFeatureChecker;
 import cafe.jeffrey.profile.feature.checker.FeatureChecker;
 import cafe.jeffrey.profile.feature.checker.FeatureCheckers;
-import cafe.jeffrey.profile.feature.checker.PerfCounterDashboardFeatureChecker;
-import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.profile.feature.checker.TracesFeatureChecker;
@@ -44,7 +42,6 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
     public ProfileFeaturesManagerImpl(
             ProfileEventRepository eventRepository,
             ProfileEventTypeRepository eventTypeRepository,
-            ProfileCacheRepository cacheRepository,
             TraceRepository traceRepository) {
 
         this.eventTypeRepository = eventTypeRepository;
@@ -59,7 +56,6 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
                 FeatureCheckers.METHOD_TRACING_DASHBOARD,
                 FeatureCheckers.ASYNC_PROFILER_SPANS,
                 new ContainerDashboardFeatureChecker(eventRepository),
-                new PerfCounterDashboardFeatureChecker(cacheRepository),
                 new TracesFeatureChecker(traceRepository));
     }
 

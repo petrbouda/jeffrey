@@ -29,6 +29,11 @@ import java.util.List;
  * Recording list item shared between deployments. The {@code profile*} fields are populated from
  * the deployment's {@link cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider}
  * (profile-capable deployments supply real values; others report {@link ProfileInfo#NONE}).
+ *
+ * @param filename    the recording's name: the file's own name for an upload, the session's name for
+ *                    the recording item of a bundle
+ * @param sizeInBytes all of the recording's files together
+ * @param bundleId    the bundle the recording came in with, or {@code null} for a standalone one
  */
 public record RecordingResponse(
         String id,
@@ -46,14 +51,13 @@ public record RecordingResponse(
         String profileName,
         ProfileInitProgress initProgress,
         List<RecordingFileResponse> files,
-        List<RecordingTagResponse> tags) {
+        List<RecordingTagResponse> tags,
+        String bundleId) {
 
     public static RecordingResponse from(
             Recording recording,
             ProfileInfo profileInfo,
             List<RecordingTag> tags) {
-
-        RecordingFile primary = recording.files().isEmpty() ? null : recording.files().getFirst();
 
         List<RecordingFileResponse> fileResponses = recording.files().stream()
                 .map(f -> new RecordingFileResponse(
@@ -66,10 +70,10 @@ public record RecordingResponse(
 
         return new RecordingResponse(
                 recording.id(),
-                primary != null ? primary.filename() : recording.recordingName(),
+                recording.recordingName(),
                 recording.groupId(),
                 recording.eventSource().name(),
-                primary != null ? primary.sizeInBytes() : 0,
+                recording.files().stream().mapToLong(RecordingFile::sizeInBytes).sum(),
                 recording.createdAt().toEpochMilli(),
                 recording.recordingDuration().toMillis(),
                 recording.profileId(),
@@ -80,6 +84,7 @@ public record RecordingResponse(
                 recording.profileName(),
                 profileInfo.initProgress(),
                 fileResponses,
-                tags.stream().map(RecordingTagResponse::from).toList());
+                tags.stream().map(RecordingTagResponse::from).toList(),
+                recording.bundleId());
     }
 }

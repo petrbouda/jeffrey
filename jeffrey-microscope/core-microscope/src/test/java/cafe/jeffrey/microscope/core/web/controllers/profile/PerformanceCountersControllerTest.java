@@ -23,9 +23,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.perfcounters.PerfCounterValues;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
+import cafe.jeffrey.profile.perfcounters.PerfCountersOverviewBuilder;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+
+import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -41,19 +46,38 @@ class PerformanceCountersControllerTest {
     ProfileManager profileManager;
 
     @Mock
-    AdditionalFilesManager additionalFilesManager;
+    PerfCountersManager perfCountersManager;
 
     @Test
-    void existsReportsFalseWhenAbsent() {
+    void overviewAnswersTheHeadlineFigures() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
-        when(profileManager.additionalFilesManager()).thenReturn(additionalFilesManager);
-        when(additionalFilesManager.performanceCountersExists()).thenReturn(false);
+        when(profileManager.perfCountersManager()).thenReturn(perfCountersManager);
+        when(perfCountersManager.overview()).thenReturn(Optional.of(PerfCountersOverviewBuilder.build(
+                PerfCounterValues.of(Map.<String, Object>of(
+                        "java.threads.live", 12L,
+                        "sun.gc.policy.name", "GarbageFirst")))));
 
         MockMvcTester mvc = mockMvcTesterFor(new PerformanceCountersController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/profiles/p-1/perfcounters/exists"))
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/perfcounters/overview"))
                 .hasStatusOk()
-                .bodyText().isEqualTo("false");
+                .bodyJson()
+                .satisfies(json -> {
+                    assertThat(json).extractingPath("$.threads.live").asNumber().isEqualTo(12);
+                    assertThat(json).extractingPath("$.jvm.gcPolicy").asString().isEqualTo("GarbageFirst");
+                });
+    }
+
+    @Test
+    void overviewHasNoContentWithoutASnapshot() {
+        when(resolver.resolve("p-1")).thenReturn(profileManager);
+        when(profileManager.perfCountersManager()).thenReturn(perfCountersManager);
+        when(perfCountersManager.overview()).thenReturn(Optional.empty());
+
+        MockMvcTester mvc = mockMvcTesterFor(new PerformanceCountersController(resolver));
+
+        assertThat(mvc.get().uri("/api/internal/profiles/p-1/perfcounters/overview"))
+                .hasStatus(204);
     }
 
     @Test
@@ -62,7 +86,7 @@ class PerformanceCountersControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new PerformanceCountersController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/profiles/ghost/perfcounters/exists"))
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/perfcounters/overview"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");

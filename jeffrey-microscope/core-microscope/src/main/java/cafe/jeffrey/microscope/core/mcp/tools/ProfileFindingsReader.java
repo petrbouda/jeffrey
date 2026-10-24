@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
+import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.profile.mcp.finding.McpFindings;

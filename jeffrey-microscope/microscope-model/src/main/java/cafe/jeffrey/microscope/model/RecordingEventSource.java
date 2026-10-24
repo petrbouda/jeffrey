@@ -18,21 +18,25 @@
 package cafe.jeffrey.microscope.model;
 
 public enum RecordingEventSource {
-    ASYNC_PROFILER(0, "Async-Profiler"),
-    JDK(1, "JDK"),
-    UNKNOWN(2, "Unknown"),
-    HEAP_DUMP(3, "Heap Dump"),
-    PPROF(4, "pprof"),
-    OPEN_TELEMETRY(5, "OpenTelemetry");
+    ASYNC_PROFILER(0, "Async-Profiler", ProfileKind.JFR),
+    JDK(1, "JDK", ProfileKind.JFR),
+    // A JFR recording whose metadata could not be read yet; it is still parsed as JFR.
+    UNKNOWN(2, "Unknown", ProfileKind.JFR),
+    HEAP_DUMP(3, "Heap Dump", ProfileKind.HEAP_DUMP),
+    PPROF(4, "pprof", ProfileKind.STACK_SAMPLES),
+    OPEN_TELEMETRY(5, "OpenTelemetry", ProfileKind.STACK_SAMPLES),
+    PERF_COUNTERS(6, "Perf Counters", ProfileKind.PERF_COUNTERS);
 
     private final int id;
     private final String label;
+    private final ProfileKind kind;
 
     private static final RecordingEventSource[] VALUES = values();
 
-    RecordingEventSource(int id, String label) {
+    RecordingEventSource(int id, String label, ProfileKind kind) {
         this.id = id;
         this.label = label;
+        this.kind = kind;
     }
 
     public int getId() {
@@ -41,6 +45,11 @@ public enum RecordingEventSource {
 
     public String getLabel() {
         return label;
+    }
+
+    /** What a recording of this source becomes once initialized. */
+    public ProfileKind kind() {
+        return kind;
     }
 
     public static RecordingEventSource byId(int id) {
@@ -59,6 +68,6 @@ public enum RecordingEventSource {
      * thread viewer, GC, …). Used to skip those analyses for profiles that cannot support them.
      */
     public boolean isFlamegraphOnlyImport() {
-        return this == PPROF || this == OPEN_TELEMETRY;
+        return kind == ProfileKind.STACK_SAMPLES;
     }
 }

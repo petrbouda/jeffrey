@@ -26,12 +26,16 @@ have finished — and `operations_status(operationId)` follows the copy and the 
 stops an import started by mistake; the ids live for an hour in Jeffrey's memory.
 
 **The dump is on a hub** — the user asked about a deployed application rather than a file. Switch to
-the **analyze-hub** skill: a hub session carries its heap dump alongside the recording, and it comes
-back here with a `profileId`.
+the **analyze-hub** skill. A downloaded session is a bundle, and its heap dump is an item of its own,
+never part of the JFR profile: take the heap item's `recordingId` from `hubs_download`'s `items`
+(`eventSource: HEAP_DUMP`; the answer's guidance names them too), build it with
+`recordings_analyzeRecording(recordingId)`, and come back here with *that* `profileId`.
 
 **Otherwise** — `profiles_list`, where the `event source` column reads `HEAP_DUMP` for the profiles
 this skill applies to. `profiles_features` lists `HEAP_DUMP` under `disabledFeatures` when the
-profile has no dump or its index is not ready yet.
+profile is not a heap dump or its index is not ready yet. A `heap_` tool called on a JFR profile is
+refused with a pointer to the bundle's heap item rather than answering — follow the pointer, do not
+retry on the JFR profile.
 
 ## 2. Orient before analysing
 
@@ -169,7 +173,12 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 ## When something fails
 
-- `Profile … has no heap dump` → it is a JFR recording; the `analyze-jfr` skill applies.
+- `Profile … is not a heap dump` → it is a JFR recording (or another kind); the `analyze-jfr` skill
+  applies to it. When the session also took a dump, that dump is another item of the same bundle:
+  `hubs_download` lists it in `items`, and `recordings_analyzeRecording` on its `recordingId` builds
+  the heap-dump profile this skill reads.
+- `Heap dump profile … has lost its copy of the dump` → `recordings_analyzeRecording` on its
+  recording builds the profile again from the stored dump.
 - `The heap dump of profile … is not indexed yet` → check `heap_status` for the named profile. If
   indexing has not started, call `heap_prepare`; retry once ready. `heap_diff` answers the same as a
   status — `NOT_INDEXED` or `BASELINE_NOT_INDEXED` (and `NO_HEAP_DUMP` / `BASELINE_NO_HEAP_DUMP`) —

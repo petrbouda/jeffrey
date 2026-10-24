@@ -17,8 +17,10 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.util.Optional;
 
@@ -37,4 +39,10 @@ public interface RecordingsManager extends RecordingsCoreManager {
     void deleteProfile(String recordingId);
 
     Optional<ProfileManager> profile(String profileId);
+
+    /**
+     * How far the profile of a recording has got through its initialization, from the pipeline of the
+     * recording's kind; idle when no run is known for it.
+     */
+    PipelineProgress initProgress(Recording recording);
 }

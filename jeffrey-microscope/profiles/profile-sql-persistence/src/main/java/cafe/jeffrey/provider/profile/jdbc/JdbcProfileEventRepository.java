@@ -29,7 +29,6 @@ import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.provider.profile.api.EventDurationStats;
 import cafe.jeffrey.provider.profile.api.FlagValueChange;
-import cafe.jeffrey.provider.profile.api.JvmFlag;
 import cafe.jeffrey.provider.profile.api.JvmFlagDetail;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -113,38 +112,6 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             FROM events
             WHERE event_type IN ((:sample_code), (:lost_code))
             """;
-
-    private static final Set<String> FLAG_EVENT_TYPES = Set.of(
-            EventTypeName.BOOLEAN_FLAG,
-            EventTypeName.INT_FLAG,
-            EventTypeName.UNSIGNED_INT_FLAG,
-            EventTypeName.STRING_FLAG
-    );
-
-    //language=SQL
-    private static final String STRING_RELATED_FLAGS_QUERY = """
-            SELECT
-                last(event_type) as event_type,
-                json_extract_string(fields, '$.name') as flag_name,
-                last(json_extract_string(fields, '$.value')) as flag_value,
-                last(json_extract_string(fields, '$.origin')) as origin
-            FROM events
-            WHERE event_type IN (:flag_event_types)
-              AND json_extract_string(fields, '$.name') IN (:flag_names)
-            GROUP BY flag_name
-            """;
-
-    private static final Set<String> STRING_RELATED_FLAG_NAMES = Set.of(
-            "UseStringDeduplication",
-            "StringDeduplicationAgeThreshold",
-            "UseG1GC",
-            "UseZGC",
-            "UseShenandoahGC",
-            "UseParallelGC",
-            "UseSerialGC",
-            "CompactStrings",
-            "OptimizeStringConcat"
-    );
 
     private static final Set<String> ALL_FLAG_EVENT_TYPES = Set.of(
             EventTypeName.BOOLEAN_FLAG,
@@ -289,28 +256,6 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
         // Presence check short-circuits on the first matching row instead of counting all of them
         return databaseClient.querySingle(StatementLabel.CONTAINS_EVENT, CONTAINS_EVENT, paramSource, (_, _) -> Boolean.TRUE)
                 .isPresent();
-    }
-
-    @Override
-    public List<JvmFlag> getStringRelatedFlags() {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("flag_event_types", FLAG_EVENT_TYPES)
-                .addValue("flag_names", STRING_RELATED_FLAG_NAMES);
-
-        return databaseClient.query(
-                StatementLabel.STRING_RELATED_FLAGS,
-                STRING_RELATED_FLAGS_QUERY,
-                paramSource,
-                (rs, _) -> {
-                    String eventType = rs.getString("event_type");
-                    String flagType = extractFlagType(eventType);
-                    return new JvmFlag(
-                            rs.getString("flag_name"),
-                            rs.getString("flag_value"),
-                            flagType,
-                            rs.getString("origin")
-                    );
-                });
     }
 
     @Override
