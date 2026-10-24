@@ -235,8 +235,10 @@ volumes:
 
       <h3>perf-counters</h3>
       <p>
-        Captures JVM perfdata counters (<code>hsperfdata</code>) every cycle and bundles
-        them with the recording. Useful for cross-referencing GC / safepoint / classloading
+        Saves the JVM's perf counters (<code>perf-counters.hsperfdata</code>) into the session
+        directory when the JVM exits; Microscope downloads the file as a
+        <router-link to="/docs/microscope/profiles/perf-counters">Perf Counters</router-link> item of
+        the session's bundle. Useful for cross-referencing GC / safepoint / classloading
         rates without reading them out of the JFR stream.
       </p>
 

@@ -299,8 +299,8 @@ public final class HubAnswers {
                     + "the transfer lands, and for a copy made before downloads were bundled")
             String bundleId,
             @McpDescription("Every item of the bundle that is analysed on its own - the recording first, then "
-                    + "each heap dump - with its recordingId for recordings_analyzeRecording; empty until the "
-                    + "transfer lands")
+                    + "the heap dumps and the perf counters by name - with its recordingId for "
+                    + "recordings_analyzeRecording; empty until the transfer lands")
             List<BundleItem> items,
             @McpNullable
             @McpMinimum(0)
@@ -344,7 +344,7 @@ public final class HubAnswers {
     public record BundleItem(
             String recordingId,
             @McpDescription("What the item is: JDK or ASYNC_PROFILER for the session's recording, HEAP_DUMP for "
-                    + "a heap dump")
+                    + "a heap dump, PERF_COUNTERS for the perf counters")
             RecordingEventSource eventSource,
             String name,
             @McpNullable

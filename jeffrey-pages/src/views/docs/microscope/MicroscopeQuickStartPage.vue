@@ -127,7 +127,7 @@ onMounted(() => {
           <div class="step-number">1</div>
           <div class="step-content">
             <h4><i class="bi bi-upload"></i> Drop a file</h4>
-            <p>Drag a <code>.jfr</code> recording or a <code>.hprof</code> heap dump onto the upload panel.</p>
+            <p>Drag a <code>.jfr</code> recording or a <code>.hprof</code> heap dump onto the upload panel &mdash; <code>.hsperfdata</code>, pprof and OTLP files are accepted too.</p>
           </div>
         </div>
         <div class="workflow-step">

@@ -365,7 +365,7 @@ const deleteDone = `{
   "id": 11,
   "result": {
     "content": [
-      { "type": "text", "text": "{\\"status\\":\\"DELETED\\",\\"recordingId\\":\\"0195f0a1-...\\",\\"name\\":\\"app.jfr\\",\\"profileId\\":\\"0195f0a2-...\\",\\"reason\\":null,\\"uiLink\\":\\"http://localhost:8585/recordings\\"}" }
+      { "type": "text", "text": "{\\"status\\":\\"DELETED\\",\\"recordingId\\":\\"0195f0a1-...\\",\\"name\\":\\"app.jfr\\",\\"profileId\\":\\"0195f0a2-...\\",\\"reason\\":null,\\"bundleId\\":null,\\"uiLink\\":\\"http://localhost:8585/recordings\\"}" }
     ],
     "structuredContent": {
       "status": "DELETED",
@@ -373,6 +373,7 @@ const deleteDone = `{
       "name": "app.jfr",
       "profileId": "0195f0a2-...",
       "reason": null,
+      "bundleId": null,
       "uiLink": "http://localhost:8585/recordings"
     },
     "isError": false,
@@ -386,7 +387,7 @@ const toolError = `{
   "id": 3,
   "result": {
     "content": [
-      { "type": "text", "text": "Error: Profile 0195f0a2-... has no heap dump. ..." }
+      { "type": "text", "text": "Error: Profile 0195f0a2-... is not a heap dump, and the heap_ tools read only heap dump profiles. ..." }
     ],
     "isError": true,
     "resultType": "complete",
@@ -644,10 +645,10 @@ const protocolError = `HTTP/1.1 404
       <h2 id="errors">Errors</h2>
       <p>There are two distinct failure shapes, and a client has to read both.</p>
 
-      <p><strong>A tool that ran and failed</strong> is still a <em>successful</em> JSON-RPC call, answered with HTTP <code>200</code>: the result carries <code>isError: true</code> and the message as text content. A profile with no heap dump, a query that matched nothing, a hub that stopped answering &mdash; anything the model is meant to read and try differently &mdash; lands here.</p>
+      <p><strong>A tool that ran and failed</strong> is still a <em>successful</em> JSON-RPC call, answered with HTTP <code>200</code>: the result carries <code>isError: true</code> and the message as text content. A profile that is not a heap dump, a query that matched nothing, a hub that stopped answering &mdash; anything the model is meant to read and try differently &mdash; lands here.</p>
       <DocsCodeBlock :code="toolError" language="json" />
 
-      <p>This is what MCP specifies, and it is deliberate &mdash; the message is written for a model to act on. A profile with no heap dump, for instance, names the families to use instead.</p>
+      <p>This is what MCP specifies, and it is deliberate &mdash; the message is written for a model to act on. A profile that is not a heap dump, for instance, names the families to use instead.</p>
 
       <p>A mistake in the arguments is this too. A missing required argument, an argument the tool does not take, or a value of the wrong type comes back as a tool result with <code>isError: true</code> and a message naming the fix, so the model can correct the call and try again. The schema&rsquo;s bounds are advice rather than a gate: an out-of-range <code>limit</code> or <code>top</code> is clamped silently &mdash; a non-positive one takes the default, one above the maximum takes the maximum &mdash; and only a value no answer can be built from, such as a <code>thresholdPct</code> outside 0&ndash;100 or a <code>bucketMs</code> below its floor, is refused with <code>isError: true</code>. Only a call that could never reach a tool is a protocol error: an unknown tool name, or <code>arguments</code> that are not a JSON object &mdash; so a client can still tell &ldquo;that tool does not exist&rdquo; from &ldquo;the analysis found nothing&rdquo;.</p>
 

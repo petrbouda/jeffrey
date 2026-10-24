@@ -19,7 +19,7 @@ import type { Variant } from '@shared/types/ui';
 import type Bundle from '../services/api/model/Bundle';
 import type Recording from '../services/api/model/Recording';
 import { hasFailed, isInitializing } from './profileInitChips';
-import { recordingKindOf } from './recordingKinds';
+import { recordingKindOf, type RecordingKindKey } from './recordingKinds';
 
 /**
  * What a bundle's collapsed row says about it: one badge per item with the item's state, the item
@@ -28,6 +28,22 @@ import { recordingKindOf } from './recordingKinds';
 
 /** The drag payload a group chip reads to tell a bundle from a recording card. */
 export const BUNDLE_DRAG_PREFIX = 'bundle:';
+
+/** Where an item sits in its bundle: the recording first, as the hubs_download answer lists it. */
+const KIND_ORDER: Record<RecordingKindKey, number> = {
+  JFR: 0,
+  PPROF: 0,
+  OTLP: 0,
+  PERF: 1,
+  HEAP: 2
+};
+
+/** A bundle's items in the order its card lists them: by kind, then by name. */
+export function compareMembers(a: Recording, b: Recording): number {
+  const byKind =
+    KIND_ORDER[recordingKindOf(a.eventSource).key] - KIND_ORDER[recordingKindOf(b.eventSource).key];
+  return byKind || a.filename.localeCompare(b.filename);
+}
 
 export type MemberState = 'built' | 'running' | 'failed' | 'new';
 

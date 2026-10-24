@@ -19,7 +19,13 @@ import { describe, expect, it } from 'vitest';
 import type Bundle from '../services/api/model/Bundle';
 import type Recording from '../services/api/model/Recording';
 import type RecordingFile from '../services/api/model/RecordingFile';
-import { bundleItemsLabel, bundleSize, memberBadges, memberState } from './bundleSummary';
+import {
+  bundleItemsLabel,
+  bundleSize,
+  compareMembers,
+  memberBadges,
+  memberState
+} from './bundleSummary';
 
 const member = (
   id: string,
@@ -72,6 +78,24 @@ describe('memberState', () => {
     expect(
       memberState(member('a', 'JDK', { initProgress: { state: 'failed', stages: [] } }), false)
     ).toBe('failed');
+  });
+});
+
+describe('compareMembers', () => {
+  it('lists the recording first, then perf counters, then heap dumps by name', () => {
+    const members = [
+      member('heap-b.hprof', 'HEAP_DUMP'),
+      member('perf-counters.hsperfdata', 'PERF_COUNTERS'),
+      member('heap-a.hprof', 'HEAP_DUMP'),
+      member('zeta-session', 'JDK')
+    ];
+
+    expect(members.sort(compareMembers).map(m => m.id)).toEqual([
+      'zeta-session',
+      'perf-counters.hsperfdata',
+      'heap-a.hprof',
+      'heap-b.hprof'
+    ]);
   });
 });
 

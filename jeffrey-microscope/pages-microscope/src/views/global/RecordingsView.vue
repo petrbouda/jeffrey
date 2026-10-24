@@ -381,7 +381,7 @@ import type Recording from '@hubs/services/api/model/Recording';
 import type { RecordingTag } from '@hubs/services/api/model/Recording';
 import type Bundle from '@hubs/services/api/model/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
-import { BUNDLE_DRAG_PREFIX } from '@hubs/components/bundleSummary';
+import { BUNDLE_DRAG_PREFIX, compareMembers } from '@hubs/components/bundleSummary';
 import { hasFailed, isInitializing } from '@hubs/components/profileInitChips';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import { HEAP_DUMP_SOURCE, profileLandingRoute } from '@/services/ProfileLandingRoute';
@@ -541,7 +541,7 @@ const standaloneRecordings = computed<Recording[]>(() =>
   allRecordings.value.filter(recording => !recording.bundleId)
 );
 
-/** Each bundle's items, its recording first (anything that is not a heap dump), then by name. */
+/** Each bundle's items, its recording first, then its perf counters and heap dumps. */
 const membersByBundle = computed<Map<string, Recording[]>>(() => {
   const map = new Map<string, Recording[]>();
   for (const recording of allRecordings.value) {
@@ -552,11 +552,7 @@ const membersByBundle = computed<Map<string, Recording[]>>(() => {
     }
   }
   for (const members of map.values()) {
-    members.sort((a, b) => {
-      const aHeap = a.eventSource === HEAP_DUMP_SOURCE ? 1 : 0;
-      const bHeap = b.eventSource === HEAP_DUMP_SOURCE ? 1 : 0;
-      return aHeap - bHeap || a.filename.localeCompare(b.filename);
-    });
+    members.sort(compareMembers);
   }
   return map;
 });
