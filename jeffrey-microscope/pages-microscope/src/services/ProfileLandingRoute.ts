@@ -25,11 +25,6 @@ import { profileKindOf } from '@/services/ProfileKind';
  * change to it is made once rather than hunted for across views, stores and composables.
  */
 
-export const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
-export const PPROF_SOURCE = 'PPROF';
-export const OTEL_SOURCE = 'OPEN_TELEMETRY';
-export const PERF_COUNTERS_SOURCE = 'PERF_COUNTERS';
-
 /**
  * The route to open a profile at.
  *

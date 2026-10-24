@@ -25,6 +25,11 @@ import type { ProfileMode } from '@/views/profiles/navigation/profileNavConfig';
  * The kind is read from the profile's event source. A source this table does not name is a JFR
  * recording, which is right for the common case and never hides a page a JFR profile has.
  */
+export const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
+export const PPROF_SOURCE = 'PPROF';
+export const OTEL_SOURCE = 'OPEN_TELEMETRY';
+export const PERF_COUNTERS_SOURCE = 'PERF_COUNTERS';
+
 export interface ProfileKind {
   /** The mode pills the profile offers. */
   modes: ReadonlySet<ProfileMode>;
@@ -78,10 +83,10 @@ const PERF_COUNTERS: ProfileKind = {
 };
 
 const KINDS_BY_SOURCE: ReadonlyMap<string, ProfileKind> = new Map([
-  ['PPROF', PPROF],
-  ['OPEN_TELEMETRY', OPEN_TELEMETRY],
-  ['HEAP_DUMP', HEAP_DUMP],
-  ['PERF_COUNTERS', PERF_COUNTERS]
+  [PPROF_SOURCE, PPROF],
+  [OTEL_SOURCE, OPEN_TELEMETRY],
+  [HEAP_DUMP_SOURCE, HEAP_DUMP],
+  [PERF_COUNTERS_SOURCE, PERF_COUNTERS]
 ]);
 
 /** The kind of a profile, from its event source; anything not listed — or not known yet — is JFR. */

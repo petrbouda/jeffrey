@@ -175,7 +175,7 @@
         >
           <i class="bi bi-folder"></i>
           {{ group.name }}
-          <span class="chip-count">{{ getGroupCount(group.id, 'total') }}</span>
+          <span class="chip-count">{{ getGroupCount(group.id) }}</span>
           <span class="chip-delete" title="Delete group" @click.stop="confirmDeleteGroup(group.id)">
             <i class="bi bi-trash"></i>
           </span>
@@ -257,7 +257,6 @@
                 @download-member-file="downloadFile"
                 @member-click="handleCardClick"
                 @member-create-profile="member => analyzeRecording(member.id)"
-                @member-open-profile="openProfile"
                 @member-edit-profile="startEditProfile"
                 @member-delete-profile="member => deleteProfileFromRecording(member.id)"
                 @member-delete-recording="member => deleteRecording(member.id)"
@@ -288,7 +287,6 @@
                 :expanded="expandedRecordings.has(item.recording.id)"
                 @click="handleCardClick(item.recording)"
                 @create-profile="analyzeRecording(item.recording.id)"
-                @open-profile="openProfile(item.recording)"
                 @edit-profile="startEditProfile(item.recording)"
                 @delete-profile="deleteProfileFromRecording(item.recording.id)"
                 @delete-recording="deleteRecording(item.recording.id)"
@@ -380,6 +378,7 @@ import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
 import type Recording from '@hubs/services/api/model/Recording';
 import type { RecordingTag } from '@hubs/services/api/model/Recording';
+import type { RecordingOrigin } from '@hubs/components/RecordingOriginChip.vue';
 import type Bundle from '@hubs/services/api/model/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
 import { BUNDLE_DRAG_PREFIX, compareMembers } from '@hubs/components/bundleSummary';
@@ -390,7 +389,7 @@ import {
 } from '@hubs/components/recordingColumns';
 import { hasFailed } from '@hubs/components/profileInitChips';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import { HEAP_DUMP_SOURCE, profileLandingRoute } from '@/services/ProfileLandingRoute';
+import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
 const UNGROUPED_KEY = '__ungrouped__';
 
@@ -456,12 +455,6 @@ type ViewFilter = 'all' | typeof UNGROUPED_KEY | string;
 interface UploadProgressEntry {
   progress: number;
   status: 'pending' | 'uploading' | 'complete' | 'error';
-}
-
-interface GroupCounts {
-  total: number;
-  jfr: number;
-  heap: number;
 }
 
 const router = useRouter();
@@ -565,39 +558,20 @@ const membersByBundle = computed<Map<string, Recording[]>>(() => {
 
 const listedCount = computed(() => standaloneRecordings.value.length + allBundles.value.length);
 
-const groupCountsMap = computed<Map<string | null, GroupCounts>>(() => {
-  const map = new Map<string | null, GroupCounts>();
-  const countsOf = (key: string | null): GroupCounts => {
-    let counts = map.get(key);
-    if (!counts) {
-      counts = { total: 0, jfr: 0, heap: 0 };
-      map.set(key, counts);
-    }
-    return counts;
-  };
-  const countKind = (counts: GroupCounts, recording: Recording) => {
-    if (recording.eventSource === HEAP_DUMP_SOURCE) {
-      counts.heap++;
-    } else {
-      counts.jfr++;
-    }
-  };
-  for (const recording of standaloneRecordings.value) {
-    const counts = countsOf(recording.groupId);
-    counts.total++;
-    countKind(counts, recording);
-  }
-  for (const bundle of allBundles.value) {
-    const counts = countsOf(bundle.groupId);
-    counts.total++;
-    for (const member of membersByBundle.value.get(bundle.id) ?? []) {
-      countKind(counts, member);
-    }
+// Entries per group: a standalone recording or a bundle counts once.
+const groupCountsMap = computed<Map<string | null, number>>(() => {
+  const map = new Map<string | null, number>();
+  const groupIds = [
+    ...standaloneRecordings.value.map(recording => recording.groupId),
+    ...allBundles.value.map(bundle => bundle.groupId)
+  ];
+  for (const groupId of groupIds) {
+    map.set(groupId, (map.get(groupId) ?? 0) + 1);
   }
   return map;
 });
 
-const ungroupedCount = computed(() => groupCountsMap.value.get(null)?.total ?? 0);
+const ungroupedCount = computed(() => groupCountsMap.value.get(null) ?? 0);
 
 const sortedGroups = computed<RecordingGroup[]>(() => {
   const newestUpload = (groupId: string): number => {
@@ -825,12 +799,6 @@ const selectTypeFilter = (type: TypeFilter) => {
 };
 
 // Origin breadcrumb derivation
-interface RecordingOrigin {
-  hub: string;
-  workspace: string;
-  project: string;
-}
-
 const buildOrigin = (recordingTags: RecordingTag[] | undefined): RecordingOrigin | undefined => {
   const tags = recordingTags ?? [];
   const sys = Object.fromEntries(
@@ -848,8 +816,8 @@ const buildOrigin = (recordingTags: RecordingTag[] | undefined): RecordingOrigin
 
 // --- Helpers ---
 
-const getGroupCount = (groupId: string, kind: 'total' | 'jfr' | 'heap'): number => {
-  return groupCountsMap.value.get(groupId)?.[kind] ?? 0;
+const getGroupCount = (groupId: string): number => {
+  return groupCountsMap.value.get(groupId) ?? 0;
 };
 
 /**

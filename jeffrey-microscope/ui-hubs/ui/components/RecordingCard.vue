@@ -65,7 +65,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'click'): void;
   (e: 'create-profile'): void;
-  (e: 'open-profile'): void;
   (e: 'edit-profile'): void;
   (e: 'delete-profile'): void;
   (e: 'delete-recording'): void;

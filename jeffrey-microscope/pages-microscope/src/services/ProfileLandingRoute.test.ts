@@ -20,9 +20,9 @@ import {
   HEAP_DUMP_SOURCE,
   OTEL_SOURCE,
   PERF_COUNTERS_SOURCE,
-  PPROF_SOURCE,
-  profileLandingRoute
-} from '@/services/ProfileLandingRoute';
+  PPROF_SOURCE
+} from '@/services/ProfileKind';
+import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
 const PROFILE_ID = 'abc123';
 

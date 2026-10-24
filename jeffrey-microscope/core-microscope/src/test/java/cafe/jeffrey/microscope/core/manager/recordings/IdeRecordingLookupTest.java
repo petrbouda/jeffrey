@@ -226,7 +226,7 @@ class IdeRecordingLookupTest {
             assertTrue(summary.analysisPossible());
             assertEquals(1, summary.findings().size());
             assertEquals("WARNING", summary.findings().getFirst().severity());
-            // TRACES from the profile itself, HEAP_DUMP because no dump is attached — the panel needs
+            // TRACES from the profile itself, HEAP_DUMP because a JFR profile never holds a dump — the panel needs
             // both, since to a reader "no data" and "no heap dump" are the same empty page.
             assertEquals(List.of("HEAP_DUMP", "TRACES"), summary.disabledFeatures());
             assertEquals("Long GC pauses", summary.findings().getFirst().summary());

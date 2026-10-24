@@ -25,7 +25,7 @@ export type RecordingKindKey = 'JFR' | 'PPROF' | 'OTLP' | 'HEAP' | 'PERF';
 /**
  * Everything the recordings list shows differently per kind of recording, in one place: how a card is
  * tagged and coloured, which stage chips follow its initialization, and which filter it counts under.
- * A recording is one kind; a bundle shows one card per kind it holds.
+ * A recording is one kind; a bundle shows a badge per item and a card per item still to initialize.
  */
 export interface RecordingKind {
   key: RecordingKindKey;

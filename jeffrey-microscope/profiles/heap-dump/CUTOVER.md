@@ -174,16 +174,11 @@ And remove the now-unused property:
 -        <netbeans-oql.version>RELEASE250</netbeans-oql.version>
 ```
 
-### 4.2 Rename the on-disk directory
+### 4.2 Rename the on-disk directory (done)
 
-`heap-dump-analysis` → `heap-dump`. Two known references:
-
-- `jeffrey-microscope/profiles/profile-heapdump-orchestration/.../HeapDumpFiles.java` (`ANALYSIS_DIR`, the one
-  place the directory is named since the additional-files manager was removed)
-- `jeffrey-microscope/profiles/profile-management/.../HeapDumpManagerImpl.java:208`
-
-Search the repo for `heap-dump-analysis` to confirm there are no other call sites
-(grep, then replace).
+`heap-dump-analysis` → `heap-dump`. Done: `HeapDumpFiles.ANALYSIS_DIR` in
+`jeffrey-microscope/profiles/profile-heapdump-orchestration/.../HeapDumpFiles.java` is the one place the
+directory is named.
 
 ### 4.3 Rewrite `HeapDumpManagerImpl.java` (~911 lines)
 

@@ -68,7 +68,6 @@ const emit = defineEmits<{
   (e: 'download-member-file', recordingId: string, fileId: string): void;
   (e: 'member-click', recording: Recording): void;
   (e: 'member-create-profile', recording: Recording): void;
-  (e: 'member-open-profile', recording: Recording): void;
   (e: 'member-edit-profile', recording: Recording): void;
   (e: 'member-delete-profile', recording: Recording): void;
   (e: 'member-delete-recording', recording: Recording): void;
@@ -178,7 +177,6 @@ const onDragStart = (event: DragEvent) => {
         :expanded="expandedMembers.has(member.id)"
         @click="emit('member-click', member)"
         @create-profile="emit('member-create-profile', member)"
-        @open-profile="emit('member-open-profile', member)"
         @edit-profile="emit('member-edit-profile', member)"
         @delete-profile="emit('member-delete-profile', member)"
         @delete-recording="emit('member-delete-recording', member)"

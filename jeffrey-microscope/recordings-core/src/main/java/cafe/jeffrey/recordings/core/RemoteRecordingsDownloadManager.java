@@ -435,7 +435,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
     /**
      * What a lost artifact costs: the download still succeeds without it. Said out loud, because
-     * the recording that results looks complete and is missing its heap dump or its log.
+     * the bundle that results looks complete and is missing a heap dump item or a log.
      */
     private static Path artifactMissing(
             RepositoryFile file, String recordingSessionId, Throwable throwable, ProgressCallback progressCallback) {

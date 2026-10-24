@@ -72,8 +72,4 @@ public final class PerfCounterValues {
         }
         return indexes;
     }
-
-    public boolean isEmpty() {
-        return values.isEmpty();
-    }
 }

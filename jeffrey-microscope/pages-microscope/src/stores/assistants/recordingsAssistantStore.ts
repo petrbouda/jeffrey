@@ -22,7 +22,8 @@ import type Recording from '@hubs/services/api/model/Recording';
 const recordingsClient = new RecordingsClient();
 
 import router from '@/router';
-import { HEAP_DUMP_SOURCE, profileLandingRoute } from '@/services/ProfileLandingRoute';
+import { HEAP_DUMP_SOURCE } from '@/services/ProfileKind';
+import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
 /**
  * Status of the quick analysis process.

@@ -299,7 +299,7 @@ public interface HeapDumpManager {
 
     /**
      * Resolve compressed oops setting and store it to disk as heap-dump-config.json.
-     * Detection priority: manual override -> JFR events -> heap inference.
+     * Detection priority: manual override -> heap inference -> defaulted.
      *
      * @param manualOverride if non-null, uses this value directly (source = MANUAL)
      * @return the resolved config

@@ -128,7 +128,7 @@ public interface ProfileManager {
 
     /**
      * Returns the total size of the profile directory in bytes.
-     * This includes the DuckDB database and any additional files.
+     * This includes the DuckDB database and whatever else the profile directory holds.
      *
      * @return size in bytes
      */
