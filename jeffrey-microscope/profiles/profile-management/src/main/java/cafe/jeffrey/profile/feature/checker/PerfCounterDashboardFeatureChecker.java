@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManagerImpl;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 
 import java.util.Map;
@@ -36,7 +36,7 @@ public class PerfCounterDashboardFeatureChecker implements FeatureChecker {
 
     @Override
     public FeatureCheckResult check(Map<Type, EventSummary> eventSummaries) {
-        boolean enabled = cacheRepository.contains(PerfCountersAdditionalFileProcessor.PERF_COUNTERS_CACHE_KEY);
+        boolean enabled = cacheRepository.contains(PerfCountersManagerImpl.PERF_COUNTERS_CACHE_KEY);
         return new FeatureCheckResult(FeatureType.PERF_COUNTERS_DASHBOARD, enabled);
     }
 }

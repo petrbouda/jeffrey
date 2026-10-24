@@ -29,8 +29,8 @@ import java.util.List;
  * <p>
  * Every recording file of the session — the JFR chunks — together make one item: they are one run of
  * the profiler, and analysing any one chunk alone would quietly answer for a few minutes of a run that
- * lasted hours. Each artifact that can be initialized on its own — a heap dump — is an item of its own,
- * named after its file. Everything else, the logs and crash files, is a file of the bundle.
+ * lasted hours. Each artifact that can be initialized on its own — a heap dump, a perf-counters
+ * snapshot — is an item of its own, named after its file. Everything else, the logs and crash files, is a file of the bundle.
  *
  * @param name  the bundle's name, which its recording item is called by as well
  * @param items the initializable items, the recording item first

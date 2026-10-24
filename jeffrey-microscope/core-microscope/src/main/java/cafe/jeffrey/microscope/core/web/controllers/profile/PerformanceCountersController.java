@@ -19,13 +19,15 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
-import cafe.jeffrey.profile.manager.additional.PerfCounter;
+import cafe.jeffrey.profile.perfcounters.PerfCounter;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
+import cafe.jeffrey.profile.perfcounters.PerfCountersOverview;
 
 import java.util.List;
 
@@ -44,16 +46,25 @@ public class PerformanceCountersController {
     @GetMapping("/exists")
     public boolean exists(@PathVariable("profileId") String profileId) {
         LOG.debug("Checking performance counters existence");
-        return mgr(profileId).performanceCountersExists();
+        return mgr(profileId).exists();
     }
 
     @GetMapping
     public List<PerfCounter> performanceCounters(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching performance counters");
-        return mgr(profileId).performanceCounters();
+        return mgr(profileId).counters();
     }
 
-    private AdditionalFilesManager mgr(String profileId) {
-        return resolver.resolve(profileId).additionalFilesManager();
+    /** The headline figures; no content when the profile holds no snapshot. */
+    @GetMapping("/overview")
+    public ResponseEntity<PerfCountersOverview> overview(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching the performance counters overview");
+        return mgr(profileId).overview()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    private PerfCountersManager mgr(String profileId) {
+        return resolver.resolve(profileId).perfCountersManager();
     }
 }

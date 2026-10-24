@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureType;
@@ -89,6 +90,14 @@ final class ProfileCapabilityGaps {
                     + "events: the jfr_, flamegraph_, jvm_, traces_ and the other recording families do not apply.";
     private static final String HEAP_DUMP_ONLY_REMEDY =
             "A JFR recording of the same interval, analysed as its own profile, answers who allocated it.";
+    private static final String PERF_COUNTERS_ONLY_GAP =
+            "This profile is a perf-counters snapshot (hsperfdata): HotSpot's own counters of uptime, heap "
+                    + "and metaspace sizes, GC counts and times, safepoints, JIT and threads. No tool reads it "
+                    + "yet, and it holds no events: the jfr_, flamegraph_, jvm_, heap_ and the other families do "
+                    + "not apply.";
+    private static final String PERF_COUNTERS_ONLY_REMEDY =
+            "The user sees its overview and every counter at the profile's uiLink; the JFR recording of the "
+                    + "same run, analysed as its own profile, answers the rest.";
     private static final String NO_HEAP_DUMP_GAP =
             "This profile has no heap dump, so the heap_ family does not apply: what is retained, the "
                     + "dominators and the GC-root paths need a dump.";
@@ -234,14 +243,18 @@ final class ProfileCapabilityGaps {
     List<CapabilityGap> gaps(List<FeatureType> disabledFeatures) {
         RecordingEventSource source = profileManager.info().eventSource();
         List<CapabilityGap> gaps = new ArrayList<>();
-        if (source == RecordingEventSource.HEAP_DUMP) {
+        if (source.kind() == ProfileKind.HEAP_DUMP) {
             // A dump is not a recording: listing every JFR family as missing would bury the one
             // sentence that explains all of them.
             gaps.add(new CapabilityGap(SUBJECT_FORMAT, HEAP_DUMP_ONLY_GAP, HEAP_DUMP_ONLY_REMEDY));
             addHeapDumpGap(gaps, disabledFeatures);
             return List.copyOf(gaps);
         }
-        if (source.isFlamegraphOnlyImport()) {
+        if (source.kind() == ProfileKind.PERF_COUNTERS) {
+            gaps.add(new CapabilityGap(SUBJECT_FORMAT, PERF_COUNTERS_ONLY_GAP, PERF_COUNTERS_ONLY_REMEDY));
+            return List.copyOf(gaps);
+        }
+        if (source.kind() == ProfileKind.STACK_SAMPLES) {
             gaps.add(new CapabilityGap(
                     SUBJECT_FORMAT, FLAMEGRAPH_ONLY_GAP.formatted(source.getLabel()), FLAMEGRAPH_ONLY_REMEDY));
             addFlamegraphGroupGaps(gaps);

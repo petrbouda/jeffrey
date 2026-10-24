@@ -50,8 +50,6 @@ import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.storage.recording.api.file.Bundle;
-import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
@@ -201,23 +199,18 @@ class ProfileRecordingsManagerAnalyzeTest {
         }
 
         /**
-         * A heap dump is a recording of its own now and never handed to the JFR profile. The bundle's
-         * perf-counters snapshot still is, until perf counters become a profile of their own.
+         * Heap dumps and perf-counters snapshots are recordings of their own, so nothing of the bundle
+         * the recording came in is handed to the JFR profile.
          */
         @Test
-        void handsOnlyTheBundlesPerfCountersToTheInitializer() throws IOException {
+        void handsNothingOfTheBundleToTheInitializer() throws IOException {
             String bundleId = "bundle-1";
             Files.createFile(recordingsDir.resolve(RECORDING_ID + "-profile-2.jfr"));
-            Files.createFile(recordingsDir.resolve(bundleId + "-perf-counters.hsperfdata"));
             Recording session = sessionRecording();
             when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(new Recording(
                     session.id(), session.recordingName(), null, session.eventSource(), session.createdAt(),
                     session.recordingStartedAt(), session.recordingFinishedAt(), false, null, null,
                     session.files(), bundleId)));
-            when(recordingRepository.findBundle(bundleId)).thenReturn(Optional.of(new Bundle(
-                    bundleId, "session", null, NOW, List.of(
-                            new BundleFile("f-1", bundleId, "perf-counters.hsperfdata", ManagedFile.PERF_COUNTERS, NOW, 64L),
-                            new BundleFile("f-2", bundleId, "gc.jvm-log", ManagedFile.JVM_LOG, NOW, 64L)))));
 
             manager.analyzeRecording(RECORDING_ID);
 
@@ -225,11 +218,7 @@ class ProfileRecordingsManagerAnalyzeTest {
             ArgumentCaptor<List<Path>> artifacts = ArgumentCaptor.forClass(List.class);
             verify(profileInitializer).initialize(any(), any(), artifacts.capture());
 
-            assertEquals(
-                    List.of(bundleId + "-perf-counters.hsperfdata"),
-                    artifacts.getValue().stream()
-                            .map(path -> path.getFileName().toString())
-                            .toList());
+            assertEquals(List.of(), artifacts.getValue());
         }
 
         /**

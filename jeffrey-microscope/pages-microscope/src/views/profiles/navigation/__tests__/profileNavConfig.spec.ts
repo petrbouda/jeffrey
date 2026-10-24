@@ -90,8 +90,8 @@ describe('profileNavConfig', () => {
     // 5 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
     // + 16 Application (incl. Memory Issues submenu) + 4 Traces (Traces by Operation,
     // Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
-    // + 16 HeapDump + 4 Tools + 35 Technologies
-    expect(allItems.length).toBe(103);
+    // + 16 HeapDump + 2 PerfCounters + 4 Tools + 35 Technologies
+    expect(allItems.length).toBe(105);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -203,6 +203,8 @@ describe('profileNavConfig', () => {
     expect(getModeForPath(profilePath('/flamegraphs/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/subsecond/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/heap-dump/overview'))).toBe('HeapDump');
+    expect(getModeForPath(profilePath('/perf-counters/overview'))).toBe('PerfCounters');
+    expect(getModeForPath(profilePath('/perf-counters/counters'))).toBe('PerfCounters');
     expect(getModeForPath(profilePath('/tools/rename-frames'))).toBe('Tools');
   });
 });

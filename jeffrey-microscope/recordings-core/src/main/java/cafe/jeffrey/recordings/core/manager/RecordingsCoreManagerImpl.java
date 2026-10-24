@@ -328,7 +328,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     private static void requireInitializable(String filename) {
         if (!ManagedFile.of(filename).isInitializable()) {
             throw new IllegalArgumentException("Unsupported recording file type: " + filename
-                    + " (expected a JFR recording, a heap dump, a pprof or an OpenTelemetry profile)");
+                    + " (expected a JFR recording, a heap dump, a perf-counters snapshot, a pprof or an OpenTelemetry profile)");
         }
     }
 

@@ -27,7 +27,8 @@ import java.util.Optional;
  * recording is parsed into events, a heap dump is indexed beside its copy — and decides for itself
  * whether a profile it built before can be reused.
  */
-public sealed interface ProfileBuilder permits PipelineProfileBuilder, HeapDumpProfileBuilder {
+public sealed interface ProfileBuilder
+        permits PipelineProfileBuilder, HeapDumpProfileBuilder, PerfCountersProfileBuilder {
 
     /**
      * An explicit Analyze on a recording that already has a profile.

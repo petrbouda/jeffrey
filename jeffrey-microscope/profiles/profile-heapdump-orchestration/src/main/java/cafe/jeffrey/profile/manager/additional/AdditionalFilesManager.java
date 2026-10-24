@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.manager.additional;
 
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.profile.manager.additional.PerfCounter;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -32,7 +31,7 @@ public interface AdditionalFilesManager {
     }
 
     /**
-     * Takes in the recording's supplementary files — perf counters, heap dumps — and makes the
+     * Takes in the recording's supplementary files — heap dumps — and makes the
      * profile able to answer about them.
      * <p>
      * The files are handed over rather than looked up. A project recording keeps them in its own
@@ -43,10 +42,6 @@ public interface AdditionalFilesManager {
      * @param artifacts the recording's artifact files; an empty list is a recording with none
      */
     void processAdditionalFiles(List<Path> artifacts);
-
-    boolean performanceCountersExists();
-
-    List<PerfCounter> performanceCounters();
 
     /**
      * Check if a heap dump file exists for this recording.

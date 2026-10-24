@@ -17,15 +17,12 @@
 
 package cafe.jeffrey.profile.manager.additional;
 
-import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.profile.manager.additional.AdditionalFileProcessor;
 import cafe.jeffrey.profile.manager.additional.HeapDumpAdditionalFileProcessor;
-import cafe.jeffrey.profile.manager.additional.PerfCountersAdditionalFileProcessor;
 import cafe.jeffrey.profile.manager.additional.ProcessingResult;
-import cafe.jeffrey.profile.manager.additional.PerfCounter;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 
 import java.io.IOException;
@@ -38,10 +35,6 @@ import java.util.Optional;
 public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdditionalFilesManagerImpl.class);
-
-    private static final TypeReference<List<PerfCounter>> PERF_COUNTER_TYPE =
-            new TypeReference<List<PerfCounter>>() {
-            };
 
     private final ProfileCacheRepository cacheRepository;
     private final Path heapDumpAnalysisPath;
@@ -60,7 +53,6 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
 
         // Initialize processors map with all supported processors
         this.processors = Map.of(
-                ManagedFile.PERF_COUNTERS, new PerfCountersAdditionalFileProcessor(),
                 ManagedFile.HEAP_DUMP, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, ManagedFile.HEAP_DUMP),
                 ManagedFile.HEAP_DUMP_GZ, new HeapDumpAdditionalFileProcessor(heapDumpAnalysisPath, ManagedFile.HEAP_DUMP_GZ)
         );
@@ -88,17 +80,6 @@ public class AdditionalFilesManagerImpl implements AdditionalFilesManager {
             case ProcessingResult.NoOpResult _ ->
                     LOG.debug("No operation performed");
         }
-    }
-
-    @Override
-    public boolean performanceCountersExists() {
-        return cacheRepository.contains(PerfCountersAdditionalFileProcessor.PERF_COUNTERS_CACHE_KEY);
-    }
-
-    @Override
-    public List<PerfCounter> performanceCounters() {
-        return this.cacheRepository.get(PerfCountersAdditionalFileProcessor.PERF_COUNTERS_CACHE_KEY, PERF_COUNTER_TYPE)
-                .orElse(List.of());
     }
 
     @Override

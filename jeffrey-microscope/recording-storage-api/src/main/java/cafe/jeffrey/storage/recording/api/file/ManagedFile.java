@@ -83,7 +83,7 @@ public enum ManagedFile {
             FileExtensions.PERF_COUNTERS,
             filename -> filename.endsWith("." + FileExtensions.PERF_COUNTERS),
             FileCategory.ARTIFACT,
-            null
+            RecordingEventSource.PERF_COUNTERS
     ),
     JVM_LOG(
             "JVM Log",

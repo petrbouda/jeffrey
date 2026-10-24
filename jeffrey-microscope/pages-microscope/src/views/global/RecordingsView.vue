@@ -419,6 +419,12 @@ const RECORDING_FORMATS: RecordingFormat[] = [
     label: 'Heap dump',
     icon: 'bi bi-pie-chart-fill',
     extensions: ['.hprof', '.hprof.gz']
+  },
+  {
+    id: 'perf',
+    label: 'Perf counters',
+    icon: 'bi bi-speedometer2',
+    extensions: ['.hsperfdata']
   }
 ];
 
@@ -762,7 +768,7 @@ const typeFilter = ref<TypeFilter>('all');
 
 // Counts per format within the current group/search selection — drives the type filter pills.
 const typeCounts = computed<Record<RecordingType, number>>(() => {
-  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, OTLP: 0, HEAP: 0 };
+  const counts: Record<RecordingType, number> = { JFR: 0, PPROF: 0, OTLP: 0, HEAP: 0, PERF: 0 };
   for (const item of filteredItems.value) {
     for (const recording of recordingsOf(item)) {
       counts[recordingType(recording)]++;
@@ -845,7 +851,8 @@ const TYPE_FILTERS: { key: RecordingType; label: string; format: string }[] = [
   { key: 'JFR', label: 'JFR', format: 'jfr' },
   { key: 'PPROF', label: 'pprof', format: 'pprof' },
   { key: 'OTLP', label: 'OpenTelemetry', format: 'otlp' },
-  { key: 'HEAP', label: 'Heap Dumps', format: 'heap' }
+  { key: 'HEAP', label: 'Heap Dumps', format: 'heap' },
+  { key: 'PERF', label: 'Perf Counters', format: 'perf' }
 ];
 
 const selectTypeFilter = (type: TypeFilter) => {
@@ -1594,6 +1601,10 @@ const onDragEnd = () => {
   background: var(--color-purple);
 }
 
+.format-perf .format-ic {
+  background: var(--color-pink-text);
+}
+
 .drop-file-dot {
   width: 8px;
   height: 8px;
@@ -1616,6 +1627,10 @@ const onDragEnd = () => {
 
 .dot-heap {
   background: var(--color-purple);
+}
+
+.dot-perf {
+  background: var(--color-pink-text);
 }
 
 /* ============ Files (auto-uploading, inside the drop zone) ============ */
@@ -1961,6 +1976,12 @@ const onDragEnd = () => {
   --type-solid: var(--color-purple);
   --type-soft: var(--color-purple-bg);
   --type-text: var(--color-purple-text);
+}
+
+.type-chip--perf {
+  --type-solid: var(--color-pink-text);
+  --type-soft: var(--color-pink-bg);
+  --type-text: var(--color-pink-text);
 }
 
 .type-chip:hover {

@@ -21,7 +21,8 @@ enum RecordingEventSource {
   UNKNOWN = 'UNKNOWN',
   HEAP_DUMP = 'HEAP_DUMP',
   PPROF = 'PPROF',
-  OPEN_TELEMETRY = 'OPEN_TELEMETRY'
+  OPEN_TELEMETRY = 'OPEN_TELEMETRY',
+  PERF_COUNTERS = 'PERF_COUNTERS'
 }
 
 export default RecordingEventSource;

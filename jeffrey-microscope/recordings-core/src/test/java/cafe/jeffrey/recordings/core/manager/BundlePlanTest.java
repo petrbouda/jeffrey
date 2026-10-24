@@ -50,10 +50,19 @@ class BundlePlanTest {
     }
 
     @Test
-    void logsCrashFilesAndPerfCountersStayFilesOfTheBundle() {
+    void aPerfCountersSnapshotIsAnItemOfItsOwn() {
+        BundlePlan plan = BundlePlan.of("checkout", List.of(DIR.resolve("chunk-1.jfr")),
+                List.of(DIR.resolve("perf-counters.hsperfdata")));
+
+        assertEquals(List.of("checkout", "perf-counters.hsperfdata"),
+                plan.items().stream().map(BundlePlan.Item::name).toList());
+        assertEquals(List.of(), plan.files());
+    }
+
+    @Test
+    void logsAndCrashFilesStayFilesOfTheBundle() {
         List<Path> artifacts = List.of(
-                DIR.resolve("gc.jvm-log"), DIR.resolve("app.log"), DIR.resolve("hs-jvm-err.log"),
-                DIR.resolve("perf-counters.hsperfdata"));
+                DIR.resolve("gc.jvm-log"), DIR.resolve("app.log"), DIR.resolve("hs-jvm-err.log"));
 
         BundlePlan plan = BundlePlan.of("checkout", List.of(DIR.resolve("chunk-1.jfr")), artifacts);
 

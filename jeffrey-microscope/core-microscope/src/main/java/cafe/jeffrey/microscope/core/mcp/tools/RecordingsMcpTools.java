@@ -212,8 +212,8 @@ public class RecordingsMcpTools {
         this.jobs = jobs;
     }
 
-    @Tool(description = "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .pprof or "
-            + ".otlp file in the user's repository or filesystem - by importing it into the Quick "
+    @Tool(description = "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, "
+            + ".pprof or .otlp file in the user's repository or filesystem - by importing it into the Quick "
             + "Analysis store and building a profile, and returns the profile id every other tool "
             + "takes. The Jeffrey process opens the path, so the file has to be on the machine "
             + "Jeffrey runs on. A file whose name and size match a stored recording is not imported "
@@ -817,10 +817,10 @@ public class RecordingsMcpTools {
                     "No such recording file: " + resolved + ". The path is opened by the Jeffrey "
                             + "process, so the file has to be on the machine Jeffrey runs on.");
         }
-        if (ManagedFile.of(resolved.getFileName().toString()) == ManagedFile.UNKNOWN) {
+        if (!ManagedFile.of(resolved.getFileName().toString()).isInitializable()) {
             throw new IllegalArgumentException(
                     "Unsupported recording file: " + resolved.getFileName()
-                            + ". Jeffrey analyses .jfr, .jfr.lz4, .hprof, .hprof.gz, .pprof and .otlp files.");
+                            + ". Jeffrey analyses .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, .pprof and .otlp files.");
         }
         return resolved;
     }

@@ -543,7 +543,54 @@ onBeforeUnmount(() => {
   color: var(--color-orange);
 }
 
-/* Format type tag (JFR / pprof / OTLP / Heap) */
+.rec-card--perf {
+  border-left: 3px dashed color-mix(in srgb, var(--color-pink-text) 40%, transparent);
+}
+
+.rec-card--perf:hover {
+  border-color: color-mix(in srgb, var(--color-pink-text) 30%, transparent);
+  border-left-color: var(--color-pink-text);
+  border-left-style: solid;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-pink-text) 4%, transparent),
+    color-mix(in srgb, var(--color-pink-text) 2%, transparent)
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+/* Perf counters: analyzed */
+.rec-card--perf.rec-card--analyzed {
+  border-left: 3px solid var(--color-pink-text);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-pink-text) 3%, transparent),
+    var(--color-white)
+  );
+}
+
+.rec-card--perf.rec-card--analyzed:hover {
+  border-color: color-mix(in srgb, var(--color-pink-text) 30%, transparent);
+  border-left-color: var(--color-pink-text);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-pink-text) 8%, transparent),
+    color-mix(in srgb, var(--color-pink-text) 4%, transparent)
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+.rec-card--perf .rec-card__icon,
+.rec-card--perf.rec-card--analyzed .rec-card__icon {
+  color: var(--color-pink-text);
+  background: var(--color-pink-bg);
+}
+
+.rec-card--perf.rec-card--analyzed .rec-card__profile-info {
+  color: var(--color-pink-text);
+}
+
+/* Format type tag (JFR / pprof / OTLP / Heap / Perf) */
 .rec-card__type {
   flex: none;
   font-size: 0.625rem;
@@ -572,6 +619,11 @@ onBeforeUnmount(() => {
 .rec-card__type--heap {
   background: var(--color-purple-bg);
   color: var(--color-purple-text);
+}
+
+.rec-card__type--perf {
+  background: var(--color-pink-bg);
+  color: var(--color-pink-text);
 }
 
 @keyframes rec-card-pulse {

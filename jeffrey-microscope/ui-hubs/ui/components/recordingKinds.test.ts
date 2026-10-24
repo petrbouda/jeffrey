@@ -42,8 +42,17 @@ describe('recordingKindOf', () => {
     expect(recordingKindOf('PPROF').chips).toBe(PROFILE_INIT_CHIPS);
   });
 
+  // A snapshot is read within the request: there are no stages to follow.
+  it('gives a perf-counters snapshot its own key and no initialization chips', () => {
+    const kind = recordingKindOf('PERF_COUNTERS');
+    expect(kind.key).toBe('PERF');
+    expect(kind.chips).toEqual([]);
+  });
+
   it('gives every kind a distinct filter key and badge colour', () => {
-    const kinds = ['JDK', 'HEAP_DUMP', 'PPROF', 'OPEN_TELEMETRY'].map(recordingKindOf);
+    const kinds = ['JDK', 'HEAP_DUMP', 'PPROF', 'OPEN_TELEMETRY', 'PERF_COUNTERS'].map(
+      recordingKindOf
+    );
     expect(new Set(kinds.map(kind => kind.key)).size).toBe(kinds.length);
     expect(new Set(kinds.map(kind => kind.badgeVariant)).size).toBe(kinds.length);
   });

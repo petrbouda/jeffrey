@@ -30,6 +30,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.HeapDumpProfileBuilder;
+import cafe.jeffrey.microscope.core.manager.recordings.builder.PerfCountersProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.PipelineProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
@@ -152,7 +153,9 @@ public class MicroscopeAppConfiguration {
                 ProfileKind.STACK_SAMPLES, pipelineBuilder,
                 ProfileKind.HEAP_DUMP, new HeapDumpProfileBuilder(
                         clock, jeffreyDirs, recordingsPath, repos, profileManagerFactory,
-                        heapDumpInitService, profileCleanup)));
+                        heapDumpInitService, profileCleanup),
+                ProfileKind.PERF_COUNTERS, new PerfCountersProfileBuilder(
+                        clock, jeffreyDirs, recordingsPath, repos, profileManagerFactory, profileCleanup)));
 
         return new ProfileRecordingsManager(core, profileManagerFactory, repos, profileCleanup, builders);
     }

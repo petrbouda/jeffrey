@@ -24,7 +24,8 @@ public enum RecordingEventSource {
     UNKNOWN(2, "Unknown", ProfileKind.JFR),
     HEAP_DUMP(3, "Heap Dump", ProfileKind.HEAP_DUMP),
     PPROF(4, "pprof", ProfileKind.STACK_SAMPLES),
-    OPEN_TELEMETRY(5, "OpenTelemetry", ProfileKind.STACK_SAMPLES);
+    OPEN_TELEMETRY(5, "OpenTelemetry", ProfileKind.STACK_SAMPLES),
+    PERF_COUNTERS(6, "Perf Counters", ProfileKind.PERF_COUNTERS);
 
     private final int id;
     private final String label;

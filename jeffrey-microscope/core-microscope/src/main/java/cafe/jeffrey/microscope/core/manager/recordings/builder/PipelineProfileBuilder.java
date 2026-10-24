@@ -36,7 +36,6 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.notification.NotificationType;
 import cafe.jeffrey.shared.notification.Notifications;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
@@ -157,7 +156,7 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
                 recordingInfo.recordingFinishedAt()));
 
         try {
-            profileInitializer.initialize(profileInfo, sources, bundledPerfCounters(recording));
+            profileInitializer.initialize(profileInfo, sources, List.of());
         } catch (RuntimeException e) {
             // Keep the disabled row. It is the durable recording-to-profile link through which the
             // in-memory pipeline can report the failed attempt, and after a restart it is the evidence
@@ -180,24 +179,6 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
     @Override
     public PipelineProgress progress(String profileId) {
         return runRegistry.progress(profileId);
-    }
-
-    /**
-     * The perf-counters snapshot the recording's bundle brought along, which the JFR profile still
-     * shows on its counters page. Heap dumps are no longer handed over: they are recordings of their
-     * own.
-     */
-    private List<Path> bundledPerfCounters(Recording recording) {
-        if (!recording.inBundle()) {
-            return List.of();
-        }
-        return localCoreRepositories.newRecordingRepository().findBundle(recording.bundleId())
-                .map(bundle -> bundle.files().stream()
-                        .filter(file -> file.fileType() == ManagedFile.PERF_COUNTERS)
-                        .map(file -> RecordingStorageLayout.storagePath(recordingsDir, bundle.id(), file.filename()))
-                        .filter(Files::exists)
-                        .toList())
-                .orElse(List.of());
     }
 
     /**

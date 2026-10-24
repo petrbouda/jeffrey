@@ -20,7 +20,7 @@ import type { Variant } from '@shared/types/ui';
 import { HEAP_DUMP_INIT_CHIPS, PROFILE_INIT_CHIPS } from './profileInitChips';
 
 /** The filter key a kind is counted and selected under in the recordings list. */
-export type RecordingKindKey = 'JFR' | 'PPROF' | 'OTLP' | 'HEAP';
+export type RecordingKindKey = 'JFR' | 'PPROF' | 'OTLP' | 'HEAP' | 'PERF';
 
 /**
  * Everything the recordings list shows differently per kind of recording, in one place: how a card is
@@ -39,6 +39,7 @@ export interface RecordingKind {
   cardClass: string | null;
   /** The kind's badge colour, where a bundle lists the kinds it holds. */
   badgeVariant: Variant;
+  /** The stages its initialization shows; none for a kind built within the request. */
   chips: StageChipGroup[];
 }
 
@@ -83,6 +84,16 @@ const KINDS_BY_SOURCE: Record<string, RecordingKind> = {
     cardClass: 'rec-card--otel',
     badgeVariant: 'orange',
     chips: PROFILE_INIT_CHIPS
+  },
+  PERF_COUNTERS: {
+    key: 'PERF',
+    label: 'Perf',
+    name: 'Perf counters',
+    icon: 'bi bi-speedometer2',
+    tagClass: 'rec-card__type--perf',
+    cardClass: 'rec-card--perf',
+    badgeVariant: 'pink',
+    chips: []
   }
 };
 

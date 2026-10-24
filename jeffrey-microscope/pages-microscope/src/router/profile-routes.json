@@ -45,6 +45,8 @@
   "native-memory",
   "nmt",
   "overview",
+  "perf-counters/counters",
+  "perf-counters/overview",
   "performance-counters",
   "security",
   "socket-io",

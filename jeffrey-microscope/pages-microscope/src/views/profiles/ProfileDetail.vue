@@ -20,93 +20,17 @@
     <!-- Feature Collection Navigation -->
     <div class="feature-collection-nav normal-nav content-aligned">
       <div class="nav-container">
-        <!-- Overview mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
+        <!-- The modes this kind of profile offers (ProfileKind); Heap Dump only while one is attached -->
         <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
+          v-for="pill in visiblePills"
+          :key="pill.mode"
           class="nav-pill"
-          :class="{ active: selectedMode === 'Overview' }"
-          title="Dashboards, insights and profile information"
-          @click="selectMode('Overview')"
+          :class="{ active: selectedMode === pill.mode }"
+          :title="pill.title"
+          @click="selectMode(pill.mode)"
         >
-          <i class="bi bi-compass"></i>
-          <span>Overview</span>
-        </div>
-        <!-- JVM Internals mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'JVM' }"
-          title="Core JVM metrics and analysis"
-          @click="selectMode('JVM')"
-        >
-          <i class="bi bi-cpu"></i>
-          <span>JVM Internals</span>
-        </div>
-        <!-- Application mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Application' }"
-          title="Threads, behavior and I/O"
-          @click="selectMode('Application')"
-        >
-          <i class="bi bi-activity"></i>
-          <span>Application</span>
-        </div>
-        <!-- Traces mode (hidden for heap-dump-only, pprof and OTLP profiles: none of them carry spans) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Traces' }"
-          title="Nested spans, operations and trace attributes"
-          @click="selectMode('Traces')"
-        >
-          <i class="bi bi-bar-chart-steps"></i>
-          <span>Traces</span>
-        </div>
-        <!-- Visualization mode (hidden for heap-dump-only profiles) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Visualization' }"
-          title="Profiling graphs and visualizations"
-          @click="selectMode('Visualization')"
-        >
-          <i class="bi bi-bar-chart-line"></i>
-          <span>Visualization</span>
-        </div>
-        <!-- Technologies mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Technologies' }"
-          title="Technology-specific analysis"
-          @click="selectMode('Technologies')"
-        >
-          <i class="bi bi-layers"></i>
-          <span>Technologies</span>
-        </div>
-        <!-- Tools mode (hidden for heap-dump-only and pprof profiles; kept for OTLP, which can export) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Tools' }"
-          title="Profile data transformations"
-          @click="selectMode('Tools')"
-        >
-          <i class="bi bi-tools"></i>
-          <span>Tools</span>
-        </div>
-        <!-- Heap Dump mode (only when a heap dump is attached; pprof/OTLP profiles have no heap data) -->
-        <div
-          v-if="!isPprofOnlyProfile && !isOtlpOnlyProfile && heapDumpAttached"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'HeapDump' }"
-          title="Heap dump memory analysis"
-          @click="selectMode('HeapDump')"
-        >
-          <i class="bi bi-database"></i>
-          <span>Heap Dump</span>
+          <i class="bi" :class="pill.icon"></i>
+          <span>{{ pill.label }}</span>
         </div>
 
         <!-- IDE Target Control (profile-wide; visible only when the bridge supports target selection) -->
@@ -314,6 +238,7 @@ import {
   getTechnologyForPath,
   ProfileMode
 } from '@/views/profiles/navigation/profileNavConfig';
+import { profileKindOf } from '@/services/ProfileKind';
 const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, navigateToProjectRecordings } = useNavigation();
@@ -328,37 +253,69 @@ const loading = ref(true);
 const sidebarCollapsed = ref(false);
 const showSecondaryProfileSelectionModal = ref(false);
 const disabledFeatures = ref<FeatureType[]>([]);
-const isHeapDumpOnlyProfile = ref(false);
-const isPprofOnlyProfile = ref(false);
-const isOtlpOnlyProfile = ref(false);
 // True when the recording carries a heap dump (heap-dump-only profile or an attached .hprof file);
 // the Heap Dump pill is hidden entirely when there is none.
 const heapDumpAttached = ref(false);
 
-/**
- * Check if the profile is a heap-dump-only profile (no JFR data).
- * These profiles have HEAP_DUMP event source.
- */
-const checkHeapDumpOnlyProfile = (p: Profile): boolean => {
-  return p.eventSource === RecordingEventSource.HEAP_DUMP;
-};
+interface ModePill {
+  mode: ProfileMode;
+  label: string;
+  icon: string;
+  title: string;
+}
 
-/**
- * Check if the profile is a pprof profile. pprof carries stack samples only (no GC, JVM internals,
- * heap dump or technology events), so these profiles expose only the stack-based Visualization mode.
- */
-const checkPprofOnlyProfile = (p: Profile): boolean => {
-  return p.eventSource === RecordingEventSource.PPROF;
-};
+/** Every mode pill, in the order the row shows them; a profile shows those its kind offers. */
+const MODE_PILLS: ModePill[] = [
+  {
+    mode: 'Overview',
+    label: 'Overview',
+    icon: 'bi-compass',
+    title: 'Dashboards, insights and profile information'
+  },
+  { mode: 'JVM', label: 'JVM Internals', icon: 'bi-cpu', title: 'Core JVM metrics and analysis' },
+  {
+    mode: 'Application',
+    label: 'Application',
+    icon: 'bi-activity',
+    title: 'Threads, behavior and I/O'
+  },
+  {
+    mode: 'Traces',
+    label: 'Traces',
+    icon: 'bi-bar-chart-steps',
+    title: 'Nested spans, operations and trace attributes'
+  },
+  {
+    mode: 'Visualization',
+    label: 'Visualization',
+    icon: 'bi-bar-chart-line',
+    title: 'Profiling graphs and visualizations'
+  },
+  {
+    mode: 'Technologies',
+    label: 'Technologies',
+    icon: 'bi-layers',
+    title: 'Technology-specific analysis'
+  },
+  { mode: 'Tools', label: 'Tools', icon: 'bi-tools', title: 'Profile data transformations' },
+  { mode: 'HeapDump', label: 'Heap Dump', icon: 'bi-database', title: 'Heap dump memory analysis' },
+  {
+    mode: 'PerfCounters',
+    label: 'Perf Counters',
+    icon: 'bi-speedometer2',
+    title: 'HotSpot performance counters'
+  }
+];
 
-/**
- * Check if the profile is an OpenTelemetry (OTLP) profile. Like pprof, OTLP carries stack samples only
- * (no GC, JVM internals, heap dump or technology events), so these profiles expose the stack-based
- * Visualization mode — plus Tools, since an OTLP profile can be re-exported.
- */
-const checkOtlpOnlyProfile = (p: Profile): boolean => {
-  return p.eventSource === RecordingEventSource.OPEN_TELEMETRY;
-};
+/** What this profile is; until it has loaded, a JFR recording, the common case. */
+const profileKind = computed(() => profileKindOf(profile.value?.eventSource));
+
+const visiblePills = computed(() =>
+  MODE_PILLS.filter(
+    pill =>
+      profileKind.value.modes.has(pill.mode) && (pill.mode !== 'HeapDump' || heapDumpAttached.value)
+  )
+);
 
 // Mapping function to determine which features are associated with menu items
 const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
@@ -396,7 +353,6 @@ const activeTechnology = computed<string | null>(() =>
 
 // Mode is derived from the current route path (single source of truth in profileNavConfig)
 // so refresh preserves the active section.
-// (heap-dump-only profiles override this to 'HeapDump' in onMounted)
 const selectedMode = ref<ProfileMode>(getModeForPath(route.path));
 
 // Keep the active pill in sync when navigation crosses modes without a pill click
@@ -404,9 +360,6 @@ const selectedMode = ref<ProfileMode>(getModeForPath(route.path));
 watch(
   () => route.path,
   newPath => {
-    if (isHeapDumpOnlyProfile.value) {
-      return;
-    }
     selectedMode.value = getModeForPath(newPath);
   }
 );
@@ -519,48 +472,19 @@ onMounted(async () => {
     // Store profile context in profileStore for navigation
     profileStore.setProfile(profileWithContext);
 
-    // Check if this is a heap-dump-only profile (no JFR data)
-    isHeapDumpOnlyProfile.value = checkHeapDumpOnlyProfile(profileWithContext);
-    if (isHeapDumpOnlyProfile.value) {
-      // Auto-select HeapDump mode for heap-dump-only profiles. HeapDump is the only mode such a
-      // profile offers, so a URL that landed anywhere else — the bare profile URL's /dashboard
-      // default, the summary of events a dump does not have — is sent to the overview instead.
-      selectedMode.value = 'HeapDump';
-      if (getModeForPath(route.path) !== 'HeapDump') {
-        router.replace(`/profiles/${profileId}/heap-dump/overview`);
-      }
+    // A profile offers only the modes of its kind: a URL that landed anywhere else -- the bare
+    // profile URL's /dashboard default on a heap dump, a JFR page on a pprof import -- goes to the
+    // kind's landing page instead.
+    const kind = profileKindOf(profileWithContext.eventSource);
+    if (!kind.modes.has(getModeForPath(route.path))) {
+      await router.replace(`/profiles/${profileId}/${kind.landing}`);
     }
+    selectedMode.value = getModeForPath(route.path);
 
-    // pprof profiles are stack-samples only: force the Visualization mode and, if the URL landed on
-    // a non-visualization section (e.g. the JFR /overview default), redirect to the flamegraph.
-    isPprofOnlyProfile.value = checkPprofOnlyProfile(profileWithContext);
-    if (isPprofOnlyProfile.value) {
-      selectedMode.value = 'Visualization';
-      if (getModeForPath(route.path) !== 'Visualization') {
-        router.replace(`/profiles/${profileId}/flamegraphs/primary`);
-      }
-    }
-
-    // OTLP profiles are stack-samples only too, but keep the Tools mode (they can be re-exported).
-    // Land on the flamegraph by default, without bouncing a valid Tools deep-link.
-    isOtlpOnlyProfile.value = checkOtlpOnlyProfile(profileWithContext);
-    if (isOtlpOnlyProfile.value) {
-      const currentMode = getModeForPath(route.path);
-      if (currentMode === 'Tools') {
-        selectedMode.value = 'Tools';
-      } else {
-        selectedMode.value = 'Visualization';
-        if (currentMode !== 'Visualization') {
-          router.replace(`/profiles/${profileId}/flamegraphs/primary`);
-        }
-      }
-    }
-
-    // Heap-dump-only profiles ARE a heap dump; for JFR profiles ask the backend whether
-    // a heap dump file is attached to the recording (pprof/OTLP profiles never have one).
-    if (isHeapDumpOnlyProfile.value) {
+    // A heap dump profile is one; a JFR profile asks the backend whether a dump is attached.
+    if (profileWithContext.eventSource === RecordingEventSource.HEAP_DUMP) {
       heapDumpAttached.value = true;
-    } else if (!isPprofOnlyProfile.value && !isOtlpOnlyProfile.value) {
+    } else if (kind.modes.has('HeapDump')) {
       try {
         heapDumpAttached.value = await new HeapDumpClient(profileId).exists();
       } catch (error) {
@@ -647,6 +571,7 @@ const selectMode = (mode: ProfileMode) => {
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
     HeapDump: `/profiles/${profileId}/heap-dump/overview`,
+    PerfCounters: `/profiles/${profileId}/perf-counters/overview`,
     Tools: `/profiles/${profileId}/tools/rename-frames`
   };
 

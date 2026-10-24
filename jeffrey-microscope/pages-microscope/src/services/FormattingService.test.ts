@@ -154,6 +154,19 @@ describe('FormattingService', () => {
     });
   });
 
+  describe('formatCount', () => {
+    it('returns "-" for undefined/null', () => {
+      expect(FormattingService.formatCount(undefined)).toBe('-');
+      expect(FormattingService.formatCount(null)).toBe('-');
+    });
+
+    it('keeps the exact count and groups its digits', () => {
+      expect(FormattingService.formatCount(0)).toBe('0');
+      expect(FormattingService.formatCount(21506)).toBe('21,506');
+      expect(FormattingService.formatCount(1234567)).toBe('1,234,567');
+    });
+  });
+
   describe('formatNumber', () => {
     it('returns "-" for undefined/null', () => {
       expect(FormattingService.formatNumber(undefined as any)).toBe('-');

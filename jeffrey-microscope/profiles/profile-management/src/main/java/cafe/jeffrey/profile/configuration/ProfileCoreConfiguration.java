@@ -48,6 +48,9 @@ import cafe.jeffrey.profile.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.profile.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
 import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
+import cafe.jeffrey.profile.perfcounters.PerfCountersCatalog;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
+import cafe.jeffrey.profile.perfcounters.PerfCountersManagerImpl;
 import cafe.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
 import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
@@ -110,6 +113,7 @@ public class ProfileCoreConfiguration {
             ProfileConfigurationManager.Factory configurationFactory,
             ProfileFeaturesManager.Factory featuresFactory,
             AdditionalFilesManager.Factory additionalFilesFactory,
+            PerfCountersManager.Factory perfCountersFactory,
             ProfileToolsManager.Factory toolsFactory,
             CollapseFramesManager.Factory collapseFramesFactory,
             PprofExportManager.Factory pprofExportFactory,
@@ -123,6 +127,7 @@ public class ProfileCoreConfiguration {
                 configurationFactory,
                 featuresFactory,
                 additionalFilesFactory,
+                perfCountersFactory,
                 toolsFactory,
                 collapseFramesFactory,
                 pprofExportFactory,
@@ -221,6 +226,15 @@ public class ProfileCoreConfiguration {
                     profileRepositories.newProfileCacheRepository(profileDb),
                     heapDumpAnalysisPath);
         };
+    }
+
+    /** The catalog is read once; it describes the counters of every Perf Counters profile alike. */
+    @Bean
+    public PerfCountersManager.Factory perfCountersManagerFactory() {
+        PerfCountersCatalog catalog = PerfCountersCatalog.load();
+        return profileInfo -> new PerfCountersManagerImpl(
+                profileRepositories.newProfileCacheRepository(databaseManagerResolver.open(profileInfo)),
+                catalog);
     }
 
     /**

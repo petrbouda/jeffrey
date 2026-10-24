@@ -405,6 +405,19 @@ class ProfileMcpToolsTest {
             assertFalse(result.contains("\"subject\":\"allocation\""), result);
         }
 
+        /** A perf-counters snapshot holds no events, and no tool reads it yet: the user sees it. */
+        @Test
+        void describesAPerfCountersProfileInOneLineAndPointsAtTheUi() {
+            stubProfile(RecordingEventSource.PERF_COUNTERS);
+
+            String result = tools().summary().text();
+
+            assertTrue(result.contains("This profile is a perf-counters snapshot"), result);
+            assertTrue(result.contains("No tool reads it yet"), result);
+            assertFalse(result.contains("\"subject\":\"jvm_gc\""), result);
+            assertFalse(result.contains("\"subject\":\"heapDump\""), result);
+        }
+
         @Test
         void describesAnImportedSampleSetInOneLine() {
             stubProfile(RecordingEventSource.PPROF);
@@ -601,6 +614,15 @@ class ProfileMcpToolsTest {
         @Test
         void aHeapDumpSummaryHasNoMenu() {
             stubProfile(RecordingEventSource.HEAP_DUMP);
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            assertTrue(summary.get("investigationAreas").isEmpty());
+        }
+
+        @Test
+        void aPerfCountersSummaryHasNoMenu() {
+            stubProfile(RecordingEventSource.PERF_COUNTERS);
 
             JsonNode summary = conforming("summary", tools().summary());
 

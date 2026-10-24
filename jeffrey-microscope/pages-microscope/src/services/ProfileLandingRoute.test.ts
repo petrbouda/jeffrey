@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 import {
   HEAP_DUMP_SOURCE,
   OTEL_SOURCE,
+  PERF_COUNTERS_SOURCE,
   PPROF_SOURCE,
   profileLandingRoute
 } from '@/services/ProfileLandingRoute';
@@ -46,6 +47,12 @@ describe('profileLandingRoute', () => {
   it('lands a heap dump on its settings page', () => {
     expect(profileLandingRoute(PROFILE_ID, HEAP_DUMP_SOURCE)).toBe(
       '/profiles/abc123/heap-dump/overview'
+    );
+  });
+
+  it('lands a perf-counters snapshot on its overview', () => {
+    expect(profileLandingRoute(PROFILE_ID, PERF_COUNTERS_SOURCE)).toBe(
+      '/profiles/abc123/perf-counters/overview'
     );
   });
 
