@@ -21,7 +21,7 @@ import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;

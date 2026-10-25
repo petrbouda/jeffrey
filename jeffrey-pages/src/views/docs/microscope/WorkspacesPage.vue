@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'add-hub', text: 'Step 1 — Add a Hub', level: 2 },
-  { id: 'azure-files', text: 'Reading an Azure File Share', level: 3 },
+  { id: 'azure-files', text: 'Working on an Azure File Share', level: 3 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
   { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
@@ -112,25 +112,32 @@ onMounted(() => {
         working as soon as it comes up.
       </DocsCallout>
 
-      <h3 id="azure-files">Reading an Azure File Share</h3>
+      <h3 id="azure-files">Working on an Azure File Share</h3>
       <p>
         A hub entry does not have to be a Jeffrey Hub. Declared with
         <router-link to="/docs/microscope/configuration/application-properties#hubs-azure-files"><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.*</code></router-link>,
         it points at the recording volume itself — the Azure file share (SMB or NFS) the provisioner
-        writes into — and Microscope reads it over the Azure Files REST API, signing in with a SAS
-        token or with Microsoft Entra ID. It sits in the rail like any other hub, marked with an
+        writes into — and Microscope works with it over the Azure Files REST API, signing in with a
+        SAS token or with Microsoft Entra ID. It sits in the rail like any other hub, marked with an
         <strong>Azure Files</strong> badge, and its workspaces, projects, instances and recording
         sessions are browsed and downloaded exactly as through a hub. Each directory at the share's
         root (or under its configured root path) is a workspace, named by the hub's workspace
         marker when one is there.
       </p>
       <p>
-        Such a source carries a <strong>Read-only</strong> badge. With no hub to own the volume,
-        Microscope never writes to it: there is no <strong>Create Workspace</strong>, and no
-        button to delete a workspace or a project or to delete or pin a recording session (a
-        request that reaches the backend anyway is refused, saying the source is read-only). Pins
-        a hub set are still shown. Whether a session is still recording
-        is decided from its heartbeat file, by the same rules the hub applies.
+        The changes you make through a hub work here too, and land on the share exactly as a hub
+        would write them: <strong>Create Workspace</strong> writes the workspace's marker (adopting
+        a directory the provisioner already wrote into), deleting a workspace or a project removes
+        its directory, deleting a session takes its instance with its last session, and pinning
+        writes the <code>.retained</code> flag a hub's retention honours. Whether a session is still
+        recording is decided from its heartbeat file, by the same rules the hub applies.
+      </p>
+      <p>
+        Declared with <code>read-only=true</code>, the source carries a <strong>Read-only</strong>
+        badge and changes nothing: there is no <strong>Create Workspace</strong>, and no button to
+        delete a workspace or a project or to delete or pin a session (a request that reaches the
+        backend anyway is refused, saying the source is read-only). Pins a hub set are still shown.
+        Use it with a credential that may only read.
       </p>
 
       <DocsCallout type="warning">
@@ -225,6 +232,7 @@ onMounted(() => {
         <li><strong>Editing a hub's hostname or port</strong> — remove and re-add the hub entry instead.</li>
         <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the hub level (TLS, or the SAS token / Entra identity of an Azure file share); there's no separate workspace-level token.</li>
         <li><strong>Adding an Azure file share from the UI</strong> — a share is declared in configuration only, so its SAS token never passes through the browser or Microscope's database.</li>
+        <li><strong>Retention and compression on a share</strong> — Microscope makes the changes you ask for, never upkeep; keep a hub on the volume for that.</li>
       </ul>
     </div>
 

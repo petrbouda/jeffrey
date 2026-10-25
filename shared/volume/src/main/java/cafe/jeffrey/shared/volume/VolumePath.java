@@ -33,7 +33,8 @@ import java.util.Set;
 public record VolumePath(List<String> segments) {
 
     private static final String SEPARATOR = "/";
-    private static final String NUL = "\0";
+    /** Not a separator on this layout, but one wherever a name lands on Windows or in a log. */
+    private static final String BACKSLASH = "\\";
     private static final String HIDDEN_PREFIX = ".";
     private static final Set<String> RELATIVE_ELEMENTS = Set.of(".", "..");
 
@@ -100,12 +101,18 @@ public record VolumePath(List<String> segments) {
         return name().startsWith(HIDDEN_PREFIX);
     }
 
+    /**
+     * A name the volume's layout could have written: one element, no walking up, nothing a reader
+     * would take for a separator, and no control character — a line break in a name read off a
+     * shared volume would otherwise forge the log lines it is written into.
+     */
     private static boolean isPlainElement(String name) {
         return name != null
                 && !name.isBlank()
                 && !RELATIVE_ELEMENTS.contains(name)
                 && !name.contains(SEPARATOR)
-                && !name.contains(NUL);
+                && !name.contains(BACKSLASH)
+                && name.chars().noneMatch(Character::isISOControl);
     }
 
     @Override

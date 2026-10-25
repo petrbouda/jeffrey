@@ -32,8 +32,9 @@ public sealed interface HubAddress permits GrpcHubAddress, AzureFilesAddress {
     String identity();
 
     /**
-     * Whether this source can only be read. A volume read straight from storage is shared with
-     * the hub that maintains it, and Microscope never changes it: no deletes, pins or workspaces.
+     * Whether Microscope refuses every change to this source — no workspace created or deleted, no
+     * project deleted, no session deleted or pinned. A hub decides for itself; a volume read
+     * straight from storage is read-only when its declaration says so.
      */
     boolean readOnly();
 }

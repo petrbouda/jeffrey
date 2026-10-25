@@ -21,11 +21,15 @@ import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import org.slf4j.Logger;
@@ -43,6 +47,9 @@ import java.util.Optional;
 final class VolumeDiscoveryClient implements DiscoveryClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(VolumeDiscoveryClient.class);
+
+    private static final String ID_TAKEN = "Workspace with reference ID '%s' already exists";
+    private static final String NAME_TAKEN = "Workspace with name '%s' already exists";
 
     private final VolumeSource source;
 
@@ -82,14 +89,47 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
         return source.read(() -> source.workspaceDirectory(workspaceId).map(this::workspace));
     }
 
+    /**
+     * Creates a workspace as the hub does: its directory, adopting one the provisioner already
+     * wrote into, described by its marker; refused for an id already described or a name another
+     * workspace goes by — in the hub's words.
+     */
     @Override
     public WorkspaceInfo createWorkspace(String referenceId, String name) {
-        throw VolumeSource.readOnly("Cannot create workspace " + referenceId);
+        WritableVolume volume = source.writable("Cannot create workspace " + referenceId);
+        if (!WorkspaceReferenceId.isValid(referenceId) || name == null || name.isBlank()) {
+            throw Exceptions.invalidRequest("Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
+        }
+        String trimmedName = name.trim();
+        VolumePath directory = VolumePath.root().resolve(referenceId);
+        return source.read(() -> {
+            if (VolumeChanges.isDescribedWorkspace(volume, directory)) {
+                throw Exceptions.invalidRequest(ID_TAKEN.formatted(referenceId));
+            }
+            boolean nameTaken = source.workspaceDirectories().stream()
+                    .filter(other -> !other.name().equals(referenceId))
+                    .map(this::workspace)
+                    .anyMatch(other -> other.name().equals(trimmedName));
+            if (nameTaken) {
+                throw Exceptions.invalidRequest(NAME_TAKEN.formatted(trimmedName));
+            }
+            VolumeChanges.describeWorkspace(volume, directory, new WorkspaceMarker(trimmedName, source.clock().millis()));
+            LOG.info("Created workspace on the recording volume: workspace_id={} source={}",
+                    referenceId, source.description());
+            return workspace(directory);
+        });
     }
 
     @Override
     public void deleteWorkspace(String workspaceId) {
-        throw VolumeSource.readOnly("Cannot delete workspace " + workspaceId);
+        WritableVolume volume = source.writable("Cannot delete workspace " + workspaceId);
+        source.read(() -> {
+            VolumePath directory = source.workspaceDirectory(workspaceId)
+                    .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
+            volume.delete(directory);
+            LOG.info("Deleted workspace on the recording volume: workspace_id={} source={}",
+                    workspaceId, source.description());
+        });
     }
 
     @Override

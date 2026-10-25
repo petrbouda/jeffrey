@@ -171,8 +171,9 @@ public class HubsMcpTools {
                     + "  %1$s.production.hostname=hub.example.com\n"
                     + "  %1$s.production.port=443\n"
                     + "  %1$s.production.plaintext=false\n\n"
-                    + "Or read the recording volume straight from an Azure file share, read-only, with no hub in "
-                    + "between (auth=entra signs in with the machine's Azure identity instead of a SAS token):\n\n"
+                    + "Or reach the recording volume straight on an Azure file share, with no hub in between "
+                    + "(auth=entra signs in with the machine's Azure identity instead of a SAS token; "
+                    + "read-only=true refuses every change):\n\n"
                     + "  %1$s.prodshare.azure-files.endpoint=https://<account>.file.core.windows.net\n"
                     + "  %1$s.prodshare.azure-files.share=recordings\n"
                     + "  %1$s.prodshare.azure-files.protocol=smb\n"
@@ -182,9 +183,9 @@ public class HubsMcpTools {
     private static final String HUBS_NOTE =
             "A hub marked `UNREACHABLE` did not answer just now, so hubs_sessions can list nothing from it. A "
                     + "hub whose source is `CONFIG` is declared in this installation's configuration and cannot "
-                    + "be removed from the UI. A `read_only` hub (kind `AZURE_FILES`) is the recording volume read "
-                    + "straight from storage: its sessions list and download as usual, but nothing on it can be "
-                    + "deleted or pinned.";
+                    + "be removed from the UI. Kind `AZURE_FILES` is the recording volume reached straight on an "
+                    + "Azure file share, whose sessions list and download as usual; a `read_only` hub refuses "
+                    + "every change to it (no delete, no pin).";
 
     private static final String NEXT_HUBS_WHY = "continues the list of hubs past this page";
     private static final String SESSIONS_WHY = "lists the recording sessions of every hub that answered";
@@ -294,7 +295,8 @@ public class HubsMcpTools {
     }
 
     @Tool(description = "Returns every Jeffrey Hub this installation is connected to - or Azure file share it "
-            + "reads the recording volume from directly (kind AZURE_FILES, readOnly) - and whether it "
+            + "reaches the recording volume on directly (kind AZURE_FILES) - whether it refuses changes "
+            + "(readOnly), and whether it "
             + "answers right now (status REACHABLE or UNREACHABLE) - the hub names the `hub` filter of "
             + "hubs_sessions accepts, and why hubs_sessions shows nothing from a hub that is down. Pages "
             + "with cursor: follow nextCursor until hasMore=false. status EMPTY: no hub is connected.")

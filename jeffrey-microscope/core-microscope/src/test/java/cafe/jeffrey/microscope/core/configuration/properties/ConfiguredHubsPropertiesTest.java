@@ -73,7 +73,7 @@ class ConfiguredHubsPropertiesTest {
         return properties;
     }
 
-    /** The recording volume read straight from an Azure file share, read-only, with no hub between. */
+    /** The recording volume reached straight on an Azure file share, with no hub between. */
     @Nested
     @DisplayName("Azure Files")
     class AzureFiles {
@@ -82,9 +82,31 @@ class ConfiguredHubsPropertiesTest {
         void a_share_resolves_with_smb_and_a_sas_by_default() {
             DesiredHub hub = properties(Map.of("prod-share", share("recordings", "sas", SAS))).resolve().getFirst();
 
-            assertEquals(new AzureFilesAddress(ENDPOINT, "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS),
+            assertEquals(new AzureFilesAddress(ENDPOINT, "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false),
                     hub.address());
-            assertTrue(hub.address().readOnly());
+            assertFalse(hub.address().readOnly(), "a share is writable unless declared read-only");
+        }
+
+        @Test
+        void a_share_declared_read_only_refuses_changes_and_keeps_its_identity() {
+            HubEntry readOnly = share("recordings", "sas", SAS);
+            readOnly.getAzureFiles().setReadOnly(true);
+
+            HubAddress address = properties(Map.of("prod-share", readOnly)).resolve().getFirst().address();
+
+            assertTrue(address.readOnly());
+            assertEquals(properties(Map.of("prod-share", share("recordings", "sas", SAS))).resolve().getFirst()
+                    .address().identity(), address.identity());
+        }
+
+        /** A portal's SAS URL pasted as the endpoint is refused without being quoted in the log. */
+        @Test
+        void a_sas_url_as_the_endpoint_is_skipped_without_quoting_it() {
+            HubEntry pasted = share("recordings", "sas", SAS);
+            pasted.getAzureFiles().setEndpoint(ENDPOINT + "/?sv=2026-06-06&sp=rl&sig=PASTEDSIGNATURE");
+
+            assertEquals(List.of(), properties(Map.of("prod-share", pasted)).resolve());
+            assertEquals(Map.of(), properties(Map.of("prod-share", pasted)).sasTokens());
         }
 
         /** The token reaches whatever opens the share by its identity, and never the registry or a log line. */

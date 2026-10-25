@@ -20,76 +20,101 @@ package cafe.jeffrey.microscope.model.hub;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Set;
 
 /**
- * A recording volume on an Azure file share, read over the Azure Files REST API with no hub in
+ * A recording volume on an Azure file share, reached over the Azure Files REST API with no hub in
  * between, SMB and NFS shares alike. The share holds the hub's shared volume as it is, so the
  * workspaces lie directly under {@code rootPath}.
  *
- * @param endpoint the storage account's file endpoint, {@code https://<account>.file.core.windows.net}
+ * @param endpoint the storage account's file endpoint, {@code https://<account>.file.core.windows.net}:
+ *                 a scheme and a host, nothing else — a SAS travels separately, never in it
  * @param share    the file share's name
  * @param rootPath the directory within the share that holds the workspaces, {@code /}-separated;
  *                 empty for the share's root
  * @param protocol the protocol the share was created for, which decides what its listing carries
  * @param auth     how to sign in
+ * @param readOnly whether Microscope refuses every change to the volume; the credential then needs
+ *                 only read and list rights
  */
 public record AzureFilesAddress(
-        String endpoint, String share, String rootPath, AzureFilesProtocol protocol, AzureFilesAuth auth)
-        implements HubAddress {
+        String endpoint,
+        String share,
+        String rootPath,
+        AzureFilesProtocol protocol,
+        AzureFilesAuth auth,
+        boolean readOnly) implements HubAddress {
 
     private static final String HTTPS = "https";
+    private static final String SCHEME_SEPARATOR = "://";
+    private static final String PORT_SEPARATOR = ":";
     private static final String SEPARATOR = "/";
+    private static final int NO_PORT = -1;
     private static final String IDENTITY_PREFIX = "azure-files:";
     private static final Set<String> RELATIVE_ELEMENTS = Set.of(".", "..");
+    private static final Set<String> BARE_PATHS = Set.of("", SEPARATOR);
+
+    /**
+     * Never quotes the value it refuses: a portal's "SAS URL" pasted here carries the signature in
+     * its query, and this message is logged.
+     */
+    private static final String ENDPOINT_SHAPE =
+            "An Azure Files endpoint is https://<account>.file.core.windows.net with no path, query, fragment or "
+                    + "user info; put a SAS token in azure-files.sas-token, never in the endpoint";
 
     public AzureFilesAddress {
-        if (endpoint == null || !isHttpsUrl(endpoint.trim())) {
-            throw new IllegalArgumentException("An Azure Files endpoint must be an https URL: endpoint=" + endpoint);
-        }
+        endpoint = bareEndpoint(endpoint);
         if (share == null || share.isBlank()) {
             throw new IllegalArgumentException("An Azure Files address needs a share name");
         }
         if (protocol == null || auth == null) {
             throw new IllegalArgumentException("An Azure Files address needs the share's protocol and a way to sign in");
         }
-        endpoint = stripTrailingSeparators(endpoint.trim());
         share = share.trim();
         rootPath = normalizedRoot(rootPath);
     }
 
-    /** The share and the directory in it, never the credential: one volume is one source however it is read. */
+    /**
+     * The share and the directory in it, never the credential nor whether it may be changed: one
+     * volume is one source however it is reached.
+     */
     @Override
     public String identity() {
-        return IDENTITY_PREFIX + endpoint + SEPARATOR + share + (rootPath.isEmpty() ? "" : SEPARATOR + rootPath);
-    }
-
-    @Override
-    public boolean readOnly() {
-        return true;
+        return IDENTITY_PREFIX + location();
     }
 
     @Override
     public String toString() {
-        return endpoint + SEPARATOR + share + (rootPath.isEmpty() ? "" : SEPARATOR + rootPath)
-                + " (" + protocol + ", " + auth + ")";
+        return location() + " (" + protocol + ", " + auth + (readOnly ? ", read-only" : "") + ")";
     }
 
-    private static boolean isHttpsUrl(String value) {
+    private String location() {
+        return endpoint + SEPARATOR + share + (rootPath.isEmpty() ? "" : SEPARATOR + rootPath);
+    }
+
+    /** The endpoint as its scheme, host and port alone, the host lower-cased; anything more is refused. */
+    private static String bareEndpoint(String endpoint) {
+        if (endpoint == null || endpoint.isBlank()) {
+            throw new IllegalArgumentException(ENDPOINT_SHAPE);
+        }
+        URI uri;
         try {
-            URI uri = new URI(value);
-            return HTTPS.equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null;
+            uri = new URI(endpoint.trim());
         } catch (URISyntaxException e) {
-            return false;
+            throw new IllegalArgumentException(ENDPOINT_SHAPE);
         }
-    }
-
-    private static String stripTrailingSeparators(String value) {
-        String stripped = value;
-        while (stripped.endsWith(SEPARATOR)) {
-            stripped = stripped.substring(0, stripped.length() - 1);
+        boolean bare = HTTPS.equalsIgnoreCase(uri.getScheme())
+                && uri.getHost() != null
+                && uri.getRawUserInfo() == null
+                && uri.getRawQuery() == null
+                && uri.getRawFragment() == null
+                && BARE_PATHS.contains(uri.getRawPath() == null ? "" : uri.getRawPath());
+        if (!bare) {
+            throw new IllegalArgumentException(ENDPOINT_SHAPE);
         }
-        return stripped;
+        return HTTPS + SCHEME_SEPARATOR + uri.getHost().toLowerCase(Locale.ROOT)
+                + (uri.getPort() == NO_PORT ? "" : PORT_SEPARATOR + uri.getPort());
     }
 
     /** Plain directory names joined by {@code /}, with no empty, {@code .} or {@code ..} element. */

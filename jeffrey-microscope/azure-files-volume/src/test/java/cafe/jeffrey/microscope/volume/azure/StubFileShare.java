@@ -44,7 +44,8 @@ import java.util.regex.Pattern;
 
 /**
  * An Azure file share in memory, answering the Azure Files REST calls the SDK makes — listing,
- * file and directory properties, ranged downloads — in the shapes the service documents for each
+ * file and directory properties, ranged downloads, and the writes: creating directories and files,
+ * putting a range, renaming, deleting — in the shapes the service documents for each
  * protocol. Plugged into the SDK as its HTTP transport, so every request the adapter makes goes
  * through the SDK's own serialisation, retries and error handling.
  */
@@ -97,6 +98,22 @@ final class StubFileShare implements HttpClient {
         return requests;
     }
 
+    /** The content of a file on the share now, or null when there is no file at {@code path}. */
+    String content(String path) {
+        Node node = nodes.get(path);
+        return node == null || node.directory() ? null : new String(node.content(), StandardCharsets.UTF_8);
+    }
+
+    /** Whether anything — file or directory — lies at {@code path} now. */
+    boolean holds(String path) {
+        return nodes.containsKey(path);
+    }
+
+    /** Every path on the share now, in order. */
+    List<String> paths() {
+        return List.copyOf(new TreeMap<>(nodes).keySet());
+    }
+
     @Override
     public Mono<HttpResponse> send(HttpRequest request) {
         requests.add(request);
@@ -119,6 +136,12 @@ final class StubFileShare implements HttpClient {
 
         if (directoryCall && "list".equals(query.get("comp"))) {
             return list(request, path, query);
+        }
+        if (request.getHttpMethod() == HttpMethod.PUT) {
+            return put(request, path, query, directoryCall);
+        }
+        if (request.getHttpMethod() == HttpMethod.DELETE) {
+            return delete(request, path, directoryCall);
         }
         if (directoryCall) {
             // Get Directory Properties, which the SDK sends as a GET
@@ -220,6 +243,94 @@ final class StubFileShare implements HttpClient {
             headers.put("x-ms-file-change-time", node.lastModified().toString());
         }
         return headers;
+    }
+
+    private HttpResponse put(HttpRequest request, String path, Map<String, String> query, boolean directoryCall) {
+        if (!parentExists(path)) {
+            return error(request, 404, "ParentNotFound");
+        }
+        Instant now = Instant.parse("2026-03-01T00:00:00Z");
+        if (directoryCall) {
+            if (nodes.containsKey(path)) {
+                return error(request, 409, "ResourceAlreadyExists");
+            }
+            nodes.put(path, new Node(true, new byte[0], now, now));
+            return written(request, 201, nodes.get(path));
+        }
+        String comp = query.get("comp");
+        if ("range".equals(comp)) {
+            Node node = nodes.get(path);
+            if (node == null || node.directory()) {
+                return error(request, 404, "ResourceNotFound");
+            }
+            Matcher matcher = RANGE.matcher(request.getHeaders().getValue("x-ms-range"));
+            if (!matcher.matches()) {
+                return error(request, 400, "InvalidRange");
+            }
+            byte[] content = node.content().clone();
+            byte[] body = request.getBodyAsBinaryData().toBytes();
+            System.arraycopy(body, 0, content, Integer.parseInt(matcher.group(1)), body.length);
+            nodes.put(path, new Node(false, content, node.createdAt(), now));
+            return written(request, 201, nodes.get(path));
+        }
+        if ("rename".equals(comp)) {
+            String source = sharePath(request.getHeaders().getValue("x-ms-file-rename-source"));
+            Node moved = nodes.get(source);
+            if (moved == null) {
+                return error(request, 404, "ResourceNotFound");
+            }
+            boolean replace = "true".equals(request.getHeaders().getValue("x-ms-file-rename-replace-if-exists"));
+            if (nodes.containsKey(path) && !replace) {
+                return error(request, 409, "ResourceAlreadyExists");
+            }
+            nodes.remove(source);
+            nodes.put(path, moved);
+            return written(request, 200, moved);
+        }
+        long size = Long.parseLong(request.getHeaders().getValue("x-ms-content-length"));
+        Node existing = nodes.get(path);
+        if (existing != null && existing.directory()) {
+            return error(request, 409, "ResourceTypeMismatch");
+        }
+        nodes.put(path, new Node(false, new byte[(int) size], now, now));
+        return written(request, 201, nodes.get(path));
+    }
+
+    private HttpResponse delete(HttpRequest request, String path, boolean directoryCall) {
+        Node node = nodes.get(path);
+        if (node == null || node.directory() != directoryCall) {
+            return error(request, 404, "ResourceNotFound");
+        }
+        if (directoryCall && !children(path).isEmpty()) {
+            return error(request, 409, "DirectoryNotEmpty");
+        }
+        nodes.remove(path);
+        return response(request, 202, new byte[0], Map.of());
+    }
+
+    private boolean parentExists(String path) {
+        int last = path.lastIndexOf(SEPARATOR);
+        return last < 0 || (nodes.containsKey(path.substring(0, last)) && nodes.get(path.substring(0, last)).directory());
+    }
+
+    /** The path within the share of a full URL the SDK sends, its query dropped. */
+    private static String sharePath(String url) {
+        String withoutQuery = url.contains("?") ? url.substring(0, url.indexOf('?')) : url;
+        // The SDK encodes the separators of the share path, its first one included
+        String decoded = URLDecoder.decode(withoutQuery, StandardCharsets.UTF_8);
+        String marker = SEPARATOR + SHARE + SEPARATOR;
+        return decoded.contains(marker) ? decoded.substring(decoded.indexOf(marker) + marker.length()) : decoded;
+    }
+
+    /** What the service answers for a write: the entry's properties, as the SDK reads them back. */
+    private HttpResponse written(HttpRequest request, int status, Node node) {
+        Map<String, String> headers = new HashMap<>(timestamps(node));
+        headers.put("x-ms-request-server-encrypted", "true");
+        headers.put("x-ms-file-attributes", node.directory() ? "Directory" : "Archive");
+        headers.put("x-ms-file-permission-key", "stub-permission");
+        headers.put("x-ms-file-id", "1");
+        headers.put("x-ms-file-parent-id", "0");
+        return response(request, status, new byte[0], headers);
     }
 
     /** The direct children of {@code path}, by name. */

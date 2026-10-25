@@ -555,7 +555,7 @@ class HubsMcpToolsTest {
             HubManager share = reachableHub(HUB_ID, "prodshare", "checkout", repositoryWith());
             when(share.info()).thenReturn(new HubInfo(HUB_ID, "prodshare",
                     new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings", null,
-                            AzureFilesProtocol.SMB, AzureFilesAuth.SAS),
+                            AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true),
                     NOW, HubSource.CONFIG));
             when(hubsManager.findAll()).thenReturn(List.of(share));
 

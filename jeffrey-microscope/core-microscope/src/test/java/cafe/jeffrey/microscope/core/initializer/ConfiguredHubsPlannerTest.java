@@ -18,6 +18,9 @@
 package cafe.jeffrey.microscope.core.initializer;
 
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.DesiredHub;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
@@ -112,6 +115,24 @@ class ConfiguredHubsPlannerTest {
             assertEquals("Production", target.name());
             assertEquals("cfg-prod", target.hubId());
             assertEquals(EARLIER, target.createdAt());
+        }
+
+        /** Whether a share may be changed is not its identity: flipping it updates the row in place. */
+        @Test
+        void declaring_a_share_read_only_updates_it_in_place() {
+            AzureFilesAddress writable = new AzureFilesAddress("https://acct.file.core.windows.net", "recordings", "",
+                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false);
+            AzureFilesAddress readOnly = new AzureFilesAddress("https://acct.file.core.windows.net", "recordings", "",
+                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true);
+
+            HubReconcilePlan plan = planner.plan(
+                    List.of(new DesiredHub("share", "cfg-share", "share", readOnly)),
+                    List.of(new HubInfo("cfg-share", "share", writable, EARLIER, HubSource.CONFIG)));
+
+            assertEquals(1, plan.updates().size());
+            assertTrue(plan.inserts().isEmpty());
+            assertTrue(plan.deletes().isEmpty());
+            assertTrue(plan.updates().getFirst().target().address().readOnly());
         }
 
         @Test

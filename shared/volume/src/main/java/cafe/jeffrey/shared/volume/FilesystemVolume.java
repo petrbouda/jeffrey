@@ -17,21 +17,27 @@
 
 package cafe.jeffrey.shared.volume;
 
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -39,9 +45,12 @@ import java.util.stream.Stream;
  * PVC) that the producers write into. Symbolic links are followed, as the rest of the tree reads
  * them.
  */
-public final class FilesystemVolume implements VolumeAccess {
+public final class FilesystemVolume implements WritableVolume {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemVolume.class);
+
+    private static final String HIDDEN_PREFIX = ".";
+    private static final String SCRATCH_SUFFIX = ".tmp";
 
     private final Path root;
 
@@ -57,8 +66,8 @@ public final class FilesystemVolume implements VolumeAccess {
     }
 
     /**
-     * Where {@code path} lies on this filesystem. For what only a filesystem does — writing,
-     * deleting, renaming — which the storage port does not offer.
+     * Where {@code path} lies on this filesystem. For what only the hub does on its own mount —
+     * compressing a recording, deleting single files — which the storage port does not offer.
      */
     public Path resolve(VolumePath path) {
         Path resolved = root;
@@ -66,6 +75,58 @@ public final class FilesystemVolume implements VolumeAccess {
             resolved = resolved.resolve(segment);
         }
         return resolved;
+    }
+
+    @Override
+    public void createDirectories(VolumePath directory) {
+        Path dir = resolve(directory);
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot create a volume directory: path=" + dir, e);
+        }
+    }
+
+    /** To a scratch file beside the target, then renamed onto it: the file appears whole or not at all. */
+    @Override
+    public void write(VolumePath path, byte[] content) {
+        Path target = resolve(path);
+        String hidden = path.name().startsWith(HIDDEN_PREFIX) ? path.name() : HIDDEN_PREFIX + path.name();
+        Path scratch = target.resolveSibling(hidden + "." + UUID.randomUUID() + SCRATCH_SUFFIX);
+        try {
+            Files.write(scratch, content);
+            try {
+                Files.move(scratch, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(scratch, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot write a volume file: path=" + target, e);
+        } finally {
+            deleteQuietly(scratch);
+        }
+    }
+
+    @Override
+    public void delete(VolumePath path) {
+        Path target = resolve(path);
+        if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
+            FileSystemUtils.removeDirectory(target);
+            return;
+        }
+        try {
+            Files.deleteIfExists(target);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot delete a volume file: path=" + target, e);
+        }
+    }
+
+    private static void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            LOG.warn("Cannot remove scratch file: path={}", path, e);
+        }
     }
 
     @Override
@@ -99,8 +160,8 @@ public final class FilesystemVolume implements VolumeAccess {
     @Override
     public Optional<byte[]> read(VolumePath path) {
         Path file = resolve(path);
-        try {
-            return Optional.of(Files.readAllBytes(file));
+        try (InputStream content = Files.newInputStream(file)) {
+            return Optional.of(VolumeAccess.withinReadCap(path, content.readNBytes(MAX_READ_BYTES + 1)));
         } catch (NoSuchFileException e) {
             return Optional.empty();
         } catch (IOException e) {

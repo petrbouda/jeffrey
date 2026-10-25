@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.manager.workspace;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +55,7 @@ public class HubWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
-        FileSystemUtils.removeDirectory(volume.resolve(workspace.path()));
+        volume.delete(workspace.path());
         LOG.info("Deleted workspace: workspace_id={} path={}", workspace.id(), workspace.path());
     }
 }

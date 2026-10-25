@@ -23,6 +23,7 @@ import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
@@ -74,9 +75,9 @@ public final class TestVolume {
     }
 
     public static Path workspace(Path workspacesRoot, String id, String name, Instant createdAt) {
-        Path dir = directories(workspacesRoot.resolve(id));
-        VolumeMarkerWriter.write(dir, WorkspaceMarker.FILE_NAME, new WorkspaceMarker(name, createdAt.toEpochMilli()));
-        return dir;
+        VolumeChanges.describeWorkspace(new FilesystemVolume(workspacesRoot), VolumePath.root().resolve(id),
+                new WorkspaceMarker(name, createdAt.toEpochMilli()));
+        return workspacesRoot.resolve(id);
     }
 
     public static Path project(Path workspaceDir, String projectId, String name, Instant createdAt) {

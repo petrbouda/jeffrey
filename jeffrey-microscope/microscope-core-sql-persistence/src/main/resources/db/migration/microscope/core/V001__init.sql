@@ -49,6 +49,9 @@ CREATE TABLE IF NOT EXISTS hubs
     -- 'SAS' or 'ENTRA'. A SAS token itself is never stored: it is read from configuration
     -- whenever the source is opened.
     azure_auth      VARCHAR,
+    -- true when Microscope refuses every change to the share (no workspace, project or session
+    -- deleted, no pin); the credential then needs only read and list rights
+    azure_read_only BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL,
     -- 'CONFIG' for a hub declared under jeffrey.microscope.hubs.* — configuration owns the row,
     -- it is reconciled on every startup and the UI cannot delete it. 'USER' for a hub added

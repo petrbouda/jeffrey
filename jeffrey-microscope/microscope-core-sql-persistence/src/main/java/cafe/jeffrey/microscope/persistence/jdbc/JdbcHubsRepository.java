@@ -56,10 +56,10 @@ public class JdbcHubsRepository implements HubsRepository {
     private static final String INSERT = """
             INSERT INTO hubs (hub_id, name, kind, hostname, port, plaintext,
                               azure_endpoint, azure_share, azure_root_path, azure_protocol, azure_auth,
-                              created_at, source)
+                              azure_read_only, created_at, source)
             VALUES (:hub_id, :name, :kind, :hostname, :port, :plaintext,
                     :azure_endpoint, :azure_share, :azure_root_path, :azure_protocol, :azure_auth,
-                    :created_at, :source)""";
+                    :azure_read_only, :created_at, :source)""";
 
     //language=SQL
     private static final String UPDATE = """
@@ -67,7 +67,7 @@ public class JdbcHubsRepository implements HubsRepository {
             SET name = :name, kind = :kind, hostname = :hostname, port = :port, plaintext = :plaintext,
                 azure_endpoint = :azure_endpoint, azure_share = :azure_share,
                 azure_root_path = :azure_root_path, azure_protocol = :azure_protocol,
-                azure_auth = :azure_auth, source = :source
+                azure_auth = :azure_auth, azure_read_only = :azure_read_only, source = :source
             WHERE hub_id = :hub_id""";
 
     //language=SQL
@@ -133,7 +133,8 @@ public class JdbcHubsRepository implements HubsRepository {
                 .addValue("azure_share", null)
                 .addValue("azure_root_path", null)
                 .addValue("azure_protocol", null)
-                .addValue("azure_auth", null);
+                .addValue("azure_auth", null)
+                .addValue("azure_read_only", false);
 
         return switch (hubInfo.address()) {
             case GrpcHubAddress grpc -> params
@@ -147,7 +148,8 @@ public class JdbcHubsRepository implements HubsRepository {
                     .addValue("azure_share", azure.share())
                     .addValue("azure_root_path", azure.rootPath())
                     .addValue("azure_protocol", azure.protocol().name())
-                    .addValue("azure_auth", azure.auth().name());
+                    .addValue("azure_auth", azure.auth().name())
+                    .addValue("azure_read_only", azure.readOnly());
         };
     }
 
@@ -170,7 +172,8 @@ public class JdbcHubsRepository implements HubsRepository {
                     AzureFilesProtocol.parse(rs.getString("azure_protocol")).orElseThrow(
                             () -> new SQLException("Stored Azure Files hub has no readable protocol")),
                     AzureFilesAuth.parse(rs.getString("azure_auth")).orElseThrow(
-                            () -> new SQLException("Stored Azure Files hub has no readable sign-in method")));
+                            () -> new SQLException("Stored Azure Files hub has no readable sign-in method")),
+                    rs.getBoolean("azure_read_only"));
         }
         return new GrpcHubAddress(rs.getString("hostname"), rs.getInt("port"), rs.getBoolean("plaintext"));
     }

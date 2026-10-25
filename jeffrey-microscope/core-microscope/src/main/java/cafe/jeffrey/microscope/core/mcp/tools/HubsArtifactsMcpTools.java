@@ -499,7 +499,9 @@ public class HubsArtifactsMcpTools {
      * directory to the path it is resolved into.
      */
     private static String segment(String value) {
-        String name = Path.of(value).getFileName().toString();
+        // A root such as "/" has no file name at all
+        Path fileName = Path.of(value).getFileName();
+        String name = fileName == null ? "" : fileName.toString();
         if (name.isBlank() || name.equals(".") || name.equals("..")) {
             throw new IllegalArgumentException("Refusing a hub name that is not a single path element: " + value);
         }

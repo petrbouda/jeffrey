@@ -17,14 +17,13 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
-import cafe.jeffrey.hub.core.volume.VolumeMarkerWriter;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import org.slf4j.Logger;
@@ -73,7 +72,7 @@ public final class HubWorkspacesManager implements WorkspacesManager {
         String name = request.name().trim();
 
         VolumePath directory = VolumePath.root().resolve(id);
-        if (VolumeMarkers.read(volume, directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class).isPresent()) {
+        if (VolumeChanges.isDescribedWorkspace(volume, directory)) {
             throw new WorkspaceAlreadyExistsException("Workspace with reference ID '" + id + "' already exists");
         }
         // Another workspace's name; the one being adopted may already be listed under its id
@@ -83,8 +82,7 @@ public final class HubWorkspacesManager implements WorkspacesManager {
             throw new WorkspaceAlreadyExistsException("Workspace with name '" + name + "' already exists");
         }
 
-        FileSystemUtils.createDirectories(volume.resolve(directory));
-        VolumeMarkerWriter.write(volume.resolve(directory), WorkspaceMarker.FILE_NAME, new WorkspaceMarker(name, clock.millis()));
+        VolumeChanges.describeWorkspace(volume, directory, new WorkspaceMarker(name, clock.millis()));
         LOG.info("Created workspace: workspace_id={} name={}", id, name);
         return workspace(directory).orElseThrow().info();
     }

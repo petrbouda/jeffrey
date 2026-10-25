@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.shared.volume.layout;
 
 /**
  * What deleting a session did. An instance goes with its last session, since an instance with no

@@ -18,9 +18,9 @@ import { ref, type Ref } from "vue";
 import HubClient from "@hubs/services/api/HubClient";
 
 /**
- * Whether the hub a page belongs to refuses every change — a source that reads the recording
- * volume straight from storage (an Azure file share) rather than through a Jeffrey Hub. A page
- * hides its delete and pin actions while this is true; the backend refuses them either way.
+ * Whether the hub a page belongs to refuses every change — an Azure file share declared
+ * read-only. A page hides its delete and pin actions while this is true; the backend refuses them
+ * either way.
  *
  * Starts false and stays false when the hub cannot be read, so a page never loses its actions
  * to a failed lookup: the worst case is a button the backend then refuses with its reason.

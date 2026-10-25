@@ -36,6 +36,7 @@ import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
@@ -65,8 +66,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A recording volume read straight from storage answers the hub clients the way a hub would: the
- * same tree, the same session statuses, the same refusals — and no change at all.
+ * A recording volume reached straight on its storage answers the hub clients the way a hub would:
+ * the same tree, the same session statuses, the same refusals, the same changes — or none at all
+ * when it is declared read-only.
  */
 class VolumeHubClientsTest {
 
@@ -91,11 +93,14 @@ class VolumeHubClientsTest {
     }
 
     private static HubClients clients(VolumeAccess volume) {
+        return clients(volume, !(volume instanceof WritableVolume));
+    }
+
+    private static HubClients clients(VolumeAccess volume, boolean readOnly) {
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         SessionLiveness liveness = new SessionLiveness(
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new HeartbeatReader(volume),
-                new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
-        return VolumeHubClients.of(new VolumeSource(volume, liveness, DESCRIPTION));
+                clock, new HeartbeatReader(volume), new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
+        return VolumeHubClients.of(new VolumeSource(volume, liveness, clock, DESCRIPTION, readOnly));
     }
 
     private Path session(String instanceId, String sessionId, Instant createdAt) {
@@ -157,13 +162,6 @@ class VolumeHubClientsTest {
             assertEquals(ErrorCode.HUB_UNAVAILABLE, codeOf(() -> unreadable.discovery().info()));
             assertTrue(unreadable.discovery().tryInfo().isEmpty());
         }
-
-        @Test
-        void changesNoWorkspace() {
-            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("new-ws", "New"));
-            assertThrows(JeffreyClientException.class, () -> clients.discovery().deleteWorkspace("prod"));
-            assertTrue(Files.isDirectory(root.resolve("prod")));
-        }
     }
 
     @Nested
@@ -223,16 +221,109 @@ class VolumeHubClientsTest {
             assertTrue(codeOf(() -> clients.repository().recordingSessions(new ProjectScope("prod", "p-gone")))
                     .isNotFound());
         }
+    }
+
+    /** The user's changes, made as the hub makes them on its own mount. */
+    @Nested
+    class Changes {
 
         @Test
-        void neitherDeletesNorPins() {
+        void createsAWorkspaceDescribedByItsMarker() throws IOException {
+            WorkspaceInfo created = clients.discovery().createWorkspace("staging", " Staging ");
+
+            assertEquals("Staging", created.name());
+            assertEquals(new WorkspaceMarker("Staging", NOW.toEpochMilli()),
+                    Json.read(Files.readString(root.resolve("staging").resolve(WorkspaceMarker.FILE_NAME)),
+                            WorkspaceMarker.class));
+        }
+
+        /** The provisioner may write into a workspace's directory before anyone describes it. */
+        @Test
+        void adoptsADirectoryTheProvisionerAlreadyWroteInto() throws IOException {
+            VolumeWriter.project(Files.createDirectories(root.resolve("auto")), "p-auto", "auto", T0);
+
+            assertEquals(1, clients.discovery().createWorkspace("auto", "Auto").projectCount());
+        }
+
+        @Test
+        void refusesAnIdAlreadyDescribedANameAlreadyTakenAndAnInvalidId() {
+            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("prod", "Other"));
+            assertThrows(JeffreyClientException.class,
+                    () -> clients.discovery().createWorkspace("other", "Production"));
+            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("../up", "Up"));
+        }
+
+        @Test
+        void deletesAWorkspaceWithEverythingInIt() {
+            liveSession();
+
+            clients.discovery().deleteWorkspace("prod");
+
+            assertFalse(Files.exists(root.resolve("prod")));
+            assertTrue(codeOf(() -> clients.discovery().deleteWorkspace("prod")).isNotFound());
+        }
+
+        @Test
+        void deletesAProject() {
+            liveSession();
+
+            clients.projects().deleteProject(ORDERS);
+
+            assertFalse(Files.exists(project));
+            assertTrue(Files.isDirectory(root.resolve("prod")));
+        }
+
+        @Test
+        void deletingASessionTakesItsInstanceOnlyWithItsLastSession() {
+            Path first = session("pod-a", "s-1", T0);
+            Path second = session("pod-a", "s-2", T0.plusSeconds(60));
+
+            clients.repository().deleteSession(ORDERS, "s-1");
+            assertFalse(Files.exists(first));
+            assertTrue(Files.isDirectory(second));
+
+            clients.repository().deleteSession(ORDERS, "s-2");
+            assertFalse(Files.exists(second.getParent()));
+            assertTrue(codeOf(() -> clients.repository().deleteSession(ORDERS, "s-2")).isNotFound());
+        }
+
+        @Test
+        void pinsASessionAndReleasesIt() {
             Path dir = liveSession();
 
-            assertThrows(JeffreyClientException.class, () -> clients.repository().deleteSession(ORDERS, "s-live"));
+            clients.repository().setSessionRetained(ORDERS, "s-live", true);
+            assertTrue(Files.exists(dir.resolve(".retained")));
+            assertTrue(clients.repository().recordingSession(ORDERS, "s-live").retained());
+
+            clients.repository().setSessionRetained(ORDERS, "s-live", false);
+            assertFalse(Files.exists(dir.resolve(".retained")));
+            assertTrue(codeOf(() -> clients.repository().setSessionRetained(ORDERS, "missing", true)).isNotFound());
+        }
+    }
+
+    /** A source declared read-only refuses every change and leaves the volume as it was. */
+    @Nested
+    class ReadOnly {
+
+        @Test
+        void changesNothing() {
+            HubClients readOnly = clients(new FilesystemVolume(root), true);
+            Path dir = liveSession();
+
+            assertThrows(JeffreyClientException.class, () -> readOnly.discovery().createWorkspace("new-ws", "New"));
+            assertThrows(JeffreyClientException.class, () -> readOnly.discovery().deleteWorkspace("prod"));
+            assertThrows(JeffreyClientException.class, () -> readOnly.repository().deleteSession(ORDERS, "s-live"));
             assertThrows(JeffreyClientException.class,
-                    () -> clients.repository().setSessionRetained(ORDERS, "s-live", true));
-            assertThrows(JeffreyClientException.class, () -> clients.projects().deleteProject(ORDERS));
+                    () -> readOnly.repository().setSessionRetained(ORDERS, "s-live", true));
+            assertThrows(JeffreyClientException.class, () -> readOnly.projects().deleteProject(ORDERS));
             assertTrue(Files.isDirectory(dir));
+            assertFalse(Files.exists(root.resolve("new-ws")));
+            assertFalse(Files.exists(dir.resolve(".retained")));
+        }
+
+        @Test
+        void aSourceThatMayBeChangedNeedsAWritableVolume() {
+            assertThrows(IllegalArgumentException.class, () -> clients(new UnreadableVolume(), false));
         }
     }
 

@@ -29,8 +29,8 @@ package cafe.jeffrey.shared.ui.hub.dto;
  *                  read straight from an Azure file share
  * @param location  where the source lies, as a person reads it: {@code host:port}, or the share's
  *                  endpoint, name and directory
- * @param readOnly  whether its recordings can only be read: no session deletes or pins, and no
- *                  workspace created or removed through it
+ * @param readOnly  whether it refuses every change: no session deletes or pins, and no workspace
+ *                  created or removed through it
  */
 public record HubResponse(
         String id,

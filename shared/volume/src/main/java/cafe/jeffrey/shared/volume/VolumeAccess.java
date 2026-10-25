@@ -35,6 +35,13 @@ import java.util.Optional;
 public interface VolumeAccess {
 
     /**
+     * The most {@link #read} hands over. Markers and liveness files are a few hundred bytes, and
+     * anything that can write to the volume — every profiled workload — could otherwise make a
+     * reader hold a file of any size in memory just by listing.
+     */
+    int MAX_READ_BYTES = 1024 * 1024;
+
+    /**
      * What lies directly under {@code directory}, in no particular order; empty when there is no
      * directory there. An entry that vanishes while it is listed is left out.
      *
@@ -52,11 +59,22 @@ public interface VolumeAccess {
 
     /**
      * The whole content of a small file — a marker, a liveness file — or empty when there is none.
+     * Never reads more than {@link #MAX_READ_BYTES} plus one byte of it.
      *
-     * @throws UncheckedIOException when something is there and cannot be read, a directory
-     *                                      in the file's place included
+     * @throws UncheckedIOException when something is there and cannot be read: a directory in the
+     *                              file's place, or a file larger than {@link #MAX_READ_BYTES}
      */
     Optional<byte[]> read(VolumePath file);
+
+    /** Hands over what a {@link #read} received, refusing it when it came past the cap. */
+    static byte[] withinReadCap(VolumePath file, byte[] content) {
+        if (content.length > MAX_READ_BYTES) {
+            throw new UncheckedIOException(new IOException(
+                    "A volume file is larger than a marker can be: path=%s max_bytes=%d"
+                            .formatted(file, MAX_READ_BYTES)));
+        }
+        return content;
+    }
 
     /**
      * A file opened for streaming, with the name and size it has at the moment it was opened —

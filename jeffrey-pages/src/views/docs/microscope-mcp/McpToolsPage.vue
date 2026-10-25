@@ -1180,7 +1180,7 @@ const exPeak = `hubs_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" }
           <tr>
             <td><code>hubs_list</code></td>
             <td><code>limit?</code> (100, max 500), <code>cursor?</code></td>
-            <td>Every connected hub with its address, its <code>kind</code> (<code>GRPC</code> for a Jeffrey Hub, <code>AZURE_FILES</code> for the recording volume read straight from an Azure file share, which is <code>readOnly</code>), whether it was declared in configuration or added through the UI, and whether it answers right now</td>
+            <td>Every connected hub with its address, its <code>kind</code> (<code>GRPC</code> for a Jeffrey Hub, <code>AZURE_FILES</code> for the recording volume reached straight on an Azure file share), whether it is <code>readOnly</code> (declared to refuse every change), whether it was declared in configuration or added through the UI, and whether it answers right now</td>
           </tr>
           <tr>
             <td><code>hubs_sessions</code></td>

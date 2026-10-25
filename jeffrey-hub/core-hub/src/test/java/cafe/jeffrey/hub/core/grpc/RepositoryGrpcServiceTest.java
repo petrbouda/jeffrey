@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;

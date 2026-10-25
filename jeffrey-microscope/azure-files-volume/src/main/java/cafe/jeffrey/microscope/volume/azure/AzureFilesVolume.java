@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import com.azure.core.util.Context;
 import com.azure.storage.file.share.FileSmbProperties;
 import com.azure.storage.file.share.ShareClient;
@@ -31,11 +32,14 @@ import com.azure.storage.file.share.models.ShareErrorCode;
 import com.azure.storage.file.share.models.ShareFileItem;
 import com.azure.storage.file.share.models.ShareFileItemProperties;
 import com.azure.storage.file.share.models.ShareFileProperties;
+import com.azure.storage.file.share.models.ShareFileRange;
 import com.azure.storage.file.share.models.ShareStorageException;
+import com.azure.storage.file.share.options.ShareFileRenameOptions;
 import com.azure.storage.file.share.options.ShareListFilesAndDirectoriesOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -45,6 +49,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * The recording volume on an Azure file share, read over the Azure Files REST API — the same
@@ -55,15 +60,21 @@ import java.util.Set;
  * time and a reader that needs one asks {@link #stat} for that entry. A look at one entry always
  * answers a time: the creation time where the share keeps it, its last modification otherwise.
  *
+ * <p>Writes are the few the layout makes. A marker is written to a scratch file beside it and
+ * renamed onto it, so a reader alongside never sees half of one; an empty flag file is created in
+ * one call. The share has no recursive delete, so a directory is emptied entry by entry first.
+ *
  * <p>"Not there" — a missing file, a missing parent, the other kind of entry under that name — is
  * an empty answer; any other refusal of the service (a credential it rejects, a share it cannot
  * reach) is an {@link UncheckedIOException}, never mistaken for an empty volume.
  */
-public final class AzureFilesVolume implements VolumeAccess {
+public final class AzureFilesVolume implements WritableVolume {
 
     private static final Logger LOG = LoggerFactory.getLogger(AzureFilesVolume.class);
 
     private static final String SEPARATOR = "/";
+    private static final String HIDDEN_PREFIX = ".";
+    private static final String SCRATCH_SUFFIX = ".tmp";
 
     /** What the service answers for a name that holds nothing of the kind asked for. */
     private static final Set<ShareErrorCode> NOTHING_THERE = Set.of(
@@ -72,6 +83,10 @@ public final class AzureFilesVolume implements VolumeAccess {
             ShareErrorCode.RESOURCE_TYPE_MISMATCH);
 
     private static final int NOT_FOUND = 404;
+    private static final int RANGE_NOT_SATISFIABLE = 416;
+    private static final int FORBIDDEN = 403;
+    private static final String WRITE_RIGHTS_HINT =
+            " (the credential lacks the create, write or delete right; declare the share read-only, or grant them)";
 
     private final ShareClient share;
     private final String rootPath;
@@ -133,14 +148,20 @@ public final class AzureFilesVolume implements VolumeAccess {
     public Optional<byte[]> read(VolumePath file) {
         ByteArrayOutputStream content = new ByteArrayOutputStream();
         try {
-            fileClient(file).download(content);
+            // One byte past the cap, so a file over it is told apart from one exactly at it
+            fileClient(file).downloadWithResponse(
+                    content, new ShareFileRange(0, (long) MAX_READ_BYTES), false, null, Context.NONE);
         } catch (ShareStorageException e) {
             if (isNothingThere(e)) {
                 return Optional.empty();
             }
+            if (e.getStatusCode() == RANGE_NOT_SATISFIABLE) {
+                // A range on an empty file asks for bytes it does not have
+                return Optional.of(new byte[0]);
+            }
             throw unreadable("read", file, e);
         }
-        return Optional.of(content.toByteArray());
+        return Optional.of(VolumeAccess.withinReadCap(file, content.toByteArray()));
     }
 
     /**
@@ -159,6 +180,94 @@ public final class AzureFilesVolume implements VolumeAccess {
                 return Optional.empty();
             }
             throw unreadable("open", file, e);
+        }
+    }
+
+    @Override
+    public void createDirectories(VolumePath directory) {
+        StringBuilder location = new StringBuilder();
+        for (String element : location(directory).split(SEPARATOR)) {
+            if (element.isEmpty()) {
+                continue;
+            }
+            location.append(location.isEmpty() ? "" : SEPARATOR).append(element);
+            try {
+                share.getDirectoryClient(location.toString()).createIfNotExists();
+            } catch (ShareStorageException e) {
+                throw unwritable("create", directory, e);
+            }
+        }
+    }
+
+    @Override
+    public void write(VolumePath file, byte[] content) {
+        if (content.length == 0) {
+            // Created at its final size in one call, so there is no half of it to see
+            try {
+                fileClient(file).create(0);
+            } catch (ShareStorageException e) {
+                throw unwritable("write", file, e);
+            }
+            return;
+        }
+        VolumePath scratch = file.parent().resolve(scratchName(file.name()));
+        ShareFileClient scratchClient = fileClient(scratch);
+        try {
+            scratchClient.create(content.length);
+            scratchClient.uploadRange(new ByteArrayInputStream(content), content.length);
+            scratchClient.renameWithResponse(
+                    new ShareFileRenameOptions(location(file)).setReplaceIfExists(true), null, Context.NONE);
+        } catch (ShareStorageException e) {
+            deleteQuietly(scratchClient, scratch);
+            throw unwritable("write", file, e);
+        }
+    }
+
+    @Override
+    public void delete(VolumePath path) {
+        Optional<VolumeEntry> entry = stat(path);
+        if (entry.isEmpty()) {
+            return;
+        }
+        try {
+            if (entry.get().isDirectory()) {
+                deleteTree(directoryClient(path));
+            } else {
+                fileClient(path).deleteIfExists();
+            }
+        } catch (ShareStorageException e) {
+            throw unwritable("delete", path, e);
+        }
+    }
+
+    /**
+     * Everything under a directory, then the directory. Listed by the share's own names, not as
+     * volume paths: a name the layout could never have written must not leave its directory
+     * impossible to remove.
+     */
+    private static void deleteTree(ShareDirectoryClient directory) {
+        for (ShareFileItem item : directory.listFilesAndDirectories()) {
+            if (item.isDirectory()) {
+                deleteTree(directory.getSubdirectoryClient(item.getName()));
+            } else {
+                directory.getFileClient(item.getName()).deleteIfExists();
+            }
+        }
+        directory.deleteIfExists();
+    }
+
+    /** Hidden, so no listing takes it for part of the layout, and unique to this write. */
+    private static String scratchName(String name) {
+        String hidden = name.startsWith(HIDDEN_PREFIX) ? name : HIDDEN_PREFIX + name;
+        return hidden + "." + UUID.randomUUID() + SCRATCH_SUFFIX;
+    }
+
+    private void deleteQuietly(ShareFileClient client, VolumePath scratch) {
+        try {
+            client.deleteIfExists();
+        } catch (ShareStorageException e) {
+            LOG.warn("Cannot remove scratch file: share={} path={} status={}",
+                    share.getShareName(), location(scratch), e.getStatusCode());
         }
     }
 
@@ -223,6 +332,14 @@ public final class AzureFilesVolume implements VolumeAccess {
 
     private static boolean isNothingThere(ShareStorageException e) {
         return e.getStatusCode() == NOT_FOUND || NOTHING_THERE.contains(e.getErrorCode());
+    }
+
+    private UncheckedIOException unwritable(String action, VolumePath path, ShareStorageException e) {
+        String hint = e.getStatusCode() == FORBIDDEN ? WRITE_RIGHTS_HINT : "";
+        return new UncheckedIOException(new IOException(
+                "Cannot %s an Azure Files entry%s: share=%s path=%s status=%d error_code=%s"
+                        .formatted(action, hint, share.getShareName(), location(path), e.getStatusCode(), e.getErrorCode()),
+                e));
     }
 
     private UncheckedIOException unreadable(String action, VolumePath path, ShareStorageException e) {

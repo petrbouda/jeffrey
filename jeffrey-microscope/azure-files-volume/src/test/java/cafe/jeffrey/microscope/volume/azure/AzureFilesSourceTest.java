@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Microscope reading a hub's volume straight off an NFS Azure file share — the protocol whose
@@ -60,11 +61,12 @@ class AzureFilesSourceTest {
     private static final String SESSION = "prod/orders/pod-a/s-live/";
     private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
 
+    private StubFileShare share;
     private HubClients clients;
 
     @BeforeEach
     void setUp() {
-        StubFileShare share = new StubFileShare(AzureFilesProtocol.NFS)
+        share = new StubFileShare(AzureFilesProtocol.NFS)
                 .file("prod/orders/" + JeffreyLayout.PROJECT_INFO_FILE,
                         Json.toString(new RemoteProject("p-orders", "orders", T0.toEpochMilli(), Map.of())), T0)
                 .file("prod/orders/pod-a/" + JeffreyLayout.INSTANCE_INFO_FILE,
@@ -79,14 +81,25 @@ class AzureFilesSourceTest {
 
         AzureFilesVolume volume = AzureFilesVolumes.open(
                 new AzureFilesAddress("https://acct.file.core.windows.net", StubFileShare.shareName(), "",
-                        AzureFilesProtocol.NFS, AzureFilesAuth.SAS),
+                        AzureFilesProtocol.NFS, AzureFilesAuth.SAS, false),
                 new AzureFilesCredential.Sas("sv=2026-06-06&sig=c2ln"),
                 share);
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         SessionLiveness liveness = new SessionLiveness(
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new HeartbeatReader(volume),
-                new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
-        clients = VolumeHubClients.of(new VolumeSource(volume, liveness, "azure-files"));
+                clock, new HeartbeatReader(volume), new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
+        clients = VolumeHubClients.of(new VolumeSource(volume, liveness, clock, "azure-files", false));
+    }
+
+    /** A pin and a delete reach the share as the layout's own writes, and read back as the hub would. */
+    @Test
+    void aSessionIsPinnedAndThenDeletedWithItsInstanceOnTheShare() {
+        clients.repository().setSessionRetained(ORDERS, "s-live", true);
+        assertTrue(clients.repository().recordingSession(ORDERS, "s-live").retained());
+
+        clients.repository().deleteSession(ORDERS, "s-live");
+
+        assertTrue(share.paths().stream().noneMatch(path -> path.startsWith("prod/orders/pod-a")), share.paths().toString());
+        assertTrue(share.holds("prod/orders"));
     }
 
     @Test

@@ -17,7 +17,7 @@
 
 export type HubSource = 'CONFIG' | 'USER';
 
-/** A jeffrey-hub reached over gRPC, or the recording volume read straight from an Azure file share. */
+/** A jeffrey-hub reached over gRPC, or the recording volume reached straight on an Azure file share. */
 export type HubKind = 'GRPC' | 'AZURE_FILES';
 
 export default interface Hub {
@@ -38,8 +38,8 @@ export default interface Hub {
   /** Where the source lies, as a person reads it: `host:port`, or the share's endpoint and name. */
   location?: string;
   /**
-   * A volume read straight from storage belongs to the hub that maintains it: no workspace is
-   * created or deleted, and no session deleted or pinned, through it.
+   * A source declared read-only (`azure-files.read-only=true`): no workspace is created or
+   * deleted, and no session deleted or pinned, through it.
    */
   readOnly?: boolean;
 }

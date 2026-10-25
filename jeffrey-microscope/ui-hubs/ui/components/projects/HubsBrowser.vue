@@ -314,7 +314,7 @@
           <InfoRow label="Name">{{ selectedHub.name }}</InfoRow>
           <InfoRow label="Address" mono>{{ locationOf(selectedHub) }}</InfoRow>
           <InfoRow v-if="selectedHub.readOnly" label="Access">
-            Read-only — reads the recording volume straight from storage
+            Read-only — declared so in configuration; nothing is changed through it
           </InfoRow>
         </div>
       </DrawerSection>

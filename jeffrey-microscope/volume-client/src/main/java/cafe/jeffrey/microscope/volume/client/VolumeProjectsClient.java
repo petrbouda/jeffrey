@@ -19,12 +19,28 @@ package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.ProjectsClient;
+import cafe.jeffrey.shared.volume.WritableVolume;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/** A volume read straight from storage changes no project. */
+/** Deleting a project is removing its directory, everything the provisioner wrote under it included. */
 final class VolumeProjectsClient implements ProjectsClient {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VolumeProjectsClient.class);
+
+    private final VolumeSource source;
+
+    VolumeProjectsClient(VolumeSource source) {
+        this.source = source;
+    }
 
     @Override
     public void deleteProject(ProjectScope scope) {
-        throw VolumeSource.readOnly("Cannot delete project " + scope.projectId());
+        WritableVolume volume = source.writable("Cannot delete project " + scope.projectId());
+        source.read(() -> {
+            volume.delete(source.requireProject(scope).path());
+            LOG.info("Deleted project on the recording volume: project_id={} source={}",
+                    scope.projectId(), source.description());
+        });
     }
 }

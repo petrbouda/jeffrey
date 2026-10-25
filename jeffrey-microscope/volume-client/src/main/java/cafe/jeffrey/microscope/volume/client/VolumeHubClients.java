@@ -20,8 +20,9 @@ package cafe.jeffrey.microscope.volume.client;
 import cafe.jeffrey.hub.client.HubClients;
 
 /**
- * The hub clients of a recording volume read straight from storage: everything above the clients
- * treats the source as it treats a hub, and the volume refuses every change.
+ * The hub clients of a recording volume reached straight on its storage: everything above the
+ * clients treats the source as it treats a hub. The user's changes — workspaces, projects,
+ * sessions, pins — are made as the hub makes them, or refused when the source is read-only.
  */
 public final class VolumeHubClients {
 
@@ -34,6 +35,6 @@ public final class VolumeHubClients {
                 new VolumeRepositoryClient(source),
                 new VolumeFileStreamClient(source),
                 new VolumeInstancesClient(source),
-                new VolumeProjectsClient());
+                new VolumeProjectsClient(source));
     }
 }

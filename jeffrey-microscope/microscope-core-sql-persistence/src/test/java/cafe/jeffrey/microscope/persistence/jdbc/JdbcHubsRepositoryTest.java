@@ -95,7 +95,7 @@ class JdbcHubsRepositoryTest {
 
         private static final AzureFilesAddress PRODUCTION = new AzureFilesAddress(
                 "https://jeffreyprod.file.core.windows.net", "recordings", "volume/workspaces",
-                AzureFilesProtocol.NFS, AzureFilesAuth.ENTRA);
+                AzureFilesProtocol.NFS, AzureFilesAuth.ENTRA, true);
 
         @Test
         void roundTripsTheShareAndHowToSignIn(DataSource dataSource) {
@@ -110,7 +110,7 @@ class JdbcHubsRepositoryTest {
         void twoSharesOfOneAccountAreTwoSources(DataSource dataSource) {
             JdbcHubsRepository repository = repository(dataSource);
             AzureFilesAddress staging = new AzureFilesAddress(
-                    PRODUCTION.endpoint(), "recordings-staging", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS);
+                    PRODUCTION.endpoint(), "recordings-staging", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false);
 
             repository.create(new HubInfo("cfg-prod", "Prod", PRODUCTION, CREATED_AT, HubSource.CONFIG));
             repository.create(new HubInfo("cfg-staging", "Staging", staging, CREATED_AT, HubSource.CONFIG));

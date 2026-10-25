@@ -64,7 +64,7 @@ class VolumePathTest {
 
         @ParameterizedTest
         @NullSource
-        @ValueSource(strings = {"", " ", ".", "..", "a/b", "../a", "a\0b"})
+        @ValueSource(strings = {"", " ", ".", "..", "a/b", "../a", "a\0b", "a\\b", "a\nb", "a\rb", "a\tb"})
         void refusesAnElementThatIsNotOnePlainName(String name) {
             assertThrows(IllegalArgumentException.class, () -> VolumePath.root().resolve(name));
         }

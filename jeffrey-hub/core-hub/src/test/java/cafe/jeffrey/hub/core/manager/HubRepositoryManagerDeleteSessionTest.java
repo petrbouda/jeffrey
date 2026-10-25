@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.common.JeffreyLayout;

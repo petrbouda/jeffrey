@@ -53,7 +53,7 @@ public final class HubAnswers {
         UNREACHABLE
     }
 
-    /** What a hub row stands for: a Jeffrey Hub, or the recording volume read straight from storage. */
+    /** What a hub row stands for: a Jeffrey Hub, or the recording volume reached straight on its storage. */
     public enum HubKind {
         /** A Jeffrey Hub reached over gRPC. */
         GRPC,
@@ -76,11 +76,11 @@ public final class HubAnswers {
                     + "for AZURE_FILES; null when none is recorded")
             String address,
             @McpNullable
-            @McpDescription("GRPC for a Jeffrey Hub, AZURE_FILES for the recording volume read straight from an "
+            @McpDescription("GRPC for a Jeffrey Hub, AZURE_FILES for the recording volume reached straight on an "
                     + "Azure file share; null when no address is recorded")
             HubKind kind,
-            @McpDescription("True for a source read straight from storage: its sessions list and download like "
-                    + "any hub's, but nothing on it can be deleted or pinned")
+            @McpDescription("True for a source declared read-only: its sessions list and download like any hub's, "
+                    + "but nothing on it can be deleted or pinned")
             boolean readOnly,
             @McpNullable
             @McpDescription("CONFIG for a hub declared in this installation's configuration, which the UI cannot "

@@ -41,7 +41,8 @@ import java.util.regex.Pattern;
  * jeffrey.microscope.hubs.production.hostname=hub.example.com
  * jeffrey.microscope.hubs.production.port=443
  * </pre>
- * or the recording volume read straight from an Azure file share, read-only, with no hub between:
+ * or the recording volume reached straight on an Azure file share, with no hub between —
+ * {@code azure-files.read-only=true} makes Microscope refuse every change to it:
  * <pre>
  * jeffrey.microscope.hubs.prod-share.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
  * jeffrey.microscope.hubs.prod-share.azure-files.share=recordings
@@ -289,6 +290,7 @@ public class ConfiguredHubsProperties {
         private String protocol = DEFAULT_PROTOCOL;
         private String auth = DEFAULT_AUTH;
         private String sasToken;
+        private boolean readOnly;
 
         public String getEndpoint() {
             return endpoint;
@@ -338,6 +340,14 @@ public class ConfiguredHubsProperties {
             this.sasToken = sasToken;
         }
 
+        public boolean isReadOnly() {
+            return readOnly;
+        }
+
+        public void setReadOnly(boolean readOnly) {
+            this.readOnly = readOnly;
+        }
+
         /** The address; call only once {@link #validate} has passed. */
         AzureFilesAddress address() {
             return new AzureFilesAddress(
@@ -345,7 +355,8 @@ public class ConfiguredHubsProperties {
                     share,
                     rootPath,
                     AzureFilesProtocol.parse(protocol).orElseThrow(),
-                    AzureFilesAuth.parse(auth).orElseThrow());
+                    AzureFilesAuth.parse(auth).orElseThrow(),
+                    readOnly);
         }
 
         /**

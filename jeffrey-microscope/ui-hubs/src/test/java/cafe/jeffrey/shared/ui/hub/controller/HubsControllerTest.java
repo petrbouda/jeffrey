@@ -162,7 +162,7 @@ class HubsControllerTest {
         void an_azure_files_share_is_reported_read_only_by_its_location() {
             registry.rows.add(new HubInfo("cfg-share", "Prod share", new AzureFilesAddress(
                     "https://jeffreyprod.file.core.windows.net", "recordings", "volume",
-                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS), CREATED_AT, HubSource.CONFIG));
+                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true), CREATED_AT, HubSource.CONFIG));
 
             HubResponse response = controller.info("cfg-share");
 

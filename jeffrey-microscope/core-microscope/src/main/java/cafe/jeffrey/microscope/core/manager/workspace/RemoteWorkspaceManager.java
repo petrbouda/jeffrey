@@ -26,6 +26,7 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
@@ -89,6 +90,13 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
 
     @Override
     public void delete() {
+        // Refused before anything local goes: the remote delete below is best-effort, so a
+        // refusal there would still wipe this workspace's profiles and answer success
+        if (hubInfo.address() != null && hubInfo.address().readOnly()) {
+            throw Exceptions.invalidRequest("Cannot delete workspace " + workspaceInfo.id()
+                    + ": its source is declared read-only");
+        }
+
         // Best-effort: drop the workspace on the hub via gRPC.
         try {
             hubClients.discovery().deleteWorkspace(workspaceInfo.id());

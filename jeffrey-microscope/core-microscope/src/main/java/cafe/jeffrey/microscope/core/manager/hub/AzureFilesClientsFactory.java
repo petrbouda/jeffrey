@@ -78,17 +78,33 @@ public final class AzureFilesClientsFactory {
         AzureFilesVolume volume = AzureFilesVolumes.open(address, credential(address));
         SessionLiveness liveness = new SessionLiveness(clock, new HeartbeatReader(volume), deadlines);
         LOG.info("Opened an Azure Files recording volume: address={}", address);
-        return VolumeHubClients.of(new VolumeSource(volume, liveness, DESCRIPTION));
+        return VolumeHubClients.of(new VolumeSource(volume, liveness, clock, DESCRIPTION, address.readOnly()));
     }
 
     private AzureFilesCredential credential(AzureFilesAddress address) {
         if (address.auth() == AzureFilesAuth.ENTRA) {
             return new AzureFilesCredential.Entra();
         }
-        return Optional.ofNullable(sasTokens.get(address.identity()))
-                .<AzureFilesCredential>map(AzureFilesCredential.Sas::new)
+        String token = Optional.ofNullable(sasTokens.get(address.identity()))
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "No SAS token is configured for " + address + ". Set its azure-files.sas-token under "
                                 + "jeffrey.microscope.hubs and restart."));
+        warnOnRights(address, SasPermissions.of(token));
+        return new AzureFilesCredential.Sas(token);
+    }
+
+    /**
+     * A token with more rights than the source uses widens what a leaked configuration exposes;
+     * one with fewer fails on the first change. Only the rights are logged, never the token.
+     */
+    private static void warnOnRights(AzureFilesAddress address, SasPermissions permissions) {
+        if (address.readOnly() && permissions.grantsChanges()) {
+            LOG.warn("The SAS token of a read-only Azure Files source grants more than it needs; issue one with "
+                    + "read and list only: address={} permissions={}", address, permissions);
+        } else if (!address.readOnly() && !permissions.grantsEveryChange()) {
+            LOG.warn("The SAS token of a writable Azure Files source lacks a right its changes need; issue one with "
+                    + "read, list, create, write and delete, or declare the source read-only: address={} permissions={}",
+                    address, permissions);
+        }
     }
 }

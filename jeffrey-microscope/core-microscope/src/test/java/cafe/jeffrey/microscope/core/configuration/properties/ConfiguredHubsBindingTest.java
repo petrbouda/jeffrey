@@ -82,7 +82,7 @@ class ConfiguredHubsBindingTest {
                 properties.resolve().getFirst().address());
 
         assertEquals(new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings",
-                "volume/workspaces", AzureFilesProtocol.NFS, AzureFilesAuth.SAS), address);
+                "volume/workspaces", AzureFilesProtocol.NFS, AzureFilesAuth.SAS, false), address);
         assertEquals(Map.of(address.identity(), "sv=2026-06-06&sig=c2ln"), properties.sasTokens());
     }
 

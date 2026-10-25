@@ -20,6 +20,7 @@ package cafe.jeffrey.hub.core.project.repository;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 
 import java.util.List;
 import java.util.Optional;

@@ -50,7 +50,8 @@ jeffrey.microscope.hubs.prodshare.azure-files.endpoint=https://jeffreyprod.file.
 jeffrey.microscope.hubs.prodshare.azure-files.share=recordings
 jeffrey.microscope.hubs.prodshare.azure-files.protocol=smb
 jeffrey.microscope.hubs.prodshare.azure-files.auth=sas
-jeffrey.microscope.hubs.prodshare.azure-files.sas-token=\${AZURE_FILES_SAS}`;
+jeffrey.microscope.hubs.prodshare.azure-files.sas-token=\${AZURE_FILES_SAS}
+jeffrey.microscope.hubs.prodshare.azure-files.read-only=false`;
 
 const hubsEnvExample = `JEFFREY_MICROSCOPE_HUBS_PRODUCTION_NAME=Production
 JEFFREY_MICROSCOPE_HUBS_PRODUCTION_HOSTNAME=hub.example.com
@@ -223,11 +224,12 @@ onMounted(() => {
 
       <h3 id="hubs-azure-files">Azure File Shares</h3>
       <p>
-        Instead of a <code>hostname</code>, a declared hub can be the recording volume itself, read
-        straight from an <strong>Azure file share</strong> with no Jeffrey Hub in between — the share
-        the provisioner writes into, mounted in AKS through the <code>azurefile-csi</code> storage
-        class. Microscope reads it over the Azure Files REST API, so it needs no mount of its own.
-        Such a source is <strong>read-only</strong>; see
+        Instead of a <code>hostname</code>, a declared hub can be the recording volume itself,
+        reached straight on an <strong>Azure file share</strong> with no Jeffrey Hub in between — the
+        share the provisioner writes into, mounted in AKS through the <code>azurefile-csi</code>
+        storage class. Microscope works with it over the Azure Files REST API, so it needs no mount
+        of its own. It lists and downloads like a hub and makes the same changes a hub makes —
+        unless it is declared <code>read-only</code>; see
         <router-link to="/docs/microscope/workspaces#azure-files">Workspaces</router-link> for what
         that means in the UI.
       </p>
@@ -248,7 +250,10 @@ onMounted(() => {
             <td>—</td>
             <td>
               <strong>Required.</strong> The storage account's file endpoint, e.g.
-              <code>https://&lt;account&gt;.file.core.windows.net</code>. Must be <code>https</code>.
+              <code>https://&lt;account&gt;.file.core.windows.net</code>: <code>https</code>, a host
+              and nothing more. A URL with a path, a query or credentials — such as the portal's
+              <em>File service SAS URL</em> — is refused, so a SAS never ends up stored, listed or
+              logged as part of the address; put it in <code>sas-token</code>.
             </td>
           </tr>
           <tr>
@@ -279,18 +284,31 @@ onMounted(() => {
             <td>
               <code>sas</code> signs in with <code>sas-token</code>. <code>entra</code> signs in with
               Microsoft Entra ID through <code>DefaultAzureCredential</code> (managed identity,
-              workload identity, environment variables, the Azure CLI, …); that identity needs the
-              <strong>Storage File Data Privileged Reader</strong> role on the share.
+              workload identity, environment variables, the Azure CLI, …, which it may run); that
+              identity needs the <strong>Storage File Data Privileged Contributor</strong> role on
+              the share, or <strong>Storage File Data Privileged Reader</strong> with
+              <code>read-only=true</code>.
             </td>
           </tr>
           <tr>
             <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.sas-token</code></td>
             <td>—</td>
             <td>
-              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read and list
-              on the share. It stays in the configuration: Microscope never stores it in its
-              database and never logs it, so pass it from a secret (an environment variable or a
-              mounted secret file).
+              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read, list,
+              create, write and delete on the share — read and list alone with
+              <code>read-only=true</code>; Microscope warns at startup, naming only the rights, when
+              a token grants more or less than its source uses. It stays in the configuration:
+              Microscope never stores it in its database and never logs it, so pass it from a secret
+              (an environment variable or a mounted secret file).
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.read-only</code></td>
+            <td><code>false</code></td>
+            <td>
+              Refuse every change to the share — no workspace created or deleted, no project
+              deleted, no session deleted or pinned — and hide those actions in the UI. The
+              credential then needs only read rights.
             </td>
           </tr>
         </tbody>
@@ -301,6 +319,12 @@ onMounted(() => {
         both. Two declarations of the same endpoint, share and root path are refused like two of the
         same hostname and port.
       </p>
+
+      <DocsCallout type="warning">
+        <strong>Give recordings a storage account of their own.</strong> Both privileged roles, which
+        the Entra sign-in needs, ignore file-level permissions and reach every share in the storage
+        account, not just this one. A SAS can be scoped to one share; a role cannot.
+      </DocsCallout>
 
       <p>Every property has the usual environment-variable form:</p>
 

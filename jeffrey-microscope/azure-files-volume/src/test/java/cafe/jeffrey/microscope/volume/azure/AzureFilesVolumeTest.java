@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import com.azure.core.http.HttpRequest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,7 @@ class AzureFilesVolumeTest {
 
     private static AzureFilesVolume volume(StubFileShare share, AzureFilesProtocol protocol, String rootPath) {
         AzureFilesAddress address = new AzureFilesAddress(
-                ENDPOINT, StubFileShare.shareName(), rootPath, protocol, AzureFilesAuth.SAS);
+                ENDPOINT, StubFileShare.shareName(), rootPath, protocol, AzureFilesAuth.SAS, false);
         return AzureFilesVolumes.open(address, new AzureFilesCredential.Sas(SAS), share);
     }
 
@@ -106,12 +107,90 @@ class AzureFilesVolumeTest {
             }
         }
 
+        /** A marker larger than one can be is refused after one byte past the cap, never fetched whole. */
+        @Test
+        void refusesAFileLargerThanAMarkerCanBe() {
+            share.file("prod/orders/pod-a/s-1/.session-info.json", "x".repeat(VolumeAccess.MAX_READ_BYTES + 10), CREATED);
+
+            assertThrows(UncheckedIOException.class, () -> volume.read(SESSION.resolve(".session-info.json")));
+            String range = share.requests().getLast().getHeaders().getValue("x-ms-range");
+            assertEquals("bytes=0-" + VolumeAccess.MAX_READ_BYTES, range);
+        }
+
+        @Test
+        void readsAnEmptyFileAsEmpty() {
+            share.file("prod/orders/pod-a/s-1/.retained", "", CREATED);
+
+            assertArrayEquals(new byte[0], volume.read(SESSION.resolve(".retained")).orElseThrow());
+        }
+
         @Test
         void signsEveryRequestWithTheSas() {
             volume.list(SESSION);
 
             assertTrue(share.requests().stream().map(HttpRequest::getUrl)
                     .allMatch(url -> url.getQuery() != null && url.getQuery().contains("sig=")));
+        }
+    }
+
+    @Nested
+    class Writing {
+
+        private final StubFileShare share = sessionOn(AzureFilesProtocol.SMB, "volume/");
+        private final WritableVolume volume = volume(share, AzureFilesProtocol.SMB, "volume");
+
+        @Test
+        void createsEveryMissingDirectoryUnderTheRoot() {
+            volume.createDirectories(ROOT.resolve("staging").resolve("checkout"));
+
+            assertTrue(share.holds("volume/staging"));
+            assertTrue(share.holds("volume/staging/checkout"));
+        }
+
+        /** Through a scratch file renamed onto the marker, so no reader alongside sees half of one. */
+        @Test
+        void writesAMarkerWholeAndLeavesNoScratchFileBehind() {
+            volume.createDirectories(ROOT.resolve("staging"));
+
+            volume.write(ROOT.resolve("staging").resolve(".workspace-info.json"), "{\"name\":\"Staging\"}".getBytes(StandardCharsets.UTF_8));
+            volume.write(ROOT.resolve("staging").resolve(".workspace-info.json"), "{\"name\":\"Renamed\"}".getBytes(StandardCharsets.UTF_8));
+
+            assertEquals("{\"name\":\"Renamed\"}", share.content("volume/staging/.workspace-info.json"));
+            assertTrue(share.paths().stream().noneMatch(path -> path.endsWith(".tmp")), share.paths().toString());
+            assertTrue(share.requests().stream().anyMatch(request -> request.getUrl().getQuery().contains("comp=rename")));
+        }
+
+        @Test
+        void createsAnEmptyFlagInOneCall() {
+            volume.write(SESSION.resolve(".retained"), new byte[0]);
+
+            assertEquals("", share.content("volume/prod/orders/pod-a/s-1/.retained"));
+        }
+
+        @Test
+        void deletesADirectoryWithEverythingUnderIt() {
+            volume.delete(SESSION);
+
+            assertTrue(share.paths().stream().noneMatch(path -> path.startsWith("volume/prod/orders/pod-a/s-1")),
+                    share.paths().toString());
+            assertTrue(share.holds("volume/prod/orders/pod-a"));
+        }
+
+        @Test
+        void deletesAFileAndTreatsWhatIsGoneAsDone() {
+            volume.delete(SESSION.resolve("gc.log"));
+            volume.delete(SESSION.resolve("gc.log"));
+
+            assertFalse(share.holds("volume/prod/orders/pod-a/s-1/gc.log"));
+        }
+
+        @Test
+        void aWriteTheCredentialRefusesSaysWhichRightIsMissing() {
+            share.rejectEveryCredential();
+
+            UncheckedIOException refused = assertThrows(UncheckedIOException.class,
+                    () -> volume.createDirectories(ROOT.resolve("staging")));
+            assertTrue(refused.getMessage().contains("lacks"), refused.getMessage());
         }
     }
 

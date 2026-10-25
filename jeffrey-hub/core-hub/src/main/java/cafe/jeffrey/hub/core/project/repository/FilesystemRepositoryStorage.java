@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.hub.core.volume.VolumeMarkerWriter;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
@@ -32,8 +31,11 @@ import cafe.jeffrey.shared.volume.layout.InstanceState;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.shared.volume.layout.SessionDirectory;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
+import cafe.jeffrey.shared.volume.layout.VolumeChanges;
+import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.shared.volume.recording.RecordingFormat;
@@ -174,11 +176,9 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     @Override
     public boolean setRetained(String sessionId, boolean retained) {
-        Optional<SessionDirectory> session = tree.session(sessionId);
-        if (session.isEmpty()) {
+        if (!VolumeChanges.setRetained(volume, tree, sessionId, retained)) {
             return false;
         }
-        VolumeMarkerWriter.setFlag(volume.resolve(session.get().path()), SessionDirectory.RETAINED_FLAG, retained);
         LOG.info("Updated session retention: project_id={} session_id={} retained={}",
                 projectInfo.id(), sessionId, retained);
         return true;
@@ -231,29 +231,15 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         return SessionFile.idOf(file.getFileName().toString());
     }
 
-    /**
-     * The instance goes too when no directory is left in it. Any directory counts, marker or not:
-     * one the provisioner has created but not yet described is a session about to start, and its
-     * profiler may already be writing into it.
-     */
+    /** The instance goes too when no directory is left in it ({@link VolumeChanges#deleteSession}). */
     @Override
     public SessionDeletion deleteSession(String sessionId) {
-        Optional<SessionDirectory> session = tree.session(sessionId);
-        if (session.isEmpty()) {
-            return SessionDeletion.NOT_FOUND;
+        SessionDeletion deletion = VolumeChanges.deleteSession(volume, tree, sessionId);
+        if (deletion.deleted()) {
+            LOG.info("Deleted session directory: session_id={} instance_deleted={}",
+                    sessionId, deletion.instanceDeleted());
         }
-        VolumePath instanceDir = session.get().path().parent();
-        Path sessionPath = volume.resolve(session.get().path());
-        FileSystemUtils.removeDirectory(sessionPath);
-        LOG.info("Deleted session directory: session_id={} session_path={}", sessionId, sessionPath);
-
-        if (tree.holdsAnyDirectory(instanceDir)) {
-            return SessionDeletion.SESSION_DELETED;
-        }
-        Path instancePath = volume.resolve(instanceDir);
-        FileSystemUtils.removeDirectory(instancePath);
-        LOG.info("Deleted instance directory with its last session: instance_path={}", instancePath);
-        return SessionDeletion.SESSION_AND_INSTANCE_DELETED;
+        return deletion;
     }
 
     @Override
@@ -269,12 +255,11 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     @Override
     public void deleteProjectDirectory() {
-        Path projectPath = volume.resolve(tree.path());
-        if (!Files.isDirectory(projectPath)) {
+        if (!VolumeMarkers.isDirectory(volume, tree.path())) {
             return;
         }
-        FileSystemUtils.removeDirectory(projectPath);
-        LOG.info("Deleted project directory: project_path={}", projectPath);
+        volume.delete(tree.path());
+        LOG.info("Deleted project directory: project_path={}", tree.path());
     }
 
     // ========== Files ==========

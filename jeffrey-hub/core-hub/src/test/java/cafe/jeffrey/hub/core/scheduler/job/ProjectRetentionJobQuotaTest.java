@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;

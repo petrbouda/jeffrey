@@ -23,9 +23,14 @@ import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
+import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +43,8 @@ import java.util.stream.Collectors;
  * long history lists only a few directories.
  */
 final class VolumeRepositoryClient implements RepositoryClient {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VolumeRepositoryClient.class);
 
     private final VolumeSource source;
 
@@ -72,13 +79,27 @@ final class VolumeRepositoryClient implements RepositoryClient {
         });
     }
 
+    /** Its instance goes too when nothing is left in it, as on the hub ({@link VolumeChanges#deleteSession}). */
     @Override
     public void deleteSession(ProjectScope scope, String sessionId) {
-        throw VolumeSource.readOnly("Cannot delete session " + sessionId);
+        WritableVolume volume = source.writable("Cannot delete session " + sessionId);
+        source.read(() -> {
+            SessionDeletion deletion = VolumeChanges.deleteSession(volume, source.requireProject(scope), sessionId);
+            if (!deletion.deleted()) {
+                throw Exceptions.recordingSessionNotFound(sessionId);
+            }
+            LOG.info("Deleted session on the recording volume: session_id={} instance_deleted={} source={}",
+                    sessionId, deletion.instanceDeleted(), source.description());
+        });
     }
 
     @Override
     public void setSessionRetained(ProjectScope scope, String sessionId, boolean retained) {
-        throw VolumeSource.readOnly("Cannot pin or unpin session " + sessionId);
+        WritableVolume volume = source.writable("Cannot pin or unpin session " + sessionId);
+        source.read(() -> {
+            if (!VolumeChanges.setRetained(volume, source.requireProject(scope), sessionId, retained)) {
+                throw Exceptions.recordingSessionNotFound(sessionId);
+            }
+        });
     }
 }
