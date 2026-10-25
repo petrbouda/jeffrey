@@ -32,6 +32,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -54,6 +56,9 @@ public class HubsController {
     private static final Logger LOG = LoggerFactory.getLogger(HubsController.class);
 
     private static final String CONFIGURED_HUBS_PROPERTY = "jeffrey.microscope.hubs";
+    private static final String KIND_GRPC = "GRPC";
+    private static final String KIND_AZURE_FILES = "AZURE_FILES";
+    private static final String LOCATION_SEPARATOR = "/";
 
     private final HubRegistry hubRegistry;
     private final HubClients.Factory clientsFactory;
@@ -74,7 +79,7 @@ public class HubsController {
     public ResponseEntity<HubResponse> add(@RequestBody AddHubRequest request) {
         validate(request);
 
-        HubAddress address = new HubAddress(request.hostname(), request.port(), request.plaintext());
+        GrpcHubAddress address = new GrpcHubAddress(request.hostname(), request.port(), request.plaintext());
         // The hubs table is UNIQUE (hostname, port); without this the insert below surfaces as a
         // raw constraint violation. Configured hubs make the collision far more likely, since they
         // claim their addresses before anyone opens the UI.
@@ -129,10 +134,9 @@ public class HubsController {
         hubRegistry.delete(hubId);
     }
 
-    private void rejectIfAddressTaken(HubAddress address) {
+    private void rejectIfAddressTaken(GrpcHubAddress address) {
         for (HubInfo existing : hubRegistry.findAll()) {
-            if (existing.address().hostname().equals(address.hostname())
-                    && existing.address().port() == address.port()) {
+            if (existing.address().identity().equals(address.identity())) {
 
                 String suffix = existing.source() == HubSource.CONFIG
                         ? " It is declared in " + CONFIGURED_HUBS_PROPERTY + "."
@@ -157,13 +161,20 @@ public class HubsController {
     }
 
     private static HubResponse toResponse(HubInfo info) {
-        return new HubResponse(
-                info.hubId(),
-                info.name(),
-                info.address().hostname(),
-                info.address().port(),
-                info.address().plaintext(),
-                info.createdAt() != null ? info.createdAt().toEpochMilli() : 0L,
-                info.source().name());
+        long createdAt = info.createdAt() != null ? info.createdAt().toEpochMilli() : 0L;
+        HubAddress address = info.address();
+        return switch (address) {
+            case GrpcHubAddress grpc -> new HubResponse(
+                    info.hubId(), info.name(), grpc.hostname(), grpc.port(), grpc.plaintext(), createdAt,
+                    info.source().name(), KIND_GRPC, grpc.identity(), grpc.readOnly());
+            case AzureFilesAddress azure -> new HubResponse(
+                    info.hubId(), info.name(), null, 0, false, createdAt,
+                    info.source().name(), KIND_AZURE_FILES, location(azure), azure.readOnly());
+        };
+    }
+
+    private static String location(AzureFilesAddress azure) {
+        String share = azure.endpoint() + LOCATION_SEPARATOR + azure.share();
+        return azure.rootPath().isEmpty() ? share : share + LOCATION_SEPARATOR + azure.rootPath();
     }
 }

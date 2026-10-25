@@ -35,6 +35,8 @@
         <module>notifications</module>
         <module>recording-storage-api</module>
         <module>hub-client</module>
+        <module>volume-client</module>
+        <module>azure-files-volume</module>
         <module>recordings-core</module>
         <module>ui-hubs</module>
         <module>microscope-core-persistence-api</module>

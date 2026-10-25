@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.initializer;
 
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.DesiredHub;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -31,10 +32,16 @@ import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfiguredHubsPlannerTest {
+
+    /** A gRPC hub's address, failing the test for any other kind. */
+    private static GrpcHubAddress grpc(HubAddress address) {
+        return assertInstanceOf(GrpcHubAddress.class, address);
+    }
 
     private static final Instant NOW = Instant.parse("2026-09-04T10:15:30Z");
     private static final Instant EARLIER = Instant.parse("2026-01-01T00:00:00Z");
@@ -43,11 +50,11 @@ class ConfiguredHubsPlannerTest {
             new ConfiguredHubsPlanner(Clock.fixed(NOW, ZoneOffset.UTC));
 
     private static DesiredHub desired(String key, String hostname, int port) {
-        return new DesiredHub(key, "cfg-" + key, key, new HubAddress(hostname, port));
+        return new DesiredHub(key, "cfg-" + key, key, new GrpcHubAddress(hostname, port));
     }
 
     private static HubInfo stored(String hubId, String name, String hostname, int port, HubSource source) {
-        return new HubInfo(hubId, name, new HubAddress(hostname, port), EARLIER, source);
+        return new HubInfo(hubId, name, new GrpcHubAddress(hostname, port), EARLIER, source);
     }
 
     @Nested
@@ -91,7 +98,7 @@ class ConfiguredHubsPlannerTest {
         @Test
         void renaming_updates_in_place_and_keeps_the_creation_time() {
             DesiredHub renamed = new DesiredHub(
-                    "prod", "cfg-prod", "Production", new HubAddress("hub.example.com", 443));
+                    "prod", "cfg-prod", "Production", new GrpcHubAddress("hub.example.com", 443));
 
             HubReconcilePlan plan = planner.plan(
                     List.of(renamed),
@@ -119,11 +126,11 @@ class ConfiguredHubsPlannerTest {
             assertEquals(1, plan.inserts().size());
             assertTrue(plan.updates().isEmpty());
 
-            assertEquals("hub.example.com", plan.deletes().getFirst().address().hostname());
+            assertEquals("hub.example.com", grpc(plan.deletes().getFirst().address()).hostname());
 
             HubInfo inserted = plan.inserts().getFirst();
             assertEquals("cfg-prod", inserted.hubId());
-            assertEquals("moved.example.com", inserted.address().hostname());
+            assertEquals("moved.example.com", grpc(inserted.address()).hostname());
             assertEquals(EARLIER, inserted.createdAt());
         }
 

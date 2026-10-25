@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.core.configuration.properties;
 
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.DesiredHub;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -41,6 +47,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * register a hub, with no error anywhere.
  */
 class ConfiguredHubsBindingTest {
+
+    /** A gRPC hub's address, failing the test for any other kind. */
+    private static GrpcHubAddress grpc(HubAddress address) {
+        return assertInstanceOf(GrpcHubAddress.class, address);
+    }
 
     @Configuration
     @EnableConfigurationProperties(ConfiguredHubsProperties.class)
@@ -54,6 +65,25 @@ class ConfiguredHubsBindingTest {
             context.refresh();
             return context.getBean(ConfiguredHubsProperties.class);
         }
+    }
+
+    @Test
+    @DisplayName("An azure-files block binds every field, kebab-case keys included")
+    void bindsAnAzureFilesShare() {
+        ConfiguredHubsProperties properties = bind(
+                "jeffrey.microscope.hubs.prod-share.azure-files.endpoint=https://jeffreyprod.file.core.windows.net",
+                "jeffrey.microscope.hubs.prod-share.azure-files.share=recordings",
+                "jeffrey.microscope.hubs.prod-share.azure-files.root-path=volume/workspaces",
+                "jeffrey.microscope.hubs.prod-share.azure-files.protocol=nfs",
+                "jeffrey.microscope.hubs.prod-share.azure-files.auth=sas",
+                "jeffrey.microscope.hubs.prod-share.azure-files.sas-token=sv=2026-06-06&sig=c2ln");
+
+        AzureFilesAddress address = assertInstanceOf(AzureFilesAddress.class,
+                properties.resolve().getFirst().address());
+
+        assertEquals(new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings",
+                "volume/workspaces", AzureFilesProtocol.NFS, AzureFilesAuth.SAS), address);
+        assertEquals(Map.of(address.identity(), "sv=2026-06-06&sig=c2ln"), properties.sasTokens());
     }
 
     @Test
@@ -75,8 +105,8 @@ class ConfiguredHubsBindingTest {
                 .orElseThrow();
         assertEquals("cfg-production", production.hubId());
         assertEquals("Production", production.name());
-        assertEquals("hub.example.com", production.address().hostname());
-        assertEquals(443, production.address().port());
+        assertEquals("hub.example.com", grpc(production.address()).hostname());
+        assertEquals(443, grpc(production.address()).port());
 
         DesiredHub staging = resolved.stream()
                 .filter(hub -> hub.key().equals("staging"))
@@ -84,8 +114,8 @@ class ConfiguredHubsBindingTest {
                 .orElseThrow();
         // Unset name falls back to the key, unset port to the gRPC default.
         assertEquals("staging", staging.name());
-        assertEquals(9090, staging.address().port());
-        assertTrue(staging.address().plaintext());
+        assertEquals(9090, grpc(staging.address()).port());
+        assertTrue(grpc(staging.address()).plaintext());
     }
 
     @Test
@@ -110,8 +140,8 @@ class ConfiguredHubsBindingTest {
 
             assertEquals(1, resolved.size());
             assertEquals("cfg-production", resolved.getFirst().hubId());
-            assertEquals("hub.example.com", resolved.getFirst().address().hostname());
-            assertEquals(443, resolved.getFirst().address().port());
+            assertEquals("hub.example.com", grpc(resolved.getFirst().address()).hostname());
+            assertEquals(443, grpc(resolved.getFirst().address()).port());
         }
     }
 

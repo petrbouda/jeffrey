@@ -21,6 +21,7 @@ import cafe.jeffrey.shared.volume.VolumeEntry;
 
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Optional;
 
 /**
  * When a file was opened by whatever wrote it: what chunk-window selection, retention and the
@@ -31,15 +32,17 @@ import java.time.ZoneId;
 public interface TimestampResolver {
 
     /**
-     * When the file was opened; never {@code null} — falls back to the volume rather than failing.
+     * When the file was opened — falling back to the volume rather than failing — or empty when the
+     * name says nothing and the volume's description carried no time, which a caller settles with
+     * one more look at the file.
      *
      * @param file the file as the volume described it
      * @param zone the time zone of the machine that wrote the session, which a timestamp in a file's
      *             name is local to
      */
-    Instant resolve(VolumeEntry file, ZoneId zone);
+    Optional<Instant> resolve(VolumeEntry file, ZoneId zone);
 
-    /** The file's creation time as the volume reports it; wrong for a rewritten file. */
+    /** The file's creation time as the volume reports it, if it did; wrong for a rewritten file. */
     TimestampResolver VOLUME = (file, zone) -> file.createdAt();
 
     /** The instant async-profiler wrote into the file's own name, falling back to the volume. */

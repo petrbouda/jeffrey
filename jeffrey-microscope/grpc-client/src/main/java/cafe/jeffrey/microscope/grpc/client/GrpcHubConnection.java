@@ -25,7 +25,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 
 import javax.net.ssl.SSLException;
 import java.io.Closeable;
@@ -38,10 +38,10 @@ public class GrpcHubConnection implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrpcHubConnection.class);
 
-    private final HubAddress address;
+    private final GrpcHubAddress address;
     private final ManagedChannel channel;
 
-    public GrpcHubConnection(HubAddress address) {
+    public GrpcHubConnection(GrpcHubAddress address) {
         this.address = address;
 
         // Every call over this channel is recorded as a span under whatever the caller is doing,
@@ -68,7 +68,7 @@ public class GrpcHubConnection implements Closeable {
     /**
      * Wraps an already-built channel instead of dialling an address. Exists so a test can point
      * the clients at an in-process server; production code should use
-     * {@link #GrpcHubConnection(HubAddress)}.
+     * {@link #GrpcHubConnection(GrpcHubAddress)}.
      */
     protected GrpcHubConnection(ManagedChannel channel) {
         this.address = null;
@@ -82,7 +82,7 @@ public class GrpcHubConnection implements Closeable {
         return channel;
     }
 
-    public HubAddress address() {
+    public GrpcHubAddress address() {
         return address;
     }
 

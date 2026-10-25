@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -125,7 +126,7 @@ class McpDiagnosticsTest {
     private static HubManager hub(String id) {
         HubManager manager = mock(HubManager.class);
         when(manager.info()).thenReturn(new HubInfo(id, id,
-                new HubAddress("internal.example", 9090, true), Instant.EPOCH, HubSource.CONFIG));
+                new GrpcHubAddress("internal.example", 9090, true), Instant.EPOCH, HubSource.CONFIG));
         return manager;
     }
 

@@ -37,6 +37,7 @@ import io.grpc.Context;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -170,7 +171,7 @@ class HubsArtifactsMcpToolsTest {
                 PROJECT_ID, "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
         HubManager hub = mock(HubManager.class);
         when(hub.info()).thenReturn(new HubInfo(
-                HUB_ID, "production", new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG));
+                HUB_ID, "production", new GrpcHubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG));
         when(resolver.resolveHub(HUB_ID)).thenReturn(hub);
         when(resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID)).thenReturn(project);
         when(recordingsManager.listRecordings()).thenReturn(List.of());

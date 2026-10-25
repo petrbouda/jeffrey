@@ -19,8 +19,10 @@ package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.VolumeFixture;
+import cafe.jeffrey.shared.volume.VolumeAccess;
+import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,10 +32,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -59,12 +63,38 @@ class ProjectTreeTest {
         volume = new FilesystemVolume(root);
     }
 
+    /** Lists like a volume whose listing carries no timestamps; a look at one entry still does. */
+    private record UntimedListings(VolumeAccess delegate) implements VolumeAccess {
+
+        @Override
+        public List<VolumeEntry> list(VolumePath directory) {
+            return delegate.list(directory).stream()
+                    .map(entry -> new VolumeEntry(entry.path(), entry.kind(), entry.size(), Optional.empty()))
+                    .toList();
+        }
+
+        @Override
+        public Optional<VolumeEntry> stat(VolumePath path) {
+            return delegate.stat(path);
+        }
+
+        @Override
+        public Optional<byte[]> read(VolumePath file) {
+            return delegate.read(file);
+        }
+
+        @Override
+        public Optional<OpenedFile> open(VolumePath file) {
+            return delegate.open(file);
+        }
+    }
+
     @Nested
     class WhatIsAProject {
 
         @Test
         void aDirectoryWithItsMarker() {
-            VolumeFixture.project(root, "p-1", "project", T0);
+            VolumeWriter.project(root, "p-1", "project", T0);
 
             ProjectTree tree = ProjectTree.at(volume, PROJECT).orElseThrow();
 
@@ -97,13 +127,13 @@ class ProjectTreeTest {
 
         @BeforeEach
         void setUp() {
-            project = VolumeFixture.project(root, "p-1", "project", T0);
+            project = VolumeWriter.project(root, "p-1", "project", T0);
             tree = ProjectTree.at(volume, PROJECT).orElseThrow();
         }
 
         @Test
         void aDirectoryWithoutItsMarkerIsNoInstance() throws IOException {
-            VolumeFixture.instance(project, "pod-a", T0);
+            VolumeWriter.instance(project, "pod-a", T0);
             Files.createDirectories(project.resolve("pod-b"));
 
             assertEquals(List.of("pod-a"), tree.instances().stream().map(InstanceDirectory::id).toList());
@@ -113,9 +143,9 @@ class ProjectTreeTest {
 
         @Test
         void sessionsAreOrderedByTheirStartNotTheirName() {
-            Path instance = VolumeFixture.instance(project, "pod-a", T0);
-            VolumeFixture.session(instance, "b-first", T0, null);
-            VolumeFixture.session(instance, "a-second", T0.plusSeconds(60), null);
+            Path instance = VolumeWriter.instance(project, "pod-a", T0);
+            VolumeWriter.session(instance, "b-first", T0, null);
+            VolumeWriter.session(instance, "a-second", T0.plusSeconds(60), null);
 
             List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
 
@@ -126,7 +156,7 @@ class ProjectTreeTest {
 
         @Test
         void aSessionIsFoundInWhicheverInstanceHoldsIt() {
-            VolumeFixture.session(VolumeFixture.instance(project, "pod-b", T0), "s-1", T0, "Europe/Prague");
+            VolumeWriter.session(VolumeWriter.instance(project, "pod-b", T0), "s-1", T0, "Europe/Prague");
 
             SessionDirectory session = tree.session("s-1").orElseThrow();
 
@@ -136,7 +166,7 @@ class ProjectTreeTest {
 
         @Test
         void anIdThatIsNotOneDirectoryNamesNothing() {
-            VolumeFixture.session(VolumeFixture.instance(project, "pod-a", T0), "s-1", T0, null);
+            VolumeWriter.session(VolumeWriter.instance(project, "pod-a", T0), "s-1", T0, null);
 
             assertTrue(tree.session("../pod-a/s-1").isEmpty());
             assertTrue(tree.instance("../project").isEmpty());
@@ -145,7 +175,7 @@ class ProjectTreeTest {
 
         @Test
         void aSessionIsRetainedByItsFlagFile() throws IOException {
-            Path dir = VolumeFixture.session(VolumeFixture.instance(project, "pod-a", T0), "s-1", T0, null);
+            Path dir = VolumeWriter.session(VolumeWriter.instance(project, "pod-a", T0), "s-1", T0, null);
             SessionDirectory session = tree.session("s-1").orElseThrow();
             assertFalse(tree.isRetained(session));
 
@@ -166,8 +196,8 @@ class ProjectTreeTest {
 
         @BeforeEach
         void setUp() {
-            Path project = VolumeFixture.project(root, "p-1", "project", T0);
-            session = VolumeFixture.session(VolumeFixture.instance(project, "pod-a", T0), "s-1", T0, null);
+            Path project = VolumeWriter.project(root, "p-1", "project", T0);
+            session = VolumeWriter.session(VolumeWriter.instance(project, "pod-a", T0), "s-1", T0, null);
             tree = ProjectTree.at(volume, PROJECT).orElseThrow();
         }
 
@@ -186,7 +216,7 @@ class ProjectTreeTest {
 
         @Test
         void aRecordingIsKnownByItsNameWithoutTheExtensionAndTimedByIt() {
-            VolumeFixture.file(session, "profile-20260220-130500.jfr.lz4", "chunk");
+            VolumeWriter.file(session, "profile-20260220-130500.jfr.lz4", "chunk");
 
             SessionFile file = tree.files(SESSION, ZoneId.of("Europe/Prague")).getFirst();
 
@@ -197,8 +227,8 @@ class ProjectTreeTest {
 
         @Test
         void listsVisibleFilesNewestFirstByName() throws IOException {
-            VolumeFixture.file(session, "profile-20260220-120000.jfr", "chunk");
-            VolumeFixture.file(session, "profile-20260220-121500.jfr", "chunk");
+            VolumeWriter.file(session, "profile-20260220-120000.jfr", "chunk");
+            VolumeWriter.file(session, "profile-20260220-121500.jfr", "chunk");
             Files.createDirectories(session.resolve("nested"));
 
             List<String> names = tree.files(SESSION, ZoneOffset.UTC).stream().map(SessionFile::name).toList();
@@ -214,12 +244,31 @@ class ProjectTreeTest {
          */
         @Test
         void leavesOutAFileThatWentAwayWhileTheSessionWasListed() throws IOException {
-            VolumeFixture.file(session, "profile-20260912-121559.jfr", "chunk");
+            VolumeWriter.file(session, "profile-20260912-121559.jfr", "chunk");
             Files.createSymbolicLink(session.resolve("profile-20260912-121559.jfr.1~"), session.resolve("flushed"));
 
             List<String> names = tree.files(SESSION, ZoneOffset.UTC).stream().map(SessionFile::name).toList();
 
             assertEquals(List.of("profile-20260912-121559.jfr"), names);
+        }
+
+        /**
+         * Some volumes list without timestamps (an Azure Files NFS share). A chunk is timed by its
+         * name anyway; anything else costs one look at that file alone, and one gone by then is left
+         * out like any file that vanished while listed.
+         */
+        @Test
+        void onAVolumeListingNoTimesAFileIsTimedByOneLookAtIt() throws IOException {
+            VolumeWriter.file(session, "profile-20260220-130500.jfr", "chunk");
+            Path log = VolumeWriter.file(session, "gc.log", "line");
+            ProjectTree untimed = ProjectTree.at(new UntimedListings(volume), PROJECT).orElseThrow();
+
+            List<SessionFile> files = untimed.files(SESSION, ZoneOffset.UTC);
+
+            assertEquals(List.of("profile-20260220-130500.jfr", "gc.log"), files.stream().map(SessionFile::name).toList());
+            assertEquals(Instant.parse("2026-02-20T13:05:00Z"), files.getFirst().createdAt());
+            assertEquals(Files.readAttributes(log, BasicFileAttributes.class).creationTime().toInstant(),
+                    files.getLast().createdAt());
         }
 
         @Test

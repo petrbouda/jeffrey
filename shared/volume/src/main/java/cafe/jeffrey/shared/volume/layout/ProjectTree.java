@@ -200,16 +200,43 @@ public final class ProjectTree {
                 .filter(VolumeEntry::isFile)
                 .sorted(NEWEST_BY_NAME)
                 .map(entry -> describe(entry, zone))
+                .flatMap(Optional::stream)
                 .toList();
     }
 
-    private static SessionFile describe(VolumeEntry entry, ZoneId zone) {
+    /**
+     * The file as a session lists it, or empty when it can no longer be described. A file whose
+     * name says nothing about when it was opened, on a volume whose listing carries no timestamps,
+     * costs one more look at that file alone.
+     */
+    private Optional<SessionFile> describe(VolumeEntry entry, ZoneId zone) {
         Optional<RecordingFormat> format = RecordingFormat.of(entry.name());
-        Instant createdAt = format.map(RecordingFormat::timestampResolver)
+        return format.map(RecordingFormat::timestampResolver)
                 .orElse(TimestampResolver.VOLUME)
-                .resolve(entry, zone);
-        return new SessionFile(
-                SessionFile.idOf(entry.name()), entry.name(), createdAt, entry.size(), format.isPresent(), entry.path());
+                .resolve(entry, zone)
+                .or(() -> createdAtOnALook(entry.path()))
+                .map(createdAt -> new SessionFile(
+                        SessionFile.idOf(entry.name()), entry.name(), createdAt, entry.size(), format.isPresent(),
+                        entry.path()));
+    }
+
+    /** When a file was created, from a look at it alone; empty, and the file left out, when it cannot say. */
+    private Optional<Instant> createdAtOnALook(VolumePath file) {
+        Optional<VolumeEntry> entry;
+        try {
+            entry = volume.stat(file);
+        } catch (UncheckedIOException e) {
+            LOG.debug("Leaving out a session file that cannot be looked at: path={} reason={}", file, e.getMessage());
+            return Optional.empty();
+        }
+        if (entry.isEmpty()) {
+            LOG.debug("Leaving out a session file that went away while it was listed: path={}", file);
+            return Optional.empty();
+        }
+        if (entry.get().createdAt().isEmpty()) {
+            LOG.warn("Leaving out a session file the volume gives no time for: path={}", file);
+        }
+        return entry.get().createdAt();
     }
 
     /**

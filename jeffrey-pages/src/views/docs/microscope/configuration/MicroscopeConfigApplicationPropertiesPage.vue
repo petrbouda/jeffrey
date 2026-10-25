@@ -32,6 +32,7 @@ const headings = [
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
   { id: 'hubs', text: 'Declared Hubs', level: 2 },
+  { id: 'hubs-azure-files', text: 'Azure File Shares', level: 3 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
   { id: 'ide-integration', text: 'IDE Integration', level: 2 }
 ];
@@ -43,6 +44,13 @@ jeffrey.microscope.hubs.production.port=443
 jeffrey.microscope.hubs.staging.hostname=staging.internal
 jeffrey.microscope.hubs.staging.port=9090
 jeffrey.microscope.hubs.staging.plaintext=true`;
+
+const azureFilesPropertiesExample = `jeffrey.microscope.hubs.prodshare.name=Production share
+jeffrey.microscope.hubs.prodshare.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
+jeffrey.microscope.hubs.prodshare.azure-files.share=recordings
+jeffrey.microscope.hubs.prodshare.azure-files.protocol=smb
+jeffrey.microscope.hubs.prodshare.azure-files.auth=sas
+jeffrey.microscope.hubs.prodshare.azure-files.sas-token=\${AZURE_FILES_SAS}`;
 
 const hubsEnvExample = `JEFFREY_MICROSCOPE_HUBS_PRODUCTION_NAME=Production
 JEFFREY_MICROSCOPE_HUBS_PRODUCTION_HOSTNAME=hub.example.com
@@ -212,6 +220,87 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+
+      <h3 id="hubs-azure-files">Azure File Shares</h3>
+      <p>
+        Instead of a <code>hostname</code>, a declared hub can be the recording volume itself, read
+        straight from an <strong>Azure file share</strong> with no Jeffrey Hub in between — the share
+        the provisioner writes into, mounted in AKS through the <code>azurefile-csi</code> storage
+        class. Microscope reads it over the Azure Files REST API, so it needs no mount of its own.
+        Such a source is <strong>read-only</strong>; see
+        <router-link to="/docs/microscope/workspaces#azure-files">Workspaces</router-link> for what
+        that means in the UI.
+      </p>
+
+      <DocsCodeBlock language="properties" :code="azureFilesPropertiesExample" />
+
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.endpoint</code></td>
+            <td>—</td>
+            <td>
+              <strong>Required.</strong> The storage account's file endpoint, e.g.
+              <code>https://&lt;account&gt;.file.core.windows.net</code>. Must be <code>https</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.share</code></td>
+            <td>—</td>
+            <td><strong>Required.</strong> Name of the file share.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.root-path</code></td>
+            <td>the share's root</td>
+            <td>
+              Directory on the share that holds the workspaces — the same directory the hub would use
+              as its volume. Every directory under it is shown as a workspace.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.protocol</code></td>
+            <td><code>smb</code></td>
+            <td>
+              <code>smb</code> or <code>nfs</code> — the share's protocol. An NFS share's listings
+              carry no file times, so Microscope reads them one file at a time; expect larger
+              projects to load more slowly.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.auth</code></td>
+            <td><code>sas</code></td>
+            <td>
+              <code>sas</code> signs in with <code>sas-token</code>. <code>entra</code> signs in with
+              Microsoft Entra ID through <code>DefaultAzureCredential</code> (managed identity,
+              workload identity, environment variables, the Azure CLI, …); that identity needs the
+              <strong>Storage File Data Privileged Reader</strong> role on the share.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.sas-token</code></td>
+            <td>—</td>
+            <td>
+              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read and list
+              on the share. It stays in the configuration: Microscope never stores it in its
+              database and never logs it, so pass it from a secret (an environment variable or a
+              mounted secret file).
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        A hub declares either a <code>hostname</code> or an <code>azure-files</code> block, never
+        both. Two declarations of the same endpoint, share and root path are refused like two of the
+        same hostname and port.
+      </p>
 
       <p>Every property has the usual environment-variable form:</p>
 

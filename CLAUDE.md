@@ -14,6 +14,8 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
   microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles, hubs)
   grpc-client/ + hub-client/           gRPC clients, aggregated by the HubClients record
+  volume-client/ + azure-files-volume/ read-only hub clients over the recording volume itself (no hub), and the
+                                       Azure Files backend of VolumeAccess (SMB + NFS, SAS or Entra; AzureFilesAddress)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   recordings-core/ recording-storage-api/ notifications/
@@ -31,7 +33,7 @@ jeffrey-hub/                           HubApplication (core-hub: gRPC services, 
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
                                        projects/instances/sessions/files, markers, liveness; the hub's reader),
-                                       sql-builder, test (@DuckDBTest), hub-api (protos only),
+                                       sql-builder, test (@DuckDBTest, VolumeWriter), hub-api (protos only),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from
                                        jeffrey-agent.path (like profiler-path) unless jeffrey-agent.enabled=false

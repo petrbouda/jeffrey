@@ -25,7 +25,7 @@ import java.util.List;
  * The writes needed to make the stored hub registry match the configuration.
  * <p>
  * Applied in the order {@code deletes} → {@code updates} → {@code inserts}. That order is what
- * keeps every step legal under the {@code UNIQUE (hostname, port)} constraint on the hubs table:
+ * keeps every step legal under the unique address constraints on the hubs table:
  * any row that is giving up an address is removed before anything claims it.
  */
 public record HubReconcilePlan(

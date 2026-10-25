@@ -78,7 +78,7 @@ class FileStreamClientContextTest {
         };
         server = InProcessServerBuilder.forName(name).directExecutor().addService(service).build().start();
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
-        client = new FileStreamClient(new GrpcHubConnection(channel) {});
+        client = new GrpcFileStreamClient(new GrpcHubConnection(channel) {});
     }
 
     @AfterEach

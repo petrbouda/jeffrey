@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Optional;
 
 /**
  * The instant async-profiler wrote into the file's name ({@code profile-20260220-120500.jfr}), read
@@ -46,14 +47,14 @@ final class RecordingNameTimestamp implements TimestampResolver {
     private static final String COMPRESSED_SUFFIX = ".lz4";
 
     @Override
-    public Instant resolve(VolumeEntry file, ZoneId zone) {
+    public Optional<Instant> resolve(VolumeEntry file, ZoneId zone) {
         String name = uncompressed(file.name());
 
         if (name.startsWith(PREFIX) && name.endsWith(RECORDING_SUFFIX)) {
             String timestamp = name.substring(PREFIX.length(), name.length() - RECORDING_SUFFIX.length());
             Instant createdAt = parse(timestamp, zone);
             if (createdAt != null) {
-                return createdAt;
+                return Optional.of(createdAt);
             }
             LOG.debug("Recording has an unparseable timestamp in its name, asking the volume: filename={}",
                     name);

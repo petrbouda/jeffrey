@@ -17,36 +17,20 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.hub.api.v1.CreateWorkspaceRequest;
-import cafe.jeffrey.hub.api.v1.CreateWorkspaceResponse;
-import cafe.jeffrey.hub.api.v1.DeleteWorkspaceRequest;
-import cafe.jeffrey.hub.api.v1.GetApiInfoRequest;
-import cafe.jeffrey.hub.api.v1.GetApiInfoResponse;
-import cafe.jeffrey.hub.api.v1.GetProjectRequest;
-import cafe.jeffrey.hub.api.v1.GetProjectResponse;
-import cafe.jeffrey.hub.api.v1.ListProjectsRequest;
-import cafe.jeffrey.hub.api.v1.ListProjectsResponse;
-import cafe.jeffrey.hub.api.v1.ListWorkspacesRequest;
-import cafe.jeffrey.hub.api.v1.ListWorkspacesResponse;
-import cafe.jeffrey.hub.api.v1.ProjectInfo;
-import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
-import cafe.jeffrey.hub.api.v1.WorkspaceServiceGrpc;
 import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import io.grpc.StatusRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-public class DiscoveryClient {
+/**
+ * The workspaces and projects a source holds: the top two levels of its tree. A jeffrey-hub answers
+ * them over gRPC; a volume read straight from storage answers them off its directories.
+ */
+public interface DiscoveryClient {
 
-    public record WorkspaceResult(WorkspaceInfo info, WorkspaceStatus status) {
+    record WorkspaceResult(WorkspaceInfo info, WorkspaceStatus status) {
         public static WorkspaceResult of(WorkspaceStatus status) {
             return new WorkspaceResult(null, status);
         }
@@ -56,79 +40,14 @@ public class DiscoveryClient {
         }
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(DiscoveryClient.class);
-
-    private final WorkspaceServiceGrpc.WorkspaceServiceBlockingStub workspaceStub;
-    private final ProjectServiceGrpc.ProjectServiceBlockingStub projectStub;
-
-    public DiscoveryClient(GrpcHubConnection connection) {
-        this.workspaceStub = WorkspaceServiceGrpc.newBlockingStub(connection.getChannel());
-        this.projectStub = ProjectServiceGrpc.newBlockingStub(connection.getChannel());
+    record PublicApiInfo(String version) {
     }
 
-    public PublicApiInfo info() {
-        GetApiInfoResponse response = workspaceStub.getApiInfo(GetApiInfoRequest.getDefaultInstance());
-        return new PublicApiInfo(response.getVersion());
-    }
+    /** What the source says about itself; throws when it cannot be reached. */
+    PublicApiInfo info();
 
-    public record PublicApiInfo(String version) {
-    }
-
-    public List<WorkspaceInfo> allWorkspaces() {
-        ListWorkspacesResponse response = workspaceStub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
-        return response.getWorkspacesList().stream()
-                .map(DiscoveryClient::toWorkspaceInfo)
-                .toList();
-    }
-
-    public WorkspaceResult workspace(String workspaceId) {
-        try {
-            return workspaceOrThrow(workspaceId)
-                    .map(WorkspaceResult::of)
-                    .orElseGet(() -> WorkspaceResult.of(WorkspaceStatus.UNAVAILABLE));
-        } catch (StatusRuntimeException e) {
-            LOG.warn("Failed to get workspace via gRPC: workspaceId={} status={}", workspaceId, e.getStatus());
-            return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
-        } catch (Exception e) {
-            LOG.warn("Cannot reach hub: workspaceId={}", workspaceId, e);
-            return WorkspaceResult.of(WorkspaceStatus.OFFLINE);
-        }
-    }
-
-    /**
-     * Gets one workspace without collapsing remote failures into an offline UI state. Callers that
-     * need to report whether the hub rejected, timed out, or could not be reached use this path;
-     * the ordinary {@link #workspace(String)} method keeps its best-effort UI behavior.
-     */
-    public Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId) {
-        // The hub has no single-workspace lookup: it holds a handful of workspaces, and the
-        // listing answers this as well as a dedicated RPC would
-        Optional<WorkspaceInfo> workspace = allWorkspaces().stream()
-                .filter(candidate -> candidate.id().equals(workspaceId))
-                .findFirst();
-        if (workspace.isEmpty()) {
-            LOG.debug("Workspace not found via gRPC: workspaceId={}", workspaceId);
-        }
-        return workspace;
-    }
-
-    public WorkspaceInfo createWorkspace(String referenceId, String name) {
-        CreateWorkspaceResponse response = workspaceStub.createWorkspace(
-                CreateWorkspaceRequest.newBuilder()
-                        .setReferenceId(referenceId)
-                        .setName(name)
-                        .build());
-        return toWorkspaceInfo(response.getWorkspace());
-    }
-
-    public void deleteWorkspace(String workspaceId) {
-        workspaceStub.deleteWorkspace(
-                DeleteWorkspaceRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .build());
-    }
-
-    public Optional<PublicApiInfo> tryInfo() {
+    /** {@link #info()}, or empty when the source cannot be reached. */
+    default Optional<PublicApiInfo> tryInfo() {
         try {
             return Optional.of(info());
         } catch (Exception e) {
@@ -136,59 +55,22 @@ public class DiscoveryClient {
         }
     }
 
-    public List<RemoteProjectResponse> allProjects(String workspaceId) {
-        ListProjectsResponse response = projectStub.listProjects(
-                ListProjectsRequest.newBuilder()
-                        .setWorkspaceId(workspaceId)
-                        .build());
+    List<WorkspaceInfo> allWorkspaces();
 
-        return response.getProjectsList().stream()
-                .map(DiscoveryClient::toRemoteProjectResponse)
-                .toList();
-    }
+    /** One workspace, its status saying so when it is missing or the source cannot be reached. */
+    WorkspaceResult workspace(String workspaceId);
 
-    public Optional<RemoteProjectResponse> project(String workspaceId, String projectId) {
-        try {
-            GetProjectResponse response = projectStub.getProject(
-                    GetProjectRequest.newBuilder()
-                            .setWorkspaceId(workspaceId)
-                            .setProjectId(projectId)
-                            .build());
+    /**
+     * One workspace without collapsing remote failures into an offline state, for a caller that
+     * reports whether the source rejected, timed out, or could not be reached.
+     */
+    Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId);
 
-            return Optional.of(toRemoteProjectResponse(response.getProject()));
-        } catch (StatusRuntimeException e) {
-            if (GrpcClientErrors.isNotFound(e)) {
-                LOG.debug("Project not found via gRPC: workspaceId={} projectId={}", workspaceId, projectId);
-                return Optional.empty();
-            }
-            throw e;
-        }
-    }
+    WorkspaceInfo createWorkspace(String referenceId, String name);
 
-    static WorkspaceInfo toWorkspaceInfo(cafe.jeffrey.hub.api.v1.WorkspaceInfo proto) {
-        return new WorkspaceInfo(
-                proto.getId(),
-                // A hub workspace is named by its directory on the volume, so its id is its reference id
-                proto.getId(),
-                null,
-                proto.getName(),
-                null,
-                null,
-                Instant.ofEpochMilli(proto.getCreatedAt()),
-                ClientProtoMappers.workspaceStatus(proto.getStatus()),
-                proto.getProjectCount());
-    }
+    void deleteWorkspace(String workspaceId);
 
-    private static RemoteProjectResponse toRemoteProjectResponse(ProjectInfo proto) {
-        return new RemoteProjectResponse(
-                proto.getId(),
-                proto.getName(),
-                proto.getCreatedAt() != 0 ? Instant.ofEpochMilli(proto.getCreatedAt()) : null,
-                proto.getWorkspaceId(),
-                ClientProtoMappers.recordingStatus(proto.getStatus()),
-                proto.getSessionCount(),
-                proto.hasSizeBytes()
-                        ? new RepositoryStatistics(proto.getSizeBytes())
-                        : RepositoryStatistics.NOT_YET_MEASURED);
-    }
+    List<RemoteProjectResponse> allProjects(String workspaceId);
+
+    Optional<RemoteProjectResponse> project(String workspaceId, String projectId);
 }

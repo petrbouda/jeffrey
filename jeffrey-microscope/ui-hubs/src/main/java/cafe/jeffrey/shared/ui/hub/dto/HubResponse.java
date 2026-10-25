@@ -18,10 +18,19 @@
 package cafe.jeffrey.shared.ui.hub.dto;
 
 /**
- * @param source {@code "CONFIG"} for a hub declared in configuration — the UI marks it read-only,
- *               because the next startup would recreate anything deleted here — or {@code "USER"}
- *               for one added through the UI. Carried as the enum name so the DTO stays a plain
- *               record over JSON-friendly types.
+ * @param hostname  a gRPC hub's host; {@code null} for an Azure Files volume
+ * @param port      a gRPC hub's port; {@code 0} for an Azure Files volume
+ * @param plaintext whether a gRPC hub is reached in cleartext; {@code false} for an Azure Files volume
+ * @param source    {@code "CONFIG"} for a hub declared in configuration — the UI marks it read-only,
+ *                  because the next startup would recreate anything deleted here — or {@code "USER"}
+ *                  for one added through the UI. Carried as the enum name so the DTO stays a plain
+ *                  record over JSON-friendly types.
+ * @param kind      {@code "GRPC"} for a jeffrey-hub, {@code "AZURE_FILES"} for the recording volume
+ *                  read straight from an Azure file share
+ * @param location  where the source lies, as a person reads it: {@code host:port}, or the share's
+ *                  endpoint, name and directory
+ * @param readOnly  whether its recordings can only be read: no session deletes or pins, and no
+ *                  workspace created or removed through it
  */
 public record HubResponse(
         String id,
@@ -30,5 +39,8 @@ public record HubResponse(
         int port,
         boolean plaintext,
         long createdAt,
-        String source) {
+        String source,
+        String kind,
+        String location,
+        boolean readOnly) {
 }

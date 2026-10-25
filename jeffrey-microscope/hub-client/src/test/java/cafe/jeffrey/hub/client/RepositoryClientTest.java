@@ -86,7 +86,7 @@ class RepositoryClientTest {
         String name = InProcessServerBuilder.generateName();
         server = InProcessServerBuilder.forName(name).directExecutor().addService(service).build().start();
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
-        client = new RepositoryClient(new GrpcHubConnection(channel) { });
+        client = new GrpcRepositoryClient(new GrpcHubConnection(channel) { });
     }
 
     @AfterEach

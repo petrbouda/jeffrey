@@ -110,7 +110,7 @@ class DiscoveryClientTest {
                 .build()
                 .start();
         channel = InProcessChannelBuilder.forName(name).build();
-        client = new DiscoveryClient(new GrpcHubConnection(channel) { });
+        client = new GrpcDiscoveryClient(new GrpcHubConnection(channel) { });
     }
 
     @AfterEach

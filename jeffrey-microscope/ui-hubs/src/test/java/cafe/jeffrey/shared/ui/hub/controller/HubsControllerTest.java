@@ -18,11 +18,17 @@
 package cafe.jeffrey.shared.ui.hub.controller;
 
 import cafe.jeffrey.hub.client.DiscoveryClient;
+import cafe.jeffrey.hub.client.GrpcDiscoveryClient;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
+import cafe.jeffrey.shared.ui.hub.dto.HubResponse;
 import cafe.jeffrey.shared.ui.hub.request.AddHubRequest;
 import io.grpc.Status;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -37,6 +43,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,7 +61,7 @@ class HubsControllerTest {
     private final HubsController controller = new HubsController(registry, clientsFactory);
 
     private static HubInfo hub(String hubId, String name, HubSource source) {
-        return new HubInfo(hubId, name, new HubAddress("hub.example.com", 443), CREATED_AT, source);
+        return new HubInfo(hubId, name, new GrpcHubAddress("hub.example.com", 443), CREATED_AT, source);
     }
 
     @Nested
@@ -93,10 +101,10 @@ class HubsControllerTest {
 
         @Test
         void an_unreachable_address_is_refused_and_its_probe_connection_let_go() {
-            HubAddress address = new HubAddress("hub.invalid", 9090, true);
+            GrpcHubAddress address = new GrpcHubAddress("hub.invalid", 9090, true);
             List<HubAddress> evicted = new ArrayList<>();
             GrpcHubConnection connection = new GrpcHubConnection(address);
-            DiscoveryClient unreachable = new DiscoveryClient(connection) {
+            DiscoveryClient unreachable = new GrpcDiscoveryClient(connection) {
                 @Override
                 public PublicApiInfo info() {
                     throw Status.UNAVAILABLE.asRuntimeException();
@@ -135,6 +143,33 @@ class HubsControllerTest {
             registry.rows.add(hub("cfg-prod", "Production", HubSource.CONFIG));
 
             assertEquals("CONFIG", controller.list().getFirst().source());
+        }
+
+        @Test
+        void a_grpc_hub_is_reported_by_its_host_and_port() {
+            registry.rows.add(hub("uuid-1", "Mine", HubSource.USER));
+
+            HubResponse response = controller.info("uuid-1");
+
+            assertEquals("GRPC", response.kind());
+            assertEquals("hub.example.com:443", response.location());
+            assertEquals(443, response.port());
+            assertFalse(response.readOnly());
+        }
+
+        /** A share read without a hub is read-only, and named by its endpoint, share and directory. */
+        @Test
+        void an_azure_files_share_is_reported_read_only_by_its_location() {
+            registry.rows.add(new HubInfo("cfg-share", "Prod share", new AzureFilesAddress(
+                    "https://jeffreyprod.file.core.windows.net", "recordings", "volume",
+                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS), CREATED_AT, HubSource.CONFIG));
+
+            HubResponse response = controller.info("cfg-share");
+
+            assertEquals("AZURE_FILES", response.kind());
+            assertEquals("https://jeffreyprod.file.core.windows.net/recordings/volume", response.location());
+            assertTrue(response.readOnly());
+            assertNull(response.hostname());
         }
     }
 

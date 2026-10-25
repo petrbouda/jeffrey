@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.core.manager.hub.HubManager;
 import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -65,7 +66,7 @@ class HubSessionScanTest {
     private final HubSessionScan scan = new HubSessionScan(hubsManager, BUDGET);
 
     private static HubInfo hubInfo(String id, String name) {
-        return new HubInfo(id, name, new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG);
+        return new HubInfo(id, name, new GrpcHubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG);
     }
 
     private static WorkspaceInfo workspace(String id, String name) {

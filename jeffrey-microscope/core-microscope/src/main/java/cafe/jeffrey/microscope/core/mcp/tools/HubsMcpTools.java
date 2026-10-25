@@ -1152,9 +1152,7 @@ public class HubsMcpTools {
     }
 
     private static String address(HubInfo info) {
-        return info.address() == null
-                ? null
-                : info.address().hostname() + ":" + info.address().port();
+        return info.address() == null ? null : info.address().identity();
     }
 
     /**

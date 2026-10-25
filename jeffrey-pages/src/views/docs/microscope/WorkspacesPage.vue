@@ -27,6 +27,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'add-hub', text: 'Step 1 — Add a Hub', level: 2 },
+  { id: 'azure-files', text: 'Reading an Azure File Share', level: 3 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
   { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
@@ -111,6 +112,33 @@ onMounted(() => {
         working as soon as it comes up.
       </DocsCallout>
 
+      <h3 id="azure-files">Reading an Azure File Share</h3>
+      <p>
+        A hub entry does not have to be a Jeffrey Hub. Declared with
+        <router-link to="/docs/microscope/configuration/application-properties#hubs-azure-files"><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.*</code></router-link>,
+        it points at the recording volume itself — the Azure file share (SMB or NFS) the provisioner
+        writes into — and Microscope reads it over the Azure Files REST API, signing in with a SAS
+        token or with Microsoft Entra ID. It sits in the rail like any other hub, marked with an
+        <strong>Azure Files</strong> badge, and its workspaces, projects, instances and recording
+        sessions are browsed and downloaded exactly as through a hub. Each directory at the share's
+        root (or under its configured root path) is a workspace, named by the hub's workspace
+        marker when one is there.
+      </p>
+      <p>
+        Such a source carries a <strong>Read-only</strong> badge. With no hub to own the volume,
+        Microscope never writes to it: there is no <strong>Create Workspace</strong>, workspaces
+        and projects cannot be deleted, and deleting or pinning a recording session is
+        refused with a message saying the source is read-only. Whether a session is still recording
+        is decided from its heartbeat file, by the same rules the hub applies.
+      </p>
+
+      <DocsCallout type="info">
+        <strong>When to use it:</strong> a share Microscope can reach directly makes a hub
+        optional for browsing and downloading recordings. Keep a hub when you need what only a
+        process that owns the volume can do — workspace management from the UI, retention and
+        cleanup, compressing finished recordings.
+      </DocsCallout>
+
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
       <p>
         Pick a hub in the rail, then click <strong>Create Workspace</strong> in the workspace
@@ -191,7 +219,8 @@ onMounted(() => {
       <ul>
         <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
         <li><strong>Editing a hub's hostname or port</strong> — remove and re-add the hub entry instead.</li>
-        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the hub level (TLS); there's no separate workspace-level token.</li>
+        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the hub level (TLS, or the SAS token / Entra identity of an Azure file share); there's no separate workspace-level token.</li>
+        <li><strong>Adding an Azure file share from the UI</strong> — a share is declared in configuration only, so its SAS token never passes through the browser or Microscope's database.</li>
       </ul>
     </div>
 

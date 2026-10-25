@@ -34,7 +34,7 @@
         <span class="status-dot"></span>
         <span class="rail-tooltip">
           <strong>{{ hub.name }}</strong>
-          <small>{{ hub.hostname }}:{{ hub.port }}</small>
+          <small>{{ locationOf(hub) }}</small>
           <small>{{ statusLabelFor(hub.id) }}</small>
         </span>
       </button>
@@ -73,6 +73,8 @@
               <i class="bi bi-hdd-network text-primary"></i>
               {{ selectedHub.name }}
               <Badge v-if="isConfigManaged(selectedHub)" value="Config" variant="info" size="xs" />
+              <Badge v-if="isAzureFiles(selectedHub)" value="Azure Files" variant="secondary" size="xs" />
+              <Badge v-if="selectedHub.readOnly" value="Read-only" variant="warning" size="xs" />
             </h3>
             <button
               class="ws-head-btn danger"
@@ -123,7 +125,7 @@
             </div>
 
             <!-- Inline "Create Workspace" trigger / form -->
-            <button class="ws-create-trigger" @click="openCreateForm">
+            <button v-if="!selectedHub.readOnly" class="ws-create-trigger" @click="openCreateForm">
               <i class="bi bi-plus-lg"></i> Create Workspace
             </button>
           </template>
@@ -160,6 +162,7 @@
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
               <button
+                v-if="!selectedHub?.readOnly"
                 class="icon-btn danger"
                 title="Delete workspace"
                 @click="deleteWorkspace(selectedWorkspace)"
@@ -309,7 +312,10 @@
       <DrawerSection v-if="selectedHub" label="Hub" icon="bi-hdd-network">
         <div class="info-rows">
           <InfoRow label="Name">{{ selectedHub.name }}</InfoRow>
-          <InfoRow label="Address" mono>{{ selectedHub.hostname }}:{{ selectedHub.port }}</InfoRow>
+          <InfoRow label="Address" mono>{{ locationOf(selectedHub) }}</InfoRow>
+          <InfoRow v-if="selectedHub.readOnly" label="Access">
+            Read-only — reads the recording volume straight from storage
+          </InfoRow>
         </div>
       </DrawerSection>
     </LeftDrawer>
@@ -450,7 +456,7 @@ const isCreateFormValid = computed(
 
 const deleteHubMessage = computed(() =>
   selectedHub.value
-    ? `Remove hub "${selectedHub.value.name}" (${selectedHub.value.hostname}:${selectedHub.value.port})?`
+    ? `Remove hub "${selectedHub.value.name}" (${locationOf(selectedHub.value)})?`
     : ''
 );
 
@@ -458,6 +464,11 @@ const deleteHubMessage = computed(() =>
 // look like it worked. The optional `source` means a backend that does not send it stays editable.
 const isConfigManaged = (hub: Hub | null | undefined): boolean =>
   hub?.source === 'CONFIG';
+
+const isAzureFiles = (hub: Hub | null | undefined): boolean => hub?.kind === 'AZURE_FILES';
+
+// A backend that does not send `location` describes a gRPC hub, which its host and port name.
+const locationOf = (hub: Hub): string => hub.location ?? `${hub.hostname}:${hub.port}`;
 
 const statusLabelFor = (hubId: string): string => {
   switch (hubStatuses.value[hubId]) {

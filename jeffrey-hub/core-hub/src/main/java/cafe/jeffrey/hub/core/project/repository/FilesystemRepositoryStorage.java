@@ -28,11 +28,13 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumePath;
-import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
+import cafe.jeffrey.shared.volume.layout.InstanceState;
+import cafe.jeffrey.shared.volume.layout.InstanceSummary;
+import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionDirectory;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
-import cafe.jeffrey.shared.volume.liveness.SessionLifecycle;
+import cafe.jeffrey.shared.volume.layout.VolumeSession;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.shared.volume.recording.RecordingFormat;
 import org.slf4j.Logger;
@@ -41,11 +43,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -70,13 +71,15 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     /** Joins a session's instance and its own directory into its name, relative to the project. */
     private static final String NAME_SEPARATOR = "/";
 
-    private static final Comparator<RecordingSession> NEWEST_FIRST =
-            Comparator.comparing(RecordingSession::createdAt).reversed();
+    private static final Map<InstanceState, ProjectInstanceStatus> INSTANCE_STATUSES = Map.of(
+            InstanceState.PENDING, ProjectInstanceStatus.PENDING,
+            InstanceState.ACTIVE, ProjectInstanceStatus.ACTIVE,
+            InstanceState.FINISHED, ProjectInstanceStatus.FINISHED);
 
     private final ProjectInfo projectInfo;
     private final ProjectTree tree;
+    private final ProjectSessions sessions;
     private final FilesystemVolume volume;
-    private final SessionLiveness liveness;
 
     /**
      * @param tree   the project's directory, as the volume's layout reads it
@@ -87,57 +90,38 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
         this.projectInfo = projectInfo;
         this.tree = tree;
+        this.sessions = new ProjectSessions(tree, liveness);
         this.volume = volume;
-        this.liveness = liveness;
     }
 
     // ========== Instances and sessions ==========
 
-    /**
-     * An instance's sessions, newest first. Read together because a session's lifecycle depends on
-     * the start of the next one: a newer session in the same instance means this one ended.
-     */
-    private List<RecordingSession> sessionsOf(InstanceDirectory instance) {
-        List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(instance.path());
-        return oldestFirst.stream()
-                .map(session -> toRecordingSession(session, ProjectTree.nextStart(oldestFirst, session)))
-                .toList()
-                .reversed();
-    }
-
-    /** The session without its files, its lifecycle read from its liveness files at this moment. */
-    private RecordingSession toRecordingSession(SessionDirectory session, Instant nextStart) {
-        SessionLifecycle lifecycle = liveness.assess(session.path(), session.createdAt(), nextStart);
+    /** The session without its files, as the volume's layout read it at this moment. */
+    private static RecordingSession toRecordingSession(VolumeSession session) {
         return new RecordingSession(
                 session.id(),
                 session.instanceId() + NAME_SEPARATOR + session.id(),
                 session.instanceId(),
                 session.createdAt(),
-                lifecycle.finishedAt(),
-                lifecycle.isRecording() ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED,
+                session.lifecycle().finishedAt(),
+                session.lifecycle().isRecording() ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED,
                 List.of(),
-                tree.isRetained(session),
-                lifecycle.heartbeatMissing());
+                session.retained(),
+                session.lifecycle().heartbeatMissing());
     }
 
-    /**
-     * Only this session's liveness files are read; its siblings are needed for their start times
-     * alone, which their markers give.
-     */
     @Override
     public Optional<RecordingSession> session(String sessionId) {
-        return tree.session(sessionId).map(session -> {
-            List<SessionDirectory> siblings = tree.sessionsOldestFirst(session.path().parent());
-            return withFiles(toRecordingSession(session, ProjectTree.nextStart(siblings, session)));
-        });
+        return sessions.session(sessionId)
+                .map(FilesystemRepositoryStorage::toRecordingSession)
+                .map(this::withFiles);
     }
 
     @Override
     public List<RecordingSession> listSessions(SessionDetail detail) {
-        return tree.instances().stream()
-                .flatMap(instance -> sessionsOf(instance).stream())
+        return sessions.all().stream()
+                .map(FilesystemRepositoryStorage::toRecordingSession)
                 .map(session -> detail.withFiles() ? withFiles(session) : session)
-                .sorted(NEWEST_FIRST)
                 .toList();
     }
 
@@ -165,44 +149,27 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 file.id(), file.name(), file.createdAt(), file.size(), file.recording(), volume.resolve(file.path()));
     }
 
-    /**
-     * Every instance, each read off its newest session alone: a newer session is what finishes the
-     * one before it, so only the newest can still be recording and the older sessions' liveness
-     * files are never read here. Their markers give the count.
-     */
     @Override
     public List<ProjectInstanceInfo> instances() {
-        return tree.instances().stream()
-                .map(instance -> {
-                    List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(instance.path());
-                    Optional<RecordingSession> newest = oldestFirst.isEmpty()
-                            ? Optional.empty()
-                            : Optional.of(toRecordingSession(oldestFirst.getLast(), null));
-                    return instanceInfo(instance, oldestFirst.size(), newest);
-                })
+        return sessions.instances().stream()
+                .map(FilesystemRepositoryStorage::instanceInfo)
                 .toList();
     }
 
     @Override
     public Optional<InstanceSessions> instanceWithSessions(String instanceId) {
-        return tree.instance(instanceId).map(instance -> {
-            List<RecordingSession> sessions = sessionsOf(instance);
-            return new InstanceSessions(
-                    instanceInfo(instance, sessions.size(), sessions.stream().findFirst()), sessions);
-        });
+        return sessions.instance(instanceId).map(found -> new InstanceSessions(
+                instanceInfo(found.summary()),
+                found.sessions().stream().map(FilesystemRepositoryStorage::toRecordingSession).toList()));
     }
 
-    /** PENDING without a session; otherwise ACTIVE while the newest records, FINISHED once it ended. */
-    private static ProjectInstanceInfo instanceInfo(
-            InstanceDirectory instance, int sessionCount, Optional<RecordingSession> newest) {
-
-        ProjectInstanceStatus status = newest
-                .map(session -> session.status() == RecordingStatus.ACTIVE
-                        ? ProjectInstanceStatus.ACTIVE
-                        : ProjectInstanceStatus.FINISHED)
-                .orElse(ProjectInstanceStatus.PENDING);
-        Instant finishedAt = newest.map(RecordingSession::finishedAt).orElse(null);
-        return new ProjectInstanceInfo(instance.id(), status, instance.createdAt(), finishedAt, sessionCount);
+    private static ProjectInstanceInfo instanceInfo(InstanceSummary summary) {
+        return new ProjectInstanceInfo(
+                summary.instance().id(),
+                INSTANCE_STATUSES.get(summary.state()),
+                summary.instance().createdAt(),
+                summary.finishedAt().orElse(null),
+                summary.sessionCount());
     }
 
     @Override

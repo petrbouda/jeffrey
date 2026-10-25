@@ -18,18 +18,23 @@
 package cafe.jeffrey.shared.volume;
 
 import java.time.Instant;
+import java.util.Optional;
 
 /**
- * One thing on the volume and what a single look at it tells: its kind, its size and when it was
- * created. A backend answers all of it from one call per entry (a stat, a listing row), since on a
- * network mount or an object store every further question is another round trip.
+ * One thing on the volume and what a single look at it tells: its kind, its size and, when the
+ * look tells it, when it was created. A backend answers all of it from one call per entry (a stat,
+ * a listing row), since on a network mount or an object store every further question is another
+ * round trip.
  *
  * @param path      where it lies
  * @param kind      a file, a directory, or anything else (a socket, a device) that nobody reads
  * @param size      bytes; meaningful for a file only
- * @param createdAt when the backend says it was created; wrong for a file rewritten in place
+ * @param createdAt when the backend says it was created; wrong for a file rewritten in place. Empty
+ *                  when the look did not say — some listings carry no timestamps — never from
+ *                  {@link VolumeAccess#stat}, which answers it whenever the backend knows any time
+ *                  for the entry
  */
-public record VolumeEntry(VolumePath path, Kind kind, long size, Instant createdAt) {
+public record VolumeEntry(VolumePath path, Kind kind, long size, Optional<Instant> createdAt) {
 
     public enum Kind {
         FILE,
@@ -39,7 +44,7 @@ public record VolumeEntry(VolumePath path, Kind kind, long size, Instant created
 
     public VolumeEntry {
         if (path == null || kind == null || createdAt == null) {
-            throw new IllegalArgumentException("A volume entry needs a path, a kind and a creation time");
+            throw new IllegalArgumentException("A volume entry needs a path, a kind and a creation time, if only an empty one");
         }
     }
 

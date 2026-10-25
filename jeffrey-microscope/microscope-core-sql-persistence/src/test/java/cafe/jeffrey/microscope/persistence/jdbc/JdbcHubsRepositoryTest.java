@@ -17,7 +17,10 @@
 
 package cafe.jeffrey.microscope.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -43,7 +46,7 @@ class JdbcHubsRepositoryTest {
     }
 
     private static HubInfo hub(String hubId, String name, String hostname, int port, HubSource source) {
-        return new HubInfo(hubId, name, new HubAddress(hostname, port), CREATED_AT, source);
+        return new HubInfo(hubId, name, new GrpcHubAddress(hostname, port), CREATED_AT, source);
     }
 
     @Nested
@@ -58,8 +61,7 @@ class JdbcHubsRepositoryTest {
             Optional<HubInfo> found = repository.find("cfg-prod");
             assertTrue(found.isPresent());
             assertEquals("Production", found.get().name());
-            assertEquals("hub.example.com", found.get().address().hostname());
-            assertEquals(443, found.get().address().port());
+            assertEquals(new GrpcHubAddress("hub.example.com", 443), found.get().address());
             assertEquals(HubSource.CONFIG, found.get().source());
         }
 
@@ -76,11 +78,56 @@ class JdbcHubsRepositoryTest {
         void plaintextSurvivesTheRoundTrip(DataSource dataSource) {
             JdbcHubsRepository repository = repository(dataSource);
             HubInfo plaintext = new HubInfo(
-                    "cfg-lan", "LAN", new HubAddress("lan.internal", 9090, true), CREATED_AT, HubSource.CONFIG);
+                    "cfg-lan", "LAN", new GrpcHubAddress("lan.internal", 9090, true), CREATED_AT, HubSource.CONFIG);
 
             repository.create(plaintext);
 
-            assertTrue(repository.find("cfg-lan").orElseThrow().address().plaintext());
+            assertEquals(new GrpcHubAddress("lan.internal", 9090, true), repository.find("cfg-lan").orElseThrow().address());
+        }
+    }
+
+    /**
+     * A volume read straight from an Azure file share: its share and sign-in method are stored,
+     * never a credential, and two shares of one account are two sources.
+     */
+    @Nested
+    class AzureFiles {
+
+        private static final AzureFilesAddress PRODUCTION = new AzureFilesAddress(
+                "https://jeffreyprod.file.core.windows.net", "recordings", "volume/workspaces",
+                AzureFilesProtocol.NFS, AzureFilesAuth.ENTRA);
+
+        @Test
+        void roundTripsTheShareAndHowToSignIn(DataSource dataSource) {
+            JdbcHubsRepository repository = repository(dataSource);
+
+            repository.create(new HubInfo("cfg-azure", "Azure prod", PRODUCTION, CREATED_AT, HubSource.CONFIG));
+
+            assertEquals(PRODUCTION, repository.find("cfg-azure").orElseThrow().address());
+        }
+
+        @Test
+        void twoSharesOfOneAccountAreTwoSources(DataSource dataSource) {
+            JdbcHubsRepository repository = repository(dataSource);
+            AzureFilesAddress staging = new AzureFilesAddress(
+                    PRODUCTION.endpoint(), "recordings-staging", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS);
+
+            repository.create(new HubInfo("cfg-prod", "Prod", PRODUCTION, CREATED_AT, HubSource.CONFIG));
+            repository.create(new HubInfo("cfg-staging", "Staging", staging, CREATED_AT, HubSource.CONFIG));
+            repository.create(hub("cfg-hub", "Hub", "hub.example.com", 443, HubSource.CONFIG));
+
+            assertEquals(3, repository.findAll().size());
+            assertEquals(staging, repository.find("cfg-staging").orElseThrow().address());
+        }
+
+        @Test
+        void aHubCanBeRepointedFromAShareToAGrpcHub(DataSource dataSource) {
+            JdbcHubsRepository repository = repository(dataSource);
+            repository.create(new HubInfo("cfg-prod", "Prod", PRODUCTION, CREATED_AT, HubSource.CONFIG));
+
+            repository.update(hub("cfg-prod", "Prod", "hub.example.com", 443, HubSource.CONFIG));
+
+            assertEquals(new GrpcHubAddress("hub.example.com", 443), repository.find("cfg-prod").orElseThrow().address());
         }
     }
 
@@ -95,14 +142,13 @@ class JdbcHubsRepositoryTest {
             repository.update(new HubInfo(
                     "cfg-prod",
                     "Renamed",
-                    new HubAddress("moved.example.com", 8443),
+                    new GrpcHubAddress("moved.example.com", 8443),
                     CREATED_AT,
                     HubSource.CONFIG));
 
             HubInfo updated = repository.find("cfg-prod").orElseThrow();
             assertEquals("Renamed", updated.name());
-            assertEquals("moved.example.com", updated.address().hostname());
-            assertEquals(8443, updated.address().port());
+            assertEquals(new GrpcHubAddress("moved.example.com", 8443), updated.address());
             // The id and creation time are what the origin.hubId recording tags hang off.
             assertEquals("cfg-prod", updated.hubId());
             assertEquals(CREATED_AT, updated.createdAt());

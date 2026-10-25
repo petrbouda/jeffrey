@@ -17,12 +17,15 @@
 
 package cafe.jeffrey.shared.volume;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * The storage a volume lies on, read through the only three questions the layout asks of it.
+ * The storage a volume lies on, read through the only questions its readers ask of it.
  * One implementation per backend: a directory tree today, an object store's prefixes later.
  *
  * <p>Every method keeps "nothing is there" apart from "it could not be looked at": the first is an
@@ -40,7 +43,8 @@ public interface VolumeAccess {
     List<VolumeEntry> list(VolumePath directory);
 
     /**
-     * The entry at {@code path}, or empty when nothing is there.
+     * The entry at {@code path}, or empty when nothing is there. Unlike a listing row, it carries a
+     * creation time whenever the backend knows any time for the entry.
      *
      * @throws UncheckedIOException when it cannot be looked at
      */
@@ -53,4 +57,34 @@ public interface VolumeAccess {
      *                                      in the file's place included
      */
     Optional<byte[]> read(VolumePath file);
+
+    /**
+     * A file opened for streaming, with the name and size it has at the moment it was opened —
+     * taken from one handle, so a rewrite of the file cannot slip in between them — or empty when
+     * there is no file there.
+     *
+     * @throws UncheckedIOException when something is there and cannot be opened
+     */
+    Optional<OpenedFile> open(VolumePath file);
+
+    /**
+     * A file being read: what a download hands on, the bytes with the name they were read under.
+     *
+     * @param name    the file's name as it lies now
+     * @param size    bytes, as of opening
+     * @param content the bytes; closed with this
+     */
+    record OpenedFile(String name, long size, InputStream content) implements Closeable {
+
+        public OpenedFile {
+            if (name == null || name.isBlank() || size < 0 || content == null) {
+                throw new IllegalArgumentException("An opened file needs a name, a size and its content");
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            content.close();
+        }
+    }
 }

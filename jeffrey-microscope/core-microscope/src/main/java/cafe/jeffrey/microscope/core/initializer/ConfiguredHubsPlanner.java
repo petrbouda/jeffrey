@@ -84,10 +84,10 @@ public class ConfiguredHubsPlanner {
                     match.hubId(), hub.name(), hub.address(), match.createdAt(), HubSource.CONFIG);
 
             if (!addressKey(match.address()).equals(addressKey(target.address()))) {
-                // Moving to a different hostname:port is done as a delete plus an insert rather
+                // Moving to a different address is done as a delete plus an insert rather
                 // than an UPDATE. Because every delete is applied before every insert, this is the
                 // only formulation that survives two hubs exchanging addresses in one edit, which
-                // an in-place UPDATE would fail on the UNIQUE (hostname, port) constraint. The
+                // an in-place UPDATE would fail on the table's unique address constraint. The
                 // row's id and creation time are carried across explicitly, so nothing is lost,
                 // and a crash in between simply leaves the next startup to recreate it from the
                 // configuration that owns it.
@@ -172,10 +172,11 @@ public class ConfiguredHubsPlanner {
     }
 
     /**
-     * The identity the database actually enforces: {@code UNIQUE (hostname, port)}. {@code
-     * plaintext} is deliberately excluded — two hubs differing only in it still collide.
+     * The identity the database actually enforces: {@code UNIQUE (hostname, port)} for a gRPC hub,
+     * the share and directory for an Azure Files volume. {@code plaintext} and the way a share is
+     * signed in to are deliberately excluded — two hubs differing only in them still collide.
      */
     private static String addressKey(HubAddress address) {
-        return address.hostname() + ":" + address.port();
+        return address.identity();
     }
 }

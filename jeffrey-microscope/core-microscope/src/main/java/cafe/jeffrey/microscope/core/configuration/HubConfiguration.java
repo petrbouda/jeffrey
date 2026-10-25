@@ -34,26 +34,46 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcHubsRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
+import cafe.jeffrey.microscope.core.manager.hub.AzureFilesClientsFactory;
+import cafe.jeffrey.microscope.core.manager.hub.SourceClientsFactory;
+import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import java.time.Clock;
+import java.time.Duration;
 
 @Configuration
 @Import(AppConfiguration.class)
 @EnableConfigurationProperties(ConfiguredHubsProperties.class)
 public class HubConfiguration {
 
+    /** The hub's default {@code jeffrey.hub.liveness.heartbeat-threshold}. */
+    private static final Duration VOLUME_HEARTBEAT_THRESHOLD = Duration.ofSeconds(10);
+
+    /** The hub's default {@code jeffrey.hub.liveness.startup-grace}. */
+    private static final Duration VOLUME_STARTUP_GRACE = Duration.ofMinutes(1);
+
     @Bean
     public HubsRepository hubsRepository(MicroscopeCorePersistenceProvider provider) {
         return new JdbcHubsRepository(provider.databaseClientProvider());
     }
 
+    /**
+     * The clients of every source by its address's kind. An Azure Files share reads a session's
+     * heartbeat against the hub's default deadlines ({@code jeffrey.hub.liveness.*}), since no hub
+     * stands between it and Microscope.
+     */
     @Bean(destroyMethod = "close")
-    public CachedHubClientsFactory hubClientsFactory() {
-        return new CachedHubClientsFactory();
+    public SourceClientsFactory hubClientsFactory(Clock clock, ConfiguredHubsProperties configuredHubsProperties) {
+        return new SourceClientsFactory(
+                new CachedHubClientsFactory(),
+                new AzureFilesClientsFactory(
+                        clock,
+                        new SessionDeadlines(VOLUME_HEARTBEAT_THRESHOLD, VOLUME_STARTUP_GRACE),
+                        configuredHubsProperties.sasTokens()));
     }
 
     @Bean
@@ -82,7 +102,7 @@ public class HubConfiguration {
 
     @Bean
     public HubManager.Factory hubManagerFactory(
-            CachedHubClientsFactory hubClientsFactory,
+            SourceClientsFactory hubClientsFactory,
             WorkspaceManagerFactory workspaceManagerFactory,
             RemoteProjectManagerFactory remoteProjectManagerFactory,
             HubsRepository hubsRepository) {
@@ -112,7 +132,7 @@ public class HubConfiguration {
     @Bean(initMethod = "reconcile")
     public ConfiguredHubsReconciler configuredHubsReconciler(
             HubsRepository hubsRepository,
-            CachedHubClientsFactory hubClientsFactory,
+            SourceClientsFactory hubClientsFactory,
             ConfiguredHubsProperties configuredHubsProperties,
             ConfiguredHubsPlanner configuredHubsPlanner) {
 

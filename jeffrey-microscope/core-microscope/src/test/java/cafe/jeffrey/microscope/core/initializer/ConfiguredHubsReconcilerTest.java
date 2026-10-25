@@ -17,10 +17,11 @@
 
 package cafe.jeffrey.microscope.core.initializer;
 
-import cafe.jeffrey.hub.client.CachedHubClientsFactory;
+import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.HubEntry;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -38,10 +39,16 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfiguredHubsReconcilerTest {
+
+    /** A gRPC hub's address, failing the test for any other kind. */
+    private static GrpcHubAddress grpc(HubAddress address) {
+        return assertInstanceOf(GrpcHubAddress.class, address);
+    }
 
     private static final Instant NOW = Instant.parse("2026-09-04T10:15:30Z");
     private static final Instant EARLIER = Instant.parse("2026-01-01T00:00:00Z");
@@ -69,7 +76,7 @@ class ConfiguredHubsReconcilerTest {
     }
 
     private static HubInfo stored(String hubId, String name, String hostname, int port, HubSource source) {
-        return new HubInfo(hubId, name, new HubAddress(hostname, port), EARLIER, source);
+        return new HubInfo(hubId, name, new GrpcHubAddress(hostname, port), EARLIER, source);
     }
 
     @Nested
@@ -127,7 +134,7 @@ class ConfiguredHubsReconcilerTest {
 
         @Test
         void a_new_address_drops_the_channel_cached_for_the_old_one() {
-            HubAddress oldAddress = new HubAddress("hub.example.com", 443);
+            HubAddress oldAddress = new GrpcHubAddress("hub.example.com", 443);
             repository.seed(new HubInfo("cfg-prod", "prod", oldAddress, EARLIER, HubSource.CONFIG));
 
             reconcile(Map.of("prod", entry("moved.example.com", 443)));
@@ -135,7 +142,7 @@ class ConfiguredHubsReconcilerTest {
             assertTrue(clientsFactory.evicted.contains(oldAddress));
             HubInfo moved = repository.findAll().getFirst();
             assertEquals("cfg-prod", moved.hubId());
-            assertEquals("moved.example.com", moved.address().hostname());
+            assertEquals("moved.example.com", grpc(moved.address()).hostname());
             assertEquals(EARLIER, moved.createdAt());
         }
     }
@@ -146,7 +153,7 @@ class ConfiguredHubsReconcilerTest {
 
         @Test
         void the_row_and_its_channel_are_removed() {
-            HubAddress address = new HubAddress("old.example.com", 443);
+            HubAddress address = new GrpcHubAddress("old.example.com", 443);
             repository.seed(new HubInfo("cfg-old", "old", address, EARLIER, HubSource.CONFIG));
 
             reconcile(Map.of());
@@ -191,9 +198,14 @@ class ConfiguredHubsReconcilerTest {
      * Records evictions instead of touching real gRPC channels. Subclassing rather than mocking
      * keeps the test free of any stubbing framework.
      */
-    private static final class RecordingClientsFactory extends CachedHubClientsFactory {
+    private static final class RecordingClientsFactory implements HubClients.Factory {
 
         private final List<HubAddress> evicted = new ArrayList<>();
+
+        @Override
+        public HubClients apply(HubAddress address) {
+            throw new UnsupportedOperationException("The reconciler never opens a hub");
+        }
 
         @Override
         public void evict(HubAddress address) {

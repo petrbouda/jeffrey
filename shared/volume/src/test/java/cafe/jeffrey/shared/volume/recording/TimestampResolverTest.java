@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -39,7 +40,12 @@ class TimestampResolverTest {
     private static final Instant VOLUME_CREATED_AT = Instant.parse("2026-03-01T08:00:00Z");
 
     private static VolumeEntry file(String name) {
-        return new VolumeEntry(VolumePath.root().resolve(name), VolumeEntry.Kind.FILE, 1, VOLUME_CREATED_AT);
+        return new VolumeEntry(VolumePath.root().resolve(name), VolumeEntry.Kind.FILE, 1, Optional.of(VOLUME_CREATED_AT));
+    }
+
+    /** A listing row from a volume whose listings carry no timestamps. */
+    private static VolumeEntry untimed(String name) {
+        return new VolumeEntry(VolumePath.root().resolve(name), VolumeEntry.Kind.FILE, 1, Optional.empty());
     }
 
     @Nested
@@ -58,7 +64,7 @@ class TimestampResolverTest {
         @Test
         void readsTheInstantTheProfilerWroteIntoIt() {
             assertEquals(
-                    Instant.parse("2026-02-20T12:05:00Z"),
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
                     TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr"), ZoneOffset.UTC));
         }
 
@@ -71,7 +77,7 @@ class TimestampResolverTest {
         @Test
         void readsTheNameInTheZoneTheSessionRanIn() {
             assertEquals(
-                    Instant.parse("2026-02-20T12:05:00Z"),
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
                     TimestampResolver.RECORDING_NAME.resolve(
                             file("profile-20260220-130500.jfr"), ZoneId.of("Europe/Prague")));
         }
@@ -93,11 +99,31 @@ class TimestampResolverTest {
     }
 
     @Nested
+    class WithoutATimeInTheListing {
+
+        /** A chunk's own name is enough: the listing's missing time does not matter to it. */
+        @Test
+        void aRecordingStillReadsItsName() {
+            assertEquals(
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-20260220-120500.jfr"), ZoneOffset.UTC));
+        }
+
+        /** Nothing to go on: the caller takes one more look at the file rather than inventing a time. */
+        @Test
+        void anythingElseIsLeftForTheCallerToLookUp() {
+            assertEquals(Optional.empty(), TimestampResolver.VOLUME.resolve(untimed("service-app.log"), ZoneOffset.UTC));
+            assertEquals(Optional.empty(),
+                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-not-a-timestamp.jfr"), ZoneOffset.UTC));
+        }
+    }
+
+    @Nested
     class FallingBackToTheVolume {
 
         @Test
         void forARecordingNamedWithAnotherPrefix() {
-            assertEquals(VOLUME_CREATED_AT,
+            assertEquals(Optional.of(VOLUME_CREATED_AT),
                     TimestampResolver.RECORDING_NAME.resolve(file("recording-20260220-120500.jfr"), ZoneOffset.UTC));
         }
 
@@ -107,13 +133,13 @@ class TimestampResolverTest {
          */
         @Test
         void forATimestampThatDoesNotParse() {
-            assertEquals(VOLUME_CREATED_AT,
+            assertEquals(Optional.of(VOLUME_CREATED_AT),
                     TimestampResolver.RECORDING_NAME.resolve(file("profile-not-a-timestamp.jfr"), ZoneOffset.UTC));
         }
 
         @Test
         void forAFileThatIsNotARecording() {
-            assertEquals(VOLUME_CREATED_AT, TimestampResolver.VOLUME.resolve(file("service-app.log"), ZoneOffset.UTC));
+            assertEquals(Optional.of(VOLUME_CREATED_AT), TimestampResolver.VOLUME.resolve(file("service-app.log"), ZoneOffset.UTC));
         }
     }
 }

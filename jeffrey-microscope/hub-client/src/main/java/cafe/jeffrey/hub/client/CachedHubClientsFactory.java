@@ -21,29 +21,28 @@ import cafe.jeffrey.microscope.grpc.client.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 
 import java.io.Closeable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A {@link HubClients.Factory} that caches connections by {@link HubAddress},
- * so the same server address always reuses the same {@link GrpcHubConnection} and clients.
+ * The clients of a jeffrey-hub reached over gRPC, cached by {@link GrpcHubAddress}, so the same
+ * server address always reuses the same {@link GrpcHubConnection} and clients.
  */
-public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
+public class CachedHubClientsFactory implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(CachedHubClientsFactory.class);
 
-    private final ConcurrentHashMap<HubAddress, CachedEntry> cache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<GrpcHubAddress, CachedEntry> cache = new ConcurrentHashMap<>();
 
-    @Override
-    public HubClients apply(HubAddress address) {
+    public HubClients apply(GrpcHubAddress address) {
         return cache.computeIfAbsent(address, this::createEntry).clients();
     }
 
-    @Override
-    public void evict(HubAddress address) {
+    /** Closes and forgets the connection to {@code address}, if one is held. */
+    public void evict(GrpcHubAddress address) {
         CachedEntry entry = cache.remove(address);
         if (entry != null) {
             entry.connection().close();
@@ -53,21 +52,21 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
 
     @Override
     public void close() {
-        for (Map.Entry<HubAddress, CachedEntry> entry : cache.entrySet()) {
+        for (Map.Entry<GrpcHubAddress, CachedEntry> entry : cache.entrySet()) {
             entry.getValue().connection().close();
         }
         cache.clear();
         LOG.info("Closed all cached gRPC connections");
     }
 
-    private CachedEntry createEntry(HubAddress address) {
+    private CachedEntry createEntry(GrpcHubAddress address) {
         GrpcHubConnection connection = new GrpcHubConnection(address);
         HubClients clients = new HubClients(
-                new DiscoveryClient(connection),
-                new RepositoryClient(connection),
-                new FileStreamClient(connection),
-                new InstancesClient(connection),
-                new ProjectsClient(connection));
+                new GrpcDiscoveryClient(connection),
+                new GrpcRepositoryClient(connection),
+                new GrpcFileStreamClient(connection),
+                new GrpcInstancesClient(connection),
+                new GrpcProjectsClient(connection));
 
         return new CachedEntry(connection, clients);
     }

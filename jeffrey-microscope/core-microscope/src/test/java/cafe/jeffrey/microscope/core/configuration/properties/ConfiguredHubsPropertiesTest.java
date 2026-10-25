@@ -17,8 +17,14 @@
 
 package cafe.jeffrey.microscope.core.configuration.properties;
 
+import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.DesiredHub;
+import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.AzureFilesEntry;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.HubEntry;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +42,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ConfiguredHubsPropertiesTest {
 
     private static final int DEFAULT_PORT = 9090;
+    private static final String ENDPOINT = "https://jeffreyprod.file.core.windows.net";
+    private static final String SAS = "sv=2026-06-06&sp=rl&sig=c2lnbmF0dXJl";
+
+    /** A gRPC hub's address, failing the test for any other kind. */
+    private static GrpcHubAddress grpc(HubAddress address) {
+        return assertInstanceOf(GrpcHubAddress.class, address);
+    }
+
+    private static HubEntry share(String share, String auth, String sasToken) {
+        AzureFilesEntry azure = new AzureFilesEntry();
+        azure.setEndpoint(ENDPOINT);
+        azure.setShare(share);
+        azure.setAuth(auth);
+        azure.setSasToken(sasToken);
+        HubEntry entry = new HubEntry();
+        entry.setAzureFiles(azure);
+        return entry;
+    }
 
     private static HubEntry entry(String hostname) {
         HubEntry entry = new HubEntry();
@@ -48,6 +73,72 @@ class ConfiguredHubsPropertiesTest {
         return properties;
     }
 
+    /** The recording volume read straight from an Azure file share, read-only, with no hub between. */
+    @Nested
+    @DisplayName("Azure Files")
+    class AzureFiles {
+
+        @Test
+        void a_share_resolves_with_smb_and_a_sas_by_default() {
+            DesiredHub hub = properties(Map.of("prod-share", share("recordings", "sas", SAS))).resolve().getFirst();
+
+            assertEquals(new AzureFilesAddress(ENDPOINT, "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS),
+                    hub.address());
+            assertTrue(hub.address().readOnly());
+        }
+
+        /** The token reaches whatever opens the share by its identity, and never the registry or a log line. */
+        @Test
+        void the_sas_token_stays_out_of_the_address() {
+            ConfiguredHubsProperties properties = properties(Map.of("prod-share", share("recordings", "sas", SAS)));
+            HubAddress address = properties.resolve().getFirst().address();
+
+            assertEquals(Map.of(address.identity(), SAS), properties.sasTokens());
+            assertFalse(address.toString().contains("sig="));
+            assertFalse(address.identity().contains("sig="));
+        }
+
+        @Test
+        void entra_needs_no_token() {
+            ConfiguredHubsProperties properties = properties(Map.of("prod-share", share("recordings", "entra", null)));
+
+            assertEquals(AzureFilesAuth.ENTRA,
+                    assertInstanceOf(AzureFilesAddress.class, properties.resolve().getFirst().address()).auth());
+            assertEquals(Map.of(), properties.sasTokens());
+        }
+
+        @Test
+        void a_sas_without_its_token_is_skipped() {
+            assertEquals(List.of(), properties(Map.of("prod-share", share("recordings", "sas", " "))).resolve());
+        }
+
+        @Test
+        void an_unknown_protocol_or_sign_in_is_skipped() {
+            HubEntry smbx = share("recordings", "sas", SAS);
+            smbx.getAzureFiles().setProtocol("smbx");
+
+            assertEquals(List.of(), properties(Map.of("a", smbx, "b", share("other", "oauth", SAS))).resolve());
+        }
+
+        @Test
+        void a_hostname_and_a_share_together_are_skipped() {
+            HubEntry both = share("recordings", "sas", SAS);
+            both.setHostname("hub.example.com");
+
+            assertEquals(List.of(), properties(Map.of("prod", both)).resolve());
+        }
+
+        /** One share declared twice has no correct resolution, whatever each declaration signs in with. */
+        @Test
+        void one_share_declared_twice_is_ambiguous() {
+            Map<String, HubEntry> twice = new LinkedHashMap<>();
+            twice.put("prod-a", share("recordings", "sas", SAS));
+            twice.put("prod-b", share("recordings", "entra", null));
+
+            assertThrows(IllegalArgumentException.class, () -> properties(twice).resolve());
+        }
+    }
+
     @Nested
     @DisplayName("Defaults")
     class Defaults {
@@ -59,8 +150,8 @@ class ConfiguredHubsPropertiesTest {
             assertEquals(1, resolved.size());
             DesiredHub hub = resolved.getFirst();
             assertEquals("prod", hub.name());
-            assertEquals(DEFAULT_PORT, hub.address().port());
-            assertFalse(hub.address().plaintext());
+            assertEquals(DEFAULT_PORT, grpc(hub.address()).port());
+            assertFalse(grpc(hub.address()).plaintext());
         }
 
         @Test

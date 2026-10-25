@@ -17,29 +17,10 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.microscope.grpc.client.*;
+/**
+ * Changes to a project as a whole, on a source that allows them.
+ */
+public interface ProjectsClient {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.DeleteProjectRequest;
-import cafe.jeffrey.hub.api.v1.ProjectServiceGrpc;
-
-public class ProjectsClient {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectsClient.class);
-
-    private final ProjectServiceGrpc.ProjectServiceBlockingStub stub;
-
-    public ProjectsClient(GrpcHubConnection connection) {
-        this.stub = ProjectServiceGrpc.newBlockingStub(connection.getChannel());
-    }
-
-    public void deleteProject(ProjectScope scope) {
-        stub.deleteProject(DeleteProjectRequest.newBuilder()
-                .setWorkspaceId(scope.workspaceId())
-                .setProjectId(scope.projectId())
-                .build());
-
-        LOG.debug("Deleted project via gRPC: workspaceId={} projectId={}", scope.workspaceId(), scope.projectId());
-    }
+    void deleteProject(ProjectScope scope);
 }

@@ -17,6 +17,9 @@
 
 export type HubSource = 'CONFIG' | 'USER';
 
+/** A jeffrey-hub reached over gRPC, or the recording volume read straight from an Azure file share. */
+export type HubKind = 'GRPC' | 'AZURE_FILES';
+
 export default interface Hub {
   id: string;
   name: string;
@@ -30,4 +33,13 @@ export default interface Hub {
    * that does not send it degrades to the editable behaviour rather than breaking.
    */
   source?: HubSource;
+  /** Optional, like `source`: a backend that does not send it is a gRPC hub. */
+  kind?: HubKind;
+  /** Where the source lies, as a person reads it: `host:port`, or the share's endpoint and name. */
+  location?: string;
+  /**
+   * A volume read straight from storage belongs to the hub that maintains it: no workspace is
+   * created or deleted, and no session deleted or pinned, through it.
+   */
+  readOnly?: boolean;
 }

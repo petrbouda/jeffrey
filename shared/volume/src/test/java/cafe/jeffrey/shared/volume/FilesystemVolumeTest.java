@@ -118,6 +118,27 @@ class FilesystemVolumeTest {
     }
 
     @Nested
+    class Opening {
+
+        @Test
+        void streamsTheFileWithTheNameAndSizeItHasNow() throws IOException {
+            Files.writeString(root.resolve("profile-1.jfr.lz4"), "archived chunk");
+
+            try (VolumeAccess.OpenedFile file = volume().open(ROOT.resolve("profile-1.jfr.lz4")).orElseThrow()) {
+                assertEquals("profile-1.jfr.lz4", file.name());
+                assertEquals(14, file.size());
+                assertArrayEquals("archived chunk".getBytes(StandardCharsets.UTF_8), file.content().readAllBytes());
+            }
+        }
+
+        /** Gone by the time it is asked for — the compression job may have rewritten it. */
+        @Test
+        void isEmptyForNothingThere() {
+            assertEquals(Optional.empty(), volume().open(ROOT.resolve("profile-1.jfr")));
+        }
+    }
+
+    @Nested
     class Reading {
 
         @Test

@@ -119,6 +119,15 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>hub-client</artifactId>
         </dependency>
+        <!-- Recording volumes read straight from storage: the clients over a volume, and the Azure Files backend -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>azure-files-volume</artifactId>
+        </dependency>
         <!-- Shared recording store + remote download machinery (extracted from core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>

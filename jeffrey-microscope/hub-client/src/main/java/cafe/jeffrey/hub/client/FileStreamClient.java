@@ -17,21 +17,19 @@
 
 package cafe.jeffrey.hub.client;
 
-import cafe.jeffrey.microscope.grpc.client.*;
-
-import io.grpc.StatusRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.api.v1.*;
-
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.Iterator;
 
-public class FileStreamClient {
+/**
+ * Pulls one file of a session onto this machine, whatever that file is. The source looks the file
+ * up and streams the bytes without interpreting them; what the file is decides what the caller
+ * does with it afterwards, and the caller read that off the listing that gave it this id.
+ */
+public interface FileStreamClient {
 
     @FunctionalInterface
-    public interface InputStreamConsumer {
+    interface InputStreamConsumer {
         void accept(InputStream inputStream, TransferredFile file) throws IOException;
     }
 
@@ -44,7 +42,7 @@ public class FileStreamClient {
      *             land as something a reader going by the name reads wrongly.
      * @param size the file's size, or {@link #UNKNOWN_CONTENT_LENGTH} when the hub sent none
      */
-    public record TransferredFile(String name, long size) {
+    record TransferredFile(String name, long size) {
 
         /**
          * Reduced to a single path element here rather than at each place that resolves it into a
@@ -64,114 +62,10 @@ public class FileStreamClient {
         }
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(FileStreamClient.class);
-
-    private static final int PIPE_BUFFER_SIZE = 64 * 1024;
-
     /**
-     * Content length reported to the consumer when the stream does not carry a total size.
-     */
-    private static final long UNKNOWN_CONTENT_LENGTH = -1;
-
-    private final FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub;
-
-    public FileStreamClient(GrpcHubConnection connection) {
-        this.stub = FileDownloadServiceGrpc.newBlockingStub(connection.getChannel());
-    }
-
-    /**
-     * Pulls one file of a session onto this machine, whatever that file is.
+     * Streams one file of a session to the consumer, named as it lies now.
      *
-     * <p>The hub looks the file up and streams the bytes without interpreting them. What the file
-     * is decides what the caller does with it afterwards, and the caller read that off the
-     * listing that gave it this id.
+     * @throws RuntimeException carrying the source's reason when it will not hand the file over
      */
-    public void streamFile(ProjectScope scope, String sessionId, String fileId, InputStreamConsumer consumer) {
-        DownloadFileRequest request = DownloadFileRequest.newBuilder()
-                .setWorkspaceId(scope.workspaceId())
-                .setProjectId(scope.projectId())
-                .setSessionId(sessionId)
-                .setFileId(fileId)
-                .build();
-
-        Iterator<DataChunk> chunks = stub.downloadFile(request);
-        streamChunksToConsumer(chunks, consumer);
-    }
-
-    /**
-     * Streams gRPC data chunks through a PipedInputStream to the consumer.
-     * The first chunk is fetched synchronously before the consumer starts — the server sends
-     * the total size only on the first chunk, so this guarantees the consumer receives the
-     * real content length instead of racing against the writer thread.
-     * A virtual thread writes the remaining chunks to the pipe concurrently.
-     */
-    private static void streamChunksToConsumer(Iterator<DataChunk> chunks, InputStreamConsumer consumer) {
-        DataChunk firstChunk;
-        try {
-            firstChunk = chunks.hasNext() ? chunks.next() : null;
-        } catch (StatusRuntimeException e) {
-            throw toRuntimeException(e);
-        }
-
-        long contentLength = (firstChunk != null && firstChunk.getTotalSize() > 0)
-                ? firstChunk.getTotalSize()
-                : UNKNOWN_CONTENT_LENGTH;
-        TransferredFile transferred = new TransferredFile(
-                firstChunk != null ? firstChunk.getFilename() : "", contentLength);
-
-        try {
-            PipedOutputStream pipeOut = new PipedOutputStream();
-            PipedInputStream pipeIn = new PipedInputStream(pipeOut, PIPE_BUFFER_SIZE);
-
-            Throwable[] writerError = {null};
-
-            Thread writer = Thread.ofVirtual().start(() -> {
-                try (pipeOut) {
-                    if (firstChunk != null) {
-                        firstChunk.getData().writeTo(pipeOut);
-                    }
-                    while (chunks.hasNext()) {
-                        chunks.next().getData().writeTo(pipeOut);
-                    }
-                } catch (Exception e) {
-                    writerError[0] = e;
-                    LOG.error("Error writing gRPC chunks to pipe", e);
-                }
-            });
-
-            try {
-                consumer.accept(pipeIn, transferred);
-            } finally {
-                // Closed before the join, not after it. A consumer that stopped early -- a
-                // cancelled download -- leaves the writer blocked on a full pipe with nobody
-                // reading, and PipedInputStream only gives up on a reader it can see is dead:
-                // this thread is alive, waiting in that very join. Closing first turns the
-                // writer's next write into the IOException it handles.
-                pipeIn.close();
-                writer.join();
-            }
-
-            if (writerError[0] != null) {
-                throw toRuntimeException(writerError[0]);
-            }
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            throw new RuntimeException("Failed to stream gRPC data chunks", e);
-        }
-    }
-
-    /**
-     * Maps a streaming failure to a RuntimeException, preferring the gRPC status description
-     * as the message when available.
-     */
-    private static RuntimeException toRuntimeException(Throwable error) {
-        String message = error.getMessage();
-        if (error instanceof StatusRuntimeException sre) {
-            String description = sre.getStatus().getDescription();
-            message = description != null ? description : message;
-        }
-        return new RuntimeException(message, error);
-    }
+    void streamFile(ProjectScope scope, String sessionId, String fileId, InputStreamConsumer consumer);
 }

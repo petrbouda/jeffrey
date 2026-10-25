@@ -22,9 +22,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,6 +108,36 @@ public final class FilesystemVolume implements VolumeAccess {
         }
     }
 
+    @Override
+    public Optional<OpenedFile> open(VolumePath path) {
+        Path file = resolve(path);
+        FileChannel channel;
+        try {
+            channel = FileChannel.open(file, StandardOpenOption.READ);
+        } catch (NoSuchFileException e) {
+            return Optional.empty();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot open a volume file: path=" + file, e);
+        }
+        try {
+            return Optional.of(new OpenedFile(path.name(), channel.size(), Channels.newInputStream(channel)));
+        } catch (IOException e) {
+            closeQuietly(channel);
+            throw new UncheckedIOException("Cannot read the size of an opened volume file: path=" + file, e);
+        } catch (RuntimeException e) {
+            closeQuietly(channel);
+            throw e;
+        }
+    }
+
+    private static void closeQuietly(FileChannel channel) {
+        try {
+            channel.close();
+        } catch (IOException e) {
+            LOG.debug("Cannot close a volume file that failed to open: reason={}", e.getMessage());
+        }
+    }
+
     /**
      * A listed child, or empty when it cannot be described any more. A session directory changes
      * while it is listed — async-profiler deletes its {@code .jfr.N~} cache after each flush and the
@@ -122,7 +155,8 @@ public final class FilesystemVolume implements VolumeAccess {
     }
 
     private static VolumeEntry entry(VolumePath path, BasicFileAttributes attributes) {
-        return new VolumeEntry(path, kind(attributes), attributes.size(), attributes.creationTime().toInstant());
+        return new VolumeEntry(
+                path, kind(attributes), attributes.size(), Optional.of(attributes.creationTime().toInstant()));
     }
 
     private static VolumeEntry.Kind kind(BasicFileAttributes attributes) {

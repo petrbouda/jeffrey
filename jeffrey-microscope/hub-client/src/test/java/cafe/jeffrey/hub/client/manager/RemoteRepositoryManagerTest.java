@@ -24,6 +24,7 @@ import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
+import cafe.jeffrey.hub.client.GrpcRepositoryClient;
 import cafe.jeffrey.microscope.grpc.client.GrpcHubConnection;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
@@ -74,7 +75,7 @@ class RemoteRepositoryManagerTest {
         channel = InProcessChannelBuilder.forName(name).directExecutor().build();
         manager = new RemoteRepositoryManager(
                 null, new ProjectScope("ws-1", PROJECT_ID), new RepositoryStatistics(21_300L),
-                new RepositoryClient(new GrpcHubConnection(channel) { }), null);
+                new GrpcRepositoryClient(new GrpcHubConnection(channel) { }), null);
     }
 
     @AfterEach

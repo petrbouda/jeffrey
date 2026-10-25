@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.microscope.core.configuration.properties;
 
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,14 +32,24 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * Hubs declared statically under {@code jeffrey.microscope.hubs.*}, e.g.
+ * Hubs declared statically under {@code jeffrey.microscope.hubs.*}: a jeffrey-hub reached over gRPC,
  * <pre>
  * jeffrey.microscope.hubs.production.hostname=hub.example.com
  * jeffrey.microscope.hubs.production.port=443
  * </pre>
+ * or the recording volume read straight from an Azure file share, read-only, with no hub between:
+ * <pre>
+ * jeffrey.microscope.hubs.prod-share.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
+ * jeffrey.microscope.hubs.prod-share.azure-files.share=recordings
+ * jeffrey.microscope.hubs.prod-share.azure-files.protocol=smb
+ * jeffrey.microscope.hubs.prod-share.azure-files.sas-token=${AZURE_FILES_SAS}
+ * </pre>
+ * A SAS token stays in this configuration: the registry stores how a source signs in, never the
+ * token, which {@link #sasTokens()} hands to whatever opens the share.
  * Configuration owns every hub declared here: {@code ConfiguredHubsReconciler} adds, updates and
  * removes rows on each startup so the registry matches this map, and the UI cannot delete them.
  * <p>
@@ -108,12 +122,10 @@ public class ConfiguredHubsProperties {
                                 .formatted(clashingKey, key, hubId));
             }
 
-            HubAddress address = new HubAddress(
-                    declared.getHostname().trim(), declared.getPort(), declared.isPlaintext());
-            // Keyed on hostname:port alone, matching the UNIQUE (hostname, port) constraint on the
-            // hubs table — two entries differing only in `plaintext` would still collide there.
-            String clashingAddressKey = keysByAddress.put(
-                    address.hostname() + ":" + address.port(), key);
+            HubAddress address = declared.address();
+            // Keyed on the address's identity, matching what the hubs table keeps unique — two
+            // entries differing only in `plaintext` or in how they sign in would still collide there.
+            String clashingAddressKey = keysByAddress.put(address.identity(), key);
             if (clashingAddressKey != null) {
                 throw new IllegalArgumentException(
                         "Duplicate hub address in configuration: address=%s keys=[%s, %s]"
@@ -124,6 +136,24 @@ public class ConfiguredHubsProperties {
         }
 
         return resolved;
+    }
+
+    /**
+     * The SAS token of every Azure Files declaration that signs in with one, keyed by the address's
+     * {@link HubAddress#identity()}. Only valid declarations; the tokens never leave memory.
+     */
+    public Map<String, String> sasTokens() {
+        Map<String, String> tokens = new HashMap<>();
+        for (Map.Entry<String, HubEntry> entry : hubs.entrySet()) {
+            HubEntry declared = entry.getValue();
+            if (declared == null || declared.validate(entry.getKey()) != null) {
+                continue;
+            }
+            if (declared.address() instanceof AzureFilesAddress azure && azure.auth() == AzureFilesAuth.SAS) {
+                tokens.put(azure.identity(), declared.getAzureFiles().getSasToken().trim());
+            }
+        }
+        return tokens;
     }
 
     /**
@@ -162,6 +192,7 @@ public class ConfiguredHubsProperties {
         private String hostname;
         private int port = DEFAULT_PORT;
         private boolean plaintext;
+        private AzureFilesEntry azureFiles;
 
         public String getName() {
             return name;
@@ -195,11 +226,34 @@ public class ConfiguredHubsProperties {
             this.plaintext = plaintext;
         }
 
+        public AzureFilesEntry getAzureFiles() {
+            return azureFiles;
+        }
+
+        public void setAzureFiles(AzureFilesEntry azureFiles) {
+            this.azureFiles = azureFiles;
+        }
+
+        /** The address this entry declares; call only once {@link #validate} has passed. */
+        HubAddress address() {
+            if (azureFiles != null) {
+                return azureFiles.address();
+            }
+            return new GrpcHubAddress(hostname.trim(), port, plaintext);
+        }
+
         /**
          * @return why this entry is unusable, or {@code null} when it is valid
          */
         String validate(String key) {
-            if (hostname == null || hostname.isBlank()) {
+            boolean grpc = hostname != null && !hostname.isBlank();
+            if (grpc && azureFiles != null) {
+                return propertyPath(key) + " declares both a hostname and azure-files; a hub is one or the other";
+            }
+            if (azureFiles != null) {
+                return azureFiles.validate(propertyPath(key) + ".azure-files");
+            }
+            if (!grpc) {
                 return propertyPath(key) + ".hostname is required";
             }
             if (port < MIN_PORT || port > MAX_PORT) {
@@ -217,6 +271,104 @@ public class ConfiguredHubsProperties {
                 return key;
             }
             return name.trim();
+        }
+    }
+
+    /**
+     * The {@code azure-files} block of a hub declaration: the share holding the recording volume,
+     * and how to sign in to it. A JavaBean for the same reason as {@link HubEntry}.
+     */
+    public static class AzureFilesEntry {
+
+        private static final String DEFAULT_PROTOCOL = "smb";
+        private static final String DEFAULT_AUTH = "sas";
+
+        private String endpoint;
+        private String share;
+        private String rootPath;
+        private String protocol = DEFAULT_PROTOCOL;
+        private String auth = DEFAULT_AUTH;
+        private String sasToken;
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public String getShare() {
+            return share;
+        }
+
+        public void setShare(String share) {
+            this.share = share;
+        }
+
+        public String getRootPath() {
+            return rootPath;
+        }
+
+        public void setRootPath(String rootPath) {
+            this.rootPath = rootPath;
+        }
+
+        public String getProtocol() {
+            return protocol;
+        }
+
+        public void setProtocol(String protocol) {
+            this.protocol = protocol;
+        }
+
+        public String getAuth() {
+            return auth;
+        }
+
+        public void setAuth(String auth) {
+            this.auth = auth;
+        }
+
+        public String getSasToken() {
+            return sasToken;
+        }
+
+        public void setSasToken(String sasToken) {
+            this.sasToken = sasToken;
+        }
+
+        /** The address; call only once {@link #validate} has passed. */
+        AzureFilesAddress address() {
+            return new AzureFilesAddress(
+                    endpoint,
+                    share,
+                    rootPath,
+                    AzureFilesProtocol.parse(protocol).orElseThrow(),
+                    AzureFilesAuth.parse(auth).orElseThrow());
+        }
+
+        /**
+         * @return why this block is unusable, or {@code null} when it is valid. Never quotes the
+         * token: the reason is logged.
+         */
+        String validate(String path) {
+            if (AzureFilesProtocol.parse(protocol).isEmpty()) {
+                return "%s.protocol=%s must be smb or nfs".formatted(path, protocol);
+            }
+            Optional<AzureFilesAuth> signIn = AzureFilesAuth.parse(auth);
+            if (signIn.isEmpty()) {
+                return "%s.auth=%s must be sas or entra".formatted(path, auth);
+            }
+            if (signIn.get() == AzureFilesAuth.SAS && (sasToken == null || sasToken.isBlank())) {
+                return path + ".sas-token is required when auth=sas";
+            }
+            try {
+                address();
+            } catch (IllegalArgumentException e) {
+                return path + ": " + e.getMessage();
+            }
+            return null;
         }
     }
 }

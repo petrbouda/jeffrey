@@ -18,21 +18,22 @@
 package cafe.jeffrey.microscope.model.hub;
 
 /**
- * Network coordinates of a connected jeffrey-hub.
- *
- * @param plaintext when {@code true}, the gRPC client connects to this address in cleartext h2c
- *                  (no TLS handshake). Defaults to {@code false} — TLS is the secure default and
- *                  matches the existing public-internet workflow. Set {@code true} only for
- *                  in-cluster Service DNS or trusted-LAN setups.
+ * Where a source of recordings lies: a jeffrey-hub reached over gRPC, or the shared volume itself,
+ * read straight from cloud storage with no hub in between. Every kind lists the same tree —
+ * workspaces, projects, instances, sessions, files — so everything above the clients that read it
+ * treats them alike.
  */
-public record HubAddress(String hostname, int port, boolean plaintext) {
+public sealed interface HubAddress permits GrpcHubAddress, AzureFilesAddress {
 
-    public HubAddress(String hostname, int port) {
-        this(hostname, port, false);
-    }
+    /**
+     * What makes two addresses the same source, and what the registry keeps unique: never a
+     * credential and never a display preference.
+     */
+    String identity();
 
-    @Override
-    public String toString() {
-        return hostname + ":" + port + (plaintext ? " (plaintext)" : "");
-    }
+    /**
+     * Whether this source can only be read. A volume read straight from storage is shared with
+     * the hub that maintains it, and Microscope never changes it: no deletes, pins or workspaces.
+     */
+    boolean readOnly();
 }

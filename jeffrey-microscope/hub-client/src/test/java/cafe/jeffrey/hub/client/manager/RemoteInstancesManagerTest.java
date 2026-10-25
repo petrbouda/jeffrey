@@ -32,8 +32,10 @@ import cafe.jeffrey.hub.api.v1.RecordingSession;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
 import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
 import cafe.jeffrey.hub.client.InstancesClient;
+import cafe.jeffrey.hub.client.GrpcInstancesClient;
 import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.hub.client.RepositoryClient;
+import cafe.jeffrey.hub.client.GrpcRepositoryClient;
 import cafe.jeffrey.hub.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.hub.client.dto.InstanceSessionDetailResponse;
 import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
@@ -201,7 +203,7 @@ class RemoteInstancesManagerTest {
         // looks a session up nor parses one
         SessionEnvironmentReader noEnvironment = new SessionEnvironmentReader(null, null);
         manager = new RemoteInstancesManager(
-                ProjectScope.of(PROJECT), new InstancesClient(connection), new RepositoryClient(connection), noEnvironment);
+                ProjectScope.of(PROJECT), new GrpcInstancesClient(connection), new GrpcRepositoryClient(connection), noEnvironment);
     }
 
     @AfterEach

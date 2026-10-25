@@ -17,23 +17,32 @@
 
 package cafe.jeffrey.microscope.persistence.jdbc;
 
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.microscope.model.hub.HubInfo;
-import cafe.jeffrey.microscope.persistence.api.HubsRepository;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
+import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
 public class JdbcHubsRepository implements HubsRepository {
+
+    private static final String KIND_GRPC = "GRPC";
+    private static final String KIND_AZURE_FILES = "AZURE_FILES";
 
     //language=SQL
     private static final String SELECT_ALL =
@@ -45,14 +54,20 @@ public class JdbcHubsRepository implements HubsRepository {
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO hubs (hub_id, name, hostname, port, plaintext, created_at, source)
-            VALUES (:hub_id, :name, :hostname, :port, :plaintext, :created_at, :source)""";
+            INSERT INTO hubs (hub_id, name, kind, hostname, port, plaintext,
+                              azure_endpoint, azure_share, azure_root_path, azure_protocol, azure_auth,
+                              created_at, source)
+            VALUES (:hub_id, :name, :kind, :hostname, :port, :plaintext,
+                    :azure_endpoint, :azure_share, :azure_root_path, :azure_protocol, :azure_auth,
+                    :created_at, :source)""";
 
     //language=SQL
     private static final String UPDATE = """
             UPDATE hubs
-            SET name = :name, hostname = :hostname, port = :port,
-                plaintext = :plaintext, source = :source
+            SET name = :name, kind = :kind, hostname = :hostname, port = :port, plaintext = :plaintext,
+                azure_endpoint = :azure_endpoint, azure_share = :azure_share,
+                azure_root_path = :azure_root_path, azure_protocol = :azure_protocol,
+                azure_auth = :azure_auth, source = :source
             WHERE hub_id = :hub_id""";
 
     //language=SQL
@@ -85,14 +100,8 @@ public class JdbcHubsRepository implements HubsRepository {
 
     @Override
     public HubInfo create(HubInfo hubInfo) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("hub_id", hubInfo.hubId())
-                .addValue("name", hubInfo.name())
-                .addValue("hostname", hubInfo.address().hostname())
-                .addValue("port", hubInfo.address().port())
-                .addValue("plaintext", hubInfo.address().plaintext())
-                .addValue("created_at", Timestamp.from(hubInfo.createdAt()))
-                .addValue("source", hubInfo.source().name());
+        MapSqlParameterSource params = hubParams(hubInfo)
+                .addValue("created_at", Timestamp.from(hubInfo.createdAt()));
 
         databaseClient.update(StatementLabel.INSERT_HUB, INSERT, params);
         return hubInfo;
@@ -100,15 +109,7 @@ public class JdbcHubsRepository implements HubsRepository {
 
     @Override
     public void update(HubInfo hubInfo) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("hub_id", hubInfo.hubId())
-                .addValue("name", hubInfo.name())
-                .addValue("hostname", hubInfo.address().hostname())
-                .addValue("port", hubInfo.address().port())
-                .addValue("plaintext", hubInfo.address().plaintext())
-                .addValue("source", hubInfo.source().name());
-
-        databaseClient.update(StatementLabel.UPDATE_HUB, UPDATE, params);
+        databaseClient.update(StatementLabel.UPDATE_HUB, UPDATE, hubParams(hubInfo));
     }
 
     @Override
@@ -119,15 +120,58 @@ public class JdbcHubsRepository implements HubsRepository {
         databaseClient.update(StatementLabel.DELETE_HUB, DELETE, params);
     }
 
+    /** Every column but {@code created_at}, which only an insert writes; the other kind's columns are NULL. */
+    private static MapSqlParameterSource hubParams(HubInfo hubInfo) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("hub_id", hubInfo.hubId())
+                .addValue("name", hubInfo.name())
+                .addValue("source", hubInfo.source().name())
+                .addValue("hostname", null)
+                .addValue("port", null)
+                .addValue("plaintext", false)
+                .addValue("azure_endpoint", null)
+                .addValue("azure_share", null)
+                .addValue("azure_root_path", null)
+                .addValue("azure_protocol", null)
+                .addValue("azure_auth", null);
+
+        return switch (hubInfo.address()) {
+            case GrpcHubAddress grpc -> params
+                    .addValue("kind", KIND_GRPC)
+                    .addValue("hostname", grpc.hostname())
+                    .addValue("port", grpc.port())
+                    .addValue("plaintext", grpc.plaintext());
+            case AzureFilesAddress azure -> params
+                    .addValue("kind", KIND_AZURE_FILES)
+                    .addValue("azure_endpoint", azure.endpoint())
+                    .addValue("azure_share", azure.share())
+                    .addValue("azure_root_path", azure.rootPath())
+                    .addValue("azure_protocol", azure.protocol().name())
+                    .addValue("azure_auth", azure.auth().name());
+        };
+    }
+
     private static RowMapper<HubInfo> hubMapper() {
         return (rs, _) -> new HubInfo(
                 rs.getString("hub_id"),
                 rs.getString("name"),
-                new HubAddress(
-                        rs.getString("hostname"),
-                        rs.getInt("port"),
-                        rs.getBoolean("plaintext")),
+                address(rs),
                 rs.getTimestamp("created_at").toInstant().atZone(ZoneOffset.UTC).toInstant(),
                 HubSource.fromDb(rs.getString("source")));
+    }
+
+    /** A row written before the column existed carries the default, {@code GRPC}. */
+    private static HubAddress address(ResultSet rs) throws SQLException {
+        if (KIND_AZURE_FILES.equals(rs.getString("kind"))) {
+            return new AzureFilesAddress(
+                    rs.getString("azure_endpoint"),
+                    rs.getString("azure_share"),
+                    rs.getString("azure_root_path"),
+                    AzureFilesProtocol.parse(rs.getString("azure_protocol")).orElseThrow(
+                            () -> new SQLException("Stored Azure Files hub has no readable protocol")),
+                    AzureFilesAuth.parse(rs.getString("azure_auth")).orElseThrow(
+                            () -> new SQLException("Stored Azure Files hub has no readable sign-in method")));
+        }
+        return new GrpcHubAddress(rs.getString("hostname"), rs.getInt("port"), rs.getBoolean("plaintext"));
     }
 }

@@ -141,7 +141,7 @@ public final class HubWorkspacesManager implements WorkspacesManager {
     /** The directory's own creation time, for a workspace no marker describes. */
     private Instant createdAt(VolumePath directory) {
         return volume.stat(directory)
-                .map(VolumeEntry::createdAt)
+                .flatMap(VolumeEntry::createdAt)
                 .orElseThrow(() -> new UncheckedIOException(
                         "Workspace directory vanished while it was read: path=" + directory,
                         new NoSuchFileException(directory.toString())));

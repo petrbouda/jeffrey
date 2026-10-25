@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.initializer;
 
-import cafe.jeffrey.hub.client.CachedHubClientsFactory;
+import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties.DesiredHub;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
@@ -45,13 +45,13 @@ public class ConfiguredHubsReconciler {
     private static final Logger LOG = LoggerFactory.getLogger(ConfiguredHubsReconciler.class);
 
     private final HubsRepository repository;
-    private final CachedHubClientsFactory clientsFactory;
+    private final HubClients.Factory clientsFactory;
     private final ConfiguredHubsProperties properties;
     private final ConfiguredHubsPlanner planner;
 
     public ConfiguredHubsReconciler(
             HubsRepository repository,
-            CachedHubClientsFactory clientsFactory,
+            HubClients.Factory clientsFactory,
             ConfiguredHubsProperties properties,
             ConfiguredHubsPlanner planner) {
 
@@ -86,7 +86,7 @@ public class ConfiguredHubsReconciler {
 
     /**
      * Deletes first, then updates, then inserts — the order the plan is built for, and the only one
-     * that stays legal under {@code UNIQUE (hostname, port)} while addresses move between rows.
+     * that stays legal under the hubs table's unique address constraints while addresses move between rows.
      */
     private void apply(HubReconcilePlan plan) {
         for (HubInfo hub : plan.deletes()) {
@@ -114,7 +114,7 @@ public class ConfiguredHubsReconciler {
     }
 
     /**
-     * Drops any cached gRPC channel for an address whose owner changed. The cache is keyed by
+     * Drops any cached clients for an address whose owner changed. The cache is keyed by
      * address rather than by hub id, so a channel opened for the previous occupant would otherwise
      * be handed to the new one.
      */

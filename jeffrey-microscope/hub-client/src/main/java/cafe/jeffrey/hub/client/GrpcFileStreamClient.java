@@ -1,0 +1,144 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.hub.client;
+
+import cafe.jeffrey.microscope.grpc.client.*;
+
+import io.grpc.StatusRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.api.v1.*;
+
+import java.io.*;
+import java.nio.file.Path;
+import java.util.Iterator;
+
+public class GrpcFileStreamClient implements FileStreamClient {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GrpcFileStreamClient.class);
+
+    private static final int PIPE_BUFFER_SIZE = 64 * 1024;
+
+    /**
+     * Content length reported to the consumer when the stream does not carry a total size.
+     */
+    private static final long UNKNOWN_CONTENT_LENGTH = -1;
+
+    private final FileDownloadServiceGrpc.FileDownloadServiceBlockingStub stub;
+
+    public GrpcFileStreamClient(GrpcHubConnection connection) {
+        this.stub = FileDownloadServiceGrpc.newBlockingStub(connection.getChannel());
+    }
+
+    /**
+     * Pulls one file of a session onto this machine, whatever that file is.
+     *
+     * <p>The hub looks the file up and streams the bytes without interpreting them. What the file
+     * is decides what the caller does with it afterwards, and the caller read that off the
+     * listing that gave it this id.
+     */
+    @Override
+    public void streamFile(ProjectScope scope, String sessionId, String fileId, InputStreamConsumer consumer) {
+        DownloadFileRequest request = DownloadFileRequest.newBuilder()
+                .setWorkspaceId(scope.workspaceId())
+                .setProjectId(scope.projectId())
+                .setSessionId(sessionId)
+                .setFileId(fileId)
+                .build();
+
+        Iterator<DataChunk> chunks = stub.downloadFile(request);
+        streamChunksToConsumer(chunks, consumer);
+    }
+
+    /**
+     * Streams gRPC data chunks through a PipedInputStream to the consumer.
+     * The first chunk is fetched synchronously before the consumer starts — the server sends
+     * the total size only on the first chunk, so this guarantees the consumer receives the
+     * real content length instead of racing against the writer thread.
+     * A virtual thread writes the remaining chunks to the pipe concurrently.
+     */
+    private static void streamChunksToConsumer(Iterator<DataChunk> chunks, InputStreamConsumer consumer) {
+        DataChunk firstChunk;
+        try {
+            firstChunk = chunks.hasNext() ? chunks.next() : null;
+        } catch (StatusRuntimeException e) {
+            throw toRuntimeException(e);
+        }
+
+        long contentLength = (firstChunk != null && firstChunk.getTotalSize() > 0)
+                ? firstChunk.getTotalSize()
+                : UNKNOWN_CONTENT_LENGTH;
+        TransferredFile transferred = new TransferredFile(
+                firstChunk != null ? firstChunk.getFilename() : "", contentLength);
+
+        try {
+            PipedOutputStream pipeOut = new PipedOutputStream();
+            PipedInputStream pipeIn = new PipedInputStream(pipeOut, PIPE_BUFFER_SIZE);
+
+            Throwable[] writerError = {null};
+
+            Thread writer = Thread.ofVirtual().start(() -> {
+                try (pipeOut) {
+                    if (firstChunk != null) {
+                        firstChunk.getData().writeTo(pipeOut);
+                    }
+                    while (chunks.hasNext()) {
+                        chunks.next().getData().writeTo(pipeOut);
+                    }
+                } catch (Exception e) {
+                    writerError[0] = e;
+                    LOG.error("Error writing gRPC chunks to pipe", e);
+                }
+            });
+
+            try {
+                consumer.accept(pipeIn, transferred);
+            } finally {
+                // Closed before the join, not after it. A consumer that stopped early -- a
+                // cancelled download -- leaves the writer blocked on a full pipe with nobody
+                // reading, and PipedInputStream only gives up on a reader it can see is dead:
+                // this thread is alive, waiting in that very join. Closing first turns the
+                // writer's next write into the IOException it handles.
+                pipeIn.close();
+                writer.join();
+            }
+
+            if (writerError[0] != null) {
+                throw toRuntimeException(writerError[0]);
+            }
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new RuntimeException("Failed to stream gRPC data chunks", e);
+        }
+    }
+
+    /**
+     * Maps a streaming failure to a RuntimeException, preferring the gRPC status description
+     * as the message when available.
+     */
+    private static RuntimeException toRuntimeException(Throwable error) {
+        String message = error.getMessage();
+        if (error instanceof StatusRuntimeException sre) {
+            String description = sre.getStatus().getDescription();
+            message = description != null ? description : message;
+        }
+        return new RuntimeException(message, error);
+    }
+}

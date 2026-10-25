@@ -30,18 +30,32 @@ CREATE TABLE IF NOT EXISTS hubs
 (
     hub_id   VARCHAR PRIMARY KEY,
     name        VARCHAR NOT NULL,
-    hostname    VARCHAR NOT NULL,
-    port        INTEGER NOT NULL DEFAULT 443,
+    -- 'GRPC' for a jeffrey-hub reached over gRPC (hostname, port, plaintext), 'AZURE_FILES' for the
+    -- recording volume read straight from an Azure file share (the azure_* columns). The columns of
+    -- the other kind stay NULL.
+    kind        VARCHAR NOT NULL DEFAULT 'GRPC',
+    hostname    VARCHAR,
+    port        INTEGER,
     -- gRPC client uses cleartext h2c when true, TLS when false. Default false
     -- preserves the existing public-internet TLS workflow; flip to true for
     -- in-cluster Service DNS or trusted-LAN setups.
     plaintext   BOOLEAN NOT NULL DEFAULT FALSE,
+    azure_endpoint  VARCHAR,
+    azure_share     VARCHAR,
+    -- '' for the share's root
+    azure_root_path VARCHAR,
+    -- 'SMB' or 'NFS', which decides what the share's REST listing carries
+    azure_protocol  VARCHAR,
+    -- 'SAS' or 'ENTRA'. A SAS token itself is never stored: it is read from configuration
+    -- whenever the source is opened.
+    azure_auth      VARCHAR,
     created_at  TIMESTAMPTZ NOT NULL,
     -- 'CONFIG' for a hub declared under jeffrey.microscope.hubs.* — configuration owns the row,
     -- it is reconciled on every startup and the UI cannot delete it. 'USER' for a hub added
     -- through the UI, which the reconciliation never touches.
     source      VARCHAR NOT NULL DEFAULT 'USER',
-    UNIQUE (hostname, port)
+    UNIQUE (hostname, port),
+    UNIQUE (azure_endpoint, azure_share, azure_root_path)
 );
 
 --

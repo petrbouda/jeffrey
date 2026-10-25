@@ -53,6 +53,7 @@ import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.hub.HubSource;
@@ -161,7 +162,7 @@ class HubsMcpToolsTest {
     }
 
     private static HubInfo hubInfo(String id, String name) {
-        return new HubInfo(id, name, new HubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG);
+        return new HubInfo(id, name, new GrpcHubAddress("hub.example.com", 443, false), NOW, HubSource.CONFIG);
     }
 
     private static RepositoryFile file(String id, String name, ManagedFile type) {

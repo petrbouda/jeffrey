@@ -31,6 +31,11 @@
     <description>Common testing utilities and extensions</description>
 
     <dependencies>
+        <!-- The volume's marker types and layout constants, for VolumeWriter -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
