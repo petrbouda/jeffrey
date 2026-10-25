@@ -26,7 +26,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'add-hub', text: 'Step 1 — Add a Hub', level: 2 },
+  { id: 'connect-remote', text: 'Step 1 — Connect the Remote', level: 2 },
   { id: 'azure-files', text: 'Working on an Azure File Share', level: 3 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
@@ -48,20 +48,21 @@ onMounted(() => {
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        A <strong>workspace</strong> is a folder that lives on a Jeffrey Hub. It groups projects,
-        their JVM instances, and their recording sessions. Microscope connects to one or more
-        Jeffrey Hubs and lets you browse the workspaces hosted there. Heavy analysis still runs
+        A <strong>workspace</strong> is a folder that lives on the <strong>remote</strong>. It groups
+        projects, their JVM instances, and their recording sessions. Microscope connects to exactly
+        one remote &mdash; a Jeffrey Hub reached over gRPC, or the recording volume itself on an Azure
+        file share &mdash; and lets you browse the workspaces it holds. Heavy analysis still runs
         locally — Microscope just borrows the data.
       </p>
       <p>
-        Connecting Microscope to a hub is a two-step process: register the hub, then
-        create or pick a workspace inside it.
+        Getting there is a two-step process: connect the remote, then create or pick a workspace
+        on it.
       </p>
 
-      <h2 id="add-hub">Step 1 — Add a Hub</h2>
+      <h2 id="connect-remote">Step 1 — Connect the Remote</h2>
       <p>
-        Open the <strong>Hubs</strong> page from the top navigation. The left rail lists the
-        hubs Microscope knows about; click the <strong>+</strong> button to add a new one.
+        Open the <strong>Remote</strong> page from the sidebar. With no remote connected it offers
+        <strong>Connect a Jeffrey Hub</strong>, which opens a form:
       </p>
 
       <table>
@@ -74,7 +75,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><strong>Name</strong></td>
-            <td>Display label shown in the rail. Free text — pick something you'll recognize.</td>
+            <td>How the remote is named in Microscope — its header and the breadcrumb. Free text — pick something you'll recognize.</td>
           </tr>
           <tr>
             <td><strong>Hostname</strong></td>
@@ -82,7 +83,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>Port</strong></td>
-            <td>The gRPC port the hub listens on.</td>
+            <td>The gRPC port the hub listens on (<code>9090</code> by default).</td>
           </tr>
           <tr>
             <td><strong>Plaintext</strong></td>
@@ -92,37 +93,39 @@ onMounted(() => {
       </table>
 
       <p>
-        Microscope contacts the hub once to confirm it's reachable. If it isn't, the form
+        Microscope probes the hub once to confirm it's reachable. If it isn't, the form
         surfaces a clear error (most often "cannot connect — check hostname/port/TLS").
-        On success the hub appears in the rail with a status indicator.
+        On success the page shows the remote's name with a status indicator, and its workspaces
+        beneath. Microscope holds one remote at a time: to switch to another hub, disconnect this one
+        first — a second remote is refused.
       </p>
 
       <DocsCallout type="tip">
-        <strong>Removing a hub</strong> only removes Microscope's pointer to it — the hub
-        and its workspaces stay intact. Re-adding the same hostname/port restores access.
+        <strong>Disconnecting the remote</strong> (the plug button beside its name) only removes
+        Microscope's pointer to it — the hub and its workspaces stay intact. Connecting the same
+        hostname/port again restores access.
       </DocsCallout>
 
       <DocsCallout type="info">
-        <strong>Provisioning without the UI:</strong> hubs can also be declared up front with
-        <router-link to="/docs/microscope/configuration/application-properties#hubs"><code>jeffrey.microscope.hubs.*</code></router-link>,
-        so a container or a pod starts already connected. A hub declared that way is shown with a
-        <strong>Config</strong> badge and its remove button is disabled — configuration owns it, and
-        the next startup would recreate anything deleted here. Unlike the form above, declared hubs
-        are registered without a reachability check, so a hub that boots after Microscope starts
-        working as soon as it comes up.
+        <strong>Provisioning without the UI:</strong> the remote can also be declared up front with
+        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>,
+        so a container or a pod starts already connected. Configuration wins: a remote declared that
+        way is shown with a <strong>Config</strong> badge, its disconnect button is disabled, and the
+        UI cannot change it — the next startup would connect it again anyway. Unlike the form above, a
+        declared remote is stored without a reachability check, so a hub that boots after Microscope
+        starts working as soon as it comes up.
       </DocsCallout>
 
       <h3 id="azure-files">Working on an Azure File Share</h3>
       <p>
-        A hub entry does not have to be a Jeffrey Hub. Declared with
-        <router-link to="/docs/microscope/configuration/application-properties#hubs-azure-files"><code>jeffrey.microscope.hubs.&lt;key&gt;.azure-files.*</code></router-link>,
+        The remote does not have to be a Jeffrey Hub. Declared with
+        <router-link to="/docs/microscope/configuration/application-properties#remote-azure-files"><code>jeffrey.microscope.remote.azure-files.*</code></router-link>,
         it points at the recording volume itself — the Azure file share (SMB or NFS) the provisioner
         writes into — and Microscope works with it over the Azure Files REST API, signing in with a
-        SAS token or with Microsoft Entra ID. It sits in the rail like any other hub, marked with an
-        <strong>Azure Files</strong> badge, and its workspaces, projects, instances and recording
-        sessions are browsed and downloaded exactly as through a hub. Each directory at the share's
-        root (or under its configured root path) is a workspace, named by the hub's workspace
-        marker when one is there.
+        SAS token or with Microsoft Entra ID. Its header carries an <strong>Azure Files</strong>
+        badge, and its workspaces, projects, instances and recording sessions are browsed and
+        downloaded exactly as through a hub. Each directory at the share's root (or under its
+        configured root path) is a workspace, named by the hub's workspace marker when one is there.
       </p>
       <p>
         The changes you make through a hub work here too, and land on the share exactly as a hub
@@ -133,10 +136,10 @@ onMounted(() => {
         recording is decided from its heartbeat file, by the same rules the hub applies.
       </p>
       <p>
-        Declared with <code>read-only=true</code>, the source carries a <strong>Read-only</strong>
+        Declared with <code>read-only=true</code>, the remote carries a <strong>Read-only</strong>
         badge and changes nothing: there is no <strong>Create Workspace</strong>, and no button to
         delete a workspace or a project or to delete or pin a session (a request that reaches the
-        backend anyway is refused, saying the source is read-only). Pins a hub set are still shown.
+        backend anyway is refused, saying the remote is read-only). Pins a hub set are still shown.
         Use it with a credential that may only read.
       </p>
 
@@ -152,7 +155,7 @@ onMounted(() => {
 
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
       <p>
-        Pick a hub in the rail, then click <strong>Create Workspace</strong> in the workspace
+        With the remote connected, click <strong>Create Workspace</strong> in the workspace
         column. Microscope opens a side drawer with two fields:
       </p>
 
@@ -209,18 +212,18 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>Offline</strong></td>
-            <td>Microscope reached the hub but the workspace itself is not responding.</td>
+            <td>Microscope reached the remote but the workspace itself is not responding.</td>
             <td>Check the hub logs. The badge clears automatically once the workspace recovers.</td>
           </tr>
           <tr>
             <td><strong>Unavailable</strong></td>
-            <td>The workspace existed before but the hub no longer reports it (likely deleted on the hub).</td>
-            <td>Either restore it on the hub or remove the stale entry from Microscope.</td>
+            <td>The workspace existed before but the remote no longer reports it (likely deleted there).</td>
+            <td>Either restore it on the remote or remove the stale entry from Microscope.</td>
           </tr>
           <tr>
             <td><strong>Unknown</strong></td>
-            <td>Microscope can't reach the parent hub at all (network, TLS, or the hub is down).</td>
-            <td>Verify the hub entry in the rail and your network/VPN.</td>
+            <td>Microscope can't reach the remote at all (network, TLS, or the hub is down).</td>
+            <td>Check the remote's status on the Remote page and your network/VPN.</td>
           </tr>
         </tbody>
       </table>
@@ -229,8 +232,9 @@ onMounted(() => {
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
       <ul>
         <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
-        <li><strong>Editing a hub's hostname or port</strong> — remove and re-add the hub entry instead.</li>
-        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the hub level (TLS, or the SAS token / Entra identity of an Azure file share); there's no separate workspace-level token.</li>
+        <li><strong>Editing the remote's hostname or port</strong> — disconnect it and connect it again instead (or change the configuration and restart, for a declared remote).</li>
+        <li><strong>More than one remote</strong> — Microscope connects to exactly one; a second is refused.</li>
+        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (TLS, or the SAS token / Entra identity of an Azure file share); there's no separate workspace-level token.</li>
         <li><strong>Adding an Azure file share from the UI</strong> — a share is declared in configuration only, so its SAS token never passes through the browser or Microscope's database.</li>
         <li><strong>Retention and compression on a share</strong> — Microscope makes the changes you ask for, never upkeep; keep a hub on the volume for that.</li>
       </ul>

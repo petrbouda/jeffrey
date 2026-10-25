@@ -365,29 +365,29 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import RecordingsClient from '@hubs/services/api/RecordingsClient';
+import RecordingsClient from '@remote/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
-import RecordingCard from '@hubs/components/RecordingCard.vue';
-import RecordingBundleCard from '@hubs/components/RecordingBundleCard.vue';
+import RecordingCard from '@remote/components/RecordingCard.vue';
+import RecordingBundleCard from '@remote/components/RecordingBundleCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import RecordingFileGroupList from '@hubs/components/RecordingFileGroupList.vue';
+import RecordingFileGroupList from '@remote/components/RecordingFileGroupList.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
-import type RecordingGroup from '@hubs/services/api/model/RecordingGroup';
-import type Recording from '@hubs/services/api/model/Recording';
-import type { RecordingTag } from '@hubs/services/api/model/Recording';
-import type { RecordingOrigin } from '@hubs/components/RecordingOriginChip.vue';
-import type Bundle from '@hubs/services/api/model/Bundle';
-import { recordingKindOf, type RecordingKindKey } from '@hubs/components/recordingKinds';
-import { BUNDLE_DRAG_PREFIX, compareMembers } from '@hubs/components/bundleSummary';
+import type RecordingGroup from '@remote/services/api/model/RecordingGroup';
+import type Recording from '@remote/services/api/model/Recording';
+import type { RecordingTag } from '@remote/services/api/model/Recording';
+import type { RecordingOrigin } from '@remote/components/RecordingOriginChip.vue';
+import type Bundle from '@remote/services/api/model/Bundle';
+import { recordingKindOf, type RecordingKindKey } from '@remote/components/recordingKinds';
+import { BUNDLE_DRAG_PREFIX, compareMembers } from '@remote/components/bundleSummary';
 import {
   splitColumns,
   type BundleWithMembers,
   type ListItem
-} from '@hubs/components/recordingColumns';
-import { hasFailed } from '@hubs/components/profileInitChips';
+} from '@remote/components/recordingColumns';
+import { hasFailed } from '@remote/components/profileInitChips';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
@@ -804,11 +804,11 @@ const buildOrigin = (recordingTags: RecordingTag[] | undefined): RecordingOrigin
   const sys = Object.fromEntries(
     tags.filter(t => t.key.startsWith('origin.')).map(t => [t.key, t.value])
   );
-  if (!sys['origin.hub']) {
+  if (!sys['origin.remote']) {
     return undefined;
   }
   return {
-    hub: sys['origin.hub'],
+    remote: sys['origin.remote'],
     workspace: sys['origin.workspace'] ?? '',
     project: sys['origin.project'] ?? ''
   };

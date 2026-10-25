@@ -110,7 +110,7 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 - **It will not profile production.** Attaching a profiler to something a user did not name as theirs
   to profile is not this skill's decision. Recording a deployed application is a Jeffrey Hub question;
-  the **analyze-hub** skill fetches what production already recorded.
+  the **analyze-remote** skill fetches what production already recorded.
 - **It will not choose the workload silently.** A benchmark that does not represent the problem
   produces a profile that answers the wrong question convincingly.
 

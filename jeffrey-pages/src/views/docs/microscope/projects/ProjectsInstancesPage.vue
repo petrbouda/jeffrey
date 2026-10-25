@@ -52,7 +52,7 @@ onMounted(() => {
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-grid" title="Instances">
-            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the hub, as its last retention pass measured them.
+            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the remote, as the hub&rsquo;s last retention pass measured them.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-bar-chart-steps" title="Timeline">
             A swimlane view of when each instance and its sessions were active. Pick a time range (1H, 6H, 24H, 7D, 30D) to focus on the period you care about.
@@ -60,7 +60,7 @@ onMounted(() => {
         </div>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces only:</strong> Instances appear only for projects inside remote workspaces connected to a Jeffrey Hub. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
+          <strong>Remote workspaces only:</strong> Instances appear only for projects inside the workspaces of the connected remote. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
         </DocsCallout>
 
         <h2 id="instance-lifecycle">Instance Lifecycle</h2>
@@ -95,9 +95,9 @@ onMounted(() => {
         <p>On the Instances tab, the right end of the tab row carries a one-line summary of the project: active and finished instances (pending too, when there are any), sessions and storage size. Click it to open the full breakdown:</p>
         <ul>
           <li><strong>Instances</strong> — counts by status (pending, active, finished), total instances, total sessions, and uptime range.</li>
-          <li><strong>Storage</strong> — the bytes the project occupies on the hub, as the hub's last retention pass measured them. Opening the tab never walks the project's files for it; until the first pass has run the breakdown says the project is not measured yet.</li>
+          <li><strong>Storage</strong> — the bytes the project occupies on the remote, as the hub's last retention pass measured them. Opening the tab never walks the project's files for it; until the first pass has run the breakdown says the project is not measured yet.</li>
         </ul>
-        <p>Every view here loads one level of the hub's tree: the instance list carries no sessions, an instance's page reads that instance and its sessions, and a session's files are fetched only when the session is expanded or its drawer is opened.</p>
+        <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, an instance's page reads that instance and its sessions, and a session's files are fetched only when the session is expanded or its drawer is opened.</p>
 
         <p>Below the tab row, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
 

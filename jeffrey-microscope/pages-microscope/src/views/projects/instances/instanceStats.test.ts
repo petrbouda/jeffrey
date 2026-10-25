@@ -20,7 +20,7 @@ import FormattingService from '@shared/services/FormattingService';
 import { storageFigure, summarizeInstances } from './instanceStats.ts';
 import ProjectInstance, {
   type ProjectInstanceStatus
-} from '@hubs/services/api/model/ProjectInstance.ts';
+} from '@remote/services/api/model/ProjectInstance.ts';
 
 const BASE = 1_750_000_000_000;
 

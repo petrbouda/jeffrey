@@ -27,7 +27,7 @@ const microscopeHeroBullets: HeroBullet[] = [
   { icon: 'bi-fire', text: 'Interactive flamegraphs or specialized dashboards' },
   { icon: 'bi-arrows-collapse', text: 'Differential flamegraphs across profiles' },
   { icon: 'bi-droplet-half', text: 'JFR and heap dumps — one analyzer' },
-  { icon: 'bi-plug', text: 'Pull from a Hub, or analyze a JFR file standalone' }
+  { icon: 'bi-plug', text: 'Pull from a Hub or an Azure file share, or analyze a JFR file standalone' }
 ];
 
 type AgentLineKind = 'prompt' | 'tool' | 'result';
@@ -95,14 +95,14 @@ const productTabs: ProductTab[] = [
     name: 'Microscope',
     icon: 'bi-search-heart-fill',
     tagline: 'Deep analyzer for JFR recordings and heap dumps.',
-    oneLiner: 'Open a JFR file or connect to a Hub. Read flamegraphs that finally render fast.',
+    oneLiner: 'Open a JFR file or connect a remote. Read flamegraphs that finally render fast.',
     features: [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
       { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
       { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
       { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' },
       { icon: 'bi-diagram-3', title: 'Traces', desc: 'Span waterfalls correlated with I/O, locks and GC pauses — from the same JFR file.' },
-      { icon: 'bi-plug', title: 'Connect to Hub', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' }
+      { icon: 'bi-plug', title: 'Connect a Remote', desc: 'Pull recordings, artifacts & application\'s lifecycle from a Jeffrey Hub over gRPC, or straight off an Azure file share.' }
     ],
     deployment: {
       eyebrow: 'Deployment',
@@ -213,7 +213,7 @@ const ecosystem: EcoProduct[] = [
     name: 'Jeffrey Hub',
     role: 'Kubernetes · Collector',
     icon: 'bi-cloud-fill',
-    desc: 'Collects JFR recordings, heap dumps and logs from running services via a shared volume, and serves them over gRPC — to Microscope, to your agent\'s analyze-hub skill, or to your own consumer.',
+    desc: 'Collects JFR recordings, heap dumps and logs from running services via a shared volume, and serves them over gRPC — to Microscope, to your agent\'s analyze-remote skill, or to your own consumer.',
     chips: ['Kubernetes', 'Shared volume', 'gRPC', 'Lifecycle events'],
     to: '/docs/hub/overview',
     flag: 'Production'
@@ -278,7 +278,7 @@ function copyCmd(): void {
         </h1>
         <p class="product-subtitle">
           A deep analyzer for JFR recordings and heap dumps. Upload a file, or connect
-          to a Jeffrey Hub and pull recordings directly.
+          a remote — a Jeffrey Hub or an Azure file share — and pull recordings directly.
         </p>
         <ul class="bullet-list">
           <li v-for="(b, i) in microscopeHeroBullets" :key="i">
@@ -504,7 +504,7 @@ function copyCmd(): void {
         <span class="connect-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
         <h2>One JFR pipeline. Every half works alone.</h2>
         <p>
-          Microscope can pull recordings from a Hub over gRPC — or work with a JFR file you
+          Microscope can pull recordings from its remote — a Hub over gRPC — or work with a JFR file you
           drop in. You read it in the browser; your coding agent reads it over MCP.
         </p>
         <div class="connect-flow">

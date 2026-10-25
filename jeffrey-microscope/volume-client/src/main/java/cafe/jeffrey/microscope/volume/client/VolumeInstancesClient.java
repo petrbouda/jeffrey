@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.InstanceRead;
-import cafe.jeffrey.hub.client.InstancesClient;
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.dto.InstanceResponse;
+import cafe.jeffrey.microscope.remote.client.InstanceRead;
+import cafe.jeffrey.microscope.remote.client.InstancesClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 
 import java.util.List;

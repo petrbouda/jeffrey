@@ -190,13 +190,11 @@ public enum StatementLabel {
     DELETE_WORKSPACE,
 
     /**
-     * {@link GroupLabel#HUBS}
+     * {@link GroupLabel#REMOTE}
      */
-    FIND_ALL_HUBS,
-    FIND_HUB_BY_ID,
-    INSERT_HUB,
-    UPDATE_HUB,
-    DELETE_HUB,
+    FIND_REMOTE,
+    SAVE_REMOTE,
+    DELETE_REMOTE,
 
     /**
      * {@link GroupLabel#PROFILE_FRAMES}

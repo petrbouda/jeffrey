@@ -51,7 +51,7 @@ onMounted(() => {
           host — and continuously collects JFR recordings. It lists them by workspace, project,
           and instance straight off the shared volume — its only state, with no database —
           runs retention and compression jobs, and serves the results over gRPC. Detailed profile
-          analysis happens in Microscope. <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
+          analysis happens in Microscope. <router-link to="/docs/microscope-mcp/tools#remote">Microscope’s <code>remote_</code> tools</router-link>
           pick a session, or the hours of it that matter, and download that.
         </p>
         <div class="hero-actions">
@@ -80,7 +80,7 @@ onMounted(() => {
         <div class="value-tile tile-grpc">
           <div class="value-icon"><i class="bi bi-hdd-network"></i></div>
           <h3>gRPC to Microscope</h3>
-          <p>Microscope clients connect as remote workspaces, browse sessions, and pull only the recordings they want to investigate.</p>
+          <p>Microscope connects a hub as its remote, browses its sessions, and pulls only the recordings worth investigating.</p>
         </div>
       </section>
 

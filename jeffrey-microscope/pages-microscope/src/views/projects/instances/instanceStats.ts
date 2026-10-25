@@ -16,9 +16,9 @@
  */
 
 import FormattingService from '@shared/services/FormattingService';
-import type ProjectInstance from '@hubs/services/api/model/ProjectInstance';
-import type { ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
-import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics';
+import type ProjectInstance from '@remote/services/api/model/ProjectInstance';
+import type { ProjectInstanceStatus } from '@remote/services/api/model/ProjectInstance';
+import type RepositoryStatistics from '@remote/services/api/model/RepositoryStatistics';
 
 /** A project's instances reduced to the figures the tab-row summary shows. */
 export interface InstanceStats {

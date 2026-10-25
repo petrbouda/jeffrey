@@ -17,19 +17,19 @@
 
 package cafe.jeffrey.microscope.core.manager.workspace;
 
-import cafe.jeffrey.hub.client.DiscoveryClient;
-import cafe.jeffrey.hub.client.FileStreamClient;
-import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.hub.client.InstancesClient;
-import cafe.jeffrey.hub.client.ProjectsClient;
-import cafe.jeffrey.hub.client.RepositoryClient;
+import cafe.jeffrey.microscope.remote.client.DiscoveryClient;
+import cafe.jeffrey.microscope.remote.client.FileStreamClient;
+import cafe.jeffrey.microscope.remote.client.RemoteClients;
+import cafe.jeffrey.microscope.remote.client.InstancesClient;
+import cafe.jeffrey.microscope.remote.client.ProjectsClient;
+import cafe.jeffrey.microscope.remote.client.RepositoryClient;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
-import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.hub.HubInfo;
-import cafe.jeffrey.microscope.model.hub.HubSource;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.remote.RemoteInfo;
+import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
@@ -55,12 +55,12 @@ class RemoteWorkspaceManagerTest {
     private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
 
     private RemoteWorkspaceManager managerOn(boolean readOnly) {
-        HubInfo hub = new HubInfo("share", "Share", new AzureFilesAddress(
+        RemoteInfo remote = new RemoteInfo("Share", new AzureFilesAddress(
                 "https://acct.file.core.windows.net", "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS,
-                readOnly), NOW, HubSource.CONFIG);
-        HubClients clients = new HubClients(discovery, mock(RepositoryClient.class), mock(FileStreamClient.class),
+                readOnly), NOW, RemoteSource.CONFIG);
+        RemoteClients clients = new RemoteClients(discovery, mock(RepositoryClient.class), mock(FileStreamClient.class),
                 mock(InstancesClient.class), mock(ProjectsClient.class));
-        return new RemoteWorkspaceManager(mock(MicroscopeJeffreyDirs.class), hub, WORKSPACE, workspaceRepository,
+        return new RemoteWorkspaceManager(mock(MicroscopeJeffreyDirs.class), remote, WORKSPACE, workspaceRepository,
                 clients, mock(RemoteProjectManagerFactory.class));
     }
 

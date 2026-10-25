@@ -230,7 +230,7 @@ class McpCursorTest {
             String cursor = CURSOR.encode(FILTERS, AFTER);
 
             assertThrows(IllegalArgumentException.class,
-                    () -> CURSOR.decode(cursor, McpCursor.Filters.of("hubs_sessions", "checkout", null, 60)));
+                    () -> CURSOR.decode(cursor, McpCursor.Filters.of("remote_sessions", "checkout", null, 60)));
         }
 
         @Test

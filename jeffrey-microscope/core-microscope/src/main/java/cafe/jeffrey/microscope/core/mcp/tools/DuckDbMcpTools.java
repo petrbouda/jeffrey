@@ -483,7 +483,7 @@ public class DuckDbMcpTools {
     }
 
     @Tool(description = "Returns the identity of the JFR profile: its profile ID, project ID and "
-            + "workspace ID, and whether it belongs to a hub project or to the Quick Analysis store.")
+            + "workspace ID, and whether it belongs to a remote project or to the Quick Analysis store.")
     @McpOutputSchema(ProfileIdentity.class)
     @McpToolMeta(cost = McpToolCost.CHEAP)
     public McpToolResult getProfileInfo() {
@@ -634,7 +634,7 @@ public class DuckDbMcpTools {
 
     /** Where the profile belongs. */
     enum ProfileKind {
-        /** A profile of a hub project's recording. */
+        /** A profile of a remote project's recording. */
         PROJECT,
         /** A profile of a recording in the Quick Analysis store. */
         QUICK_ANALYSIS
@@ -711,7 +711,7 @@ public class DuckDbMcpTools {
     record ProfileIdentity(
             String profileId,
             @McpNullable
-            @McpDescription("The hub project; null for a Quick Analysis profile")
+            @McpDescription("The remote project; null for a Quick Analysis profile")
             String projectId,
             @McpNullable
             @McpDescription("The workspace of that project; null for a Quick Analysis profile")

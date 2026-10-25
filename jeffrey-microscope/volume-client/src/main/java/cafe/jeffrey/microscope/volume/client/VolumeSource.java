@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
@@ -118,7 +118,7 @@ public record VolumeSource(
         try {
             return read.get();
         } catch (UncheckedIOException e) {
-            throw new JeffreyInternalException(ErrorCode.HUB_UNAVAILABLE,
+            throw new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE,
                     "Cannot reach the recording volume: source=%s reason=%s".formatted(description, e.getMessage()), e);
         }
     }

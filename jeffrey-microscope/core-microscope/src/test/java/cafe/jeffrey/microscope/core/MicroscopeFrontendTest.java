@@ -95,7 +95,7 @@ class MicroscopeFrontendTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/index.html", "/recordings", "/hubs", "/profiles/test/overview"})
+    @ValueSource(strings = {"/index.html", "/recordings", "/remote", "/profiles/test/overview"})
     void htmlIsRevalidatedAfterDeployment(String path) throws Exception {
         mvc.perform(get(path).accept(MediaType.TEXT_HTML))
                 .andExpect(status().isOk())

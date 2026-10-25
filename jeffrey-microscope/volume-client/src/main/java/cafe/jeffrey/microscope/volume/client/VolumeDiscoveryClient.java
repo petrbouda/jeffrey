@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.DiscoveryClient;
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.microscope.remote.client.DiscoveryClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;

@@ -16,7 +16,7 @@
  */
 
 module cafe.jeffrey.microscope.volume.client {
-    requires transitive cafe.jeffrey.hub.client;
+    requires transitive cafe.jeffrey.microscope.remote.client;
     requires transitive cafe.jeffrey.shared.volume;
     requires org.slf4j;
 

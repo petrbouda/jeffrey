@@ -68,7 +68,7 @@ onMounted(() => {
       <DocsCallout type="info">
         <strong>Full profile analysis stays in Microscope.</strong> Flame graphs and heap dump
         forensics and the MCP endpoint run in Microscope. Hub never reads a recording itself — it
-        serves the files, and <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
+        serves the files, and <router-link to="/docs/microscope-mcp/tools#remote">Microscope’s <code>remote_</code> tools</router-link>
         pull them in for analysis.
       </DocsCallout>
 
@@ -111,8 +111,10 @@ onMounted(() => {
 
       <h2 id="microscope-connection">How Microscope Connects</h2>
       <p>
-        Microscope adds a hub with a single gRPC endpoint and an optional auth token, and
-        Microscope handles the rest. From the user's point of view, the connected hub looks
+        Microscope connects a hub as its one <strong>remote</strong> &mdash; a single gRPC
+        endpoint, entered on its Remote page or declared with
+        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>
+        &mdash; and Microscope handles the rest. From the user's point of view, the connected hub looks
         identical to a local one — same workspaces, projects, instances, sessions — except
         recordings are pulled on demand from the hub when the user opens them. See the
         <router-link to="/docs/microscope/workspaces">Microscope Workspaces</router-link> page

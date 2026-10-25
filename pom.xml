@@ -230,7 +230,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>hub-client</artifactId>
+                <artifactId>remote-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -250,7 +250,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>hubs</artifactId>
+                <artifactId>ui-remote</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

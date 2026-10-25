@@ -21,18 +21,18 @@
 --
 
 --
--- HUB TABLES
--- One row per connected jeffrey-hub. Workspaces are NOT stored locally —
--- they are listed live from the server via gRPC ListWorkspaces.
+-- REMOTE
+-- The one remote this Microscope is connected to, as a single row (id is always 1). Its
+-- workspaces and projects are NOT stored locally — they are read live from the remote.
 --
 
-CREATE TABLE IF NOT EXISTS hubs
+CREATE TABLE IF NOT EXISTS remote
 (
-    hub_id   VARCHAR PRIMARY KEY,
+    id          INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     name        VARCHAR NOT NULL,
-    -- 'GRPC' for a jeffrey-hub reached over gRPC (hostname, port, plaintext), 'AZURE_FILES' for the
-    -- recording volume read straight from an Azure file share (the azure_* columns). The columns of
-    -- the other kind stay NULL.
+    -- 'GRPC' for a Jeffrey Hub reached over gRPC (hostname, port, plaintext), 'AZURE_FILES' for the
+    -- recording volume on an Azure file share (the azure_* columns). The columns of the other kind
+    -- stay NULL.
     kind        VARCHAR NOT NULL DEFAULT 'GRPC',
     hostname    VARCHAR,
     port        INTEGER,
@@ -53,12 +53,10 @@ CREATE TABLE IF NOT EXISTS hubs
     -- deleted, no pin); the credential then needs only read and list rights
     azure_read_only BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL,
-    -- 'CONFIG' for a hub declared under jeffrey.microscope.hubs.* — configuration owns the row,
-    -- it is reconciled on every startup and the UI cannot delete it. 'USER' for a hub added
-    -- through the UI, which the reconciliation never touches.
-    source      VARCHAR NOT NULL DEFAULT 'USER',
-    UNIQUE (hostname, port),
-    UNIQUE (azure_endpoint, azure_share, azure_root_path)
+    -- 'CONFIG' for a remote declared under jeffrey.microscope.remote.* — configuration owns the
+    -- row, it is reconciled on every startup and the UI cannot disconnect it. 'USER' for a Jeffrey
+    -- Hub connected through the UI, replaced only when configuration declares a remote.
+    source      VARCHAR NOT NULL DEFAULT 'USER'
 );
 
 --

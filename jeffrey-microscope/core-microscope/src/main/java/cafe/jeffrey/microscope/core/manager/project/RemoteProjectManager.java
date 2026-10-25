@@ -17,15 +17,15 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.hub.client.environment.SessionEnvironmentParser;
-import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
-import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
-import cafe.jeffrey.hub.client.manager.RemoteRepositoryManager;
-import cafe.jeffrey.hub.client.manager.RepositoryManager;
+import cafe.jeffrey.microscope.remote.client.environment.SessionEnvironmentParser;
+import cafe.jeffrey.microscope.remote.client.environment.SessionEnvironmentReader;
+import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
+import cafe.jeffrey.microscope.remote.client.manager.RemoteRepositoryManager;
+import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.hub.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.RemoteClients;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
@@ -39,7 +39,7 @@ public class RemoteProjectManager implements ProjectManager {
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final DetailedProjectInfo detailedProjectInfo;
     private final RepositoryStatistics repositoryStatistics;
-    private final HubClients remoteClients;
+    private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
@@ -49,7 +49,7 @@ public class RemoteProjectManager implements ProjectManager {
             MicroscopeJeffreyDirs jeffreyDirs,
             DetailedProjectInfo detailedProjectInfo,
             RepositoryStatistics repositoryStatistics,
-            HubClients remoteClients,
+            RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager,
             OriginContext originContext) {

@@ -34,14 +34,14 @@ leaving a client to infer it. Eleven do not read: `recordings_analyzeFile` and `
 rather than changing them, `recordings_delete`, the one destructive tool, which removes a recording and the
 profile built from it, `heap_prepare`, which writes only a cache, `heap_oql` with `includeRetainedSize`
 and `jvm_autoAnalysis` with `compute`, which fill the dominator tree and the Auto Analysis cache and run as
-operations for that reason, `hubs_download`, which pulls a session or a
-window of it off another machine, `hubs_fetchFile`, which pulls one of a session's artifacts off it the same way,
+operations for that reason, `remote_download`, which pulls a session or a
+window of it off another machine, `remote_fetchFile`, which pulls one of a session's artifacts off it the same way,
 `operations_cancel`, which asks background work to stop, and `ide_link` and `ide_open`, which act on the
 editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members
-of those same families - `recordings_list`, `recordings_status`, `heap_status`, `hubs_files`,
+of those same families - `recordings_list`, `recordings_status`, `heap_status`, `remote_files`,
 `operations_status` - are not swept up with them. Two families
 reach outside this server and have switches of their own —
-`jeffrey.microscope.mcp.hubs.enabled=false` for the one that leaves the machine, and
+`jeffrey.microscope.mcp.remote.enabled=false` for the one that leaves the machine, and
 `jeffrey.microscope.mcp.ide.enabled=false` for the one that reaches into the developer's IntelliJ.
 
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
@@ -172,7 +172,7 @@ the property to change).
 | Family | What it does |
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, deep links into the UI, and a versioned evidence snapshot of one profile to cite |
-| `operations_` | The work the writers start — an import, a hub download or file fetch, a heap preparation — followed by its `operationId`: where it has got to, and a request that it stop |
+| `operations_` | The work the writers start — an import, a remote download or file fetch, a heap preparation — followed by its `operationId`: where it has got to, and a request that it stop |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `compare_` | Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees, span-scoped flamegraphs, and the attributes that say which population a trace belonged to |
@@ -188,7 +188,7 @@ the property to change).
 | `jfr_` | The profile's DuckDB tables — schema, the fields of one event type, and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL, OQL, and the one pair that builds rather than reads: `heap_prepare` and `heap_status` |
 | `recordings_` | One of the six families with a writer in it: imports a recording file and builds a profile from it |
-| `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub, pulls one in — the whole session, the recording files covering a time window, or files named from the listing — and lists the files a session holds beside its recording (application logs, `gc.jvm-log`, the crash file, perf counters, a heap dump) and fetches one of them on its own, as a path the agent reads with its own tools |
+| `remote_` | The recordings still on the remote — a Jeffrey Hub, or the recording volume on an Azure file share: lists sessions across every workspace and project, pulls one in — the whole session, the recording files covering a time window, or files named from the listing — and lists the files a session holds beside its recording (application logs, `gc.jvm-log`, the crash file, perf counters, a heap dump) and fetches one of them on its own, as a path the agent reads with its own tools |
 | `ide_` | Where a frame actually lives, answered by the developer's running IntelliJ: the file and line for a class and method, a class's source, which checkouts are open and on what commit, and — the one tool here with a visible side effect — opening a location in the editor |
 
 `recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey
@@ -204,8 +204,8 @@ loads a skill when the question calls for it:
   where the file has to land
 - `analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
   which class loader never went away, and the order the heap tools have to be run in
-- `analyze-hub` — the recordings that never reached this machine: finds a session across the
-  connected Jeffrey Hubs, pulls it in, and hands off to `analyze-jfr` or `analyze-heap`
+- `analyze-remote` — the recordings that never reached this machine: finds a session on the
+  remote, pulls it in, and hands off to `analyze-jfr` or `analyze-heap`
 - `compare-jfr` — before against after: whether a change made it slower, which methods
   moved, and whether the two recordings were comparable in the first place
 - `regression-check` — the same question starting from two revisions rather than two profiles: build
@@ -257,7 +257,7 @@ dispatches to the two specialists and nothing else is a rule in its instructions
 
 Claude Code gets them from the plugin as `microscope:profile-analyst`, `microscope:heap-triage` and
 `microscope:profile-lead`, restricted to the reading tools so they cannot touch your files, import
-a recording, pull one off a hub, move your editor or propose an edit. **Agent Plugins defines only
+a recording, pull one off the remote, move your editor or propose an edit. **Agent Plugins defines only
 skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
 [`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml),
 [`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) and
@@ -300,18 +300,18 @@ the finding. Nothing is exported to a file. Each tool's `_meta` says what a call
 **Narrowing what is advertised.** `jeffrey.microscope.mcp.families` takes a comma-separated
 allow-list of family prefixes — `profiles,flamegraph,jfr,heap,operations`, say — and everything outside it is
 left out of `tools/list` entirely. Empty, the default, advertises whatever
-`jeffrey.microscope.mcp.preset` selects — `all`, or `jfr`, `heap` and `hub`, each of which keeps
+`jeffrey.microscope.mcp.preset` selects — `all`, or `jfr`, `heap` and `remote`, each of which keeps
 `profiles`, `recordings` and `operations` beside the families it is named for. A non-empty list wins
 over the preset, and `operations` must be in any list that keeps a writer family (`recordings`, `heap`,
-`hubs`, `ide` or `jvm`) — startup fails otherwise — since it is how the work the writer starts is followed;
-likewise `recordings` must be in any list that keeps `hubs`, since a downloaded session is analysed with
+`remote`, `ide` or `jvm`) — startup fails otherwise — since it is how the work the writer starts is followed;
+likewise `recordings` must be in any list that keeps `remote`, since a downloaded session is analysed with
 `recordings_analyzeRecording`. It is the blunt instrument for a shared installation, and it composes
 with the three per-family switches above.
 
 ## Permissions
 
 Every client asks before each tool the first time. Every Jeffrey tool reads except the eleven named
-above, so approving a family once is usually what you want — `hubs_` and `ide_` are the two worth
+above, so approving a family once is usually what you want — `remote_` and `ide_` are the two worth
 reading twice, since one moves data off another machine and the other acts on your editor.
 
 Claude Code, from the prompt or up front with `/permissions`:
@@ -342,7 +342,7 @@ server* build the allow-list as you go. To decide up front instead, mark the ser
 }
 ```
 
-`trust` covers every tool on the server, `ide_` and `hubs_download` included, so it is the blunt
+`trust` covers every tool on the server, `ide_` and `remote_download` included, so it is the blunt
 instrument; `excludeTools` on the same entry is how you keep those two out of reach entirely.
 
 ## Try it

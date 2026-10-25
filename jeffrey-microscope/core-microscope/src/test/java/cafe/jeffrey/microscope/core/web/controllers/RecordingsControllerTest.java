@@ -33,14 +33,14 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.ui.hub.controller.RecordingsController;
+import cafe.jeffrey.shared.ui.remote.controller.RecordingsController;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

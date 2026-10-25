@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.volume.azure;
 
-import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import com.azure.core.http.HttpClient;
 import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.storage.file.share.ShareClient;

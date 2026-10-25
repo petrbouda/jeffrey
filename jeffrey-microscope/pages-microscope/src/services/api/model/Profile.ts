@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource.ts';
+import RecordingEventSource from '@remote/services/api/model/RecordingEventSource.ts';
 
 export default class Profile {
   public deleting: boolean = false;

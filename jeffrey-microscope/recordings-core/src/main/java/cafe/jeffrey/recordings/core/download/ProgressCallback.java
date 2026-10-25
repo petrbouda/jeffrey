@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * Callback interface for reporting download progress.
- * Implementations receive progress updates during file downloads from hubs.
+ * Implementations receive progress updates during file downloads from the remote.
  */
 public interface ProgressCallback {
 

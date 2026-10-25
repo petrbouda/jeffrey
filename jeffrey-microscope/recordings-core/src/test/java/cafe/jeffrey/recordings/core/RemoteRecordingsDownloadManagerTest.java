@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.recordings.core;
 
-import cafe.jeffrey.hub.client.FileStreamClient;
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.RepositoryClient;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
-import cafe.jeffrey.hub.client.manager.TempDirProvider;
+import cafe.jeffrey.microscope.remote.client.FileStreamClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.RepositoryClient;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
+import cafe.jeffrey.microscope.remote.client.manager.TempDirProvider;
 import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;

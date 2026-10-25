@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.RepositoryClient;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.RepositoryClient;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.exception.Exceptions;

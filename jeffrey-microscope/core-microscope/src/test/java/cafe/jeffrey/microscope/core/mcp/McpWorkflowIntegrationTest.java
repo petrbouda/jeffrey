@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
+import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.RemoteArtifactsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationResults;
@@ -65,7 +65,7 @@ class McpWorkflowIntegrationTest {
     private final Clock clock = Clock.systemUTC();
     private final McpOperationRegistry operations = new McpOperationRegistry(clock);
     private final MicroscopeCoreRepositories repositories = mock(MicroscopeCoreRepositories.class);
-    private final HubsManager hubs = mock(HubsManager.class);
+    private final RemoteManager hubs = mock(RemoteManager.class);
 
     @Test
     void operationResultAndMetricsAreAvailableThroughTheRealEndpoint() {
@@ -82,12 +82,12 @@ class McpWorkflowIntegrationTest {
         JsonNode diagnostics = Json.readTree(read.path("result").path("contents").get(0).path("text").asText());
         assertEquals("operations_status", diagnostics.path("toolMetrics").get(0).path("tool").asText());
         assertEquals(1, diagnostics.path("toolMetrics").get(0).path("calls").asInt());
-        assertFalse(diagnostics.path("hubs").path("enabled").asBoolean());
+        assertFalse(diagnostics.path("remote").path("enabled").asBoolean());
     }
 
     @Test
     void operationToolsCannotReachAnExcludedOriginatingFamily() {
-        String id = completed(OperationKind.HUB_DOWNLOAD);
+        String id = completed(OperationKind.REMOTE_DOWNLOAD);
         var controller = controller(McpTestProperties.of(true, false, false,
                 Set.of("operations", "recordings")));
         assertTrue(call(controller, "operations_status", id).path("result").path("isError").asBoolean());
@@ -111,12 +111,12 @@ class McpWorkflowIntegrationTest {
                 new ProfilesMcpTools(repositories, EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordings, new PipelineRunRegistry<>(ProfileInitStages.DEFINITION,
                         PipelineRunOptions.unbounded(), clock), operations, clock).build(),
-                HubsMcpToolsFixture.of(hubs, resolver, recordings, clock).withOperations(operations).build(),
+                RemoteMcpToolsFixture.of(hubs, resolver, recordings, clock).withOperations(operations).build(),
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
                 AdvertisedFamilies.of(properties),
-                HubsArtifactsMcpToolsFixture.of(resolver, recordings, Path.of("artifacts"), Path.of("profiles"),
+                RemoteArtifactsMcpToolsFixture.of(resolver, recordings, Path.of("artifacts"), Path.of("profiles"),
                         operations, clock, EVERY_FAMILY).build(),
                 operations, ToolFixtures.answers(), clock);
         return new ExternalMcpController(assembler, properties, McpTestGuards.loopback(),

@@ -38,7 +38,7 @@
         <!-- The client interfaces and the DTOs they answer with -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hub-client</artifactId>
+            <artifactId>remote-client</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

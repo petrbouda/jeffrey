@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.hub.client.GrpcClientErrors;
+import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import io.grpc.Context;
 import io.grpc.Deadline;
 import io.grpc.Status;
@@ -28,7 +28,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The one timer behind every deadline the hub tools arm.
+ * The one timer behind every deadline the remote tools arm.
  * <p>
  * A gRPC {@link Deadline} needs somewhere to schedule the shot that cancels its {@link Context}. That
  * timer does nothing but sleep: the task is armed when a remote call starts and cancelled when it
@@ -72,12 +72,12 @@ public final class McpDeadlines {
 
     /**
      * What is left of {@code deadline}, and no more than {@code cap}: how long a tool may still wait on
-     * a transfer once the hub preflight has spent part of the response budget, bounded by what the
+     * a transfer once the remote preflight has spent part of the response budget, bounded by what the
      * client is kept waiting (the task wait for a client that follows tasks).
      *
      * @param elapsedDescription what the refusal says when nothing is left, naming whose budget ran out
      * @throws cafe.jeffrey.shared.common.exception.JeffreyException when the deadline has already
-     *         elapsed, reported as a hub {@code DEADLINE_EXCEEDED} would be
+     *         elapsed, reported as the remote {@code DEADLINE_EXCEEDED} would be
      */
     public static Duration remainingWithin(Deadline deadline, Duration cap, String elapsedDescription) {
         long remainingNanos = deadline.timeRemaining(TimeUnit.NANOSECONDS);
@@ -91,7 +91,7 @@ public final class McpDeadlines {
 
     private static ScheduledExecutorService scheduler() {
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(
-                1, Thread.ofPlatform().daemon().name("mcp-hub-deadline-", 0).factory());
+                1, Thread.ofPlatform().daemon().name("mcp-remote-deadline-", 0).factory());
         executor.setRemoveOnCancelPolicy(true);
         return executor;
     }

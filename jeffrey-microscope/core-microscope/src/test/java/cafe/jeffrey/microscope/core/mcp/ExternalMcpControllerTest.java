@@ -1009,9 +1009,9 @@ class ExternalMcpControllerTest {
         void refusesATaskOfAWithheldFamilyAsInvalidParams() {
             BoundedJobs<String, String> jobs = ToolFixtures.jobs(
                     BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, FIXED_CLOCK);
-            String taskId = registry.register(OperationKind.HUB_DOWNLOAD, jobs.rememberCompleted("s", "done"),
+            String taskId = registry.register(OperationKind.REMOTE_DOWNLOAD, jobs.rememberCompleted("s", "done"),
                     OperationResults.Value::new);
-            MockMvcTester withoutHubs = following(kind -> !kind.reachesHub());
+            MockMvcTester withoutHubs = following(kind -> !kind.reachesRemote());
 
             assertThat(post(withoutHubs, tasks("tasks/get", taskId)))
                     .hasStatusOk()

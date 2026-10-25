@@ -39,7 +39,6 @@
       <div v-else class="col-12">
         <RecordingSessionList
           :sessions="sessions"
-          :hubId="hubId!"
           :workspaceId="workspaceId!"
           :projectId="projectId!"
           :isCollectorOnly="isCollectorOnly"
@@ -67,18 +66,18 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
-import RecordingSessionList from '@hubs/components/RecordingSessionList.vue';
-import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
-import RecordingStatus from '@hubs/services/api/model/RecordingStatus';
+import RecordingSessionList from '@remote/components/RecordingSessionList.vue';
+import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
+import RecordingStatus from '@remote/services/api/model/RecordingStatus';
 import { usePolling } from '@shared/composables/usePolling';
-import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
-import RecordingSession from '@hubs/services/api/model/RecordingSession';
+import ProjectInstance from '@remote/services/api/model/ProjectInstance';
+import RecordingSession from '@remote/services/api/model/RecordingSession';
 import { useNavigation } from '@/composables/useNavigation';
 import '@shared/styles/shared-components.css';
 
-const { hubId, workspaceId, projectId, instanceId } = useNavigation();
+const { workspaceId, projectId, instanceId } = useNavigation();
 
-const instanceClient = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
+const instanceClient = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
 // Collector-only mode is never active in local mode
 const isCollectorOnly = computed(() => {

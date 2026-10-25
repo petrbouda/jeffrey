@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.web.dto.workspace;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
-import cafe.jeffrey.shared.ui.hub.dto.ProjectResponse;
-import cafe.jeffrey.shared.ui.hub.dto.WorkspaceResponse;
+import cafe.jeffrey.shared.ui.remote.dto.ProjectResponse;
+import cafe.jeffrey.shared.ui.remote.dto.WorkspaceResponse;
 
 
 public abstract class Mappers {

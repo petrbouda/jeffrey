@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.RepositoryFiles;
-import cafe.jeffrey.hub.client.dto.InstanceResponse;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
+import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
+import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;

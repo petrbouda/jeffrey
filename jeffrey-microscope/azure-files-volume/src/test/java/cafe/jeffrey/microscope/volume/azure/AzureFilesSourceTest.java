@@ -17,15 +17,15 @@
 
 package cafe.jeffrey.microscope.volume.azure;
 
-import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
-import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.remote.client.RemoteClients;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
-import cafe.jeffrey.microscope.volume.client.VolumeHubClients;
+import cafe.jeffrey.microscope.volume.client.VolumeRemoteClients;
 import cafe.jeffrey.microscope.volume.client.VolumeSource;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
@@ -62,7 +62,7 @@ class AzureFilesSourceTest {
     private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
 
     private StubFileShare share;
-    private HubClients clients;
+    private RemoteClients clients;
 
     @BeforeEach
     void setUp() {
@@ -87,7 +87,7 @@ class AzureFilesSourceTest {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         SessionLiveness liveness = new SessionLiveness(
                 clock, new HeartbeatReader(volume), new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
-        clients = VolumeHubClients.of(new VolumeSource(volume, liveness, clock, "azure-files", false));
+        clients = VolumeRemoteClients.of(new VolumeSource(volume, liveness, clock, "azure-files", false));
     }
 
     /** A pin and a delete reach the share as the layout's own writes, and read back as the hub would. */

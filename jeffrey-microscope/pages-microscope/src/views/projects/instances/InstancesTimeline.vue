@@ -593,15 +593,15 @@ import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
-import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
-import { useSessionReads } from '@hubs/composables/useSessionReads';
-import { downloadAssistantStore } from '@hubs/stores/assistants/downloadAssistantStore';
+import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient';
+import { useSessionReads } from '@remote/composables/useSessionReads';
+import { downloadAssistantStore } from '@remote/stores/assistants/downloadAssistantStore';
 import { ToastService } from '@shared/services/ToastService';
-import ProjectInstance, { type ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
-import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetail';
-import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
-import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
+import ProjectInstance, { type ProjectInstanceStatus } from '@remote/services/api/model/ProjectInstance';
+import ProjectInstanceDetail from '@remote/services/api/model/ProjectInstanceDetail';
+import ProjectInstanceSession from '@remote/services/api/model/ProjectInstanceSession';
+import ProjectInstanceSessionDetail from '@remote/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
 import type { Variant } from '@shared/types/ui';
 import { useNavigation } from '@/composables/useNavigation';
@@ -609,7 +609,6 @@ import { splitTimelineSessions, type FailedSessionBlock } from './timelineFailed
 import '@shared/styles/shared-components.css';
 
 const {
-  hubId,
   workspaceId,
   projectId,
   generateInstanceUrl
@@ -636,12 +635,10 @@ const instanceDetails = ref<Map<string, ProjectInstanceDetail>>(new Map());
 const activeSessionByInstance = ref<Map<string, string>>(new Map());
 const sessionDetails = ref<Map<string, ProjectInstanceSessionDetail>>(new Map());
 const instanceClient = new ProjectInstanceClient(
-  hubId.value,
   workspaceId.value!,
   projectId.value!
 );
 const repositoryClient = new ProjectRepositoryClient(
-  hubId.value,
   workspaceId.value!,
   projectId.value!
 );
@@ -1319,7 +1316,6 @@ async function downloadSession(sessionId: string): Promise<void> {
   try {
     const fileIds = repositorySession.files.map(file => file.id);
     await downloadAssistantStore.startDownload(
-      hubId.value,
       workspaceId.value!,
       projectId.value!,
       sessionId,

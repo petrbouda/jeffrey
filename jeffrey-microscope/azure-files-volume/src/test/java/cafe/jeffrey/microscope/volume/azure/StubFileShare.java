@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.volume.azure;
 
-import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpMethod;

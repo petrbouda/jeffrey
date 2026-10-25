@@ -1,0 +1,294 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.shared.ui.remote.controller;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.remote.dto.BundleResponse;
+import cafe.jeffrey.shared.ui.remote.dto.RecordingGroupResponse;
+import cafe.jeffrey.shared.ui.remote.dto.RecordingResponse;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Shared local recordings store: groups + uploads + listing + per-file download + deletion. Backed
+ * by the deployment-agnostic {@link RecordingsCoreManager}; the per-recording profile fields are
+ * supplied by the {@link RecordingProfileInfoProvider} bridge (a real implementation in microscope,
+ * {@link RecordingProfileInfoProvider#NOOP} elsewhere). Profile-mutating endpoints (analyze / update
+ * / delete profile) are NOT here — they remain in the deployment that owns profiles.
+ *
+ * <p>Annotated {@code @RestController} and registered as a {@code @Bean} via
+ * {@code RemoteFeatureConfiguration}; it lives outside both apps' component-scan roots, so it is
+ * mapped exactly once (by the {@code @Bean}).
+ */
+@RestController
+@RequestMapping("/api/internal/recordings")
+public class RecordingsController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RecordingsController.class);
+
+    private final RecordingsCoreManager recordingsManager;
+    private final RecordingProfileInfoProvider profileInfoProvider;
+
+    public RecordingsController(
+            RecordingsCoreManager recordingsManager,
+            RecordingProfileInfoProvider profileInfoProvider) {
+        this.recordingsManager = recordingsManager;
+        this.profileInfoProvider = profileInfoProvider;
+    }
+
+    // --- Group endpoints ---
+
+    @PostMapping(value = "/groups", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public CreateGroupResponse createGroup(@RequestBody CreateGroupRequest request) {
+        if (request == null || request.name() == null || request.name().isBlank()) {
+            throw Exceptions.invalidRequest("Group name is required");
+        }
+        String groupId = recordingsManager.createGroup(request.name().trim());
+        LOG.debug("Created quick analysis group: groupId={} name={}", groupId, request.name());
+        return new CreateGroupResponse(groupId);
+    }
+
+    @GetMapping(value = "/groups", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<RecordingGroupResponse> listGroups() {
+        List<RecordingGroup> groups = recordingsManager.listGroups();
+
+        // A group holds standalone recordings and bundles; a bundle's members sit in no group of
+        // their own, so each bundle counts once, however many items it holds.
+        Stream<String> recordingGroups = recordingsManager.listRecordings().stream()
+                .map(Recording::groupId);
+        Stream<String> bundleGroups = recordingsManager.listBundles().stream()
+                .map(Bundle::groupId);
+        Map<String, Long> countByGroup = Stream.concat(recordingGroups, bundleGroups)
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        return groups.stream()
+                .map(g -> RecordingGroupResponse.from(g, countByGroup.getOrDefault(g.id(), 0L).intValue()))
+                .toList();
+    }
+
+    @DeleteMapping("/groups/{groupId}")
+    public void deleteGroup(@PathVariable("groupId") String groupId) {
+        recordingsManager.deleteGroup(groupId);
+    }
+
+    // --- Recording endpoints ---
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public UploadRecordingResponse uploadRecording(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "groupId", required = false) String groupId) {
+        if (file == null || file.isEmpty() || file.getOriginalFilename() == null) {
+            throw Exceptions.invalidRequest("File is required");
+        }
+        String normalizedGroupId = normalizeString(groupId);
+        LOG.debug("Uploading recording for quick analysis: filename={} groupId={}",
+                file.getOriginalFilename(), normalizedGroupId);
+        try {
+            String recordingId = recordingsManager.uploadRecording(
+                    file.getOriginalFilename(), file.getInputStream(), normalizedGroupId);
+            return imported(recordingId);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read uploaded recording", e);
+        }
+    }
+
+    @PostMapping(value = "/from-path", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public UploadRecordingResponse importFromPath(@RequestBody ImportFromPathRequest request) {
+        if (request == null || request.path() == null || request.path().isBlank()) {
+            throw Exceptions.invalidRequest("Path is required");
+        }
+        String path = request.path().trim();
+        LOG.debug("Importing recording from local path for quick analysis: path={}", path);
+        String recordingId = recordingsManager.importRecordingFromPath(Path.of(path));
+        return imported(recordingId);
+    }
+
+    /**
+     * The id, and what kind of recording it turned out to be. The caller's next step is to analyse
+     * and open it, and where a profile opens depends on its kind — a heap dump has no JFR dashboard
+     * to land on. Telling it here saves a second round trip to find out.
+     */
+    private UploadRecordingResponse imported(String recordingId) {
+        String eventSource = recordingsManager.findRecording(recordingId)
+                .map(recording -> recording.eventSource().name())
+                .orElse(null);
+        return new UploadRecordingResponse(recordingId, eventSource);
+    }
+
+    @GetMapping(value = "/recordings", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<RecordingResponse> listRecordings() {
+        List<Recording> recordings = recordingsManager.listRecordings();
+        Map<String, List<RecordingTag>> tagsByRecording = recordingsManager.tagsForRecordings(
+                recordings.stream().map(Recording::id).toList());
+
+        return recordings.stream()
+                .map(rec -> RecordingResponse.from(
+                        rec,
+                        profileInfoProvider.profileInfo(rec),
+                        tagsByRecording.getOrDefault(rec.id(), List.of())))
+                .toList();
+    }
+
+    @PutMapping(value = "/recordings/{recordingId}/group", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public void moveRecordingToGroup(
+            @PathVariable("recordingId") String recordingId,
+            @RequestBody MoveToGroupRequest request) {
+        LOG.debug("Moving quick recording to group: recordingId={} groupId={}", recordingId, request.groupId());
+        recordingsManager.moveRecordingToGroup(recordingId, request.groupId());
+    }
+
+    @DeleteMapping("/recordings/{recordingId}")
+    public void deleteRecording(@PathVariable("recordingId") String recordingId) {
+        recordingsManager.deleteRecording(recordingId);
+    }
+
+    @GetMapping("/recordings/{recordingId}/files/{fileId}/download")
+    public ResponseEntity<Resource> downloadFile(
+            @PathVariable("recordingId") String recordingId,
+            @PathVariable("fileId") String fileId) {
+
+        Path filePath = recordingsManager.findRecordingFile(recordingId, fileId)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Recording file not found: recordingId=" + recordingId + " fileId=" + fileId));
+        // The name the file is known by, from its row: the stored file's name carries the storage
+        // prefix, which is not part of it.
+        String filename = recordingsManager.findRecording(recordingId)
+                .flatMap(recording -> recording.files().stream()
+                        .filter(file -> file.id().equals(fileId))
+                        .findFirst())
+                .map(RecordingFile::filename)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Recording file not found: recordingId=" + recordingId + " fileId=" + fileId));
+
+        FileSystemResource resource = new FileSystemResource(filePath);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, DownloadHeaders.attachment(filename))
+                .body(resource);
+    }
+
+    // --- Bundle endpoints ---
+
+    @GetMapping(value = "/bundles", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<BundleResponse> listBundles() {
+        List<Bundle> bundles = recordingsManager.listBundles();
+
+        // Every member carries the session's origin tags; the first member's speak for the bundle.
+        Map<String, String> firstMemberByBundle = recordingsManager.listRecordings().stream()
+                .filter(Recording::inBundle)
+                .collect(Collectors.toMap(Recording::bundleId, Recording::id, (first, _) -> first));
+        Map<String, List<RecordingTag>> tagsByRecording = recordingsManager.tagsForRecordings(
+                firstMemberByBundle.values());
+
+        return bundles.stream()
+                .map(bundle -> BundleResponse.from(bundle, tagsByRecording.getOrDefault(
+                        firstMemberByBundle.get(bundle.id()), List.of())))
+                .toList();
+    }
+
+    @PutMapping(value = "/bundles/{bundleId}/group", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public void moveBundleToGroup(
+            @PathVariable("bundleId") String bundleId,
+            @RequestBody MoveToGroupRequest request) {
+        LOG.debug("Moving bundle to group: bundleId={} groupId={}", bundleId, request.groupId());
+        recordingsManager.moveBundleToGroup(bundleId, request.groupId());
+    }
+
+    @DeleteMapping("/bundles/{bundleId}")
+    public void deleteBundle(@PathVariable("bundleId") String bundleId) {
+        recordingsManager.deleteBundle(bundleId);
+    }
+
+    @GetMapping("/bundles/{bundleId}/files/{fileId}/download")
+    public ResponseEntity<Resource> downloadBundleFile(
+            @PathVariable("bundleId") String bundleId,
+            @PathVariable("fileId") String fileId) {
+
+        Path filePath = recordingsManager.findBundleFile(bundleId, fileId)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Bundle file not found: bundleId=" + bundleId + " fileId=" + fileId));
+        String filename = recordingsManager.findBundle(bundleId)
+                .flatMap(bundle -> bundle.files().stream()
+                        .filter(file -> file.id().equals(fileId))
+                        .findFirst())
+                .map(BundleFile::filename)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Bundle file not found: bundleId=" + bundleId + " fileId=" + fileId));
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, DownloadHeaders.attachment(filename))
+                .body(new FileSystemResource(filePath));
+    }
+
+    private static String normalizeString(String value) {
+        return (value != null && !value.isBlank()) ? value.trim() : null;
+    }
+
+    public record CreateGroupRequest(String name) {
+    }
+
+    public record CreateGroupResponse(String groupId) {
+    }
+
+    /** @param eventSource the recording's {@code RecordingEventSource} by name, or null when unknown */
+    public record UploadRecordingResponse(String recordingId, String eventSource) {
+    }
+
+    public record ImportFromPathRequest(String path) {
+    }
+
+    public record MoveToGroupRequest(String groupId) {
+    }
+}

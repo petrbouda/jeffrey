@@ -48,15 +48,15 @@
             <span>Recordings</span>
           </button>
 
-          <!-- Back to Hubs button (only shown on project pages) -->
+          <!-- Back to Remote button (only shown on project pages) -->
           <button
             v-if="isProjectPage"
             class="topbar-back-btn"
-            title="Back to hubs"
-            @click="$router.push('/hubs')"
+            title="Back to the remote"
+            @click="$router.push('/remote')"
           >
             <i class="bi bi-arrow-return-left"></i>
-            <span>Hubs</span>
+            <span>Remote</span>
           </button>
         </div>
       </div>

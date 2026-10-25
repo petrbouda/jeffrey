@@ -34,20 +34,20 @@ import java.util.Set;
  * bearer token.
  *
  * @param enabled     whether the endpoint answers at all; while off it responds {@code 404}
- * @param hubsEnabled whether the {@code hubs_} family is advertised, which lets a client list and
- *                    pull recordings from a connected Jeffrey Hub. Its own switch because it is the
+ * @param remoteEnabled whether the {@code remote_} family is advertised, which lets a client list and
+ *                    pull recordings from the connected remote. Its own switch because it is the
  *                    one family that reaches past this machine: everything else reads what is already
  *                    here, while this one talks to remote infrastructure and can move gigabytes off it
  * @param ideEnabled  whether the {@code ide_} family is advertised, which lets a client ask the
  *                    developer's running IntelliJ where a frame lives, read a class through it, and
- *                    move its editor. Its own switch for the same reason as the hub family, one step
+ *                    move its editor. Its own switch for the same reason as the remote family, one step
  *                    closer to home: everything else reads a recording Jeffrey already holds, while
  *                    this reaches into another process on this machine and can put a file on
  *                    somebody's screen
  * @param families    the tool families to advertise, empty meaning the selected preset. A client that pays
  *                    for every schema on every turn can be given only the families it uses
- * @param preset      a lowercase preset name: all (default), jfr, heap or hub. Explicit families
- *                    override the preset; the hub and IDE switches remain independent gates
+ * @param preset      a lowercase preset name: all (default), jfr, heap or remote. Explicit families
+ *                    override the preset; the remote and IDE switches remain independent gates
  * @param trustForwardedHeaders whether the request guard takes the host and scheme a client used from
  *                    {@code X-Forwarded-Host} and {@code X-Forwarded-Proto}. Only for a Jeffrey that
  *                    is reachable solely through a proxy that sets both, since anyone who can reach
@@ -57,7 +57,7 @@ import java.util.Set;
  */
 public record ExternalMcpProperties(
         boolean enabled,
-        boolean hubsEnabled,
+        boolean remoteEnabled,
         boolean ideEnabled,
         Set<String> families,
         String preset,
@@ -69,14 +69,14 @@ public record ExternalMcpProperties(
     private static final Map<String, Set<String>> PRESETS = Map.of(
             DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
-                    "memory", "heap", "hubs", "ide", "operations"),
+                    "memory", "heap", "remote", "ide", "operations"),
             // Everything analyze-jfr routes to: the per-domain families it hands a trace, an HTTP,
             // JDBC, gRPC, method-tracing, I/O, blocking, timeline or memory question to.
             "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "traces",
                     "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory",
                     "operations"),
             "heap", Set.of("profiles", "recordings", "heap", "operations"),
-            "hub", Set.of("profiles", "recordings", "hubs", "operations"));
+            "remote", Set.of("profiles", "recordings", "remote", "operations"));
 
     private static final String OPERATIONS_FAMILY = "operations";
 
@@ -85,9 +85,9 @@ public record ExternalMcpProperties(
      * {@code operations_status} can follow and {@code operations_cancel} can stop, or sits beside
      * those that do, so an explicit list that serves one of them has to serve {@code operations} too.
      */
-    private static final Set<String> WRITER_FAMILIES = Set.of("recordings", "heap", "hubs", "ide", "jvm");
+    private static final Set<String> WRITER_FAMILIES = Set.of("recordings", "heap", "remote", "ide", "jvm");
 
-    private static final String HUBS_FAMILY = "hubs";
+    private static final String REMOTE_FAMILY = "remote";
     private static final String RECORDINGS_FAMILY = "recordings";
 
     private static final String NO_TOKEN = "";
@@ -99,7 +99,7 @@ public record ExternalMcpProperties(
         preset = preset == null ? DEFAULT_PRESET : preset;
         if (!PRESETS.containsKey(preset)) {
             throw new IllegalArgumentException("Unknown MCP preset '" + preset
-                    + "'. Use a lowercase preset: all, jfr, heap or hub.");
+                    + "'. Use a lowercase preset: all, jfr, heap or remote.");
         }
         Set<String> knownFamilies = knownFamilies();
         if (!knownFamilies.containsAll(families)) {
@@ -115,9 +115,9 @@ public record ExternalMcpProperties(
                     + "so their operationIds can be polled with operations_status and stopped with "
                     + "operations_cancel.");
         }
-        if (families.contains(HUBS_FAMILY) && !families.contains(RECORDINGS_FAMILY)) {
-            throw new IllegalArgumentException("MCP family 'hubs' downloads recordings, and the recordings "
-                    + "family must be selected wherever hubs is: add 'recordings' to the families list so a "
+        if (families.contains(REMOTE_FAMILY) && !families.contains(RECORDINGS_FAMILY)) {
+            throw new IllegalArgumentException("MCP family 'remote' downloads recordings, and the recordings "
+                    + "family must be selected wherever remote is: add 'recordings' to the families list so a "
                     + "downloaded session can be analysed with recordings_analyzeRecording.");
         }
     }
@@ -142,7 +142,7 @@ public record ExternalMcpProperties(
     @Override
     public String toString() {
         return "ExternalMcpProperties[enabled=" + enabled
-                + ", hubsEnabled=" + hubsEnabled
+                + ", remoteEnabled=" + remoteEnabled
                 + ", ideEnabled=" + ideEnabled
                 + ", families=" + families
                 + ", preset=" + preset
@@ -152,7 +152,7 @@ public record ExternalMcpProperties(
 
     /**
      * Whether a family is selected by the explicit allowlist, or by the preset when no allowlist is
-     * set. The assembler applies the independent hub and IDE switches before retaining families.
+     * set. The assembler applies the independent remote and IDE switches before retaining families.
      */
     public boolean advertises(String family) {
         if (families.isEmpty() && DEFAULT_PRESET.equals(preset)) {

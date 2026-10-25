@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.volume.azure;
 
-import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;

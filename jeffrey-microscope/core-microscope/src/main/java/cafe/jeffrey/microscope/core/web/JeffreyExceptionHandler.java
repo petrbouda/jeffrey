@@ -28,7 +28,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import cafe.jeffrey.hub.client.GrpcClientErrors;
+import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
 import cafe.jeffrey.shared.common.exception.ErrorType;
@@ -69,7 +69,7 @@ public class JeffreyExceptionHandler {
     }
 
     /**
-     * A call to a remote hub failed and its {@link StatusRuntimeException} propagated up to the
+     * A call to the remote failed and its {@link StatusRuntimeException} propagated up to the
      * web layer unmapped. Translate the gRPC status into the application's error model here at
      * the boundary, so a remote NOT_FOUND still answers 404 and a validation failure 400 instead
      * of everything collapsing into a generic 500.

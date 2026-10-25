@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.FileStreamClient;
-import cafe.jeffrey.hub.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.FileStreamClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.volume.VolumeAccess.OpenedFile;

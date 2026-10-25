@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.ProjectsClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.ProjectsClient;
 import cafe.jeffrey.shared.volume.WritableVolume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

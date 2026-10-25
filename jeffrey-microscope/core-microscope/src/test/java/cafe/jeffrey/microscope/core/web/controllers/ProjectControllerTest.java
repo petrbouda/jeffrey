@@ -23,8 +23,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
-import cafe.jeffrey.shared.ui.hub.controller.ProjectController;
+import cafe.jeffrey.shared.ui.remote.bridge.RemoteBrowserAccess;
+import cafe.jeffrey.shared.ui.remote.controller.ProjectController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -34,15 +34,15 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class ProjectControllerTest {
 
     @Mock
-    HubBrowserAccess access;
+    RemoteBrowserAccess access;
 
     @Test
     void projectNotFoundReturns404() {
-        when(access.project("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(access.project("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(access));
 
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost"))
+        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/ghost"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");
@@ -50,11 +50,11 @@ class ProjectControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(access.project("srv-1", "ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(access.project("ghost", "p-1")).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectController(access));
 
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ghost/projects/p-1"))
+        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ghost/projects/p-1"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");

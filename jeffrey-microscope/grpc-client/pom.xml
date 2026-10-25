@@ -50,7 +50,7 @@
             <artifactId>jeffrey-tracing-scoped-value</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!-- HubAddress record used by GrpcHubConnection -->
+        <!-- RemoteAddress record used by GrpcHubConnection -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>

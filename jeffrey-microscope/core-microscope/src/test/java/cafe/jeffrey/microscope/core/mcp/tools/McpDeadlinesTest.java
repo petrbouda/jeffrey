@@ -75,11 +75,11 @@ class McpDeadlinesTest {
 
         /** An elapsed deadline is the hub being too slow, reported as it would be by the hub itself. */
         @Test
-        void refusesAnElapsedDeadlineAsTheHubBeingUnavailable() {
+        void refusesAnElapsedDeadlineAsTheRemoteBeingUnavailable() {
             JeffreyException refused = assertThrows(JeffreyException.class,
                     () -> McpDeadlines.remainingWithin(deadlineIn(Duration.ZERO), Duration.ofSeconds(5), ELAPSED));
 
-            assertEquals(ErrorCode.HUB_UNAVAILABLE, refused.getCode());
+            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, refused.getCode());
             assertEquals(ELAPSED + " (grpc_status=DEADLINE_EXCEEDED)", refused.getMessage());
         }
 

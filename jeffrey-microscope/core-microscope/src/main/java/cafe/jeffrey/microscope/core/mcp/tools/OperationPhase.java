@@ -57,10 +57,10 @@ public enum OperationPhase {
     /** The profile is built; the short work after it, such as applying a requested name, is running. */
     FINALIZING,
 
-    /** Transferring a hub session's recording to this machine. */
+    /** Transferring a remote session's recording to this machine. */
     DOWNLOADING,
 
-    /** Transferring one file of a hub session to this machine. */
+    /** Transferring one file of a remote session to this machine. */
     FETCHING;
 
     private static final Map<String, OperationPhase> BY_CODE = Arrays.stream(values())
