@@ -25,6 +25,7 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.SessionDirectory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -73,8 +72,8 @@ class FilesystemRepositoryStorageTest {
         } else {
             TestVolume.finished(session, finishedAt);
         }
-        return new FilesystemRepositoryStorage(
-                PROJECT_INFO, projectDir(workspacesDir), TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC)));
+        return TestVolume.storage(
+                PROJECT_INFO, workspacesDir, projectDir(workspacesDir), Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     /** The session directory's files as a reader sees them: dot-files are the volume's own bookkeeping. */
@@ -109,8 +108,7 @@ class FilesystemRepositoryStorageTest {
         @BeforeEach
         void setUp() {
             project = projectDir(workspacesDir);
-            storage = new FilesystemRepositoryStorage(
-                    PROJECT_INFO, project, TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC)));
+            storage = TestVolume.storage(PROJECT_INFO, workspacesDir, project, Clock.fixed(NOW, ZoneOffset.UTC));
         }
 
         private Path session(String instanceId, String sessionId, Instant createdAt) {
@@ -243,7 +241,7 @@ class FilesystemRepositoryStorageTest {
             TestVolume.finished(dir, T0.plusSeconds(60));
 
             assertTrue(storage.setRetained("s-1", true));
-            assertTrue(Files.exists(dir.resolve(FilesystemRepositoryStorage.RETAINED_MARKER)));
+            assertTrue(Files.exists(dir.resolve(SessionDirectory.RETAINED_FLAG)));
             assertTrue(storage.session("s-1").orElseThrow().retained());
             assertTrue(storage.session("s-1").orElseThrow().files().isEmpty(), "the flag is no file of the session");
 
@@ -283,56 +281,6 @@ class FilesystemRepositoryStorageTest {
                 assertEquals(NOW.minusSeconds(5), instance.finishedAt());
                 assertEquals(2, instance.sessionCount());
             }
-        }
-    }
-
-    @Nested
-    class Describe {
-
-        private static final byte[] CONTENT = "gc log line\n".repeat(100).getBytes(StandardCharsets.UTF_8);
-
-        @TempDir
-        Path workspace;
-
-        private FilesystemRepositoryStorage storage() {
-            return new FilesystemRepositoryStorage(
-                    PROJECT_INFO, workspace, TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC)));
-        }
-
-        private Path sessionDir() throws IOException {
-            return Files.createDirectories(workspace.resolve("project/instance/session"));
-        }
-
-        @Test
-        void reportsAFileThatIsThere() throws IOException {
-            Path session = sessionDir();
-            Path file = Files.write(session.resolve("gc.jvm-log"), CONTENT);
-
-            RepositoryFile described = storage().describe(file, session, ZoneOffset.UTC);
-
-            assertNotNull(described);
-            assertEquals("gc.jvm-log", described.name());
-            assertEquals(CONTENT.length, described.size());
-            assertFalse(described.isRecordingFile());
-        }
-
-        @Test
-        void leavesOutAFileThatWentAwayWhileTheSessionWasListed() throws IOException {
-            // async-profiler deletes its cache file as soon as it flushes a chunk, so a name the
-            // listing has just read can be gone before its size is asked for. The next listing
-            // will not mention it either; failing here would take the instance page down with it.
-            Path session = sessionDir();
-            Path vanished = session.resolve("profile-20260912-121559.jfr.1~");
-
-            assertNull(storage().describe(vanished, session, ZoneOffset.UTC));
-        }
-
-        @Test
-        void leavesOutAVanishedFileOfAFinishedSessionToo() throws IOException {
-            Path session = sessionDir();
-            Path vanished = session.resolve("profile-20260912-121559.jfr");
-
-            assertNull(storage().describe(vanished, session, ZoneOffset.UTC));
         }
     }
 

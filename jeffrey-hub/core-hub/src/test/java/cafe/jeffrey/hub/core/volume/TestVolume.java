@@ -17,12 +17,22 @@
 
 package cafe.jeffrey.hub.core.volume;
 
+import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
+import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.VolumeAccess;
+import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
+import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
+import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
+import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,13 +56,33 @@ public final class TestVolume {
     private TestVolume() {
     }
 
-    public static SessionLiveness liveness(Clock clock) {
-        return new SessionLiveness(clock, new FileHeartbeatReader(), new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
+    public static SessionLiveness liveness(Clock clock, VolumeAccess volume) {
+        return new SessionLiveness(
+                clock, new HeartbeatReader(volume), new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
+    }
+
+    /** Where {@code path}, a directory under {@code root}, lies on the volume rooted there. */
+    public static VolumePath volumePath(Path root, Path path) {
+        VolumePath volumePath = VolumePath.root();
+        for (Path element : root.relativize(path)) {
+            volumePath = volumePath.resolve(element.toString());
+        }
+        return volumePath;
+    }
+
+    /**
+     * The hub's storage of the project in {@code projectDir}, which must hold a project marker,
+     * on the volume rooted at {@code workspacesRoot}.
+     */
+    public static FilesystemRepositoryStorage storage(ProjectInfo info, Path workspacesRoot, Path projectDir, Clock clock) {
+        FilesystemVolume volume = new FilesystemVolume(workspacesRoot);
+        ProjectTree tree = ProjectTree.at(volume, volumePath(workspacesRoot, projectDir)).orElseThrow();
+        return new FilesystemRepositoryStorage(info, tree, volume, liveness(clock, volume));
     }
 
     public static Path workspace(Path workspacesRoot, String id, String name, Instant createdAt) {
         Path dir = directories(workspacesRoot.resolve(id));
-        VolumeMarkers.write(dir, WorkspaceMarker.FILE_NAME, new WorkspaceMarker(name, createdAt.toEpochMilli()));
+        VolumeMarkerWriter.write(dir, WorkspaceMarker.FILE_NAME, new WorkspaceMarker(name, createdAt.toEpochMilli()));
         return dir;
     }
 

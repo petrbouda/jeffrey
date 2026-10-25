@@ -26,51 +26,23 @@ import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
- * Reading and writing the marker files that make the volume the hub's only state: the
- * provisioner's {@code .project-info.json}, {@code .instance-info.json} and
- * {@code .session-info.json}, and the hub's own {@code .workspace-info.json} and {@code .retained}.
+ * Writing the marker files the hub owns on the volume: its {@code .workspace-info.json} and the
+ * {@code .retained} flag. Reading them, and the provisioner's markers, is the shared layout's
+ * business ({@code VolumeMarkers} in {@code shared/volume}).
  */
-public final class VolumeMarkers {
+public final class VolumeMarkerWriter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(VolumeMarkers.class);
+    private static final Logger LOG = LoggerFactory.getLogger(VolumeMarkerWriter.class);
 
     private static final String HIDDEN_PREFIX = ".";
     private static final String SCRATCH_SUFFIX = ".tmp";
 
-    private VolumeMarkers() {
-    }
-
-    /**
-     * The marker in {@code directory}, or empty when there is none or it cannot be parsed — a
-     * partially written or foreign file leaves its subtree out until it reads cleanly.
-     */
-    public static <T> Optional<T> read(Path directory, String markerFileName, Class<T> type) {
-        Path markerFile = directory.resolve(markerFileName);
-        String content;
-        try {
-            content = Files.readString(markerFile);
-        } catch (NoSuchFileException e) {
-            return Optional.empty();
-        } catch (IOException e) {
-            LOG.warn("Cannot read marker file, leaving its directory out: file={}", markerFile, e);
-            return Optional.empty();
-        }
-        try {
-            return Optional.of(Json.read(content, type));
-        } catch (RuntimeException e) {
-            LOG.warn("Cannot parse marker file, leaving its directory out: file={} reason={}",
-                    markerFile, e.getMessage());
-            return Optional.empty();
-        }
+    private VolumeMarkerWriter() {
     }
 
     /** Writes a marker whole or not at all: to a scratch file beside it, then renamed onto it. */
@@ -102,27 +74,6 @@ public final class VolumeMarkers {
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot update flag file: file=" + flag, e);
-        }
-    }
-
-    public static boolean hasFlag(Path directory, String flagFileName) {
-        return Files.exists(directory.resolve(flagFileName));
-    }
-
-    /** The visible child directories, sorted by name; dot-directories are the volume's own bookkeeping. */
-    public static List<Path> childDirectories(Path parent) {
-        if (!Files.isDirectory(parent)) {
-            return List.of();
-        }
-        try (Stream<Path> children = Files.list(parent)) {
-            return children
-                    .filter(Files::isDirectory)
-                    .filter(path -> !path.getFileName().toString().startsWith(HIDDEN_PREFIX))
-                    .sorted()
-                    .toList();
-        } catch (IOException e) {
-            LOG.warn("Cannot list directory: path={}", parent, e);
-            return List.of();
         }
     }
 

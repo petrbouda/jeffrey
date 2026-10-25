@@ -15,27 +15,26 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.shared.volume.recording;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class HubManagedFileTest {
+class RecordingFormatTest {
 
     @Nested
     class Recognising {
 
         @Test
         void aRecordingAndItsArchive() {
-            assertEquals(Optional.of(HubManagedFile.JFR), HubManagedFile.of("profile-20260220-120500.jfr"));
-            assertEquals(Optional.of(HubManagedFile.JFR_LZ4), HubManagedFile.of("profile-20260220-120500.jfr.lz4"));
+            assertEquals(Optional.of(RecordingFormat.JFR), RecordingFormat.of("profile-20260220-120500.jfr"));
+            assertEquals(Optional.of(RecordingFormat.JFR_LZ4), RecordingFormat.of("profile-20260220-120500.jfr.lz4"));
         }
 
         /**
@@ -45,25 +44,25 @@ class HubManagedFileTest {
          */
         @Test
         void anUpperCasedNameIsNotARecording() {
-            assertEquals(Optional.empty(), HubManagedFile.of("PROFILE.JFR"));
+            assertEquals(Optional.empty(), RecordingFormat.of("PROFILE.JFR"));
         }
 
         /**
-         * A log, a dump, a pprof profile and the profiler's own scratch file are all files the hub
-         * lists and serves without naming: it does nothing to them, so it has nothing to say
-         * about them. Microscope, which reads them, classifies the name on its side.
+         * A log, a dump, a pprof profile and the profiler's own scratch file are all files the
+         * volume lists and serves without naming: nothing is done to them, so the layout has
+         * nothing to say about them. Whoever reads them classifies the name on its side.
          */
         @Test
         void hasNoNameForAnythingElse() {
-            assertTrue(HubManagedFile.of("service-app.log").isEmpty());
-            assertTrue(HubManagedFile.of("heap.hprof").isEmpty());
-            assertTrue(HubManagedFile.of("app.pprof").isEmpty());
-            assertTrue(HubManagedFile.of("profile-20260220-120500.jfr.1~").isEmpty());
+            assertTrue(RecordingFormat.of("service-app.log").isEmpty());
+            assertTrue(RecordingFormat.of("heap.hprof").isEmpty());
+            assertTrue(RecordingFormat.of("app.pprof").isEmpty());
+            assertTrue(RecordingFormat.of("profile-20260220-120500.jfr.1~").isEmpty());
         }
 
         @Test
         void aMissingNameIsNotAnyType() {
-            assertFalse(HubManagedFile.JFR.matches(null));
+            assertFalse(RecordingFormat.JFR.matches(null));
         }
     }
 
@@ -77,19 +76,19 @@ class HubManagedFileTest {
         @Test
         void aRecordingDropsItsExtensionSoTheIdSurvivesCompression() {
             assertEquals("profile-20260220-120500",
-                    HubManagedFile.JFR.idOf(Path.of("s", "profile-20260220-120500.jfr")));
+                    RecordingFormat.JFR.idOf("profile-20260220-120500.jfr"));
             assertEquals("profile-20260220-120500",
-                    HubManagedFile.JFR_LZ4.idOf(Path.of("s", "profile-20260220-120500.jfr.lz4")));
+                    RecordingFormat.JFR_LZ4.idOf("profile-20260220-120500.jfr.lz4"));
         }
 
         @Test
         void aRecordingAndItsArchiveAreOneId() {
-            Path plain = Path.of("s", "profile-1.jfr");
-            Path archive = Path.of("s", "profile-1.jfr.lz4");
+            String plain = "profile-1.jfr";
+            String archive = "profile-1.jfr.lz4";
 
             assertEquals(
-                    HubManagedFile.of(plain).orElseThrow().idOf(plain),
-                    HubManagedFile.of(archive).orElseThrow().idOf(archive));
+                    RecordingFormat.of(plain).orElseThrow().idOf(plain),
+                    RecordingFormat.of(archive).orElseThrow().idOf(archive));
         }
     }
 }

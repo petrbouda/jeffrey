@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.volume;
+package cafe.jeffrey.shared.volume.liveness;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.shared.common.HeartbeatConstants;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.VolumePath;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,9 +31,14 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FileHeartbeatReaderTest {
+class HeartbeatReaderTest {
 
-    private final FileHeartbeatReader reader = new FileHeartbeatReader();
+    /** The session is the volume's root directory, so its liveness files lie right under it. */
+    private static final VolumePath SESSION = VolumePath.root();
+
+    private static HeartbeatReader reader(Path volumeRoot) {
+        return new HeartbeatReader(new FilesystemVolume(volumeRoot));
+    }
 
     private Path writeHeartbeatFile(Path sessionDir, String content) throws IOException {
         return writeHeartbeatDirFile(sessionDir, HeartbeatConstants.HEARTBEAT_FILE, content);
@@ -59,7 +66,7 @@ class FileHeartbeatReaderTest {
             long epochMillis = 1700000000000L;
             writeHeartbeatFile(tempDir, String.valueOf(epochMillis));
 
-            LivenessRead result = reader.readLastHeartbeat(tempDir);
+            LivenessRead result = reader(tempDir).readLastHeartbeat(SESSION);
 
             assertEquals(new LivenessRead.Reported(Instant.ofEpochMilli(epochMillis)), result);
         }
@@ -69,7 +76,7 @@ class FileHeartbeatReaderTest {
             long epochMillis = 1700000000000L;
             writeHeartbeatFile(tempDir, "  " + epochMillis + "\n");
 
-            LivenessRead result = reader.readLastHeartbeat(tempDir);
+            LivenessRead result = reader(tempDir).readLastHeartbeat(SESSION);
 
             assertEquals(new LivenessRead.Reported(Instant.ofEpochMilli(epochMillis)), result);
         }
@@ -84,26 +91,26 @@ class FileHeartbeatReaderTest {
 
         @Test
         void missingFile_isAbsent(@TempDir Path tempDir) {
-            assertEquals(LivenessRead.absent(), reader.readLastHeartbeat(tempDir));
+            assertEquals(LivenessRead.absent(), reader(tempDir).readLastHeartbeat(SESSION));
         }
 
         @Test
         void missingHeartbeatDirectory_isAbsent(@TempDir Path tempDir) {
-            Path sessionWithoutHeartbeatDir = tempDir.resolve("session");
+            VolumePath sessionWithoutHeartbeatDir = SESSION.resolve("session");
 
-            assertEquals(LivenessRead.absent(), reader.readLastHeartbeat(sessionWithoutHeartbeatDir));
+            assertEquals(LivenessRead.absent(), reader(tempDir).readLastHeartbeat(sessionWithoutHeartbeatDir));
         }
 
         @Test
         void missingMarker_isAbsent(@TempDir Path tempDir) {
-            assertEquals(LivenessRead.absent(), reader.readFinishedMarker(tempDir));
+            assertEquals(LivenessRead.absent(), reader(tempDir).readFinishedMarker(SESSION));
         }
 
         @Test
         void heartbeatDoesNotLeakIntoMarker(@TempDir Path tempDir) throws IOException {
             writeHeartbeatFile(tempDir, "1700000000000");
 
-            assertEquals(LivenessRead.absent(), reader.readFinishedMarker(tempDir),
+            assertEquals(LivenessRead.absent(), reader(tempDir).readFinishedMarker(SESSION),
                     "Heartbeat file must not be read as a finished marker");
         }
     }
@@ -111,7 +118,7 @@ class FileHeartbeatReaderTest {
     /**
      * A file that is there and makes no sense is the opposite of absence: the producer may well
      * be running. Reporting it as absence is what lets one unreadable file finish a live session
-     * at its own start timestamp — see {@link SessionFinisher#tryFinishFromHeartbeat}.
+     * at its own start timestamp — see {@link SessionLiveness}.
      */
     @Nested
     class PresentButUnreadable {
@@ -120,7 +127,7 @@ class FileHeartbeatReaderTest {
         void corruptContent_isUnreadable(@TempDir Path tempDir) throws IOException {
             writeHeartbeatFile(tempDir, "not-a-number");
 
-            LivenessRead result = reader.readLastHeartbeat(tempDir);
+            LivenessRead result = reader(tempDir).readLastHeartbeat(SESSION);
 
             assertAll(
                     () -> assertInstanceOf(LivenessRead.Unreadable.class, result),
@@ -133,7 +140,7 @@ class FileHeartbeatReaderTest {
         void emptyFile_isUnreadable(@TempDir Path tempDir) throws IOException {
             writeHeartbeatFile(tempDir, "");
 
-            LivenessRead result = reader.readLastHeartbeat(tempDir);
+            LivenessRead result = reader(tempDir).readLastHeartbeat(SESSION);
 
             assertAll(
                     () -> assertInstanceOf(LivenessRead.Unreadable.class, result),
@@ -145,7 +152,7 @@ class FileHeartbeatReaderTest {
         void corruptMarker_isUnreadable(@TempDir Path tempDir) throws IOException {
             writeFinishedMarkerFile(tempDir, "not-a-number");
 
-            assertInstanceOf(LivenessRead.Unreadable.class, reader.readFinishedMarker(tempDir));
+            assertInstanceOf(LivenessRead.Unreadable.class, reader(tempDir).readFinishedMarker(SESSION));
         }
 
         @Test
@@ -154,7 +161,7 @@ class FileHeartbeatReaderTest {
                     .resolve(HeartbeatConstants.HEARTBEAT_DIR)
                     .resolve(HeartbeatConstants.HEARTBEAT_FILE));
 
-            LivenessRead result = reader.readLastHeartbeat(tempDir);
+            LivenessRead result = reader(tempDir).readLastHeartbeat(SESSION);
 
             assertAll(
                     () -> assertInstanceOf(LivenessRead.Unreadable.class, result),

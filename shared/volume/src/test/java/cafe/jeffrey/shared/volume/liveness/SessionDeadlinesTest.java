@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.volume;
+package cafe.jeffrey.shared.volume.liveness;
 
 import org.junit.jupiter.api.Test;
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.volume;
+package cafe.jeffrey.shared.volume.liveness;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -26,7 +26,7 @@ import java.util.Optional;
  * <p>Three states rather than an {@code Optional}, because the two ways of having no timestamp
  * mean different things to {@link SessionLiveness}. <b>Absent</b> is evidence: nothing has ever
  * written here, so nothing in the session reports liveness, or not yet. <b>Unreadable</b> is the
- * absence of evidence: a file is there, or may be, and this hub could not make sense of it — a
+ * absence of evidence: a file is there, or may be, and the reader could not make sense of it — a
  * permission error, a stale handle on a network mount, a truncated read, a timestamp that is not
  * a number.</p>
  *
@@ -47,7 +47,7 @@ public sealed interface LivenessRead {
     }
 
     /**
-     * Something is there, or may be, and this hub could not read it.
+     * Something is there, or may be, and the reader could not read it.
      *
      * @param reason what went wrong, for the log line that says why a session was left alone
      */

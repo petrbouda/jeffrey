@@ -21,6 +21,7 @@ import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -59,8 +60,10 @@ class HubProjectsManagerTest {
     void setUp() {
         workspaceDir = TestVolume.workspace(root, "prod-ws", "Production", T0);
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        projects = new HubProjectsManager(new WorkspaceDirectory(workspaceDir, "Production", T0),
-                project -> new HubProjectManager(project, TestVolume.liveness(clock)));
+        FilesystemVolume volume = new FilesystemVolume(root);
+        projects = new HubProjectsManager(
+                new WorkspaceDirectory(volume, TestVolume.volumePath(root, workspaceDir), "Production", T0),
+                project -> new HubProjectManager(project, volume, TestVolume.liveness(clock, volume)));
     }
 
     @Test

@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.volume;
+package cafe.jeffrey.shared.volume.liveness;
 
+import cafe.jeffrey.shared.volume.VolumePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 
 /**
  * Decides whether a session is still recording from the files under its {@code .heartbeat/},
- * at the moment it is read. The hub keeps no record of it: every listing asks again, with the
- * hub's clock, and compression, retention and downloads all act on the same answer.
+ * at the moment it is read. Nothing keeps a record of it: every listing asks again, with the
+ * reader's clock, and compression, retention and downloads all act on the same answer.
  *
  * <p>The rules, in order:</p>
  * <ol>
  *   <li>a clean-exit {@code finished} marker — finished at the time it carries. Checked by
- *   presence first, so it is immune to clock skew between the producer and the hub;</li>
+ *   presence first, so it is immune to clock skew between the producer and the reader;</li>
  *   <li>a newer session exists in the same instance — this one ended when that one started:
  *   finished at its last heartbeat, or at the newer session's start if it never beat;</li>
  *   <li>a heartbeat older than the threshold — finished at that heartbeat, the crash path;</li>
@@ -48,10 +48,10 @@ public class SessionLiveness {
     private static final Logger LOG = LoggerFactory.getLogger(SessionLiveness.class);
 
     private final Clock clock;
-    private final FileHeartbeatReader reader;
+    private final HeartbeatReader reader;
     private final SessionDeadlines deadlines;
 
-    public SessionLiveness(Clock clock, FileHeartbeatReader reader, SessionDeadlines deadlines) {
+    public SessionLiveness(Clock clock, HeartbeatReader reader, SessionDeadlines deadlines) {
         this.clock = clock;
         this.reader = reader;
         this.deadlines = deadlines;
@@ -62,7 +62,7 @@ public class SessionLiveness {
      * @param createdAt       when the session started, from its marker
      * @param nextSessionStart when the instance's next session started; {@code null} for its newest
      */
-    public SessionLifecycle assess(Path sessionDir, Instant createdAt, Instant nextSessionStart) {
+    public SessionLifecycle assess(VolumePath sessionDir, Instant createdAt, Instant nextSessionStart) {
         LivenessRead finishedMarker = reader.readFinishedMarker(sessionDir);
         if (finishedMarker instanceof LivenessRead.Reported(Instant markerAt)) {
             return SessionLifecycle.finished(markerAt);

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.volume;
+package cafe.jeffrey.shared.volume.layout;
 
 /**
  * The hub's own marker in a workspace directory: what a workspace is called and when it was

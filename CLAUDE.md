@@ -29,6 +29,8 @@ jeffrey-hub/                           HubApplication (core-hub: gRPC services, 
                                        no database: the shared volume is its only state), hub-model,
                                        pages-hub (minimal Vue UI)
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
+                                       volume (the recording volume's layout read through a storage port:
+                                       projects/instances/sessions/files, markers, liveness; the hub's reader),
                                        sql-builder, test (@DuckDBTest), hub-api (protos only),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from

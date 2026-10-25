@@ -15,40 +15,33 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.shared.volume.recording;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.shared.volume.VolumeEntry;
 
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.function.Supplier;
 
 /**
  * When a file was opened by whatever wrote it: what chunk-window selection, retention and the
  * open-chunk check order by. A recording reads it from its name, which survives compression; any
- * other file asks the filesystem, which is why only recordings may be compressed.
+ * other file takes the volume's creation time, which is why only recordings may be compressed.
  */
 @FunctionalInterface
 public interface TimestampResolver {
 
     /**
-     * When the file was opened; never {@code null} — falls back to the filesystem rather than failing.
+     * When the file was opened; never {@code null} — falls back to the volume rather than failing.
      *
+     * @param file the file as the volume described it
      * @param zone the time zone of the machine that wrote the session, which a timestamp in a file's
      *             name is local to
      */
-    Instant resolve(Path file, ZoneId zone, Supplier<BasicFileAttributes> attributes);
+    Instant resolve(VolumeEntry file, ZoneId zone);
 
-    /** For a caller without the file's attributes at hand; they are read only if needed. */
-    default Instant resolve(Path file, ZoneId zone) {
-        return resolve(file, zone, () -> FileSystemUtils.readAttributes(file));
-    }
+    /** The file's creation time as the volume reports it; wrong for a rewritten file. */
+    TimestampResolver VOLUME = (file, zone) -> file.createdAt();
 
-    /** The file's creation time as the filesystem reports it; wrong for a rewritten file. */
-    TimestampResolver FILESYSTEM = (file, zone, attributes) -> attributes.get().creationTime().toInstant();
-
-    /** The instant async-profiler wrote into the file's own name, falling back to the filesystem. */
+    /** The instant async-profiler wrote into the file's own name, falling back to the volume. */
     TimestampResolver RECORDING_NAME = new RecordingNameTimestamp();
 }

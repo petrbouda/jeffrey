@@ -15,15 +15,13 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.shared.volume.recording;
 
+import cafe.jeffrey.shared.volume.VolumeEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
-import java.util.function.Supplier;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -31,8 +29,8 @@ import java.time.format.DateTimeParseException;
 
 /**
  * The instant async-profiler wrote into the file's name ({@code profile-20260220-120500.jfr}), read
- * the same from its {@code .lz4} archive. A name outside the convention falls back to the
- * filesystem, logged at debug since this runs per file per listing.
+ * the same from its {@code .lz4} archive. A name outside the convention falls back to the volume,
+ * logged at debug since this runs per file per listing.
  *
  * <p>async-profiler expands {@code %t} in the profiled machine's local time ({@code localtime_r}),
  * so the name is read in the zone the session recorded, not in UTC: read as UTC, every chunk of a
@@ -48,8 +46,8 @@ final class RecordingNameTimestamp implements TimestampResolver {
     private static final String COMPRESSED_SUFFIX = ".lz4";
 
     @Override
-    public Instant resolve(Path file, ZoneId zone, Supplier<BasicFileAttributes> attributes) {
-        String name = uncompressed(file.getFileName().toString());
+    public Instant resolve(VolumeEntry file, ZoneId zone) {
+        String name = uncompressed(file.name());
 
         if (name.startsWith(PREFIX) && name.endsWith(RECORDING_SUFFIX)) {
             String timestamp = name.substring(PREFIX.length(), name.length() - RECORDING_SUFFIX.length());
@@ -57,14 +55,14 @@ final class RecordingNameTimestamp implements TimestampResolver {
             if (createdAt != null) {
                 return createdAt;
             }
-            LOG.debug("Recording has an unparseable timestamp in its name, asking the filesystem: filename={}",
+            LOG.debug("Recording has an unparseable timestamp in its name, asking the volume: filename={}",
                     name);
         } else {
-            LOG.debug("Recording does not follow the naming convention, asking the filesystem: "
+            LOG.debug("Recording does not follow the naming convention, asking the volume: "
                     + "filename={} expected_prefix={}", name, PREFIX);
         }
 
-        return FILESYSTEM.resolve(file, zone, attributes);
+        return VOLUME.resolve(file, zone);
     }
 
     private static String uncompressed(String filename) {

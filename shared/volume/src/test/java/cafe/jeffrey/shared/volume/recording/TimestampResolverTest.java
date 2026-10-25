@@ -15,17 +15,13 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.project.repository;
+package cafe.jeffrey.shared.volume.recording;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.shared.volume.VolumeEntry;
+import cafe.jeffrey.shared.volume.VolumePath;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -39,20 +35,20 @@ import static org.junit.jupiter.api.Assertions.assertSame;
  */
 class TimestampResolverTest {
 
-    @TempDir
-    Path dir;
+    /** What the volume says about when a file was created — never what the name says. */
+    private static final Instant VOLUME_CREATED_AT = Instant.parse("2026-03-01T08:00:00Z");
 
-    private Path write(String name) throws IOException {
-        return Files.write(dir.resolve(name), "x".getBytes(StandardCharsets.UTF_8));
+    private static VolumeEntry file(String name) {
+        return new VolumeEntry(VolumePath.root().resolve(name), VolumeEntry.Kind.FILE, 1, VOLUME_CREATED_AT);
     }
 
     @Nested
-    class EachTypeSaysWhereItsTimestampComesFrom {
+    class EachFormatSaysWhereItsTimestampComesFrom {
 
         @Test
         void aRecordingReadsItsOwnName() {
-            assertSame(TimestampResolver.RECORDING_NAME, HubManagedFile.JFR.timestampResolver());
-            assertSame(TimestampResolver.RECORDING_NAME, HubManagedFile.JFR_LZ4.timestampResolver());
+            assertSame(TimestampResolver.RECORDING_NAME, RecordingFormat.JFR.timestampResolver());
+            assertSame(TimestampResolver.RECORDING_NAME, RecordingFormat.JFR_LZ4.timestampResolver());
         }
     }
 
@@ -63,8 +59,7 @@ class TimestampResolverTest {
         void readsTheInstantTheProfilerWroteIntoIt() {
             assertEquals(
                     Instant.parse("2026-02-20T12:05:00Z"),
-                    TimestampResolver.RECORDING_NAME.resolve(
-                            dir.resolve("profile-20260220-120500.jfr"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr"), ZoneOffset.UTC));
         }
 
         /**
@@ -78,7 +73,7 @@ class TimestampResolverTest {
             assertEquals(
                     Instant.parse("2026-02-20T12:05:00Z"),
                     TimestampResolver.RECORDING_NAME.resolve(
-                            dir.resolve("profile-20260220-130500.jfr"), ZoneId.of("Europe/Prague")));
+                            file("profile-20260220-130500.jfr"), ZoneId.of("Europe/Prague")));
         }
 
         /**
@@ -92,22 +87,18 @@ class TimestampResolverTest {
         @Test
         void isUnchangedByTheFileBeingCompressed() {
             assertEquals(
-                    TimestampResolver.RECORDING_NAME.resolve(
-                            dir.resolve("profile-20260220-120500.jfr"), ZoneOffset.UTC),
-                    TimestampResolver.RECORDING_NAME.resolve(
-                            dir.resolve("profile-20260220-120500.jfr.lz4"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr"), ZoneOffset.UTC),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr.lz4"), ZoneOffset.UTC));
         }
     }
 
     @Nested
-    class FallingBackToTheFilesystem {
+    class FallingBackToTheVolume {
 
         @Test
-        void forARecordingNamedWithAnotherPrefix() throws IOException {
-            Path file = write("recording-20260220-120500.jfr");
-
-            assertEquals(FileSystemUtils.createdAt(file),
-                    TimestampResolver.RECORDING_NAME.resolve(file, ZoneOffset.UTC));
+        void forARecordingNamedWithAnotherPrefix() {
+            assertEquals(VOLUME_CREATED_AT,
+                    TimestampResolver.RECORDING_NAME.resolve(file("recording-20260220-120500.jfr"), ZoneOffset.UTC));
         }
 
         /**
@@ -115,18 +106,14 @@ class TimestampResolverTest {
          * so one oddly named file would leave the listing entirely rather than sort imprecisely.
          */
         @Test
-        void forATimestampThatDoesNotParse() throws IOException {
-            Path file = write("profile-not-a-timestamp.jfr");
-
-            assertEquals(FileSystemUtils.createdAt(file),
-                    TimestampResolver.RECORDING_NAME.resolve(file, ZoneOffset.UTC));
+        void forATimestampThatDoesNotParse() {
+            assertEquals(VOLUME_CREATED_AT,
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-not-a-timestamp.jfr"), ZoneOffset.UTC));
         }
 
         @Test
-        void forAFileThatIsNotARecording() throws IOException {
-            Path log = write("service-app.log");
-
-            assertEquals(FileSystemUtils.createdAt(log), TimestampResolver.FILESYSTEM.resolve(log, ZoneOffset.UTC));
+        void forAFileThatIsNotARecording() {
+            assertEquals(VOLUME_CREATED_AT, TimestampResolver.VOLUME.resolve(file("service-app.log"), ZoneOffset.UTC));
         }
     }
 }

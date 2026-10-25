@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
-import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
@@ -29,7 +28,8 @@ import cafe.jeffrey.hub.core.manager.workspace.HubWorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.volume.SessionLiveness;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -44,8 +44,9 @@ import java.time.Clock;
 public class HubWorkspaceConfiguration {
 
     @Bean
-    public ProjectManager.Factory projectManagerFactory(SessionLiveness sessionLiveness) {
-        return project -> new HubProjectManager(project, sessionLiveness);
+    public ProjectManager.Factory projectManagerFactory(
+            FilesystemVolume workspacesVolume, SessionLiveness sessionLiveness) {
+        return project -> new HubProjectManager(project, workspacesVolume, sessionLiveness);
     }
 
     @Bean
@@ -54,18 +55,19 @@ public class HubWorkspaceConfiguration {
     }
 
     @Bean
-    public WorkspaceManager.Factory workspaceManagerFactory(ProjectsManager.Factory projectsManagerFactory) {
-        return workspace -> new HubWorkspaceManager(workspace, projectsManagerFactory);
+    public WorkspaceManager.Factory workspaceManagerFactory(
+            FilesystemVolume workspacesVolume, ProjectsManager.Factory projectsManagerFactory) {
+        return workspace -> new HubWorkspaceManager(workspace, workspacesVolume, projectsManagerFactory);
     }
 
     @Bean
     public HubWorkspacesManager workspacesManager(
-            HubJeffreyDirs jeffreyDirs,
+            FilesystemVolume workspacesVolume,
             Clock applicationClock,
             WorkspacesProperties workspacesProperties,
             WorkspaceManager.Factory workspaceManagerFactory) {
         return new HubWorkspacesManager(
-                jeffreyDirs.workspaces(), applicationClock, workspacesProperties.isAutoCreate(), workspaceManagerFactory);
+                workspacesVolume, applicationClock, workspacesProperties.isAutoCreate(), workspaceManagerFactory);
     }
 
     @Bean

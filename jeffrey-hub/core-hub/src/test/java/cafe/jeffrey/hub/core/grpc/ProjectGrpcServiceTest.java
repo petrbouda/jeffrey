@@ -32,6 +32,7 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
 import cafe.jeffrey.hub.core.volume.TestVolume;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.AfterEach;
@@ -76,9 +77,11 @@ class ProjectGrpcServiceTest {
         TestVolume.workspace(root, "other-ws", "Other", FIXED_TIME);
 
         Clock clock = Clock.fixed(FIXED_TIME.plusSeconds(60), ZoneOffset.UTC);
-        ProjectManager.Factory projectFactory = project -> new HubProjectManager(project, TestVolume.liveness(clock));
-        HubWorkspacesManager workspaces = new HubWorkspacesManager(root, clock, false,
-                ws -> new HubWorkspaceManager(ws, dir -> new HubProjectsManager(dir, projectFactory)));
+        FilesystemVolume volume = new FilesystemVolume(root);
+        ProjectManager.Factory projectFactory =
+                project -> new HubProjectManager(project, volume, TestVolume.liveness(clock, volume));
+        HubWorkspacesManager workspaces = new HubWorkspacesManager(volume, clock, false,
+                ws -> new HubWorkspaceManager(ws, volume, dir -> new HubProjectsManager(dir, projectFactory)));
 
         storageOverviewCache = new StorageOverviewCache(clock);
         grpc = InProcessGrpcServer.start(new ProjectGrpcService(new GrpcLookups(workspaces), storageOverviewCache));

@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.volume;
+package cafe.jeffrey.shared.volume.liveness;
 
 import cafe.jeffrey.shared.common.HeartbeatConstants;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.VolumeFixture;
+import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.test.MutableClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -35,12 +38,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Whether a session is still recording, read from its heartbeat files with the hub's clock at the
+ * Whether a session is still recording, read from its heartbeat files with the reader's clock at the
  * moment of asking — the same answer every caller gets, since nothing stores it.
  */
 class SessionLivenessTest {
 
     private static final Instant NOW = Instant.parse("2026-06-15T12:00:00Z");
+
+    /** The session is the volume's root directory, so its liveness files lie right under it. */
+    private static final VolumePath SESSION = VolumePath.root();
 
     @TempDir
     Path sessionDir;
@@ -51,11 +57,11 @@ class SessionLivenessTest {
     @BeforeEach
     void setUp() {
         clock = new MutableClock(NOW);
-        liveness = TestVolume.liveness(clock);
+        liveness = VolumeFixture.liveness(clock, new FilesystemVolume(sessionDir));
     }
 
     private SessionLifecycle assess(Instant createdAt) {
-        return liveness.assess(sessionDir, createdAt, null);
+        return liveness.assess(SESSION, createdAt, null);
     }
 
     @Nested
@@ -64,17 +70,17 @@ class SessionLivenessTest {
         @Test
         void finishesAtTheTimeTheMarkerCarries() {
             Instant exit = NOW.minusSeconds(3);
-            TestVolume.heartbeat(sessionDir, NOW.minusSeconds(4));
-            TestVolume.finished(sessionDir, exit);
+            VolumeFixture.heartbeat(sessionDir, NOW.minusSeconds(4));
+            VolumeFixture.finished(sessionDir, exit);
 
             assertEquals(SessionLifecycle.finished(exit), assess(NOW.minusSeconds(600)));
         }
 
-        /** By presence, so a producer clock ahead of the hub's cannot keep the session live. */
+        /** By presence, so a producer clock ahead of the reader's cannot keep the session live. */
         @Test
         void isTakenEvenWhenItsTimeIsAheadOfTheHub() {
             Instant aheadOfTheHub = NOW.plusSeconds(120);
-            TestVolume.finished(sessionDir, aheadOfTheHub);
+            VolumeFixture.finished(sessionDir, aheadOfTheHub);
 
             assertEquals(SessionLifecycle.finished(aheadOfTheHub), assess(NOW.minusSeconds(600)));
         }
@@ -85,15 +91,15 @@ class SessionLivenessTest {
 
         @Test
         void aFreshHeartbeatIsRecording() {
-            TestVolume.heartbeat(sessionDir, NOW.minusSeconds(4));
+            VolumeFixture.heartbeat(sessionDir, NOW.minusSeconds(4));
 
             assertTrue(assess(NOW.minusSeconds(600)).isRecording());
         }
 
         @Test
         void aStaleHeartbeatFinishesAtTheLastBeat() {
-            Instant lastBeat = NOW.minus(TestVolume.HEARTBEAT_THRESHOLD).minusSeconds(1);
-            TestVolume.heartbeat(sessionDir, lastBeat);
+            Instant lastBeat = NOW.minus(VolumeFixture.HEARTBEAT_THRESHOLD).minusSeconds(1);
+            VolumeFixture.heartbeat(sessionDir, lastBeat);
 
             assertEquals(SessionLifecycle.finished(lastBeat), assess(NOW.minusSeconds(600)));
         }
@@ -101,10 +107,10 @@ class SessionLivenessTest {
         /** Nothing is stored: the same session reads as finished once the clock passes the threshold. */
         @Test
         void isReadAgainOnEveryCall() {
-            TestVolume.heartbeat(sessionDir, NOW);
+            VolumeFixture.heartbeat(sessionDir, NOW);
             assertTrue(assess(NOW.minusSeconds(600)).isRecording());
 
-            clock.advance(TestVolume.HEARTBEAT_THRESHOLD.plusSeconds(1));
+            clock.advance(VolumeFixture.HEARTBEAT_THRESHOLD.plusSeconds(1));
 
             assertEquals(SessionLifecycle.finished(NOW), assess(NOW.minusSeconds(600)));
         }
@@ -117,10 +123,10 @@ class SessionLivenessTest {
         @Test
         void finishesAtTheLastHeartbeatWhateverItsAge() {
             Instant lastBeat = NOW.minusSeconds(2);
-            TestVolume.heartbeat(sessionDir, lastBeat);
+            VolumeFixture.heartbeat(sessionDir, lastBeat);
 
             assertEquals(SessionLifecycle.finished(lastBeat),
-                    liveness.assess(sessionDir, NOW.minusSeconds(600), NOW.minusSeconds(1)));
+                    liveness.assess(SESSION, NOW.minusSeconds(600), NOW.minusSeconds(1)));
         }
 
         @Test
@@ -128,17 +134,17 @@ class SessionLivenessTest {
             Instant nextStart = NOW.minusSeconds(30);
 
             assertEquals(SessionLifecycle.finished(nextStart),
-                    liveness.assess(sessionDir, NOW.minusSeconds(40), nextStart));
+                    liveness.assess(SESSION, NOW.minusSeconds(40), nextStart));
         }
 
         @Test
         void theCleanExitMarkerStillWins() {
             Instant exit = NOW.minusSeconds(50);
-            TestVolume.finished(sessionDir, exit);
-            TestVolume.heartbeat(sessionDir, NOW.minusSeconds(51));
+            VolumeFixture.finished(sessionDir, exit);
+            VolumeFixture.heartbeat(sessionDir, NOW.minusSeconds(51));
 
             assertEquals(SessionLifecycle.finished(exit),
-                    liveness.assess(sessionDir, NOW.minusSeconds(600), NOW.minusSeconds(40)));
+                    liveness.assess(SESSION, NOW.minusSeconds(600), NOW.minusSeconds(40)));
         }
     }
 
@@ -147,12 +153,12 @@ class SessionLivenessTest {
 
         @Test
         void isRecordingWithinTheStartupGrace() {
-            assertTrue(assess(NOW.minus(TestVolume.STARTUP_GRACE).plusSeconds(1)).isRecording());
+            assertTrue(assess(NOW.minus(VolumeFixture.STARTUP_GRACE).plusSeconds(1)).isRecording());
         }
 
         @Test
         void finishesAtItsStartPastTheGraceAsMissingItsHeartbeat() {
-            Instant createdAt = NOW.minus(TestVolume.STARTUP_GRACE).minusSeconds(1);
+            Instant createdAt = NOW.minus(VolumeFixture.STARTUP_GRACE).minusSeconds(1);
 
             SessionLifecycle lifecycle = assess(createdAt);
 

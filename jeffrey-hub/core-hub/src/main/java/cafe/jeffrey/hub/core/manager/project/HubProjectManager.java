@@ -23,11 +23,12 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.volume.ProjectDirectory;
-import cafe.jeffrey.hub.core.volume.SessionLiveness;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +41,9 @@ public class HubProjectManager implements ProjectManager {
     private final ProjectInfo projectInfo;
     private final RepositoryStorage repositoryStorage;
 
-    public HubProjectManager(ProjectDirectory project, SessionLiveness liveness) {
+    public HubProjectManager(ProjectDirectory project, FilesystemVolume volume, SessionLiveness liveness) {
         this.projectInfo = project.info();
-        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.path(), liveness);
+        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.tree(), volume, liveness);
     }
 
     @Override

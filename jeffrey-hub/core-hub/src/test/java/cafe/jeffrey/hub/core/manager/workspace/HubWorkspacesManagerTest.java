@@ -21,9 +21,10 @@ import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.volume.TestVolume;
-import cafe.jeffrey.hub.core.volume.WorkspaceMarker;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -55,9 +56,11 @@ class HubWorkspacesManagerTest {
 
     private HubWorkspacesManager manager(boolean autoCreate) {
         Clock clock = FIXED_CLOCK;
-        ProjectManager.Factory projectFactory = project -> new HubProjectManager(project, TestVolume.liveness(clock));
-        return new HubWorkspacesManager(root, clock, autoCreate,
-                workspace -> new HubWorkspaceManager(workspace, ws -> new HubProjectsManager(ws, projectFactory)));
+        FilesystemVolume volume = new FilesystemVolume(root);
+        ProjectManager.Factory projectFactory =
+                project -> new HubProjectManager(project, volume, TestVolume.liveness(clock, volume));
+        return new HubWorkspacesManager(volume, clock, autoCreate,
+                workspace -> new HubWorkspaceManager(workspace, volume, ws -> new HubProjectsManager(ws, projectFactory)));
     }
 
     private HubWorkspacesManager manager() {

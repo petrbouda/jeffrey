@@ -22,9 +22,10 @@ import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties
 import cafe.jeffrey.hub.core.configuration.properties.LivenessProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
-import cafe.jeffrey.hub.core.volume.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.volume.SessionLiveness;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
+import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,8 +72,16 @@ public class HubAppConfiguration {
         return jeffreyDirs;
     }
 
+    /** The shared volume the hub reads and maintains: its workspaces directory. */
     @Bean
-    public SessionLiveness sessionLiveness(Clock applicationClock, LivenessProperties livenessProperties) {
-        return new SessionLiveness(applicationClock, new FileHeartbeatReader(), livenessProperties.deadlines());
+    public FilesystemVolume workspacesVolume(HubJeffreyDirs jeffreyDirs) {
+        return new FilesystemVolume(jeffreyDirs.workspaces());
+    }
+
+    @Bean
+    public SessionLiveness sessionLiveness(
+            Clock applicationClock, FilesystemVolume workspacesVolume, LivenessProperties livenessProperties) {
+        return new SessionLiveness(
+                applicationClock, new HeartbeatReader(workspacesVolume), livenessProperties.deadlines());
     }
 }
