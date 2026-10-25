@@ -1140,13 +1140,6 @@
   flex-shrink: 0;
 }
 
-.server-context-pill .status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-success);
-}
-
 /* ----- Settings row (toggle/checkbox row inside drawer) ----- */
 .setting-row {
   display: flex;

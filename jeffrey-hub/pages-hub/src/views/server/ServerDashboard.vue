@@ -128,7 +128,7 @@
             <tr v-for="row in sortedProjects" :key="row.projectId">
               <td>
                 <span class="project-cell">
-                  <span class="status-dot" :class="{ inactive: !row.active }"></span>
+                  <StatusDot :tone="row.active ? 'success' : 'muted'" />
                   <span class="project-name" :class="{ inactive: !row.active }">{{ row.name }}</span>
                 </span>
               </td>
@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
+import StatusDot from '@shared/components/StatusDot.vue';
 import HubPageHeader from '@/components/HubPageHeader.vue';
 import StorageClient from '@/services/api/StorageClient';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
@@ -669,18 +670,6 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-emerald);
-  flex-shrink: 0;
-}
-
-.status-dot.inactive {
-  background: var(--color-slate-light);
 }
 
 .project-name {

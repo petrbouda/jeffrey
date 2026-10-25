@@ -275,12 +275,11 @@
                   <i class="bi bi-layers inline-drawer-icon"></i>
                   <span class="inline-drawer-label">Session</span>
                   <span class="inline-drawer-id mono">{{ session.id }}</span>
-                  <span
-                    class="session-status-dot"
-                    :class="sessionStatus(session).dotClass"
-                    :title="sessionStatus(session).label"
-                    :aria-label="sessionStatus(session).label"
-                  ></span>
+                  <StatusDot
+                    :tone="sessionStatus(session).dotTone"
+                    :pulse="sessionStatus(session).pulse"
+                    :label="sessionStatus(session).label"
+                  />
                   <div class="drawer-actions">
                     <button
                       v-if="downloadableSummary(session.id)"
@@ -593,6 +592,7 @@ import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import StatusDot from '@shared/components/StatusDot.vue';
 import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
 import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient';
 import { useSessionReads } from '@remote/composables/useSessionReads';
@@ -603,7 +603,7 @@ import ProjectInstanceDetail from '@remote/services/api/model/ProjectInstanceDet
 import ProjectInstanceSession from '@remote/services/api/model/ProjectInstanceSession';
 import ProjectInstanceSessionDetail from '@remote/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
-import type { Variant } from '@shared/types/ui';
+import type { StatusDotTone, Variant } from '@shared/types/ui';
 import { useNavigation } from '@/composables/useNavigation';
 import { splitTimelineSessions, type FailedSessionBlock } from './timelineFailedBlocks';
 import '@shared/styles/shared-components.css';
@@ -701,17 +701,15 @@ const noHeartbeatInstanceIds = computed(() => {
 interface SessionStatusStyle {
   label: string;
   variant: Variant;
-  dotClass: string;
+  dotTone: StatusDotTone;
+  /** A session still recording pulses, as its bar on the timeline does. */
+  pulse: boolean;
 }
 
 const SESSION_STATUS = {
-  noHeartbeat: {
-    label: 'No heartbeat',
-    variant: 'purple',
-    dotClass: 'session-status-dot--no-heartbeat'
-  },
-  active: { label: 'Active', variant: 'orange', dotClass: 'session-status-dot--active' },
-  finished: { label: 'Finished', variant: 'green', dotClass: 'session-status-dot--finished' }
+  noHeartbeat: { label: 'No heartbeat', variant: 'purple', dotTone: 'purple', pulse: false },
+  active: { label: 'Active', variant: 'orange', dotTone: 'amber', pulse: true },
+  finished: { label: 'Finished', variant: 'green', dotTone: 'success', pulse: false }
 } satisfies Record<string, SessionStatusStyle>;
 
 function sessionStatus(session: ProjectInstanceSession): SessionStatusStyle {
@@ -2069,25 +2067,6 @@ onMounted(async () => {
   top: 10px;
   right: 12px;
   z-index: 2;
-}
-
-.session-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-.session-status-dot--active {
-  background: var(--color-amber);
-  /* Reuses the session-pulse-active keyframe defined above for the amber session bars. */
-  animation: session-pulse-active 2s ease-in-out infinite;
-}
-.session-status-dot--finished {
-  background: var(--color-success);
-}
-.session-status-dot--no-heartbeat {
-  background: var(--color-purple-border);
 }
 
 .drawer-actions {
