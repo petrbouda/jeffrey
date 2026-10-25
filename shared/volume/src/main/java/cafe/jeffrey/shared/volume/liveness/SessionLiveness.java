@@ -17,12 +17,14 @@
 
 package cafe.jeffrey.shared.volume.liveness;
 
+import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Decides whether a session is still recording from the files under its {@code .heartbeat/},
@@ -51,26 +53,27 @@ public class SessionLiveness {
     private final HeartbeatReader reader;
     private final SessionDeadlines deadlines;
 
-    public SessionLiveness(Clock clock, HeartbeatReader reader, SessionDeadlines deadlines) {
+    /** Reads the liveness files on {@code volume}, judged against {@code clock}. */
+    public SessionLiveness(Clock clock, VolumeAccess volume, SessionDeadlines deadlines) {
         this.clock = clock;
-        this.reader = reader;
+        this.reader = new HeartbeatReader(volume);
         this.deadlines = deadlines;
     }
 
     /**
      * @param sessionDir      the session's directory
      * @param createdAt       when the session started, from its marker
-     * @param nextSessionStart when the instance's next session started; {@code null} for its newest
+     * @param nextSessionStart when the instance's next session started; empty for its newest
      */
-    public SessionLifecycle assess(VolumePath sessionDir, Instant createdAt, Instant nextSessionStart) {
+    public SessionLifecycle assess(VolumePath sessionDir, Instant createdAt, Optional<Instant> nextSessionStart) {
         LivenessRead finishedMarker = reader.readFinishedMarker(sessionDir);
         if (finishedMarker instanceof LivenessRead.Reported(Instant markerAt)) {
             return SessionLifecycle.finished(markerAt);
         }
 
         LivenessRead lastHeartbeat = reader.readLastHeartbeat(sessionDir);
-        if (nextSessionStart != null) {
-            return SessionLifecycle.finished(lastHeartbeat.timestamp().orElse(nextSessionStart));
+        if (nextSessionStart.isPresent()) {
+            return SessionLifecycle.finished(lastHeartbeat.timestamp().orElse(nextSessionStart.get()));
         }
 
         if (lastHeartbeat instanceof LivenessRead.Reported(Instant heartbeatAt)) {

@@ -32,7 +32,7 @@ public enum AzureFilesProtocol {
     /** An SSD share mounted over NFS 4.1; listed over REST from API version 2025-05-05. */
     NFS;
 
-    /** The value as it is spelled in configuration and stored, or empty for anything else. */
+    /** The value as it is spelled in configuration, or empty for anything else. */
     public static Optional<AzureFilesProtocol> parse(String value) {
         if (value == null || value.isBlank()) {
             return Optional.empty();

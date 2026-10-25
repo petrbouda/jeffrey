@@ -22,10 +22,8 @@ import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 
 /**
- * Deployment-agnostic resolver from a (workspaceId, projectId) tuple to the per-project
- * remote managers used by the shared workspace controllers. Each deployment provides a bean that
- * delegates to its own project resolution machinery (microscope's {@code ProjectManagerResolver}
- * via {@code ProjectManager}).
+ * Resolves a (workspaceId, projectId) tuple to the per-project remote managers used by the shared
+ * workspace controllers. Microscope provides the bean over its {@code ProjectManagerResolver}.
  */
 public interface RemoteProjectAccess {
 

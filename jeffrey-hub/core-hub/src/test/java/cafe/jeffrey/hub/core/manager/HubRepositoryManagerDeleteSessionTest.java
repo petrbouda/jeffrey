@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

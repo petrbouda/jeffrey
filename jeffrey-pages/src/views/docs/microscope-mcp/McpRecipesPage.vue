@@ -138,7 +138,7 @@ LIMIT 20`;
 
       <p>Drives <code>remote_sessions</code> &rarr; <code>remote_download</code> &rarr; <code>recordings_analyzeRecording</code> &rarr; the usual analysis.</p>
 
-      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every workspace and project of the connected remote &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link> or an Azure file share &mdash; at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
+      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every workspace and project of the configured remote &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link> or an Azure file share &mdash; at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
 
       <p>&ldquo;The last hour&rdquo; means <em>recording during</em> the last hour, not <em>started within</em> it, so a JVM that came up this morning and is still running is included. That is almost always what the question meant.</p>
 

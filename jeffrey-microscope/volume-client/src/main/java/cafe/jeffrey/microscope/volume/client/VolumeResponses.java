@@ -48,9 +48,6 @@ import java.util.Map;
  */
 final class VolumeResponses {
 
-    /** Joins a session's instance and its own directory into its name, as the hub does. */
-    private static final String NAME_SEPARATOR = "/";
-
     private static final Map<InstanceState, ProjectInstanceStatus> INSTANCE_STATUSES = Map.of(
             InstanceState.PENDING, ProjectInstanceStatus.PENDING,
             InstanceState.ACTIVE, ProjectInstanceStatus.ACTIVE,
@@ -73,7 +70,7 @@ final class VolumeResponses {
     static RecordingSession unlisted(VolumeSession session) {
         return new RecordingSession(
                 session.id(),
-                name(session),
+                session.name(),
                 session.instanceId(),
                 session.createdAt(),
                 session.lifecycle().finishedAt(),
@@ -90,7 +87,7 @@ final class VolumeResponses {
     static RecordingSession withModelFiles(VolumeSession session, List<SessionFile> files) {
         return new RecordingSession(
                 session.id(),
-                name(session),
+                session.name(),
                 session.instanceId(),
                 session.createdAt(),
                 session.lifecycle().finishedAt(),
@@ -106,19 +103,12 @@ final class VolumeResponses {
     }
 
     static InstanceResponse instance(InstanceSummary summary) {
-        Long createdAt = summary.instance().createdAt().toEpochMilli();
-        Long finishedAt = summary.finishedAt().map(Instant::toEpochMilli).orElse(null);
-        return new InstanceResponse(
+        return InstanceResponse.summary(
                 summary.instance().id(),
-                // An instance is named by its id, as the hub names it
-                summary.instance().id(),
-                INSTANCE_STATUSES.get(summary.state()).name(),
-                createdAt,
-                finishedAt,
-                summary.sessionCount(),
-                null,
-                finishedAt != null ? finishedAt - createdAt : null,
-                List.of());
+                INSTANCE_STATUSES.get(summary.state()),
+                summary.instance().createdAt().toEpochMilli(),
+                summary.finishedAt().map(Instant::toEpochMilli).orElse(null),
+                summary.sessionCount());
     }
 
     /**
@@ -162,7 +152,7 @@ final class VolumeResponses {
         long bytes = measured.stream().mapToLong(SessionFile::size).sum();
         return new RecordingSessionResponse(
                 session.id(),
-                name(session),
+                session.name(),
                 session.instanceId(),
                 createdAt,
                 finishedAt,
@@ -200,9 +190,5 @@ final class VolumeResponses {
 
     private static RecordingStatus status(VolumeSession session) {
         return session.lifecycle().isRecording() ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED;
-    }
-
-    private static String name(VolumeSession session) {
-        return session.instanceId() + NAME_SEPARATOR + session.id();
     }
 }

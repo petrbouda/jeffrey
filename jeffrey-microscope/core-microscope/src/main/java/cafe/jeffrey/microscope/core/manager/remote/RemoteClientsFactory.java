@@ -26,10 +26,10 @@ import cafe.jeffrey.microscope.model.remote.RemoteAddress;
 import java.io.Closeable;
 
 /**
- * The clients of any source, by the kind of its address: a jeffrey-hub over gRPC, or a recording
- * volume read straight from an Azure file share. Everything above this treats the two alike.
+ * The remote's clients, by the kind of its address: a Jeffrey Hub over gRPC, or a recording volume
+ * read straight from an Azure file share. Everything above this treats the two alike.
  */
-public final class RemoteClientsFactory implements RemoteClients.Factory, Closeable {
+public final class RemoteClientsFactory implements Closeable {
 
     private final CachedHubClientsFactory grpc;
     private final AzureFilesClientsFactory azureFiles;
@@ -39,20 +39,11 @@ public final class RemoteClientsFactory implements RemoteClients.Factory, Closea
         this.azureFiles = azureFiles;
     }
 
-    @Override
     public RemoteClients apply(RemoteAddress address) {
         return switch (address) {
             case HubAddress hub -> grpc.apply(hub);
             case AzureFilesAddress share -> azureFiles.apply(share);
         };
-    }
-
-    @Override
-    public void evict(RemoteAddress address) {
-        switch (address) {
-            case HubAddress hub -> grpc.evict(hub);
-            case AzureFilesAddress share -> azureFiles.evict(share);
-        }
     }
 
     @Override

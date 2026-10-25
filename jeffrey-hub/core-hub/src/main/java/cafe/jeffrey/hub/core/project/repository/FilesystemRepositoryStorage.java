@@ -58,8 +58,10 @@ import java.util.stream.Stream;
 /**
  * A project's repository as it lies on the shared volume, which is all the hub knows of it. What
  * the volume holds is read through {@link ProjectTree}, the layout every reader of the volume
- * shares; what the hub changes on it — retention flags, deletions, compression — is written here,
- * on the filesystem the volume lies on. Nothing is cached; every call reads the directories again.
+ * shares; the changes a user asks for — retention flags, session deletions — go through
+ * {@link VolumeChanges}, the same rules every writer keeps, and the hub's own upkeep — file
+ * deletions, compression — is done here, on the filesystem the volume lies on. Nothing is cached;
+ * every call reads the directories again.
  *
  * <p>A session's id is its directory name and its lifecycle is read from its liveness files by
  * {@link SessionLiveness} at that moment. A file's id, timestamp source and whether it is a
@@ -69,9 +71,6 @@ import java.util.stream.Stream;
 public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemRepositoryStorage.class);
-
-    /** Joins a session's instance and its own directory into its name, relative to the project. */
-    private static final String NAME_SEPARATOR = "/";
 
     private static final Map<InstanceState, ProjectInstanceStatus> INSTANCE_STATUSES = Map.of(
             InstanceState.PENDING, ProjectInstanceStatus.PENDING,
@@ -102,7 +101,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private static RecordingSession toRecordingSession(VolumeSession session) {
         return new RecordingSession(
                 session.id(),
-                session.instanceId() + NAME_SEPARATOR + session.id(),
+                session.name(),
                 session.instanceId(),
                 session.createdAt(),
                 session.lifecycle().finishedAt(),
@@ -114,16 +113,13 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     @Override
     public Optional<RecordingSession> session(String sessionId) {
-        return sessions.session(sessionId)
-                .map(FilesystemRepositoryStorage::toRecordingSession)
-                .map(this::withFiles);
+        return sessions.session(sessionId).map(this::withFiles);
     }
 
     @Override
     public List<RecordingSession> listSessions(SessionDetail detail) {
         return sessions.all().stream()
-                .map(FilesystemRepositoryStorage::toRecordingSession)
-                .map(session -> detail.withFiles() ? withFiles(session) : session)
+                .map(session -> detail.withFiles() ? withFiles(session) : toRecordingSession(session))
                 .toList();
     }
 
@@ -131,6 +127,15 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     public RecordingSession withFiles(RecordingSession session) {
         VolumePath sessionDir = tree.path().resolve(session.instanceId()).resolve(session.id());
         ZoneId zone = tree.sessionAt(sessionDir).map(SessionDirectory::zone).orElse(ZoneOffset.UTC);
+        return withFiles(session, sessionDir, zone);
+    }
+
+    /** A session just read, with its files: its directory and zone are known already. */
+    private RecordingSession withFiles(VolumeSession session) {
+        return withFiles(toRecordingSession(session), session.path(), session.zone());
+    }
+
+    private RecordingSession withFiles(RecordingSession session, VolumePath sessionDir, ZoneId zone) {
         List<RepositoryFile> files = tree.files(sessionDir, zone).stream()
                 .map(this::toRepositoryFile)
                 .toList();
@@ -248,9 +253,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         if (instanceDir.isEmpty()) {
             return;
         }
-        Path instancePath = volume.resolve(instanceDir.get());
-        FileSystemUtils.removeDirectory(instancePath);
-        LOG.info("Deleted instance directory: instance_path={}", instancePath);
+        volume.delete(instanceDir.get());
+        LOG.info("Deleted instance directory: instance_path={}", instanceDir.get());
     }
 
     @Override
@@ -270,7 +274,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
         Optional<RepositoryFile> match = session.files().stream()
                 .filter(candidate -> candidate.id().equals(fileId))
-                .reduce(FilesystemRepositoryStorage::theOneThatStays);
+                .reduce(RecordingFormat.theOneThatStays(RepositoryFile::name));
         if (match.isEmpty()) {
             return new FileLookup.NotInSession(sessionId, fileId);
         }
@@ -286,15 +290,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
             return new FileLookup.EmptyRecording(file.name());
         }
         return new FileLookup.Found(file.filePath());
-    }
-
-    /**
-     * Which of two files sharing an id to serve: the archive. While the compression job runs, a
-     * recording and its archive share an id and both are whole (the archive is published by a
-     * rename); the recording is about to be deleted, the archive stays.
-     */
-    private static RepositoryFile theOneThatStays(RepositoryFile first, RepositoryFile second) {
-        return RecordingFormat.of(first.name()).filter(RecordingFormat::isArchive).isPresent() ? first : second;
     }
 
     // ========== Session Compression ==========

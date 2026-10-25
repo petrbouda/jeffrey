@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * A location on the volume, relative to its root: a list of plain path elements. It can name
@@ -36,6 +37,8 @@ public record VolumePath(List<String> segments) {
     /** Not a separator on this layout, but one wherever a name lands on Windows or in a log. */
     private static final String BACKSLASH = "\\";
     private static final String HIDDEN_PREFIX = ".";
+    private static final String SCRATCH_SEPARATOR = ".";
+    private static final String SCRATCH_SUFFIX = ".tmp";
     private static final Set<String> RELATIVE_ELEMENTS = Set.of(".", "..");
 
     private static final VolumePath ROOT = new VolumePath(List.of());
@@ -94,6 +97,21 @@ public record VolumePath(List<String> segments) {
             throw new IllegalStateException("The root of a volume has no parent");
         }
         return new VolumePath(segments.subList(0, segments.size() - 1));
+    }
+
+    /**
+     * A file name for writing {@code name} beside it before it is renamed into place: hidden, so no
+     * listing takes it for part of the layout, ending in {@code .tmp} so it is never taken for a
+     * profiler's {@code .jfr.N~} cache, and unique to one write, since two writers may race.
+     */
+    public static String scratchName(String name) {
+        String hidden = name.startsWith(HIDDEN_PREFIX) ? name : HIDDEN_PREFIX + name;
+        return hidden + SCRATCH_SEPARATOR + UUID.randomUUID() + SCRATCH_SUFFIX;
+    }
+
+    /** Where this file is written before it is renamed into place ({@link #scratchName}). */
+    public VolumePath scratchSibling() {
+        return parent().resolve(scratchName(name()));
     }
 
     /** Whether the last element is the volume's own bookkeeping, marked by a leading dot. */

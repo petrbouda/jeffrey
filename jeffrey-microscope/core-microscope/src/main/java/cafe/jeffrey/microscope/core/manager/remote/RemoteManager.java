@@ -45,6 +45,11 @@ public class RemoteManager {
         this.connectionFactory = connectionFactory;
     }
 
+    /** What configuration declares, without opening a connection to it. */
+    public Optional<RemoteInfo> info() {
+        return remote;
+    }
+
     /** The configured remote, or empty when none is configured. */
     public Optional<RemoteConnection> current() {
         return remote.map(connectionFactory);

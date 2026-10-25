@@ -177,9 +177,10 @@ onMounted(() => {
       <p>
         The <strong>remote</strong> is the one place Microscope reads recordings from beyond its own
         disk: either a <router-link to="/docs/hub">Jeffrey Hub</router-link> reached over gRPC, or the
-        recording volume itself on an Azure file share (below). Microscope connects to exactly one
-        remote. Declaring it up front lets a container or a pod start already connected instead of
-        waiting for someone to connect it on the <strong>Remote</strong> page. For a Jeffrey Hub only
+        recording volume itself on an Azure file share (below). Microscope reads exactly one remote,
+        declared here and read at startup; nothing in the UI or the MCP server connects, changes or
+        removes it. Without a declaration the <strong>Remote</strong> page says so and the MCP
+        <code>remote_</code> tools answer that none is configured. For a Jeffrey Hub only
         <code>hostname</code> is required.
       </p>
 
@@ -207,7 +208,7 @@ onMounted(() => {
           <tr>
             <td><code>jeffrey.microscope.remote.name</code></td>
             <td>the hostname</td>
-            <td>Display name shown on the Remote page and in the breadcrumb.</td>
+            <td>Display name shown on the Remote page.</td>
           </tr>
           <tr>
             <td><code>jeffrey.microscope.remote.plaintext</code></td>
@@ -411,7 +412,7 @@ onMounted(() => {
             <td><code>true</code></td>
             <td>
               Advertises the <code>remote_</code> tools, which list the recording sessions on the
-              connected <a href="#remote">remote</a> and pull one in to be analysed. Its own switch because it is the one family that reaches <em>off</em> this
+              configured <a href="#remote">remote</a> and pull one in to be analysed. Its own switch because it is the one family that reaches <em>off</em> this
               machine: everything else reads what is already here. Set to <code>false</code> to keep
               the agent to this machine. Read at startup.
             </td>
@@ -490,7 +491,7 @@ onMounted(() => {
             <td><code>jeffrey.microscope.mcp.diagnostics.probe-timeout</code></td>
             <td><code>PT2S</code></td>
             <td>
-              How long the <code>jeffrey://diagnostics</code> resource asks the connected remote for
+              How long the <code>jeffrey://diagnostics</code> resource asks the configured remote for
               its version before counting it as unreachable. A short budget is the point: the resource
               answers whether the remote responds, not what it holds. A positive ISO-8601 duration. Read at startup.
             </td>

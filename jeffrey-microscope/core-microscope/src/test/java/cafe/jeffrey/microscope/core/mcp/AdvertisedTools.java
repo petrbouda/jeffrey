@@ -48,7 +48,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_F
 import static org.mockito.Mockito.mock;
 
 /**
- * Every tool the endpoint can advertise, as {@code tools/list} would list it: every family, the hub
+ * Every tool the endpoint can advertise, as {@code tools/list} would list it: every family, the remote
  * and IDE switches on. The collaborators are mocks, because only the specs are read.
  */
 final class AdvertisedTools {

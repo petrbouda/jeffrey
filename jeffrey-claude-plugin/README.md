@@ -306,7 +306,7 @@ over the preset, and `operations` must be in any list that keeps a writer family
 `remote`, `ide` or `jvm`) — startup fails otherwise — since it is how the work the writer starts is followed;
 likewise `recordings` must be in any list that keeps `remote`, since a downloaded session is analysed with
 `recordings_analyzeRecording`. It is the blunt instrument for a shared installation, and it composes
-with the three per-family switches above.
+with the two per-family switches above.
 
 ## Permissions
 

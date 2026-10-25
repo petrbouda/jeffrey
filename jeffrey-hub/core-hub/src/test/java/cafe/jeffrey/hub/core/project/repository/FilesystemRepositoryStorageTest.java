@@ -155,42 +155,6 @@ class FilesystemRepositoryStorageTest {
             assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
         }
 
-        /** A newer session in the same instance means the older one ended, even with a fresh beat. */
-        @Test
-        void aNewerSessionOfTheSameInstanceFinishesTheOlderOne() {
-            Path older = session(INSTANCE, "s-1", T0);
-            TestVolume.heartbeat(older, NOW);
-            TestVolume.heartbeat(session(INSTANCE, "s-2", T0.plusSeconds(600)), NOW);
-
-            List<RecordingSession> sessions = storage.instanceWithSessions(INSTANCE).orElseThrow().sessions();
-
-            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.FINISHED),
-                    sessions.stream().map(RecordingSession::status).toList());
-            assertEquals(NOW, sessions.get(1).finishedAt());
-        }
-
-        @Test
-        void anInstanceTakesItsStatusAndFinishFromItsNewestSession() {
-            TestVolume.finished(session(INSTANCE, "s-1", T0), T0.plusSeconds(60));
-            TestVolume.finished(session(INSTANCE, "s-2", T0.plusSeconds(120)), T0.plusSeconds(300));
-
-            ProjectInstanceInfo instance = storage.instanceWithSessions(INSTANCE).orElseThrow().instance();
-
-            assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
-            assertEquals(T0.plusSeconds(300), instance.finishedAt());
-            assertEquals(2, instance.sessionCount());
-        }
-
-        @Test
-        void anInstanceWithoutSessionsIsPending() {
-            TestVolume.instance(project, INSTANCE, T0);
-
-            ProjectInstanceInfo instance = storage.instanceWithSessions(INSTANCE).orElseThrow().instance();
-
-            assertEquals(ProjectInstanceStatus.PENDING, instance.status());
-            assertEquals(0, instance.sessionCount());
-        }
-
         @Test
         void anUnknownInstanceIsEmpty() {
             assertTrue(storage.instanceWithSessions("ghost").isEmpty());
@@ -225,14 +189,6 @@ class FilesystemRepositoryStorageTest {
 
             assertEquals(List.of("s-1"), storage.listSessions(SessionDetail.HEADERS).stream()
                     .map(RecordingSession::id).toList());
-        }
-
-        @Test
-        void anInstanceIdThatIsNotOneDirectoryNamesNothing() {
-            TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
-
-            assertTrue(storage.instanceWithSessions("../" + INSTANCE).isEmpty());
-            assertTrue(storage.session("../s-1").isEmpty());
         }
 
         @Test

@@ -21,23 +21,26 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * How Microscope signs in to an Azure file share. Neither keeps a secret in the registry: a SAS
- * token is read from configuration when the source is opened, and Entra ID takes whatever identity
- * the environment provides.
+ * How Microscope signs in to an Azure file share. Neither keeps a secret outside configuration: a
+ * SAS token is read from it when the share is opened, and Entra ID takes whatever identity the
+ * environment provides.
  */
 public enum AzureFilesAuth {
 
-    /** A share-scoped shared access signature with read and list permissions. */
+    /**
+     * A share-scoped shared access signature: read and list for a read-only share; create, write and
+     * delete as well for one that takes the user's changes.
+     */
     SAS,
 
     /**
      * The environment's Microsoft Entra identity (Azure CLI login, workload or managed identity).
-     * Azure Files grants REST access to it only through the Storage File Data Privileged Reader
-     * role, which reads every share of the storage account.
+     * Azure Files grants REST access to it only through the Storage File Data Privileged Reader role
+     * (Contributor for a writable share), which reaches every share of the storage account.
      */
     ENTRA;
 
-    /** The value as it is spelled in configuration and stored, or empty for anything else. */
+    /** The value as it is spelled in configuration, or empty for anything else. */
     public static Optional<AzureFilesAuth> parse(String value) {
         if (value == null || value.isBlank()) {
             return Optional.empty();

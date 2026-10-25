@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +81,6 @@ public class HubAppConfiguration {
     public SessionLiveness sessionLiveness(
             Clock applicationClock, FilesystemVolume workspacesVolume, LivenessProperties livenessProperties) {
         return new SessionLiveness(
-                applicationClock, new HeartbeatReader(workspacesVolume), livenessProperties.deadlines());
+                applicationClock, workspacesVolume, livenessProperties.deadlines());
     }
 }

@@ -89,7 +89,7 @@ public enum OperationKind {
         return FAMILY_RECORDINGS.equals(family);
     }
 
-    /** Whether operations of this kind run on, or reach, a remote Hub. */
+    /** Whether operations of this kind reach the remote. */
     public boolean reachesRemote() {
         return FAMILY_REMOTE.equals(family);
     }

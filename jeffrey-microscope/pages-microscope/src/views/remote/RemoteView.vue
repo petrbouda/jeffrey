@@ -16,7 +16,7 @@
  -->
 
 <template>
-  <RemoteBrowser :app-description="HERO" :initial-workspace-id="initialWorkspaceId">
+  <RemoteBrowser :initial-workspace-id="initialWorkspaceId">
     <template #project="{ project, workspaceId }">
       <ProjectCard
         :project="project"
@@ -36,10 +36,6 @@ import { useNavigation } from '@/composables/useNavigation';
 
 const { navigateToProject } = useNavigation();
 
-const HERO =
-  'Microscope analyzes the recordings of one remote: a Jeffrey Hub, or the recording volume on an ' +
-  'Azure file share. Its workspaces and projects appear here once it is configured.';
-
 // Optional deep-link from a breadcrumb (`/remote?workspaceId=…`) so the browser opens with that
 // workspace preselected instead of the first one.
 const route = useRoute();
@@ -48,7 +44,3 @@ const initialWorkspaceId = computed(() => {
   return typeof value === 'string' ? value : null;
 });
 </script>
-
-<style scoped>
-@import '@shared/styles/shared-components.css';
-</style>

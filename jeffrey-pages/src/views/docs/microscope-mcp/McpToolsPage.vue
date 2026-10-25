@@ -257,7 +257,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><a href="#remote"><code>remote_</code></a></td>
             <td class="map-count">5</td>
-            <td>The recordings that never reached this machine &mdash; what a deployed application sent to the connected remote. Finds a session and pulls it in; <code>recordings_</code> then turns it into a profile. Also lists the files a session holds beside its recording and fetches one of them on its own.</td>
+            <td>The recordings that never reached this machine &mdash; what a deployed application sent to the configured remote. Finds a session and pulls it in; <code>recordings_</code> then turns it into a profile. Also lists the files a session holds beside its recording and fetches one of them on its own.</td>
           </tr>
           <tr>
             <td><a href="#operations"><code>operations_</code></a></td>
@@ -1165,7 +1165,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
       <DocsCodeBlock :code="exHeap" language="json" />
 
       <h2 id="remote">remote_ &mdash; recordings that are not on this machine</h2>
-      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to the connected remote &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link>, or the recording volume on an Azure file share (<router-link to="/docs/microscope/configuration/application-properties#remote">one or the other</router-link>) &mdash; which is where the interesting ones usually are.</p>
+      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to the configured remote &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link>, or the recording volume on an Azure file share (<router-link to="/docs/microscope/configuration/application-properties#remote">one or the other</router-link>) &mdash; which is where the interesting ones usually are.</p>
       <DocsCodeBlock :code="remoteExample" language="text" />
 
       <table>

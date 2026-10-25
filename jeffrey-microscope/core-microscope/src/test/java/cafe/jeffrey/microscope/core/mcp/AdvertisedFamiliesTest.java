@@ -58,7 +58,7 @@ class AdvertisedFamiliesTest {
             assertEquals(Set.of("profiles", "flamegraph"), advertised.families());
         }
 
-        /** The hub and IDE switches withhold a family a preset or list selected, as the assembler does. */
+        /** The remote and IDE switches withhold a family a preset or list selected, as the assembler does. */
         @Test
         void theRemoteAndIdeSwitchesWithholdTheirFamilies() {
             AdvertisedFamilies advertised = AdvertisedFamilies.of(

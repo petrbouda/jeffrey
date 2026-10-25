@@ -46,10 +46,6 @@ public final class ProjectSessions {
         this.liveness = liveness;
     }
 
-    public ProjectTree tree() {
-        return tree;
-    }
-
     /** Every session of the project, newest first. */
     public List<VolumeSession> all() {
         return tree.instances().stream()

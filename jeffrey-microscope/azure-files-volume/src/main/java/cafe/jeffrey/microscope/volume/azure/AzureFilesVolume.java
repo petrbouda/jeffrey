@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * The recording volume on an Azure file share, read over the Azure Files REST API — the same
@@ -73,8 +72,6 @@ public final class AzureFilesVolume implements WritableVolume {
     private static final Logger LOG = LoggerFactory.getLogger(AzureFilesVolume.class);
 
     private static final String SEPARATOR = "/";
-    private static final String HIDDEN_PREFIX = ".";
-    private static final String SCRATCH_SUFFIX = ".tmp";
 
     /** What the service answers for a name that holds nothing of the kind asked for. */
     private static final Set<ShareErrorCode> NOTHING_THERE = Set.of(
@@ -98,7 +95,7 @@ public final class AzureFilesVolume implements WritableVolume {
      *                 empty for the share's root
      * @param protocol the protocol the share was created for
      */
-    public AzureFilesVolume(ShareClient share, String rootPath, AzureFilesProtocol protocol) {
+    AzureFilesVolume(ShareClient share, String rootPath, AzureFilesProtocol protocol) {
         this.share = share;
         this.rootPath = rootPath == null ? "" : rootPath;
         this.protocol = protocol;
@@ -210,7 +207,7 @@ public final class AzureFilesVolume implements WritableVolume {
             }
             return;
         }
-        VolumePath scratch = file.parent().resolve(scratchName(file.name()));
+        VolumePath scratch = file.scratchSibling();
         ShareFileClient scratchClient = fileClient(scratch);
         try {
             scratchClient.create(content.length);
@@ -254,12 +251,6 @@ public final class AzureFilesVolume implements WritableVolume {
             }
         }
         directory.deleteIfExists();
-    }
-
-    /** Hidden, so no listing takes it for part of the layout, and unique to this write. */
-    private static String scratchName(String name) {
-        String hidden = name.startsWith(HIDDEN_PREFIX) ? name : HIDDEN_PREFIX + name;
-        return hidden + "." + UUID.randomUUID() + SCRATCH_SUFFIX;
     }
 
     private void deleteQuietly(ShareFileClient client, VolumePath scratch) {

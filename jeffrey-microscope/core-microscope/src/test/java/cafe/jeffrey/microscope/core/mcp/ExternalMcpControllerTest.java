@@ -1011,9 +1011,9 @@ class ExternalMcpControllerTest {
                     BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, FIXED_CLOCK);
             String taskId = registry.register(OperationKind.REMOTE_DOWNLOAD, jobs.rememberCompleted("s", "done"),
                     OperationResults.Value::new);
-            MockMvcTester withoutHubs = following(kind -> !kind.reachesRemote());
+            MockMvcTester withoutRemote = following(kind -> !kind.reachesRemote());
 
-            assertThat(post(withoutHubs, tasks("tasks/get", taskId)))
+            assertThat(post(withoutRemote, tasks("tasks/get", taskId)))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.error.code").isEqualTo(-32602);

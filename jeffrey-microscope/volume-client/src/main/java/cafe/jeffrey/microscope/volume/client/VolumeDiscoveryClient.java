@@ -25,17 +25,15 @@ import cafe.jeffrey.microscope.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
-import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
-import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
+import cafe.jeffrey.shared.volume.layout.VolumeWorkspace;
+import cafe.jeffrey.shared.volume.layout.WorkspaceCreation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -101,22 +99,18 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
             throw Exceptions.invalidRequest("Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
         }
         String trimmedName = name.trim();
-        VolumePath directory = VolumePath.root().resolve(referenceId);
         return source.read(() -> {
-            if (VolumeChanges.isDescribedWorkspace(volume, directory)) {
+            WorkspaceCreation creation =
+                    VolumeChanges.createWorkspace(volume, referenceId, trimmedName, source.clock().millis());
+            if (creation == WorkspaceCreation.ID_TAKEN) {
                 throw Exceptions.invalidRequest(ID_TAKEN.formatted(referenceId));
             }
-            boolean nameTaken = source.workspaceDirectories().stream()
-                    .filter(other -> !other.name().equals(referenceId))
-                    .map(this::workspace)
-                    .anyMatch(other -> other.name().equals(trimmedName));
-            if (nameTaken) {
+            if (creation == WorkspaceCreation.NAME_TAKEN) {
                 throw Exceptions.invalidRequest(NAME_TAKEN.formatted(trimmedName));
             }
-            VolumeChanges.describeWorkspace(volume, directory, new WorkspaceMarker(trimmedName, source.clock().millis()));
             LOG.info("Created workspace on the recording volume: workspace_id={} source={}",
                     referenceId, source.description());
-            return workspace(directory);
+            return workspace(VolumePath.root().resolve(referenceId));
         });
     }
 
@@ -152,13 +146,8 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
     }
 
     private WorkspaceInfo workspace(VolumePath directory) {
-        Optional<WorkspaceMarker> marker =
-                VolumeMarkers.read(source.volume(), directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class);
-        String id = directory.name();
-        String name = marker.map(WorkspaceMarker::name).orElse(id);
-        Instant createdAt = marker.map(found -> Instant.ofEpochMilli(found.createdAt()))
-                .or(() -> source.volume().stat(directory).flatMap(VolumeEntry::createdAt))
-                .orElse(null);
-        return VolumeResponses.workspace(id, name, createdAt, source.projects(directory).size());
+        VolumeWorkspace workspace = VolumeWorkspace.at(source.volume(), directory);
+        return VolumeResponses.workspace(workspace.id(), workspace.name(), workspace.createdAt().orElse(null),
+                source.projects(directory).size());
     }
 }

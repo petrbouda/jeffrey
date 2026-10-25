@@ -19,10 +19,10 @@ package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.project.repository.FileLookup;
 import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
-import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 
 import java.util.List;
 import java.util.Optional;

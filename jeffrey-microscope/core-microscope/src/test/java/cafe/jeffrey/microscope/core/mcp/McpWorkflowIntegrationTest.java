@@ -65,7 +65,7 @@ class McpWorkflowIntegrationTest {
     private final Clock clock = Clock.systemUTC();
     private final McpOperationRegistry operations = new McpOperationRegistry(clock);
     private final MicroscopeCoreRepositories repositories = mock(MicroscopeCoreRepositories.class);
-    private final RemoteManager hubs = mock(RemoteManager.class);
+    private final RemoteManager remoteManager = mock(RemoteManager.class);
 
     @Test
     void operationResultAndMetricsAreAvailableThroughTheRealEndpoint() {
@@ -111,7 +111,7 @@ class McpWorkflowIntegrationTest {
                 new ProfilesMcpTools(repositories, EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordings, new PipelineRunRegistry<>(ProfileInitStages.DEFINITION,
                         PipelineRunOptions.unbounded(), clock), operations, clock).build(),
-                RemoteMcpToolsFixture.of(hubs, resolver, recordings, clock).withOperations(operations).build(),
+                RemoteMcpToolsFixture.of(remoteManager, resolver, recordings, clock).withOperations(operations).build(),
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
@@ -121,7 +121,7 @@ class McpWorkflowIntegrationTest {
                 operations, ToolFixtures.answers(), clock);
         return new ExternalMcpController(assembler, properties, McpTestGuards.loopback(),
                 new McpPromptRegistry(McpSkillCatalogue.fromClasspath()),
-                new McpDiagnostics(repositories, hubs, properties, clock, Duration.ofSeconds(1), McpSkillProvider.NONE),
+                new McpDiagnostics(repositories, remoteManager, properties, clock, Duration.ofSeconds(1), McpSkillProvider.NONE),
                 AdvertisedFamilies.of(properties), McpTaskProvider.NONE, McpSkillProvider.NONE);
     }
 

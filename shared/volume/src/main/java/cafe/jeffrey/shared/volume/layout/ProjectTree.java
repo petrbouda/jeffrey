@@ -78,6 +78,14 @@ public final class ProjectTree {
                 .map(marker -> new ProjectTree(volume, directory, marker));
     }
 
+    /** The projects in a workspace's directory, each a child directory {@link #at} recognises. */
+    public static List<ProjectTree> allIn(VolumeAccess volume, VolumePath workspaceDirectory) {
+        return VolumeMarkers.childDirectories(volume, workspaceDirectory).stream()
+                .map(directory -> at(volume, directory))
+                .flatMap(Optional::stream)
+                .toList();
+    }
+
     /** Where the project's instances and sessions lie. */
     public VolumePath path() {
         return path;
@@ -113,7 +121,7 @@ public final class ProjectTree {
      * Whether any directory is left in an instance, marker or not: one the provisioner has created
      * but not yet described is a session about to start, and its profiler may already be writing.
      */
-    public boolean holdsAnyDirectory(VolumePath instanceDir) {
+    boolean holdsAnyDirectory(VolumePath instanceDir) {
         return !VolumeMarkers.childDirectories(volume, instanceDir).isEmpty();
     }
 
@@ -148,19 +156,19 @@ public final class ProjectTree {
     }
 
     /**
-     * When the session after this one in its instance started, or {@code null} for the newest: a
-     * newer session in the same instance is what ended this one.
+     * When the session after this one in its instance started, or empty for the newest: a newer
+     * session in the same instance is what ended this one.
      */
-    public static Instant nextStart(List<SessionDirectory> oldestFirst, SessionDirectory session) {
+    static Optional<Instant> nextStart(List<SessionDirectory> oldestFirst, SessionDirectory session) {
         for (int i = 0; i < oldestFirst.size() - 1; i++) {
             if (oldestFirst.get(i).path().equals(session.path())) {
-                return oldestFirst.get(i + 1).createdAt();
+                return Optional.of(oldestFirst.get(i + 1).createdAt());
             }
         }
-        return null;
+        return Optional.empty();
     }
 
-    public boolean isRetained(SessionDirectory session) {
+    boolean isRetained(SessionDirectory session) {
         return VolumeMarkers.hasFlag(volume, session.path(), SessionDirectory.RETAINED_FLAG);
     }
 

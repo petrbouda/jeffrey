@@ -95,14 +95,14 @@ const productTabs: ProductTab[] = [
     name: 'Microscope',
     icon: 'bi-search-heart-fill',
     tagline: 'Deep analyzer for JFR recordings and heap dumps.',
-    oneLiner: 'Open a JFR file or connect a remote. Read flamegraphs that finally render fast.',
+    oneLiner: 'Open a JFR file or pull one from your remote. Read flamegraphs that finally render fast.',
     features: [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
       { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
       { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
       { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' },
       { icon: 'bi-diagram-3', title: 'Traces', desc: 'Span waterfalls correlated with I/O, locks and GC pauses — from the same JFR file.' },
-      { icon: 'bi-plug', title: 'Connect a Remote', desc: 'Pull recordings, artifacts & application\'s lifecycle from a Jeffrey Hub over gRPC, or straight off an Azure file share.' }
+      { icon: 'bi-plug', title: 'Read a Remote', desc: 'Pull recordings, artifacts & application\'s lifecycle from a Jeffrey Hub over gRPC, or straight off an Azure file share.' }
     ],
     deployment: {
       eyebrow: 'Deployment',
@@ -277,7 +277,7 @@ function copyCmd(): void {
           <span class="title-accent title-accent--microscope">on your desk.</span>
         </h1>
         <p class="product-subtitle">
-          A deep analyzer for JFR recordings and heap dumps. Upload a file, or connect
+          A deep analyzer for JFR recordings and heap dumps. Upload a file, or declare
           a remote — a Jeffrey Hub or an Azure file share — and pull recordings directly.
         </p>
         <ul class="bullet-list">

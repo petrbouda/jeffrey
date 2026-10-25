@@ -21,11 +21,10 @@ import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;
-import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
+import cafe.jeffrey.shared.volume.layout.ProjectTree;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * A workspace directory on the volume and what its {@code .workspace-info.json} declares (or, for
@@ -46,11 +45,10 @@ public record WorkspaceDirectory(VolumeAccess volume, VolumePath path, String na
         return path.name();
     }
 
-    /** Its projects, as {@link ProjectDirectory#at} recognises them — read now. */
+    /** Its projects, as {@link ProjectTree#at} recognises them — read now. */
     public List<ProjectDirectory> projects() {
-        return VolumeMarkers.childDirectories(volume, path).stream()
-                .map(directory -> ProjectDirectory.at(volume, directory, id()))
-                .flatMap(Optional::stream)
+        return ProjectTree.allIn(volume, path).stream()
+                .map(tree -> ProjectDirectory.of(tree, id()))
                 .toList();
     }
 

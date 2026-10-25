@@ -25,14 +25,10 @@ import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
-import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.test.volume.VolumeWriter;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -52,7 +48,7 @@ public final class TestVolume {
 
     public static SessionLiveness liveness(Clock clock, VolumeAccess volume) {
         return new SessionLiveness(
-                clock, new HeartbeatReader(volume), new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
+                clock, volume, new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
     }
 
     /** Where {@code path}, a directory under {@code root}, lies on the volume rooted there. */
@@ -109,13 +105,5 @@ public final class TestVolume {
 
     public static Path file(Path dir, String name, String content) {
         return VolumeWriter.file(dir, name, content);
-    }
-
-    private static Path directories(Path dir) {
-        try {
-            return Files.createDirectories(dir);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 }

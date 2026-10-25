@@ -54,8 +54,8 @@ public record VolumeSource(
 
     private static final VolumePath ROOT = VolumePath.root();
     private static final String READ_ONLY =
-            "%s: this source is declared read-only (azure-files.read-only=true). "
-                    + "Make the change through the Jeffrey Hub that maintains the volume, or declare the source writable.";
+            "%s: the remote is declared read-only. "
+                    + "Make the change through the Jeffrey Hub that maintains the volume, or declare the remote writable.";
 
     public VolumeSource {
         if (volume == null || liveness == null || clock == null || description == null || description.isBlank()) {
@@ -90,10 +90,7 @@ public record VolumeSource(
 
     /** The workspace's projects, each a directory whose project marker reads. */
     List<ProjectTree> projects(VolumePath workspaceDirectory) {
-        return VolumeMarkers.childDirectories(volume, workspaceDirectory).stream()
-                .map(directory -> ProjectTree.at(volume, directory))
-                .flatMap(Optional::stream)
-                .toList();
+        return ProjectTree.allIn(volume, workspaceDirectory);
     }
 
     Optional<ProjectTree> project(ProjectScope scope) {

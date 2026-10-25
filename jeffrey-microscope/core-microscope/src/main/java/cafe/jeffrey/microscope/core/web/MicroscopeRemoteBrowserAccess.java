@@ -28,7 +28,7 @@ import java.util.List;
 
 /**
  * Microscope's {@link RemoteBrowserAccess} bridge: resolves the remote's workspaces and projects
- * through the local {@link ProjectManagerResolver} (manager objects backed by the shared gRPC
+ * through the local {@link ProjectManagerResolver} (manager objects backed by the remote's
  * clients) and maps them into the shared response DTOs.
  */
 public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {

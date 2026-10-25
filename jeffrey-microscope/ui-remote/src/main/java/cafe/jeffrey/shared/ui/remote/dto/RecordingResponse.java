@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * Recording list item shared between deployments. The {@code profile*} fields are populated from
  * the deployment's {@link cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider}
- * (profile-capable deployments supply real values; others report {@link ProfileInfo#NONE}).
+ * ({@link ProfileInfo#NONE} for a recording with no profile).
  *
  * @param filename    the recording's name: the file's own name for an upload, the session's name for
  *                    the recording item of a bundle

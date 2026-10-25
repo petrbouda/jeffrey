@@ -95,7 +95,6 @@ class ProfileMcpToolsTest {
         RequestContextHolder.resetRequestAttributes();
     }
 
-
     private static final Instant START = Instant.parse("2026-01-01T10:00:00Z");
 
     @Mock

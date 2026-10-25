@@ -24785,7 +24785,10 @@
             ]
           },
           "readOnly": {
-            "type": "boolean"
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "reason": {
             "type": [

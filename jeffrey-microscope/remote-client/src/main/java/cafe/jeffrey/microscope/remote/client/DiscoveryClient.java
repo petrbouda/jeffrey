@@ -46,15 +46,6 @@ public interface DiscoveryClient {
     /** What the source says about itself; throws when it cannot be reached. */
     PublicApiInfo info();
 
-    /** {@link #info()}, or empty when the source cannot be reached. */
-    default Optional<PublicApiInfo> tryInfo() {
-        try {
-            return Optional.of(info());
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-
     List<WorkspaceInfo> allWorkspaces();
 
     /** One workspace, its status saying so when it is missing or the source cannot be reached. */

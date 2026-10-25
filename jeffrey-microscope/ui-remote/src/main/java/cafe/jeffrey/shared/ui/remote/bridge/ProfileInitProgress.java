@@ -23,9 +23,7 @@ import java.util.List;
  * How far a recording's profile has got through initialization, as the recordings list reports it.
  * <p>
  * States and statuses are the wire codes rather than the enums behind them, on purpose. This module
- * is shared with deployments that have no profile pipeline at all — the hub wires
- * {@link RecordingProfileInfoProvider#NOOP} — so it cannot depend on the pipeline's types, and a
- * deployment that does have them maps at the boundary.
+ * stays free of the profile pipeline's types; Microscope maps them at the boundary.
  *
  * @param state  the run's state code, or {@code null} when this recording has no run to report
  * @param stages one entry per stage the pipeline declares, in the order it runs them

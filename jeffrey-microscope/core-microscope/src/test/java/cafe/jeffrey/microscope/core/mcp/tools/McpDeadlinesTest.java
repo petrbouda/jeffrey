@@ -73,7 +73,7 @@ class McpDeadlinesTest {
             assertEquals(Duration.ofSeconds(5), left);
         }
 
-        /** An elapsed deadline is the hub being too slow, reported as it would be by the hub itself. */
+        /** An elapsed deadline is the remote being too slow, reported as the remote would report it. */
         @Test
         void refusesAnElapsedDeadlineAsTheRemoteBeingUnavailable() {
             JeffreyException refused = assertThrows(JeffreyException.class,

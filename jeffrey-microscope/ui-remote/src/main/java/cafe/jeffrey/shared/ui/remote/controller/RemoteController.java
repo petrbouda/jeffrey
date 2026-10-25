@@ -53,12 +53,9 @@ public class RemoteController {
 
     private static RemoteResponse toResponse(RemoteInfo remote) {
         return switch (remote.address()) {
-            case HubAddress hub -> new RemoteResponse(
-                    remote.name(), hub.hostname(), hub.port(), hub.plaintext(),
-                    KIND_GRPC, hub.identity(), hub.readOnly());
-            case AzureFilesAddress azure -> new RemoteResponse(
-                    remote.name(), null, 0, false,
-                    KIND_AZURE_FILES, location(azure), azure.readOnly());
+            case HubAddress hub -> new RemoteResponse(remote.name(), KIND_GRPC, hub.identity(), hub.readOnly());
+            case AzureFilesAddress azure ->
+                    new RemoteResponse(remote.name(), KIND_AZURE_FILES, location(azure), azure.readOnly());
         };
     }
 

@@ -184,7 +184,6 @@ public class RemoteArtifactsMcpTools {
         this.advertised = advertised;
     }
 
-
     /**
      * One remote file, as the key one transfer at a time runs under.
      */
@@ -385,7 +384,7 @@ public class RemoteArtifactsMcpTools {
         // and a disk does not need a round trip to be read. It also means an artifact stays reachable
         // while the remote that held it is down or its session has been retired - the answer is the path,
         // and the path is still good.
-        Optional<RetainedFetch> retained = retainedLocally(key, ref);
+        Optional<RetainedFetch> retained = retainedLocally(key);
         if (retained.isPresent()) {
             FetchFacts facts = retained.get().facts();
             String operationId = register(key, retained.get().operation(), path -> facts, uiLink);
@@ -785,7 +784,8 @@ public class RemoteArtifactsMcpTools {
      * A retained path that is no longer the path this session resolves to means the recording has
      * been analysed since, so the fetch proper runs and moves the file beside its profile.
      */
-    private Optional<RetainedFetch> retainedLocally(RemoteFileRef key, RemoteSessionRef ref) {
+    private Optional<RetainedFetch> retainedLocally(RemoteFileRef key) {
+        RemoteSessionRef ref = key.session();
         Optional<OperationHandle<Path>> retained = fetches.current(key)
                 .filter(handle -> handle.snapshot().state() == OperationState.COMPLETED);
         if (retained.isEmpty()) {

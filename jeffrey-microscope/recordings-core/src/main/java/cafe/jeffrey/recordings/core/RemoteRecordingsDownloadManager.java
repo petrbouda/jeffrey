@@ -485,8 +485,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
     }
 
-
-
     private static void streamToFileWithProgress(
             InputStream source,
             Path target,

@@ -133,7 +133,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>recordings-core</artifactId>
         </dependency>
-        <!-- Shared hub-browser controllers (hubs/workspaces/projects/instances/repository/download/recordings) -->
+        <!-- Shared remote-browser controllers (remote/workspaces/projects/instances/repository/download/recordings) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ui-remote</artifactId>

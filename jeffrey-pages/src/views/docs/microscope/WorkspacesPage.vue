@@ -29,7 +29,7 @@ const headings = [
   { id: 'declare-remote', text: 'Step 1 — Declare the Remote', level: 2 },
   { id: 'azure-files', text: 'Working on an Azure File Share', level: 3 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
-  { id: 'status', text: 'Workspace Status', level: 2 },
+  { id: 'status', text: 'Remote Status', level: 2 },
   { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
 ];
 
@@ -77,7 +77,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>name</code></td>
-            <td>How the remote is named in Microscope — its header and the breadcrumb. Defaults to the hostname.</td>
+            <td>How the remote is named in Microscope's Remote page. Defaults to the hostname.</td>
           </tr>
           <tr>
             <td><code>hostname</code></td>
@@ -96,9 +96,10 @@ onMounted(() => {
 
       <p>
         Open the <strong>Remote</strong> page from the sidebar: it shows the remote's name with a
-        status indicator, and its workspaces beneath. With nothing declared the page says so and
-        names the properties to set. Microscope holds exactly one remote, and the UI never connects,
-        changes or disconnects it — to switch to another hub, change the configuration and restart.
+        <a href="#status">status</a> dot, and its workspaces beneath. With nothing declared the page
+        says so and names the properties to set. Microscope holds exactly one remote, and the UI
+        never connects, changes or removes it — to point Microscope at another remote, change the
+        configuration and restart.
         No connection is attempted at startup, so a hub that boots after Microscope starts working as
         soon as it comes up. A declaration that cannot be used (both a hostname and a share, a port out
         of range, …) is logged and ignored rather than failing startup.
@@ -143,7 +144,7 @@ onMounted(() => {
 
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
       <p>
-        With the remote connected, click <strong>Create Workspace</strong> in the workspace
+        With the remote declared and online, click <strong>Create Workspace</strong> in the workspace
         column. Microscope opens a side drawer with two fields:
       </p>
 
@@ -178,10 +179,10 @@ onMounted(() => {
         deliberately — typically a short slug like <code>prod-eu</code> or <code>staging</code>.
       </DocsCallout>
 
-      <h2 id="status">Workspace Status</h2>
+      <h2 id="status">Remote Status</h2>
       <p>
-        Each workspace card shows a status badge. Microscope re-checks status on every page
-        load and tab switch — there is no manual refresh button.
+        The dot beside the remote's name tells you whether Microscope could read it. It is checked
+        each time the Remote page opens — there is no manual refresh button.
       </p>
 
       <table>
@@ -194,24 +195,19 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><strong>Available</strong></td>
-            <td>Workspace is reachable and healthy.</td>
-            <td>Open it and start working.</td>
+            <td><strong>Online</strong></td>
+            <td>The remote answered and listed its workspaces.</td>
+            <td>Pick a workspace and start working.</td>
           </tr>
           <tr>
-            <td><strong>Offline</strong></td>
-            <td>Microscope reached the remote but the workspace itself is not responding.</td>
-            <td>Check the hub logs. The badge clears automatically once the workspace recovers.</td>
+            <td><strong>Checking…</strong></td>
+            <td>Microscope is asking the remote for its workspaces.</td>
+            <td>Wait a moment.</td>
           </tr>
           <tr>
-            <td><strong>Unavailable</strong></td>
-            <td>The workspace existed before but the remote no longer reports it (likely deleted there).</td>
-            <td>Either restore it on the remote or remove the stale entry from Microscope.</td>
-          </tr>
-          <tr>
-            <td><strong>Unknown</strong></td>
-            <td>Microscope can't reach the remote at all (network, TLS, or the hub is down).</td>
-            <td>Check the remote's status on the Remote page, its declaration in configuration, and your network/VPN.</td>
+            <td><strong>Unreachable</strong></td>
+            <td>Microscope could not read the remote (network, TLS, credentials, or the hub is down). The page shows the error.</td>
+            <td>Check the remote's declaration in configuration, its credentials and your network/VPN, then reopen the page.</td>
           </tr>
         </tbody>
       </table>

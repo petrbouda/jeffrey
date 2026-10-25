@@ -139,7 +139,6 @@ class DownloadedSessionIndexTest {
         DownloadedSessionIndex.LocalCopy copy = index.find(REF).orElseThrow();
 
         assertEquals("rec-jfr", copy.recordingId());
-        assertEquals("bundle-1", copy.bundleId());
         assertFalse(copy.analysed());
     }
 
@@ -186,7 +185,7 @@ class DownloadedSessionIndexTest {
             assertTrue(index.find(elsewhere).isEmpty());
         }
 
-        /** A copy taken from a remote connected earlier, at another address, is not this remote's. */
+        /** A copy taken from a remote configured earlier, at another address, is not this remote's. */
         @Test
         void doesNotMatchACopyFromAnotherRemote() {
             when(recordings.listRecordings()).thenReturn(List.of(recording("rec-1", null, CREATED_AT)));

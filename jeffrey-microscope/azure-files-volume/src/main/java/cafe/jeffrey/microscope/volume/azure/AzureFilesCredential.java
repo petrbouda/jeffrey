@@ -18,13 +18,14 @@
 package cafe.jeffrey.microscope.volume.azure;
 
 /**
- * What Microscope signs in to an Azure file share with. Held in memory only: the registry stores
- * how a source signs in, never the secret itself.
+ * What Microscope signs in to an Azure file share with. Held in memory only, read from
+ * configuration; nothing stores the secret.
  */
 public sealed interface AzureFilesCredential {
 
     /**
-     * A shared access signature, scoped to the share with read and list permissions.
+     * A shared access signature scoped to the share: read and list, plus create, write and delete for
+     * a share that takes the user's changes.
      *
      * @param token the SAS query string, with or without its leading {@code ?}
      */

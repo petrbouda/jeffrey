@@ -20,10 +20,9 @@ package cafe.jeffrey.shared.ui.remote.bridge;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 
 /**
- * Optional enrichment SPI for the shared recordings list. Supplies the per-recording profile
- * fields ({@code profileSizeInBytes} / {@code profileModified}) that only a profile-capable
- * deployment can compute. Deployments without profiles wire {@link #NOOP}, which reports no
- * profile data; microscope provides a real implementation backed by its profile managers.
+ * Enrichment SPI for the shared recordings list: supplies the per-recording profile fields
+ * ({@code profileSizeInBytes} / {@code profileModified}) that only Microscope's profile managers can
+ * compute, so this module stays free of the profile pipeline's types.
  */
 @FunctionalInterface
 public interface RecordingProfileInfoProvider {
@@ -54,6 +53,4 @@ public interface RecordingProfileInfoProvider {
             initProgress = initProgress == null ? ProfileInitProgress.NONE : initProgress;
         }
     }
-
-    RecordingProfileInfoProvider NOOP = recording -> ProfileInfo.NONE;
 }

@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.volume.client;
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
 
 /**
- * The hub clients of a recording volume reached straight on its storage: everything above the
+ * The remote clients of a recording volume reached straight on its storage: everything above the
  * clients treats the source as it treats a hub. The user's changes — workspaces, projects,
  * sessions, pins — are made as the hub makes them, or refused when the source is read-only.
  */

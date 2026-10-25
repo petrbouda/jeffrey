@@ -89,7 +89,7 @@ onMounted(() => {
       </div>
 
       <h2 id="platform-database">Platform Database</h2>
-      <p>Microscope's platform database holds your local catalog: workspaces, projects, recordings, profile metadata, and the connection to the remote (a Jeffrey Hub or an Azure file share).</p>
+      <p>Microscope's platform database holds your local catalog: recordings, their groups and tags, profile metadata and IDE targets. Workspaces and projects live on the remote, which is declared in configuration rather than stored.</p>
 
       <div class="db-card platform">
         <div class="card-header">
@@ -99,10 +99,9 @@ onMounted(() => {
         </div>
         <div class="card-body">
           <p class="file-path"><i class="bi bi-file-earmark"></i> <code>~/.jeffrey-microscope/jeffrey-data.db</code></p>
-          <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles, plus the connection to the remote whose workspaces it browses.</p>
+          <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles. The remote is not stored here: it is declared in configuration and read at startup.</p>
           <h5>Contains:</h5>
           <ul>
-            <li>The remote it connects to</li>
             <li>Recordings, their files, groups and tags</li>
             <li>Profile metadata</li>
             <li>IDE targets for the IntelliJ plugin</li>

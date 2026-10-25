@@ -43,14 +43,6 @@ export function useNavigation() {
 
   const projectRoot = (wId: string, pId: string) => `/remote/workspaces/${wId}/projects/${pId}`;
 
-  const navigateToWorkspace = (wId: string) => {
-    router.push(`/remote/workspaces/${wId}`);
-  };
-
-  const navigateToWorkspaceProjects = (wId: string) => {
-    router.push(`/remote/workspaces/${wId}/projects`);
-  };
-
   const navigateToProject = (pId: string, wId?: string) => {
     const targetWorkspaceId = wId || workspaceId.value;
     router.push(projectRoot(targetWorkspaceId, pId));
@@ -115,8 +107,6 @@ export function useNavigation() {
     isSimplifiedProfileUrl,
 
     // Navigation functions
-    navigateToWorkspace,
-    navigateToWorkspaceProjects,
     navigateToProject,
     navigateToProfile,
     navigateToProjectRecordings,

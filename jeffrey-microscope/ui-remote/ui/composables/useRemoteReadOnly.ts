@@ -18,10 +18,10 @@ import { ref, type Ref } from "vue";
 import RemoteClient from "@remote/services/api/RemoteClient";
 
 /**
- * Whether the connected remote refuses every change — an Azure file share declared read-only. A
+ * Whether the configured remote refuses every change — an Azure file share declared read-only. A
  * page hides its delete and pin actions while this is true; the backend refuses them either way.
  *
- * Starts false and stays false when the remote cannot be read, or none is connected, so a page never
+ * Starts false and stays false when the remote cannot be read, or none is configured, so a page never
  * loses its actions to a failed lookup: the worst case is a button the backend then refuses with its
  * reason.
  */

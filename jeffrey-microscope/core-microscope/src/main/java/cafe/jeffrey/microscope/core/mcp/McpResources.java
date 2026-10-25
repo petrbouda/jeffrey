@@ -168,7 +168,7 @@ public class McpResources implements McpResourceProvider, McpResourceLinker {
                 McpResource.APPLICATION_JSON));
         if (diagnostics != null) {
             resources.add(new McpResource(McpDiagnostics.URI, "MCP runtime diagnostics",
-                    "Profile readiness, bounded Hub reachability and aggregate tool latency/output sizes; no arguments or result contents.",
+                    "Profile readiness, bounded remote reachability and aggregate tool latency/output sizes; no arguments or result contents.",
                     McpResource.APPLICATION_JSON));
         }
         return List.copyOf(resources);

@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
+import cafe.jeffrey.shared.volume.layout.FileRefusal;
+
 import java.nio.file.Path;
 
 /**
@@ -46,8 +48,7 @@ public sealed interface FileLookup {
 
         @Override
         public String reason() {
-            return "Session " + sessionId + " holds no file with id " + fileId
-                    + ". Take the id from the session's file listing.";
+            return FileRefusal.NOT_IN_SESSION.reason(sessionId, fileId);
         }
     }
 
@@ -56,8 +57,7 @@ public sealed interface FileLookup {
 
         @Override
         public String reason() {
-            return "File " + fileName + " is the chunk the profiler is still writing, and reading it "
-                    + "would give a truncated answer. It can be taken once the profiler has rolled the next one.";
+            return FileRefusal.STILL_WRITING.reason(fileName);
         }
     }
 
@@ -66,7 +66,7 @@ public sealed interface FileLookup {
 
         @Override
         public String reason() {
-            return "Recording " + fileName + " is empty — the profiler stopped before it wrote an event into it.";
+            return FileRefusal.EMPTY_RECORDING.reason(fileName);
         }
     }
 
@@ -78,8 +78,7 @@ public sealed interface FileLookup {
 
         @Override
         public String reason() {
-            return "File " + fileName + " was listed for session " + sessionId + " but is no longer on disk. "
-                    + "It may have been replaced by its compressed form; ask for the same file id again.";
+            return FileRefusal.VANISHED.reason(fileName, sessionId);
         }
     }
 }

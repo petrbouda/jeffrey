@@ -56,14 +56,20 @@ public class RemoteConfiguration {
      * against the Jeffrey Hub's default deadlines ({@code jeffrey.hub.liveness.*}), since no hub
      * stands between it and Microscope.
      */
+    /** The declaration read once, so an unusable one is reported once rather than per bean. */
+    @Bean
+    public ConfiguredRemoteProperties.Declared declaredRemote(ConfiguredRemoteProperties configuredRemote) {
+        return configuredRemote.read();
+    }
+
     @Bean(destroyMethod = "close")
-    public RemoteClientsFactory remoteClientsFactory(Clock clock, ConfiguredRemoteProperties configuredRemote) {
+    public RemoteClientsFactory remoteClientsFactory(Clock clock, ConfiguredRemoteProperties.Declared declaredRemote) {
         return new RemoteClientsFactory(
                 new CachedHubClientsFactory(),
                 new AzureFilesClientsFactory(
                         clock,
                         new SessionDeadlines(VOLUME_HEARTBEAT_THRESHOLD, VOLUME_STARTUP_GRACE),
-                        configuredRemote.sasToken()));
+                        declaredRemote.sasToken()));
     }
 
     @Bean
@@ -106,9 +112,9 @@ public class RemoteConfiguration {
     /** The remote configuration declares, read once; nothing connects or disconnects one while Microscope runs. */
     @Bean
     public RemoteManager remoteManager(
-            ConfiguredRemoteProperties configuredRemote,
+            ConfiguredRemoteProperties.Declared declaredRemote,
             RemoteConnection.Factory remoteConnectionFactory) {
 
-        return new RemoteManager(configuredRemote.resolve(), remoteConnectionFactory);
+        return new RemoteManager(declaredRemote.remote(), remoteConnectionFactory);
     }
 }

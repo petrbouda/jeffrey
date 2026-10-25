@@ -24,31 +24,29 @@
       <ErrorState :message="remoteError" @retry="refreshRemote" />
     </div>
 
-    <!-- Empty state across both panels when configuration declares no remote -->
-    <div v-else-if="!remote" class="empty-canvas">
-      <div class="empty-hero-content">
-        <div class="empty-hero-icon"><i class="bi bi-hdd-network"></i></div>
-        <h2>No remote configured</h2>
-        <p>{{ appDescription }}</p>
-        <p>
-          The remote is declared in Microscope's configuration only, under
-          <code>jeffrey.microscope.remote.*</code>, and read at startup: add it there and restart.
-        </p>
-      </div>
+    <!-- Configuration declares no remote: say where one is declared -->
+    <div v-else-if="!remote" class="remote-state remote-card">
+      <EmptyState
+        icon="bi-hdd-network"
+        title="No remote configured"
+        :description="NO_REMOTE_DESCRIPTION"
+      >
+        <template #action>
+          <code class="remote-property">{{ REMOTE_PROPERTIES }}</code>
+        </template>
+      </EmptyState>
     </div>
 
     <template v-else>
       <!-- Workspace column: the remote's header + workspace list + create form -->
       <section class="workspace-column">
         <header class="ws-head">
-          <div class="ws-head-row">
-            <h3 class="ws-head-name">
-              <StatusDot :tone="STATUS_TONES[status]" size="l" :label="statusLabel" />
-              {{ remote.name }}
-              <Badge v-if="isAzureFiles" value="Azure Files" variant="secondary" size="xs" />
-              <Badge v-if="remote.readOnly" value="Read-only" variant="warning" size="xs" />
-            </h3>
-          </div>
+          <h3 class="ws-head-name">
+            <StatusDot :tone="STATUS_TONES[status]" size="l" :label="statusLabel" />
+            {{ remote.name }}
+            <Badge v-if="isAzureFiles" value="Azure Files" variant="secondary" size="xs" />
+            <Badge v-if="remote.readOnly" value="Read-only" variant="warning" size="xs" />
+          </h3>
           <div class="ws-head-location">{{ remote.location }}</div>
         </header>
 
@@ -126,7 +124,7 @@
                 v-if="!remote.readOnly"
                 class="icon-btn danger"
                 title="Delete workspace"
-                @click="deleteWorkspace(selectedWorkspace)"
+                @click="workspaceToDelete = selectedWorkspace"
               >
                 <i class="bi bi-trash"></i>
               </button>
@@ -139,7 +137,7 @@
             v-else-if="filteredProjects.length === 0"
             icon="bi-folder-plus"
             title="No projects in this workspace"
-            description="Projects appear here when provisioner reports them via workspace events."
+            description="Projects appear here once the provisioner starts a profiled JVM in this workspace."
           />
           <div v-else class="project-grid">
             <slot
@@ -153,15 +151,12 @@
         </template>
 
         <!-- The remote has no workspaces yet -->
-        <div v-else class="main-empty">
-          <i class="bi bi-folder-plus"></i>
-          <h5>No workspace selected</h5>
-          <p>
-            Create a workspace in the panel on the left — its
-            <strong>Reference ID</strong> becomes <code>provisioner</code>'s
-            <code>project.workspace-ref-id</code>.
-          </p>
-        </div>
+        <EmptyState
+          v-else
+          icon="bi-folder-plus"
+          title="No workspace selected"
+          :description="remote.readOnly ? NO_WORKSPACE_READ_ONLY : NO_WORKSPACE"
+        />
       </main>
     </template>
 
@@ -177,8 +172,8 @@
         <div class="server-context-card">
           <div class="server-context-name">{{ remote.name }}</div>
           <span class="server-context-pill">
-            <StatusDot tone="success" size="xs" />
-            Active
+            <StatusDot :tone="STATUS_TONES[status]" size="xs" />
+            {{ statusLabel }}
           </span>
         </div>
       </DrawerSection>
@@ -278,6 +273,15 @@
         </div>
       </DrawerSection>
     </LeftDrawer>
+
+    <ConfirmationDialog
+      :show="workspaceToDelete !== null"
+      title="Delete Workspace"
+      :message="workspaceToDelete ? `Delete workspace &quot;${workspaceToDelete.name}&quot;? This is permanent.` : ''"
+      confirm-label="Delete"
+      @update:show="open => { if (!open) { workspaceToDelete = null; } }"
+      @confirm="deleteWorkspace"
+    />
   </div>
 </template>
 
@@ -286,6 +290,7 @@ import { computed, onMounted, ref } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import LeftDrawer from '@shared/components/LeftDrawer.vue';
 import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
 import DrawerField from '@shared/components/drawer/DrawerField.vue';
@@ -303,7 +308,6 @@ import Project from '@remote/services/api/model/Project';
 
 const props = withDefaults(
   defineProps<{
-    appDescription: string;
     // Optional deep-link: preselect a workspace on first load (e.g. from a breadcrumb). Only
     // seeds the INITIAL default; manual selection still wins afterwards.
     initialWorkspaceId?: string | null;
@@ -312,10 +316,6 @@ const props = withDefaults(
     initialWorkspaceId: null
   }
 );
-
-const emit = defineEmits<{
-  (e: 'workspace-change', payload: { workspaceId: string | null }): void;
-}>();
 
 type RemoteStatus = 'online' | 'offline' | 'unknown';
 
@@ -362,6 +362,20 @@ const STATUS_TONES: Record<RemoteStatus, StatusDotTone> = {
   offline: 'danger',
   unknown: 'warning'
 };
+
+const REMOTE_PROPERTIES = 'jeffrey.microscope.remote.*';
+const NO_REMOTE_DESCRIPTION =
+  'Microscope reads the recordings of one remote: a Jeffrey Hub, or the recording volume on an ' +
+  "Azure file share. It is declared in Microscope's configuration only and read at startup: add it " +
+  'under these properties and restart.';
+const NO_WORKSPACE =
+  "Create a workspace in the panel on the left — its Reference ID becomes the provisioner's " +
+  'project.workspace-ref-id.';
+const NO_WORKSPACE_READ_ONLY =
+  'This remote is read-only, so workspaces are not created through it; a workspace appears here ' +
+  'once one exists on the volume.';
+
+const workspaceToDelete = ref<Workspace | null>(null);
 
 const STATUS_LABELS: Record<RemoteStatus, string> = {
   online: 'Online',
@@ -419,7 +433,7 @@ const refreshRemote = async () => {
   try {
     remote.value = await remoteClient.current({ suppressToast: true });
   } catch (error: any) {
-    // An unread remote is not an absent one: offering to connect a remote here would be wrong.
+    // An unread remote is not an absent one: the not-configured state would be wrong here.
     remoteError.value =
       error?.response?.data?.message ?? error?.message ?? 'Could not read the remote';
     remote.value = null;
@@ -490,7 +504,6 @@ const selectWorkspace = (workspaceId: string) => {
   }
   selectedWorkspaceId.value = workspaceId;
   projectSearchQuery.value = '';
-  emit('workspace-change', { workspaceId });
   refreshProjects();
 };
 
@@ -541,11 +554,10 @@ const submitCreate = async () => {
   }
 };
 
-const deleteWorkspace = async (workspace: Workspace) => {
-  if (!remote.value) {
-    return;
-  }
-  if (!confirm(`Delete workspace "${workspace.name}"? This is permanent.`)) {
+const deleteWorkspace = async () => {
+  const workspace = workspaceToDelete.value;
+  workspaceToDelete.value = null;
+  if (!remote.value || !workspace) {
     return;
   }
   try {
@@ -592,14 +604,6 @@ onMounted(refreshRemote);
 .ws-head {
   padding: var(--spacing-4) var(--spacing-4);
   border-bottom: 1px solid var(--color-border-light);
-}
-
-.ws-head-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
-  min-height: 32px;
 }
 
 .ws-head-name {
@@ -818,97 +822,13 @@ onMounted(refreshRemote);
   grid-column: 1 / -1;
 }
 
-.empty-canvas {
-  grid-column: 1 / -1;
+.remote-card {
   background: var(--color-white);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-8);
-  position: relative;
-  overflow: hidden;
 }
 
-.empty-canvas::after {
-  content: '';
-  position: absolute;
-  right: -120px;
-  top: -120px;
-  width: 320px;
-  height: 320px;
-  background: var(--color-primary-light);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.empty-hero-content {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 480px;
-}
-
-.empty-hero-icon {
-  width: 56px;
-  height: 56px;
-  background: var(--color-primary);
-  border-radius: var(--radius-md);
-  color: var(--color-white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.625rem;
-  margin-bottom: var(--spacing-5);
-}
-
-.empty-hero-content h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 var(--spacing-2) 0;
-  color: var(--color-dark);
-}
-
-.empty-hero-content p {
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  margin: 0 0 var(--spacing-6) 0;
-  line-height: 1.5;
-}
-
-.main-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  flex: 1;
-  padding: var(--spacing-8);
-  gap: var(--spacing-3);
-  color: var(--color-text-muted);
-}
-
-.main-empty i {
-  font-size: 3rem;
-  color: var(--color-text-light);
-}
-
-.main-empty h5 {
-  margin: 0;
-  color: var(--color-dark);
-}
-
-.main-empty p {
-  margin: 0;
-  color: var(--color-text-muted);
-  max-width: 420px;
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-}
-
-.empty-hero-content code,
-.main-empty code {
+.remote-property {
   background: var(--color-light);
   padding: 1px 6px;
   border-radius: var(--radius-sm);

@@ -26,7 +26,8 @@ import java.util.Optional;
 
 /**
  * The storage a volume lies on, read through the only questions its readers ask of it.
- * One implementation per backend: a directory tree today, an object store's prefixes later.
+ * One implementation per backend: a directory tree ({@link FilesystemVolume}) or a file share reached
+ * over its API.
  *
  * <p>Every method keeps "nothing is there" apart from "it could not be looked at": the first is an
  * empty answer, the second an {@link UncheckedIOException}. The layout acts on that

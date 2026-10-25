@@ -38,7 +38,6 @@ import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
-import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.test.volume.VolumeWriter;
@@ -66,7 +65,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A recording volume reached straight on its storage answers the hub clients the way a hub would:
+ * A recording volume reached straight on its storage answers the remote clients the way a hub would:
  * the same tree, the same session statuses, the same refusals, the same changes — or none at all
  * when it is declared read-only.
  */
@@ -74,6 +73,8 @@ class VolumeRemoteClientsTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant NOW = T0.plusSeconds(3600);
+    private static final SessionDeadlines DEADLINES =
+            new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1));
     private static final String DESCRIPTION = "test-volume";
     private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
 
@@ -99,7 +100,7 @@ class VolumeRemoteClientsTest {
     private static RemoteClients clients(VolumeAccess volume, boolean readOnly) {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         SessionLiveness liveness = new SessionLiveness(
-                clock, new HeartbeatReader(volume), new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
+                clock, volume, DEADLINES);
         return VolumeRemoteClients.of(new VolumeSource(volume, liveness, clock, DESCRIPTION, readOnly));
     }
 
@@ -160,7 +161,6 @@ class VolumeRemoteClientsTest {
             RemoteClients unreadable = clients(new UnreadableVolume());
 
             assertEquals(ErrorCode.REMOTE_UNAVAILABLE, codeOf(() -> unreadable.discovery().info()));
-            assertTrue(unreadable.discovery().tryInfo().isEmpty());
         }
     }
 

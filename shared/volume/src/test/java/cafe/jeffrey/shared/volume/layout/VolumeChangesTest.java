@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,6 +81,45 @@ class VolumeChangesTest {
             VolumeChanges.describeWorkspace(volume, fresh, new WorkspaceMarker("Staging", T0.toEpochMilli()));
 
             assertTrue(VolumeChanges.isDescribedWorkspace(volume, fresh));
+        }
+
+        @Test
+        void isCreatedAdoptingTheDirectoryTheProvisionerWroteInto() {
+            assertEquals(WorkspaceCreation.CREATED,
+                    VolumeChanges.createWorkspace(volume, "prod", "Production", T0.toEpochMilli()));
+
+            VolumeWorkspace created = VolumeWorkspace.at(volume, WORKSPACE);
+            assertEquals("Production", created.name());
+            assertEquals(Optional.of(T0), created.createdAt());
+            assertTrue(created.described());
+            assertTrue(Files.isDirectory(projectDir), "the project already written there stays");
+        }
+
+        @Test
+        void isRefusedForAnIdAlreadyDescribed() {
+            VolumeChanges.createWorkspace(volume, "prod", "Production", T0.toEpochMilli());
+
+            assertEquals(WorkspaceCreation.ID_TAKEN,
+                    VolumeChanges.createWorkspace(volume, "prod", "Another", T0.toEpochMilli()));
+        }
+
+        @Test
+        void isRefusedForANameAnotherWorkspaceGoesBy() {
+            VolumeChanges.createWorkspace(volume, "prod", "Production", T0.toEpochMilli());
+
+            assertEquals(WorkspaceCreation.NAME_TAKEN,
+                    VolumeChanges.createWorkspace(volume, "staging", "Production", T0.toEpochMilli()));
+            assertFalse(VolumeChanges.isDescribedWorkspace(volume, VolumePath.root().resolve("staging")));
+        }
+
+        @Test
+        void anUndescribedDirectoryGoesByItsId() {
+            VolumeWorkspace undescribed = VolumeWorkspace.at(volume, WORKSPACE);
+
+            assertEquals("prod", undescribed.name());
+            assertFalse(undescribed.described());
+            assertEquals(WorkspaceCreation.NAME_TAKEN,
+                    VolumeChanges.createWorkspace(volume, "staging", "prod", T0.toEpochMilli()));
         }
     }
 

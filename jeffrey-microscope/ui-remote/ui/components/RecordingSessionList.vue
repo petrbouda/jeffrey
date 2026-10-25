@@ -88,7 +88,7 @@ const repositoryService = computed(
   () => new ProjectRepositoryClient(props.workspaceId, props.projectId)
 );
 
-/** A source read straight from storage refuses pins and deletions, so they are not offered. */
+/** A read-only remote refuses pins and deletions, so they are not offered. */
 const remoteReadOnly = useRemoteReadOnly();
 
 // --- Session UI state ---

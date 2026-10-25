@@ -17,7 +17,12 @@
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type { RequestOptions } from '@shared/services/api/BasePlatformClient';
-import Remote, { CurrentRemote } from '@remote/services/api/model/Remote';
+import Remote from '@remote/services/api/model/Remote';
+
+/** What GET /remote answers: the configured remote, or null when none is configured. */
+interface CurrentRemote {
+  remote: Remote | null;
+}
 
 /** The one remote this Microscope reaches, as configuration declares it; read-only. */
 export default class RemoteClient extends BasePlatformClient {

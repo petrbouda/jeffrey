@@ -20,7 +20,10 @@ package cafe.jeffrey.shared.volume.recording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -89,6 +92,28 @@ class RecordingFormatTest {
             assertEquals(
                     RecordingFormat.of(plain).orElseThrow().idOf(plain),
                     RecordingFormat.of(archive).orElseThrow().idOf(archive));
+        }
+    }
+
+    @Nested
+    class Archives {
+
+        @Test
+        void theLz4ArchiveIsTheOnlyFormThatCountsAsOne() {
+            List<RecordingFormat> archives = Stream.of(RecordingFormat.values())
+                    .filter(RecordingFormat::isArchive)
+                    .toList();
+
+            assertEquals(List.of(RecordingFormat.JFR_LZ4), archives);
+        }
+
+        /** Mid-compression a recording and its archive share an id; the archive is the one that stays. */
+        @Test
+        void ofTwoFilesSharingAnIdTheArchiveIsServedWhicheverIsListedFirst() {
+            BinaryOperator<String> pick = RecordingFormat.theOneThatStays(name -> name);
+
+            assertEquals("profile-1.jfr.lz4", pick.apply("profile-1.jfr.lz4", "profile-1.jfr"));
+            assertEquals("profile-1.jfr.lz4", pick.apply("profile-1.jfr", "profile-1.jfr.lz4"));
         }
     }
 }

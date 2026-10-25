@@ -59,7 +59,7 @@
           </div>
         </div>
 
-        <!-- Danger Zone Bar: a source read straight from storage cannot delete a project -->
+        <!-- Danger Zone Bar: a read-only remote cannot delete a project -->
         <div v-if="!remoteReadOnly" class="danger-bar">
           <div class="danger-bar-left">
             <i class="bi bi-exclamation-triangle-fill"></i>

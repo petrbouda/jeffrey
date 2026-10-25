@@ -20,9 +20,6 @@ package cafe.jeffrey.shared.ui.remote.dto;
 /**
  * The configured remote.
  *
- * @param hostname  a Jeffrey Hub's host; {@code null} for an Azure file share
- * @param port      a Jeffrey Hub's port; {@code 0} for an Azure file share
- * @param plaintext whether a Jeffrey Hub is reached in cleartext; {@code false} for a file share
  * @param kind      {@code "GRPC"} for a Jeffrey Hub, {@code "AZURE_FILES"} for the recording volume
  *                  on an Azure file share
  * @param location  where it lies, as a person reads it: {@code host:port}, or the share's endpoint,
@@ -32,9 +29,6 @@ package cafe.jeffrey.shared.ui.remote.dto;
  */
 public record RemoteResponse(
         String name,
-        String hostname,
-        int port,
-        boolean plaintext,
         String kind,
         String location,
         boolean readOnly) {

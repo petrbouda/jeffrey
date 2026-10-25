@@ -167,13 +167,13 @@ class RemoteMcpToolsTest {
         return new RemoteInfo(name, new HubAddress("hub.example.com", 443, false));
     }
 
-    /** The remote this Microscope is connected to: what every listing and download reaches. */
-    private void connect(RemoteConnection remote) {
+    /** The remote configuration declares: what every listing and download reaches. */
+    private void configure(RemoteConnection remote) {
         when(remoteManager.current()).thenReturn(Optional.of(remote));
         when(resolver.currentRemote()).thenReturn(Optional.of(remote));
     }
 
-    private void nothingConnected() {
+    private void nothingConfigured() {
         when(remoteManager.current()).thenReturn(Optional.empty());
         when(resolver.currentRemote()).thenReturn(Optional.empty());
     }
@@ -182,7 +182,6 @@ class RemoteMcpToolsTest {
     private RemoteConnection unreachableRemote(String name) {
         RemoteConnection down = mock(RemoteConnection.class);
         when(down.info()).thenReturn(remoteInfo(name));
-        when(down.tryInfo()).thenReturn(Optional.empty());
         when(down.infoOrThrow())
                 .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
         return down;
@@ -211,14 +210,13 @@ class RemoteMcpToolsTest {
      * A remote that answers its probe, with one workspace holding one project.
      */
     private RemoteConnection reachableRemote(String remoteName, String projectName, RepositoryManager repo) {
-        RemoteConnection hub = mock(RemoteConnection.class);
-        when(hub.info()).thenReturn(remoteInfo(remoteName));
-        when(hub.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("2.1.0")));
-        when(hub.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("2.1.0"));
+        RemoteConnection remote = mock(RemoteConnection.class);
+        when(remote.info()).thenReturn(remoteInfo(remoteName));
+        when(remote.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("2.1.0"));
         WorkspaceInfo workspace = new WorkspaceInfo(
                 WORKSPACE_ID, "ref", "repo", "default", null, null, NOW, WorkspaceStatus.AVAILABLE, 1);
-        when(hub.workspaces()).thenReturn(List.of(workspace));
-        when(hub.workspacesOrThrow()).thenReturn(List.of(workspace));
+        when(remote.workspaces()).thenReturn(List.of(workspace));
+        when(remote.workspacesOrThrow()).thenReturn(List.of(workspace));
 
         ProjectManager project = mock(ProjectManager.class);
         when(project.info()).thenReturn(new ProjectInfo(
@@ -231,9 +229,9 @@ class RemoteMcpToolsTest {
 
         WorkspaceManager workspaceManager = mock(WorkspaceManager.class);
         when(workspaceManager.projectsManager()).thenReturn(projects);
-        when(hub.workspace(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
-        when(hub.workspace(workspace)).thenReturn(workspaceManager);
-        return hub;
+        when(remote.workspace(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+        when(remote.workspace(workspace)).thenReturn(workspaceManager);
+        return remote;
     }
 
     /** The recording a download landed as: a JFR recording outside any bundle. */
@@ -244,7 +242,7 @@ class RemoteMcpToolsTest {
     }
 
     /**
-     * Answered from the local store: only which remote is connected was looked up, and nothing of
+     * Answered from the local store: only which remote is configured was looked up, and nothing of
      * the remote itself was read.
      */
     private void nothingReadFromTheRemote() {
@@ -263,7 +261,7 @@ class RemoteMcpToolsTest {
 
     /** A copy of the session as one download left it: whole once finished, or taken while recording. */
     private void localRecording(String recordingId, String profileId, RemoteSessionRef ref, boolean complete) {
-        // A copy is this remote's only while it is connected at the address the copy's tags name.
+        // A copy is this remote's only while it is configured at the address the copy's tags name.
         RemoteConnection remote = mock(RemoteConnection.class);
         when(remote.info()).thenReturn(remoteInfo("production"));
         when(resolver.currentRemote()).thenReturn(Optional.of(remote));
@@ -305,7 +303,7 @@ class RemoteMcpToolsTest {
 
         @Test
         void returnsCompleteEmptyCatalogueMetadata() {
-            nothingConnected();
+            nothingConfigured();
             JsonNode result = page(tools, null, null, 1, null).path("structuredContent");
             McpSchemaConformance.assertConforms(result, schema);
             assertEquals(0, result.path("returned").asInt(-1));
@@ -324,8 +322,8 @@ class RemoteMcpToolsTest {
                 RecordingSessionFilter filter = call.getArgument(0);
                 return filter.apply(List.of(jfrSession("c", NOW), jfrSession("b", NOW), jfrSession("a", NOW)));
             });
-            RemoteConnection hub = reachableRemote("production", "checkout", repo);
-            connect(hub);
+            RemoteConnection remote = reachableRemote("production", "checkout", repo);
+            configure(remote);
             noLocalRecordings();
             JsonNode first = page(tools, " DEFAULT ", null, 1, null).path("structuredContent");
             assertEquals(3, first.path("total").asInt());
@@ -348,7 +346,7 @@ class RemoteMcpToolsTest {
             RepositoryManager repo = repositoryWith(session(SESSION_ID, NOW,
                     file("f-1", "recording.jfr", ManagedFile.JFR), file("f-2", "gc.log", ManagedFile.JFR)));
             RemoteConnection production = reachableRemote("production", "checkout", repo);
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             JsonNode row = page(tools, null, null, 1, null).path("structuredContent").path("sessions").get(0);
@@ -373,7 +371,7 @@ class RemoteMcpToolsTest {
                     NOW.plusSeconds(600), RecordingStatus.FINISHED, null, List.of(), false, false, false,
                     new SessionSize(3, 4096L)));
             RemoteConnection production = reachableRemote("production", "checkout", repo);
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             JsonNode row = page(tools, null, null, 1, null).path("structuredContent").path("sessions").get(0);
@@ -388,7 +386,7 @@ class RemoteMcpToolsTest {
             RecordingSession running = new RecordingSession(SESSION_ID, SESSION_ID, "inst-1", NOW, null,
                     RecordingStatus.ACTIVE, null, List.of(file("f-1", "recording.jfr", ManagedFile.JFR)), false);
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(running));
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             JsonNode catalogue = page(tools, null, null, 1, null).path("structuredContent");
@@ -404,7 +402,7 @@ class RemoteMcpToolsTest {
             RemoteConnection down = mock(RemoteConnection.class);
             when(down.info()).thenReturn(remoteInfo("production"));
             when(down.infoOrThrow()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
-            connect(down);
+            configure(down);
             noLocalRecordings();
             JsonNode result = page(tools, null, null, 1, null);
             JsonNode data = result.path("structuredContent");
@@ -423,7 +421,7 @@ class RemoteMcpToolsTest {
             RemoteConnection down = mock(RemoteConnection.class);
             when(down.info()).thenReturn(remoteInfo("production".repeat(20000)));
             when(down.infoOrThrow()).thenThrow(new IllegalStateException("failure".repeat(20000)));
-            connect(down);
+            configure(down);
             noLocalRecordings();
             JsonNode result = page(tools, null, null, 1, null);
             assertTrue(result.path("text").asText().length() <= McpToolOutput.MAX_CHARS);
@@ -435,8 +433,8 @@ class RemoteMcpToolsTest {
         @Test
         void liveCursorSurvivesDeletionAndSkipsNewerInsertions() {
             RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW.minusSeconds(1)));
-            RemoteConnection hub = reachableRemote("production", "checkout", repo);
-            connect(hub);
+            RemoteConnection remote = reachableRemote("production", "checkout", repo);
+            configure(remote);
             noLocalRecordings();
             String cursor = page(tools, null, null, 1, null).path("structuredContent").path("nextCursor").asText();
             when(repo.listRecordingSessions(any())).thenReturn(List.of(
@@ -449,8 +447,8 @@ class RemoteMcpToolsTest {
         @Test
         void cursorKeepsTheOriginalActiveWindowCutoff() {
             RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW.minusSeconds(1)));
-            RemoteConnection hub = reachableRemote("production", "checkout", repo);
-            connect(hub);
+            RemoteConnection remote = reachableRemote("production", "checkout", repo);
+            configure(remote);
             noLocalRecordings();
             String cursor = page(tools, null, 60, 1, null).path("structuredContent").path("nextCursor").asText();
             RemoteMcpTools later = RemoteMcpToolsFixture.of(remoteManager, resolver, recordingsManager,
@@ -471,8 +469,8 @@ class RemoteMcpToolsTest {
             assertTrue(malformed.getCause() instanceof IllegalArgumentException);
             verifyNoInteractions(remoteManager);
             RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW));
-            RemoteConnection hub = reachableRemote("production", "checkout", repo);
-            connect(hub);
+            RemoteConnection remote = reachableRemote("production", "checkout", repo);
+            configure(remote);
             noLocalRecordings();
             String cursor = page(tools, "default", null, 1, null).path("structuredContent").path("nextCursor").asText();
             var mismatch = assertThrows(InvocationTargetException.class,
@@ -489,9 +487,9 @@ class RemoteMcpToolsTest {
             RecordingSession[] sessions = IntStream.range(0, 500)
                     .mapToObj(i -> jfrSession("session-%04d".formatted(i), NOW.minusSeconds(i)))
                     .toArray(RecordingSession[]::new);
-            RemoteConnection hub = reachableRemote("production".repeat(200),
+            RemoteConnection remote = reachableRemote("production".repeat(200),
                     "checkout".repeat(200), repositoryWith(sessions));
-            connect(hub);
+            configure(remote);
             noLocalRecordings();
             JsonNode first = page(tools, null, null, 500, null);
             JsonNode data = first.path("structuredContent");
@@ -517,8 +515,8 @@ class RemoteMcpToolsTest {
         }
 
         @Test
-        void namesTheConnectedRemoteWithItsAddress() {
-            connect(reachableRemote("production", "checkout", repositoryWith()));
+        void namesTheConfiguredRemoteWithItsAddress() {
+            configure(reachableRemote("production", "checkout", repositoryWith()));
 
             McpToolResult result = tools.status();
             JsonNode answer = status(result);
@@ -537,7 +535,7 @@ class RemoteMcpToolsTest {
 
         @Test
         void marksARemoteThatDidNotAnswer() {
-            connect(unreachableRemote("production"));
+            configure(unreachableRemote("production"));
 
             JsonNode answer = status(tools.status());
 
@@ -554,7 +552,7 @@ class RemoteMcpToolsTest {
             when(share.info()).thenReturn(new RemoteInfo("prodshare",
                     new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings", null,
                             AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true)));
-            connect(share);
+            configure(share);
 
             McpToolResult result = tools.status();
             JsonNode answer = status(result);
@@ -568,20 +566,21 @@ class RemoteMcpToolsTest {
 
         @Test
         void saysSoWhenNoRemoteIsConfigured() {
-            nothingConnected();
+            nothingConfigured();
 
             McpToolResult result = tools.status();
             JsonNode answer = status(result);
 
             assertEquals("NOT_CONFIGURED", answer.get("state").asString());
             assertTrue(answer.get("name").isNull());
+            assertTrue(answer.get("readOnly").isNull(), "a remote that does not exist is neither read-only nor writable");
             assertTrue(answer.get("reason").asString().contains("No remote is configured"), answer.toString());
             assertTrue(result.text().contains("recordings_analyzeFile"), result.text());
         }
 
         @Test
         void tellsHowToDeclareTheRemoteInConfigurationWhenNoneIs() {
-            nothingConnected();
+            nothingConfigured();
 
             McpToolResult result = tools.status();
             String reason = status(result).get("reason").asString();
@@ -604,7 +603,7 @@ class RemoteMcpToolsTest {
         @Test
         void rendersOneRowPerSessionCarryingItsRef() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             String result = tools.sessions(null, null, null, null, null, null).text();
@@ -617,7 +616,7 @@ class RemoteMcpToolsTest {
         @Test
         void marksASessionAlreadyDownloadedButNotAnalysed() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             localRecording("rec-1", null, REF);
 
             String result = tools.sessions(null, null, null, null, null, null).text();
@@ -628,7 +627,7 @@ class RemoteMcpToolsTest {
         @Test
         void showsTheProfileForASessionAlreadyAnalysed() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             localRecording("rec-1", "profile-1", REF);
 
             String result = tools.sessions(null, null, null, null, null, null).text();
@@ -638,7 +637,7 @@ class RemoteMcpToolsTest {
 
         @Test
         void namesWhatCouldNotBeReadUnderTheTable() {
-            connect(unreachableRemote("production"));
+            configure(unreachableRemote("production"));
             noLocalRecordings();
 
             String result = tools.sessions(null, null, null, null, null, null).text();
@@ -650,7 +649,7 @@ class RemoteMcpToolsTest {
         @Test
         void reportsAnUnreachableRemoteEvenWhenNothingMatched() {
             // The answer that would otherwise mislead: "no sessions" while production is simply down.
-            connect(unreachableRemote("production"));
+            configure(unreachableRemote("production"));
             noLocalRecordings();
 
             String result = tools.sessions(null, null, null, null, null, null).text();
@@ -663,7 +662,7 @@ class RemoteMcpToolsTest {
         void translatesTheLastHourIntoAWindowOnTheRemote() {
             RepositoryManager repo = repositoryWith(jfrSession(SESSION_ID, NOW));
             RemoteConnection production = reachableRemote("production", "checkout", repo);
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             tools.sessions(null, null, 60, null, null, null).text();
@@ -678,7 +677,7 @@ class RemoteMcpToolsTest {
         void pushesTheStatusDownToTheRemote() {
             RepositoryManager repo = repositoryWith(jfrSession(SESSION_ID, NOW));
             RemoteConnection production = reachableRemote("production", "checkout", repo);
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             tools.sessions(null, null, null, RecordingStatus.ACTIVE, null, null).text();
@@ -714,7 +713,7 @@ class RemoteMcpToolsTest {
         void readsEveryProjectRowBeforeApplyingThePageLimit() {
             RepositoryManager repo = repositoryWith(jfrSession(SESSION_ID, NOW));
             RemoteConnection production = reachableRemote("production", "checkout", repo);
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             tools.sessions(null, null, null, null, 10_000, null).text();
@@ -728,7 +727,7 @@ class RemoteMcpToolsTest {
         @Test
         void keepsAPipeInAProjectNameOffTheColumnBoundaries() {
             RemoteConnection production = reachableRemote("production", "check|out", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             assertTrue(tools.sessions(null, null, null, null, null, null).text().contains("check\\|out"));
@@ -737,7 +736,7 @@ class RemoteMcpToolsTest {
         @Test
         void saysHowToWidenAWindowThatMatchedNothing() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith());
-            connect(production);
+            configure(production);
 
             String result = tools.sessions(null, null, 60, null, null, null).text();
 
@@ -748,7 +747,7 @@ class RemoteMcpToolsTest {
         @Test
         void pointsAtTheRemoteStatusWhenNothingMatchedAndNoWindowWasGiven() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith());
-            connect(production);
+            configure(production);
 
             assertTrue(tools.sessions(null, null, null, null, null, null).text().contains("remote_status"));
         }
@@ -768,7 +767,7 @@ class RemoteMcpToolsTest {
         @Test
         void aSessionNotHereLeadsToItsFilesAndNeverStraightToADownload() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             noLocalRecordings();
 
             JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
@@ -785,7 +784,7 @@ class RemoteMcpToolsTest {
         @Test
         void aSessionDownloadedButNotAnalysedLeadsToItsAnalysis() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             localRecording("rec-1", null, REF);
 
             JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
@@ -798,7 +797,7 @@ class RemoteMcpToolsTest {
         @Test
         void aSessionAlreadyAnalysedLeadsToItsProfile() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(jfrSession(SESSION_ID, NOW)));
-            connect(production);
+            configure(production);
             localRecording("rec-1", "profile-1", REF);
 
             JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
@@ -811,8 +810,8 @@ class RemoteMcpToolsTest {
         @Test
         void theNextPageIsACallWithTheSameFilters() {
             RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW.minusSeconds(1)));
-            RemoteConnection hub = reachableRemote("production", "checkout", repo);
-            connect(hub);
+            RemoteConnection remote = reachableRemote("production", "checkout", repo);
+            configure(remote);
             noLocalRecordings();
 
             McpToolResult result = tools.sessions("default", null, 60, RecordingStatus.FINISHED, 1, null);
@@ -829,7 +828,7 @@ class RemoteMcpToolsTest {
         @Test
         void nothingMatchedWithTheRemoteAnsweringIsEmpty() {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith());
-            connect(production);
+            configure(production);
 
             JsonNode answer = sessions(tools.sessions(null, null, 60, null, null, null));
 
@@ -842,7 +841,7 @@ class RemoteMcpToolsTest {
             RemoteConnection down = mock(RemoteConnection.class);
             when(down.info()).thenReturn(remoteInfo("production"));
             when(down.infoOrThrow()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
-            connect(down);
+            configure(down);
             noLocalRecordings();
 
             JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
@@ -891,7 +890,7 @@ class RemoteMcpToolsTest {
         /**
          * A client that declared the tasks extension is handed a long transfer as a task after the
          * task budget. Only the wait on the transfer is shortened: the preflight that reads the
-         * session from the hub keeps the whole response budget.
+         * session from the remote keeps the whole response budget.
          */
         @Nested
         class TaskCapableClient {
@@ -1054,7 +1053,7 @@ class RemoteMcpToolsTest {
         }
 
         @Test
-        void explainsARefOnceNoRemoteIsConnected() {
+        void sendsARefWithNoRemoteConfiguredToRemoteStatus() {
             noLocalRecordings();
             when(resolver.resolveRemote()).thenThrow(Exceptions.resourceNotFound("No remote is configured"));
 
@@ -1062,7 +1061,8 @@ class RemoteMcpToolsTest {
                     IllegalArgumentException.class,
                             () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
-            assertTrue(e.getMessage().contains("remote_sessions"), e.getMessage());
+            // A fresh listing cannot help while nothing is configured; the status says how to declare one.
+            assertTrue(e.getMessage().contains("remote_status"), e.getMessage());
         }
 
         @Test

@@ -191,8 +191,8 @@ public class McpConfiguration {
             RecordingsManager recordingsManager,
             Clock applicationClock,
             @Value("${jeffrey.microscope.mcp.remote.scan-timeout:PT20S}") Duration scanTimeout,
-            @Value("${jeffrey.microscope.mcp.remote.download-response-timeout:PT45S}") Duration responseTimeout,
-            @Value("${jeffrey.microscope.mcp.remote.download-timeout:PT1H}") Duration downloadTimeout,
+            @Value("${" + RemoteMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
+            @Value("${" + RemoteMcpTools.DOWNLOAD_TIMEOUT_PROPERTY + ":PT1H}") Duration downloadTimeout,
             @Value("${" + RemoteMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
             @Value("${" + RemoteMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
             McpOperationRegistry operations,
@@ -227,8 +227,8 @@ public class McpConfiguration {
             McpOperationRegistry operations,
             OperationAnswers operationAnswers,
             Clock applicationClock,
-            @Value("${jeffrey.microscope.mcp.remote.download-response-timeout:PT45S}") Duration responseTimeout,
-            @Value("${jeffrey.microscope.mcp.remote.download-timeout:PT1H}") Duration downloadTimeout,
+            @Value("${" + RemoteMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
+            @Value("${" + RemoteMcpTools.DOWNLOAD_TIMEOUT_PROPERTY + ":PT1H}") Duration downloadTimeout,
             AdvertisedFamilies advertisedFamilies) {
         return new RemoteArtifactsMcpTools(
                 projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(), operations,

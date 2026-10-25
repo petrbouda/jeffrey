@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.shared.volume;
 
-import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 
@@ -38,6 +37,6 @@ public final class VolumeFixture {
 
     public static SessionLiveness liveness(Clock clock, VolumeAccess volume) {
         return new SessionLiveness(
-                clock, new HeartbeatReader(volume), new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
+                clock, volume, new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
     }
 }

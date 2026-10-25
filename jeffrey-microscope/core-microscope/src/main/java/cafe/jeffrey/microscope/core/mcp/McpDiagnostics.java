@@ -43,8 +43,6 @@ public final class McpDiagnostics {
 
     public static final Duration DEFAULT_PROBE_TIMEOUT = Duration.parse(DEFAULT_PROBE_TIMEOUT_TEXT);
 
-    private static final String REMOTE_FAMILY = "remote";
-
     private final MicroscopeCoreRepositories repositories;
     private final RemoteManager remoteManager;
     private final ExternalMcpProperties properties;
@@ -75,17 +73,17 @@ public final class McpDiagnostics {
         result.putObject("profileReadiness").put("total", profiles.size()).put("ready", ready)
                 .put("building", profiles.size() - ready)
                 .put("scope", "Stored readiness; building rows may include interrupted work. Poll the recording or operation for lifecycle state.");
-        ObjectNode remoteStatus = result.putObject(REMOTE_FAMILY);
-        boolean enabled = properties.remoteEnabled() && properties.advertises(REMOTE_FAMILY);
+        ObjectNode remoteStatus = result.putObject(AdvertisedFamilies.REMOTE);
+        boolean enabled = properties.remoteEnabled() && properties.advertises(AdvertisedFamilies.REMOTE);
         remoteStatus.put("enabled", enabled);
         if (enabled) {
-            var connected = remoteManager.current();
-            remoteStatus.put("connected", connected.isPresent());
-            connected.ifPresent(remote -> {
+            var configured = remoteManager.current();
+            remoteStatus.put("configured", configured.isPresent());
+            configured.ifPresent(remote -> {
                 RemoteSessionScan.ProbeResult probe = scan.probe(remote);
                 remoteStatus.put("reachable", probe.reachable())
-                        .put("unreachable", countOf(probe, RemoteSessionScan.Failure.Kind.UNREACHABLE) > 0)
-                        .put("deadlineExceeded", countOf(probe, RemoteSessionScan.Failure.Kind.DEADLINE_EXCEEDED) > 0);
+                        .put("unreachable", failedAs(probe, RemoteSessionScan.Failure.Kind.UNREACHABLE))
+                        .put("deadlineExceeded", failedAs(probe, RemoteSessionScan.Failure.Kind.DEADLINE_EXCEEDED));
             });
         }
         result.set("toolMetrics", Json.toTree(metrics));
@@ -96,8 +94,8 @@ public final class McpDiagnostics {
         return Json.toString(result);
     }
 
-    /** How many probes failed the given way, classified by the scan itself rather than by its wording. */
-    private static long countOf(RemoteSessionScan.ProbeResult probe, RemoteSessionScan.Failure.Kind kind) {
-        return probe.failures().stream().filter(failure -> failure.kind() == kind).count();
+    /** Whether the probe failed the given way, classified by the scan itself rather than by its wording. */
+    private static boolean failedAs(RemoteSessionScan.ProbeResult probe, RemoteSessionScan.Failure.Kind kind) {
+        return probe.failures().stream().anyMatch(failure -> failure.kind() == kind);
     }
 }

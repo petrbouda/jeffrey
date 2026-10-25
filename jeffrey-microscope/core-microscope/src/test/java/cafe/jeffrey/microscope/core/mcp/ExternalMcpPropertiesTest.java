@@ -146,8 +146,8 @@ class ExternalMcpPropertiesTest {
     }
 
     /**
-     * A hub download is a recording nobody can analyse unless recordings_analyzeRecording is served
-     * too, so an explicit list with hubs has to keep recordings.
+     * A remote download is a recording nobody can analyse unless recordings_analyzeRecording is served
+     * too, so an explicit list with remote has to keep recordings.
      */
     @Nested
     class RecordingsBesideHubsRule {

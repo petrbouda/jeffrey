@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.model.remote;
 
 /**
- * Where a source of recordings lies: a jeffrey-hub reached over gRPC, or the shared volume itself,
+ * Where the remote lies: a Jeffrey Hub reached over gRPC, or the shared volume itself,
  * read straight from cloud storage with no hub in between. Every kind lists the same tree —
  * workspaces, projects, instances, sessions, files — so everything above the clients that read it
  * treats them alike.
@@ -26,8 +26,9 @@ package cafe.jeffrey.microscope.model.remote;
 public sealed interface RemoteAddress permits HubAddress, AzureFilesAddress {
 
     /**
-     * What makes two addresses the same source, and what the registry keeps unique: never a
-     * credential and never a display preference.
+     * What makes two addresses the same remote — what a download's {@code origin.remoteAddress} tag
+     * records, so a copy is recognised as this remote's: never a credential and never a display
+     * preference.
      */
     String identity();
 

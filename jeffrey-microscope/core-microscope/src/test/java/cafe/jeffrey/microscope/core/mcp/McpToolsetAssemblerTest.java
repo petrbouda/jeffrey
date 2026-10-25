@@ -170,7 +170,7 @@ class McpToolsetAssemblerTest {
     RecordingCommitResolver recordingCommitResolver;
 
     @Mock
-    RemoteManager hubsManager;
+    RemoteManager remoteManager;
 
     @Mock
     ProjectManagerResolver projectManagerResolver;
@@ -190,7 +190,7 @@ class McpToolsetAssemblerTest {
                 new ProfilesMcpTools(coreRepositories, EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordingsManager, new PipelineRunRegistry<>(
                         ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK), operations, CLOCK).build(),
-                RemoteMcpToolsFixture.of(hubsManager, projectManagerResolver, recordingsManager, CLOCK)
+                RemoteMcpToolsFixture.of(remoteManager, projectManagerResolver, recordingsManager, CLOCK)
                         .withOperations(operations).build(),
                 contextCache,
                 jfrPanelProvider,
@@ -1020,9 +1020,9 @@ class McpToolsetAssemblerTest {
                             .filter(name -> !TRACES_OVERVIEW.equals(name))
                             .collect(Collectors.toSet()),
                     requiring(specs, McpToolRequirement.TRACES));
-            Set<String> hubs = new TreeSet<>(inFamily(names, REMOTE_FAMILY));
-            hubs.removeAll(PROBES);
-            assertEquals(hubs, new TreeSet<>(requiring(specs, McpToolRequirement.REMOTE)));
+            Set<String> remote = new TreeSet<>(inFamily(names, REMOTE_FAMILY));
+            remote.removeAll(PROBES);
+            assertEquals(remote, new TreeSet<>(requiring(specs, McpToolRequirement.REMOTE)));
             assertEquals(IDE_RUNNING_TOOLS, requiring(specs, McpToolRequirement.IDE_RUNNING));
             Set<String> linked = new TreeSet<>(inFamily(names, IDE_FAMILY));
             linked.removeAll(IDE_RUNNING_TOOLS);

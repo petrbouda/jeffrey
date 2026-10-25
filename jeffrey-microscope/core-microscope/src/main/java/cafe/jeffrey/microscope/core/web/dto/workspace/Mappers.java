@@ -23,7 +23,6 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProje
 import cafe.jeffrey.shared.ui.remote.dto.ProjectResponse;
 import cafe.jeffrey.shared.ui.remote.dto.WorkspaceResponse;
 
-
 public abstract class Mappers {
 
     public static WorkspaceResponse toResponse(WorkspaceInfo info) {

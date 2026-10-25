@@ -39,6 +39,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -50,6 +51,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class McpDiagnosticsTest {
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
     private final MicroscopeCoreRepositories repositories = mock(MicroscopeCoreRepositories.class);
     private final RemoteManager remoteManager = mock(RemoteManager.class);
     private final ReflectiveToolset tools = new ReflectiveToolset(new Sample(), "profiles");
@@ -74,26 +76,26 @@ class McpDiagnosticsTest {
     }
 
     @Test
-    void nothingConnectedIsReportedAsSuchRatherThanAsUnreachable() {
+    void nothingConfiguredIsReportedAsSuchRatherThanAsUnreachable() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
         when(remoteManager.current()).thenReturn(Optional.empty());
 
         var result = remoteStatus();
 
         assertTrue(result.path("enabled").asBoolean());
-        assertFalse(result.path("connected").asBoolean(true));
+        assertFalse(result.path("configured").asBoolean(true));
         assertFalse(result.has("reachable"));
     }
 
     @Test
     void aReachableRemoteIsReportedAsReachable() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
-        RemoteConnection remote = connected();
+        RemoteConnection remote = configured();
         when(remote.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1"));
 
         var result = remoteStatus();
 
-        assertTrue(result.path("connected").asBoolean());
+        assertTrue(result.path("configured").asBoolean());
         assertTrue(result.path("reachable").asBoolean());
         assertFalse(result.path("unreachable").asBoolean(true));
         assertFalse(result.path("deadlineExceeded").asBoolean(true));
@@ -102,7 +104,7 @@ class McpDiagnosticsTest {
     @Test
     void separatesAnUnreachableRemoteWithoutReturningItsAddressOrErrorDetails() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
-        RemoteConnection remote = connected();
+        RemoteConnection remote = configured();
         when(remote.infoOrThrow()).thenThrow(Status.UNAVAILABLE.withDescription("credential-secret").asRuntimeException());
 
         String text = diagnostics(McpTestProperties.of(true, true, false, Set.of())).json(tools, List.of(), 0);
@@ -118,7 +120,7 @@ class McpDiagnosticsTest {
     @Test
     void separatesAMissedDeadline() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
-        RemoteConnection remote = connected();
+        RemoteConnection remote = configured();
         when(remote.infoOrThrow()).thenThrow(Status.DEADLINE_EXCEEDED.withDescription("credential-secret").asRuntimeException());
 
         var result = remoteStatus();
@@ -135,7 +137,7 @@ class McpDiagnosticsTest {
     @Test
     void classifiesByTheKindTheScanAssignedRatherThanByTheWording() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
-        RemoteConnection unavailable = connected();
+        RemoteConnection unavailable = configured();
         when(unavailable.infoOrThrow()).thenThrow(new JeffreyException(
                 ErrorType.INTERNAL, ErrorCode.REMOTE_UNAVAILABLE, "deadline exceeded while dialling"));
 
@@ -144,7 +146,7 @@ class McpDiagnosticsTest {
         assertTrue(first.path("unreachable").asBoolean());
         assertFalse(first.path("deadlineExceeded").asBoolean(true));
 
-        RemoteConnection broken = connected();
+        RemoteConnection broken = configured();
         when(broken.infoOrThrow()).thenThrow(new IllegalStateException("unreachable"));
 
         var second = remoteStatus();
@@ -156,7 +158,7 @@ class McpDiagnosticsTest {
 
     private McpDiagnostics diagnostics(ExternalMcpProperties properties) {
         return new McpDiagnostics(repositories, remoteManager, properties,
-                Clock.systemUTC(), Duration.ofSeconds(1), McpSkillProvider.NONE);
+                CLOCK, Duration.ofSeconds(1), McpSkillProvider.NONE);
     }
 
     private JsonNode remoteStatus() {
@@ -164,7 +166,7 @@ class McpDiagnosticsTest {
         return Json.readTree(text).path("remote");
     }
 
-    private RemoteConnection connected() {
+    private RemoteConnection configured() {
         RemoteConnection connection = mock(RemoteConnection.class);
         when(connection.info()).thenReturn(new RemoteInfo("internal",
                 new HubAddress("internal.example", 9090, true)));

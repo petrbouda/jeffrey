@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -37,6 +36,7 @@ import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

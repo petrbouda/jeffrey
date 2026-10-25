@@ -25,7 +25,7 @@ import java.util.Map;
  * Used to materialise {@code origin.*} system tags on the freshly imported QA recording.
  *
  * @param remoteAddress the remote's address identity — which remote the copy came from, so a copy
- *                      taken from a remote connected earlier is never matched to the current one
+ *                      taken from a remote configured before is never matched to the current one
  * @param remoteName    what the UI shows for it
  */
 public record OriginContext(

@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package cafe.jeffrey.microscope.mcp.protocol;
 
 import org.junit.jupiter.api.Nested;

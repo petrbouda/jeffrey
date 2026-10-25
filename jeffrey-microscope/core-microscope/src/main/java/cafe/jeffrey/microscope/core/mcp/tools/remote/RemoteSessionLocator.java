@@ -37,11 +37,13 @@ import java.util.Optional;
  * <p>
  * Shared by the tools that take a sessionRef — download, per-file fetch — so that a
  * session that has been retired by retention reads the same whichever tool bumped into it. The
- * failure that actually happened is logged rather than surfaced, because a remote that is merely
- * unreachable is indistinguishable, in the model's answer, from one that was disconnected on
- * purpose, and the logs are where that distinction is worth keeping.
+ * failure that actually happened is logged rather than surfaced, because the model can act on
+ * either the same way — ask for a fresh ref — and the logs are where the cause is worth keeping.
  */
 public final class RemoteSessionLocator {
+
+    private static final String NOT_CONFIGURED = "Session %s cannot be reached: no remote is configured for this "
+            + "Jeffrey. Call remote_status, which says how to declare one.";
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteSessionLocator.class);
 
@@ -61,7 +63,7 @@ public final class RemoteSessionLocator {
             return resolver.resolveRemote().info();
         } catch (JeffreyException e) {
             LOG.debug("No remote is configured for a session_ref: reason={}", e.getMessage(), e);
-            throw staleRef(ref, "no remote is configured for this Jeffrey any more");
+            throw new IllegalArgumentException(NOT_CONFIGURED.formatted(ref.sessionId()));
         }
     }
 

@@ -19,6 +19,8 @@ package cafe.jeffrey.shared.volume.recording;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 
 /**
  * The two forms a recording chunk takes on the volume: the JFR async-profiler writes, and the LZ4
@@ -57,8 +59,21 @@ public enum RecordingFormat {
      * Whether a file of this name is of this form. Case-sensitive, matching how {@link #idOf} and
      * the timestamp parse strip the suffix.
      */
-    public boolean matches(String filename) {
+    boolean matches(String filename) {
         return filename != null && filename.endsWith(suffix());
+    }
+
+    /**
+     * Which of two files sharing an id to serve: the archive. While the hub's compression job runs,
+     * a recording and its archive share an id and both are whole (the archive is published by a
+     * rename); the recording is about to be deleted, the archive stays.
+     *
+     * @param nameOf the file's name within its session
+     */
+    public static <F> BinaryOperator<F> theOneThatStays(Function<F, String> nameOf) {
+        return (first, second) -> of(nameOf.apply(first)).filter(RecordingFormat::isArchive).isPresent()
+                ? first
+                : second;
     }
 
     /** Whether this is the compressed form the compression job produces. */

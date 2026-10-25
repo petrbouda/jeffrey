@@ -147,7 +147,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <tr>
             <td>&ldquo;What did production record in the last hour?&rdquo; &middot; &ldquo;Why was staging slow this morning?&rdquo; &middot; &ldquo;Why did the pod&rsquo;s JVM die?&rdquo;</td>
             <td><a href="#analyze-remote"><code>analyze-remote</code></a></td>
-            <td>The connected remote (a Jeffrey Hub or an Azure file share)</td>
+            <td>The configured remote (a Jeffrey Hub or an Azure file share)</td>
           </tr>
           <tr>
             <td>&ldquo;Did my change make it slower?&rdquo; &middot; &ldquo;What got faster?&rdquo;</td>

@@ -144,6 +144,17 @@ public class RemoteMcpTools {
      */
     public static final String ASK_WINDOW_OVER_SIZE_PROPERTY = "jeffrey.microscope.mcp.remote.ask-window-over-size";
 
+    /** How long a remote_download or remote_fetchFile call waits before answering with an operationId. */
+    public static final String DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.remote.download-response-timeout";
+
+    /** The deadline a transfer itself runs under on the remote, off the caller's thread. */
+    public static final String DOWNLOAD_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.remote.download-timeout";
+
+    private static final String OMITTED_FAILURES_SCOPE = "additional remote scopes";
+    private static final String OMITTED_FAILURES = "%d additional failed scopes omitted; narrow filters for details.";
+    private static final String WINDOW_AND_FILE_IDS = "Choose the part of the session one way: a window "
+            + "(startEpochMs/endEpochMs) or fileIds, not both.";
+
     private static final String DOWNLOAD_PREFLIGHT_FAILED = "Remote download preflight failed: ";
     private static final String DOWNLOAD_FAILED = "Remote download failed: ";
     private static final String RESPONSE_DEADLINE_ELAPSED = "Remote download response deadline elapsed";
@@ -300,16 +311,16 @@ public class RemoteMcpTools {
     @McpToolMeta(cost = McpToolCost.MODERATE)
     public McpToolResult status() {
         String uiLink = UiLinks.page(MicroscopePage.REMOTE);
-        Optional<RemoteConnection> connected = remoteManager.current();
-        if (connected.isEmpty()) {
+        Optional<RemoteConnection> configured = remoteManager.current();
+        if (configured.isEmpty()) {
             McpFollowUp followUp = NextSteps.builder(advertised).followUp();
-            RemoteStatus none = new RemoteStatus(RemoteState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null, false, null,
+            RemoteStatus none = new RemoteStatus(RemoteState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null, null, null,
                     followUp, uiLink);
             return McpToolResult.of(LinkedOutput.footed(NOT_CONFIGURED, followUp, uiLink, null).text(), none);
         }
 
-        RemoteInfo remote = connected.get().info();
-        RemoteSessionScan.ProbeResult probe = scan.probe(connected.get());
+        RemoteInfo remote = configured.get().info();
+        RemoteSessionScan.ProbeResult probe = scan.probe(configured.get());
         RemoteState state = probe.reachable() ? RemoteState.REACHABLE : RemoteState.UNREACHABLE;
         McpFollowUp followUp = NextSteps.builder(advertised)
                 .nextWhen(probe.reachable(), NextCalls.to(RemoteCalls.REMOTE_SESSIONS).why(SESSIONS_WHY))
@@ -568,8 +579,8 @@ public class RemoteMcpTools {
                     bounded(failure.scope(), FAILURE_CHARS), failure.kind(), bounded(failure.reason(), FAILURE_CHARS)));
         }
         if (failures.size() > displayed.size()) {
-            displayed.add(new RemoteSessionScan.Failure("additional remote scopes", RemoteSessionScan.Failure.Kind.OTHER,
-                    (failures.size() - displayed.size()) + " additional failed scopes omitted; narrow filters for details."));
+            displayed.add(new RemoteSessionScan.Failure(OMITTED_FAILURES_SCOPE, RemoteSessionScan.Failure.Kind.OTHER,
+                    OMITTED_FAILURES.formatted(failures.size() - displayed.size())));
         }
         return List.copyOf(displayed);
     }
@@ -598,9 +609,8 @@ public class RemoteMcpTools {
             + "the sessionRef of a remote_sessions row, and returns the recordingId of its recording for "
             + "recordings_analyzeRecording. With no selection it brings the session's finished recording "
             + "files as one recording, each heap dump and the perf counters as recordings of their own "
-            + "(items lists them), and "
-            + "the JVM and application logs as files of the bundle. A part instead: window names one - the last minutes, the "
-            + "startup, latest or peak chunk, the minutes before or around a moment, or a custom span; "
+            + "(items lists them), and the JVM and application logs as files of the bundle. A part "
+            + "instead: window names one - the last minutes, the startup, latest or peak chunk, the minutes before or around a moment, or a custom span; "
             + "startEpochMs and/or endEpochMs bring every chunk whose span touches them; or fileIds "
             + "bring named remote_files rows - an unbroken run of chunks and any artifacts beside them. "
             + "The answer reports the span actually covered, and what a window picked and why. A "
@@ -609,8 +619,7 @@ public class RemoteMcpTools {
             + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the remote no longer holds the first "
             + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
             + "it. Every started transfer carries an operationId for operations_status and "
-            + "operations_cancel, and a client that declared the MCP tasks extension gets a task after "
-            + "about 5 s instead. A FAILED or CANCELLED outcome is kept in memory for one hour and "
+            + "operations_cancel (a task after about 5 s for a client that declared tasks). A FAILED or CANCELLED outcome is kept in memory for one hour and "
             + "reported rather than restarted unless retry=true.")
     @McpOutputSchema(Download.class)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.REMOTE)
@@ -1046,14 +1055,6 @@ public class RemoteMcpTools {
                 .orElse("");
     }
 
-    private RemoteInfo remoteInfo(RemoteSessionRef ref) {
-        return locator.remoteInfo(ref);
-    }
-
-    private ProjectManager projectFor(RemoteSessionRef ref) {
-        return locator.project(ref);
-    }
-
     /**
      * Reads the session before pulling it, so a ref that has gone stale and a session with nothing
      * to download both fail in a sentence rather than partway through a multi-gigabyte transfer.
@@ -1074,8 +1075,8 @@ public class RemoteMcpTools {
         Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
             return context.call(() -> {
-                RemoteInfo remote = remoteInfo(ref);
-                ProjectManager project = projectFor(ref);
+                RemoteInfo remote = locator.remoteInfo(ref);
+                ProjectManager project = locator.project(ref);
                 return new DownloadPreflight(remote, project, preflight(project, ref, remote));
             });
         } catch (StatusRuntimeException e) {
@@ -1338,8 +1339,7 @@ public class RemoteMcpTools {
             boolean windowed = startEpochMs != null || endEpochMs != null;
             boolean named = fileIds != null && !fileIds.isEmpty();
             if (windowed && named) {
-                throw new IllegalArgumentException("Choose the part of the session one way: a window "
-                        + "(startEpochMs/endEpochMs) or fileIds, not both.");
+                throw new IllegalArgumentException(WINDOW_AND_FILE_IDS);
             }
             return new DownloadKey(ref,
                     windowed ? ChunkWindow.ofEpochMillis(startEpochMs, endEpochMs) : null,

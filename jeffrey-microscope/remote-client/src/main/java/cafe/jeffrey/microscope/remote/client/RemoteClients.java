@@ -17,12 +17,6 @@
 
 package cafe.jeffrey.microscope.remote.client;
 
-import cafe.jeffrey.microscope.grpc.client.*;
-
-import cafe.jeffrey.microscope.model.remote.RemoteAddress;
-
-import java.util.function.Function;
-
 public record RemoteClients(
         DiscoveryClient discovery,
         RepositoryClient repository,
@@ -30,15 +24,4 @@ public record RemoteClients(
         InstancesClient instances,
         ProjectsClient projects
 ) {
-
-    @FunctionalInterface
-    public interface Factory extends Function<RemoteAddress, RemoteClients> {
-
-        /**
-         * Lets go of whatever the factory holds for this address. A no-op for a factory that
-         * holds nothing.
-         */
-        default void evict(RemoteAddress address) {
-        }
-    }
 }

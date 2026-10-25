@@ -27,7 +27,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import java.util.function.Predicate;
 
 /**
- * Status and best-effort cancellation for one exact attempt: a recording import or analysis, a Hub
+ * Status and best-effort cancellation for one exact attempt: a recording import or analysis, a remote
  * download or file fetch, a heap preparation, a retained-size OQL query or an Auto Analysis run.
  */
 public final class OperationsMcpTools {

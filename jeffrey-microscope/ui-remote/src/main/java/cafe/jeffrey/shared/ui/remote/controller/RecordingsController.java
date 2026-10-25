@@ -59,9 +59,8 @@ import java.util.stream.Stream;
 /**
  * Shared local recordings store: groups + uploads + listing + per-file download + deletion. Backed
  * by the deployment-agnostic {@link RecordingsCoreManager}; the per-recording profile fields are
- * supplied by the {@link RecordingProfileInfoProvider} bridge (a real implementation in microscope,
- * {@link RecordingProfileInfoProvider#NOOP} elsewhere). Profile-mutating endpoints (analyze / update
- * / delete profile) are NOT here — they remain in the deployment that owns profiles.
+ * supplied by Microscope through the {@link RecordingProfileInfoProvider} bridge. Profile-mutating
+ * endpoints (analyze / update / delete profile) are NOT here — they stay with Microscope's profiles.
  *
  * <p>Annotated {@code @RestController} and registered as a {@code @Bean} via
  * {@code RemoteFeatureConfiguration}; it lives outside both apps' component-scan roots, so it is

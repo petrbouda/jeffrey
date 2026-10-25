@@ -37,7 +37,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -48,9 +47,6 @@ import java.util.stream.Stream;
 public final class FilesystemVolume implements WritableVolume {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemVolume.class);
-
-    private static final String HIDDEN_PREFIX = ".";
-    private static final String SCRATCH_SUFFIX = ".tmp";
 
     private final Path root;
 
@@ -91,8 +87,7 @@ public final class FilesystemVolume implements WritableVolume {
     @Override
     public void write(VolumePath path, byte[] content) {
         Path target = resolve(path);
-        String hidden = path.name().startsWith(HIDDEN_PREFIX) ? path.name() : HIDDEN_PREFIX + path.name();
-        Path scratch = target.resolveSibling(hidden + "." + UUID.randomUUID() + SCRATCH_SUFFIX);
+        Path scratch = resolve(path.scratchSibling());
         try {
             Files.write(scratch, content);
             try {

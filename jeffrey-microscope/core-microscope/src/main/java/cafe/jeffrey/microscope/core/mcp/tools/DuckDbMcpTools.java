@@ -596,7 +596,6 @@ public class DuckDbMcpTools {
         }
     }
 
-
     /**
      * An answer measured whole before it is published: rows are left out, never cut, so what the
      * record says it holds is what the table shows.

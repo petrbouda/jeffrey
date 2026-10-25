@@ -62,13 +62,12 @@ class RemoteControllerTest {
 
         @Test
         void aJeffreyHubIsReportedByItsHostAndPort() {
-            RemoteResponse response = answering(new RemoteInfo("Production", new HubAddress("hub.example.com", 443)))
+            RemoteResponse response = answering(new RemoteInfo("Production", new HubAddress("hub.example.com", 443, false)))
                     .current().remote();
 
             assertEquals("Production", response.name());
             assertEquals("GRPC", response.kind());
             assertEquals("hub.example.com:443", response.location());
-            assertEquals(443, response.port());
             assertFalse(response.readOnly());
         }
 
@@ -82,7 +81,6 @@ class RemoteControllerTest {
             assertEquals("AZURE_FILES", response.kind());
             assertEquals("https://jeffreyprod.file.core.windows.net/recordings/volume", response.location());
             assertTrue(response.readOnly());
-            assertNull(response.hostname());
         }
     }
 

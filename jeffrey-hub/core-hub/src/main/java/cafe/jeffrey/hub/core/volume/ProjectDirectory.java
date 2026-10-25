@@ -18,12 +18,9 @@
 package cafe.jeffrey.hub.core.volume;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.shared.volume.VolumeAccess;
-import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 
 import java.time.Instant;
-import java.util.Optional;
 
 /**
  * A project directory on the volume and the hub's project it declares.
@@ -39,17 +36,13 @@ public record ProjectDirectory(ProjectTree tree, ProjectInfo info) {
         }
     }
 
-    /**
-     * The project in this directory, or empty when it is not one — {@link ProjectTree#at} is the
-     * one test, shared by the listing and the workspace's count.
-     */
-    public static Optional<ProjectDirectory> at(VolumeAccess volume, VolumePath directory, String workspaceId) {
-        return ProjectTree.at(volume, directory)
-                .map(tree -> new ProjectDirectory(tree, new ProjectInfo(
-                        tree.marker().projectId(),
-                        tree.marker().projectName(),
-                        workspaceId,
-                        Instant.ofEpochMilli(tree.marker().createdAt()),
-                        tree.marker().attributes())));
+    /** The hub's project the directory's marker declares, in workspace {@code workspaceId}. */
+    public static ProjectDirectory of(ProjectTree tree, String workspaceId) {
+        return new ProjectDirectory(tree, new ProjectInfo(
+                tree.marker().projectId(),
+                tree.marker().projectName(),
+                workspaceId,
+                Instant.ofEpochMilli(tree.marker().createdAt()),
+                tree.marker().attributes()));
     }
 }

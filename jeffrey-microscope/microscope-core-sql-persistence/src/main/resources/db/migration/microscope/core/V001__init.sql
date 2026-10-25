@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS recording_files
 
 --
 -- BUNDLES
--- Several files that arrived together (a hub session download). Each initializable item in it is a
+-- Several files that arrived together (a remote session download). Each initializable item in it is a
 -- recording of its own pointing back through recordings.bundle_id; what cannot be initialized (logs,
 -- crash files) is a bundle file, download-only. The bundle, not its members, sits in a group.
 --

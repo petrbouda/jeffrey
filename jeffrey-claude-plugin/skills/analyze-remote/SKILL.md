@@ -92,10 +92,11 @@ The fields to read before doing anything else — each row of `sessions` in the 
 `remote_sessions` never offers a download as a next call: which part of a session to bring is the
 user's choice, so the answer says so in `followUp.guidance` instead.
 
-If nothing comes back (`status: EMPTY`), read `failures` before concluding there is nothing. A
-remote, workspace or project that did not answer is listed there, with a `kind` such as
-`UNREACHABLE`, and "the remote is unreachable" is a completely different answer from "no
-recordings". `remote_status` shows which remote is configured and whether it responds.
+If nothing comes back, look at `complete` before concluding there is nothing. `status: EMPTY` means
+the remote answered and nothing matched. An empty list with `complete: false` means part of it did
+not answer: `failures` names the remote, workspace or project with a `kind` such as `UNREACHABLE`,
+and "the remote is unreachable" is a completely different answer from "no recordings".
+`remote_status` shows which remote is configured and whether it responds.
 
 The table is a page, not the whole. `remote_sessions` defaults to 50 rows, and the output byte budget
 may reduce that further. Read `returned`, `nextCursor` and `hasMore`; when `hasMore=true`, pass the
@@ -311,7 +312,7 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 **It does not delete anything on the remote.** `recordings_delete` removes a recording from *this*
 Jeffrey; no tool here removes a session, a file or a project from the remote. Data retention there
-is the Jeffrey Hub's business.
+is the business of the Jeffrey Hub that runs on that volume.
 
 **It does not push.** Recordings travel from the remote into this Jeffrey, never the other way.
 
@@ -319,9 +320,9 @@ is the Jeffrey Hub's business.
 there is only ever one. If `remote_status` shows a different one than the user
 wants, say so — changing it is an operator's decision, not something to work around.
 
-**It treats a file share like a hub.** A remote of kind `AZURE_FILES` is the recording volume
-reached straight on an Azure file share, with no hub in between: its sessions list, download and
-fetch like a hub's. One with `readOnly: true` is declared to refuse every change; no tool here
+**It does not treat a file share differently.** A remote of kind `AZURE_FILES` is the recording
+volume reached straight on an Azure file share, with no hub in between: its sessions list, download
+and fetch like a hub's. One with `readOnly: true` is declared to refuse every change; no tool here
 changes a share either way.
 
 ## When a transfer outlasts the call

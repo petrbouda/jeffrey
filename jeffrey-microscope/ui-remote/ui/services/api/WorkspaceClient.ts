@@ -25,7 +25,7 @@ export interface CreateWorkspaceRequest {
 }
 
 /**
- * API client for workspace operations on the connected remote.
+ * API client for workspace operations on the configured remote.
  * Workspaces are listed live from the remote.
  */
 export default class WorkspaceClient extends BasePlatformClient {

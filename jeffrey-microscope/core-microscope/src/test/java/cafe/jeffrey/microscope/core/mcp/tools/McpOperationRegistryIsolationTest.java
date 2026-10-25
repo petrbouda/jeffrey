@@ -98,11 +98,11 @@ class McpOperationRegistryIsolationTest {
         McpOperationRegistry registry = new McpOperationRegistry(Clock.fixed(now, ZoneOffset.UTC));
         registry.register(OperationKind.REMOTE_DOWNLOAD, completed("hub", now), OperationResults.Value::new);
         registry.register(OperationKind.HEAP_OQL, completed("heap", now), OperationResults.Value::new);
-        Predicate<OperationKind> withoutHubs = kind -> !kind.reachesRemote();
+        Predicate<OperationKind> withoutRemote = kind -> !kind.reachesRemote();
 
-        assertThrows(IllegalArgumentException.class, () -> registry.status("hub", withoutHubs));
-        assertThrows(IllegalArgumentException.class, () -> registry.task("hub", withoutHubs));
-        assertEquals("heap", registry.task("heap", withoutHubs).taskId());
+        assertThrows(IllegalArgumentException.class, () -> registry.status("hub", withoutRemote));
+        assertThrows(IllegalArgumentException.class, () -> registry.task("hub", withoutRemote));
+        assertEquals("heap", registry.task("heap", withoutRemote).taskId());
         assertEquals("hub", registry.task("hub", kind -> true).taskId());
     }
 

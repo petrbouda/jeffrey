@@ -92,9 +92,9 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     public void delete() {
         // Refused before anything local goes: the remote delete below is best-effort, so a
         // refusal there would still wipe this workspace's profiles and answer success
-        if (remote.address() != null && remote.address().readOnly()) {
+        if (remote.address().readOnly()) {
             throw Exceptions.invalidRequest("Cannot delete workspace " + workspaceInfo.id()
-                    + ": its source is declared read-only");
+                    + ": the remote is declared read-only");
         }
 
         // Best-effort: drop the workspace on the remote.
@@ -105,7 +105,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                     workspaceInfo.id(), e);
 
             // The caller gets 204 either way, so from the outside this delete looks complete while
-            // the remote still holds the workspace. Reconnecting later brings it straight back.
+            // the remote still holds the workspace. The next listing shows it again.
             Notifications.of(NotificationType.WORKSPACE_DELETE_PARTIAL)
                     .attribute("workspaceId", workspaceInfo.id())
                     .errorType(e)

@@ -41,15 +41,6 @@ public class CachedHubClientsFactory implements Closeable {
         return cache.computeIfAbsent(address, this::createEntry).clients();
     }
 
-    /** Closes and forgets the connection to {@code address}, if one is held. */
-    public void evict(HubAddress address) {
-        CachedEntry entry = cache.remove(address);
-        if (entry != null) {
-            entry.connection().close();
-            LOG.info("Evicted cached gRPC connection: address={}", address);
-        }
-    }
-
     @Override
     public void close() {
         for (Map.Entry<HubAddress, CachedEntry> entry : cache.entrySet()) {

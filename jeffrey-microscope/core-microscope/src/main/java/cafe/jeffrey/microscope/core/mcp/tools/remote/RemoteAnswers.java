@@ -86,9 +86,10 @@ public final class RemoteAnswers {
             @McpDescription("Where it is reached: host:port for GRPC, azure-files:<endpoint>/<share>[/<root>] for "
                     + "AZURE_FILES; null when none is configured")
             String address,
+            @McpNullable
             @McpDescription("True for a remote declared read-only: its sessions list and download as usual, but "
-                    + "nothing on it can be deleted or pinned")
-            boolean readOnly,
+                    + "nothing on it can be deleted or pinned; null when none is configured")
+            Boolean readOnly,
             @McpNullable
             @McpDescription("The version the remote reported; null when it did not answer or none is configured")
             String version,

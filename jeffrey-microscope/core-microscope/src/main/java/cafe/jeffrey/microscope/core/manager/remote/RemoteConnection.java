@@ -66,18 +66,7 @@ public class RemoteConnection {
         return remote;
     }
 
-    /**
-     * Whether the remote answers at all, and what it is running. Empty when it cannot be reached.
-     * <p>
-     * Needed because {@link #workspaces()} reports a remote that is down and one that is empty the
-     * same way — as no workspaces — which is the right thing for a UI that would otherwise show an
-     * error banner, and the wrong thing for a caller that has to tell a reader why a listing came
-     * back empty. One cheap round trip separates the two.
-     */
-    public Optional<DiscoveryClient.PublicApiInfo> tryInfo() {
-        return clients.discovery().tryInfo();
-    }
-
+    /** Whether the remote answers at all, and what it is running; throws when it cannot be reached. */
     public DiscoveryClient.PublicApiInfo infoOrThrow() {
         return clients.discovery().info();
     }

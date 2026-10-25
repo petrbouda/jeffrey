@@ -26,7 +26,6 @@ import cafe.jeffrey.microscope.volume.azure.AzureFilesVolumes;
 import cafe.jeffrey.microscope.volume.client.VolumeRemoteClients;
 import cafe.jeffrey.microscope.volume.client.VolumeSource;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.slf4j.Logger;
@@ -54,7 +53,7 @@ public final class AzureFilesClientsFactory {
     private final ConcurrentHashMap<AzureFilesAddress, RemoteClients> cache = new ConcurrentHashMap<>();
 
     /**
-     * @param deadlines how a session's heartbeat is read; the hub's own defaults unless configured
+     * @param deadlines how a session's heartbeat is read: the Jeffrey Hub's default deadlines
      * @param sasToken  the configured remote's SAS token, when it signs in with one
      */
     public AzureFilesClientsFactory(Clock clock, SessionDeadlines deadlines, Optional<String> sasToken) {
@@ -67,15 +66,9 @@ public final class AzureFilesClientsFactory {
         return cache.computeIfAbsent(address, this::open);
     }
 
-    public void evict(AzureFilesAddress address) {
-        if (cache.remove(address) != null) {
-            LOG.info("Evicted cached Azure Files clients: address={}", address);
-        }
-    }
-
     private RemoteClients open(AzureFilesAddress address) {
         AzureFilesVolume volume = AzureFilesVolumes.open(address, credential(address));
-        SessionLiveness liveness = new SessionLiveness(clock, new HeartbeatReader(volume), deadlines);
+        SessionLiveness liveness = new SessionLiveness(clock, volume, deadlines);
         LOG.info("Opened an Azure Files recording volume: address={}", address);
         return VolumeRemoteClients.of(new VolumeSource(volume, liveness, clock, DESCRIPTION, address.readOnly()));
     }

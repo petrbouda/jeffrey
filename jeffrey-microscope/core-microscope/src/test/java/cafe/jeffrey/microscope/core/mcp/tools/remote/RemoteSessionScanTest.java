@@ -104,16 +104,15 @@ class RemoteSessionScanTest {
         return workspaceManager;
     }
 
-    /** The connected remote, answering its probe, with one workspace holding the given projects. */
-    private RemoteConnection connected(ProjectManager... projects) {
+    /** The configured remote, answering its probe, with one workspace holding the given projects. */
+    private RemoteConnection configured(ProjectManager... projects) {
         WorkspaceInfo workspace = workspace("ws-1", "default");
-        return connected(Map.of(workspace, workspaceHolding(projects)), List.of(workspace));
+        return configured(Map.of(workspace, workspaceHolding(projects)), List.of(workspace));
     }
 
-    private RemoteConnection connected(Map<WorkspaceInfo, WorkspaceManager> managers, List<WorkspaceInfo> order) {
+    private RemoteConnection configured(Map<WorkspaceInfo, WorkspaceManager> managers, List<WorkspaceInfo> order) {
         RemoteConnection remote = mock(RemoteConnection.class);
         when(remote.info()).thenReturn(remoteInfo());
-        when(remote.tryInfo()).thenReturn(Optional.of(new DiscoveryClient.PublicApiInfo("1.0")));
         when(remote.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("1.0"));
         when(remote.workspaces()).thenReturn(order);
         when(remote.workspacesOrThrow()).thenReturn(order);
@@ -125,7 +124,6 @@ class RemoteSessionScanTest {
     private RemoteConnection unreachable() {
         RemoteConnection remote = mock(RemoteConnection.class);
         when(remote.info()).thenReturn(remoteInfo());
-        when(remote.tryInfo()).thenReturn(Optional.empty());
         when(remote.infoOrThrow())
                 .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
         when(remoteManager.current()).thenReturn(Optional.of(remote));
@@ -146,10 +144,10 @@ class RemoteSessionScanTest {
 
         @Test
         void mergesRowsFromEveryProject() {
-            connected(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))),
+            configured(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))),
                     project("proj-2", "search", repositoryWith(session("s-2", NOW))));
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertEquals(2, result.rows().size());
             assertTrue(result.complete());
@@ -157,17 +155,17 @@ class RemoteSessionScanTest {
 
         @Test
         void ordersNewestFirstAcrossProjects() {
-            connected(project("proj-1", "checkout", repositoryWith(session("older", NOW.minusSeconds(600)))),
+            configured(project("proj-1", "checkout", repositoryWith(session("older", NOW.minusSeconds(600)))),
                     project("proj-2", "search", repositoryWith(session("newer", NOW))));
 
-            assertEquals(List.of("newer", "older"), sessionIds(scan.scan(RemoteScanFilter.ALL, 0)));
+            assertEquals(List.of("newer", "older"), sessionIds(scan.scan(RemoteScanFilter.ALL)));
         }
 
         @Test
         void carriesTheFullCoordinateOnEveryRow() {
-            connected(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))));
+            configured(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))));
 
-            RemoteSessionScan.Row row = scan.scan(RemoteScanFilter.ALL, 0).rows().getFirst();
+            RemoteSessionScan.Row row = scan.scan(RemoteScanFilter.ALL).rows().getFirst();
 
             assertEquals(new RemoteSessionRef("ws-1", "proj-1", "s-1"), row.ref());
             assertEquals("default", row.workspaceName());
@@ -176,10 +174,10 @@ class RemoteSessionScanTest {
 
         @Test
         void breaksTimestampTiesByTheFullSessionCoordinate() {
-            connected(project("proj-2", "checkout", repositoryWith(session("a", NOW))),
+            configured(project("proj-2", "checkout", repositoryWith(session("a", NOW))),
                     project("proj-1", "search", repositoryWith(session("c", NOW), session("b", NOW))));
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertEquals(List.of(new RemoteSessionRef("ws-1", "proj-1", "b"),
                             new RemoteSessionRef("ws-1", "proj-1", "c"),
@@ -188,21 +186,10 @@ class RemoteSessionScanTest {
         }
 
         @Test
-        void appliesTheGlobalLimitAfterTheMerge() {
-            // The remote caps per project, so a merge across projects can still exceed what was asked for.
-            connected(project("proj-1", "checkout", repositoryWith(session("newest", NOW))),
-                    project("proj-2", "search", repositoryWith(session("older", NOW.minusSeconds(60)))));
-
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 1);
-
-            assertEquals(List.of("newest"), sessionIds(result));
-        }
-
-        @Test
-        void returnsNothingWhenNoRemoteIsConnected() {
+        void returnsNothingWhenNoRemoteIsConfigured() {
             when(remoteManager.current()).thenReturn(Optional.empty());
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertTrue(result.rows().isEmpty());
             assertTrue(result.complete());
@@ -214,7 +201,7 @@ class RemoteSessionScanTest {
 
         @Test
         void aRemoteThatAnswersIsReachableWithItsVersion() {
-            RemoteSessionScan.ProbeResult probe = scan.probe(connected());
+            RemoteSessionScan.ProbeResult probe = scan.probe(configured());
 
             assertTrue(probe.reachable());
             assertEquals(Optional.of("1.0"), probe.version());
@@ -238,10 +225,10 @@ class RemoteSessionScanTest {
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.UNAVAILABLE.withDescription("connect refused").asRuntimeException());
-            connected(project("proj-1", "checkout", failing),
+            configured(project("proj-1", "checkout", failing),
                     project("proj-2", "search", repositoryWith(session("s-1", NOW))));
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertEquals(List.of("s-1"), sessionIds(result));
             assertEquals(1, result.failures().size());
@@ -254,7 +241,7 @@ class RemoteSessionScanTest {
             // is indistinguishable from one with nothing on it.
             unreachable();
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertTrue(result.rows().isEmpty());
             assertEquals("remote", result.failures().getFirst().scope());
@@ -265,7 +252,7 @@ class RemoteSessionScanTest {
         void neverDescendsIntoARemoteThatDidNotAnswer() {
             RemoteConnection remote = unreachable();
 
-            scan.scan(RemoteScanFilter.ALL, 0);
+            scan.scan(RemoteScanFilter.ALL);
 
             // workspaces() would return an empty list rather than failing, so the saving is real.
             verify(remote, never()).workspacesOrThrow();
@@ -276,9 +263,9 @@ class RemoteSessionScanTest {
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.UNAVAILABLE.withDescription("connect refused").asRuntimeException());
-            connected(project("proj-1", "checkout", failing));
+            configured(project("proj-1", "checkout", failing));
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertTrue(result.rows().isEmpty());
             assertEquals("unreachable", result.failures().getFirst().reason());
@@ -290,9 +277,9 @@ class RemoteSessionScanTest {
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.NOT_FOUND.withDescription("project is gone").asRuntimeException());
-            connected(project("proj-1", "checkout", failing));
+            configured(project("proj-1", "checkout", failing));
 
-            String reason = scan.scan(RemoteScanFilter.ALL, 0).failures().getFirst().reason();
+            String reason = scan.scan(RemoteScanFilter.ALL).failures().getFirst().reason();
 
             assertTrue(reason.contains("project is gone"), reason);
         }
@@ -302,9 +289,9 @@ class RemoteSessionScanTest {
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
                     .thenThrow(Status.DEADLINE_EXCEEDED.withDescription("scan budget elapsed").asRuntimeException());
-            connected(project("proj-1", "checkout", failing));
+            configured(project("proj-1", "checkout", failing));
 
-            String reason = scan.scan(RemoteScanFilter.ALL, 0).failures().getFirst().reason();
+            String reason = scan.scan(RemoteScanFilter.ALL).failures().getFirst().reason();
 
             assertTrue(reason.contains("deadline"), reason);
         }
@@ -317,11 +304,11 @@ class RemoteSessionScanTest {
                 awaitCancellation(cancelled);
                 throw Status.CANCELLED.withDescription("scan cancelled").asRuntimeException();
             });
-            connected(project("fast-project", "fast", repositoryWith(session("fast-session", NOW))),
+            configured(project("fast-project", "fast", repositoryWith(session("fast-session", NOW))),
                     project("slow-project", "slow", slowRepository));
 
             RemoteSessionScan.Result result =
-                    new RemoteSessionScan(remoteManager, Duration.ofMillis(100)).scan(RemoteScanFilter.ALL, 0);
+                    new RemoteSessionScan(remoteManager, Duration.ofMillis(100)).scan(RemoteScanFilter.ALL);
 
             assertEquals(List.of("fast-session"), sessionIds(result));
             assertTrue(result.failures().stream()
@@ -341,7 +328,7 @@ class RemoteSessionScanTest {
             when(remoteManager.current()).thenReturn(Optional.of(stalled));
 
             RemoteSessionScan.Result result =
-                    new RemoteSessionScan(remoteManager, Duration.ofMillis(150)).scan(RemoteScanFilter.ALL, 0);
+                    new RemoteSessionScan(remoteManager, Duration.ofMillis(150)).scan(RemoteScanFilter.ALL);
 
             assertTrue(result.rows().isEmpty());
             RemoteSessionScan.Failure failure = result.failures().getFirst();
@@ -367,11 +354,11 @@ class RemoteSessionScanTest {
             WorkspaceManager stalledManager = mock(WorkspaceManager.class);
             when(stalledManager.projectsManager()).thenReturn(stalledProjects);
 
-            connected(Map.of(fastWorkspace, fastManager, stalledWorkspace, stalledManager),
+            configured(Map.of(fastWorkspace, fastManager, stalledWorkspace, stalledManager),
                     List.of(fastWorkspace, stalledWorkspace));
 
             RemoteSessionScan.Result result =
-                    new RemoteSessionScan(remoteManager, Duration.ofMillis(150)).scan(RemoteScanFilter.ALL, 0);
+                    new RemoteSessionScan(remoteManager, Duration.ofMillis(150)).scan(RemoteScanFilter.ALL);
 
             assertEquals(List.of("fast-session"), sessionIds(result));
             assertTrue(result.failures().stream()
@@ -387,11 +374,11 @@ class RemoteSessionScanTest {
         @Test
         void pushesTheWindowDownToTheRemote() {
             RepositoryManager repo = repositoryWith(session("s-1", NOW));
-            connected(project("proj-1", "checkout", repo));
+            configured(project("proj-1", "checkout", repo));
 
             RecordingSessionFilter lastHour =
                     RecordingSessionFilter.activeWithinLast(Duration.ofHours(1), NOW);
-            scan.scan(RemoteScanFilter.ALL.withSessions(lastHour), 0);
+            scan.scan(RemoteScanFilter.ALL.withSessions(lastHour));
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
@@ -407,11 +394,11 @@ class RemoteSessionScanTest {
                     workspaceHolding(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))));
             WorkspaceManager stagingManager =
                     workspaceHolding(project("proj-2", "search", repositoryWith(session("s-2", NOW))));
-            RemoteConnection remote = connected(Map.of(production, productionManager, staging, stagingManager),
+            RemoteConnection remote = configured(Map.of(production, productionManager, staging, stagingManager),
                     List.of(production, staging));
 
             RemoteSessionScan.Result result =
-                    scan.scan(new RemoteScanFilter("PROD", null, RecordingSessionFilter.ALL), 0);
+                    scan.scan(new RemoteScanFilter("PROD", null, RecordingSessionFilter.ALL));
 
             assertEquals(List.of("s-1"), sessionIds(result));
             assertEquals("production", result.rows().getFirst().workspaceName());
@@ -420,10 +407,10 @@ class RemoteSessionScanTest {
 
         @Test
         void filtersProjectsByName() {
-            connected(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))));
+            configured(project("proj-1", "checkout", repositoryWith(session("s-1", NOW))));
 
             RemoteSessionScan.Result result =
-                    scan.scan(new RemoteScanFilter(null, "search", RecordingSessionFilter.ALL), 0);
+                    scan.scan(new RemoteScanFilter(null, "search", RecordingSessionFilter.ALL));
 
             assertTrue(result.rows().isEmpty());
         }
@@ -431,10 +418,10 @@ class RemoteSessionScanTest {
         @Test
         void reportsAWorkspaceWhoseManagerCannotBeCreated() {
             WorkspaceInfo gone = workspace("ws-gone", "default");
-            RemoteConnection remote = connected(Map.of(), List.of(gone));
+            RemoteConnection remote = configured(Map.of(), List.of(gone));
             when(remote.workspace(gone)).thenThrow(new IllegalStateException("workspace disappeared"));
 
-            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL, 0);
+            RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
 
             assertTrue(result.rows().isEmpty());
             assertTrue(result.failures().getFirst().reason().contains("workspace disappeared"));

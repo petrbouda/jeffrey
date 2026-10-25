@@ -177,11 +177,8 @@ public final class RemoteSessionScan {
     }
 
     /** Reads every matching project row so catalogue pagination can report an honest total. */
-    public Result scan(RemoteScanFilter filter) {
-        return scan(filter.withSessions(filter.sessions().withLimit(RecordingSessionFilter.NO_LIMIT)), 0);
-    }
-
-    public Result scan(RemoteScanFilter filter, int limit) {
+    public Result scan(RemoteScanFilter requested) {
+        RemoteScanFilter filter = requested.withSessions(requested.sessions().withLimit(RecordingSessionFilter.NO_LIMIT));
         Optional<RemoteConnection> remote = remoteManager.current();
         if (remote.isEmpty()) {
             return new Result(List.of(), List.of());
@@ -190,7 +187,7 @@ public final class RemoteSessionScan {
         Deadline deadline = McpDeadlines.after(budget);
         Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
         try {
-            return context.call(() -> scanWithin(remote.get(), filter, limit, context, deadline));
+            return context.call(() -> scanWithin(remote.get(), filter, context, deadline));
         } catch (Exception e) {
             if (e instanceof RuntimeException runtime) {
                 throw runtime;
@@ -237,7 +234,6 @@ public final class RemoteSessionScan {
     private Result scanWithin(
             RemoteConnection remote,
             RemoteScanFilter filter,
-            int limit,
             Context context,
             Deadline deadline) {
 
@@ -287,8 +283,7 @@ public final class RemoteSessionScan {
         List<Row> ordered = rows.stream()
                 .sorted(Comparator.comparing(Row::key))
                 .toList();
-        List<Row> capped = limit > 0 && ordered.size() > limit ? ordered.subList(0, limit) : ordered;
-        return new Result(capped, List.copyOf(failures));
+        return new Result(ordered, List.copyOf(failures));
     }
 
     private static ScopedCall<ScanExpansion> probeCall(RemoteConnection remote, RemoteScanFilter filter) {

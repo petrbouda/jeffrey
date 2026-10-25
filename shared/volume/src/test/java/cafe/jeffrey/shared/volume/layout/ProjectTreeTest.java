@@ -41,7 +41,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -150,8 +149,8 @@ class ProjectTreeTest {
             List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
 
             assertEquals(List.of("b-first", "a-second"), oldestFirst.stream().map(SessionDirectory::id).toList());
-            assertEquals(T0.plusSeconds(60), ProjectTree.nextStart(oldestFirst, oldestFirst.getFirst()));
-            assertNull(ProjectTree.nextStart(oldestFirst, oldestFirst.getLast()));
+            assertEquals(Optional.of(T0.plusSeconds(60)), ProjectTree.nextStart(oldestFirst, oldestFirst.getFirst()));
+            assertEquals(Optional.empty(), ProjectTree.nextStart(oldestFirst, oldestFirst.getLast()));
         }
 
         @Test

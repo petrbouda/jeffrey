@@ -33,7 +33,6 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.volume.liveness.HeartbeatReader;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +57,8 @@ class AzureFilesSourceTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant NOW = T0.plusSeconds(3600);
+    private static final SessionDeadlines DEADLINES =
+            new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1));
     private static final String SESSION = "prod/orders/pod-a/s-live/";
     private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
 
@@ -86,7 +87,7 @@ class AzureFilesSourceTest {
                 share);
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         SessionLiveness liveness = new SessionLiveness(
-                clock, new HeartbeatReader(volume), new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1)));
+                clock, volume, DEADLINES);
         clients = VolumeRemoteClients.of(new VolumeSource(volume, liveness, clock, "azure-files", false));
     }
 

@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Proves the declared properties actually reach {@link ConfiguredRemoteProperties} — a prefix one
- * level off binds nothing and fails silently, so the remote would simply never be connected.
+ * level off binds nothing and fails silently, so the remote would simply never be reached.
  */
 class ConfiguredRemoteBindingTest {
 

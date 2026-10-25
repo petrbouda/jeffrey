@@ -60,7 +60,7 @@ onMounted(() => {
         </div>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces only:</strong> Instances appear only for projects inside the workspaces of the connected remote. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
+          <strong>Remote workspaces only:</strong> Instances appear only for projects inside the workspaces of the configured remote. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
         </DocsCallout>
 
         <h2 id="instance-lifecycle">Instance Lifecycle</h2>

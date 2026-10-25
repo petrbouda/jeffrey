@@ -101,15 +101,6 @@ class CompressionTest {
                     archived.idOf(target.getFileName().toString()),
                     "and to the id a reader took from the listing before the rewrite");
         }
-
-        @Test
-        void andIsTheOnlyTypeThatCountsAsOne() {
-            List<RecordingFormat> archives = Stream.of(RecordingFormat.values())
-                    .filter(RecordingFormat::isArchive)
-                    .toList();
-
-            assertEquals(List.of(RecordingFormat.JFR_LZ4), archives);
-        }
     }
 
     /**

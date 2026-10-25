@@ -1920,7 +1920,6 @@ class RecordingsMcpToolsTest {
         }
     }
 
-
     private static int occurrences(String text, String needle) {
         int count = 0;
         for (int at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + needle.length())) {

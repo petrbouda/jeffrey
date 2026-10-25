@@ -92,16 +92,11 @@ public class GrpcInstancesClient implements InstancesClient {
     }
 
     private static InstanceResponse toInstanceResponse(InstanceInfo proto) {
-        return new InstanceResponse(
+        return InstanceResponse.summary(
                 proto.getId(),
-                // The hub names an instance by its id
-                proto.getId(),
-                ClientProtoMappers.instanceStatus(proto.getStatus()).name(),
+                ClientProtoMappers.instanceStatus(proto.getStatus()),
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
-                proto.getSessionCount(),
-                null,
-                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
-                List.of());
+                proto.getSessionCount());
     }
 }

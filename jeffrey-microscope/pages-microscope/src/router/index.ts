@@ -66,19 +66,19 @@ const router = createRouter({
         }
       ]
     },
-    // Workspace-based routes of the connected remote
+    // Workspace-based routes of the configured remote; a workspace itself is a selection in the
+    // remote browser, so its bare paths open the browser with that workspace preselected
     {
       path: '/remote/workspaces/:workspaceId',
       component: () => import('@/layout/WorkspaceLayout.vue'),
       children: [
         {
           path: '',
-          redirect: to => `/remote/workspaces/${to.params.workspaceId}/projects`
+          redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
         },
         {
           path: 'projects',
-          name: 'workspace-projects',
-          component: () => import('@/views/remote/RemoteView.vue')
+          redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
         },
         {
           path: 'projects/:projectId',

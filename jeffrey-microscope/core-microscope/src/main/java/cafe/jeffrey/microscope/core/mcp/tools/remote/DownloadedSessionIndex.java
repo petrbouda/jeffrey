@@ -39,7 +39,7 @@ import java.util.Set;
  * {@code origin.recordingId}, is the upstream <em>session</em> id. Reconstructing the whole
  * {@link RemoteSessionRef} from those tags is what makes a non-unique session id harmless: the same
  * session id under a different project is a different key, and does not match. A copy taken from a
- * remote connected earlier, at another address, matches nothing.
+ * remote configured earlier, at another address, matches nothing.
  * <p>
  * A download is a bundle: the session's recording item, plus a recording for each heap dump it brought,
  * every one carrying the same tags. Only the recording item is the session's local copy — a heap dump
@@ -58,7 +58,6 @@ import java.util.Set;
  */
 public final class DownloadedSessionIndex {
 
-
     /** The kinds a session's recording item is: what a download is analysed as, never a heap dump. */
     private static final Set<ProfileKind> SESSION_KINDS = Set.of(ProfileKind.JFR, ProfileKind.STACK_SAMPLES);
 
@@ -71,11 +70,9 @@ public final class DownloadedSessionIndex {
     /**
      * The local copy of a remote session: always a recording, and a profile once it has been analysed.
      *
-     * @param bundleId the bundle the recording came in, holding the session's other items; {@code null}
-     *                 for a copy made before downloads were bundled
      * @param complete whether the copy was taken once the session had finished, and so holds all of it
      */
-    public record LocalCopy(String bundleId, String recordingId, String profileId, boolean complete) {
+    public record LocalCopy(String recordingId, String profileId, boolean complete) {
 
         public boolean analysed() {
             return profileId != null;
@@ -114,7 +111,6 @@ public final class DownloadedSessionIndex {
 
         Map<RemoteSessionRef, LocalCopy> byRef = new HashMap<>();
         newest.forEach((ref, recording) -> byRef.put(ref, new LocalCopy(
-                recording.bundleId(),
                 recording.id(),
                 Boolean.TRUE.equals(readyProfiles.get(recording.profileId())) ? recording.profileId() : null,
                 isComplete(tags.get(recording.id())))));

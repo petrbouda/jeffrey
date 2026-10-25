@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.model.remote;
 
 /**
- * Network coordinates of a connected jeffrey-hub, reached over gRPC.
+ * Network coordinates of the Jeffrey Hub the remote points at, reached over gRPC.
  *
  * @param plaintext when {@code true}, the gRPC client connects to this address in cleartext h2c
  *                  (no TLS handshake). Defaults to {@code false} — TLS is the secure default and
@@ -29,11 +29,7 @@ public record HubAddress(String hostname, int port, boolean plaintext) implement
 
     private static final String PORT_SEPARATOR = ":";
 
-    public HubAddress(String hostname, int port) {
-        this(hostname, port, false);
-    }
-
-    /** {@code hostname:port}, without {@code plaintext}: two hubs differing only in it are one hub. */
+    /** {@code hostname:port}, without {@code plaintext}: switching TLS does not change which remote it is. */
     @Override
     public String identity() {
         return hostname + PORT_SEPARATOR + port;

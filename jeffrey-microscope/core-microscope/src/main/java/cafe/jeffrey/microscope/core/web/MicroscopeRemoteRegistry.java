@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteRegistry;
@@ -35,6 +34,6 @@ public class MicroscopeRemoteRegistry implements RemoteRegistry {
 
     @Override
     public Optional<RemoteInfo> find() {
-        return remoteManager.current().map(RemoteConnection::info);
+        return remoteManager.info();
     }
 }

@@ -126,14 +126,34 @@ public class ConfiguredRemoteProperties {
     }
 
     /**
+     * The declaration read once: the remote and, for a share that signs in with one, its SAS token.
+     * What the beans are built from, so an unusable declaration is reported once.
+     */
+    public Declared read() {
+        Optional<RemoteInfo> remote = resolve();
+        return new Declared(remote, sasTokenOf(remote));
+    }
+
+    /**
      * The SAS token of a valid Azure Files declaration that signs in with one; it never leaves
      * memory.
      */
     public Optional<String> sasToken() {
-        return resolve()
+        return sasTokenOf(resolve());
+    }
+
+    private Optional<String> sasTokenOf(Optional<RemoteInfo> remote) {
+        return remote
                 .map(RemoteInfo::address)
                 .filter(address -> address instanceof AzureFilesAddress azure && azure.auth() == AzureFilesAuth.SAS)
                 .map(_ -> azureFiles.getSasToken().trim());
+    }
+
+    /**
+     * The remote configuration declares, and the SAS token it signs in with when it is a share
+     * that uses one.
+     */
+    public record Declared(Optional<RemoteInfo> remote, Optional<String> sasToken) {
     }
 
     private boolean declaresAny() {

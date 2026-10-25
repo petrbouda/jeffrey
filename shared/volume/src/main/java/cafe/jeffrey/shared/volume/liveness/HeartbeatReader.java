@@ -36,7 +36,7 @@ import java.util.Optional;
  * from "something is here and could not be read". Only the first is evidence a session ended, and
  * the caller acts on the difference — see {@link SessionLiveness}.</p>
  */
-public class HeartbeatReader {
+final class HeartbeatReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeartbeatReader.class);
 
@@ -46,7 +46,7 @@ public class HeartbeatReader {
 
     private final VolumeAccess volume;
 
-    public HeartbeatReader(VolumeAccess volume) {
+    HeartbeatReader(VolumeAccess volume) {
         this.volume = volume;
     }
 
@@ -55,7 +55,7 @@ public class HeartbeatReader {
      *
      * @param session the session's directory
      */
-    public LivenessRead readLastHeartbeat(VolumePath session) {
+    LivenessRead readLastHeartbeat(VolumePath session) {
         return read(session
                 .resolve(HeartbeatConstants.HEARTBEAT_DIR)
                 .resolve(HeartbeatConstants.HEARTBEAT_FILE));
@@ -66,7 +66,7 @@ public class HeartbeatReader {
      *
      * @param session the session's directory
      */
-    public LivenessRead readFinishedMarker(VolumePath session) {
+    LivenessRead readFinishedMarker(VolumePath session) {
         return read(session
                 .resolve(HeartbeatConstants.HEARTBEAT_DIR)
                 .resolve(HeartbeatConstants.FINISHED_FILE));

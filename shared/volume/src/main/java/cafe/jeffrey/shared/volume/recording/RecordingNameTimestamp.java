@@ -43,18 +43,17 @@ final class RecordingNameTimestamp implements TimestampResolver {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final String PREFIX = "profile-";
-    private static final String RECORDING_SUFFIX = ".jfr";
-    private static final String COMPRESSED_SUFFIX = ".lz4";
 
     @Override
     public Optional<Instant> resolve(VolumeEntry file, ZoneId zone) {
-        String name = uncompressed(file.name());
+        String name = file.name();
+        // The id is the name without the recording's extension, the same for a chunk and its archive
+        Optional<String> id = RecordingFormat.of(name).map(format -> format.idOf(name));
 
-        if (name.startsWith(PREFIX) && name.endsWith(RECORDING_SUFFIX)) {
-            String timestamp = name.substring(PREFIX.length(), name.length() - RECORDING_SUFFIX.length());
-            Instant createdAt = parse(timestamp, zone);
-            if (createdAt != null) {
-                return Optional.of(createdAt);
+        if (id.isPresent() && id.get().startsWith(PREFIX)) {
+            Optional<Instant> createdAt = parse(id.get().substring(PREFIX.length()), zone);
+            if (createdAt.isPresent()) {
+                return createdAt;
             }
             LOG.debug("Recording has an unparseable timestamp in its name, asking the volume: filename={}",
                     name);
@@ -66,18 +65,11 @@ final class RecordingNameTimestamp implements TimestampResolver {
         return VOLUME.resolve(file, zone);
     }
 
-    private static String uncompressed(String filename) {
-        if (filename.endsWith(COMPRESSED_SUFFIX)) {
-            return filename.substring(0, filename.length() - COMPRESSED_SUFFIX.length());
-        }
-        return filename;
-    }
-
-    private static Instant parse(String timestamp, ZoneId zone) {
+    private static Optional<Instant> parse(String timestamp, ZoneId zone) {
         try {
-            return LocalDateTime.parse(timestamp, FORMATTER).atZone(zone).toInstant();
+            return Optional.of(LocalDateTime.parse(timestamp, FORMATTER).atZone(zone).toInstant());
         } catch (DateTimeParseException e) {
-            return null;
+            return Optional.empty();
         }
     }
 }

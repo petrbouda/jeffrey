@@ -42,6 +42,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static cafe.jeffrey.microscope.model.repository.RecordingStatus.FINISHED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -114,7 +115,7 @@ class RepositoryClientTest {
         void filterBoundsStatusAndLimitTravelToTheHub() {
             Instant from = NOW.minus(Duration.ofHours(1));
             var filter = new RecordingSessionFilter(
-                    from, NOW, cafe.jeffrey.microscope.model.repository.RecordingStatus.FINISHED, 3);
+                    from, NOW, FINISHED, 3);
 
             client.recordingSessions(SCOPE, filter);
 

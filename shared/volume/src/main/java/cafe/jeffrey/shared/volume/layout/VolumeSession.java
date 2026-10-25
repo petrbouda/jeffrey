@@ -30,6 +30,9 @@ import java.time.ZoneId;
  */
 public record VolumeSession(SessionDirectory directory, SessionLifecycle lifecycle, boolean retained) {
 
+    /** Joins a session's instance and its own directory into its name, relative to the project. */
+    private static final String NAME_SEPARATOR = "/";
+
     public VolumeSession {
         if (directory == null || lifecycle == null) {
             throw new IllegalArgumentException("A volume session needs its directory and its lifecycle");
@@ -42,6 +45,11 @@ public record VolumeSession(SessionDirectory directory, SessionLifecycle lifecyc
 
     public String instanceId() {
         return directory.instanceId();
+    }
+
+    /** Its name relative to the project — {@code pod-a/s-1} — as every reader of the volume lists it. */
+    public String name() {
+        return instanceId() + NAME_SEPARATOR + id();
     }
 
     public Instant createdAt() {

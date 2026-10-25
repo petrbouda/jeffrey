@@ -47,7 +47,7 @@ describe("useRemoteReadOnly", () => {
     expect(readOnly.value).toBe(false);
   });
 
-  it("is false when no remote is connected", async () => {
+  it("is false when no remote is configured", async () => {
     const readOnly = useRemoteReadOnly(clientAnswering(Promise.resolve(null)));
 
     await settled();

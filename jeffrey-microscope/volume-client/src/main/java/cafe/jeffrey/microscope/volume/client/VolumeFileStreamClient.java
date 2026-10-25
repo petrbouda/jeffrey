@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.volume.VolumeAccess.OpenedFile;
+import cafe.jeffrey.shared.volume.layout.FileRefusal;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
@@ -58,9 +59,7 @@ final class VolumeFileStreamClient implements FileStreamClient {
                             + "session_id={} file_id={}", sessionId, fileId);
                     return open(scope, sessionId, fileId);
                 })
-                .orElseThrow(() -> Exceptions.invalidRequest(
-                        "File " + fileId + " was listed for session " + sessionId + " but is no longer on the "
-                                + "volume. It may have been replaced by its compressed form; ask for the same file id again.")));
+                .orElseThrow(() -> Exceptions.invalidRequest(FileRefusal.VANISHED.reason(fileId, sessionId))));
 
         try (opened) {
             consumer.accept(opened.content(), new TransferredFile(opened.name(), opened.size()));
@@ -78,27 +77,16 @@ final class VolumeFileStreamClient implements FileStreamClient {
 
         SessionFile file = files.stream()
                 .filter(candidate -> candidate.id().equals(fileId))
-                .reduce(VolumeFileStreamClient::theOneThatStays)
-                .orElseThrow(() -> Exceptions.invalidRequest("Session " + sessionId + " holds no file with id "
-                        + fileId + ". Take the id from the session's file listing."));
+                .reduce(RecordingFormat.theOneThatStays(SessionFile::name))
+                .orElseThrow(() -> Exceptions.invalidRequest(FileRefusal.NOT_IN_SESSION.reason(sessionId, fileId)));
 
         RecordingSession model = VolumeResponses.withModelFiles(session, files);
         if (model.isOpen(VolumeResponses.modelFile(file))) {
-            throw Exceptions.invalidRequest("File " + file.name() + " is the chunk the profiler is still writing, "
-                    + "and reading it would give a truncated answer. It can be taken once the profiler has rolled the next one.");
+            throw Exceptions.invalidRequest(FileRefusal.STILL_WRITING.reason(file.name()));
         }
         if (file.recording() && file.size() == 0) {
-            throw Exceptions.invalidRequest("Recording " + file.name()
-                    + " is empty — the profiler stopped before it wrote an event into it.");
+            throw Exceptions.invalidRequest(FileRefusal.EMPTY_RECORDING.reason(file.name()));
         }
         return source.volume().open(file.path());
-    }
-
-    /**
-     * Which of two files sharing an id to serve: the archive. While the hub's compression job runs
-     * a recording and its archive share an id and both are whole; the recording is about to go.
-     */
-    private static SessionFile theOneThatStays(SessionFile first, SessionFile second) {
-        return RecordingFormat.of(first.name()).filter(RecordingFormat::isArchive).isPresent() ? first : second;
     }
 }

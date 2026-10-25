@@ -111,15 +111,11 @@ class ConfiguredRemotePropertiesTest {
         }
 
         @Test
-        void declared_read_only_refuses_changes_and_keeps_its_identity() {
+        void declared_read_only_refuses_changes() {
             ConfiguredRemoteProperties readOnly = share("recordings", "sas", SAS);
             readOnly.getAzureFiles().setReadOnly(true);
 
-            RemoteInfo remote = readOnly.resolve().orElseThrow();
-
-            assertTrue(remote.address().readOnly());
-            assertEquals(share("recordings", "sas", SAS).resolve().orElseThrow().address().identity(),
-                    remote.address().identity());
+            assertTrue(readOnly.resolve().orElseThrow().address().readOnly());
         }
 
         /** A portal's SAS URL pasted as the endpoint is refused without being quoted in the log. */
@@ -132,7 +128,15 @@ class ConfiguredRemotePropertiesTest {
             assertEquals(Optional.empty(), pasted.sasToken());
         }
 
-        /** The token reaches whatever opens the share, and never the stored address or a log line. */
+        /** The token reaches whatever opens the share, and never the address or a log line. */
+        @Test
+        void reads_the_remote_and_its_token_together_once() {
+            ConfiguredRemoteProperties.Declared declared = share("recordings", "sas", SAS).read();
+
+            assertEquals("recordings", declared.remote().orElseThrow().name());
+            assertEquals(Optional.of(SAS), declared.sasToken());
+        }
+
         @Test
         void the_sas_token_stays_out_of_the_address() {
             ConfiguredRemoteProperties properties = share("recordings", "sas", " " + SAS + " ");

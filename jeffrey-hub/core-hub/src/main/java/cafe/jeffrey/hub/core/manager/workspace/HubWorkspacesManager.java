@@ -21,11 +21,11 @@ import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
-import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
+import cafe.jeffrey.shared.volume.layout.VolumeWorkspace;
+import cafe.jeffrey.shared.volume.layout.WorkspaceCreation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,20 +71,15 @@ public final class HubWorkspacesManager implements WorkspacesManager {
         String id = request.referenceId().trim();
         String name = request.name().trim();
 
-        VolumePath directory = VolumePath.root().resolve(id);
-        if (VolumeChanges.isDescribedWorkspace(volume, directory)) {
+        WorkspaceCreation creation = VolumeChanges.createWorkspace(volume, id, name, clock.millis());
+        if (creation == WorkspaceCreation.ID_TAKEN) {
             throw new WorkspaceAlreadyExistsException("Workspace with reference ID '" + id + "' already exists");
         }
-        // Another workspace's name; the one being adopted may already be listed under its id
-        boolean nameTaken = workspaceDirectories().stream()
-                .anyMatch(workspace -> !workspace.id().equals(id) && workspace.name().equals(name));
-        if (nameTaken) {
+        if (creation == WorkspaceCreation.NAME_TAKEN) {
             throw new WorkspaceAlreadyExistsException("Workspace with name '" + name + "' already exists");
         }
-
-        VolumeChanges.describeWorkspace(volume, directory, new WorkspaceMarker(name, clock.millis()));
         LOG.info("Created workspace: workspace_id={} name={}", id, name);
-        return workspace(directory).orElseThrow().info();
+        return workspace(VolumePath.root().resolve(id)).orElseThrow().info();
     }
 
     @Override
@@ -104,8 +99,7 @@ public final class HubWorkspacesManager implements WorkspacesManager {
     @Override
     public boolean isDescribed(String workspaceId) {
         return WorkspaceReferenceId.isValid(workspaceId)
-                && VolumeMarkers.read(volume, VolumePath.root().resolve(workspaceId), WorkspaceMarker.FILE_NAME,
-                        WorkspaceMarker.class).isPresent();
+                && VolumeChanges.isDescribedWorkspace(volume, VolumePath.root().resolve(workspaceId));
     }
 
     @Override
@@ -121,27 +115,16 @@ public final class HubWorkspacesManager implements WorkspacesManager {
     }
 
     private Optional<WorkspaceDirectory> workspace(VolumePath directory) {
-        String id = directory.name();
-        if (!WorkspaceReferenceId.isValid(id)) {
+        if (!WorkspaceReferenceId.isValid(directory.name())) {
             return Optional.empty();
         }
-        Optional<WorkspaceMarker> marker =
-                VolumeMarkers.read(volume, directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class);
-        if (marker.isEmpty() && !autoCreate) {
+        VolumeWorkspace workspace = VolumeWorkspace.at(volume, directory);
+        if (!workspace.described() && !autoCreate) {
             return Optional.empty();
         }
-        String name = marker.map(WorkspaceMarker::name).orElse(id);
-        Instant createdAt = marker.map(found -> Instant.ofEpochMilli(found.createdAt()))
-                .orElseGet(() -> createdAt(directory));
-        return Optional.of(new WorkspaceDirectory(volume, directory, name, createdAt));
-    }
-
-    /** The directory's own creation time, for a workspace no marker describes. */
-    private Instant createdAt(VolumePath directory) {
-        return volume.stat(directory)
-                .flatMap(VolumeEntry::createdAt)
-                .orElseThrow(() -> new UncheckedIOException(
-                        "Workspace directory vanished while it was read: path=" + directory,
-                        new NoSuchFileException(directory.toString())));
+        Instant createdAt = workspace.createdAt().orElseThrow(() -> new UncheckedIOException(
+                "Workspace directory vanished while it was read: path=" + directory,
+                new NoSuchFileException(directory.toString())));
+        return Optional.of(new WorkspaceDirectory(volume, directory, workspace.name(), createdAt));
     }
 }

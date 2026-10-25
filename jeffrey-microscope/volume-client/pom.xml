@@ -29,9 +29,10 @@
 
     <artifactId>volume-client</artifactId>
     <description>
-        The hub clients answered by a recording volume read straight from storage, with no hub in
-        between: the same workspaces, projects, instances, sessions and files, read-only, mapped from
-        shared/volume onto Microscope's own model. Storage-agnostic; a backend supplies the VolumeAccess.
+        The remote clients answered by a recording volume reached straight on its storage, with no hub
+        in between: the same workspaces, projects, instances, sessions and files, mapped from
+        shared/volume onto Microscope's own model, and the user's changes made through VolumeChanges
+        unless the source is read-only. Storage-agnostic; a backend supplies the VolumeAccess.
     </description>
 
     <dependencies>

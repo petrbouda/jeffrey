@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.remote.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
+import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -34,6 +35,28 @@ public record InstanceResponse(
         String activeSessionId,
         Long duration,
         List<InstanceSessionResponse> sessions) {
+
+    /**
+     * An instance as a remote lists it, without its sessions: named by its id, as the hub names it,
+     * and lasting until it finished — no duration while it runs.
+     *
+     * @param createdAt  epoch millis
+     * @param finishedAt epoch millis; {@code null} while it runs
+     */
+    public static InstanceResponse summary(
+            String id, ProjectInstanceStatus status, long createdAt, Long finishedAt, int sessionCount) {
+
+        return new InstanceResponse(
+                id,
+                id,
+                status.name(),
+                createdAt,
+                finishedAt,
+                sessionCount,
+                null,
+                finishedAt != null ? finishedAt - createdAt : null,
+                List.of());
+    }
 
     public static InstanceResponse from(ProjectInstanceInfo info, Clock clock) {
         Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();

@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
- * The changes a user asks of the volume — describing a workspace, pinning a session, deleting a
+ * The changes a user asks of the volume — creating a workspace, pinning a session, deleting a
  * session — with the rules each one keeps, in one place for every process that may write it:
  * the hub on its mount, Microscope on a share it reaches directly. Removing a workspace's or a
  * project's whole directory needs no rule and is {@link WritableVolume#delete} itself.
@@ -43,6 +43,27 @@ public final class VolumeChanges {
     /** Whether a workspace's directory already holds its {@code .workspace-info.json}. */
     public static boolean isDescribedWorkspace(VolumeAccess volume, VolumePath directory) {
         return VolumeMarkers.read(volume, directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class).isPresent();
+    }
+
+    /**
+     * Creates the workspace {@code id} named {@code name}, adopting a directory the provisioner
+     * already wrote into; refused for an id already described or a name another workspace goes by.
+     *
+     * @param createdAt epoch millis, for its marker
+     */
+    public static WorkspaceCreation createWorkspace(WritableVolume volume, String id, String name, long createdAt) {
+        VolumePath directory = VolumePath.root().resolve(id);
+        if (isDescribedWorkspace(volume, directory)) {
+            return WorkspaceCreation.ID_TAKEN;
+        }
+        // Another workspace's name; the one being adopted may already be listed under its id
+        boolean nameTaken = VolumeWorkspace.all(volume).stream()
+                .anyMatch(workspace -> !workspace.id().equals(id) && workspace.name().equals(name));
+        if (nameTaken) {
+            return WorkspaceCreation.NAME_TAKEN;
+        }
+        describeWorkspace(volume, directory, new WorkspaceMarker(name, createdAt));
+        return WorkspaceCreation.CREATED;
     }
 
     /**

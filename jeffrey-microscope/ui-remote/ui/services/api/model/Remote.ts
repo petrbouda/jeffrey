@@ -21,10 +21,6 @@ export type RemoteKind = 'GRPC' | 'AZURE_FILES';
 /** The one remote this Microscope reaches, as configuration declares it. */
 export default interface Remote {
   name: string;
-  /** The hub's host and port; null for an Azure file share. */
-  hostname: string | null;
-  port: number | null;
-  plaintext: boolean;
   kind: RemoteKind;
   /** Where the remote lies, as a person reads it: `host:port`, or the share's endpoint and name. */
   location: string;
@@ -33,9 +29,4 @@ export default interface Remote {
    * deleted, and no session deleted or pinned, through it.
    */
   readOnly: boolean;
-}
-
-/** What GET /remote answers: the configured remote, or null when none is configured. */
-export interface CurrentRemote {
-  remote: Remote | null;
 }

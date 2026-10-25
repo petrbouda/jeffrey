@@ -23,10 +23,9 @@ import cafe.jeffrey.shared.ui.remote.dto.WorkspaceResponse;
 import java.util.List;
 
 /**
- * Deployment-agnostic access to the remote's workspaces and projects, used by the shared
- * WorkspaceBrowser controllers. Each deployment supplies an implementation that resolves the data
- * its own way — microscope via its local manager objects — and maps it into the shared response
- * DTOs so the controllers stay free of deployment-specific types.
+ * Access to the remote's workspaces and projects, used by the shared WorkspaceBrowser controllers.
+ * Microscope supplies the implementation over its manager objects and maps the data into the shared
+ * response DTOs, so the controllers stay free of Microscope's own types.
  *
  * <p>Implementations may throw {@link io.grpc.StatusRuntimeException} from the mutating operations;
  * the controllers translate those into HTTP errors at the boundary.

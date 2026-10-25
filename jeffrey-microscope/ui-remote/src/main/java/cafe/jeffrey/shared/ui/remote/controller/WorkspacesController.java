@@ -39,10 +39,8 @@ import cafe.jeffrey.shared.ui.remote.request.CreateWorkspaceRequest;
 import java.util.List;
 
 /**
- * Shared WorkspaceBrowser controller listing/creating/deleting the remote's workspaces. Both deployments
- * register it via {@code RemoteFeatureConfiguration} and supply a {@link RemoteBrowserAccess}
- * bridge. Microscope-only capabilities (e.g. workspace events) live in deployment-specific
- * supplementary controllers.
+ * Shared WorkspaceBrowser controller listing/creating/deleting the remote's workspaces, registered via
+ * {@code RemoteFeatureConfiguration} over a {@link RemoteBrowserAccess} bridge.
  */
 @RestController
 @RequestMapping("/api/internal/remote/workspaces")
