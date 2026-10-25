@@ -12,7 +12,7 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope)
   core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
-  microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles, the remote)
+  microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles)
   grpc-client/ + remote-client/        gRPC clients of a Jeffrey Hub, aggregated by the RemoteClients record
   volume-client/ + azure-files-volume/ remote clients over the recording volume itself (no hub; writable or read-only), and
                                        the Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra; AzureFilesAddress)
@@ -90,7 +90,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 ## Architecture invariants (never)
 
-- **Microscope reaches exactly one remote** — a Jeffrey Hub over gRPC, or the recording volume on an Azure file share. Configuration (`jeffrey.microscope.remote.*`) declares it and always wins; only when it declares none may the UI connect a Jeffrey Hub. "Hub" in Microscope code means the Jeffrey Hub product (gRPC clients, protos); the connection is the remote.
+- **Microscope reaches exactly one remote** — a Jeffrey Hub over gRPC, or the recording volume on an Azure file share — declared in configuration only (`jeffrey.microscope.remote.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one. "Hub" in Microscope code means the Jeffrey Hub product (gRPC clients, protos); the connection is the remote.
 - **Hub and Microscope share no domain type.** Each maps `shared/hub-api` protos onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.

@@ -31,7 +31,7 @@ import java.util.Optional;
  * Checks the Recordings store first, then falls back to a direct DB
  * lookup against the microscope-core profile repository.
  *
- * <p>For workspace-scoped profiles, asks the connected remote, the only
+ * <p>For workspace-scoped profiles, asks the configured remote, the only
  * place such a profile can come from.
  */
 public class ProfileManagerResolver {

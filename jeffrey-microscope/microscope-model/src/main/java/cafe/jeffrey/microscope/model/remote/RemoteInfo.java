@@ -17,26 +17,19 @@
 
 package cafe.jeffrey.microscope.model.remote;
 
-import java.time.Instant;
-
 /**
- * The one remote this Microscope is connected to: a Jeffrey Hub, or the recording volume on an
- * Azure file share. Its workspaces and projects are read live from it and never cached here.
+ * The one remote this Microscope reaches: a Jeffrey Hub, or the recording volume on an Azure file
+ * share. It is declared in configuration only ({@code jeffrey.microscope.remote.*}) and never stored;
+ * its workspaces and projects are read live and never cached here.
  *
- * @param name      what the UI and the MCP answers call it
- * @param address   where it is and what kind it is
- * @param createdAt when it was connected
- * @param source    who owns the connection: {@link RemoteSource#CONFIG} when
- *                  {@code jeffrey.microscope.remote.*} declares it — reconciled on every startup,
- *                  and the UI cannot disconnect it — or {@link RemoteSource#USER} when the UI
- *                  connected it, which the reconciliation leaves alone unless configuration
- *                  declares a remote of its own
+ * @param name    what the UI and the MCP answers call it
+ * @param address where it is and what kind it is
  */
-public record RemoteInfo(String name, RemoteAddress address, Instant createdAt, RemoteSource source) {
+public record RemoteInfo(String name, RemoteAddress address) {
 
     public RemoteInfo {
-        if (name == null || name.isBlank() || address == null || createdAt == null || source == null) {
-            throw new IllegalArgumentException("A remote needs a name, an address, a connection time and a source");
+        if (name == null || name.isBlank() || address == null) {
+            throw new IllegalArgumentException("A remote needs a name and an address");
         }
     }
 }

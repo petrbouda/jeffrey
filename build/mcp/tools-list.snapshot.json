@@ -24793,20 +24793,9 @@
               "null"
             ]
           },
-          "source": {
-            "enum": [
-              "USER",
-              "CONFIG",
-              null
-            ],
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "state": {
             "enum": [
-              "NOT_CONNECTED",
+              "NOT_CONFIGURED",
               "REACHABLE",
               "UNREACHABLE"
             ],
@@ -24829,7 +24818,6 @@
           "name",
           "readOnly",
           "reason",
-          "source",
           "state",
           "uiLink",
           "version"

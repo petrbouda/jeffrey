@@ -15,24 +15,16 @@
  * limitations under the License.
  */
 
-export type RemoteSource = 'CONFIG' | 'USER';
-
 /** A Jeffrey Hub reached over gRPC, or the recording volume reached straight on an Azure file share. */
 export type RemoteKind = 'GRPC' | 'AZURE_FILES';
 
-/** The one remote this Microscope is connected to. */
+/** The one remote this Microscope reaches, as configuration declares it. */
 export default interface Remote {
   name: string;
   /** The hub's host and port; null for an Azure file share. */
   hostname: string | null;
   port: number | null;
   plaintext: boolean;
-  createdAt: number;
-  /**
-   * 'CONFIG' when the remote is declared under jeffrey.microscope.remote.* — the UI cannot
-   * disconnect it, since the next startup would connect it again.
-   */
-  source: RemoteSource;
   kind: RemoteKind;
   /** Where the remote lies, as a person reads it: `host:port`, or the share's endpoint and name. */
   location: string;
@@ -43,7 +35,7 @@ export default interface Remote {
   readOnly: boolean;
 }
 
-/** What GET /remote answers: the connected remote, or null when none is. */
+/** What GET /remote answers: the configured remote, or null when none is configured. */
 export interface CurrentRemote {
   remote: Remote | null;
 }

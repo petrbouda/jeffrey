@@ -103,7 +103,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * The recordings that never reached this machine: everything on the connected remote — a Jeffrey Hub,
+ * The recordings that never reached this machine: everything on the configured remote — a Jeffrey Hub,
  * or the recording volume on an Azure file share.
  * <p>
  * The other write family, {@code recordings_}, starts from a file the reader already has. This one
@@ -160,12 +160,12 @@ public class RemoteMcpTools {
                     + "even when hasMore=false. Long display names and failure details are shortened; "
                     + "sessionRef identities are preserved.";
 
-    // Connecting the remote stays with the user: the Remote page or this configuration, never an MCP
-    // tool, since the address it dials would otherwise come from whatever text the agent last read.
+    // Declaring the remote stays with the user, in configuration only -- never an MCP tool or the UI,
+    // since the address it dials would otherwise come from whatever text the agent last read.
     private static final String CONFIGURED_REMOTE_PROPERTY = "jeffrey.microscope.remote";
-    private static final String NOT_CONNECTED =
-            ("No remote is connected to this installation. Connect a Jeffrey Hub on the Remote page, or declare "
-                    + "the remote in configuration and restart Microscope:\n\n"
+    private static final String NOT_CONFIGURED =
+            ("No remote is configured for this installation. The remote is declared in configuration only; "
+                    + "declare a Jeffrey Hub and restart Microscope:\n\n"
                     + "  %1$s.name=Production\n"
                     + "  %1$s.hostname=hub.example.com\n"
                     + "  %1$s.port=443\n"
@@ -181,8 +181,7 @@ public class RemoteMcpTools {
                     .formatted(CONFIGURED_REMOTE_PROPERTY);
     private static final String STATUS_NOTE =
             "A remote marked `UNREACHABLE` did not answer just now, so remote_sessions can list nothing from it. "
-                    + "Source `CONFIG` means this installation's configuration declares it and the UI cannot "
-                    + "disconnect it. Kind `AZURE_FILES` is the recording volume on an Azure file share, whose "
+                    + "Kind `AZURE_FILES` is the recording volume on an Azure file share, whose "
                     + "sessions list and download as usual; a `read_only` remote refuses every change to it "
                     + "(no delete, no pin).";
 
@@ -202,7 +201,7 @@ public class RemoteMcpTools {
     private static final String NEXT_SESSIONS_WHY = "continues the session list past this page with the same filters";
     private static final String FILES_WHY =
             "lists what the session holds - its chunks and the artifacts beside them - before anything is transferred";
-    private static final String CHECK_REMOTE_WHY = "shows which remote is connected and whether it answers";
+    private static final String CHECK_REMOTE_WHY = "shows which remote is configured and whether it answers";
     private static final String DOWNLOAD_GUIDANCE =
             "remote_download brings a session as one local recording. Ask the user which part they need - the last "
                     + "hour, the minutes around an incident - and pass it as startEpochMs/endEpochMs rather than "
@@ -292,11 +291,11 @@ public class RemoteMcpTools {
         this.locator = new RemoteSessionLocator(resolver);
     }
 
-    @Tool(description = "Returns the one remote this installation is connected to - a Jeffrey Hub (kind GRPC) "
+    @Tool(description = "Returns the one remote this installation's configuration declares - a Jeffrey Hub (kind GRPC) "
             + "or the recording volume on an Azure file share (kind AZURE_FILES) - whether it refuses changes "
             + "(readOnly), and whether it answers right now (state REACHABLE or UNREACHABLE): why "
-            + "remote_sessions shows nothing when it is down. state NOT_CONNECTED: no remote is connected, and "
-            + "the reason says how the user connects one.")
+            + "remote_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no "
+            + "remote, and the reason says how the user declares one.")
     @McpOutputSchema(RemoteStatus.class)
     @McpToolMeta(cost = McpToolCost.MODERATE)
     public McpToolResult status() {
@@ -304,9 +303,9 @@ public class RemoteMcpTools {
         Optional<RemoteConnection> connected = remoteManager.current();
         if (connected.isEmpty()) {
             McpFollowUp followUp = NextSteps.builder(advertised).followUp();
-            RemoteStatus none = new RemoteStatus(RemoteState.NOT_CONNECTED, NOT_CONNECTED, null, null, null, false, null, null,
+            RemoteStatus none = new RemoteStatus(RemoteState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null, false, null,
                     followUp, uiLink);
-            return McpToolResult.of(LinkedOutput.footed(NOT_CONNECTED, followUp, uiLink, null).text(), none);
+            return McpToolResult.of(LinkedOutput.footed(NOT_CONFIGURED, followUp, uiLink, null).text(), none);
         }
 
         RemoteInfo remote = connected.get().info();
@@ -317,11 +316,11 @@ public class RemoteMcpTools {
                 .guidanceWhen(!probe.reachable(), UNREACHABLE_GUIDANCE)
                 .followUp();
         RemoteStatus answer = new RemoteStatus(state, null, remote.name(), RemoteKind.of(remote.address()),
-                remote.address().identity(), remote.address().readOnly(), remote.source(),
+                remote.address().identity(), remote.address().readOnly(),
                 probe.version().orElse(null), followUp, uiLink);
         MarkdownTable table = MarkdownTable.withColumns(
-                "remote", "kind", "address", "source", "read_only", "state", "version");
-        table.row(answer.name(), answer.kind(), answer.address(), answer.source(), answer.readOnly(),
+                "remote", "kind", "address", "read_only", "state", "version");
+        table.row(answer.name(), answer.kind(), answer.address(), answer.readOnly(),
                 answer.state(), answer.version());
         String body = table.note(STATUS_NOTE).renderUncapped();
         return McpToolResult.of(LinkedOutput.footed(body, followUp, uiLink, null).text(), answer);

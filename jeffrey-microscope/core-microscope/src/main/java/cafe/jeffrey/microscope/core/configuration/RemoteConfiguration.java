@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredRemoteProperties;
-import cafe.jeffrey.microscope.core.initializer.ConfiguredRemoteReconciler;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -30,15 +29,12 @@ import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.persistence.api.RemoteRepository;
-import cafe.jeffrey.microscope.persistence.jdbc.JdbcRemoteRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
 import cafe.jeffrey.microscope.remote.client.CachedHubClientsFactory;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
 
 import java.time.Clock;
@@ -54,11 +50,6 @@ public class RemoteConfiguration {
 
     /** The Jeffrey Hub's default {@code jeffrey.hub.liveness.startup-grace}. */
     private static final Duration VOLUME_STARTUP_GRACE = Duration.ofMinutes(1);
-
-    @Bean
-    public RemoteRepository remoteRepository(MicroscopeCorePersistenceProvider provider) {
-        return new JdbcRemoteRepository(provider.databaseClientProvider());
-    }
 
     /**
      * The remote's clients by its address's kind. An Azure file share reads a session's heartbeat
@@ -112,30 +103,12 @@ public class RemoteConfiguration {
                 remoteProjectManagerFactory);
     }
 
-    /**
-     * Reconciled through an init method rather than an {@code ApplicationRunner} so the connection
-     * is settled before the HTTP connector starts serving; runners are called after the context
-     * has finished refreshing.
-     */
-    @Bean(initMethod = "reconcile")
-    public ConfiguredRemoteReconciler configuredRemoteReconciler(
-            RemoteRepository remoteRepository,
-            RemoteClientsFactory remoteClientsFactory,
-            ConfiguredRemoteProperties configuredRemote,
-            Clock clock) {
-
-        return new ConfiguredRemoteReconciler(remoteRepository, remoteClientsFactory, configuredRemote, clock);
-    }
-
-    /** After the reconciler, so the stored connection is settled before anything asks for it. */
+    /** The remote configuration declares, read once; nothing connects or disconnects one while Microscope runs. */
     @Bean
-    @DependsOn("configuredRemoteReconciler")
     public RemoteManager remoteManager(
-            RemoteRepository remoteRepository,
-            RemoteConnection.Factory remoteConnectionFactory,
-            RemoteClientsFactory remoteClientsFactory,
-            Clock clock) {
+            ConfiguredRemoteProperties configuredRemote,
+            RemoteConnection.Factory remoteConnectionFactory) {
 
-        return new RemoteManager(remoteRepository, remoteConnectionFactory, remoteClientsFactory, clock);
+        return new RemoteManager(configuredRemote.resolve(), remoteConnectionFactory);
     }
 }

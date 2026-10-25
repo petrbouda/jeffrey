@@ -190,13 +190,6 @@ public enum StatementLabel {
     DELETE_WORKSPACE,
 
     /**
-     * {@link GroupLabel#REMOTE}
-     */
-    FIND_REMOTE,
-    SAVE_REMOTE,
-    DELETE_REMOTE,
-
-    /**
      * {@link GroupLabel#PROFILE_FRAMES}
      */
     COUNT_FRAMES_BY_CLASS_NAME,

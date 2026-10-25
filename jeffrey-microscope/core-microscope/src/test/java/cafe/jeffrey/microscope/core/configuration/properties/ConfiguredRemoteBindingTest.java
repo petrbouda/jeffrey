@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
+import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -63,7 +64,7 @@ class ConfiguredRemoteBindingTest {
                 "jeffrey.microscope.remote.port=443",
                 "jeffrey.microscope.remote.plaintext=true");
 
-        ConfiguredRemoteProperties.DesiredRemote remote = properties.resolve().orElseThrow();
+        RemoteInfo remote = properties.resolve().orElseThrow();
 
         assertEquals("Production", remote.name());
         assertEquals(new HubAddress("hub.example.com", 443, true), remote.address());

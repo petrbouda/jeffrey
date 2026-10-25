@@ -59,7 +59,6 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
-import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
@@ -165,7 +164,7 @@ class RemoteMcpToolsTest {
     }
 
     private static RemoteInfo remoteInfo(String name) {
-        return new RemoteInfo(name, new HubAddress("hub.example.com", 443, false), NOW, RemoteSource.CONFIG);
+        return new RemoteInfo(name, new HubAddress("hub.example.com", 443, false));
     }
 
     /** The remote this Microscope is connected to: what every listing and download reaches. */
@@ -554,8 +553,7 @@ class RemoteMcpToolsTest {
             RemoteConnection share = reachableRemote("prodshare", "checkout", repositoryWith());
             when(share.info()).thenReturn(new RemoteInfo("prodshare",
                     new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings", null,
-                            AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true),
-                    NOW, RemoteSource.CONFIG));
+                            AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true)));
             connect(share);
 
             McpToolResult result = tools.status();
@@ -569,39 +567,34 @@ class RemoteMcpToolsTest {
         }
 
         @Test
-        void saysSoWhenNoRemoteIsConnected() {
+        void saysSoWhenNoRemoteIsConfigured() {
             nothingConnected();
 
             McpToolResult result = tools.status();
             JsonNode answer = status(result);
 
-            assertEquals("NOT_CONNECTED", answer.get("state").asString());
+            assertEquals("NOT_CONFIGURED", answer.get("state").asString());
             assertTrue(answer.get("name").isNull());
-            assertTrue(answer.get("reason").asString().contains("No remote is connected"), answer.toString());
+            assertTrue(answer.get("reason").asString().contains("No remote is configured"), answer.toString());
             assertTrue(result.text().contains("recordings_analyzeFile"), result.text());
         }
 
         @Test
-        void tellsHowToConnectARemoteWhenNoneIsConnected() {
+        void tellsHowToDeclareTheRemoteInConfigurationWhenNoneIs() {
             nothingConnected();
 
             McpToolResult result = tools.status();
             String reason = status(result).get("reason").asString();
 
-            assertTrue(reason.contains("Remote page"), reason);
+            // Configuration is the only place a remote is declared; the UI cannot connect one.
+            assertTrue(reason.contains("configuration only"), reason);
+            assertFalse(reason.contains("Remote page"), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.name=Production"), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.hostname="), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.port="), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.plaintext=false"), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.azure-files.share="), reason);
             assertTrue(result.text().contains(UiLinks.page(MicroscopePage.REMOTE)), result.text());
-        }
-
-        @Test
-        void distinguishesAConfiguredRemoteFromOneConnectedInTheUi() {
-            connect(reachableRemote("production", "checkout", repositoryWith()));
-
-            assertEquals("CONFIG", status(tools.status()).get("source").asString());
         }
     }
 
@@ -1063,7 +1056,7 @@ class RemoteMcpToolsTest {
         @Test
         void explainsARefOnceNoRemoteIsConnected() {
             noLocalRecordings();
-            when(resolver.resolveRemote()).thenThrow(Exceptions.resourceNotFound("No remote is connected"));
+            when(resolver.resolveRemote()).thenThrow(Exceptions.resourceNotFound("No remote is configured"));
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,

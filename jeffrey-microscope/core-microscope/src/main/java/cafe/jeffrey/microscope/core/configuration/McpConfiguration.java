@@ -176,7 +176,7 @@ public class McpConfiguration {
     }
 
     /**
-     * Lists and downloads recordings from the connected remote. Built unconditionally for the same
+     * Lists and downloads recordings from the configured remote. Built unconditionally for the same
      * reason as {@code recordingsMcpTools}: what is advertised is the assembler's decision.
      *
      * @param askWindowOverDuration a whole-session download of a session longer than this asks a

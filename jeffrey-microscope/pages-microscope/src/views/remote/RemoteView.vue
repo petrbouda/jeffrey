@@ -38,8 +38,7 @@ const { navigateToProject } = useNavigation();
 
 const HERO =
   'Microscope analyzes the recordings of one remote: a Jeffrey Hub, or the recording volume on an ' +
-  'Azure file share. Connect a Jeffrey Hub to browse its workspaces and projects, or declare the ' +
-  'remote under jeffrey.microscope.remote.* and restart.';
+  'Azure file share. Its workspaces and projects appear here once it is configured.';
 
 // Optional deep-link from a breadcrumb (`/remote?workspaceId=…`) so the browser opens with that
 // workspace preselected instead of the first one.

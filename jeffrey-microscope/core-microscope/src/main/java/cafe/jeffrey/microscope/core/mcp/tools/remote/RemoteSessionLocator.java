@@ -51,7 +51,7 @@ public final class RemoteSessionLocator {
         this.resolver = resolver;
     }
 
-    /** The connected remote's address identity, which its downloads' {@code origin.*} tags carry. */
+    /** The configured remote's address identity, which its downloads' {@code origin.*} tags carry. */
     public Optional<String> currentAddress() {
         return resolver.currentRemote().map(remote -> remote.info().address().identity());
     }
@@ -60,8 +60,8 @@ public final class RemoteSessionLocator {
         try {
             return resolver.resolveRemote().info();
         } catch (JeffreyException e) {
-            LOG.debug("No remote is connected for a session_ref: reason={}", e.getMessage(), e);
-            throw staleRef(ref, "no remote is connected to this Jeffrey any more");
+            LOG.debug("No remote is configured for a session_ref: reason={}", e.getMessage(), e);
+            throw staleRef(ref, "no remote is configured for this Jeffrey any more");
         }
     }
 

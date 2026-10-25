@@ -40,7 +40,6 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
-import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
@@ -172,7 +171,7 @@ class RemoteArtifactsMcpToolsTest {
                 PROJECT_ID, "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
         RemoteConnection remote = mock(RemoteConnection.class);
         when(remote.info()).thenReturn(new RemoteInfo(
-                "production", new HubAddress("hub.example.com", 443, false), NOW, RemoteSource.CONFIG));
+                "production", new HubAddress("hub.example.com", 443, false)));
         when(resolver.resolveRemote()).thenReturn(remote);
         when(resolver.currentRemote()).thenReturn(Optional.of(remote));
         when(resolver.resolve(WORKSPACE_ID, PROJECT_ID)).thenReturn(project);

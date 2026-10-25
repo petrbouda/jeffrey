@@ -29,7 +29,6 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
-import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
@@ -57,7 +56,7 @@ class RemoteWorkspaceManagerTest {
     private RemoteWorkspaceManager managerOn(boolean readOnly) {
         RemoteInfo remote = new RemoteInfo("Share", new AzureFilesAddress(
                 "https://acct.file.core.windows.net", "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS,
-                readOnly), NOW, RemoteSource.CONFIG);
+                readOnly));
         RemoteClients clients = new RemoteClients(discovery, mock(RepositoryClient.class), mock(FileStreamClient.class),
                 mock(InstancesClient.class), mock(ProjectsClient.class));
         return new RemoteWorkspaceManager(mock(MicroscopeJeffreyDirs.class), remote, WORKSPACE, workspaceRepository,

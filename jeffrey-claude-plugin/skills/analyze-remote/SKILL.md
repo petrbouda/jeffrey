@@ -7,9 +7,9 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 # Analysing a recording that lives on the remote
 
 The **remote** is where deployed applications send their recordings: a Jeffrey Hub, or the
-recording volume reached straight on an Azure file share. Microscope connects to exactly one, and
-this skill is the bridge: find the session, pull it in, and from there it is an ordinary profile
-that `analyze-jfr` and `analyze-heap` answer about.
+recording volume reached straight on an Azure file share. Microscope reaches exactly one, declared in
+its configuration, and this skill is the bridge: find the session, pull it in, and from there it is
+an ordinary profile that `analyze-jfr` and `analyze-heap` answer about.
 
 Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `remote_sessions`, not `remote_list_sessions`.
 
@@ -17,16 +17,16 @@ If no `remote_` tool is advertised, this Jeffrey has remote access switched off
 (`jeffrey.microscope.mcp.remote.enabled=false`). Say so rather than guessing at a path — the
 recordings are not reachable from here.
 
-If `remote_status` answers `state: NOT_CONNECTED`, remote access is on but no remote is connected.
-Connecting one is the user's step, and no tool does it. Give them both routes from the answer: the
-Remote page (its link), whose form checks that the Jeffrey Hub answers, and the
-`jeffrey.microscope.remote.*` properties (name, hostname, port, plaintext) followed by a restart.
-Use the user's own hostname and port if they gave them, otherwise keep the placeholders. Never
-invent an address. `plaintext=true` is only for an in-cluster or trusted-LAN hub without TLS. If
-the recordings sit on an Azure file share and there is no hub to reach, the answer also gives the
+If `remote_status` answers `state: NOT_CONFIGURED`, remote access is on but Microscope's
+configuration declares no remote. Declaring one is the user's step, in configuration only — no tool
+and no page of the UI does it. Give them the `jeffrey.microscope.remote.*` properties from the
+answer (name, hostname, port, plaintext), followed by a restart. Use the user's own hostname and
+port if they gave them, otherwise keep the placeholders. Never invent an address. `plaintext=true`
+is only for an in-cluster or trusted-LAN hub without TLS. If the recordings sit on an Azure file
+share and there is no hub to reach, the answer also gives the
 `jeffrey.microscope.remote.azure-files.*` entry (endpoint, share, protocol, a SAS token or
 `auth=entra`). Offer to analyse a local `.jfr` in the meantime, and call `remote_status` again once
-they say it is connected.
+they say Microscope has restarted with it.
 
 ## The shape of the whole thing
 
@@ -95,7 +95,7 @@ user's choice, so the answer says so in `followUp.guidance` instead.
 If nothing comes back (`status: EMPTY`), read `failures` before concluding there is nothing. A
 remote, workspace or project that did not answer is listed there, with a `kind` such as
 `UNREACHABLE`, and "the remote is unreachable" is a completely different answer from "no
-recordings". `remote_status` shows which remote is connected and whether it responds.
+recordings". `remote_status` shows which remote is configured and whether it responds.
 
 The table is a page, not the whole. `remote_sessions` defaults to 50 rows, and the output byte budget
 may reduce that further. Read `returned`, `nextCursor` and `hasMore`; when `hasMore=true`, pass the
@@ -315,8 +315,8 @@ is the Jeffrey Hub's business.
 
 **It does not push.** Recordings travel from the remote into this Jeffrey, never the other way.
 
-**It does not connect a remote.** The remote is declared in Microscope's configuration or connected
-through its UI, and there is only ever one. If `remote_status` shows a different one than the user
+**It does not connect a remote.** The remote is declared in Microscope's configuration only, and
+there is only ever one. If `remote_status` shows a different one than the user
 wants, say so — changing it is an operator's decision, not something to work around.
 
 **It treats a file share like a hub.** A remote of kind `AZURE_FILES` is the recording volume

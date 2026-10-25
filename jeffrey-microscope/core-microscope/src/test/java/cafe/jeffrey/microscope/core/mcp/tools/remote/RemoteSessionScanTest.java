@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
-import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
@@ -66,7 +65,7 @@ class RemoteSessionScanTest {
     private final RemoteSessionScan scan = new RemoteSessionScan(remoteManager, BUDGET);
 
     private static RemoteInfo remoteInfo() {
-        return new RemoteInfo("production", new HubAddress("hub.example.com", 443, false), NOW, RemoteSource.CONFIG);
+        return new RemoteInfo("production", new HubAddress("hub.example.com", 443, false));
     }
 
     private static WorkspaceInfo workspace(String id, String name) {

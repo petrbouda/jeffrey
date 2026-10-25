@@ -37,12 +37,12 @@ public class ProjectManagerResolver {
         this.remoteManager = remoteManager;
     }
 
-    /** The connected remote, or empty when none is. */
+    /** The configured remote, or empty when none is configured. */
     public Optional<RemoteConnection> currentRemote() {
         return remoteManager.current();
     }
 
-    /** The connected remote; not found when none is. */
+    /** The configured remote; not found when none is. */
     public RemoteConnection resolveRemote() {
         return remoteManager.require();
     }

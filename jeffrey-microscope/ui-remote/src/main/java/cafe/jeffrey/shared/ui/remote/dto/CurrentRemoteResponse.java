@@ -18,8 +18,8 @@
 package cafe.jeffrey.shared.ui.remote.dto;
 
 /**
- * Whether a remote is connected, and which: {@code remote} is {@code null} when none is, so the UI
- * offers to connect one instead of reading an error.
+ * Whether a remote is configured, and which: {@code remote} is {@code null} when configuration
+ * declares none, so the UI explains how to declare one instead of reading an error.
  */
 public record CurrentRemoteResponse(RemoteResponse remote) {
 }

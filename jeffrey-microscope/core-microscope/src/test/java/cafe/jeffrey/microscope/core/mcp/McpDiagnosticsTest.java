@@ -24,7 +24,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
-import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolMetrics;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
@@ -168,7 +167,7 @@ class McpDiagnosticsTest {
     private RemoteConnection connected() {
         RemoteConnection connection = mock(RemoteConnection.class);
         when(connection.info()).thenReturn(new RemoteInfo("internal",
-                new HubAddress("internal.example", 9090, true), Instant.EPOCH, RemoteSource.CONFIG));
+                new HubAddress("internal.example", 9090, true)));
         when(remoteManager.current()).thenReturn(Optional.of(connection));
         return connection;
     }

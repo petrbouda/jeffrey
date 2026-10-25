@@ -26,7 +26,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'connect-remote', text: 'Step 1 — Connect the Remote', level: 2 },
+  { id: 'declare-remote', text: 'Step 1 — Declare the Remote', level: 2 },
   { id: 'azure-files', text: 'Working on an Azure File Share', level: 3 },
   { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Workspace Status', level: 2 },
@@ -55,66 +55,54 @@ onMounted(() => {
         locally — Microscope just borrows the data.
       </p>
       <p>
-        Getting there is a two-step process: connect the remote, then create or pick a workspace
-        on it.
+        Getting there is a two-step process: declare the remote in Microscope's configuration, then
+        create or pick a workspace on it.
       </p>
 
-      <h2 id="connect-remote">Step 1 — Connect the Remote</h2>
+      <h2 id="declare-remote">Step 1 — Declare the Remote</h2>
       <p>
-        Open the <strong>Remote</strong> page from the sidebar. With no remote connected it offers
-        <strong>Connect a Jeffrey Hub</strong>, which opens a form:
+        The remote is declared in configuration only, with
+        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>,
+        and read when Microscope starts. A Jeffrey Hub needs its host, and optionally a name, port and
+        plaintext switch:
       </p>
 
       <table>
         <thead>
           <tr>
-            <th>Field</th>
+            <th>Property</th>
             <th>What it means</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Name</strong></td>
-            <td>How the remote is named in Microscope — its header and the breadcrumb. Free text — pick something you'll recognize.</td>
+            <td><code>name</code></td>
+            <td>How the remote is named in Microscope — its header and the breadcrumb. Defaults to the hostname.</td>
           </tr>
           <tr>
-            <td><strong>Hostname</strong></td>
+            <td><code>hostname</code></td>
             <td>The host that runs Jeffrey Hub (e.g. <code>jeffrey.internal</code> or an IP).</td>
           </tr>
           <tr>
-            <td><strong>Port</strong></td>
+            <td><code>port</code></td>
             <td>The gRPC port the hub listens on (<code>9090</code> by default).</td>
           </tr>
           <tr>
-            <td><strong>Plaintext</strong></td>
-            <td>Toggle <em>off</em> for a TLS connection (recommended). Toggle <em>on</em> only for local development against a non-TLS hub.</td>
+            <td><code>plaintext</code></td>
+            <td><code>false</code> for a TLS connection (the default, recommended); <code>true</code> only for an in-cluster or local hub without TLS.</td>
           </tr>
         </tbody>
       </table>
 
       <p>
-        Microscope probes the hub once to confirm it's reachable. If it isn't, the form
-        surfaces a clear error (most often "cannot connect — check hostname/port/TLS").
-        On success the page shows the remote's name with a status indicator, and its workspaces
-        beneath. Microscope holds one remote at a time: to switch to another hub, disconnect this one
-        first — a second remote is refused.
+        Open the <strong>Remote</strong> page from the sidebar: it shows the remote's name with a
+        status indicator, and its workspaces beneath. With nothing declared the page says so and
+        names the properties to set. Microscope holds exactly one remote, and the UI never connects,
+        changes or disconnects it — to switch to another hub, change the configuration and restart.
+        No connection is attempted at startup, so a hub that boots after Microscope starts working as
+        soon as it comes up. A declaration that cannot be used (both a hostname and a share, a port out
+        of range, …) is logged and ignored rather than failing startup.
       </p>
-
-      <DocsCallout type="tip">
-        <strong>Disconnecting the remote</strong> (the plug button beside its name) only removes
-        Microscope's pointer to it — the hub and its workspaces stay intact. Connecting the same
-        hostname/port again restores access.
-      </DocsCallout>
-
-      <DocsCallout type="info">
-        <strong>Provisioning without the UI:</strong> the remote can also be declared up front with
-        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>,
-        so a container or a pod starts already connected. Configuration wins: a remote declared that
-        way is shown with a <strong>Config</strong> badge, its disconnect button is disabled, and the
-        UI cannot change it — the next startup would connect it again anyway. Unlike the form above, a
-        declared remote is stored without a reachability check, so a hub that boots after Microscope
-        starts working as soon as it comes up.
-      </DocsCallout>
 
       <h3 id="azure-files">Working on an Azure File Share</h3>
       <p>
@@ -223,7 +211,7 @@ onMounted(() => {
           <tr>
             <td><strong>Unknown</strong></td>
             <td>Microscope can't reach the remote at all (network, TLS, or the hub is down).</td>
-            <td>Check the remote's status on the Remote page and your network/VPN.</td>
+            <td>Check the remote's status on the Remote page, its declaration in configuration, and your network/VPN.</td>
           </tr>
         </tbody>
       </table>
@@ -232,10 +220,9 @@ onMounted(() => {
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
       <ul>
         <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
-        <li><strong>Editing the remote's hostname or port</strong> — disconnect it and connect it again instead (or change the configuration and restart, for a declared remote).</li>
-        <li><strong>More than one remote</strong> — Microscope connects to exactly one; a second is refused.</li>
+        <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>
+        <li><strong>More than one remote</strong> — Microscope reaches exactly one.</li>
         <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (TLS, or the SAS token / Entra identity of an Azure file share); there's no separate workspace-level token.</li>
-        <li><strong>Adding an Azure file share from the UI</strong> — a share is declared in configuration only, so its SAS token never passes through the browser or Microscope's database.</li>
         <li><strong>Retention and compression on a share</strong> — Microscope makes the changes you ask for, never upkeep; keep a hub on the volume for that.</li>
       </ul>
     </div>

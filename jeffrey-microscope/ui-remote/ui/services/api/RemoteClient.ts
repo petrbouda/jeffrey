@@ -19,14 +19,7 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type { RequestOptions } from '@shared/services/api/BasePlatformClient';
 import Remote, { CurrentRemote } from '@remote/services/api/model/Remote';
 
-export interface ConnectHubRequest {
-  name: string;
-  hostname: string;
-  port: number;
-  plaintext: boolean;
-}
-
-/** The one remote this Microscope reaches: read it, connect a Jeffrey Hub, or disconnect. */
+/** The one remote this Microscope reaches, as configuration declares it; read-only. */
 export default class RemoteClient extends BasePlatformClient {
   constructor() {
     super('/remote');
@@ -35,13 +28,5 @@ export default class RemoteClient extends BasePlatformClient {
   async current(options?: RequestOptions): Promise<Remote | null> {
     const answer = await super.get<CurrentRemote>('', undefined, options);
     return answer.remote;
-  }
-
-  async connect(request: ConnectHubRequest): Promise<Remote> {
-    return super.post<Remote>('', request);
-  }
-
-  async disconnect(): Promise<void> {
-    return super.del<void>('');
   }
 }

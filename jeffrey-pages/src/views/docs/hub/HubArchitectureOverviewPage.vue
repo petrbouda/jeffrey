@@ -112,7 +112,7 @@ onMounted(() => {
       <h2 id="microscope-connection">How Microscope Connects</h2>
       <p>
         Microscope connects a hub as its one <strong>remote</strong> &mdash; a single gRPC
-        endpoint, entered on its Remote page or declared with
+        endpoint, declared in its configuration with
         <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>
         &mdash; and Microscope handles the rest. From the user's point of view, the connected hub looks
         identical to a local one — same workspaces, projects, instances, sessions — except

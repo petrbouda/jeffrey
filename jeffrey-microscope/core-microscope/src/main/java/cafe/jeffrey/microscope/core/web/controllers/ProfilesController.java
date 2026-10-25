@@ -37,7 +37,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Lists all profiles across all workspaces on the connected remote.
+ * Lists all profiles across all workspaces on the configured remote.
  */
 @RestController
 @RequestMapping("/api/internal/remote/profiles")

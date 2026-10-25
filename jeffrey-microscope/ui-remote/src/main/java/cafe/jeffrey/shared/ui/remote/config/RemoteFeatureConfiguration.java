@@ -19,7 +19,6 @@ package cafe.jeffrey.shared.ui.remote.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import cafe.jeffrey.microscope.remote.client.RemoteClients;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteRegistry;
 import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
@@ -79,10 +78,8 @@ public class RemoteFeatureConfiguration {
     }
 
     @Bean
-    public RemoteController remoteFeatureHubsController(
-            RemoteRegistry remoteRegistry,
-            RemoteClients.Factory clientsFactory) {
-        return new RemoteController(remoteRegistry, clientsFactory);
+    public RemoteController remoteFeatureRemoteController(RemoteRegistry remoteRegistry) {
+        return new RemoteController(remoteRegistry);
     }
 
     @Bean

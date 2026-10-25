@@ -333,18 +333,15 @@ onMounted(() => {
       <DocsCodeBlock language="bash" :code="remoteEnvExample" />
 
       <DocsCallout type="info">
-        <strong>Configuration wins.</strong> A remote declared here is connected, updated or
-        disconnected on every startup to match the configuration, replacing whatever the UI had
-        connected. It appears on the Remote page with a <strong>Config</strong> badge and a disabled
-        disconnect button: the UI can neither disconnect nor change it. To remove it, drop it from the
-        configuration and restart. Only when nothing is declared can the Remote page connect a
-        Jeffrey Hub (the form probes it first) and disconnect it again &mdash; and it connects one
-        only: a second remote is refused.
+        <strong>Configuration is the only place the remote is declared.</strong> It is read at
+        startup and never stored; the Remote page shows it but cannot connect, change or disconnect
+        one, and neither can an MCP tool. To change or remove it, edit the configuration and restart.
+        Microscope reaches exactly one remote.
       </DocsCallout>
 
       <DocsCallout type="tip">
-        <strong>No connection is attempted at startup.</strong> A declared remote is stored whether
-        or not it answers, so a hub that boots after Microscope — the normal case in a compose file or
+        <strong>No connection is attempted at startup.</strong> A declared remote is taken as it is
+        whether or not it answers, so a hub that boots after Microscope — the normal case in a compose file or
         a pod — starts working as soon as it comes up.
       </DocsCallout>
 

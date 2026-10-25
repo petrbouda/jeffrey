@@ -83,7 +83,7 @@ public final class DownloadedSessionIndex {
     }
 
     /**
-     * @param remoteAddress the connected remote's address identity; nothing matches without one
+     * @param remoteAddress the configured remote's address identity; nothing matches without one
      */
     public static DownloadedSessionIndex build(RecordingsManager recordings, Optional<String> remoteAddress) {
         if (remoteAddress.isEmpty()) {

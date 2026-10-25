@@ -18,15 +18,11 @@
 package cafe.jeffrey.shared.ui.remote.dto;
 
 /**
- * The connected remote.
+ * The configured remote.
  *
  * @param hostname  a Jeffrey Hub's host; {@code null} for an Azure file share
  * @param port      a Jeffrey Hub's port; {@code 0} for an Azure file share
  * @param plaintext whether a Jeffrey Hub is reached in cleartext; {@code false} for a file share
- * @param source    {@code "CONFIG"} when configuration declares it — the UI cannot disconnect it,
- *                  because the next startup would connect it again — or {@code "USER"} when the UI
- *                  connected it. Carried as the enum name so the DTO stays a plain record over
- *                  JSON-friendly types.
  * @param kind      {@code "GRPC"} for a Jeffrey Hub, {@code "AZURE_FILES"} for the recording volume
  *                  on an Azure file share
  * @param location  where it lies, as a person reads it: {@code host:port}, or the share's endpoint,
@@ -39,8 +35,6 @@ public record RemoteResponse(
         String hostname,
         int port,
         boolean plaintext,
-        long createdAt,
-        String source,
         String kind,
         String location,
         boolean readOnly) {

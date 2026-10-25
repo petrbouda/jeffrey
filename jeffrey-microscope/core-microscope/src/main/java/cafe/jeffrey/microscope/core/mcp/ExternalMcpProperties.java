@@ -35,7 +35,7 @@ import java.util.Set;
  *
  * @param enabled     whether the endpoint answers at all; while off it responds {@code 404}
  * @param remoteEnabled whether the {@code remote_} family is advertised, which lets a client list and
- *                    pull recordings from the connected remote. Its own switch because it is the
+ *                    pull recordings from the configured remote. Its own switch because it is the
  *                    one family that reaches past this machine: everything else reads what is already
  *                    here, while this one talks to remote infrastructure and can move gigabytes off it
  * @param ideEnabled  whether the {@code ide_} family is advertised, which lets a client ask the

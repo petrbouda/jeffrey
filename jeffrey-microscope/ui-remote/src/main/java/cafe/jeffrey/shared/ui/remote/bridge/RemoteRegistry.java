@@ -17,23 +17,16 @@
 
 package cafe.jeffrey.shared.ui.remote.bridge;
 
-import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 
 import java.util.Optional;
 
 /**
- * The one connected remote, as the shared {@code RemoteController} sees it. The deployment backs it
- * with its own {@code RemoteManager}.
+ * The one configured remote, as the shared {@code RemoteController} sees it. The deployment backs it
+ * with its own {@code RemoteManager}; configuration is the only place it is declared.
  */
 public interface RemoteRegistry {
 
-    /** The connected remote, or empty when none is. */
+    /** The configured remote, or empty when none is configured. */
     Optional<RemoteInfo> find();
-
-    /** Connects a Jeffrey Hub; refused while any remote is connected. */
-    RemoteInfo connect(String name, HubAddress address);
-
-    /** Forgets the remote the UI connected; refused for one declared in configuration. */
-    void disconnect();
 }

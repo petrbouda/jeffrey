@@ -26,7 +26,6 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteAddress;
-import cafe.jeffrey.microscope.model.remote.RemoteSource;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
@@ -45,10 +44,10 @@ public final class RemoteAnswers {
     private RemoteAnswers() {
     }
 
-    /** Whether a remote is connected, and whether it answered the probe just now. */
+    /** Whether a remote is configured, and whether it answered the probe just now. */
     public enum RemoteState {
-        /** No remote is connected; the reason says how to connect one. */
-        NOT_CONNECTED,
+        /** Configuration declares no remote; the reason says how to declare one. */
+        NOT_CONFIGURED,
         /** It answered; remote_sessions can list its sessions. */
         REACHABLE,
         /** It did not answer, so remote_sessions can list nothing from it. */
@@ -70,32 +69,28 @@ public final class RemoteAnswers {
         }
     }
 
-    /** The one remote this installation is connected to, and whether it answers right now. */
+    /** The one remote this installation's configuration declares, and whether it answers right now. */
     public record RemoteStatus(
             RemoteState state,
             @McpNullable
-            @McpDescription("How to connect a remote when none is; null otherwise")
+            @McpDescription("How to declare the remote in configuration when none is; null otherwise")
             String reason,
             @McpNullable
-            @McpDescription("What the remote is called; null when none is connected")
+            @McpDescription("What the remote is called; null when none is configured")
             String name,
             @McpNullable
             @McpDescription("GRPC for a Jeffrey Hub, AZURE_FILES for the recording volume on an Azure file share; "
-                    + "null when none is connected")
+                    + "null when none is configured")
             RemoteKind kind,
             @McpNullable
             @McpDescription("Where it is reached: host:port for GRPC, azure-files:<endpoint>/<share>[/<root>] for "
-                    + "AZURE_FILES; null when none is connected")
+                    + "AZURE_FILES; null when none is configured")
             String address,
             @McpDescription("True for a remote declared read-only: its sessions list and download as usual, but "
                     + "nothing on it can be deleted or pinned")
             boolean readOnly,
             @McpNullable
-            @McpDescription("CONFIG when this installation's configuration declares it, which the UI cannot "
-                    + "disconnect; USER when it was connected by hand; null when none is connected")
-            RemoteSource source,
-            @McpNullable
-            @McpDescription("The version the remote reported; null when it did not answer or none is connected")
+            @McpDescription("The version the remote reported; null when it did not answer or none is configured")
             String version,
             McpFollowUp followUp,
             @McpDescription("The remote's page in the Microscope UI, for the user")

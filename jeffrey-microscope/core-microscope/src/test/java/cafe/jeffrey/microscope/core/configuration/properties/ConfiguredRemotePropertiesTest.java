@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.configuration.properties;
 
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredRemoteProperties.AzureFilesEntry;
-import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredRemoteProperties.DesiredRemote;
+import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
@@ -67,7 +67,7 @@ class ConfiguredRemotePropertiesTest {
 
         @Test
         void a_hostname_alone_is_a_complete_declaration_named_by_its_host() {
-            DesiredRemote remote = hub(" hub.example.com ").resolve().orElseThrow();
+            RemoteInfo remote = hub(" hub.example.com ").resolve().orElseThrow();
 
             assertEquals(new HubAddress("hub.example.com", 9090, false), remote.address());
             assertEquals("hub.example.com", remote.name());
@@ -80,7 +80,7 @@ class ConfiguredRemotePropertiesTest {
             properties.setPort(443);
             properties.setPlaintext(true);
 
-            DesiredRemote remote = properties.resolve().orElseThrow();
+            RemoteInfo remote = properties.resolve().orElseThrow();
 
             assertEquals("Production", remote.name());
             assertEquals(new HubAddress("hub.example.com", 443, true), remote.address());
@@ -102,7 +102,7 @@ class ConfiguredRemotePropertiesTest {
 
         @Test
         void resolves_writable_over_smb_with_a_sas_by_default_named_by_its_share() {
-            DesiredRemote remote = share("recordings", "sas", SAS).resolve().orElseThrow();
+            RemoteInfo remote = share("recordings", "sas", SAS).resolve().orElseThrow();
 
             assertEquals(new AzureFilesAddress(ENDPOINT, "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS,
                     false), remote.address());
@@ -115,7 +115,7 @@ class ConfiguredRemotePropertiesTest {
             ConfiguredRemoteProperties readOnly = share("recordings", "sas", SAS);
             readOnly.getAzureFiles().setReadOnly(true);
 
-            DesiredRemote remote = readOnly.resolve().orElseThrow();
+            RemoteInfo remote = readOnly.resolve().orElseThrow();
 
             assertTrue(remote.address().readOnly());
             assertEquals(share("recordings", "sas", SAS).resolve().orElseThrow().address().identity(),
@@ -144,7 +144,7 @@ class ConfiguredRemotePropertiesTest {
 
         @Test
         void entra_needs_no_token() {
-            DesiredRemote remote = share("recordings", "entra", null).resolve().orElseThrow();
+            RemoteInfo remote = share("recordings", "entra", null).resolve().orElseThrow();
 
             assertEquals(AzureFilesAuth.ENTRA, ((AzureFilesAddress) remote.address()).auth());
             assertEquals(Optional.empty(), share("recordings", "entra", null).sasToken());

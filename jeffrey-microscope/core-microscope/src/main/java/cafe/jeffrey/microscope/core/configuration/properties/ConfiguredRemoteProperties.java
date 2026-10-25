@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteAddress;
+import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -42,10 +43,9 @@ import java.util.Optional;
  * jeffrey.microscope.remote.azure-files.protocol=smb
  * jeffrey.microscope.remote.azure-files.sas-token=${AZURE_FILES_SAS}
  * </pre>
- * A SAS token stays in this configuration: the stored connection keeps how the remote signs in,
- * never the token, which {@link #sasToken()} hands to whatever opens the share. Configuration owns
- * a remote declared here: {@code ConfiguredRemoteReconciler} connects, updates or disconnects it on
- * each startup, and the UI cannot disconnect it.
+ * This configuration is the only place the remote is declared: it is read at startup and never
+ * stored, and the UI shows it but never connects, changes or disconnects one. A SAS token never
+ * leaves memory; {@link #sasToken()} hands it to whatever opens the share.
  * <p>
  * A JavaBean rather than a record, as the relaxed binder needs setters for the nested block.
  */
@@ -112,7 +112,7 @@ public class ConfiguredRemoteProperties {
      * which is logged and left out rather than failing startup: Microscope is primarily a local
      * profile viewer, and a typo in an optional remote should not cost the user their recordings.
      */
-    public Optional<DesiredRemote> resolve() {
+    public Optional<RemoteInfo> resolve() {
         if (!declaresAny()) {
             return Optional.empty();
         }
@@ -122,7 +122,7 @@ public class ConfiguredRemoteProperties {
             return Optional.empty();
         }
         RemoteAddress address = address();
-        return Optional.of(new DesiredRemote(resolveName(address), address));
+        return Optional.of(new RemoteInfo(resolveName(address), address));
     }
 
     /**
@@ -131,7 +131,7 @@ public class ConfiguredRemoteProperties {
      */
     public Optional<String> sasToken() {
         return resolve()
-                .map(DesiredRemote::address)
+                .map(RemoteInfo::address)
                 .filter(address -> address instanceof AzureFilesAddress azure && azure.auth() == AzureFilesAuth.SAS)
                 .map(_ -> azureFiles.getSasToken().trim());
     }
@@ -177,10 +177,6 @@ public class ConfiguredRemoteProperties {
             case HubAddress hub -> hub.hostname();
             case AzureFilesAddress share -> share.share();
         };
-    }
-
-    /** What the stored connection should be, as configuration declares it. */
-    public record DesiredRemote(String name, RemoteAddress address) {
     }
 
     /**

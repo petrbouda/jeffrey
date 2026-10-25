@@ -33,7 +33,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * The connected remote: lists its workspaces live, creates workspaces on it, and produces
+ * The configured remote: lists its workspaces live, creates workspaces on it, and produces
  * per-workspace and per-project managers. What it talks to — a Jeffrey Hub over gRPC, or a file
  * share directly — is its clients' business.
  */

@@ -24,17 +24,16 @@
       <ErrorState :message="remoteError" @retry="refreshRemote" />
     </div>
 
-    <!-- Empty state across both panels when no remote is connected -->
+    <!-- Empty state across both panels when configuration declares no remote -->
     <div v-else-if="!remote" class="empty-canvas">
       <div class="empty-hero-content">
         <div class="empty-hero-icon"><i class="bi bi-hdd-network"></i></div>
-        <h2>Connect a remote</h2>
+        <h2>No remote configured</h2>
         <p>{{ appDescription }}</p>
-        <div class="empty-hero-actions">
-          <button class="btn btn-primary btn-lg" @click="showConnectModal = true">
-            <i class="bi bi-plus-lg me-1"></i> Connect a Jeffrey Hub
-          </button>
-        </div>
+        <p>
+          The remote is declared in Microscope's configuration only, under
+          <code>jeffrey.microscope.remote.*</code>, and read at startup: add it there and restart.
+        </p>
       </div>
     </div>
 
@@ -44,24 +43,11 @@
         <header class="ws-head">
           <div class="ws-head-row">
             <h3 class="ws-head-name">
-              <span class="status-dot" :class="`is-${status}`" :title="statusLabel"></span>
+              <StatusDot :tone="STATUS_TONES[status]" size="l" :label="statusLabel" />
               {{ remote.name }}
-              <Badge v-if="isConfigManaged" value="Config" variant="info" size="xs" />
               <Badge v-if="isAzureFiles" value="Azure Files" variant="secondary" size="xs" />
               <Badge v-if="remote.readOnly" value="Read-only" variant="warning" size="xs" />
             </h3>
-            <button
-              class="ws-head-btn danger"
-              :disabled="isConfigManaged"
-              :title="
-                isConfigManaged
-                  ? 'Declared in jeffrey.microscope.remote — remove it from the configuration and restart to disconnect'
-                  : 'Disconnect the remote (does not delete data on it)'
-              "
-              @click="confirmDisconnect"
-            >
-              <i class="bi bi-plug"></i>
-            </button>
           </div>
           <div class="ws-head-location">{{ remote.location }}</div>
         </header>
@@ -180,7 +166,6 @@
     </template>
 
     <!-- Drawers -->
-    <ConnectHubModal v-model:show="showConnectModal" @connected="refreshRemote" />
 
     <LeftDrawer
       v-model:show="showCreateForm"
@@ -192,7 +177,7 @@
         <div class="server-context-card">
           <div class="server-context-name">{{ remote.name }}</div>
           <span class="server-context-pill">
-            <span class="status-dot"></span>
+            <StatusDot tone="success" size="xs" />
             Active
           </span>
         </div>
@@ -293,16 +278,6 @@
         </div>
       </DrawerSection>
     </LeftDrawer>
-
-    <ConfirmationDialog
-      v-model:show="showDisconnectModal"
-      title="Disconnect Remote"
-      :message="disconnectMessage"
-      sub-message="Microscope stops reaching it; data on the remote is not affected."
-      confirm-label="Disconnect"
-      confirm-button-class="btn-danger"
-      @confirm="disconnect"
-    />
   </div>
 </template>
 
@@ -311,18 +286,18 @@ import { computed, onMounted, ref } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
-import ConnectHubModal from '@remote/components/projects/ConnectHubModal.vue';
 import LeftDrawer from '@shared/components/LeftDrawer.vue';
 import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
 import DrawerField from '@shared/components/drawer/DrawerField.vue';
 import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import Badge from '@shared/components/Badge.vue';
+import StatusDot from '@shared/components/StatusDot.vue';
 import ToastService from '@shared/services/ToastService';
 import RemoteClient from '@remote/services/api/RemoteClient';
 import WorkspaceClient from '@remote/services/api/WorkspaceClient';
 import WorkspaceProjectsClient from '@remote/services/api/WorkspaceProjectsClient';
 import Remote from '@remote/services/api/model/Remote';
+import type { StatusDotTone } from '@shared/types/ui';
 import Workspace from '@remote/services/api/model/Workspace';
 import Project from '@remote/services/api/model/Project';
 
@@ -371,8 +346,6 @@ const loadingProjects = ref(false);
 const projectsError = ref<string | null>(null);
 const projectSearchQuery = ref('');
 
-const showConnectModal = ref(false);
-const showDisconnectModal = ref(false);
 const showWorkspaceInfo = ref(false);
 
 const showCreateForm = ref(false);
@@ -383,6 +356,12 @@ const createForm = ref({ name: '', referenceId: '' });
 const WORKSPACE_REF_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$/;
 const WORKSPACE_REF_ID_HINT =
   '3-64 characters, alphanumeric and dashes only, no leading or trailing dash.';
+
+const STATUS_TONES: Record<RemoteStatus, StatusDotTone> = {
+  online: 'success',
+  offline: 'danger',
+  unknown: 'warning'
+};
 
 const STATUS_LABELS: Record<RemoteStatus, string> = {
   online: 'Online',
@@ -423,14 +402,6 @@ const isCreateFormValid = computed(
     createForm.value.name.trim().length > 0 &&
     WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim())
 );
-
-const disconnectMessage = computed(() =>
-  remote.value ? `Disconnect "${remote.value.name}" (${remote.value.location})?` : ''
-);
-
-// A remote declared in configuration is connected again on every startup, so disconnecting it here
-// would only look like it worked; the backend refuses it with the instruction that works.
-const isConfigManaged = computed(() => remote.value?.source === 'CONFIG');
 
 const isAzureFiles = computed(() => remote.value?.kind === 'AZURE_FILES');
 
@@ -521,30 +492,6 @@ const selectWorkspace = (workspaceId: string) => {
   projectSearchQuery.value = '';
   emit('workspace-change', { workspaceId });
   refreshProjects();
-};
-
-const confirmDisconnect = () => {
-  if (!remote.value || isConfigManaged.value) {
-    return;
-  }
-  showDisconnectModal.value = true;
-};
-
-const disconnect = async () => {
-  if (!remote.value) {
-    return;
-  }
-  const name = remote.value.name;
-  try {
-    await remoteClient.disconnect();
-    ToastService.success('Remote Disconnected', `Disconnected ${name}.`);
-    await refreshRemote();
-  } catch (error: any) {
-    ToastService.error(
-      'Failed to disconnect the remote',
-      error?.response?.data?.message ?? error?.message ?? 'Unknown error'
-    );
-  }
 };
 
 const copyText = async (value: string) => {
@@ -669,22 +616,6 @@ onMounted(refreshRemote);
   gap: 8px;
 }
 
-.ws-head-name .status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-circle);
-  flex-shrink: 0;
-  background: var(--color-warning);
-}
-
-.ws-head-name .status-dot.is-online {
-  background: var(--color-success);
-}
-
-.ws-head-name .status-dot.is-offline {
-  background: var(--color-danger);
-}
-
 .ws-head-location {
   margin-top: var(--spacing-1);
   font-family: var(--font-family-monospace);
@@ -693,29 +624,6 @@ onMounted(refreshRemote);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.ws-head-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-base);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-base);
-}
-
-.ws-head-btn:hover {
-  background: var(--color-light);
-}
-
-.ws-head-btn.danger:hover {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
 }
 
 .ws-search {
@@ -969,11 +877,6 @@ onMounted(refreshRemote);
   line-height: 1.5;
 }
 
-.empty-hero-actions {
-  display: flex;
-  gap: var(--spacing-3);
-}
-
 .main-empty {
   display: flex;
   flex-direction: column;
@@ -1004,6 +907,7 @@ onMounted(refreshRemote);
   line-height: 1.6;
 }
 
+.empty-hero-content code,
 .main-empty code {
   background: var(--color-light);
   padding: 1px 6px;
