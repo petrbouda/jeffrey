@@ -10513,8 +10513,22 @@
                     "null"
                   ]
                 },
+                "kind": {
+                  "enum": [
+                    "GRPC",
+                    "AZURE_FILES",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "name": {
                   "type": "string"
+                },
+                "readOnly": {
+                  "type": "boolean"
                 },
                 "source": {
                   "enum": [
@@ -10539,7 +10553,9 @@
                 "address",
                 "hubId",
                 "hubVersion",
+                "kind",
                 "name",
+                "readOnly",
                 "source",
                 "status"
               ],

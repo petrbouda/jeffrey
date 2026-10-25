@@ -59,8 +59,8 @@
           </div>
         </div>
 
-        <!-- Danger Zone Bar -->
-        <div class="danger-bar">
+        <!-- Danger Zone Bar: a source read straight from storage cannot delete a project -->
+        <div v-if="!hubReadOnly" class="danger-bar">
           <div class="danger-bar-left">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <div>
@@ -158,6 +158,7 @@ import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
 import ProjectClient from '@hubs/services/api/ProjectClient';
+import { useHubReadOnly } from '@hubs/composables/useHubReadOnly';
 import ToastService from '@shared/services/ToastService';
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -171,6 +172,7 @@ const { hubId, workspaceId, projectId } = useNavigation();
 // Create clients
 const settingsClient = new ProjectSettingsClient(hubId.value, workspaceId.value!, projectId.value!);
 const projectClient = new ProjectClient(hubId.value, workspaceId.value!, projectId.value!);
+const hubReadOnly = useHubReadOnly(hubId.value);
 
 // State variables
 const originalProjectName = ref('');

@@ -33,6 +33,7 @@ import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import { useSessionReads } from '@hubs/composables/useSessionReads';
+import { useHubReadOnly } from '@hubs/composables/useHubReadOnly';
 import type { TimelineBarItem, Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
@@ -87,6 +88,9 @@ const { generateInstanceUrl } = useNavigation();
 const repositoryService = computed(
   () => new ProjectRepositoryClient(props.hubId, props.workspaceId, props.projectId)
 );
+
+/** A source read straight from storage refuses pins and deletions, so they are not offered. */
+const hubReadOnly = useHubReadOnly(props.hubId);
 
 // --- Session UI state ---
 const expandedSessions = ref<{ [key: string]: boolean }>({});
@@ -895,6 +899,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               <span>{{ FormattingService.formatDurationMillisCompact(failed.duration) }}</span>
               <span>0 B</span>
               <button
+                v-if="!hubReadOnly"
                 class="pin-toggle"
                 :class="{ on: failed.retained }"
                 type="button"
@@ -910,6 +915,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <i class="bi" :class="failed.retained ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
               </button>
               <button
+                v-if="!hubReadOnly"
                 class="btn btn-sm btn-outline-danger"
                 type="button"
                 :disabled="failed.retained"
@@ -994,6 +1000,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             </div>
             <div class="d-flex align-items-center gap-1">
               <button
+                v-if="!hubReadOnly"
                 class="pin-toggle"
                 :class="{ on: session.retained }"
                 type="button"
@@ -1018,7 +1025,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <i class="bi bi-folder-symlink me-1"></i>Download
               </button>
               <button
-                v-if="session.status === RecordingStatus.FINISHED"
+                v-if="session.status === RecordingStatus.FINISHED && !hubReadOnly"
                 class="btn btn-sm btn-outline-danger"
                 type="button"
                 :disabled="session.retained"

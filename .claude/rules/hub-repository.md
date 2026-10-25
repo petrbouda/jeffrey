@@ -64,7 +64,7 @@ once broken; the "why" says what went wrong. Do not re-derive these from the cod
 
 ### A volume source reads, never writes
 - Microscope can read the volume with no hub: a hub row whose address is `AzureFilesAddress` (sealed `HubAddress`, beside `GrpcHubAddress`) is served by `volume-client`'s `Volume*Client`s over a `VolumeSource`, built by `SourceClientsFactory`/`AzureFilesClientsFactory`. They implement the same `hub-client` interfaces as the `Grpc*Client`s, and answer as the hub would: one level per call, files only for one session, the same download refusals in the hub's wording, `failed` by the hub's rule.
-- `HubAddress.readOnly()` is true for every volume source: create/delete workspace, delete project, delete/pin session throw `VolumeSource.readOnly`, and the UI hides what it can. Never write a marker, flag or archive through `VolumeAccess` — writing is the hub's, because it is the one process that owns the volume.
+- `HubAddress.readOnly()` is true for every volume source: create/delete workspace, delete project, delete/pin session throw `VolumeSource.readOnly`; the UI hides them (`HubResponse.readOnly`, read on project pages through `@hubs/composables/useHubReadOnly`) and `hubs_list` reports `kind` and `readOnly` per row. Retention and compression of such a volume stay with a hub running on it. Never write a marker, flag or archive through `VolumeAccess` — writing is the hub's, because it is the one process that owns the volume.
 - A SAS token is never stored or logged: the hubs table keeps how a source signs in (`azure_auth`), the token stays in `ConfiguredHubsProperties.sasTokens()` keyed by `HubAddress.identity()`. That is why a share can only be declared in configuration.
 
 ### Protos ship together

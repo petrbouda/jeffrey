@@ -53,6 +53,9 @@ import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.hub.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
 import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubInfo;
@@ -491,6 +494,8 @@ class HubsMcpToolsTest {
             JsonNode row = answer.get("hubs").get(0);
             assertEquals("production", row.get("name").asString());
             assertEquals("hub.example.com:443", row.get("address").asString());
+            assertEquals("GRPC", row.get("kind").asString());
+            assertFalse(row.get("readOnly").asBoolean());
             assertEquals("REACHABLE", row.get("status").asString());
             assertEquals("2.1.0", row.get("hubVersion").asString());
             assertEquals("OK", answer.get("status").asString());
@@ -542,6 +547,26 @@ class HubsMcpToolsTest {
             assertTrue(answer.get("hubs").get(0).get("hubVersion").isNull());
             assertEquals(List.of(), StructuredAnswers.nextTools(answer), "no hub answers, so no session list either");
             assertTrue(StructuredAnswers.guidance(answer).contains("UNREACHABLE"), answer.toString());
+        }
+
+        /** A file share is listed like a hub, and says it is one nothing can be deleted or pinned on. */
+        @Test
+        void marksAnAzureFileShareAsReadOnly() {
+            HubManager share = reachableHub(HUB_ID, "prodshare", "checkout", repositoryWith());
+            when(share.info()).thenReturn(new HubInfo(HUB_ID, "prodshare",
+                    new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings", null,
+                            AzureFilesProtocol.SMB, AzureFilesAuth.SAS),
+                    NOW, HubSource.CONFIG));
+            when(hubsManager.findAll()).thenReturn(List.of(share));
+
+            McpToolResult result = tools.list(null, null);
+            JsonNode row = hubs(result).get("hubs").get(0);
+
+            assertEquals("AZURE_FILES", row.get("kind").asString());
+            assertTrue(row.get("readOnly").asBoolean());
+            assertEquals("azure-files:https://jeffreyprod.file.core.windows.net/recordings",
+                    row.get("address").asString());
+            assertTrue(result.text().contains("| AZURE_FILES |"), result.text());
         }
 
         @Test

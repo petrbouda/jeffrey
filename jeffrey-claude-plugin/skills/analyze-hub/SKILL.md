@@ -21,7 +21,9 @@ the user's step, and no tool does it. Give them both routes from the answer: the
 link), whose form checks that the hub answers, and the `jeffrey.microscope.hubs.<key>.*`
 properties (name, hostname, port, plaintext) followed by a restart. Use the user's own hostname and
 port if they gave them, otherwise keep the placeholders. Never invent an address. `plaintext=true`
-is only for an in-cluster or trusted-LAN hub without TLS. Offer to analyse a local `.jfr` in the
+is only for an in-cluster or trusted-LAN hub without TLS. If the recordings sit on an Azure file
+share and there is no hub to reach, the answer also gives the `…azure-files.*` entry (endpoint,
+share, protocol, a SAS token or `auth=entra`); that source is read-only. Offer to analyse a local `.jfr` in the
 meantime, and call `hubs_list` again once they say it is connected.
 
 ## The shape of the whole thing
@@ -313,6 +315,11 @@ is the hub's business.
 **It does not reach a hub that is not already configured.** Hubs are declared in Microscope's
 configuration or added through its UI. If the one the user wants is not in `hubs_list`, say so —
 adding it is an operator's decision, not something to work around.
+
+**It does not change a read-only source.** A `hubs_list` row with `readOnly: true` (kind
+`AZURE_FILES`) is the recording volume read straight from a file share, with no hub in between.
+Its sessions list, download and fetch like any hub's, but nothing on it can be deleted or
+pinned from Microscope.
 
 ## When a transfer outlasts the call
 

@@ -35,6 +35,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.ChosenWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Download;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.DownloadStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubRow;
+import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubKind;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.HubStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.Hubs;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubAnswers.SessionRow;
@@ -170,12 +171,20 @@ public class HubsMcpTools {
                     + "  %1$s.production.hostname=hub.example.com\n"
                     + "  %1$s.production.port=443\n"
                     + "  %1$s.production.plaintext=false\n\n"
+                    + "Or read the recording volume straight from an Azure file share, read-only, with no hub in "
+                    + "between (auth=entra signs in with the machine's Azure identity instead of a SAS token):\n\n"
+                    + "  %1$s.prodshare.azure-files.endpoint=https://<account>.file.core.windows.net\n"
+                    + "  %1$s.prodshare.azure-files.share=recordings\n"
+                    + "  %1$s.prodshare.azure-files.protocol=smb\n"
+                    + "  %1$s.prodshare.azure-files.sas-token=<SAS token>\n\n"
                     + "Recordings can still be analysed from a local file with recordings_analyzeFile.")
                     .formatted(CONFIGURED_HUBS_PROPERTY);
     private static final String HUBS_NOTE =
             "A hub marked `UNREACHABLE` did not answer just now, so hubs_sessions can list nothing from it. A "
                     + "hub whose source is `CONFIG` is declared in this installation's configuration and cannot "
-                    + "be removed from the UI.";
+                    + "be removed from the UI. A `read_only` hub (kind `AZURE_FILES`) is the recording volume read "
+                    + "straight from storage: its sessions list and download as usual, but nothing on it can be "
+                    + "deleted or pinned.";
 
     private static final String NEXT_HUBS_WHY = "continues the list of hubs past this page";
     private static final String SESSIONS_WHY = "lists the recording sessions of every hub that answered";
@@ -284,7 +293,8 @@ public class HubsMcpTools {
         this.locator = new HubSessionLocator(resolver);
     }
 
-    @Tool(description = "Returns every Jeffrey Hub this installation is connected to and whether it "
+    @Tool(description = "Returns every Jeffrey Hub this installation is connected to - or Azure file share it "
+            + "reads the recording volume from directly (kind AZURE_FILES, readOnly) - and whether it "
             + "answers right now (status REACHABLE or UNREACHABLE) - the hub names the `hub` filter of "
             + "hubs_sessions accepts, and why hubs_sessions shows nothing from a hub that is down. Pages "
             + "with cursor: follow nextCursor until hasMore=false. status EMPTY: no hub is connected.")
@@ -316,14 +326,16 @@ public class HubsMcpTools {
         Map<String, Optional<String>> versions = scan.probeVersions(hubs);
         List<HubRow> hubRows = new ArrayList<>(hubs.size());
         MarkdownTable table = MarkdownTable.withColumns(
-                "hub", "hub_id", "address", "source", "status", "hub_version");
+                "hub", "hub_id", "kind", "address", "source", "read_only", "status", "hub_version");
         for (HubManager hub : hubs) {
             HubInfo info = hub.info();
             Optional<String> version = versions.getOrDefault(info.hubId(), Optional.empty());
-            HubRow row = new HubRow(info.name(), info.hubId(), address(info), info.source(),
-                    version.isPresent() ? HubStatus.REACHABLE : HubStatus.UNREACHABLE, version.orElse(null));
+            HubRow row = new HubRow(info.name(), info.hubId(), address(info), kind(info), readOnly(info),
+                    info.source(), version.isPresent() ? HubStatus.REACHABLE : HubStatus.UNREACHABLE,
+                    version.orElse(null));
             hubRows.add(row);
-            table.row(row.name(), row.hubId(), row.address(), row.source(), row.status(), row.hubVersion());
+            table.row(row.name(), row.hubId(), row.kind(), row.address(), row.source(), row.readOnly(),
+                    row.status(), row.hubVersion());
         }
         boolean anyReachable = hubRows.stream().anyMatch(row -> row.status() == HubStatus.REACHABLE);
         boolean anyUnreachable = hubRows.stream().anyMatch(row -> row.status() == HubStatus.UNREACHABLE);
@@ -1153,6 +1165,14 @@ public class HubsMcpTools {
 
     private static String address(HubInfo info) {
         return info.address() == null ? null : info.address().identity();
+    }
+
+    private static HubKind kind(HubInfo info) {
+        return info.address() == null ? null : HubKind.of(info.address());
+    }
+
+    private static boolean readOnly(HubInfo info) {
+        return info.address() != null && info.address().readOnly();
     }
 
     /**

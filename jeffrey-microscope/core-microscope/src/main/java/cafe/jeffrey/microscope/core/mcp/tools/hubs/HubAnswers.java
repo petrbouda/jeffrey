@@ -23,6 +23,9 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.hub.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.hub.GrpcHubAddress;
+import cafe.jeffrey.microscope.model.hub.HubAddress;
 import cafe.jeffrey.microscope.model.hub.HubSource;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
@@ -50,12 +53,35 @@ public final class HubAnswers {
         UNREACHABLE
     }
 
+    /** What a hub row stands for: a Jeffrey Hub, or the recording volume read straight from storage. */
+    public enum HubKind {
+        /** A Jeffrey Hub reached over gRPC. */
+        GRPC,
+        /** The recording volume on an Azure file share, read with no hub in between. */
+        AZURE_FILES;
+
+        public static HubKind of(HubAddress address) {
+            return switch (address) {
+                case GrpcHubAddress _ -> GRPC;
+                case AzureFilesAddress _ -> AZURE_FILES;
+            };
+        }
+    }
+
     public record HubRow(
             String name,
             String hubId,
             @McpNullable
-            @McpDescription("host:port the hub is reached at; null when none is recorded")
+            @McpDescription("Where the hub is reached: host:port for GRPC, azure-files:<endpoint>/<share>[/<root>] "
+                    + "for AZURE_FILES; null when none is recorded")
             String address,
+            @McpNullable
+            @McpDescription("GRPC for a Jeffrey Hub, AZURE_FILES for the recording volume read straight from an "
+                    + "Azure file share; null when no address is recorded")
+            HubKind kind,
+            @McpDescription("True for a source read straight from storage: its sessions list and download like "
+                    + "any hub's, but nothing on it can be deleted or pinned")
+            boolean readOnly,
             @McpNullable
             @McpDescription("CONFIG for a hub declared in this installation's configuration, which the UI cannot "
                     + "remove; USER for one added by hand")

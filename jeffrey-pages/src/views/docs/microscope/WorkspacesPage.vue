@@ -126,17 +126,21 @@ onMounted(() => {
       </p>
       <p>
         Such a source carries a <strong>Read-only</strong> badge. With no hub to own the volume,
-        Microscope never writes to it: there is no <strong>Create Workspace</strong>, workspaces
-        and projects cannot be deleted, and deleting or pinning a recording session is
-        refused with a message saying the source is read-only. Whether a session is still recording
+        Microscope never writes to it: there is no <strong>Create Workspace</strong>, and no
+        button to delete a workspace or a project or to delete or pin a recording session (a
+        request that reaches the backend anyway is refused, saying the source is read-only). Pins
+        a hub set are still shown. Whether a session is still recording
         is decided from its heartbeat file, by the same rules the hub applies.
       </p>
 
-      <DocsCallout type="info">
-        <strong>When to use it:</strong> a share Microscope can reach directly makes a hub
-        optional for browsing and downloading recordings. Keep a hub when you need what only a
-        process that owns the volume can do — workspace management from the UI, retention and
-        cleanup, compressing finished recordings.
+      <DocsCallout type="warning">
+        <strong>Keep a hub on the share for upkeep.</strong> Retention, cleanup of stale instances
+        and LZ4 compression of finished recordings are the hub's jobs, because the hub owns the
+        volume. A share that only Microscope reads gets none of them and only grows. Run a Jeffrey
+        Hub on the same volume — it needs no connection from Microscope — and let Microscope read
+        the share directly. They work side by side: the hub writes an archive whole before it
+        removes the original, and a download whose file was just compressed is retried on the
+        archive.
       </DocsCallout>
 
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
