@@ -64,6 +64,13 @@ class DownloadedSessionIndexTest {
                 new RecordingTag("origin.recordingId", ref.sessionId()));
     }
 
+    /** The tags of a whole copy taken once the session had finished. */
+    private static List<RecordingTag> completeTags(HubSessionRef ref) {
+        List<RecordingTag> tags = new ArrayList<>(originTags(ref));
+        tags.add(new RecordingTag(OriginContext.TAG_COMPLETE, "true"));
+        return tags;
+    }
+
     private DownloadedSessionIndex indexOf(List<Recording> local, Map<String, List<RecordingTag>> tags) {
         when(recordings.listRecordings()).thenReturn(local);
         if (!local.isEmpty()) {
@@ -273,6 +280,51 @@ class DownloadedSessionIndexTest {
                     Map.of("rec-old", originTags(REF), "rec-new", originTags(REF)));
 
             assertEquals("rec-new", index.find(REF).orElseThrow().recordingId());
+        }
+    }
+
+    /**
+     * A copy taken while the session was still recording stops where the session stood then: it is
+     * here, but only a copy of the finished session stands in for it.
+     */
+    @Nested
+    class Completeness {
+
+        @Test
+        void aCopyOfAFinishedSessionIsComplete() {
+            DownloadedSessionIndex index = indexOf(
+                    List.of(recording("rec-1", null, CREATED_AT)),
+                    Map.of("rec-1", completeTags(REF)));
+
+            assertTrue(index.find(REF).orElseThrow().complete());
+        }
+
+        @Test
+        void aCopyOfARunningSessionIsHereButNotComplete() {
+            DownloadedSessionIndex index = indexOf(
+                    List.of(recording("rec-1", null, CREATED_AT)),
+                    Map.of("rec-1", originTags(REF)));
+
+            assertFalse(index.find(REF).orElseThrow().complete());
+        }
+
+        /**
+         * Preferring the analysed partial copy would have every later download of the session
+         * fetch it again, since the copy it is answered with is never complete.
+         */
+        @Test
+        void theCompleteCopyWinsOverAnAnalysedPartialOne() {
+            profileReady("profile-1", true);
+            DownloadedSessionIndex index = indexOf(
+                    List.of(
+                            recording("rec-partial", "profile-1", CREATED_AT),
+                            recording("rec-complete", null, CREATED_AT.plusSeconds(3600))),
+                    Map.of("rec-partial", originTags(REF), "rec-complete", completeTags(REF)));
+
+            DownloadedSessionIndex.LocalCopy copy = index.find(REF).orElseThrow();
+
+            assertEquals("rec-complete", copy.recordingId());
+            assertTrue(copy.complete());
         }
     }
 }

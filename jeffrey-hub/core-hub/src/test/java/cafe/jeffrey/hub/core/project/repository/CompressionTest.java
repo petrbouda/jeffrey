@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -77,8 +78,8 @@ class CompressionTest {
             assertEquals(HubManagedFile.JFR_LZ4, archived);
             assertTrue(archived.isArchive());
             assertEquals(
-                    HubManagedFile.JFR.timestampResolver().resolve(source),
-                    archived.timestampResolver().resolve(target),
+                    HubManagedFile.JFR.timestampResolver().resolve(source, ZoneOffset.UTC),
+                    archived.timestampResolver().resolve(target, ZoneOffset.UTC),
                     "the archive answers with the instant the profiler opened the chunk");
             assertEquals(
                     HubManagedFile.JFR.idOf(source),

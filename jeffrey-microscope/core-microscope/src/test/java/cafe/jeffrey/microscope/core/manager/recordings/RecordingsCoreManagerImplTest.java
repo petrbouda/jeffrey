@@ -185,7 +185,7 @@ class RecordingsCoreManagerImplTest {
 
             Recording heap = members.getValue().get(1);
             assertEquals(RecordingEventSource.HEAP_DUMP, heap.eventSource());
-            assertEquals("heap.hprof", heap.recordingName());
+            assertEquals("checkout_2026-03-01T12-00-00Z_heap.hprof", heap.recordingName());
 
             assertTrue(members.getValue().stream().allMatch(member -> bundle.getValue().id().equals(member.bundleId())));
             assertEquals(List.of("gc.jvm-log"), bundle.getValue().files().stream().map(BundleFile::filename).toList());

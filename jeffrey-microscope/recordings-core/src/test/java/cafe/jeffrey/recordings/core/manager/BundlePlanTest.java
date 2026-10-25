@@ -39,12 +39,16 @@ class BundlePlanTest {
         assertEquals(2, plan.items().getFirst().files().size());
     }
 
+    /**
+     * Every session's heap dump has the same file name; once initialized the item leaves the bundle
+     * for the list of profiles, so its name carries the bundle's.
+     */
     @Test
     void eachHeapDumpIsAnItemOfItsOwnAfterTheRecording() {
         BundlePlan plan = BundlePlan.of("checkout", List.of(DIR.resolve("chunk-1.jfr")),
                 List.of(DIR.resolve("heap-1.hprof"), DIR.resolve("heap-2.hprof.gz")));
 
-        assertEquals(List.of("checkout", "heap-1.hprof", "heap-2.hprof.gz"),
+        assertEquals(List.of("checkout", "checkout_heap-1.hprof", "checkout_heap-2.hprof.gz"),
                 plan.items().stream().map(BundlePlan.Item::name).toList());
         assertEquals(List.of(), plan.files());
     }
@@ -54,7 +58,7 @@ class BundlePlanTest {
         BundlePlan plan = BundlePlan.of("checkout", List.of(DIR.resolve("chunk-1.jfr")),
                 List.of(DIR.resolve("perf-counters.hsperfdata")));
 
-        assertEquals(List.of("checkout", "perf-counters.hsperfdata"),
+        assertEquals(List.of("checkout", "checkout_perf-counters.hsperfdata"),
                 plan.items().stream().map(BundlePlan.Item::name).toList());
         assertEquals(List.of(), plan.files());
     }

@@ -38,6 +38,25 @@ public record OriginContext(
      */
     public static final String TAG_WINDOW = "origin.window";
 
+    /**
+     * Present on a whole-session copy taken once the session had finished. A copy of a session
+     * still recording holds the chunks it had then, so only a copy carrying this is handed back
+     * as "already here" instead of downloading the session again.
+     */
+    public static final String TAG_COMPLETE = "origin.complete";
+
+    /**
+     * When the hub session started (epoch millis). The recording's name shows it too, but a name is a
+     * label nothing reads back: this is where the fact is kept.
+     */
+    public static final String TAG_SESSION_STARTED_AT = "origin.sessionStartedAt";
+
+    /**
+     * The instance (replica) whose session this is. Two replicas of a project can start a session in
+     * the same second, and their copies are told apart here, not by their names.
+     */
+    public static final String TAG_INSTANCE_ID = "origin.instanceId";
+
     /** The keys a downloaded recording is matched back to its hub session by. */
     public static final String TAG_HUB_ID = "origin.hubId";
     public static final String TAG_WORKSPACE_ID = "origin.workspaceId";

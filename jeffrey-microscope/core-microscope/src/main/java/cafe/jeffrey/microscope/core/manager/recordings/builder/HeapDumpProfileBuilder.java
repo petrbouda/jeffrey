@@ -123,14 +123,18 @@ public final class HeapDumpProfileBuilder implements ProfileBuilder {
             throw new UncheckedIOException("Failed to copy heap dump to analysis directory", e);
         }
 
+        // Named after the recording, like every other profile: an upload's recording is its file's
+        // name, and a bundle's heap-dump item says whose session the dump is from.
+        String profileName = recording.recordingName();
+
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, file.filename(),
+                profileId, null, null, profileName,
                 RecordingEventSource.HEAP_DUMP,
                 createdAt, createdAt, createdAt, true, false, recording.id());
 
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
         profileRepository.insert(new ProfileRepository.InsertProfile(
-                file.filename(),
+                profileName,
                 RecordingEventSource.HEAP_DUMP, createdAt,
                 recording.id(),
                 createdAt, createdAt));

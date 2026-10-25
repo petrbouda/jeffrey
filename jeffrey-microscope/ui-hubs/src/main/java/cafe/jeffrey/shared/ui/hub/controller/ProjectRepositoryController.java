@@ -53,6 +53,12 @@ public class ProjectRepositoryController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectRepositoryController.class);
 
+    /**
+     * Between the session's id and the file's name in a downloaded file's name: a file straight off
+     * the hub belongs to no bundle yet, and every session names its heap dump alike.
+     */
+    private static final String SESSION_FILE_SEPARATOR = "-";
+
     private final RemoteProjectAccess projectAccess;
     private final Clock clock;
 
@@ -133,7 +139,7 @@ public class ProjectRepositoryController {
         };
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + sessionId + "-" + file.fileName() + "\"")
+                        DownloadHeaders.attachment(sessionId + SESSION_FILE_SEPARATOR + file.fileName()))
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(body);
     }

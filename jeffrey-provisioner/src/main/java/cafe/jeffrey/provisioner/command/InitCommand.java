@@ -61,7 +61,9 @@ public class InitCommand implements Callable<Integer> {
             if (config.isProvisionerVerbose()) {
                 VerboseLogging.enable();
             }
-            new InitExecutor(Clock.systemUTC()).execute(config);
+            // The machine's own zone, not UTC: the session marker records it, because async-profiler
+            // writes the timestamp in a recording's name in this zone and the hub has to read it back.
+            new InitExecutor(Clock.systemDefaultZone()).execute(config);
             return ExitCode.OK;
         } catch (Exception e) {
             LOG.error("Init failed", e);

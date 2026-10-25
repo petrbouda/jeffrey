@@ -33,6 +33,7 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 
 import java.io.IOException;
@@ -525,11 +526,23 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     private static final String WINDOW_NAME_SEPARATOR = "_";
     private static final String OPEN_WINDOW_END = "open";
     private static final String WINDOW_TAG_SEPARATOR = "-";
+    private static final String PART_MARK = "part";
+    private static final String FALLBACK_NAME = "recording";
 
     /**
-     * What the local recording is called in the Recordings list:
-     * {@code <project>_<session start>} for a whole session, with the covered span appended for a
-     * part of one, so two windows of the same session read apart and neither reads as the session.
+     * What may not appear in a name segment: anything but letters and digits of any script, dots,
+     * underscores and dashes. A name is not a file name, but profile exports are named after it.
+     */
+    private static final String NOT_A_NAME_CHARACTER = "[^\\p{L}\\p{N}._-]+";
+    private static final String NAME_CHARACTER_REPLACEMENT = "-";
+
+    /**
+     * What the local recording is called in the Recordings list: {@code <project>_<session start>},
+     * with {@code _part} after it for a part of the session, so a part never reads as the whole.
+     *
+     * <p>A label for a reader, and nothing reads it back. What it says, and what it leaves out — the
+     * span a part covers, when it was downloaded, which instance recorded it — is kept where it can
+     * be read: the {@code origin.*} tags and the recording's own columns.
      *
      * <p>A name, not a file name. The recording is the several files it arrived as, each keeping
      * the name the session gave it; there is no single file left for this to be the name of.
@@ -537,24 +550,17 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * @param window the covered span, or {@code null} for the whole session
      */
     private String recordingName(RecordingSession session, ChunkWindow.Selection window) {
-        String name = sanitizeForFilename(originContext.projectName()) + WINDOW_NAME_SEPARATOR
+        String name = nameSegment(originContext.projectName()) + WINDOW_NAME_SEPARATOR
                 + RECORDING_NAME_TIMESTAMP.format(session.createdAt());
-        if (window == null) {
-            return name;
-        }
-        String end = window.coverageEnd() == null
-                ? OPEN_WINDOW_END
-                : RECORDING_NAME_TIMESTAMP.format(window.coverageEnd());
-        return name + WINDOW_NAME_SEPARATOR + RECORDING_NAME_TIMESTAMP.format(window.coverageStart())
-                + WINDOW_NAME_SEPARATOR + end;
+        return window == null ? name : name + WINDOW_NAME_SEPARATOR + PART_MARK;
     }
 
-    private static String sanitizeForFilename(String value) {
+    private static String nameSegment(String value) {
         if (value == null || value.isBlank()) {
-            return "recording";
+            return FALLBACK_NAME;
         }
-        String sanitized = value.trim().replaceAll("[^A-Za-z0-9._-]+", "-");
-        return sanitized.isEmpty() ? "recording" : sanitized;
+        String sanitized = value.trim().replaceAll(NOT_A_NAME_CHARACTER, NAME_CHARACTER_REPLACEMENT);
+        return sanitized.isEmpty() ? FALLBACK_NAME : sanitized;
     }
 
     /**
@@ -571,8 +577,16 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
 
         String recordingSessionId = session.id();
         Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
+        originTags.put(OriginContext.TAG_SESSION_STARTED_AT, Long.toString(session.createdAt().toEpochMilli()));
+        if (session.instanceId() != null) {
+            originTags.put(OriginContext.TAG_INSTANCE_ID, session.instanceId());
+        }
         if (window != null) {
             originTags.put(OriginContext.TAG_WINDOW, windowTag(window));
+        } else if (session.status() == RecordingStatus.FINISHED) {
+            // Only a finished session's whole copy is the session for good: a running one keeps
+            // writing chunks, and a copy of it answers for the session as it stood at the download.
+            originTags.put(OriginContext.TAG_COMPLETE, Boolean.TRUE.toString());
         }
         return recordingsManager.createDownloadedBundle(
                 recordingName(session, window), recordingPaths, artifactPaths, originTags);

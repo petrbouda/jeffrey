@@ -49,12 +49,13 @@ class RemoteProjectInstanceSessionSerdeTest {
 
         RemoteProjectInstanceSession session = Json.read(olderFormat, RemoteProjectInstanceSession.class);
 
-        assertEquals(new RemoteProjectInstanceSession("session-001", 1700000000000L), session);
+        assertEquals(new RemoteProjectInstanceSession("session-001", 1700000000000L, null), session);
     }
 
     @Test
     void currentSessionInfo_roundTrips() {
-        RemoteProjectInstanceSession session = new RemoteProjectInstanceSession("session-001", 1700000000000L);
+        RemoteProjectInstanceSession session =
+                new RemoteProjectInstanceSession("session-001", 1700000000000L, "Europe/Prague");
 
         RemoteProjectInstanceSession read = Json.read(Json.toString(session), RemoteProjectInstanceSession.class);
 

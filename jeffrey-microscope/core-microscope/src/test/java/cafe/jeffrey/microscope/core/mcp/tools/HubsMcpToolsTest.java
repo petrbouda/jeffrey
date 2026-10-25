@@ -45,6 +45,7 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -88,6 +89,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -221,15 +223,25 @@ class HubsMcpToolsTest {
         when(recordingsManager.listRecordings()).thenReturn(List.of());
     }
 
+    /** A whole copy of the session, taken once it had finished. */
     private void localRecording(String recordingId, String profileId, HubSessionRef ref) {
+        localRecording(recordingId, profileId, ref, true);
+    }
+
+    /** A copy of the session as one download left it: whole once finished, or taken while recording. */
+    private void localRecording(String recordingId, String profileId, HubSessionRef ref, boolean complete) {
         when(recordingsManager.listRecordings()).thenReturn(List.of(new Recording(
                 recordingId, recordingId, null, RecordingEventSource.JDK, NOW, NOW, NOW,
                 profileId != null, profileId, profileId, List.of())));
-        when(recordingsManager.tagsForRecordings(any())).thenReturn(Map.of(recordingId, List.of(
+        List<RecordingTag> tags = new ArrayList<>(List.of(
                 new RecordingTag("origin.hubId", ref.hubId()),
                 new RecordingTag("origin.workspaceId", ref.workspaceId()),
                 new RecordingTag("origin.projectId", ref.projectId()),
-                new RecordingTag("origin.recordingId", ref.sessionId()))));
+                new RecordingTag("origin.recordingId", ref.sessionId())));
+        if (complete) {
+            tags.add(new RecordingTag(OriginContext.TAG_COMPLETE, "true"));
+        }
+        when(recordingsManager.tagsForRecordings(any())).thenReturn(Map.of(recordingId, tags));
         if (profileId != null) {
             ProfileInfo profileInfo = mock(ProfileInfo.class);
             when(profileInfo.enabled()).thenReturn(true);
@@ -1002,6 +1014,23 @@ class HubsMcpToolsTest {
 
             assertTrue(result.contains("rec-existing"), result);
             verifyNoInteractions(resolver);
+        }
+
+        /**
+         * A copy taken while the session was still recording stops where the session stood then;
+         * handed back, it would answer for the session with the chunks of an hour ago.
+         */
+        @Test
+        void downloadsAgainWhenTheCopyHereWasTakenWhileTheSessionWasRecording() {
+            localRecording("rec-partial", null, REF, false);
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
+
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+
+            assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
+            verify(downloads).downloadSession(SESSION_ID);
         }
 
         @Test

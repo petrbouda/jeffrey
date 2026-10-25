@@ -203,7 +203,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>.session-info.json</code>
-              <p>The session's ID and start time &mdash; all the Hub reads from it. Its instance, project and workspace are the directories it sits in, and its place among the instance's sessions is its start time.</p>
+              <p>The session's ID, start time and the machine's time zone &mdash; all the Hub reads from it; the zone is what the timestamps in the recordings' names are local to. Its instance, project and workspace are the directories it sits in, and its place among the instance's sessions is its start time.</p>
             </div>
           </div>
         </div>

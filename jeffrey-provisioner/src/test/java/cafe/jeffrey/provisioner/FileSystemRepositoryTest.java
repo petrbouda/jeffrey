@@ -24,13 +24,14 @@ import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
+import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,7 +46,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class FileSystemRepositoryTest {
 
     private static final Instant NOW = Instant.parse("2026-02-20T15:30:45.123Z");
-    private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
+    private static final String MACHINE_ZONE = "Europe/Prague";
+    private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneId.of(MACHINE_ZONE));
 
     private static final String WORKSPACE_REF_ID = "ws-001";
     private static final String PROJECT_ID = "proj-001";
@@ -60,7 +62,7 @@ class FileSystemRepositoryTest {
     private static final Set<String> PROJECT_INFO_FIELDS =
             Set.of("projectId", "projectName", "createdAt", "attributes");
     private static final Set<String> INSTANCE_INFO_FIELDS = Set.of("instanceId", "createdAt");
-    private static final Set<String> SESSION_INFO_FIELDS = Set.of("sessionId", "createdAt");
+    private static final Set<String> SESSION_INFO_FIELDS = Set.of("sessionId", "createdAt", "zoneId");
 
     private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {
     };
@@ -123,6 +125,24 @@ class FileSystemRepositoryTest {
             repository.addSession(SESSION_ID, sessionPath);
 
             assertEquals(SESSION_INFO_FIELDS, fieldsOf(sessionPath.resolve(JeffreyLayout.SESSION_INFO_FILE)));
+        }
+
+        /**
+         * async-profiler writes the {@code %t} in a recording's name in the machine's local time, so
+         * the session says which zone that is; the hub reads the name back in it.
+         */
+        @Test
+        void addSession_recordsTheMachinesTimeZone() throws IOException {
+            Path sessionPath = Files.createDirectories(
+                    workspacePath().resolve(PROJECT_NAME).resolve(INSTANCE_ID).resolve(SESSION_ID));
+
+            repository.addSession(SESSION_ID, sessionPath);
+
+            RemoteProjectInstanceSession marker = Json.read(
+                    Files.readString(sessionPath.resolve(JeffreyLayout.SESSION_INFO_FILE)),
+                    RemoteProjectInstanceSession.class);
+            assertEquals(MACHINE_ZONE, marker.zoneId());
+            assertEquals(NOW.toEpochMilli(), marker.createdAt());
         }
 
         /**

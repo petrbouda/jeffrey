@@ -195,8 +195,9 @@ with its `recordingId`, `eventSource` (`JDK` or `ASYNC_PROFILER` for the recordi
 `PERF_COUNTERS`), `name` and `profileId` once it has one; when there are heap dumps the answer's
 guidance names them. A part of a session reports `coveredStartEpochMs` / `coveredEndEpochMs`, the span
 its files cover. A part is a bundle of its own: it is never answered from a whole-session copy that
-is already here, and the Recordings list names it after its span so two windows of one session read
-apart.
+is already here, and the Recordings list marks it as a part (its span is in the `origin.window`
+tag), so it never reads as the whole session. A whole session is answered from the copy already here only when that copy was taken after the
+session finished; a copy taken while it was still recording is downloaded again as a new bundle.
 
 It does **not** build a profile; `recordings_analyzeRecording(recordingId)` does that, one item at a
 time, and returns the `profileId` every analysis tool takes. The `recordingId` at the top of the

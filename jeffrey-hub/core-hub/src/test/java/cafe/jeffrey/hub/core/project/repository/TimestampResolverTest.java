@@ -27,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -61,7 +63,22 @@ class TimestampResolverTest {
         void readsTheInstantTheProfilerWroteIntoIt() {
             assertEquals(
                     Instant.parse("2026-02-20T12:05:00Z"),
-                    TimestampResolver.RECORDING_NAME.resolve(dir.resolve("profile-20260220-120500.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(
+                            dir.resolve("profile-20260220-120500.jfr"), ZoneOffset.UTC));
+        }
+
+        /**
+         * async-profiler writes {@code %t} in the profiled machine's local time, so a JVM in Prague
+         * names a chunk it opened at 12:05 UTC {@code 13:05} in winter. Read as UTC it would claim
+         * to start an hour late, and every window and retention cut taken from it would be off by
+         * that hour.
+         */
+        @Test
+        void readsTheNameInTheZoneTheSessionRanIn() {
+            assertEquals(
+                    Instant.parse("2026-02-20T12:05:00Z"),
+                    TimestampResolver.RECORDING_NAME.resolve(
+                            dir.resolve("profile-20260220-130500.jfr"), ZoneId.of("Europe/Prague")));
         }
 
         /**
@@ -75,8 +92,10 @@ class TimestampResolverTest {
         @Test
         void isUnchangedByTheFileBeingCompressed() {
             assertEquals(
-                    TimestampResolver.RECORDING_NAME.resolve(dir.resolve("profile-20260220-120500.jfr")),
-                    TimestampResolver.RECORDING_NAME.resolve(dir.resolve("profile-20260220-120500.jfr.lz4")));
+                    TimestampResolver.RECORDING_NAME.resolve(
+                            dir.resolve("profile-20260220-120500.jfr"), ZoneOffset.UTC),
+                    TimestampResolver.RECORDING_NAME.resolve(
+                            dir.resolve("profile-20260220-120500.jfr.lz4"), ZoneOffset.UTC));
         }
     }
 
@@ -87,7 +106,8 @@ class TimestampResolverTest {
         void forARecordingNamedWithAnotherPrefix() throws IOException {
             Path file = write("recording-20260220-120500.jfr");
 
-            assertEquals(FileSystemUtils.createdAt(file), TimestampResolver.RECORDING_NAME.resolve(file));
+            assertEquals(FileSystemUtils.createdAt(file),
+                    TimestampResolver.RECORDING_NAME.resolve(file, ZoneOffset.UTC));
         }
 
         /**
@@ -98,14 +118,15 @@ class TimestampResolverTest {
         void forATimestampThatDoesNotParse() throws IOException {
             Path file = write("profile-not-a-timestamp.jfr");
 
-            assertEquals(FileSystemUtils.createdAt(file), TimestampResolver.RECORDING_NAME.resolve(file));
+            assertEquals(FileSystemUtils.createdAt(file),
+                    TimestampResolver.RECORDING_NAME.resolve(file, ZoneOffset.UTC));
         }
 
         @Test
         void forAFileThatIsNotARecording() throws IOException {
             Path log = write("service-app.log");
 
-            assertEquals(FileSystemUtils.createdAt(log), TimestampResolver.FILESYSTEM.resolve(log));
+            assertEquals(FileSystemUtils.createdAt(log), TimestampResolver.FILESYSTEM.resolve(log, ZoneOffset.UTC));
         }
     }
 }

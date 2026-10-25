@@ -87,7 +87,7 @@ onMounted(() => {
 └── .session-info.json           # Session metadata</code></pre>
         </div>
 
-        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp.</p>
+        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone; the session's <code>.session-info.json</code> records that zone so the Hub reads the timestamp back correctly.</p>
 
         <DocsCallout type="info">
           <strong>Liveness files:</strong> the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> — loaded from <code>jeffrey-agent.path</code>, so nothing of it lands in the session — or, with the agent switched off, the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> on clean exit. The hub reads these files whenever it reads the session: it reports the session finished as soon as the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.

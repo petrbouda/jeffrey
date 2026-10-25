@@ -25,7 +25,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.function.Supplier;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
@@ -33,6 +33,10 @@ import java.time.format.DateTimeParseException;
  * The instant async-profiler wrote into the file's name ({@code profile-20260220-120500.jfr}), read
  * the same from its {@code .lz4} archive. A name outside the convention falls back to the
  * filesystem, logged at debug since this runs per file per listing.
+ *
+ * <p>async-profiler expands {@code %t} in the profiled machine's local time ({@code localtime_r}),
+ * so the name is read in the zone the session recorded, not in UTC: read as UTC, every chunk of a
+ * JVM running in Prague would claim to start an hour or two later than it did.
  */
 final class RecordingNameTimestamp implements TimestampResolver {
 
@@ -44,11 +48,12 @@ final class RecordingNameTimestamp implements TimestampResolver {
     private static final String COMPRESSED_SUFFIX = ".lz4";
 
     @Override
-    public Instant resolve(Path file, Supplier<BasicFileAttributes> attributes) {
+    public Instant resolve(Path file, ZoneId zone, Supplier<BasicFileAttributes> attributes) {
         String name = uncompressed(file.getFileName().toString());
 
         if (name.startsWith(PREFIX) && name.endsWith(RECORDING_SUFFIX)) {
-            Instant createdAt = parse(name.substring(PREFIX.length(), name.length() - RECORDING_SUFFIX.length()));
+            String timestamp = name.substring(PREFIX.length(), name.length() - RECORDING_SUFFIX.length());
+            Instant createdAt = parse(timestamp, zone);
             if (createdAt != null) {
                 return createdAt;
             }
@@ -59,7 +64,7 @@ final class RecordingNameTimestamp implements TimestampResolver {
                     + "filename={} expected_prefix={}", name, PREFIX);
         }
 
-        return FILESYSTEM.resolve(file, attributes);
+        return FILESYSTEM.resolve(file, zone, attributes);
     }
 
     private static String uncompressed(String filename) {
@@ -69,9 +74,9 @@ final class RecordingNameTimestamp implements TimestampResolver {
         return filename;
     }
 
-    private static Instant parse(String timestamp) {
+    private static Instant parse(String timestamp, ZoneId zone) {
         try {
-            return LocalDateTime.parse(timestamp, FORMATTER).toInstant(ZoneOffset.UTC);
+            return LocalDateTime.parse(timestamp, FORMATTER).atZone(zone).toInstant();
         } catch (DateTimeParseException e) {
             return null;
         }

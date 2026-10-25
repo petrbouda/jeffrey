@@ -71,8 +71,14 @@ public final class TestVolume {
     }
 
     public static Path session(Path instanceDir, String sessionId, Instant createdAt) {
+        return session(instanceDir, sessionId, createdAt, null);
+    }
+
+    /** A session whose marker records the time zone its machine runs in; {@code null} for none. */
+    public static Path session(Path instanceDir, String sessionId, Instant createdAt, String zoneId) {
         Path dir = directories(instanceDir.resolve(sessionId));
-        RemoteProjectInstanceSession marker = new RemoteProjectInstanceSession(sessionId, createdAt.toEpochMilli());
+        RemoteProjectInstanceSession marker =
+                new RemoteProjectInstanceSession(sessionId, createdAt.toEpochMilli(), zoneId);
         write(dir.resolve(JeffreyLayout.SESSION_INFO_FILE), Json.toString(marker));
         return dir;
     }

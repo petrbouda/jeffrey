@@ -30,7 +30,10 @@ import java.util.List;
  * Every recording file of the session — the JFR chunks — together make one item: they are one run of
  * the profiler, and analysing any one chunk alone would quietly answer for a few minutes of a run that
  * lasted hours. Each artifact that can be initialized on its own — a heap dump, a perf-counters
- * snapshot — is an item of its own, named after its file. Everything else, the logs and crash files, is a file of the bundle.
+ * snapshot — is an item of its own, named after the bundle and its file: every session's heap dump
+ * is {@code heap-dump.hprof.gz}, and once initialized the item leaves the bundle for the list of
+ * profiles, where the file's name alone would not say whose it is. Everything else, the logs and
+ * crash files, is a file of the bundle.
  *
  * @param name  the bundle's name, which its recording item is called by as well
  * @param items the initializable items, the recording item first
@@ -54,6 +57,9 @@ public record BundlePlan(String name, List<Item> items, List<Path> files) {
         }
     }
 
+    /** Between the bundle's name and an artifact item's file name. */
+    private static final String ITEM_NAME_SEPARATOR = "_";
+
     public BundlePlan {
         items = List.copyOf(items);
         files = List.copyOf(files);
@@ -75,7 +81,7 @@ public record BundlePlan(String name, List<Item> items, List<Path> files) {
         List<Path> files = new ArrayList<>();
         for (Path artifact : artifactFiles) {
             if (ManagedFile.of(artifact).isInitializable()) {
-                items.add(new Item(artifact.getFileName().toString(), List.of(artifact)));
+                items.add(new Item(name + ITEM_NAME_SEPARATOR + artifact.getFileName(), List.of(artifact)));
             } else {
                 files.add(artifact);
             }

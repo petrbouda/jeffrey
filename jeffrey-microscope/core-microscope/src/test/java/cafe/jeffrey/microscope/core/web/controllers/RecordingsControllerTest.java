@@ -24,6 +24,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -37,6 +38,7 @@ import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.ui.hub.controller.RecordingsController;
 
@@ -222,19 +224,59 @@ class RecordingsControllerTest {
             verify(recordingsManager).deleteBundle("bundle-1");
         }
 
+        /** Saved under the name the file is known by: the storage prefix in front of it is not part of it. */
         @Test
-        void downloadsABundleFile(@TempDir Path dir) throws IOException {
-            Path log = Files.writeString(dir.resolve("gc.jvm-log"), "[0.001s][info][gc] Using G1");
+        void downloadsABundleFileUnderItsOwnName(@TempDir Path dir) throws IOException {
+            Path log = Files.writeString(dir.resolve("bundle-1-gc.jvm-log"), "[0.001s][info][gc] Using G1");
             when(recordingsManager.findBundleFile("bundle-1", "bf-1")).thenReturn(Optional.of(log));
+            when(recordingsManager.findBundle("bundle-1")).thenReturn(Optional.of(bundleWithFile("gc.jvm-log")));
 
             ResponseEntity<Resource> response = new RecordingsController(
                     recordingsManager, RecordingProfileInfoProvider.NOOP).downloadBundleFile("bundle-1", "bf-1");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
-                    .isEqualTo("attachment; filename=\"gc.jvm-log\"");
+            assertThat(savedAs(response)).isEqualTo("gc.jvm-log");
             assertThat(response.getBody().getContentAsString(StandardCharsets.UTF_8))
                     .isEqualTo("[0.001s][info][gc] Using G1");
+        }
+
+        /** A name with a quote or outside ASCII arrives whole instead of breaking the header. */
+        @Test
+        void aNameOutsideAsciiOrWithAQuoteSurvivesTheHeader(@TempDir Path dir) throws IOException {
+            String name = "zahlungsdienst-\"ü\".jvm-log";
+            Path log = Files.writeString(dir.resolve("bundle-1-log"), "log");
+            when(recordingsManager.findBundleFile("bundle-1", "bf-1")).thenReturn(Optional.of(log));
+            when(recordingsManager.findBundle("bundle-1")).thenReturn(Optional.of(bundleWithFile(name)));
+
+            ResponseEntity<Resource> response = new RecordingsController(
+                    recordingsManager, RecordingProfileInfoProvider.NOOP).downloadBundleFile("bundle-1", "bf-1");
+
+            assertThat(savedAs(response)).isEqualTo(name);
+        }
+
+        @Test
+        void downloadsARecordingFileUnderItsOwnName(@TempDir Path dir) throws IOException {
+            Path chunk = Files.writeString(dir.resolve("rec-1-profile-20260220-120500.jfr"), "chunk");
+            when(recordingsManager.findRecordingFile("rec-1", "rf-1")).thenReturn(Optional.of(chunk));
+            when(recordingsManager.findRecording("rec-1")).thenReturn(Optional.of(new Recording(
+                    "rec-1", "checkout", null, RecordingEventSource.JDK, Instant.EPOCH, null, null,
+                    false, null, null, List.of(new RecordingFile(
+                            "rf-1", "rec-1", "profile-20260220-120500.jfr", ManagedFile.JFR, Instant.EPOCH, 5L)))));
+
+            ResponseEntity<Resource> response = new RecordingsController(
+                    recordingsManager, RecordingProfileInfoProvider.NOOP).downloadFile("rec-1", "rf-1");
+
+            assertThat(savedAs(response)).isEqualTo("profile-20260220-120500.jfr");
+        }
+
+        private static Bundle bundleWithFile(String filename) {
+            return new Bundle("bundle-1", "checkout", null, Instant.EPOCH, List.of(
+                    new BundleFile("bf-1", "bundle-1", filename, ManagedFile.of(filename), Instant.EPOCH, 3L)));
+        }
+
+        private static String savedAs(ResponseEntity<Resource> response) {
+            return ContentDisposition.parse(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                    .getFilename();
         }
 
         @Test

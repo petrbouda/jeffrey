@@ -22,6 +22,7 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.function.Supplier;
 
 /**
@@ -32,16 +33,21 @@ import java.util.function.Supplier;
 @FunctionalInterface
 public interface TimestampResolver {
 
-    /** When the file was opened; never {@code null} — falls back to the filesystem rather than failing. */
-    Instant resolve(Path file, Supplier<BasicFileAttributes> attributes);
+    /**
+     * When the file was opened; never {@code null} — falls back to the filesystem rather than failing.
+     *
+     * @param zone the time zone of the machine that wrote the session, which a timestamp in a file's
+     *             name is local to
+     */
+    Instant resolve(Path file, ZoneId zone, Supplier<BasicFileAttributes> attributes);
 
     /** For a caller without the file's attributes at hand; they are read only if needed. */
-    default Instant resolve(Path file) {
-        return resolve(file, () -> FileSystemUtils.readAttributes(file));
+    default Instant resolve(Path file, ZoneId zone) {
+        return resolve(file, zone, () -> FileSystemUtils.readAttributes(file));
     }
 
     /** The file's creation time as the filesystem reports it; wrong for a rewritten file. */
-    TimestampResolver FILESYSTEM = (file, attributes) -> attributes.get().creationTime().toInstant();
+    TimestampResolver FILESYSTEM = (file, zone, attributes) -> attributes.get().creationTime().toInstant();
 
     /** The instant async-profiler wrote into the file's own name, falling back to the filesystem. */
     TimestampResolver RECORDING_NAME = new RecordingNameTimestamp();

@@ -44,6 +44,10 @@ import java.util.Set;
  * every one carrying the same tags. Only the recording item is the session's local copy — a heap dump
  * analysed on its own must never be reported as the session's analysis.
  * <p>
+ * A copy of a session that was still recording holds the chunks it had at the time. It is listed as
+ * here, but only a {@link LocalCopy#complete() complete} one — taken once the session had finished —
+ * stands in for the session, so a download is declined only for that one.
+ * <p>
  * Built forward and in bulk — one listing plus one tag query — because nothing looks recordings up
  * by tag value, and adding such a query for this would be a schema change to save a pass over a list
  * that is small by construction.
@@ -68,8 +72,9 @@ public final class DownloadedSessionIndex {
      *
      * @param bundleId the bundle the recording came in, holding the session's other items; {@code null}
      *                 for a copy made before downloads were bundled
+     * @param complete whether the copy was taken once the session had finished, and so holds all of it
      */
-    public record LocalCopy(String bundleId, String recordingId, String profileId) {
+    public record LocalCopy(String bundleId, String recordingId, String profileId, boolean complete) {
 
         public boolean analysed() {
             return profileId != null;
@@ -96,7 +101,7 @@ public final class DownloadedSessionIndex {
                             .map(profile -> profile.info().enabled())
                             .orElse(false));
                 }
-                newest.merge(ref, recording, (left, right) -> preferred(left, right, readyProfiles));
+                newest.merge(ref, recording, (left, right) -> preferred(left, right, readyProfiles, tags));
             });
         }
 
@@ -104,7 +109,8 @@ public final class DownloadedSessionIndex {
         newest.forEach((ref, recording) -> byRef.put(ref, new LocalCopy(
                 recording.bundleId(),
                 recording.id(),
-                Boolean.TRUE.equals(readyProfiles.get(recording.profileId())) ? recording.profileId() : null)));
+                Boolean.TRUE.equals(readyProfiles.get(recording.profileId())) ? recording.profileId() : null,
+                isComplete(tags.get(recording.id())))));
         return new DownloadedSessionIndex(byRef);
     }
 
@@ -149,11 +155,29 @@ public final class DownloadedSessionIndex {
         }
     }
 
+    /** Whether a copy carries the tag a whole download of a finished session is given. */
+    private static boolean isComplete(List<RecordingTag> tags) {
+        if (tags == null) {
+            return false;
+        }
+        return tags.stream().anyMatch(tag -> OriginContext.TAG_COMPLETE.equals(tag.key())
+                && Boolean.parseBoolean(tag.value()));
+    }
+
     /**
-     * Which of two downloads of the same session to point the reader at: the analysed one, because
-     * it is the one they can use immediately, and otherwise the newer.
+     * Which of two downloads of the same session to point the reader at: the complete one, because
+     * only it stands in for the session — preferring a partial copy would have every download of
+     * the session fetch it again — then the analysed one, because it is the one they can use
+     * immediately, and otherwise the newer.
      */
-    private static Recording preferred(Recording left, Recording right, Map<String, Boolean> readyProfiles) {
+    private static Recording preferred(
+            Recording left, Recording right, Map<String, Boolean> readyProfiles, Map<String, List<RecordingTag>> tags) {
+
+        boolean leftComplete = isComplete(tags.get(left.id()));
+        boolean rightComplete = isComplete(tags.get(right.id()));
+        if (leftComplete != rightComplete) {
+            return leftComplete ? left : right;
+        }
         boolean leftReady = Boolean.TRUE.equals(readyProfiles.get(left.profileId()));
         boolean rightReady = Boolean.TRUE.equals(readyProfiles.get(right.profileId()));
         if (leftReady != rightReady) {

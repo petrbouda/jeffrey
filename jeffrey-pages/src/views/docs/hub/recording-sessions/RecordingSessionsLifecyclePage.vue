@@ -86,8 +86,8 @@ onMounted(() => {
           <strong>Selective analysis:</strong> You don't need the whole session. Select specific time periods to analyze - for example, only the startup phase or a specific incident window. The chunks you pick are fetched separately and kept as the several files the recording is made of; they must be an unbroken run, because the recording reports one span across the files it holds and a hole inside that span would be invisible.
         </DocsCallout>
 
-        <DocsCallout type="warning">
-          <strong>Run the profiled JVM in UTC.</strong> A chunk is ordered and selected by the timestamp in its own name (<code>profile-20260220-120500.jfr</code>), which async-profiler writes in the profiled JVM's local time zone, and the Hub reads that name as UTC. A container with <code>TZ</code> set to anything else shifts every chunk by that offset: windows select the wrong chunks, retention ages them early or late, and the open chunk may be mistaken. Leave <code>TZ</code> unset (or <code>UTC</code>) in the profiled container.
+        <DocsCallout type="info">
+          <strong>Chunk times follow the profiled machine's time zone.</strong> A chunk is ordered and selected by the timestamp in its own name (<code>profile-20260220-120500.jfr</code>), which async-profiler writes in the profiled JVM's local time zone. The provisioner records that zone (from <code>TZ</code> or <code>/etc/localtime</code>) in the session's <code>.session-info.json</code>, and the Hub reads the name in it, so a container in any time zone gets the right instants. A session provisioned before the zone was recorded is read as UTC, as it always was. Setting only <code>-Duser.timezone</code> on the JVM does not change what async-profiler writes, so it does not need to match.
         </DocsCallout>
 
         <h2 id="example-sessions">Example: Active and Crashed Sessions</h2>

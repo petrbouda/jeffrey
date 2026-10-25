@@ -97,7 +97,8 @@ public class FileSystemRepository {
         LOG.debug("Adding session to filesystem repository: sessionId={} sessionPath={}", sessionId, sessionPath);
         try {
             RemoteProjectInstanceSession session =
-                    new RemoteProjectInstanceSession(sessionId, clock.instant().toEpochMilli());
+                    new RemoteProjectInstanceSession(
+                            sessionId, clock.instant().toEpochMilli(), clock.getZone().getId());
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));

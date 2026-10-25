@@ -39,7 +39,9 @@ import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.shared.ui.hub.dto.BundleResponse;
 import cafe.jeffrey.shared.ui.hub.dto.RecordingGroupResponse;
@@ -199,12 +201,20 @@ public class RecordingsController {
         Path filePath = recordingsManager.findRecordingFile(recordingId, fileId)
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "Recording file not found: recordingId=" + recordingId + " fileId=" + fileId));
+        // The name the file is known by, from its row: the stored file's name carries the storage
+        // prefix, which is not part of it.
+        String filename = recordingsManager.findRecording(recordingId)
+                .flatMap(recording -> recording.files().stream()
+                        .filter(file -> file.id().equals(fileId))
+                        .findFirst())
+                .map(RecordingFile::filename)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Recording file not found: recordingId=" + recordingId + " fileId=" + fileId));
 
         FileSystemResource resource = new FileSystemResource(filePath);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, DownloadHeaders.attachment(filename))
                 .body(resource);
     }
 
@@ -248,11 +258,17 @@ public class RecordingsController {
         Path filePath = recordingsManager.findBundleFile(bundleId, fileId)
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "Bundle file not found: bundleId=" + bundleId + " fileId=" + fileId));
+        String filename = recordingsManager.findBundle(bundleId)
+                .flatMap(bundle -> bundle.files().stream()
+                        .filter(file -> file.id().equals(fileId))
+                        .findFirst())
+                .map(BundleFile::filename)
+                .orElseThrow(() -> Exceptions.invalidRequest(
+                        "Bundle file not found: bundleId=" + bundleId + " fileId=" + fileId));
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, DownloadHeaders.attachment(filename))
                 .body(new FileSystemResource(filePath));
     }
 

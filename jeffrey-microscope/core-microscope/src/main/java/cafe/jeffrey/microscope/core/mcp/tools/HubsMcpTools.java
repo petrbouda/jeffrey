@@ -622,8 +622,9 @@ public class HubsMcpTools {
             + "startup, latest or peak chunk, the minutes before or around a moment, or a custom span; "
             + "startEpochMs and/or endEpochMs bring every chunk whose span touches them; or fileIds "
             + "bring named hubs_files rows - an unbroken run of chunks and any artifacts beside them. "
-            + "The answer reports the span actually covered, and what a window picked and why. A whole "
-            + "session already downloaded is returned as it is; a part always makes a bundle of its "
+            + "The answer reports the span actually covered, and what a window picked and why. A "
+            + "finished session already downloaded whole is returned as it is; a copy taken while it "
+            + "was still recording is downloaded again, and a part always makes a bundle of its "
             + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the hub no longer holds the first "
             + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
             + "it. Every started transfer carries an operationId for operations_status and "
@@ -802,7 +803,9 @@ public class HubsMcpTools {
         return call.canElicitForm()
                 && key.wholeSession()
                 && downloads.current(key).isEmpty()
-                && DownloadedSessionIndex.build(recordingsManager).find(key.ref()).isEmpty();
+                && DownloadedSessionIndex.build(recordingsManager).find(key.ref())
+                        .filter(DownloadedSessionIndex.LocalCopy::complete)
+                        .isEmpty();
     }
 
     /**
@@ -860,7 +863,9 @@ public class HubsMcpTools {
         // reader may not need a second recording at all.
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager).find(ref);
-        if (key.wholeSession() && alreadyHere.isPresent()) {
+        // Only a copy taken once the session had finished is the session: one of a session still
+        // recording stops where it stood then, and is downloaded again rather than handed back.
+        if (key.wholeSession() && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
             DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
             LOG.debug("Hub session was already downloaded: session_id={} recording_id={}",
                     ref.sessionId(), copy.recordingId());

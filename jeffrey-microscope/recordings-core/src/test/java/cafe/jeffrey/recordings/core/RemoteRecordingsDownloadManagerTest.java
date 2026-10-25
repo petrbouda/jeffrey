@@ -106,6 +106,17 @@ class RemoteRecordingsDownloadManagerTest {
     }
 
     /**
+     * What every recording of the session is tagged with: where it came from, plus the session's
+     * start and instance — kept here because the recording's name is only a label.
+     */
+    private Map<String, String> sessionTags() {
+        Map<String, String> tags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
+        tags.put(OriginContext.TAG_SESSION_STARTED_AT, Long.toString(CREATED_AT.toEpochMilli()));
+        tags.put(OriginContext.TAG_INSTANCE_ID, "inst-1");
+        return tags;
+    }
+
+    /**
      * Serves every recording and artifact file the hub is asked for. Each transfer hands the
      * consumer its own bytes, the way the real client does.
      */
@@ -281,6 +292,7 @@ class RemoteRecordingsDownloadManagerTest {
             assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
         }
 
+        /** A finished session's whole copy is the session for good, and is tagged as complete. */
         @Test
         void tagsTheRecordingWithTheUpstreamSessionId() {
             when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
@@ -288,8 +300,28 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadSession(SESSION_ID);
 
-            Map<String, String> expectedTags = originContext.toTagMap(SESSION_ID);
+            Map<String, String> expectedTags = sessionTags();
+            expectedTags.put(OriginContext.TAG_COMPLETE, "true");
             verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
+        }
+
+        /**
+         * A copy of a session still recording holds the chunks it had then: it must never be
+         * handed back as the session, so it carries no complete tag.
+         */
+        @Test
+        void aRunningSessionsCopyIsNotTaggedComplete() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(liveSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
+            servesEveryFile();
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, String>> tags = ArgumentCaptor.forClass(Map.class);
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), tags.capture());
+            assertFalse(tags.getValue().containsKey(OriginContext.TAG_COMPLETE));
         }
 
         /**
@@ -521,20 +553,19 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         @Test
-        void aWindowIsTaggedAndNamedAfterTheSpanItsFilesCover() {
+        void aWindowIsTaggedWithTheSpanItsFilesCoverAndNamedAsAPart() {
             when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
             servesEveryFile();
             ArgumentCaptor<String> recordingName = ArgumentCaptor.forClass(String.class);
 
             manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(45), null));
 
-            Map<String, String> expectedTags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
+            Map<String, String> expectedTags = sessionTags();
             expectedTags.put(OriginContext.TAG_WINDOW,
                     CREATED_AT.plusSeconds(40).toEpochMilli() + "-" + SESSION_END.toEpochMilli());
             verify(recordingsManager).createDownloadedBundle(
                     recordingName.capture(), anyList(), anyList(), eq(expectedTags));
-            assertEquals("checkout_2026-03-01T12-00-00Z_2026-03-01T12-00-40Z_2026-03-01T12-01-00Z",
-                    recordingName.getValue());
+            assertEquals("checkout_2026-03-01T12-00-00Z_part", recordingName.getValue());
         }
 
         @Test
@@ -574,13 +605,17 @@ class RemoteRecordingsDownloadManagerTest {
 
             manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), CREATED_AT.plusSeconds(45)));
 
-            Map<String, String> expectedTags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
+            Map<String, String> expectedTags = sessionTags();
             expectedTags.put(OriginContext.TAG_WINDOW,
                     CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli());
             verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
             verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-3"), any());
         }
 
+        /**
+         * A label only: the facts behind it — the session's start, its instance, when it was
+         * downloaded — are kept in the tags and the recording's own columns.
+         */
         @Test
         void aWholeSessionIsNamedAfterTheProjectAndTheSessionStart() {
             when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
@@ -592,6 +627,24 @@ class RemoteRecordingsDownloadManagerTest {
             verify(recordingsManager).createDownloadedBundle(
                     recordingName.capture(), anyList(), anyList(), any());
             assertEquals("checkout_2026-03-01T12-00-00Z", recordingName.getValue());
+        }
+
+        /** A project's name keeps its letters whatever their script; only separators are replaced. */
+        @Test
+        void aProjectNameKeepsLettersOfAnyScript() {
+            manager = new RemoteRecordingsDownloadManager(
+                    () -> new TempDirectory(tempRoot.resolve("download")), streamClient, repositoryClient,
+                    recordingsManager, new OriginContext("cfg-prod", "Production", "ws-1", "p-1", "Zahlungsdienst Ü/Ost"),
+                    SCOPE);
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ArgumentCaptor<String> recordingName = ArgumentCaptor.forClass(String.class);
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(
+                    recordingName.capture(), anyList(), anyList(), any());
+            assertEquals("Zahlungsdienst-Ü-Ost_2026-03-01T12-00-00Z", recordingName.getValue());
         }
 
         /**

@@ -130,6 +130,33 @@ class FilesystemRepositoryStorageTest {
             assertEquals("pod-b/s-new", sessions.getFirst().name());
         }
 
+        /**
+         * The session's marker names the zone its machine runs in, and its chunks' names are read
+         * in it: a JVM in Prague names the chunk it opened at 12:05 UTC {@code 13:05}.
+         */
+        @Test
+        void readsItsRecordingsNamesInTheZoneTheMarkerRecords() throws IOException {
+            Path dir = TestVolume.session(TestVolume.instance(project, INSTANCE, T0), "s-1", T0, "Europe/Prague");
+            Files.writeString(dir.resolve("profile-20260220-130500.jfr"), CHUNK_BODY);
+            TestVolume.finished(dir, T0.plusSeconds(600));
+
+            RecordingSession session = storage.withFiles(storage.session("s-1").orElseThrow());
+
+            assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
+        }
+
+        /** A marker written before the zone was recorded is read the way it always was: in UTC. */
+        @Test
+        void readsAMarkerWithoutAZoneInUtc() throws IOException {
+            Path dir = session(INSTANCE, "s-1", T0);
+            Files.writeString(dir.resolve("profile-20260220-120500.jfr"), CHUNK_BODY);
+            TestVolume.finished(dir, T0.plusSeconds(600));
+
+            RecordingSession session = storage.withFiles(storage.session("s-1").orElseThrow());
+
+            assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
+        }
+
         /** A newer session in the same instance means the older one ended, even with a fresh beat. */
         @Test
         void aNewerSessionOfTheSameInstanceFinishesTheOlderOne() {
@@ -281,7 +308,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Path file = Files.write(session.resolve("gc.jvm-log"), CONTENT);
 
-            RepositoryFile described = storage().describe(file, session);
+            RepositoryFile described = storage().describe(file, session, ZoneOffset.UTC);
 
             assertNotNull(described);
             assertEquals("gc.jvm-log", described.name());
@@ -297,7 +324,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Path vanished = session.resolve("profile-20260912-121559.jfr.1~");
 
-            assertNull(storage().describe(vanished, session));
+            assertNull(storage().describe(vanished, session, ZoneOffset.UTC));
         }
 
         @Test
@@ -305,7 +332,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Path vanished = session.resolve("profile-20260912-121559.jfr");
 
-            assertNull(storage().describe(vanished, session));
+            assertNull(storage().describe(vanished, session, ZoneOffset.UTC));
         }
     }
 

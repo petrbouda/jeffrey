@@ -39,7 +39,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -99,8 +102,12 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         }
     }
 
-    /** A session directory whose marker reads — likewise the one test of "is this a session". */
-    private record SessionDirectory(Path path, Instant createdAt) {
+    /**
+     * A session directory whose marker reads — likewise the one test of "is this a session".
+     *
+     * @param zone the zone the session's machine runs in, which its recordings' names are local to
+     */
+    private record SessionDirectory(Path path, Instant createdAt, ZoneId zone) {
 
         String id() {
             return path.getFileName().toString();
@@ -118,7 +125,26 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     private static Optional<SessionDirectory> sessionAt(Path dir) {
         return VolumeMarkers.read(dir, JeffreyLayout.SESSION_INFO_FILE, RemoteProjectInstanceSession.class)
-                .map(marker -> new SessionDirectory(dir, Instant.ofEpochMilli(marker.createdAt())));
+                .map(marker -> new SessionDirectory(
+                        dir, Instant.ofEpochMilli(marker.createdAt()), zoneOf(marker, dir)));
+    }
+
+    /**
+     * The zone a session's recording names are local to: UTC for a marker written before the zone
+     * was recorded, which is what those names were always read as, and for one that names no zone
+     * this JVM knows.
+     */
+    private static ZoneId zoneOf(RemoteProjectInstanceSession marker, Path dir) {
+        if (marker.zoneId() == null || marker.zoneId().isBlank()) {
+            return ZoneOffset.UTC;
+        }
+        try {
+            return ZoneId.of(marker.zoneId());
+        } catch (DateTimeException e) {
+            LOG.debug("Session marker names an unknown time zone, reading its recordings in UTC: "
+                    + "session_path={} zone_id={}", dir, marker.zoneId());
+            return ZoneOffset.UTC;
+        }
     }
 
     private List<InstanceDirectory> instanceDirectories() {
@@ -224,6 +250,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     @Override
     public RecordingSession withFiles(RecordingSession session) {
         Path sessionPath = projectDir.resolve(session.name());
+        ZoneId zone = sessionAt(sessionPath).map(SessionDirectory::zone).orElse(ZoneOffset.UTC);
         return new RecordingSession(
                 session.id(),
                 session.name(),
@@ -231,7 +258,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.createdAt(),
                 session.finishedAt(),
                 session.status(),
-                listFiles(sessionPath),
+                listFiles(sessionPath, zone),
                 session.retained(),
                 session.heartbeatMissing());
     }
@@ -295,7 +322,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * cache after each flush and the compression job replaces recordings with archives. A file that
      * vanished between listing and stat is left out rather than failing the whole listing.
      */
-    RepositoryFile describe(Path file, Path sessionPath) {
+    RepositoryFile describe(Path file, Path sessionPath, ZoneId zone) {
         String sourceName = sessionPath.relativize(file).toString();
         Optional<HubManagedFile> recording = HubManagedFile.of(sourceName);
         try {
@@ -309,7 +336,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                     sourceName,
                     recording.map(HubManagedFile::timestampResolver)
                             .orElse(TimestampResolver.FILESYSTEM)
-                            .resolve(file, () -> attributes),
+                            .resolve(file, zone, () -> attributes),
                     attributes.size(),
                     recording.isPresent(),
                     file);
@@ -511,7 +538,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         return compressedPath;
     }
 
-    private List<RepositoryFile> listFiles(Path sessionPath) {
+    private List<RepositoryFile> listFiles(Path sessionPath, ZoneId zone) {
         if (!Files.isDirectory(sessionPath)) {
             LOG.warn("Session directory does not exist: session_path={}", sessionPath);
             return List.of();
@@ -519,7 +546,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
         return FileSystemUtils.sortedFilesInDirectory(sessionPath, NEWEST_BY_NAME).stream()
                 .filter(FileSystemUtils::isNotHidden)
-                .map(file -> describe(file, sessionPath))
+                .map(file -> describe(file, sessionPath, zone))
                 .filter(Objects::nonNull)
                 .toList();
     }
