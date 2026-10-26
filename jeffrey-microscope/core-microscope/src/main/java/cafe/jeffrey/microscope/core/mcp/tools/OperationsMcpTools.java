@@ -27,7 +27,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import java.util.function.Predicate;
 
 /**
- * Status and best-effort cancellation for one exact attempt: a recording import or analysis, a Hub
+ * Status and best-effort cancellation for one exact attempt: a recording import or analysis, a remote
  * download or file fetch, a heap preparation, a retained-size OQL query or an Auto Analysis run.
  */
 public final class OperationsMcpTools {
@@ -41,8 +41,8 @@ public final class OperationsMcpTools {
 
     @McpToolHints(openWorld = true)
     @Tool(description = "Reports the status, phase and progress, result and next call of one operationId "
-            + "returned by recordings_analyzeFile, recordings_analyzeRecording, hubs_download, "
-            + "hubs_fetchFile, heap_prepare, heap_oql with includeRetainedSize or jvm_autoAnalysis "
+            + "returned by recordings_analyzeFile, recordings_analyzeRecording, remote_download, "
+            + "remote_fetchFile, heap_prepare, heap_oql with includeRetainedSize or jvm_autoAnalysis "
             + "with compute. Times are UTC epoch milliseconds. Polling starts no work. An id "
             + "identifies one exact attempt and lives for one hour after completion, in this process "
             + "only; a server restart forgets it.")

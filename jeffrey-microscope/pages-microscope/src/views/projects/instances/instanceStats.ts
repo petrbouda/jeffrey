@@ -16,9 +16,9 @@
  */
 
 import FormattingService from '@shared/services/FormattingService';
-import type ProjectInstance from '@hubs/services/api/model/ProjectInstance';
-import type { ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
-import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics';
+import type ProjectInstance from '@remote/services/api/model/ProjectInstance';
+import type { ProjectInstanceStatus } from '@remote/services/api/model/ProjectInstance';
+import type RepositoryStatistics from '@remote/services/api/model/RepositoryStatistics';
 
 /** A project's instances reduced to the figures the tab-row summary shows. */
 export interface InstanceStats {
@@ -47,8 +47,8 @@ export function summarizeInstances(instances: readonly ProjectInstance[]): Insta
 }
 
 /**
- * The project's storage size as the summary shows it. The hub measures it on its retention pass
- * only, so a project the pass has not reached yet is "unmeasured", not empty.
+ * The project's storage size as the summary shows it. Only the hub's retention pass measures it,
+ * so a project nothing has measured is "unmeasured", not empty.
  */
 export type StorageFigure =
   | { kind: 'loading' }

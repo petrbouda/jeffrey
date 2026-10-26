@@ -50,14 +50,14 @@
       <!-- Health at a glance -->
       <div class="verdict-grid">
         <div class="verdict-card" @click="navigateTo('/auto-analysis')">
-          <span class="verdict-dot" :class="autoAnalysisVerdict.tone"></span>
+          <StatusDot :tone="autoAnalysisVerdict.tone" size="l" halo />
           <div>
             <div class="verdict-title">Auto Analysis</div>
             <div class="verdict-value">{{ autoAnalysisVerdict.text }}</div>
           </div>
         </div>
         <div class="verdict-card" @click="navigateTo('/container/cpu-throttling')">
-          <span class="verdict-dot" :class="throttlingVerdict.tone"></span>
+          <StatusDot :tone="throttlingVerdict.tone" size="l" halo />
           <div>
             <div class="verdict-title">CPU Throttling</div>
             <div class="verdict-value">{{ throttlingVerdict.text }}</div>
@@ -217,6 +217,8 @@ import Profile from '@/services/api/model/Profile';
 import GCTimeseriesType from '@/services/api/model/GCTimeseriesType';
 import FeatureType from '@/services/api/model/FeatureType';
 import HeapMemoryTimeseriesType from '@/services/api/model/HeapMemoryTimeseriesType';
+import StatusDot from '@shared/components/StatusDot.vue';
+import type { StatusDotTone } from '@shared/types/ui';
 
 interface Props {
   profile: Profile;
@@ -403,7 +405,7 @@ const SEVERITY_WARNING = 'WARNING';
 const SEVERITY_INFO = 'INFO';
 
 interface VerdictDisplay {
-  tone: 'ok' | 'warn' | 'bad' | 'muted';
+  tone: Extract<StatusDotTone, 'success' | 'warning' | 'danger' | 'muted'>;
   text: string;
 }
 
@@ -418,16 +420,16 @@ const autoAnalysisVerdict = computed<VerdictDisplay>(() => {
   const warnings = results.filter(result => result.severity === SEVERITY_WARNING).length;
   const infos = results.filter(result => result.severity === SEVERITY_INFO).length;
   if (warnings > 0) {
-    return { tone: 'warn', text: `${warnings} warnings · ${infos} informational` };
+    return { tone: 'warning', text: `${warnings} warnings · ${infos} informational` };
   }
-  return { tone: 'ok', text: `All good · ${infos} informational` };
+  return { tone: 'success', text: `All good · ${infos} informational` };
 });
 
 const THROTTLING_TONE_BY_SEVERITY: Record<string, VerdictDisplay['tone']> = {
-  NONE: 'ok',
-  LOW: 'warn',
-  MEDIUM: 'warn',
-  HIGH: 'bad',
+  NONE: 'success',
+  LOW: 'warning',
+  MEDIUM: 'warning',
+  HIGH: 'danger',
   NOT_APPLICABLE: 'muted'
 };
 
@@ -802,32 +804,6 @@ function navigateTo(subPath: string): void {
 
 .verdict-card:hover {
   background: var(--color-bg-hover);
-}
-
-.verdict-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.verdict-dot.ok {
-  background: var(--color-success);
-  box-shadow: 0 0 0 4px var(--color-success-light);
-}
-
-.verdict-dot.warn {
-  background: var(--color-warning);
-  box-shadow: 0 0 0 4px var(--color-warning-light);
-}
-
-.verdict-dot.bad {
-  background: var(--color-danger);
-  box-shadow: 0 0 0 4px var(--color-danger-light);
-}
-
-.verdict-dot.muted {
-  background: var(--color-text-light);
 }
 
 .verdict-title {

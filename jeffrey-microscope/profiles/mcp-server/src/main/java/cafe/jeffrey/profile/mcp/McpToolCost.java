@@ -29,13 +29,13 @@ public enum McpToolCost {
     /**
      * An indexed lookup or a small aggregate: the catalogue, a profile's stored totals, a report or an
      * analysis already cached, one object or one dump read by its id, the state of an operation — or one
-     * bounded call to one hub or to the IDE, answered within its deadline.
+     * bounded call to the remote or to the IDE, answered within its deadline.
      */
     CHEAP,
 
     /**
      * A scan of one event type, or one table of a heap dump, into a dashboard, or a flamegraph at the
-     * default threshold — or calls to several hubs, one per hub.
+     * default threshold — or a scan of every project on the remote.
      */
     MODERATE,
 

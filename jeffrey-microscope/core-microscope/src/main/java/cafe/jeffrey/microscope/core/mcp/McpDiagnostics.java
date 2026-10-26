@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
-import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
+import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteSessionScan;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.model.ProfileInfo;
@@ -35,7 +35,7 @@ import java.util.List;
 public final class McpDiagnostics {
     public static final String URI = "jeffrey://diagnostics";
 
-    /** The application property bounding how long each hub is given to answer the reachability probe. */
+    /** The application property bounding how long the remote is given to answer the reachability probe. */
     public static final String PROBE_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.diagnostics.probe-timeout";
 
     /** The probe budget when the property is not set, spelt as the ISO-8601 text the property takes. */
@@ -44,25 +44,25 @@ public final class McpDiagnostics {
     public static final Duration DEFAULT_PROBE_TIMEOUT = Duration.parse(DEFAULT_PROBE_TIMEOUT_TEXT);
 
     private final MicroscopeCoreRepositories repositories;
-    private final HubsManager hubs;
+    private final RemoteManager remoteManager;
     private final ExternalMcpProperties properties;
     private final Clock clock;
-    private final HubSessionScan scan;
+    private final RemoteSessionScan scan;
     private final boolean servesSkills;
 
     /**
      * @param skills the skills the endpoint serves; the server block reports the extension when it
      *               holds at least one, as {@code server/discover} declares it
      */
-    public McpDiagnostics(MicroscopeCoreRepositories repositories, HubsManager hubs,
+    public McpDiagnostics(MicroscopeCoreRepositories repositories, RemoteManager remoteManager,
                           ExternalMcpProperties properties, Clock clock, Duration probeBudget,
                           McpSkillProvider skills) {
         this.servesSkills = skills.servesAny();
         this.repositories = repositories;
-        this.hubs = hubs;
+        this.remoteManager = remoteManager;
         this.properties = properties;
         this.clock = clock;
-        this.scan = new HubSessionScan(hubs, probeBudget);
+        this.scan = new RemoteSessionScan(remoteManager, probeBudget);
     }
 
     public String json(McpToolProvider tools, List<McpToolMetrics.Sample> metrics, long omittedMetricCalls) {
@@ -73,18 +73,18 @@ public final class McpDiagnostics {
         result.putObject("profileReadiness").put("total", profiles.size()).put("ready", ready)
                 .put("building", profiles.size() - ready)
                 .put("scope", "Stored readiness; building rows may include interrupted work. Poll the recording or operation for lifecycle state.");
-        ObjectNode hubStatus = result.putObject("hubs");
-        boolean enabled = properties.hubsEnabled() && properties.advertises("hubs");
-        hubStatus.put("enabled", enabled);
+        ObjectNode remoteStatus = result.putObject(AdvertisedFamilies.REMOTE);
+        boolean enabled = properties.remoteEnabled() && properties.advertises(AdvertisedFamilies.REMOTE);
+        remoteStatus.put("enabled", enabled);
         if (enabled) {
-            var managers = hubs.findAll();
-            HubSessionScan.ProbeResult probe = scan.probeDetails(managers);
-            long deadlines = countOf(probe, HubSessionScan.Failure.Kind.DEADLINE_EXCEEDED);
-            long unreachable = countOf(probe, HubSessionScan.Failure.Kind.UNREACHABLE);
-            hubStatus.put("total", managers.size()).put("reachable", probe.versions().size())
-                    .put("unreachable", unreachable).put("deadlineExceeded", deadlines)
-                    .put("otherFailures", probe.failures().size() - deadlines - unreachable)
-                    .put("complete", probe.failures().isEmpty());
+            var configured = remoteManager.current();
+            remoteStatus.put("configured", configured.isPresent());
+            configured.ifPresent(remote -> {
+                RemoteSessionScan.ProbeResult probe = scan.probe(remote);
+                remoteStatus.put("reachable", probe.reachable())
+                        .put("unreachable", failedAs(probe, RemoteSessionScan.Failure.Kind.UNREACHABLE))
+                        .put("deadlineExceeded", failedAs(probe, RemoteSessionScan.Failure.Kind.DEADLINE_EXCEEDED));
+            });
         }
         result.set("toolMetrics", Json.toTree(metrics));
         result.put("metricsCapped", omittedMetricCalls > 0).put("omittedMetricCalls", omittedMetricCalls);
@@ -94,8 +94,8 @@ public final class McpDiagnostics {
         return Json.toString(result);
     }
 
-    /** How many probes failed the given way, classified by the scan itself rather than by its wording. */
-    private static long countOf(HubSessionScan.ProbeResult probe, HubSessionScan.Failure.Kind kind) {
-        return probe.failures().stream().filter(failure -> failure.kind() == kind).count();
+    /** Whether the probe failed the given way, classified by the scan itself rather than by its wording. */
+    private static boolean failedAs(RemoteSessionScan.ProbeResult probe, RemoteSessionScan.Failure.Kind kind) {
+        return probe.failures().stream().anyMatch(failure -> failure.kind() == kind);
     }
 }

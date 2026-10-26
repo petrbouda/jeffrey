@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.volume.ProjectDirectory;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 
 import java.util.function.Function;
 
@@ -30,16 +29,6 @@ import java.util.function.Function;
  * management or downloads of its own.
  */
 public interface ProjectManager {
-
-    /**
-     * @param status ACTIVE while any session of the project is still recording, FINISHED once
-     *               every session has finished, {@code null} for a project with no session yet
-     */
-    record DetailedProjectInfo(
-            ProjectInfo projectInfo,
-            RecordingStatus status,
-            int sessionCount) {
-    }
 
     @FunctionalInterface
     interface Factory extends Function<ProjectDirectory, ProjectManager> {
@@ -51,8 +40,4 @@ public interface ProjectManager {
 
     ProjectInfo info();
 
-    DetailedProjectInfo detailedInfo();
-
-    /** Deletes the project's directory with everything in it. */
-    void delete();
 }

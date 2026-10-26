@@ -25,9 +25,9 @@ have finished — and `operations_status(operationId)` follows the copy and the 
 `operations_cancel(operationId)`
 stops an import started by mistake; the ids live for an hour in Jeffrey's memory.
 
-**The dump is on a hub** — the user asked about a deployed application rather than a file. Switch to
-the **analyze-hub** skill. A downloaded session is a bundle, and its heap dump is an item of its own,
-never part of the JFR profile: take the heap item's `recordingId` from `hubs_download`'s `items`
+**The dump is on the remote** — the user asked about a deployed application rather than a file. Switch to
+the **analyze-remote** skill. A downloaded session is a bundle, and its heap dump is an item of its own,
+never part of the JFR profile: take the heap item's `recordingId` from `remote_download`'s `items`
 (`eventSource: HEAP_DUMP`; the answer's guidance names them too), build it with
 `recordings_analyzeRecording(recordingId)`, and come back here with *that* `profileId`.
 
@@ -175,7 +175,7 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 - `Profile … is not a heap dump` → it is a JFR recording (or another kind); the `analyze-jfr` skill
   applies to it. When the session also took a dump, that dump is another item of the same bundle:
-  `hubs_download` lists it in `items`, and `recordings_analyzeRecording` on its `recordingId` builds
+  `remote_download` lists it in `items`, and `recordings_analyzeRecording` on its `recordingId` builds
   the heap-dump profile this skill reads.
 - `Heap dump profile … has lost its copy of the dump` → `recordings_analyzeRecording` on its
   recording builds the profile again from the stored dump.

@@ -47,8 +47,8 @@ const chartStructure = `helm/
 │   ├── jeffrey-base.conf             # provisioner init config for self-profiling
 │   └── templates/
 │       ├── deployment.yaml
-│       ├── service.yaml              # HTTP 8080 + gRPC 9090
-│       ├── ingress.yaml              # optional HTTP / gRPC ingress
+│       ├── service.yaml              # HTTP 8080 (Storage + Scheduler UI)
+│       ├── ingress.yaml              # optional HTTP ingress
 │       ├── persistent-volume-claim.yaml
 │       ├── persistent-volume.yaml    # hostPath PV (orbstack/minikube)
 │       ├── configmap.yaml            # mounts application.properties + jeffrey-base.conf
@@ -87,7 +87,6 @@ const serverImage = `image:
   pullPolicy: IfNotPresent
 
 containerPort: 8080
-grpcPort: 9090
 
 selfProfile:
   enabled: true   # jeffrey-hub self-profiles via the JIB entrypoint`;
@@ -102,9 +101,6 @@ spec:
     - port: 8080
       targetPort: http
       name: http
-    - port: 9090
-      targetPort: grpc
-      name: grpc
   selector:
     {{- include "jeffrey-hub.selectorLabels" . | nindent 4 }}`;
 
@@ -203,7 +199,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         <tbody>
           <tr>
             <td><code>helm/jeffrey-hub/</code></td>
-            <td>Jeffrey Hub itself. Owns the shared PVC, exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</td>
+            <td>Jeffrey Hub itself. Owns the shared PVC, runs the retention and compression jobs on it, and exposes its web UI on HTTP <code>8080</code>.</td>
             <td><code>jeffrey-hub</code></td>
           </tr>
           <tr>
@@ -236,8 +232,8 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
 
       <DocsCallout type="info">
         <strong>One chart per concern.</strong> <code>jeffrey-hub</code> owns the
-        cluster-wide objects — the shared PVC, the optional hostPath PV, the Service that
-        both protocols share, the optional Ingress. The two testapp charts deliberately
+        cluster-wide objects — the shared PVC, the optional hostPath PV, the Service, the
+        optional Ingress. The two testapp charts deliberately
         carry no PV/PVC/Ingress — they only bind to <code>jeffrey-hub</code>'s claim
         and stay cluster-internal.
       </DocsCallout>
@@ -261,7 +257,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         code="jeffrey.hub.home.dir=\${JEFFREY_HOME}"
       />
 
-      <p>The Service exposes both protocols on a single ClusterIP:</p>
+      <p>The Service exposes the hub's web UI — its Storage and Scheduler pages — on a single ClusterIP:</p>
 
       <DocsCodeBlock
         language="yaml"
@@ -272,8 +268,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         OrbStack publishes in-cluster Service DNS to the host automatically — open
         <code>http://jeffrey-hub.jeffrey-testapp.svc.cluster.local:8080</code> directly
         from the laptop. For other clusters, expose Jeffrey Hub via the chart's
-        <code>ingress.enabled=true</code> (HTTP) and <code>grpcIngress.enabled=true</code>
-        (gRPC, requires <code>backend-protocol: GRPC</code> Nginx annotation).
+        <code>ingress.enabled=true</code> (HTTP).
       </p>
 
       <h2 id="configure-app">Configuring the Monitored Application</h2>
@@ -321,8 +316,8 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
 
       <h2 id="side-by-side">Side-by-Side: direct vs dom</h2>
       <p>
-        The headline value of this layout: one chart, two distinct projects in Jeffrey
-        Hub, ready for differential analysis in Microscope.
+        The headline value of this layout: one chart, two distinct projects on the shared
+        volume, ready for differential analysis in Microscope.
       </p>
 
       <DocsCodeBlock
@@ -345,7 +340,8 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         Four <code>helm upgrade --install</code> calls — one per release. Order doesn't matter:
         each application image carries its own provisioner and async-profiler, so a pod that
         starts before Jeffrey Hub still profiles from the first second. It simply writes its
-        recordings to the shared volume for the Hub to pick up whenever it arrives.
+        recordings to the shared volume, and the Hub's retention and compression jobs
+        take them over whenever it arrives.
       </p>
 
       <DocsCodeBlock

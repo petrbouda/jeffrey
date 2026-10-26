@@ -78,7 +78,7 @@ public class BoundedJobs<K, V> {
      *
      * <p>Retention alone bounds the map only when the keys repeat. They do not always: a forced
      * import keys on a fresh UUID per call, a file import on each file name and size it is given,
-     * and a hub download keys on the session together with the window or the file ids asked for, so
+     * and a remote download keys on the session together with the window or the file ids asked for, so
      * an agent working through a long session a window at a time makes a new entry every time. Each
      * is small, but nothing removed them before their hour was up. Running attempts are never
      * dropped — only results someone may still poll for, oldest first, and a caller that comes back

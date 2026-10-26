@@ -61,7 +61,7 @@ import java.util.function.Supplier;
  * look like no server at all, not like one refusing to talk.
  * <p>
  * Almost every tool it exposes reads. Eleven tools in six families do not — importing or deleting a
- * recording, building a heap index, pulling a recording or an artifact off a hub, cancelling a running
+ * recording, building a heap index, pulling a recording or an artifact off the remote, cancelling a running
  * operation, acting on the developer's editor, and the two slow reads that fill a cache
  * ({@code jvm_autoAnalysis} with {@code compute}, {@code heap_oql} with {@code includeRetainedSize}) —
  * and none of them changes an analysed profile; each says what it does through its

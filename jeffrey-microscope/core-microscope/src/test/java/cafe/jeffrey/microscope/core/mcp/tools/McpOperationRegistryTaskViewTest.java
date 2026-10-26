@@ -63,7 +63,7 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void aQueuedOperationIsAWorkingTaskSayingQueued() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
 
             McpTask task = task();
 
@@ -73,7 +73,7 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void aRunningOperationReportsItsPhase() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
             operation.running(OperationPhase.DOWNLOADING.code());
 
             assertEquals(new McpTaskState.Working(OperationPhase.DOWNLOADING.code()), task().state());
@@ -81,7 +81,7 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void aCancellationStillInFlightIsWorking() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
             operation.cancelRequested();
 
             assertEquals(new McpTaskState.Working("cancellation requested"), task().state());
@@ -90,7 +90,7 @@ class McpOperationRegistryTaskViewTest {
         /** The operationId is the taskId, and the timing fields come straight off the operation. */
         @Test
         void carriesTheOperationsIdentityAndTiming() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
 
             McpTask task = task();
 
@@ -109,7 +109,7 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void aCompletedOperationAnswersWithItsTerminalAnswer() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new,
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new,
                     value -> McpToolResult.text("answer:" + value));
             operation.completed("profile-7");
 
@@ -172,7 +172,7 @@ class McpOperationRegistryTaskViewTest {
         @Test
         void aFailedOperationIsAToolFailureCarryingItsCause() {
             IllegalArgumentException cause = new IllegalArgumentException("hub refused the session");
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
             operation.failed(cause);
 
             McpTaskState.ToolFailed failed = assertInstanceOf(McpTaskState.ToolFailed.class, task().state());
@@ -183,7 +183,7 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void aCancelledOperationIsACancelledTask() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
             operation.cancelled();
 
             McpTask task = task();
@@ -204,7 +204,7 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void refusesAnIdOnceItsRetentionHasPassed() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
             operation.completed("done");
             clock.set(FINISHED.plus(McpOperationRegistry.RETENTION).plusSeconds(1));
 
@@ -213,15 +213,15 @@ class McpOperationRegistryTaskViewTest {
 
         @Test
         void refusesAKindTheCallerMayNotReach() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
 
             assertThrows(IllegalArgumentException.class,
-                    () -> registry.task("op-1", kind -> kind != OperationKind.HUB_DOWNLOAD));
+                    () -> registry.task("op-1", kind -> kind != OperationKind.REMOTE_DOWNLOAD));
         }
 
         @Test
         void readsTheSameEntryTheOperationsViewReads() {
-            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
 
             registry.cancel("op-1", kind -> true);
 

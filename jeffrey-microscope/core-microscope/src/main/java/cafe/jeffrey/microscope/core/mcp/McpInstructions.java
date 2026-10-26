@@ -31,7 +31,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.FLAMEGRAPH;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.GRPC;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HEAP;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HTTP;
-import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HUBS;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.REMOTE;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.IDE;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.IO;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JDBC;
@@ -97,7 +97,7 @@ final class McpInstructions {
     private static final String FAMILIES_SUFFIX = " families";
 
     /** The families whose tools take no profileId, in the order the sentence names them. */
-    private static final List<String> UNSCOPED_FAMILIES = List.of(RECORDINGS, HUBS, OPERATIONS);
+    private static final List<String> UNSCOPED_FAMILIES = List.of(RECORDINGS, REMOTE, OPERATIONS);
 
     private static final String FAMILY_GUIDE = "Which family answers what: %s.";
 
@@ -121,7 +121,7 @@ final class McpInstructions {
             new FamilyGuide(HEAP, "heap_ heap dumps, their dominator tree and GC-root paths"),
             new FamilyGuide(JFR, "jfr_ DuckDB SQL over the profile database when no dashboard answers"),
             new FamilyGuide(RECORDINGS, "recordings_ turning a file into a profile"),
-            new FamilyGuide(HUBS, "hubs_ recordings and the files beside them held on another machine"),
+            new FamilyGuide(REMOTE, "remote_ recordings and the files beside them held on another machine"),
             new FamilyGuide(IDE, "ide_ where a frame lives in the developer's editor"),
             new FamilyGuide(OPERATIONS, "operations_ the work the writers start"));
 
@@ -171,13 +171,13 @@ final class McpInstructions {
                     + "recordings_delete clears a recording once its question is answered."),
             new OrderRule(Set.of(RECORDINGS, PROFILES), "After a recordings_delete, profiles_list is the "
                     + "catalogue to trust: the deleted profile id no longer works."),
-            new OrderRule(Set.of(HUBS, RECORDINGS), "A question about an environment rather than a file starts at "
-                    + "hubs_sessions, with hubs_list when it shows nothing from a hub you expected. "
-                    + "hubs_download brings the session, a window named by its window argument (the last "
+            new OrderRule(Set.of(REMOTE, RECORDINGS), "A question about an environment rather than a file starts at "
+                    + "remote_sessions, with remote_status when it shows nothing you expected. "
+                    + "remote_download brings the session, a window named by its window argument (the last "
                     + "minutes, the startup, latest or peak chunk, the minutes before or around a moment) or "
                     + "the span its started and duration columns allow, and recordings_analyzeRecording turns "
                     + "the recordingId into a profile; a transfer still running is joined by calling "
-                    + "hubs_download with the arguments its followUp names, or by following its task."),
+                    + "remote_download with the arguments its followUp names, or by following its task."),
             new OrderRule(Set.of(IDE), "ide_resolve comes before a finding names a file or a line - the "
                     + "exports carry call paths, never file paths; ide_windows settles a window ide_resolve "
                     + "calls ambiguous and ide_link pins it; ide_open is for when the reader asked to be "
@@ -196,9 +196,9 @@ final class McpInstructions {
 
     private static final String ARTIFACTS = """
             A JVM writes more than it records. When the question is about an application log, a GC \
-            log or why a JVM died, call hubs_files on the session, hubs_fetchFile on the file, and \
+            log or why a JVM died, call remote_files on the session, remote_fetchFile on the file, and \
             then open the path it returns with your own tools - Jeffrey runs on this machine and \
-            hands you the file rather than parsing it for you. hubs_files also shows the path of a \
+            hands you the file rather than parsing it for you. remote_files also shows the path of a \
             file already here, and the profile whose timeline its timestamps line up with.""";
 
     /** Every tool that is not read-only, in the order the sentence names them. */
@@ -208,8 +208,8 @@ final class McpInstructions {
             Writer.quick(RECORDINGS, "recordings_delete"),
             Writer.slow(HEAP, "heap_prepare", "heap_prepare"),
             Writer.slow(HEAP, "heap_oql", "heap_oql with includeRetainedSize"),
-            Writer.slow(HUBS, "hubs_download", "hubs_download"),
-            Writer.slow(HUBS, "hubs_fetchFile", "hubs_fetchFile"),
+            Writer.slow(REMOTE, "remote_download", "remote_download"),
+            Writer.slow(REMOTE, "remote_fetchFile", "remote_fetchFile"),
             Writer.slow(JVM, "jvm_autoAnalysis", "jvm_autoAnalysis with compute"),
             Writer.quick(OPERATIONS, "operations_cancel"),
             Writer.quick(IDE, "ide_link"),
@@ -291,7 +291,7 @@ final class McpInstructions {
             new RequirementExample(TRACES, McpToolRequirement.TRACES),
             new RequirementExample(HEAP, McpToolRequirement.HEAP_DUMP_INDEXED),
             new RequirementExample(JVM, McpToolRequirement.AUTO_ANALYSIS),
-            new RequirementExample(HUBS, McpToolRequirement.HUB),
+            new RequirementExample(REMOTE, McpToolRequirement.REMOTE),
             new RequirementExample(IDE, McpToolRequirement.IDE_LINKED));
 
     private static final String HEAP_INDEX = " And a heap dump must be indexed before most heap_ tools "
@@ -299,7 +299,7 @@ final class McpInstructions {
 
     private static final String PROMPTS = """
             Fuller guidance is served as prompts and as skills. prompts/list names eleven, one per \
-            workflow — analyze-jfr, analyze-heap, analyze-hub, analyze-exceptions, compare-jfr, \
+            workflow — analyze-jfr, analyze-heap, analyze-remote, analyze-exceptions, compare-jfr, \
             advise-jfr, profile-run, regression-check, jfr-sql, heap-sql, and report, which is the \
             evidence discipline the others write to. skills/list (the io.modelcontextprotocol/skills \
             extension) serves the same eleven to any client that asks, and their files are read with \
@@ -321,7 +321,7 @@ final class McpInstructions {
         paragraphs.add(profileIdRule(advertised));
         paragraphs.add(familyGuide(advertised));
         callOrder(advertised).ifPresent(paragraphs::add);
-        if (advertised.has(HUBS)) {
+        if (advertised.has(REMOTE)) {
             paragraphs.add(ARTIFACTS);
         }
         paragraphs.add(writers(advertised));

@@ -1,0 +1,188 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.shared.ui.remote.controller;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.recordings.core.RemoteRecordingsDownloadManager;
+import cafe.jeffrey.recordings.core.download.DownloadProgress;
+import cafe.jeffrey.recordings.core.download.DownloadTask;
+import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
+import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.remote.dto.DownloadProgressResponse;
+import cafe.jeffrey.shared.ui.remote.dto.DownloadTaskResponse;
+import cafe.jeffrey.shared.ui.remote.request.SelectedRecordingsRequest;
+
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
+/**
+ * Shared remote-project download (SSE) controller. Annotated {@code @RestController} and registered
+ * as a {@code @Bean} via {@code RemoteFeatureConfiguration}; it lives outside both apps'
+ * component-scan roots, so it is mapped exactly once (by the {@code @Bean}). Downloads run on the
+ * shared virtual-thread executor and report progress via the shared {@link DownloadTaskRegistry}.
+ */
+@RestController
+@RequestMapping("/api/internal/remote/workspaces/{workspaceId}/projects/{projectId}/download")
+public class ProjectDownloadTaskController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectDownloadTaskController.class);
+    private static final long SSE_TIMEOUT_MS = 0L; // never time out by Spring
+
+    private final RemoteProjectAccess projectAccess;
+    private final DownloadTaskRegistry taskRegistry = DownloadTaskRegistry.getInstance();
+
+    public ProjectDownloadTaskController(RemoteProjectAccess projectAccess) {
+        this.projectAccess = projectAccess;
+    }
+
+    @PostMapping(value = "/start",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DownloadTaskResponse> startDownload(
+            @PathVariable("workspaceId") String workspaceId,
+            @PathVariable("projectId") String projectId,
+            @RequestBody SelectedRecordingsRequest request) {
+
+        LOG.info("Starting download task: sessionId={} fileCount={}",
+                request.sessionId(),
+                request.recordingIds() != null ? request.recordingIds().size() : 0);
+
+        RecordingsDownloadManager downloadManager =
+                projectAccess.recordingsDownloadManager(workspaceId, projectId);
+
+        DownloadTask task = new DownloadTask(
+                workspaceId,
+                projectId,
+                request.sessionId(),
+                request.recordingIds(),
+                taskRegistry.getClock());
+
+        taskRegistry.register(task);
+
+        CompletableFuture<Void> future = startDownloadAsync(task, downloadManager);
+        task.setDownloadFuture(future);
+
+        future.whenComplete((__, error) -> {
+            if (error != null) {
+                LOG.error("Download task failed: taskId={} error={}", task.getTaskId(), error.getMessage());
+            } else {
+                LOG.info("Download task completed: taskId={}", task.getTaskId());
+            }
+        });
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(DownloadTaskResponse.from(task));
+    }
+
+    @GetMapping(value = "/{taskId}/progress", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamProgress(@PathVariable("taskId") String taskId) {
+        LOG.debug("SSE connection opened for task: taskId={}", taskId);
+
+        DownloadTask task = taskRegistry.getTask(taskId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Download task not found: " + taskId));
+
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
+
+        Consumer<DownloadProgress> listener = progress -> {
+            try {
+                DownloadProgressResponse response = DownloadProgressResponse.from(progress);
+                emitter.send(SseEmitter.event().name("progress").data(response));
+                if (progress.status().isTerminal()) {
+                    LOG.debug("Closing SSE connection for completed task: taskId={}", taskId);
+                    emitter.complete();
+                }
+            } catch (IOException | IllegalStateException e) {
+                LOG.warn("Error sending SSE event: taskId={} error={}", taskId, e.getMessage());
+                emitter.completeWithError(e);
+            }
+        };
+
+        emitter.onCompletion(() -> task.removeProgressListener(listener));
+        emitter.onTimeout(() -> task.removeProgressListener(listener));
+        emitter.onError(__ -> task.removeProgressListener(listener));
+
+        try {
+            emitter.send(SseEmitter.event().comment("connected"));
+        } catch (IOException e) {
+            LOG.debug("SSE connection failed for task: taskId={}", taskId);
+            emitter.completeWithError(e);
+            return emitter;
+        }
+        task.addProgressListener(listener);
+        return emitter;
+    }
+
+    @GetMapping(value = "/{taskId}/status", produces = MediaType.APPLICATION_JSON_VALUE)
+    public DownloadProgressResponse getStatus(@PathVariable("taskId") String taskId) {
+        DownloadProgress progress = taskRegistry.getProgress(taskId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Download task not found: " + taskId));
+        return DownloadProgressResponse.from(progress);
+    }
+
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<Void> cancelDownload(@PathVariable("taskId") String taskId) {
+        boolean cancelled = taskRegistry.cancelTask(taskId);
+        if (cancelled) {
+            LOG.info("Download cancelled: taskId={}", taskId);
+            return ResponseEntity.noContent().build();
+        }
+        LOG.warn("Failed to cancel download (not found or already complete): taskId={}", taskId);
+        return ResponseEntity.notFound().build();
+    }
+
+    private CompletableFuture<Void> startDownloadAsync(DownloadTask task, RecordingsDownloadManager downloadManager) {
+        if (downloadManager instanceof RemoteRecordingsDownloadManager remoteManager) {
+            return CompletableFuture.runAsync(() -> {
+                try {
+                    remoteManager.downloadRecordingsWithProgress(
+                            task.getSessionId(), task.getFileIds(), task);
+                } catch (Exception e) {
+                    LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
+                    task.onError(e.getMessage());
+                    throw e;
+                }
+            }, Schedulers.sharedVirtual());
+        }
+        return CompletableFuture.runAsync(() -> {
+            try {
+                task.onStart(task.getFileIds().size(), 0);
+                downloadManager.downloadRecordings(task.getSessionId(), task.getFileIds());
+                task.onComplete();
+            } catch (Exception e) {
+                LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
+                task.onError(e.getMessage());
+                throw e;
+            }
+        }, Schedulers.sharedVirtual());
+    }
+}

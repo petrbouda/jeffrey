@@ -121,7 +121,7 @@ public class McpCompletions implements McpCompletionProvider {
     /**
      * Whether this reference declares the argument being completed. A prompt is asked which arguments
      * it takes: the single-profile skills declare {@code profileId}, {@code compare-jfr} declares both,
-     * and the four that produce a profile, reach a hub or are pure guidance declare none, so a client
+     * and the four that produce a profile, reach the remote or are pure guidance declare none, so a client
      * is never offered ids for an argument the prompt has no use for. A resource template declares
      * what its path carries — {@code profileId} on the per-profile templates, nothing on the catalogue.
      */

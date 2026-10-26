@@ -29,8 +29,8 @@ import cafe.jeffrey.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.profile.common.pipeline.StageStatus;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.shared.ui.hub.bridge.ProfileInitProgress;
-import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider.ProfileInfo;
+import cafe.jeffrey.shared.ui.remote.bridge.ProfileInitProgress;
+import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider.ProfileInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

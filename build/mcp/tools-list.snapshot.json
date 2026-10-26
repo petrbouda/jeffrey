@@ -7188,8 +7188,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -7670,8 +7670,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -8104,8 +8104,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -9089,1784 +9089,6 @@
         "type": "object"
       },
       "title": "HTTP: Overview"
-    },
-    {
-      "_meta": {
-        "jeffrey/cost": "SLOW",
-        "jeffrey/requires": [
-          "HUB"
-        ]
-      },
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true,
-        "readOnlyHint": false
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "atEpochMs": {
-            "type": "integer"
-          },
-          "endEpochMs": {
-            "type": "integer"
-          },
-          "fileIds": {
-            "type": "array"
-          },
-          "minutes": {
-            "maximum": 527040,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "retry": {
-            "type": "boolean"
-          },
-          "sessionRef": {
-            "type": "string"
-          },
-          "startEpochMs": {
-            "type": "integer"
-          },
-          "window": {
-            "enum": [
-              "WHOLE",
-              "LAST_MINUTES",
-              "STARTUP",
-              "LATEST",
-              "PEAK",
-              "BEFORE",
-              "AROUND",
-              "CUSTOM"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "sessionRef"
-        ]
-      },
-      "name": "hubs_download",
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "artifactFiles": {
-            "minimum": 0,
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "bundleId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "chosen": {
-            "additionalProperties": false,
-            "properties": {
-              "chunkFileId": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "chunkLengthMs": {
-                "minimum": 0,
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "chunkSizeBytes": {
-                "minimum": 0,
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "evidence": {
-                "type": "string"
-              },
-              "medianChunkSizeBytes": {
-                "minimum": 0,
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "window": {
-                "enum": [
-                  "WHOLE",
-                  "LAST_MINUTES",
-                  "STARTUP",
-                  "LATEST",
-                  "PEAK",
-                  "BEFORE",
-                  "AROUND",
-                  "CUSTOM"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "chunkFileId",
-              "chunkLengthMs",
-              "chunkSizeBytes",
-              "evidence",
-              "medianChunkSizeBytes",
-              "window"
-            ],
-            "type": [
-              "object",
-              "null"
-            ]
-          },
-          "coveredEndEpochMs": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "coveredStartEpochMs": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "endEpochMs": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "fileIds": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "followUp": {
-            "additionalProperties": false,
-            "properties": {
-              "guidance": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "nextTools": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "arguments": {
-                      "type": "object"
-                    },
-                    "tool": {
-                      "type": "string"
-                    },
-                    "weight": {
-                      "enum": [
-                        "LIGHT",
-                        "MEDIUM",
-                        "HEAVY"
-                      ],
-                      "type": "string"
-                    },
-                    "why": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "arguments",
-                    "tool",
-                    "weight",
-                    "why"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "guidance",
-              "nextTools"
-            ],
-            "type": "object"
-          },
-          "hub": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "items": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "eventSource": {
-                  "enum": [
-                    "ASYNC_PROFILER",
-                    "JDK",
-                    "UNKNOWN",
-                    "HEAP_DUMP",
-                    "PPROF",
-                    "OPEN_TELEMETRY",
-                    "PERF_COUNTERS"
-                  ],
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "profileId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "recordingId": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "eventSource",
-                "name",
-                "profileId",
-                "recordingId"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "operation": {
-            "additionalProperties": false,
-            "properties": {
-              "cancellationRequested": {
-                "type": "boolean"
-              },
-              "error": {
-                "additionalProperties": false,
-                "properties": {
-                  "code": {
-                    "enum": [
-                      "CANCELLED",
-                      "OPERATION_FAILED"
-                    ],
-                    "type": "string"
-                  },
-                  "message": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                },
-                "required": [
-                  "code",
-                  "message"
-                ],
-                "type": [
-                  "object",
-                  "null"
-                ]
-              },
-              "finishedAtEpochMs": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "followUp": {
-                "additionalProperties": false,
-                "properties": {
-                  "guidance": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "nextTools": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "arguments": {
-                          "type": "object"
-                        },
-                        "tool": {
-                          "type": "string"
-                        },
-                        "weight": {
-                          "enum": [
-                            "LIGHT",
-                            "MEDIUM",
-                            "HEAVY"
-                          ],
-                          "type": "string"
-                        },
-                        "why": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "arguments",
-                        "tool",
-                        "weight",
-                        "why"
-                      ],
-                      "type": "object"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "guidance",
-                  "nextTools"
-                ],
-                "type": "object"
-              },
-              "kind": {
-                "enum": [
-                  "RECORDING_IMPORT",
-                  "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
-                  "HEAP_PREPARE",
-                  "HEAP_OQL",
-                  "JVM_AUTO_ANALYSIS"
-                ],
-                "type": "string"
-              },
-              "operationId": {
-                "type": "string"
-              },
-              "progress": {
-                "additionalProperties": false,
-                "properties": {
-                  "details": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "fileId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "fileName": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "path": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "recordingId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "sessionId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "sessionRef": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "sizeBytes": {
-                        "minimum": 0,
-                        "type": [
-                          "integer",
-                          "null"
-                        ]
-                      },
-                      "stages": {
-                        "items": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "durationMs": {
-                              "minimum": 0,
-                              "type": [
-                                "integer",
-                                "null"
-                              ]
-                            },
-                            "id": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "enum": [
-                                "PENDING",
-                                "IN_PROGRESS",
-                                "COMPLETED",
-                                "FAILED",
-                                "SKIPPED"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "durationMs",
-                            "id",
-                            "status"
-                          ],
-                          "type": "object"
-                        },
-                        "type": "array"
-                      },
-                      "unavailableReason": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "fileId",
-                      "fileName",
-                      "path",
-                      "recordingId",
-                      "sessionId",
-                      "sessionRef",
-                      "sizeBytes",
-                      "stages",
-                      "unavailableReason"
-                    ],
-                    "type": "object"
-                  },
-                  "phase": {
-                    "enum": [
-                      "QUEUED",
-                      "RUNNING",
-                      "NOT_STARTED",
-                      "ALREADY_AVAILABLE",
-                      "PIPELINE",
-                      "IMPORTING",
-                      "ANALYZING",
-                      "FINALIZING",
-                      "DOWNLOADING",
-                      "FETCHING"
-                    ],
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "details",
-                  "phase"
-                ],
-                "type": "object"
-              },
-              "result": {
-                "type": [
-                  "object",
-                  "null"
-                ]
-              },
-              "retryable": {
-                "type": "boolean"
-              },
-              "startedAtEpochMs": {
-                "type": "integer"
-              },
-              "status": {
-                "enum": [
-                  "QUEUED",
-                  "RUNNING",
-                  "CANCEL_REQUESTED",
-                  "COMPLETED",
-                  "FAILED",
-                  "CANCELLED"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "cancellationRequested",
-              "error",
-              "finishedAtEpochMs",
-              "followUp",
-              "kind",
-              "operationId",
-              "progress",
-              "result",
-              "retryable",
-              "startedAtEpochMs",
-              "status"
-            ],
-            "type": [
-              "object",
-              "null"
-            ]
-          },
-          "operationId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "profileId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "project": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "reason": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "recordingFiles": {
-            "minimum": 0,
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "recordingId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "sessionId": {
-            "type": "string"
-          },
-          "sessionName": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "sessionRef": {
-            "type": "string"
-          },
-          "sizeBytes": {
-            "minimum": 0,
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "startEpochMs": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "status": {
-            "enum": [
-              "DOWNLOADED",
-              "RUNNING",
-              "NOT_DOWNLOADED",
-              "FAILED",
-              "CANCELLED",
-              "STARTUP_NOT_RETAINED"
-            ],
-            "type": "string"
-          },
-          "uiLink": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "artifactFiles",
-          "bundleId",
-          "chosen",
-          "coveredEndEpochMs",
-          "coveredStartEpochMs",
-          "endEpochMs",
-          "fileIds",
-          "followUp",
-          "hub",
-          "items",
-          "operation",
-          "operationId",
-          "profileId",
-          "project",
-          "reason",
-          "recordingFiles",
-          "recordingId",
-          "sessionId",
-          "sessionName",
-          "sessionRef",
-          "sizeBytes",
-          "startEpochMs",
-          "status",
-          "uiLink"
-        ],
-        "type": "object"
-      },
-      "title": "Hubs: Download"
-    },
-    {
-      "_meta": {
-        "jeffrey/cost": "SLOW",
-        "jeffrey/requires": [
-          "HUB"
-        ]
-      },
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true,
-        "readOnlyHint": false
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "fileId": {
-            "type": "string"
-          },
-          "sessionRef": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "fileId",
-          "sessionRef"
-        ]
-      },
-      "name": "hubs_fetchFile",
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "alreadyHere": {
-            "type": "boolean"
-          },
-          "fileId": {
-            "type": "string"
-          },
-          "filename": {
-            "type": "string"
-          },
-          "followUp": {
-            "additionalProperties": false,
-            "properties": {
-              "guidance": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "nextTools": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "arguments": {
-                      "type": "object"
-                    },
-                    "tool": {
-                      "type": "string"
-                    },
-                    "weight": {
-                      "enum": [
-                        "LIGHT",
-                        "MEDIUM",
-                        "HEAVY"
-                      ],
-                      "type": "string"
-                    },
-                    "why": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "arguments",
-                    "tool",
-                    "weight",
-                    "why"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "guidance",
-              "nextTools"
-            ],
-            "type": "object"
-          },
-          "operation": {
-            "additionalProperties": false,
-            "properties": {
-              "cancellationRequested": {
-                "type": "boolean"
-              },
-              "error": {
-                "additionalProperties": false,
-                "properties": {
-                  "code": {
-                    "enum": [
-                      "CANCELLED",
-                      "OPERATION_FAILED"
-                    ],
-                    "type": "string"
-                  },
-                  "message": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                },
-                "required": [
-                  "code",
-                  "message"
-                ],
-                "type": [
-                  "object",
-                  "null"
-                ]
-              },
-              "finishedAtEpochMs": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "followUp": {
-                "additionalProperties": false,
-                "properties": {
-                  "guidance": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "nextTools": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "arguments": {
-                          "type": "object"
-                        },
-                        "tool": {
-                          "type": "string"
-                        },
-                        "weight": {
-                          "enum": [
-                            "LIGHT",
-                            "MEDIUM",
-                            "HEAVY"
-                          ],
-                          "type": "string"
-                        },
-                        "why": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "arguments",
-                        "tool",
-                        "weight",
-                        "why"
-                      ],
-                      "type": "object"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "guidance",
-                  "nextTools"
-                ],
-                "type": "object"
-              },
-              "kind": {
-                "enum": [
-                  "RECORDING_IMPORT",
-                  "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
-                  "HEAP_PREPARE",
-                  "HEAP_OQL",
-                  "JVM_AUTO_ANALYSIS"
-                ],
-                "type": "string"
-              },
-              "operationId": {
-                "type": "string"
-              },
-              "progress": {
-                "additionalProperties": false,
-                "properties": {
-                  "details": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "fileId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "fileName": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "path": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "recordingId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "sessionId": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "sessionRef": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "sizeBytes": {
-                        "minimum": 0,
-                        "type": [
-                          "integer",
-                          "null"
-                        ]
-                      },
-                      "stages": {
-                        "items": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "durationMs": {
-                              "minimum": 0,
-                              "type": [
-                                "integer",
-                                "null"
-                              ]
-                            },
-                            "id": {
-                              "type": "string"
-                            },
-                            "status": {
-                              "enum": [
-                                "PENDING",
-                                "IN_PROGRESS",
-                                "COMPLETED",
-                                "FAILED",
-                                "SKIPPED"
-                              ],
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "durationMs",
-                            "id",
-                            "status"
-                          ],
-                          "type": "object"
-                        },
-                        "type": "array"
-                      },
-                      "unavailableReason": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "fileId",
-                      "fileName",
-                      "path",
-                      "recordingId",
-                      "sessionId",
-                      "sessionRef",
-                      "sizeBytes",
-                      "stages",
-                      "unavailableReason"
-                    ],
-                    "type": "object"
-                  },
-                  "phase": {
-                    "enum": [
-                      "QUEUED",
-                      "RUNNING",
-                      "NOT_STARTED",
-                      "ALREADY_AVAILABLE",
-                      "PIPELINE",
-                      "IMPORTING",
-                      "ANALYZING",
-                      "FINALIZING",
-                      "DOWNLOADING",
-                      "FETCHING"
-                    ],
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "details",
-                  "phase"
-                ],
-                "type": "object"
-              },
-              "result": {
-                "type": [
-                  "object",
-                  "null"
-                ]
-              },
-              "retryable": {
-                "type": "boolean"
-              },
-              "startedAtEpochMs": {
-                "type": "integer"
-              },
-              "status": {
-                "enum": [
-                  "QUEUED",
-                  "RUNNING",
-                  "CANCEL_REQUESTED",
-                  "COMPLETED",
-                  "FAILED",
-                  "CANCELLED"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "cancellationRequested",
-              "error",
-              "finishedAtEpochMs",
-              "followUp",
-              "kind",
-              "operationId",
-              "progress",
-              "result",
-              "retryable",
-              "startedAtEpochMs",
-              "status"
-            ],
-            "type": [
-              "object",
-              "null"
-            ]
-          },
-          "operationId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "path": {
-            "type": "string"
-          },
-          "profileId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "profilingStartedAtEpochMs": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "recordingId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "sessionRef": {
-            "type": "string"
-          },
-          "sizeBytes": {
-            "minimum": 0,
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "status": {
-            "enum": [
-              "FETCHED",
-              "RUNNING"
-            ],
-            "type": "string"
-          },
-          "type": {
-            "enum": [
-              "JFR_LZ4",
-              "JFR",
-              "ASPROF_TEMP",
-              "HEAP_DUMP_GZ",
-              "HEAP_DUMP",
-              "PERF_COUNTERS",
-              "JVM_LOG",
-              "HS_JVM_ERROR_LOG",
-              "APP_LOG",
-              "PPROF",
-              "OTLP_PROFILE",
-              "UNKNOWN"
-            ],
-            "type": "string"
-          },
-          "uiLink": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "alreadyHere",
-          "fileId",
-          "filename",
-          "followUp",
-          "operation",
-          "operationId",
-          "path",
-          "profileId",
-          "profilingStartedAtEpochMs",
-          "recordingId",
-          "sessionRef",
-          "sizeBytes",
-          "status",
-          "type",
-          "uiLink"
-        ],
-        "type": "object"
-      },
-      "title": "Hubs: Fetch File"
-    },
-    {
-      "_meta": {
-        "jeffrey/cost": "CHEAP",
-        "jeffrey/requires": [
-          "HUB"
-        ]
-      },
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true,
-        "readOnlyHint": true
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "cursor": {
-            "type": "string"
-          },
-          "limit": {
-            "default": 100,
-            "maximum": 1000,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "sessionRef": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "sessionRef"
-        ]
-      },
-      "name": "hubs_files",
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "files": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "category": {
-                  "enum": [
-                    "RECORDING",
-                    "ARTIFACT",
-                    "UNRECOGNIZED",
-                    "TEMPORARY"
-                  ],
-                  "type": "string"
-                },
-                "createdAtEpochMs": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "fetch": {
-                  "enum": [
-                    "FETCH",
-                    "DOWNLOAD",
-                    "NEVER"
-                  ],
-                  "type": "string"
-                },
-                "fileId": {
-                  "type": "string"
-                },
-                "localPath": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "name": {
-                  "type": "string"
-                },
-                "sizeBytes": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "status": {
-                  "enum": [
-                    "UNKNOWN",
-                    "FINISHED",
-                    "ACTIVE"
-                  ],
-                  "type": "string"
-                },
-                "type": {
-                  "enum": [
-                    "JFR_LZ4",
-                    "JFR",
-                    "ASPROF_TEMP",
-                    "HEAP_DUMP_GZ",
-                    "HEAP_DUMP",
-                    "PERF_COUNTERS",
-                    "JVM_LOG",
-                    "HS_JVM_ERROR_LOG",
-                    "APP_LOG",
-                    "PPROF",
-                    "OTLP_PROFILE",
-                    "UNKNOWN"
-                  ],
-                  "type": "string"
-                }
-              },
-              "required": [
-                "category",
-                "createdAtEpochMs",
-                "fetch",
-                "fileId",
-                "localPath",
-                "name",
-                "sizeBytes",
-                "status",
-                "type"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "followUp": {
-            "additionalProperties": false,
-            "properties": {
-              "guidance": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "nextTools": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "arguments": {
-                      "type": "object"
-                    },
-                    "tool": {
-                      "type": "string"
-                    },
-                    "weight": {
-                      "enum": [
-                        "LIGHT",
-                        "MEDIUM",
-                        "HEAVY"
-                      ],
-                      "type": "string"
-                    },
-                    "why": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "arguments",
-                    "tool",
-                    "weight",
-                    "why"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "guidance",
-              "nextTools"
-            ],
-            "type": "object"
-          },
-          "hasMore": {
-            "type": "boolean"
-          },
-          "hub": {
-            "type": "string"
-          },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "profileId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "profilingStartedAtEpochMs": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "project": {
-            "type": "string"
-          },
-          "reason": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "recordingId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "returned": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "sessionName": {
-            "type": "string"
-          },
-          "sessionRef": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "OK",
-              "EMPTY"
-            ],
-            "type": "string"
-          },
-          "total": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "uiLink": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "files",
-          "followUp",
-          "hasMore",
-          "hub",
-          "nextCursor",
-          "profileId",
-          "profilingStartedAtEpochMs",
-          "project",
-          "reason",
-          "recordingId",
-          "returned",
-          "sessionName",
-          "sessionRef",
-          "status",
-          "total",
-          "uiLink"
-        ],
-        "type": "object"
-      },
-      "title": "Hubs: Files"
-    },
-    {
-      "_meta": {
-        "jeffrey/cost": "MODERATE"
-      },
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true,
-        "readOnlyHint": true
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "cursor": {
-            "type": "string"
-          },
-          "limit": {
-            "default": 100,
-            "maximum": 500,
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": []
-      },
-      "name": "hubs_list",
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "followUp": {
-            "additionalProperties": false,
-            "properties": {
-              "guidance": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "nextTools": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "arguments": {
-                      "type": "object"
-                    },
-                    "tool": {
-                      "type": "string"
-                    },
-                    "weight": {
-                      "enum": [
-                        "LIGHT",
-                        "MEDIUM",
-                        "HEAVY"
-                      ],
-                      "type": "string"
-                    },
-                    "why": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "arguments",
-                    "tool",
-                    "weight",
-                    "why"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "guidance",
-              "nextTools"
-            ],
-            "type": "object"
-          },
-          "hasMore": {
-            "type": "boolean"
-          },
-          "hubs": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "address": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "hubId": {
-                  "type": "string"
-                },
-                "hubVersion": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "name": {
-                  "type": "string"
-                },
-                "source": {
-                  "enum": [
-                    "USER",
-                    "CONFIG",
-                    null
-                  ],
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "status": {
-                  "enum": [
-                    "REACHABLE",
-                    "UNREACHABLE"
-                  ],
-                  "type": "string"
-                }
-              },
-              "required": [
-                "address",
-                "hubId",
-                "hubVersion",
-                "name",
-                "source",
-                "status"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "reason": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "returned": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "status": {
-            "enum": [
-              "OK",
-              "EMPTY"
-            ],
-            "type": "string"
-          },
-          "total": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "uiLink": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "followUp",
-          "hasMore",
-          "hubs",
-          "nextCursor",
-          "reason",
-          "returned",
-          "status",
-          "total",
-          "uiLink"
-        ],
-        "type": "object"
-      },
-      "title": "Hubs: List"
-    },
-    {
-      "_meta": {
-        "jeffrey/cost": "MODERATE",
-        "jeffrey/requires": [
-          "HUB"
-        ]
-      },
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true,
-        "readOnlyHint": true
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "cursor": {
-            "type": "string"
-          },
-          "hub": {
-            "type": "string"
-          },
-          "limit": {
-            "default": 50,
-            "maximum": 500,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "project": {
-            "type": "string"
-          },
-          "status": {
-            "enum": [
-              "UNKNOWN",
-              "FINISHED",
-              "ACTIVE"
-            ],
-            "type": "string"
-          },
-          "withinLastMinutes": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "workspace": {
-            "type": "string"
-          }
-        },
-        "required": []
-      },
-      "name": "hubs_sessions",
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "complete": {
-            "type": "boolean"
-          },
-          "failures": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "hubName": {
-                  "type": "string"
-                },
-                "kind": {
-                  "enum": [
-                    "UNREACHABLE",
-                    "DEADLINE_EXCEEDED",
-                    "CAPACITY_EXHAUSTED",
-                    "OTHER"
-                  ],
-                  "type": "string"
-                },
-                "reason": {
-                  "type": "string"
-                },
-                "scope": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "hubName",
-                "kind",
-                "reason",
-                "scope"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "followUp": {
-            "additionalProperties": false,
-            "properties": {
-              "guidance": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "nextTools": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "arguments": {
-                      "type": "object"
-                    },
-                    "tool": {
-                      "type": "string"
-                    },
-                    "weight": {
-                      "enum": [
-                        "LIGHT",
-                        "MEDIUM",
-                        "HEAVY"
-                      ],
-                      "type": "string"
-                    },
-                    "why": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "arguments",
-                    "tool",
-                    "weight",
-                    "why"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "guidance",
-              "nextTools"
-            ],
-            "type": "object"
-          },
-          "hasMore": {
-            "type": "boolean"
-          },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "observedTotal": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "reason": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "returned": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "sessions": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "durationMs": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "files": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "hub": {
-                  "type": "string"
-                },
-                "profileId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "project": {
-                  "type": "string"
-                },
-                "recordingId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "sessionRef": {
-                  "type": "string"
-                },
-                "sizeBytes": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "startedAtEpochMs": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "status": {
-                  "enum": [
-                    "UNKNOWN",
-                    "FINISHED",
-                    "ACTIVE",
-                    null
-                  ],
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "workspace": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "durationMs",
-                "files",
-                "hub",
-                "profileId",
-                "project",
-                "recordingId",
-                "sessionRef",
-                "sizeBytes",
-                "startedAtEpochMs",
-                "status",
-                "workspace"
-              ],
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "status": {
-            "enum": [
-              "OK",
-              "EMPTY"
-            ],
-            "type": "string"
-          },
-          "total": {
-            "minimum": 0,
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "uiLink": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "complete",
-          "failures",
-          "followUp",
-          "hasMore",
-          "nextCursor",
-          "observedTotal",
-          "reason",
-          "returned",
-          "sessions",
-          "status",
-          "total",
-          "uiLink"
-        ],
-        "type": "object"
-      },
-      "title": "Hubs: Sessions"
     },
     {
       "_meta": {
@@ -14000,8 +12222,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -21069,8 +19291,8 @@
             "enum": [
               "RECORDING_IMPORT",
               "RECORDING_ANALYSIS",
-              "HUB_DOWNLOAD",
-              "HUB_FETCH",
+              "REMOTE_DOWNLOAD",
+              "REMOTE_FETCH",
               "HEAP_PREPARE",
               "HEAP_OQL",
               "JVM_AUTO_ANALYSIS"
@@ -21358,8 +19580,8 @@
             "enum": [
               "RECORDING_IMPORT",
               "RECORDING_ANALYSIS",
-              "HUB_DOWNLOAD",
-              "HUB_FETCH",
+              "REMOTE_DOWNLOAD",
+              "REMOTE_FETCH",
               "HEAP_PREPARE",
               "HEAP_OQL",
               "JVM_AUTO_ANALYSIS"
@@ -23454,8 +21676,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -23917,8 +22139,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -24622,8 +22844,8 @@
                 "enum": [
                   "RECORDING_IMPORT",
                   "RECORDING_ANALYSIS",
-                  "HUB_DOWNLOAD",
-                  "HUB_FETCH",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
                   "HEAP_PREPARE",
                   "HEAP_OQL",
                   "JVM_AUTO_ANALYSIS"
@@ -24894,6 +23116,1706 @@
         "type": "object"
       },
       "title": "Recordings: Status"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "SLOW",
+        "jeffrey/requires": [
+          "REMOTE"
+        ]
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "atEpochMs": {
+            "type": "integer"
+          },
+          "endEpochMs": {
+            "type": "integer"
+          },
+          "fileIds": {
+            "type": "array"
+          },
+          "minutes": {
+            "maximum": 527040,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "retry": {
+            "type": "boolean"
+          },
+          "sessionRef": {
+            "type": "string"
+          },
+          "startEpochMs": {
+            "type": "integer"
+          },
+          "window": {
+            "enum": [
+              "WHOLE",
+              "LAST_MINUTES",
+              "STARTUP",
+              "LATEST",
+              "PEAK",
+              "BEFORE",
+              "AROUND",
+              "CUSTOM"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionRef"
+        ]
+      },
+      "name": "remote_download",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "artifactFiles": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "bundleId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chosen": {
+            "additionalProperties": false,
+            "properties": {
+              "chunkFileId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "chunkLengthMs": {
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "chunkSizeBytes": {
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "medianChunkSizeBytes": {
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "window": {
+                "enum": [
+                  "WHOLE",
+                  "LAST_MINUTES",
+                  "STARTUP",
+                  "LATEST",
+                  "PEAK",
+                  "BEFORE",
+                  "AROUND",
+                  "CUSTOM"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "chunkFileId",
+              "chunkLengthMs",
+              "chunkSizeBytes",
+              "evidence",
+              "medianChunkSizeBytes",
+              "window"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "coveredEndEpochMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "coveredStartEpochMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "endEpochMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fileIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "eventSource": {
+                  "enum": [
+                    "ASYNC_PROFILER",
+                    "JDK",
+                    "UNKNOWN",
+                    "HEAP_DUMP",
+                    "PPROF",
+                    "OPEN_TELEMETRY",
+                    "PERF_COUNTERS"
+                  ],
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "profileId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "recordingId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventSource",
+                "name",
+                "profileId",
+                "recordingId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "operation": {
+            "additionalProperties": false,
+            "properties": {
+              "cancellationRequested": {
+                "type": "boolean"
+              },
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "CANCELLED",
+                      "OPERATION_FAILED"
+                    ],
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "finishedAtEpochMs": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "followUp": {
+                "additionalProperties": false,
+                "properties": {
+                  "guidance": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "nextTools": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "arguments": {
+                          "type": "object"
+                        },
+                        "tool": {
+                          "type": "string"
+                        },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "arguments",
+                        "tool",
+                        "weight",
+                        "why"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "guidance",
+                  "nextTools"
+                ],
+                "type": "object"
+              },
+              "kind": {
+                "enum": [
+                  "RECORDING_IMPORT",
+                  "RECORDING_ANALYSIS",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
+                  "HEAP_PREPARE",
+                  "HEAP_OQL",
+                  "JVM_AUTO_ANALYSIS"
+                ],
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "progress": {
+                "additionalProperties": false,
+                "properties": {
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fileId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "fileName": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "path": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "recordingId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sessionId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sessionRef": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sizeBytes": {
+                        "minimum": 0,
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "stages": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "durationMs": {
+                              "minimum": 0,
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "enum": [
+                                "PENDING",
+                                "IN_PROGRESS",
+                                "COMPLETED",
+                                "FAILED",
+                                "SKIPPED"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "durationMs",
+                            "id",
+                            "status"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "unavailableReason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "fileId",
+                      "fileName",
+                      "path",
+                      "recordingId",
+                      "sessionId",
+                      "sessionRef",
+                      "sizeBytes",
+                      "stages",
+                      "unavailableReason"
+                    ],
+                    "type": "object"
+                  },
+                  "phase": {
+                    "enum": [
+                      "QUEUED",
+                      "RUNNING",
+                      "NOT_STARTED",
+                      "ALREADY_AVAILABLE",
+                      "PIPELINE",
+                      "IMPORTING",
+                      "ANALYZING",
+                      "FINALIZING",
+                      "DOWNLOADING",
+                      "FETCHING"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "details",
+                  "phase"
+                ],
+                "type": "object"
+              },
+              "result": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "startedAtEpochMs": {
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "QUEUED",
+                  "RUNNING",
+                  "CANCEL_REQUESTED",
+                  "COMPLETED",
+                  "FAILED",
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "cancellationRequested",
+              "error",
+              "finishedAtEpochMs",
+              "followUp",
+              "kind",
+              "operationId",
+              "progress",
+              "result",
+              "retryable",
+              "startedAtEpochMs",
+              "status"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "operationId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profileId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recordingFiles": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recordingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "sessionName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sessionRef": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "startEpochMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "DOWNLOADED",
+              "RUNNING",
+              "NOT_DOWNLOADED",
+              "FAILED",
+              "CANCELLED",
+              "STARTUP_NOT_RETAINED"
+            ],
+            "type": "string"
+          },
+          "uiLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifactFiles",
+          "bundleId",
+          "chosen",
+          "coveredEndEpochMs",
+          "coveredStartEpochMs",
+          "endEpochMs",
+          "fileIds",
+          "followUp",
+          "items",
+          "operation",
+          "operationId",
+          "profileId",
+          "project",
+          "reason",
+          "recordingFiles",
+          "recordingId",
+          "sessionId",
+          "sessionName",
+          "sessionRef",
+          "sizeBytes",
+          "startEpochMs",
+          "status",
+          "uiLink"
+        ],
+        "type": "object"
+      },
+      "title": "Remote: Download"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "SLOW",
+        "jeffrey/requires": [
+          "REMOTE"
+        ]
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "fileId": {
+            "type": "string"
+          },
+          "sessionRef": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileId",
+          "sessionRef"
+        ]
+      },
+      "name": "remote_fetchFile",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "alreadyHere": {
+            "type": "boolean"
+          },
+          "fileId": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "operation": {
+            "additionalProperties": false,
+            "properties": {
+              "cancellationRequested": {
+                "type": "boolean"
+              },
+              "error": {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "CANCELLED",
+                      "OPERATION_FAILED"
+                    ],
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "finishedAtEpochMs": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "followUp": {
+                "additionalProperties": false,
+                "properties": {
+                  "guidance": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "nextTools": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "arguments": {
+                          "type": "object"
+                        },
+                        "tool": {
+                          "type": "string"
+                        },
+                        "weight": {
+                          "enum": [
+                            "LIGHT",
+                            "MEDIUM",
+                            "HEAVY"
+                          ],
+                          "type": "string"
+                        },
+                        "why": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "arguments",
+                        "tool",
+                        "weight",
+                        "why"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "guidance",
+                  "nextTools"
+                ],
+                "type": "object"
+              },
+              "kind": {
+                "enum": [
+                  "RECORDING_IMPORT",
+                  "RECORDING_ANALYSIS",
+                  "REMOTE_DOWNLOAD",
+                  "REMOTE_FETCH",
+                  "HEAP_PREPARE",
+                  "HEAP_OQL",
+                  "JVM_AUTO_ANALYSIS"
+                ],
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "progress": {
+                "additionalProperties": false,
+                "properties": {
+                  "details": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "fileId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "fileName": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "path": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "recordingId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sessionId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sessionRef": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "sizeBytes": {
+                        "minimum": 0,
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "stages": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "durationMs": {
+                              "minimum": 0,
+                              "type": [
+                                "integer",
+                                "null"
+                              ]
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "enum": [
+                                "PENDING",
+                                "IN_PROGRESS",
+                                "COMPLETED",
+                                "FAILED",
+                                "SKIPPED"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "durationMs",
+                            "id",
+                            "status"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "unavailableReason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "fileId",
+                      "fileName",
+                      "path",
+                      "recordingId",
+                      "sessionId",
+                      "sessionRef",
+                      "sizeBytes",
+                      "stages",
+                      "unavailableReason"
+                    ],
+                    "type": "object"
+                  },
+                  "phase": {
+                    "enum": [
+                      "QUEUED",
+                      "RUNNING",
+                      "NOT_STARTED",
+                      "ALREADY_AVAILABLE",
+                      "PIPELINE",
+                      "IMPORTING",
+                      "ANALYZING",
+                      "FINALIZING",
+                      "DOWNLOADING",
+                      "FETCHING"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "details",
+                  "phase"
+                ],
+                "type": "object"
+              },
+              "result": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "startedAtEpochMs": {
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "QUEUED",
+                  "RUNNING",
+                  "CANCEL_REQUESTED",
+                  "COMPLETED",
+                  "FAILED",
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "cancellationRequested",
+              "error",
+              "finishedAtEpochMs",
+              "followUp",
+              "kind",
+              "operationId",
+              "progress",
+              "result",
+              "retryable",
+              "startedAtEpochMs",
+              "status"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "operationId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "profileId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profilingStartedAtEpochMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recordingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sessionRef": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "FETCHED",
+              "RUNNING"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "JFR_LZ4",
+              "JFR",
+              "ASPROF_TEMP",
+              "HEAP_DUMP_GZ",
+              "HEAP_DUMP",
+              "PERF_COUNTERS",
+              "JVM_LOG",
+              "HS_JVM_ERROR_LOG",
+              "APP_LOG",
+              "PPROF",
+              "OTLP_PROFILE",
+              "UNKNOWN"
+            ],
+            "type": "string"
+          },
+          "uiLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "alreadyHere",
+          "fileId",
+          "filename",
+          "followUp",
+          "operation",
+          "operationId",
+          "path",
+          "profileId",
+          "profilingStartedAtEpochMs",
+          "recordingId",
+          "sessionRef",
+          "sizeBytes",
+          "status",
+          "type",
+          "uiLink"
+        ],
+        "type": "object"
+      },
+      "title": "Remote: Fetch File"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "CHEAP",
+        "jeffrey/requires": [
+          "REMOTE"
+        ]
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 100,
+            "maximum": 1000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sessionRef": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionRef"
+        ]
+      },
+      "name": "remote_files",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "category": {
+                  "enum": [
+                    "RECORDING",
+                    "ARTIFACT",
+                    "UNRECOGNIZED",
+                    "TEMPORARY"
+                  ],
+                  "type": "string"
+                },
+                "createdAtEpochMs": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "fetch": {
+                  "enum": [
+                    "FETCH",
+                    "DOWNLOAD",
+                    "NEVER"
+                  ],
+                  "type": "string"
+                },
+                "fileId": {
+                  "type": "string"
+                },
+                "localPath": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "sizeBytes": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "UNKNOWN",
+                    "FINISHED",
+                    "ACTIVE"
+                  ],
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "JFR_LZ4",
+                    "JFR",
+                    "ASPROF_TEMP",
+                    "HEAP_DUMP_GZ",
+                    "HEAP_DUMP",
+                    "PERF_COUNTERS",
+                    "JVM_LOG",
+                    "HS_JVM_ERROR_LOG",
+                    "APP_LOG",
+                    "PPROF",
+                    "OTLP_PROFILE",
+                    "UNKNOWN"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "category",
+                "createdAtEpochMs",
+                "fetch",
+                "fileId",
+                "localPath",
+                "name",
+                "sizeBytes",
+                "status",
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profileId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "profilingStartedAtEpochMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "project": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recordingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "returned": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sessionName": {
+            "type": "string"
+          },
+          "sessionRef": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "EMPTY"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "uiLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "files",
+          "followUp",
+          "hasMore",
+          "nextCursor",
+          "profileId",
+          "profilingStartedAtEpochMs",
+          "project",
+          "reason",
+          "recordingId",
+          "returned",
+          "sessionName",
+          "sessionRef",
+          "status",
+          "total",
+          "uiLink"
+        ],
+        "type": "object"
+      },
+      "title": "Remote: Files"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "MODERATE",
+        "jeffrey/requires": [
+          "REMOTE"
+        ]
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "project": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "UNKNOWN",
+              "FINISHED",
+              "ACTIVE"
+            ],
+            "type": "string"
+          },
+          "withinLastMinutes": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workspace": {
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "remote_sessions",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "failures": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "UNREACHABLE",
+                    "DEADLINE_EXCEEDED",
+                    "CAPACITY_EXHAUSTED",
+                    "OTHER"
+                  ],
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "reason",
+                "scope"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "observedTotal": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "returned": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sessions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "durationMs": {
+                  "minimum": 0,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "files": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "profileId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "project": {
+                  "type": "string"
+                },
+                "recordingId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sessionRef": {
+                  "type": "string"
+                },
+                "sizeBytes": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "startedAtEpochMs": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "UNKNOWN",
+                    "FINISHED",
+                    "ACTIVE",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "workspace": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "durationMs",
+                "files",
+                "profileId",
+                "project",
+                "recordingId",
+                "sessionRef",
+                "sizeBytes",
+                "startedAtEpochMs",
+                "status",
+                "workspace"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "EMPTY"
+            ],
+            "type": "string"
+          },
+          "total": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "uiLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "complete",
+          "failures",
+          "followUp",
+          "hasMore",
+          "nextCursor",
+          "observedTotal",
+          "reason",
+          "returned",
+          "sessions",
+          "status",
+          "total",
+          "uiLink"
+        ],
+        "type": "object"
+      },
+      "title": "Remote: Sessions"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "MODERATE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "name": "remote_status",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "readOnly": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "NOT_CONFIGURED",
+              "REACHABLE",
+              "UNREACHABLE"
+            ],
+            "type": "string"
+          },
+          "uiLink": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "followUp",
+          "name",
+          "readOnly",
+          "reason",
+          "state",
+          "uiLink",
+          "version"
+        ],
+        "type": "object"
+      },
+      "title": "Remote: Status"
     },
     {
       "_meta": {

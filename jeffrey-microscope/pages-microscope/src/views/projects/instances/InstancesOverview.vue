@@ -158,10 +158,10 @@ import Badge from '@shared/components/Badge.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
-import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
-import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
-import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
-import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics';
+import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient';
+import ProjectInstance from '@remote/services/api/model/ProjectInstance';
+import type RepositoryStatistics from '@remote/services/api/model/RepositoryStatistics';
 import TimelineBar from '@shared/components/TimelineBar.vue';
 import { useNavigation } from '@/composables/useNavigation';
 import InstanceStatsSummary from './InstanceStatsSummary.vue';
@@ -170,7 +170,7 @@ import { PROJECT_NAV_ACTIONS_SELECTOR } from '../projectNav';
 import '@shared/styles/shared-components.css';
 import type { Variant } from '@shared/types/ui';
 
-const { hubId, workspaceId, projectId, generateInstanceUrl } = useNavigation();
+const { workspaceId, projectId, generateInstanceUrl } = useNavigation();
 
 const loading = ref(true);
 const searchQuery = ref('');
@@ -239,12 +239,11 @@ const filteredInstances = computed(() => {
 });
 
 onMounted(async () => {
-  const client = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
+  const client = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
   instances.value = await client.list();
   loading.value = false;
 
   const repositoryClient = new ProjectRepositoryClient(
-    hubId.value,
     workspaceId.value!,
     projectId.value!
   );

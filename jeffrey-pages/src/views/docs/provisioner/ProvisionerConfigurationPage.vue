@@ -178,7 +178,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <DocsCallout type="warning">
           <strong>The project name is a stable identity — keep it the same across deployments.</strong>
           It keys the project directory on the shared volume (<code>workspaces/&lt;workspace&gt;/&lt;project-name&gt;/</code>),
-          and the project id stored there links all sessions to the same project on Jeffrey Hub.
+          and the project id stored there links all sessions to the same project on the volume.
           Changing the name creates a <em>new</em> project; the old one stops receiving sessions and
           keeps its history separately. If you rely on the jeffrey-jib default (the Maven artifactId /
           Gradle project name), renaming the module changes the project too — pin
@@ -233,13 +233,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_WORKSPACE_REF_ID</code></td>
               <td>
-                Reference ID of the workspace on the target Jeffrey Hub — the name of the
-                workspace directory the provisioner writes into, and the workspace's id on the
-                Hub. Optional — when omitted (or blank), recordings go to the server's default
+                Reference ID of the workspace on the shared volume — the name of the
+                workspace directory the provisioner writes into, and the workspace's id. Optional — when omitted (or blank), recordings go to the server's default
                 workspace (<code>$default</code> unless reconfigured via
                 <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
-                If set, it should name a workspace created on the Hub — a directory without the
-                Hub's <code>.workspace-info.json</code> is not listed, unless the hub enables
+                If set, it should name a workspace created in Microscope — a directory without its
+                <code>.workspace-info.json</code> is not listed by the Hub, unless the hub enables
                 <code>jeffrey.hub.workspaces.auto-create=true</code>, in which case every
                 workspace directory is listed. Creating the workspace later adopts what was
                 already written.

@@ -18,36 +18,36 @@
 package cafe.jeffrey.hub.core.volume;
 
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.volume.VolumeAccess;
+import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.layout.ProjectTree;
 
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * A workspace directory on the volume and what its {@code .workspace-info.json} declares (or, for
  * an auto-created one without it, its id and the directory's own creation time).
  *
- * @param path the directory, named by the workspace's id
+ * @param volume the volume the workspace lies on
+ * @param path   the directory, named by the workspace's id
  */
-public record WorkspaceDirectory(Path path, String name, Instant createdAt) {
+public record WorkspaceDirectory(VolumeAccess volume, VolumePath path, String name, Instant createdAt) {
 
     public WorkspaceDirectory {
-        if (path == null || name == null || createdAt == null) {
-            throw new IllegalArgumentException("A workspace directory needs a path, a name and a creation time");
+        if (volume == null || path == null || name == null || createdAt == null) {
+            throw new IllegalArgumentException("A workspace directory needs a volume, a path, a name and a creation time");
         }
     }
 
     public String id() {
-        return path.getFileName().toString();
+        return path.name();
     }
 
-    /** Its projects, as {@link ProjectDirectory#at} recognises them — read now. */
+    /** Its projects, as {@link ProjectTree#at} recognises them — read now. */
     public List<ProjectDirectory> projects() {
-        return VolumeMarkers.childDirectories(path).stream()
-                .map(directory -> ProjectDirectory.at(directory, id()))
-                .flatMap(Optional::stream)
+        return ProjectTree.allIn(volume, path).stream()
+                .map(tree -> ProjectDirectory.of(tree, id()))
                 .toList();
     }
 
@@ -56,6 +56,6 @@ public record WorkspaceDirectory(Path path, String name, Instant createdAt) {
      * caller that shows the count asks for it, not every request that merely names the workspace.
      */
     public WorkspaceInfo info() {
-        return new WorkspaceInfo(id(), name, createdAt, WorkspaceStatus.AVAILABLE, projects().size());
+        return new WorkspaceInfo(id(), name, createdAt, projects().size());
     }
 }

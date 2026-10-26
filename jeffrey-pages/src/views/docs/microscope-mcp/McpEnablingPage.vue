@@ -30,7 +30,7 @@ const headings = [
   { id: 'the-endpoint-url', text: 'The Endpoint URL', level: 2 },
   { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
-  { id: 'turning-hub-access-off', text: 'Turning Hub Access Off', level: 2 },
+  { id: 'turning-remote-access-off', text: 'Turning Remote Access Off', level: 2 },
   { id: 'turning-ide-access-off', text: 'Turning IDE Access Off', level: 2 },
   { id: 'trimming-the-tool-list', text: 'Trimming the Tool List', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
@@ -45,28 +45,27 @@ onMounted(() => {
 
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
-const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
+const remoteToggle = `jeffrey.microscope.mcp.remote.enabled=false`;
 
-const hubTimeouts = `# Positive ISO-8601 durations; defaults shown
-jeffrey.microscope.mcp.hubs.scan-timeout=PT20S
-jeffrey.microscope.mcp.hubs.download-response-timeout=PT45S
-jeffrey.microscope.mcp.hubs.download-timeout=PT1H`;
+const remoteTimeouts = `# Positive ISO-8601 durations; defaults shown
+jeffrey.microscope.mcp.remote.scan-timeout=PT20S
+jeffrey.microscope.mcp.remote.download-response-timeout=PT45S`;
 
-const windowQuestion = `# A whole-session hubs_download of a session longer than this, or holding more than
+const windowQuestion = `# A whole-session remote_download of a session longer than this, or holding more than
 # that, first asks a client that declared form elicitation which part to bring; defaults shown.
 # PT0S or 0B means always ask.
-jeffrey.microscope.mcp.hubs.ask-window-over-duration=PT1H
-jeffrey.microscope.mcp.hubs.ask-window-over-size=1GB`;
+jeffrey.microscope.mcp.remote.ask-window-over-duration=PT1H
+jeffrey.microscope.mcp.remote.ask-window-over-size=1GB`;
 
 const otherLimits = `# How many recordings_analyzeFile imports may run at once; the rest queue
 jeffrey.microscope.mcp.recordings.max-concurrent-imports=2
 
-# How long the jeffrey://diagnostics resource waits on each hub before calling it unreachable
+# How long the jeffrey://diagnostics resource waits on the remote before calling it unreachable
 jeffrey.microscope.mcp.diagnostics.probe-timeout=PT2S`;
 
 const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
 
-const presetProperty = `# all (default), jfr, heap, or hub
+const presetProperty = `# all (default), jfr, heap, or remote
 jeffrey.microscope.mcp.preset=heap`;
 
 const familiesProperty = `# Explicit families override the preset; empty uses the preset
@@ -145,32 +144,32 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The practical consequence: if a client reports that the server is unreachable or every tool call fails, check whether this installation set the property above.</p>
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
-      <h2 id="turning-hub-access-off">Turning Hub Access Off</h2>
-      <p>The <code>hubs_</code> family lets a session list the recording sessions on the <router-link to="/docs/hub">Jeffrey Hubs</router-link> this Microscope is connected to, and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
-      <DocsCodeBlock :code="hubsToggle" language="properties" />
+      <h2 id="turning-remote-access-off">Turning Remote Access Off</h2>
+      <p>The <code>remote_</code> family lets a session list the recording sessions on the remote this Microscope is configured with &mdash; the recording volume on an Azure file share, see <router-link to="/docs/microscope/configuration/application-properties#remote">Remote</router-link> &mdash; and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
+      <DocsCodeBlock :code="remoteToggle" language="properties" />
 
-      <p>It is one of two families with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Hub access reaches <em>out</em>, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
+      <p>It is one of two families with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Remote access reaches <em>out</em>, to whatever infrastructure the configured remote points at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
 
-      <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>hubs_</code> tool means it is off. The switch takes <code>hubs_files</code> and <code>hubs_fetchFile</code> with it.</p>
+      <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>remote_</code> tool means it is off. The switch takes <code>remote_files</code> and <code>remote_fetchFile</code> with it.</p>
 
-      <p>Hub discovery has a shared deadline across all remote calls. Downloads &mdash; and single-file fetches, which share the two settings &mdash; have a response deadline, including session lookup, and a separate transfer deadline for work continuing in the background. Increase the transfer deadline for large recordings on a slow connection:</p>
-      <DocsCodeBlock :code="hubTimeouts" language="properties" />
+      <p>Remote discovery has a shared deadline across all remote calls. Downloads &mdash; and single-file fetches, which share the setting &mdash; have a response deadline, including session lookup; a transfer that outlasts it carries on in the background, and calling the tool again with the same arguments reports the finished copy:</p>
+      <DocsCodeBlock :code="remoteTimeouts" language="properties" />
 
-      <p>A client that declared MCP form elicitation is asked which part of a <em>large</em> session to bring before a whole-session <code>hubs_download</code> moves it &mdash; the last N minutes, its startup, its latest or busiest chunk, the minutes before or around a moment, a window of the user&rsquo;s own, or all of it; the <router-link to="/docs/microscope-mcp/tools#window-question">Tool Reference</router-link> has the question and its answers. Two properties say what large means: a session that runs longer than the duration &mdash; to its finish, or to now while it is still recording &mdash; or holds more than the size. Anything smaller comes down whole without a question, and so does every session for a client that did not declare form elicitation, and a call that already names a <code>window</code>, bounds or <code>fileIds</code>. The duration is ISO-8601; the size is a data size such as <code>500MB</code> or <code>2GB</code>, where <code>1GB</code> is 1024<sup>3</sup> bytes. <code>PT0S</code> or <code>0B</code> means always ask. Both are read at startup.</p>
+      <p>A client that declared MCP form elicitation is asked which part of a <em>large</em> session to bring before a whole-session <code>remote_download</code> moves it &mdash; the last N minutes, its startup, its latest or busiest chunk, the minutes before or around a moment, a window of the user&rsquo;s own, or all of it; the <router-link to="/docs/microscope-mcp/tools#window-question">Tool Reference</router-link> has the question and its answers. Two properties say what large means: a session that runs longer than the duration &mdash; to its finish, or to now while it is still recording &mdash; or holds more than the size. Anything smaller comes down whole without a question, and so does every session for a client that did not declare form elicitation, and a call that already names a <code>window</code>, bounds or <code>fileIds</code>. The duration is ISO-8601; the size is a data size such as <code>500MB</code> or <code>2GB</code>, where <code>1GB</code> is 1024<sup>3</sup> bytes. <code>PT0S</code> or <code>0B</code> means always ask. Both are read at startup.</p>
       <DocsCodeBlock :code="windowQuestion" language="properties" />
 
       <DocsCallout type="info" title="The expensive tools have no switch">
         <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
 
-      <p>Two further bounds have properties of their own. An import is a file copy followed by a full parse, so a client that points at several recordings in one turn would otherwise start all of them together; the ones beyond the limit are queued rather than refused, and <code>operations_status</code> shows them so. The diagnostics probe is short on purpose &mdash; <code>jeffrey://diagnostics</code> is a health check rather than a scan, and a hub that cannot answer within it is exactly what the reachability figure reports.</p>
+      <p>Two further bounds have properties of their own. An import is a file copy followed by a full parse, so a client that points at several recordings in one turn would otherwise start all of them together; the ones beyond the limit are queued rather than refused, and <code>operations_status</code> shows them so. The diagnostics probe is short on purpose &mdash; <code>jeffrey://diagnostics</code> is a health check rather than a scan, and a remote that cannot answer within it is exactly what the reachability figure reports.</p>
       <DocsCodeBlock :code="otherLimits" language="properties" />
 
       <h2 id="turning-ide-access-off">Turning IDE Access Off</h2>
       <p>The <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code></router-link> family lets a session ask the developer&rsquo;s running IntelliJ where a frame lives, read a class through it, and open a file in it. It needs the <router-link to="/docs/intellij-plugin">Jeffrey IntelliJ plugin</router-link>, is on by default with the endpoint, and has its own switch:</p>
       <DocsCodeBlock :code="ideToggle" language="properties" />
 
-      <p>Its own switch for the same reason as <code>hubs_</code>, one step closer to home. Every other family reads a recording Jeffrey already holds; this one reaches into another process on this machine, and <code>ide_open</code> moves a developer&rsquo;s cursor while they are working. Nothing here reads a file the IDE does not already have open as a trusted project, and nothing writes to the checkout &mdash; but an installation that would rather an agent never touched the editor turns the family off here.</p>
+      <p>Its own switch for the same reason as <code>remote_</code>, one step closer to home. Every other family reads a recording Jeffrey already holds; this one reaches into another process on this machine, and <code>ide_open</code> moves a developer&rsquo;s cursor while they are working. Nothing here reads a file the IDE does not already have open as a trusted project, and nothing writes to the checkout &mdash; but an installation that would rather an agent never touched the editor turns the family off here.</p>
 
       <p>With the family on, it still answers nothing until a window is linked to the profile: a lookup links the single unambiguous candidate and otherwise reports the candidates rather than guessing between two checkouts.</p>
 
@@ -181,15 +180,15 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         <thead><tr><th>Preset</th><th>Families</th></tr></thead>
         <tbody>
           <tr><td><code>all</code></td><td>All families</td></tr>
-          <tr><td><code>jfr</code></td><td>profiles, recordings, jfr, flamegraph, jvm, compare, traces, http, jdbc, grpc, methodtracing, io, blocking, timeline, memory, operations &mdash; everything the <code>analyze-jfr</code> skill routes to; all but heap, hubs and ide</td></tr>
+          <tr><td><code>jfr</code></td><td>profiles, recordings, jfr, flamegraph, jvm, compare, traces, http, jdbc, grpc, methodtracing, io, blocking, timeline, memory, operations &mdash; everything the <code>analyze-jfr</code> skill routes to; all but heap, remote and ide</td></tr>
           <tr><td><code>heap</code></td><td>profiles, recordings, heap, operations</td></tr>
-          <tr><td><code>hub</code></td><td>profiles, recordings, hubs, operations</td></tr>
+          <tr><td><code>remote</code></td><td>profiles, recordings, remote, operations</td></tr>
         </tbody>
       </table>
-      <p>For a custom selection, set <code>families</code>. A nonempty list overrides the preset; the Hub and IDE switches still apply. Names use lowercase, and unknown preset or family names fail startup with an explanation.</p>
+      <p>For a custom selection, set <code>families</code>. A nonempty list overrides the preset; the remote and IDE switches still apply. Names use lowercase, and unknown preset or family names fail startup with an explanation.</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />
 
-      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>, <code>operations</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions. The dynamic <code>jeffrey://diagnostics</code> resource adds readiness, bounded Hub probes and aggregate tool measurements. A custom selection that keeps a family with a writer &mdash; <code>recordings</code>, <code>heap</code>, <code>hubs</code>, <code>ide</code> or <code>jvm</code> &mdash; must keep <code>operations</code> too, or startup fails naming the rule: it is how a client polls and cancels the work those families start. For the same reason a list that keeps <code>hubs</code> must keep <code>recordings</code>: a downloaded session becomes a profile through <code>recordings_analyzeRecording</code>.</p>
+      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>remote</code>, <code>ide</code>, <code>operations</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions. The dynamic <code>jeffrey://diagnostics</code> resource adds readiness, bounded remote probes and aggregate tool measurements. A custom selection that keeps a family with a writer &mdash; <code>recordings</code>, <code>heap</code>, <code>remote</code>, <code>ide</code> or <code>jvm</code> &mdash; must keep <code>operations</code> too, or startup fails naming the rule: it is how a client polls and cancels the work those families start. For the same reason a list that keeps <code>remote</code> must keep <code>recordings</code>: a downloaded session becomes a profile through <code>recordings_analyzeRecording</code>.</p>
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>
@@ -237,9 +236,9 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. No property closes it for a caller who can reach the endpoint: if the address is reachable by anyone you would not hand a shell to, bind Jeffrey to loopback, put an authenticating proxy in front of it, or set a token only those you trust hold.</p>
 
-      <p>The <code>hubs_</code> family is the second exception, and it points the other way: it is the one place the server reaches <em>off</em> this machine. A client that can reach the endpoint can list what every connected hub holds and have Jeffrey pull a session down &mdash; production stack traces, SQL statements and heap dumps included &mdash; onto the host Jeffrey runs on.</p>
+      <p>The <code>remote_</code> family is the second exception, and it points the other way: it is the one place the server reaches <em>off</em> this machine. A client that can reach the endpoint can list what the configured remote holds and have Jeffrey pull a session down &mdash; production stack traces, SQL statements and heap dumps included &mdash; onto the host Jeffrey runs on.</p>
 
-      <p>What bounds it is that the client cannot name an address. The hubs are the ones this installation was configured with, in a file or through its UI, so the reachable set is the operator's decision and not the caller's; there is no tool that adds one. What it does <em>not</em> bound is which of those hubs, so on an installation connected to production, endpoint access is production-recording access. Switch it off with the property in <a href="#turning-hub-access-off">Turning Hub Access Off</a> if that is not what you want.</p>
+      <p>What bounds it is that the client cannot name an address. The remote is the one this installation was configured with, in its configuration and nowhere else, so what is reachable is the operator's decision and not the caller's; there is no tool that connects or changes it. What it does <em>not</em> bound is what on that remote the caller reads, so on an installation whose remote is production, endpoint access is production-recording access. Switch it off with the property in <a href="#turning-remote-access-off">Turning Remote Access Off</a> if that is not what you want.</p>
 
     </div>
 

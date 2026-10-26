@@ -57,7 +57,7 @@ import VersionClient from '@/services/api/VersionClient';
 
 const navItems: NavItem[] = [
   { to: '/recordings', icon: 'bi bi-record-circle', label: 'Recordings' },
-  { to: '/hubs', icon: 'bi bi-hdd-network', label: 'Hubs' },
+  { to: '/remote', icon: 'bi bi-hdd-network', label: 'Remote' },
   { to: '/profiler-builder', icon: 'bi bi-cpu', label: 'Profiler Builder' }
 ];
 

@@ -60,24 +60,6 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Install protobuf documentation tools
-        if: matrix.component == 'Hub'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes protobuf-compiler golang-go
-          mkdir -p "$RUNNER_TEMP/bin"
-          GOBIN="$RUNNER_TEMP/bin" go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-
-      # exec.skip skips frontend builds and the Maven documentation generator together.
-      # Generate the JSON explicitly so Hub's documentation endpoint is exercised too.
-      - name: Generate protobuf documentation
-        if: matrix.component == 'Hub'
-        run: |
-          mkdir -p shared/hub-api/target/classes
-          protoc --doc_out=shared/hub-api/target/classes --doc_opt=json,grpc-api-docs.json \
-            -Ishared/hub-api/src/main/proto shared/hub-api/src/main/proto/jeffrey/hub/api/v1/*.proto
-
       # Frontend-tagged HTTP checks run in Validate Frontend with the real Vite builds.
       - name: Validate ${{ matrix.component }} and its dependencies
         run: >-

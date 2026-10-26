@@ -136,7 +136,7 @@ export const microscopeNavigation: DocSection[] = [
   },
   {
     // A standalone tool: it builds an async-profiler command and stores nothing, so it
-    // sits at the root rather than under Hub Integration.
+    // sits at the root rather than under Remote.
     title: 'Profiler Builder',
     path: '_microscope-profiler-builder',
     icon: 'bi-cpu',
@@ -192,8 +192,8 @@ export const microscopeNavigation: DocSection[] = [
     children: [{ title: 'IntelliJ Plugin docs', to: '/docs/intellij-plugin' }]
   },
   {
-    title: 'Hub Integration',
-    path: '_microscope-hub-integration',
+    title: 'Remote',
+    path: '_microscope-remote',
     icon: 'bi-cloud',
     children: [
       { title: 'Workspaces', to: '/docs/microscope/workspaces' },
@@ -321,8 +321,7 @@ export const hubNavigation: DocSection[] = [
     icon: 'bi-diagram-3',
     children: [
       { title: 'Overview', to: '/docs/hub/architecture' },
-      { title: 'Storage', to: '/docs/hub/storage' },
-      { title: 'gRPC API', to: '/docs/hub/grpc-api' }
+      { title: 'Storage', to: '/docs/hub/storage' }
     ]
   },
   {
