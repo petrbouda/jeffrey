@@ -17,18 +17,21 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
+import cafe.jeffrey.microscope.remote.client.InstancePage;
 import cafe.jeffrey.microscope.remote.client.InstanceRead;
 import cafe.jeffrey.microscope.remote.client.InstancesClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
+import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.shared.volume.layout.SessionPage;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * A project's instances off the volume, each read off its newest session; one instance with its
- * sessions, each with its file count and size but not its files.
+ * A project's instances off the volume, each read off its newest session; one instance with a page
+ * of its sessions, each with its file count and size, and its files when the page asks for them.
  */
 final class VolumeInstancesClient implements InstancesClient {
 
@@ -46,14 +49,27 @@ final class VolumeInstancesClient implements InstancesClient {
     }
 
     @Override
-    public Optional<InstanceRead> instance(ProjectScope scope, String instanceId) {
+    public ProjectActivity activity(ProjectScope scope) {
+        return source.read(() -> VolumeResponses.activity(source.sessions(source.requireProject(scope)).instances()));
+    }
+
+    /**
+     * The page's sessions are read off the one listing of each session directory their count and
+     * size need; a page that asks for files takes them from that same listing.
+     */
+    @Override
+    public Optional<InstanceRead> instance(ProjectScope scope, String instanceId, InstancePage page) {
         return source.read(() -> {
             ProjectTree project = source.requireProject(scope);
-            return source.sessions(project).instance(instanceId).map(found -> new InstanceRead(
-                    VolumeResponses.instance(found.summary()),
-                    found.sessions().stream()
-                            .map(session -> VolumeResponses.header(session, project.files(session)))
-                            .toList()));
+            return source.sessions(project).instance(instanceId, new SessionPage(page.limit(), page.before()))
+                    .map(found -> new InstanceRead(
+                            VolumeResponses.instance(found.summary()),
+                            found.sessions().stream()
+                                    .map(session -> page.withFiles()
+                                            ? VolumeResponses.withFiles(session, project.files(session))
+                                            : VolumeResponses.header(session, project.files(session)))
+                                    .toList(),
+                            found.hasOlder()));
         });
     }
 }

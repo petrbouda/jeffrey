@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.remote.client;
 
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
+import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,9 +30,12 @@ public interface InstancesClient {
 
     List<InstanceResponse> projectInstances(ProjectScope scope);
 
+    /** What the project's instances say of it, each read off its newest session alone. */
+    ProjectActivity activity(ProjectScope scope);
+
     /**
-     * One instance with its sessions, newest first, each without its files; empty when the
-     * project holds no instance by that id.
+     * One instance with the page of its sessions asked for, newest first; empty when the project
+     * holds no instance by that id.
      */
-    Optional<InstanceRead> instance(ProjectScope scope, String instanceId);
+    Optional<InstanceRead> instance(ProjectScope scope, String instanceId, InstancePage page);
 }

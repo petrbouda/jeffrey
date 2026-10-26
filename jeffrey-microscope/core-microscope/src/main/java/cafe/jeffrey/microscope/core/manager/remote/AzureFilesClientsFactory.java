@@ -21,8 +21,9 @@ import cafe.jeffrey.microscope.remote.client.RemoteClients;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.volume.azure.AzureFilesCredential;
-import cafe.jeffrey.microscope.volume.azure.AzureFilesVolume;
 import cafe.jeffrey.microscope.volume.azure.AzureFilesVolumes;
+import cafe.jeffrey.microscope.volume.client.BoundedReadFanOut;
+import cafe.jeffrey.microscope.volume.client.RememberingVolume;
 import cafe.jeffrey.microscope.volume.client.VolumeRemoteClients;
 import cafe.jeffrey.microscope.volume.client.VolumeSource;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -66,11 +67,18 @@ public final class AzureFilesClientsFactory {
         return cache.computeIfAbsent(address, this::open);
     }
 
+    /**
+     * The share is read through a {@link RememberingVolume}, so the markers the provisioner writes
+     * once are asked for once, not on every page; and the independent reads of one call go out
+     * {@link BoundedReadFanOut#DEFAULT_MAX_IN_FLIGHT} at a time, so their round-trips overlap.
+     */
     private RemoteClients open(AzureFilesAddress address) {
-        AzureFilesVolume volume = AzureFilesVolumes.open(address, credential(address));
+        RememberingVolume volume = new RememberingVolume(AzureFilesVolumes.open(address, credential(address)), clock);
         SessionLiveness liveness = new SessionLiveness(clock, volume, deadlines);
         LOG.info("Opened an Azure Files recording volume: address={}", address);
-        return VolumeRemoteClients.of(new VolumeSource(volume, liveness, clock, DESCRIPTION, address.readOnly()));
+        return VolumeRemoteClients.of(new VolumeSource(
+                volume, liveness, clock, DESCRIPTION, address.readOnly(),
+                new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
     }
 
     private AzureFilesCredential credential(AzureFilesAddress address) {

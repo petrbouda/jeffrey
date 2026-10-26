@@ -26,7 +26,10 @@ const NOT_FOUND = 404;
 
 export interface InstanceWithSessions {
   instance: ProjectInstance;
+  /** A page of the instance's sessions, newest first, each with its files. */
   sessions: RecordingSession[];
+  /** Whether sessions older than the page's are left to read. */
+  hasOlder: boolean;
 }
 
 export default class ProjectInstanceClient extends BasePlatformClient {
@@ -40,15 +43,18 @@ export default class ProjectInstanceClient extends BasePlatformClient {
   }
 
   /**
-   * One instance with its sessions, newest first, each with its file count and size but not its
-   * files — what the instance's page shows, in one call. Undefined when the remote no longer has it.
+   * One instance with a page of its sessions, newest first, each with its files — what the
+   * instance's page shows, opening a session included, in one call. `before` names the session
+   * the previous page ended on. Undefined when the remote no longer has it.
    */
-  async find(instanceId: string): Promise<InstanceWithSessions | undefined> {
+  async find(instanceId: string, before?: string): Promise<InstanceWithSessions | undefined> {
+    const params = before ? { before } : undefined;
     return super
-      .get<any>(`/${instanceId}`)
+      .get<any>(`/${instanceId}`, params)
       .then(data => ({
         instance: this.mapToInstance(data.instance),
-        sessions: data.sessions as RecordingSession[]
+        sessions: data.sessions as RecordingSession[],
+        hasOlder: data.hasOlder === true
       }))
       .catch(error => {
         if (error.response?.status === NOT_FOUND) {

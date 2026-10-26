@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.remote.client.manager;
 
+import cafe.jeffrey.microscope.remote.client.InstancePage;
 import cafe.jeffrey.microscope.remote.client.InstancesClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.RepositoryClient;
@@ -88,20 +89,23 @@ public class RemoteInstancesManager {
     }
 
     /**
-     * One instance with its sessions, from one read of the hub; empty when the project holds no
-     * instance by that id.
+     * One instance with a page of its sessions, newest first and each with its files, from one read
+     * of the remote; empty when the project holds no instance by that id.
+     *
+     * @param before the session the page starts after, or empty for the newest
      */
-    public Optional<InstanceWithSessions> find(String instanceId) {
-        return instancesClient.instance(scope, instanceId)
+    public Optional<InstanceWithSessions> find(String instanceId, Optional<String> before) {
+        return instancesClient.instance(scope, instanceId, InstancePage.newest(before))
                 .map(found -> new InstanceWithSessions(
                         toProjectInstanceInfo(found.instance(), found.sessions()),
                         found.sessions().stream()
                                 .map(RecordingSessionResponse::toSession)
-                                .toList()));
+                                .toList(),
+                        found.hasOlder()));
     }
 
     public Optional<InstanceDetailResponse> detail(String instanceId) {
-        return instancesClient.instance(scope, instanceId)
+        return instancesClient.instance(scope, instanceId, InstancePage.whole())
                 .map(found -> new InstanceDetailResponse(
                         withSessions(found.instance(), found.sessions()), stats(found.sessions())));
     }

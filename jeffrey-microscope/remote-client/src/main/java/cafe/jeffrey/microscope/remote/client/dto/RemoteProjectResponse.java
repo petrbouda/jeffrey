@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.microscope.remote.client.dto;
 
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 
 import java.time.Instant;
 
 /**
- * A project as the remote reports it.
+ * A project as its marker describes it: finding one reads nothing below it. What its instances say
+ * of it is {@link ProjectActivity}, read only where it is shown.
  *
  * @param createdAt   when the project was created, or {@code null} when its marker says nothing
  * @param workspaceId the project's workspace, which is also its reference id: the volume names a
@@ -35,7 +35,5 @@ public record RemoteProjectResponse(
         String name,
         Instant createdAt,
         String workspaceId,
-        RecordingStatus status,
-        int sessionCount,
         RepositoryStatistics statistics) {
 }

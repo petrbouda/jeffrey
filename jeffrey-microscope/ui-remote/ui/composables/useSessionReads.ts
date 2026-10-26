@@ -60,6 +60,12 @@ export function useSessionReads(client: () => ProjectRepositoryClient) {
     return request;
   }
 
+  /** Takes a session that arrived with its files as read, so opening it asks for nothing. */
+  function seed(session: RecordingSession): void {
+    sessions.value[session.id] = session;
+    failed.value[session.id] = false;
+  }
+
   /** Forgets every session but these — the ones a refreshed listing still holds. */
   function retainOnly(sessionIds: Set<string>): void {
     for (const state of [sessions.value, loading.value, failed.value]) {
@@ -71,5 +77,5 @@ export function useSessionReads(client: () => ProjectRepositoryClient) {
     }
   }
 
-  return { sessions, loading, failed, read, retainOnly };
+  return { sessions, loading, failed, read, seed, retainOnly };
 }

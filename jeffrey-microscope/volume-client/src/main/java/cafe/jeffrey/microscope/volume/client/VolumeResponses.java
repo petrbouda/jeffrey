@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
+import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
@@ -110,20 +111,20 @@ final class VolumeResponses {
                 summary.sessionCount());
     }
 
-    /**
-     * A project with its status and session count read off its instances, each from its newest
-     * session alone; its size is never measured here, as only the hub's retention pass does that.
-     */
-    static RemoteProjectResponse project(ProjectTree project, String workspaceId, List<InstanceSummary> instances) {
-        int sessionCount = instances.stream().mapToInt(InstanceSummary::sessionCount).sum();
+    /** A project as its marker describes it; its size is never measured here, only by the hub's retention pass. */
+    static RemoteProjectResponse project(ProjectTree project, String workspaceId) {
         return new RemoteProjectResponse(
                 project.marker().projectId(),
                 project.marker().projectName(),
                 project.marker().createdAt() != 0 ? Instant.ofEpochMilli(project.marker().createdAt()) : null,
                 workspaceId,
-                projectStatus(instances, sessionCount),
-                sessionCount,
                 RepositoryStatistics.NOT_YET_MEASURED);
+    }
+
+    /** What a project's instances say of it, each read off its newest session alone. */
+    static ProjectActivity activity(List<InstanceSummary> instances) {
+        int sessionCount = instances.stream().mapToInt(InstanceSummary::sessionCount).sum();
+        return new ProjectActivity(projectStatus(instances, sessionCount), sessionCount);
     }
 
     /**

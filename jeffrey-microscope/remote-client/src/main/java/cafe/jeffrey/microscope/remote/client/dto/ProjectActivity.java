@@ -1,0 +1,37 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.remote.client.dto;
+
+import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+
+/**
+ * What a project's instances say of it: whether any still records and how many sessions they
+ * hold. Read only where it is shown — finding a project never reads it, since that would read
+ * every instance and every session of the project on every request.
+ *
+ * @param status       UNKNOWN without a session; ACTIVE while any instance records; FINISHED otherwise
+ * @param sessionCount the sessions of all its instances
+ */
+public record ProjectActivity(RecordingStatus status, int sessionCount) {
+
+    public ProjectActivity {
+        if (status == null || sessionCount < 0) {
+            throw new IllegalArgumentException("A project's activity needs a status and a session count");
+        }
+    }
+}

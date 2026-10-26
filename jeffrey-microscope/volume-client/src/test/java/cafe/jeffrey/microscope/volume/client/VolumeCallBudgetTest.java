@@ -18,16 +18,20 @@
 package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.remote.client.InstancePage;
+import cafe.jeffrey.microscope.remote.client.InstanceRead;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -43,6 +47,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * How many questions each read asks of the volume. On an Azure file share every one is an HTTPS
@@ -74,13 +80,13 @@ class VolumeCallBudgetTest {
      * the time it was created the way the share says it: when the session started, as an SMB share
      * lists it, or no time at all, as an NFS share does.
      */
-    private static final class CountingVolume implements VolumeAccess {
+    private static final class CountingVolume implements WritableVolume {
 
-        private final VolumeAccess delegate;
+        private final FilesystemVolume delegate;
         private final boolean listsTimes;
         private final List<String> calls = new ArrayList<>();
 
-        private CountingVolume(VolumeAccess delegate, boolean listsTimes) {
+        private CountingVolume(FilesystemVolume delegate, boolean listsTimes) {
             this.delegate = delegate;
             this.listsTimes = listsTimes;
         }
@@ -119,6 +125,24 @@ class VolumeCallBudgetTest {
         public Optional<OpenedFile> open(VolumePath file) {
             calls.add("open " + file);
             return delegate.open(file);
+        }
+
+        @Override
+        public void createDirectories(VolumePath directory) {
+            calls.add("mkdir " + directory);
+            delegate.createDirectories(directory);
+        }
+
+        @Override
+        public void write(VolumePath file, byte[] content) {
+            calls.add("write " + file);
+            delegate.write(file, content);
+        }
+
+        @Override
+        public void delete(VolumePath path) {
+            calls.add("delete " + path);
+            delegate.delete(path);
         }
 
         private int countAndReset() {
@@ -163,9 +187,25 @@ class VolumeCallBudgetTest {
                 volume, new SessionLiveness(clock, volume, DEADLINES), clock, "budget", true));
     }
 
+    /** As Microscope reads a share: through the memo of what never changes, the reads several at a time. */
+    private RemoteClients asMicroscopeReadsAShare() {
+        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
+        volume = new CountingVolume(new FilesystemVolume(root), true);
+        RememberingVolume remembering = new RememberingVolume(volume, clock);
+        return VolumeRemoteClients.of(new VolumeSource(
+                remembering, new SessionLiveness(clock, remembering, DEADLINES), clock, "budget", true,
+                new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
+    }
+
+    /** What the instance page asks for: its project found, as every project-scoped request does, then its page. */
+    private void openTheInstancePage(RemoteClients over) {
+        over.discovery().project(ORDERS.workspaceId(), ORDERS.projectId()).orElseThrow();
+        over.instances().instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty())).orElseThrow();
+    }
+
     @Test
     void anInstanceWithItsSessionsCostsThreeQuestionsASession() {
-        clients.instances().instance(ORDERS, "pod-1");
+        clients.instances().instance(ORDERS, "pod-1", InstancePage.whole());
 
         // workspace listing + project marker, instance marker, instance listing; then per session its
         // marker, its listing and its finished marker; the live one's heartbeat
@@ -213,5 +253,70 @@ class VolumeCallBudgetTest {
 
         // an NFS share lists no times, so every other session's marker is read for its start
         assertEquals(7 + 1 + 1 + (SESSIONS - 1), volume.countAndReset());
+    }
+
+    @Test
+    void theInstancePageReadsOnlyItsNewestSessions() {
+        InstanceRead page = clients.instances().instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty()))
+                .orElseThrow();
+
+        // workspace listing + project marker, instance marker, instance listing; then per page
+        // session its marker, its listing and its finished marker; the live one's heartbeat
+        assertEquals(4 + 3 * InstancePage.PAGE_SIZE + 1, volume.countAndReset());
+        assertEquals(LIVE_SESSION, page.sessions().getFirst().id());
+        assertEquals(InstancePage.PAGE_SIZE, page.sessions().size());
+        assertTrue(page.hasOlder());
+        assertEquals(SESSIONS, page.instance().sessionCount());
+        assertEquals(CHUNKS_PER_SESSION + 1, page.sessions().getFirst().files().size(),
+                "each session carries its files, so opening one asks for nothing");
+    }
+
+    @Test
+    void theOlderPageStartsAfterTheCursor() {
+        String lastOnFirstPage = SESSION_PREFIX + (SESSIONS - InstancePage.PAGE_SIZE);
+
+        InstanceRead older = clients.instances()
+                .instance(ORDERS, "pod-1", InstancePage.newest(Optional.of(lastOnFirstPage)))
+                .orElseThrow();
+
+        assertEquals(List.of(SESSION_PREFIX + 1, FINISHED_SESSION),
+                older.sessions().stream().map(RecordingSessionResponse::id).toList());
+        assertFalse(older.hasOlder());
+        // as the first page for its two sessions, plus the newest session read for the instance's state
+        assertEquals(4 + 3 * 2 + 4, volume.countAndReset());
+    }
+
+    @Test
+    void findingTheProjectReadsOnlyItsMarker() {
+        clients.discovery().project(ORDERS.workspaceId(), ORDERS.projectId()).orElseThrow();
+
+        // the workspace listing and the project marker; nothing below the project
+        assertEquals(2, volume.countAndReset());
+    }
+
+    @Nested
+    class AsMicroscopeReadsAShare {
+
+        @Test
+        void theFirstOpeningOfTheInstancePage() {
+            openTheInstancePage(asMicroscopeReadsAShare());
+
+            // the project found (2), then the page as above, whose own look for the project
+            // takes the project marker just remembered
+            assertEquals(2 + 3 + 3 * InstancePage.PAGE_SIZE + 1, volume.countAndReset());
+        }
+
+        @Test
+        void openingItAgainAsksOnlyWhatCanHaveChanged() {
+            RemoteClients over = asMicroscopeReadsAShare();
+            openTheInstancePage(over);
+            volume.countAndReset();
+
+            openTheInstancePage(over);
+
+            // two workspace listings, the instance listing, each page session's listing, and the
+            // live session's finished marker (not written yet) and heartbeat; every marker remembered
+            assertEquals(2 + 1 + InstancePage.PAGE_SIZE + 2, volume.countAndReset());
+        }
     }
 }

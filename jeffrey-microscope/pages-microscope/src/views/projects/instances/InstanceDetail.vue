@@ -54,8 +54,18 @@
           :projectId="projectId!"
           :isCollectorOnly="isCollectorOnly"
           :showInstanceLink="false"
+          :sessionsCarryFiles="true"
           headerText="Sessions"
           @refresh="() => load(true)"
+        />
+
+        <LoadMoreFooter
+          v-if="sessions.length > 0 && hasOlder"
+          :shown="sessions.length"
+          :total="Math.max(instance.sessionCount, sessions.length + 1)"
+          noun="sessions"
+          :loading="loadingOlder"
+          @loadMore="loadOlder"
         />
 
         <!-- No Sessions Message -->
@@ -74,6 +84,8 @@
 import { computed, onMounted, ref } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
+import { ToastService } from '@shared/services/ToastService';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
@@ -85,6 +97,7 @@ import { useNavigation } from '@/composables/useNavigation';
 import '@shared/styles/shared-components.css';
 
 const { workspaceId, projectId, instanceId } = useNavigation();
+const toast = ToastService;
 
 const instanceClient = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
@@ -95,6 +108,8 @@ const isCollectorOnly = computed(() => {
 
 const loading = ref(true);
 const refreshing = ref(false);
+const loadingOlder = ref(false);
+const hasOlder = ref(false);
 const failed = ref(false);
 const instance = ref<ProjectInstance | null>(null);
 const sessions = ref<RecordingSession[]>([]);
@@ -118,6 +133,7 @@ const load = async (background: boolean = false) => {
     const found = await instanceClient.find(instanceId.value!);
     instance.value = found?.instance ?? null;
     sessions.value = found?.sessions ?? [];
+    hasOlder.value = found?.hasOlder ?? false;
   } catch {
     if (!background) {
       failed.value = true;
@@ -125,6 +141,29 @@ const load = async (background: boolean = false) => {
   } finally {
     loading.value = false;
     refreshing.value = false;
+  }
+};
+
+/**
+ * Reads the next page of older sessions, after the oldest on screen, and adds it below. A refresh
+ * reads the newest page again and starts over from there.
+ */
+const loadOlder = async () => {
+  const oldest = sessions.value[sessions.value.length - 1];
+  if (!oldest || loadingOlder.value) {
+    return;
+  }
+  loadingOlder.value = true;
+  try {
+    const older = await instanceClient.find(instanceId.value!, oldest.id);
+    if (older) {
+      sessions.value = [...sessions.value, ...older.sessions];
+      hasOlder.value = older.hasOlder;
+    }
+  } catch {
+    toast.error('Older sessions', 'They could not be read from the remote.');
+  } finally {
+    loadingOlder.value = false;
   }
 };
 

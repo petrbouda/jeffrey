@@ -19,9 +19,11 @@ package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
 import cafe.jeffrey.microscope.remote.client.InstanceRead;
+import cafe.jeffrey.microscope.remote.client.InstancePage;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
@@ -136,7 +138,7 @@ class VolumeRemoteClientsTest {
         }
 
         @Test
-        void aProjectCarriesItsStatusAndSessionCountButNoMeasuredSize() {
+        void aProjectCarriesNoMeasuredSize() {
             liveSession();
             VolumeWriter.project(root.resolve("prod"), "p-idle", "idle", T0);
 
@@ -144,10 +146,17 @@ class VolumeRemoteClientsTest {
 
             assertEquals(List.of("idle", "orders"), projects.stream().map(RemoteProjectResponse::name).sorted().toList());
             RemoteProjectResponse orders = clients.discovery().project("prod", "p-orders").orElseThrow();
-            assertEquals(RecordingStatus.ACTIVE, orders.status());
-            assertEquals(1, orders.sessionCount());
             assertEquals(RepositoryStatistics.NOT_YET_MEASURED, orders.statistics());
-            assertEquals(RecordingStatus.UNKNOWN, clients.discovery().project("prod", "p-idle").orElseThrow().status());
+        }
+
+        @Test
+        void aProjectsActivityIsReadOffItsInstances() {
+            liveSession();
+            VolumeWriter.project(root.resolve("prod"), "p-idle", "idle", T0);
+
+            assertEquals(new ProjectActivity(RecordingStatus.ACTIVE, 1), clients.instances().activity(ORDERS));
+            assertEquals(new ProjectActivity(RecordingStatus.UNKNOWN, 0),
+                    clients.instances().activity(new ProjectScope("prod", "p-idle")));
         }
 
         @Test
@@ -344,12 +353,12 @@ class VolumeRemoteClientsTest {
         void oneInstanceComesWithItsSessionsSizedButWithoutFiles() {
             liveSession();
 
-            InstanceRead read = clients.instances().instance(ORDERS, "pod-a").orElseThrow();
+            InstanceRead read = clients.instances().instance(ORDERS, "pod-a", InstancePage.whole()).orElseThrow();
 
             assertEquals(1, read.instance().sessionCount());
             assertEquals(2, read.sessions().getFirst().fileCount());
             assertEquals(List.of(), read.sessions().getFirst().files());
-            assertEquals(Optional.empty(), clients.instances().instance(ORDERS, "pod-z"));
+            assertEquals(Optional.empty(), clients.instances().instance(ORDERS, "pod-z", InstancePage.whole()));
         }
     }
 

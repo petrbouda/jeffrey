@@ -23,10 +23,12 @@ import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import java.util.List;
 
 /**
- * One instance and its sessions, newest first, read together in one call — what an instance's
- * own page shows. The sessions carry their size but not their files.
+ * One instance and a page of its sessions, newest first, read together in one call — what an
+ * instance's own page shows. The sessions carry their files.
+ *
+ * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceWithSessions(ProjectInstanceInfo instance, List<RecordingSession> sessions) {
+public record InstanceWithSessions(ProjectInstanceInfo instance, List<RecordingSession> sessions, boolean hasOlder) {
 
     public InstanceWithSessions {
         sessions = List.copyOf(sessions);

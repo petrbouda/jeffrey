@@ -141,8 +141,9 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
                 .map(project -> project(project, workspaceId)));
     }
 
+    /** Off its marker alone: what its instances say of it is read only where shown ({@code activity}). */
     private RemoteProjectResponse project(ProjectTree project, String workspaceId) {
-        return VolumeResponses.project(project, workspaceId, source.sessions(project).instances());
+        return VolumeResponses.project(project, workspaceId);
     }
 
     private WorkspaceInfo workspace(VolumePath directory) {

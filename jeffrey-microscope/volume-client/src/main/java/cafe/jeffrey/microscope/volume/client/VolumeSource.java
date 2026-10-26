@@ -22,6 +22,7 @@ import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
+import cafe.jeffrey.shared.volume.ReadFanOut;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
@@ -39,8 +40,8 @@ import java.util.function.Supplier;
 /**
  * The recording volume reached on its storage, as its clients see it: where its workspaces and
  * projects lie, whether it may be changed, and the one place a volume that cannot be read or
- * written becomes the remote-unavailable error. Nothing is cached; every call reads the volume
- * again.
+ * written becomes the remote-unavailable error. Nothing is kept here; a volume that remembers what
+ * never changes ({@link RememberingVolume}) is the volume's own business.
  *
  * @param volume      the storage the volume lies on, its root holding the workspaces; a
  *                    {@link WritableVolume} unless the source is read-only
@@ -48,9 +49,15 @@ import java.util.function.Supplier;
  * @param clock       when a change happened, for the markers a change writes
  * @param description what the source says about itself, reported as its version
  * @param readOnly    whether every change is refused
+ * @param fanOut      how the independent reads of one call are run
  */
 public record VolumeSource(
-        VolumeAccess volume, SessionLiveness liveness, Clock clock, String description, boolean readOnly) {
+        VolumeAccess volume,
+        SessionLiveness liveness,
+        Clock clock,
+        String description,
+        boolean readOnly,
+        ReadFanOut fanOut) {
 
     private static final VolumePath ROOT = VolumePath.root();
     private static final String READ_ONLY =
@@ -58,13 +65,19 @@ public record VolumeSource(
                     + "Declare it writable to make changes through Microscope.";
 
     public VolumeSource {
-        if (volume == null || liveness == null || clock == null || description == null || description.isBlank()) {
+        if (volume == null || liveness == null || clock == null || fanOut == null
+                || description == null || description.isBlank()) {
             throw new IllegalArgumentException(
                     "A volume source needs its volume, its liveness, a clock and a description");
         }
         if (!readOnly && !(volume instanceof WritableVolume)) {
             throw new IllegalArgumentException("A volume source that may be changed needs a writable volume");
         }
+    }
+
+    /** A source whose reads run one after another. */
+    public VolumeSource(VolumeAccess volume, SessionLiveness liveness, Clock clock, String description, boolean readOnly) {
+        this(volume, liveness, clock, description, readOnly, ReadFanOut.sequential());
     }
 
     /**
@@ -105,7 +118,7 @@ public record VolumeSource(
     }
 
     ProjectSessions sessions(ProjectTree project) {
-        return new ProjectSessions(project, liveness);
+        return new ProjectSessions(project, liveness, fanOut);
     }
 
     /**

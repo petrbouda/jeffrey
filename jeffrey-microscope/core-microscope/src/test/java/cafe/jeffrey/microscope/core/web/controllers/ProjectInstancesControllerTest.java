@@ -67,14 +67,15 @@ class ProjectInstancesControllerTest {
     }
 
     @Test
-    void oneInstanceComesWithItsSessionsButNotTheirFiles() {
+    void oneInstanceComesWithAPageOfItsSessions() {
         Instant now = Instant.parse("2026-04-26T12:00:00Z");
         ProjectInstanceInfo instance = new ProjectInstanceInfo(
                 "inst-1", "p-1", "inst-1", ProjectInstanceStatus.FINISHED, now.minusSeconds(60), now, 1, null, List.of());
         RecordingSession session = new RecordingSession("s-1", "inst-1/s-1", "inst-1", now.minusSeconds(60), now,
                 RecordingStatus.FINISHED, null, List.of(), false, false, false, new SessionSize(2, 4096L));
         when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
-        when(instancesManager.find("inst-1")).thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(session))));
+        when(instancesManager.find("inst-1", Optional.empty()))
+                .thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(session), true)));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectInstancesController(projectAccess, Clock.fixed(now, ZoneOffset.UTC)));
 
@@ -83,13 +84,30 @@ class ProjectInstancesControllerTest {
                 .bodyJson();
         body.extractingPath("$.instance.id").asString().isEqualTo("inst-1");
         body.extractingPath("$.sessions[0].sizeBytes").asNumber().isEqualTo(4096);
-        body.extractingPath("$.sessions[0].files").asArray().isEmpty();
+        body.extractingPath("$.hasOlder").asBoolean().isTrue();
+    }
+
+    @Test
+    void theOlderPageStartsAfterTheCursor() {
+        Instant now = Instant.parse("2026-04-26T12:00:00Z");
+        ProjectInstanceInfo instance = new ProjectInstanceInfo(
+                "inst-1", "p-1", "inst-1", ProjectInstanceStatus.FINISHED, now.minusSeconds(60), now, 1, null, List.of());
+        when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
+        when(instancesManager.find("inst-1", Optional.of("s-10")))
+                .thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(), false)));
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectInstancesController(projectAccess, Clock.fixed(now, ZoneOffset.UTC)));
+
+        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/instances/inst-1?before=s-10"))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.hasOlder").asBoolean().isFalse();
     }
 
     @Test
     void anUnknownInstanceIsNotFound() {
         when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
-        when(instancesManager.find("ghost")).thenReturn(Optional.empty());
+        when(instancesManager.find("ghost", Optional.empty())).thenReturn(Optional.empty());
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectInstancesController(projectAccess, Clock.systemUTC()));
 

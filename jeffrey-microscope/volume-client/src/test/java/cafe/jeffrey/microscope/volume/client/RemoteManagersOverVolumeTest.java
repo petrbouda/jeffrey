@@ -157,7 +157,7 @@ class RemoteManagersOverVolumeTest {
 
         @Test
         void readsTheInstanceWithItsSessionsNewestFirst() {
-            InstanceWithSessions found = instances().find(LIVE_INSTANCE).orElseThrow();
+            InstanceWithSessions found = instances().find(LIVE_INSTANCE, Optional.empty()).orElseThrow();
 
             assertEquals(LIVE_INSTANCE, found.instance().id());
             assertEquals(ProjectInstanceStatus.ACTIVE, found.instance().status());
@@ -166,17 +166,18 @@ class RemoteManagersOverVolumeTest {
         }
 
         @Test
-        void sessionsCarryTheirSizeButNoFiles() {
-            var finished = instances().find(LIVE_INSTANCE).orElseThrow().sessions().get(2);
+        void sessionsCarryTheirFilesSoOpeningOneAsksForNothing() {
+            var finished = instances().find(LIVE_INSTANCE, Optional.empty()).orElseThrow().sessions().get(2);
 
             assertEquals(1000L, finished.totalSizeBytes());
             assertEquals(1, finished.fileCount());
-            assertTrue(finished.files().isEmpty());
+            assertEquals(List.of("profile-20260220-120100.jfr"),
+                    finished.files().stream().map(file -> file.name()).toList());
         }
 
         @Test
         void anUnknownInstanceIsEmpty() {
-            assertTrue(instances().find("ghost").isEmpty());
+            assertTrue(instances().find("ghost", Optional.empty()).isEmpty());
         }
     }
 

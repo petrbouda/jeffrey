@@ -58,12 +58,18 @@ interface Props {
   showInstanceLink?: boolean;
   headerText?: string;
   isCollectorOnly?: boolean;
+  /**
+   * Whether each session arrived with its files (the instance's page). Opening one then reads
+   * nothing off the remote; otherwise its files are read when it is opened.
+   */
+  sessionsCarryFiles?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showInstanceLink: true,
   headerText: 'Recording Sessions',
-  isCollectorOnly: false
+  isCollectorOnly: false,
+  sessionsCarryFiles: false
 });
 
 const emit = defineEmits<{
@@ -108,6 +114,7 @@ const {
   loading: readingSession,
   failed: sessionReadFailed,
   read: readSession,
+  seed: seedSession,
   retainOnly: retainReadSessions
 } = useSessionReads(() => repositoryService.value);
 
@@ -316,6 +323,10 @@ const initializeExpandedState = () => {
   retainReadSessions(new Set(props.sessions.map(session => session.id)));
 
   props.sessions.forEach(session => {
+    if (props.sessionsCarryFiles) {
+      seedSession(session);
+    }
+
     if (expandedSessions.value[session.id] === undefined) {
       expandedSessions.value[session.id] = false;
     }

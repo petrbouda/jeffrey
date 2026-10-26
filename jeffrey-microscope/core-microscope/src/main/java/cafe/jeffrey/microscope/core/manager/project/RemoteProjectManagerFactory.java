@@ -57,7 +57,7 @@ public class RemoteProjectManagerFactory {
 
         return new RemoteProjectManager(
                 jeffreyDirs,
-                RemoteMappers.toDetailedProjectInfo(project),
+                RemoteMappers.toProjectInfo(project),
                 project.statistics(),
                 clients,
                 profilesManagerFactory,

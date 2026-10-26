@@ -23,16 +23,20 @@ import java.time.Clock;
 import java.util.List;
 
 /**
- * One instance with its sessions, newest first, each with its file count and size but not its
- * files — everything an instance's page asks for, in one response.
+ * One instance with a page of its sessions, newest first, each with its files — everything an
+ * instance's page asks for, in one response.
+ *
+ * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceWithSessionsResponse(InstanceResponse instance, List<RecordingSessionResponse> sessions) {
+public record InstanceWithSessionsResponse(
+        InstanceResponse instance, List<RecordingSessionResponse> sessions, boolean hasOlder) {
 
     public static InstanceWithSessionsResponse from(InstanceWithSessions found, Clock clock) {
         return new InstanceWithSessionsResponse(
                 InstanceResponse.from(found.instance(), clock),
                 found.sessions().stream()
                         .map(session -> RecordingSessionResponse.from(session, clock))
-                        .toList());
+                        .toList(),
+                found.hasOlder());
     }
 }

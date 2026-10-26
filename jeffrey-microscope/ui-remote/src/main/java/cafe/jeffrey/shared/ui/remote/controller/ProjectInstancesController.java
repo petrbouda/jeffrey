@@ -35,6 +35,7 @@ import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Shared remote-project instances controller. Annotated @RestController and registered as a @Bean via RemoteFeatureConfiguration;
@@ -69,17 +70,18 @@ public class ProjectInstancesController {
     }
 
     /**
-     * One instance with its sessions, each without its files, from one read of the remote — the
-     * whole of what an instance's page shows; a session's files come from the repository's
-     * single-session read when the session is expanded.
+     * One instance with a page of its sessions, newest first and each with its files, from one read
+     * of the remote — what an instance's page shows, opening a session included; {@code before}
+     * names the session the previous page ended on, for "Show older sessions".
      */
     @GetMapping("/{instanceId}")
     public InstanceWithSessionsResponse get(
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
-            @PathVariable("instanceId") String instanceId) {
-        LOG.debug("Fetching project instance: instanceId={}", instanceId);
-        return projectAccess.instancesManager(workspaceId, projectId).find(instanceId)
+            @PathVariable("instanceId") String instanceId,
+            @RequestParam(value = "before", required = false) String before) {
+        LOG.debug("Fetching project instance: instanceId={} before={}", instanceId, before);
+        return projectAccess.instancesManager(workspaceId, projectId).find(instanceId, Optional.ofNullable(before))
                 .map(found -> InstanceWithSessionsResponse.from(found, clock))
                 .orElseThrow(() -> instanceNotFound(instanceId));
     }

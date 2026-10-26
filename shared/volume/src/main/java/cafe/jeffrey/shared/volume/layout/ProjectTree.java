@@ -21,6 +21,7 @@ import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import cafe.jeffrey.shared.volume.ReadFanOut;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
@@ -112,8 +113,12 @@ public final class ProjectTree {
     // ========== Instances ==========
 
     public List<InstanceDirectory> instances() {
-        return VolumeMarkers.childDirectories(volume, path).stream()
-                .map(this::instanceAt)
+        return instances(ReadFanOut.sequential());
+    }
+
+    /** The instances, their markers read through {@code fanOut}. */
+    List<InstanceDirectory> instances(ReadFanOut fanOut) {
+        return fanOut.map(VolumeMarkers.childDirectories(volume, path), this::instanceAt).stream()
                 .flatMap(Optional::stream)
                 .toList();
     }
@@ -171,10 +176,49 @@ public final class ProjectTree {
 
     /** An instance's sessions in the order they started — the order a session's end is read from. */
     public List<SessionDirectory> sessionsOldestFirst(VolumePath instanceDir) {
-        return VolumeMarkers.childDirectories(volume, instanceDir).stream()
-                .map(this::sessionAt)
+        return sessionsOldestFirst(instanceDir, ReadFanOut.sequential());
+    }
+
+    /** The same, the session markers read through {@code fanOut}. */
+    List<SessionDirectory> sessionsOldestFirst(VolumePath instanceDir, ReadFanOut fanOut) {
+        return sessionsOldestFirst(VolumeMarkers.childDirectoryEntries(volume, instanceDir), fanOut);
+    }
+
+    /** The sessions among an instance directory's listed entries, in the order they started. */
+    List<SessionDirectory> sessionsOldestFirst(List<VolumeEntry> instanceEntries, ReadFanOut fanOut) {
+        List<VolumePath> directories = visibleDirectories(instanceEntries).stream()
+                .map(VolumeEntry::path)
+                .sorted(Comparator.comparing(VolumePath::name))
+                .toList();
+        return fanOut.map(directories, this::sessionAt).stream()
                 .flatMap(Optional::stream)
                 .sorted(OLDEST_FIRST)
+                .toList();
+    }
+
+    /**
+     * The instance's directory as listed, or empty when the listing no longer shows its marker: a
+     * marker remembered from before the instance was removed is not taken for the instance. One that
+     * cannot be listed reads as holding nothing, as {@link VolumeMarkers#childDirectories} reads it.
+     */
+    Optional<List<VolumeEntry>> instanceListing(InstanceDirectory instance) {
+        List<VolumeEntry> entries;
+        try {
+            entries = volume.list(instance.path());
+        } catch (UncheckedIOException e) {
+            LOG.warn("Cannot list directory: path={}", instance.path(), e);
+            return Optional.of(List.of());
+        }
+        boolean described = entries.stream()
+                .anyMatch(entry -> entry.isFile() && entry.name().equals(JeffreyLayout.INSTANCE_INFO_FILE));
+        return described ? Optional.of(entries) : Optional.empty();
+    }
+
+    /** The visible directories among listed entries; dot-directories are the volume's own bookkeeping. */
+    static List<VolumeEntry> visibleDirectories(List<VolumeEntry> entries) {
+        return entries.stream()
+                .filter(VolumeEntry::isDirectory)
+                .filter(entry -> !entry.path().isHidden())
                 .toList();
     }
 
@@ -186,7 +230,12 @@ public final class ProjectTree {
      * A sibling whose listing carries no time (an NFS share lists none) is always read.
      */
     Optional<Instant> nextStart(SessionDirectory session) {
-        List<VolumeEntry> siblings = VolumeMarkers.childDirectoryEntries(volume, session.path().parent());
+        return nextStart(session, VolumeMarkers.childDirectoryEntries(volume, session.path().parent()));
+    }
+
+    /** The same, off a listing of the session's instance already in hand. */
+    Optional<Instant> nextStart(SessionDirectory session, List<VolumeEntry> instanceEntries) {
+        List<VolumeEntry> siblings = visibleDirectories(instanceEntries);
         Optional<Instant> ownCreated = siblings.stream()
                 .filter(entry -> entry.path().equals(session.path()))
                 .findFirst()

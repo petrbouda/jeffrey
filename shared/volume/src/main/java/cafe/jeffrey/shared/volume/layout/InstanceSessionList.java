@@ -20,10 +20,12 @@ package cafe.jeffrey.shared.volume.layout;
 import java.util.List;
 
 /**
- * One instance with every one of its sessions, newest first, read together so the instance's
- * state and the sessions it is read off can never disagree.
+ * One instance with a page of its sessions, newest first, read together so the instance's state
+ * and the sessions it is read off can never disagree.
+ *
+ * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceSessionList(InstanceSummary summary, List<VolumeSession> sessions) {
+public record InstanceSessionList(InstanceSummary summary, List<VolumeSession> sessions, boolean hasOlder) {
 
     public InstanceSessionList {
         if (summary == null || sessions == null) {

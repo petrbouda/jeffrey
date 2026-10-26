@@ -23,10 +23,12 @@ import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import java.util.List;
 
 /**
- * One instance as {@code GetInstance} returned it: its lifecycle and its sessions, newest first, each
- * session with its file count and size but not its files.
+ * One instance as the remote read it: its lifecycle and the page of its sessions asked for, newest
+ * first, each with its file count and size, and its files when the page asked for them.
+ *
+ * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceRead(InstanceResponse instance, List<RecordingSessionResponse> sessions) {
+public record InstanceRead(InstanceResponse instance, List<RecordingSessionResponse> sessions, boolean hasOlder) {
 
     public InstanceRead {
         sessions = List.copyOf(sessions);
