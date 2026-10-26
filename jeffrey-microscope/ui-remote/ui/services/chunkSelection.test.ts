@@ -19,7 +19,9 @@ import { describe, expect, it } from 'vitest';
 import {
   chunkSelectionGap,
   chunkSelectionGapMessage,
+  downloadableFiles,
   isContiguousChunkSelection,
+  isDownloadable,
   orderedChunks
 } from '@remote/services/chunkSelection.ts';
 import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
@@ -49,6 +51,18 @@ function log(): RepositoryFile {
     RecordingStatus.FINISHED,
     1024,
     RecordingFileType.APP_LOG,
+    false
+  );
+}
+
+function asprofTemp(): RepositoryFile {
+  return new RepositoryFile(
+    'asprof',
+    'profile-open.jfr.1~',
+    T0,
+    RecordingStatus.ACTIVE,
+    1024,
+    RecordingFileType.ASPROF,
     false
   );
 }
@@ -134,5 +148,41 @@ describe('chunkSelectionGapMessage', () => {
 
   it('says nothing when there is no gap', () => {
     expect(chunkSelectionGapMessage(FILES, ticked('c0', 'c1'))).toBe('');
+  });
+});
+
+describe('isDownloadable', () => {
+  it('takes a finished chunk', () => {
+    expect(isDownloadable(chunk('c0', 0))).toBe(true);
+  });
+
+  it('leaves out the chunk still being written', () => {
+    expect(isDownloadable(chunk('open', 5, RecordingStatus.ACTIVE))).toBe(false);
+  });
+
+  it("leaves out async-profiler's scratch file", () => {
+    expect(isDownloadable(asprofTemp())).toBe(false);
+  });
+
+  it('takes a finished artifact', () => {
+    expect(isDownloadable(log())).toBe(true);
+  });
+});
+
+describe('downloadableFiles', () => {
+  it('keeps every finished file of an active session, in listing order', () => {
+    const files = filesOf(
+      asprofTemp(),
+      chunk('open', 2, RecordingStatus.ACTIVE),
+      chunk('c1', 1),
+      chunk('c0', 0),
+      log()
+    );
+
+    expect(downloadableFiles(files).map(f => f.id)).toEqual(['c1', 'c0', 'log']);
+  });
+
+  it('is empty when only the open chunk exists', () => {
+    expect(downloadableFiles(filesOf(chunk('open', 0, RecordingStatus.ACTIVE)))).toEqual([]);
   });
 });

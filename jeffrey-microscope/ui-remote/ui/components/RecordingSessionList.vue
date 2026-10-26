@@ -46,7 +46,9 @@ import {
 } from '@remote/services/sessionGrouping.ts';
 import {
   chunkSelectionGapMessage,
-  isContiguousChunkSelection
+  downloadableFiles,
+  isContiguousChunkSelection,
+  isDownloadable
 } from '@remote/services/chunkSelection.ts';
 
 interface Props {
@@ -491,14 +493,6 @@ const isCheckboxDisabled = (source: RepositoryFile): boolean => {
   return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
 };
 
-const isDownloadAllowed = (file: RepositoryFile): boolean => {
-  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
-};
-
-const hasDownloadableRecordings = (files: RepositoryFile[]): boolean => {
-  return files.some(f => f.isRecording);
-};
-
 const downloadFile = async (sessionId: string, fileId: string) => {
   try {
     await repositoryService.value.downloadFile(sessionId, fileId);
@@ -517,8 +511,10 @@ const downloadSession = async (sessionId: string) => {
     }
 
     // Read now rather than trusting an earlier read: retention may have trimmed the session since
-    const files = await loadFiles(session.id);
-    if (!hasDownloadableRecordings(files)) {
+    // The chunk the profiler is still writing is left out: the backend refuses it, as a recording
+    // made from it would be cut short
+    const files = downloadableFiles(await loadFiles(session.id));
+    if (!files.some(f => f.isRecording)) {
       toast.warn(
         'No recording data available',
         'The session may have been terminated before any data was written.'
@@ -1249,7 +1245,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   </template>
                   <template #actions>
                     <button
-                      v-if="isDownloadAllowed(entry.primary)"
+                      v-if="isDownloadable(entry.primary)"
                       class="btn btn-sm btn-outline-secondary download-file-btn"
                       @click.stop="downloadFile(session.id, entry.primary.id)"
                       title="Download file"
@@ -1308,7 +1304,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                     </template>
                     <template #actions>
                       <button
-                        v-if="isDownloadAllowed(child)"
+                        v-if="isDownloadable(child)"
                         class="btn btn-sm btn-outline-secondary download-file-btn"
                         @click.stop="downloadFile(session.id, child.id)"
                         title="Download file"
@@ -1423,7 +1419,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   </template>
                   <template #actions>
                     <button
-                      v-if="isDownloadAllowed(file)"
+                      v-if="isDownloadable(file)"
                       class="btn btn-sm btn-outline-secondary download-file-btn"
                       @click.stop="downloadFile(session.id, file.id)"
                       title="Download file"
@@ -1490,7 +1486,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               </template>
               <template #actions>
                 <button
-                  v-if="isDownloadAllowed(file)"
+                  v-if="isDownloadable(file)"
                   class="btn btn-sm btn-outline-secondary download-file-btn"
                   @click.stop="downloadFile(session.id, file.id)"
                   title="Download file"

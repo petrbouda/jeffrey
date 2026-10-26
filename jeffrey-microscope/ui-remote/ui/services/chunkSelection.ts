@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 
@@ -34,6 +35,20 @@ import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
  * Every function takes the session's files as read on their own: a session from a listing
  * carries none, and a check over no files would let every pick through.
  */
+
+/**
+ * Whether a file may be asked for in a download: its bytes are final. The chunk the profiler is
+ * still writing (`ACTIVE`) is not — the backend refuses it by name, since a recording made from it
+ * would be cut short — and neither is async-profiler's own scratch file beside it.
+ */
+export function isDownloadable(file: RepositoryFile): boolean {
+  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
+}
+
+/** What a whole-session download asks for: every file of the session that may be downloaded. */
+export function downloadableFiles(files: RepositoryFile[]): RepositoryFile[] {
+  return files.filter(isDownloadable);
+}
 
 /** The session's finished recording chunks, oldest first — `ChunkWindow.finishedChunks`. */
 export function orderedChunks(files: RepositoryFile[]): RepositoryFile[] {
