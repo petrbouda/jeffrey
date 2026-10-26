@@ -81,7 +81,7 @@ onMounted(() => {
           <div class="release-icon"><i class="bi bi-cloud"></i></div>
           <div class="release-body">
             <h3>jeffrey-hub</h3>
-            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and serves the recordings the testapp pods write into it, reading the volume on every request. Exposes HTTP <code>8080</code> + gRPC <code>9090</code>.</p>
+            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and runs the retention and compression jobs on the recordings the testapp pods write into it. Exposes its Storage and Scheduler pages on HTTP <code>8080</code>.</p>
           </div>
         </div>
         <div class="release-tile tile-direct">
@@ -110,7 +110,7 @@ onMounted(() => {
       <DocsCallout type="tip">
         <strong>Side-by-side comparison.</strong> Installing <code>direct</code> and <code>dom</code>
         from the same chart with different <code>--set mode=…</code> values produces two distinct
-        projects in Jeffrey Hub (<code>direct-jeffrey-testapp-server</code> and
+        projects on the shared volume (<code>direct-jeffrey-testapp-server</code> and
         <code>dom-jeffrey-testapp-server</code>). Open both in Microscope for a one-click
         differential profile.
       </DocsCallout>
@@ -120,8 +120,9 @@ onMounted(() => {
         The diagram below shows the runtime topology — one PVC, four pods, one direction of
         data flow per arrow. The three monitored pods profile themselves with the binaries baked
         into their images and write recordings into <code>/mnt/jeffrey/workspaces/</code>;
-        <code>jeffrey-hub</code> reads them from the same PVC, and profile data also flows back
-        to it over gRPC <code>9090</code>.
+        <code>jeffrey-hub</code> retains and compresses them on the same PVC. Nothing flows to
+        or from the hub over the network: Microscope reads the volume itself, from the Azure file
+        share that backs it.
       </p>
 
       <div class="cluster-diagram">
@@ -130,14 +131,13 @@ onMounted(() => {
         <div class="diagram-row top-row">
           <div class="cluster-pod pod-server">
             <div class="pod-header"><i class="bi bi-cloud"></i><span>jeffrey-hub</span></div>
-            <div class="pod-meta">HTTP 8080 · gRPC 9090</div>
-            <div class="pod-tag">recording reader</div>
+            <div class="pod-meta">HTTP 8080</div>
+            <div class="pod-tag">volume maintenance</div>
           </div>
         </div>
 
         <div class="diagram-arrow-block">
-          <div class="diagram-arrow up"><i class="bi bi-arrow-up"></i><small>gRPC ingestion</small></div>
-          <div class="diagram-arrow down"><i class="bi bi-arrow-down"></i><small>reads recordings</small></div>
+          <div class="diagram-arrow down"><i class="bi bi-arrow-down"></i><small>retention &amp; compression</small></div>
         </div>
 
         <div class="cluster-pvc">
@@ -170,8 +170,8 @@ onMounted(() => {
 
         <div class="cluster-ingress">
           <i class="bi bi-globe"></i>
-          <span>Ingress / Microscope clients</span>
-          <small>HTTP into jeffrey-hub · gRPC for remote-workspace</small>
+          <span>Ingress</span>
+          <small>HTTP into jeffrey-hub · Storage &amp; Scheduler pages</small>
         </div>
       </div>
 

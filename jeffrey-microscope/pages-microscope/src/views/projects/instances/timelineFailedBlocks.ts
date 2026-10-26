@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession.ts';
+import ProjectInstanceSession from '@remote/services/api/model/ProjectInstanceSession.ts';
 
 /**
  * A run of consecutive failed sessions in an instance's timeline, merged into

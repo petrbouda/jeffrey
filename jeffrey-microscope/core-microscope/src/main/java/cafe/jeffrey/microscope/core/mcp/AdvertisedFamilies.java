@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
  * a reader to another family asks whether that family is there.
  * <p>
  * A tool answer ends with where to go next, and the instructions sent at {@code server/discover} name
- * the families to reach for. Under a trimmed family list -- a preset, an explicit list, the hub or IDE
+ * the families to reach for. Under a trimmed family list -- a preset, an explicit list, the remote or IDE
  * switch off -- a line naming a withheld family sends the reader after a tool that does not exist.
  * {@link #hint} keeps such a line only when its family is advertised; the line itself stays where it
  * is written.
@@ -57,7 +57,7 @@ public record AdvertisedFamilies(Set<String> families) {
     public static final String TIMELINE = "timeline";
     public static final String MEMORY = "memory";
     public static final String HEAP = "heap";
-    public static final String HUBS = "hubs";
+    public static final String REMOTE = "remote";
     public static final String IDE = "ide";
     public static final String OPERATIONS = "operations";
 
@@ -66,7 +66,7 @@ public record AdvertisedFamilies(Set<String> families) {
 
     /** The families behind a switch of their own, on top of the preset or explicit list. */
     private static final Map<String, Predicate<ExternalMcpProperties>> SWITCHES = Map.of(
-            HUBS, ExternalMcpProperties::hubsEnabled,
+            REMOTE, ExternalMcpProperties::remoteEnabled,
             IDE, ExternalMcpProperties::ideEnabled);
 
     public AdvertisedFamilies {

@@ -57,7 +57,7 @@ onMounted(() => {
       <DocsCallout type="tip">
         <strong>Just want to analyse a JFR file?</strong> Skip projects entirely — drop the file on the global
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page.
-        Projects are for staying connected to live applications via Jeffrey Hub.
+        Projects are for staying connected to live applications through the remote (the Azure file share that holds the recording volume).
       </DocsCallout>
 
       <h2 id="project-page">The Project Page</h2>
@@ -92,7 +92,7 @@ onMounted(() => {
       <h2 id="project-settings">Project Settings</h2>
       <p>
         The <strong>Settings</strong> tab is intentionally minimal: it lets you <strong>delete</strong> the
-        project (a confirmation step protects against accidents). Deleting is final: the hub removes the
+        project (a confirmation step protects against accidents). Deleting is final: the remote removes the
         project's directory on the workspace volume, and there is no restore.
       </p>
 
@@ -100,8 +100,8 @@ onMounted(() => {
       <p>
         Projects are not created in Microscope. A project appears when a JVM started by the
         <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> writes its marker file:
-        the hub reads the shared filesystem on every request, so the next time
-        Microscope syncs with that hub the project shows up under its workspace, together with
+        the remote is read from the shared filesystem on every request, so the next time
+        Microscope syncs with the remote the project shows up under its workspace, together with
         its instances and recording sessions.
       </p>
     </div>

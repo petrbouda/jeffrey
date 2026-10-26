@@ -65,8 +65,8 @@ class OperationsMcpToolsTest {
                 .description();
 
         assertFalse(description.contains("Hub activity"), description);
-        for (String starter : List.of("recordings_analyzeFile", "recordings_analyzeRecording", "hubs_download",
-                "hubs_fetchFile", "heap_prepare", "heap_oql", "jvm_autoAnalysis")) {
+        for (String starter : List.of("recordings_analyzeFile", "recordings_analyzeRecording", "remote_download",
+                "remote_fetchFile", "heap_prepare", "heap_oql", "jvm_autoAnalysis")) {
             assertTrue(description.contains(starter), starter + " missing from: " + description);
         }
     }
@@ -141,7 +141,7 @@ class OperationsMcpToolsTest {
             control.checkCancellation();
             return "copy";
         });
-        String firstId = registry.register(OperationKind.HUB_DOWNLOAD, first, OperationResults.Recording::new);
+        String firstId = registry.register(OperationKind.REMOTE_DOWNLOAD, first, OperationResults.Recording::new);
         try {
             assertTrue(entered.await(5, TimeUnit.SECONDS));
             JsonNode cancelled = tools.cancel(firstId).structuredContent();
@@ -158,7 +158,7 @@ class OperationsMcpToolsTest {
         }
         await().atMost(5, TimeUnit.SECONDS).until(() -> first.snapshot().state().terminal());
         OperationHandle<String> retry = jobs.startOrJoin("session", true, value -> true, () -> "new-copy");
-        String retryId = registry.register(OperationKind.HUB_DOWNLOAD, retry, OperationResults.Recording::new);
+        String retryId = registry.register(OperationKind.REMOTE_DOWNLOAD, retry, OperationResults.Recording::new);
         assertFalse(firstId.equals(retryId));
         JsonNode finishedCancel = tools.cancel(firstId).structuredContent();
         assertConforms(finishedCancel);
@@ -208,12 +208,12 @@ class OperationsMcpToolsTest {
         CountDownLatch release = new CountDownLatch(1);
         OperationHandle<String> running = jobs.startOrJoin("running", false, value -> true, control -> {
             control.phase(OperationPhase.DOWNLOADING);
-            control.progress(OperationDetails.hubDownload("ref-1", "session-1", 2048));
+            control.progress(OperationDetails.remoteDownload("ref-1", "session-1", 2048));
             entered.countDown();
             await().atMost(5, TimeUnit.SECONDS).until(() -> release.getCount() == 0);
             return "recording-1";
         });
-        String id = registry.register(OperationKind.HUB_DOWNLOAD, running, OperationResults.Recording::new);
+        String id = registry.register(OperationKind.REMOTE_DOWNLOAD, running, OperationResults.Recording::new);
         try {
             assertTrue(entered.await(5, TimeUnit.SECONDS));
             JsonNode snapshot = tools.status(id).structuredContent();
@@ -307,20 +307,20 @@ class OperationsMcpToolsTest {
 
     /** A kind that is not tied to a recording keeps its retry as advice: its arguments are not known here. */
     @Test
-    void aFailedHubDownloadKeepsItsRetryAsGuidance() {
+    void aFailedRemoteDownloadKeepsItsRetryAsGuidance() {
         BoundedJobs<String, String> jobs = ToolFixtures.jobs(BoundedJobs.WAIT_BUDGET);
         McpOperationRegistry registry = new McpOperationRegistry(Clock.systemUTC());
         OperationHandle<String> failed = jobs.startOrJoin("session", false, value -> true, () -> {
             throw new IllegalStateException("hub unreachable");
         });
-        String id = registry.register(OperationKind.HUB_DOWNLOAD, failed, OperationResults.Recording::new);
+        String id = registry.register(OperationKind.REMOTE_DOWNLOAD, failed, OperationResults.Recording::new);
         await().atMost(5, TimeUnit.SECONDS).until(() -> failed.snapshot().state().terminal());
 
         JsonNode snapshot = new OperationsMcpTools(registry, kind -> true).status(id).structuredContent();
 
         assertConforms(snapshot);
         assertTrue(snapshot.path("followUp").path("nextTools").isEmpty());
-        assertEquals(OperationKind.HUB_DOWNLOAD.retryInstruction(),
+        assertEquals(OperationKind.REMOTE_DOWNLOAD.retryInstruction(),
                 snapshot.path("followUp").path("guidance").get(0).asString());
     }
 
@@ -338,8 +338,8 @@ class OperationsMcpToolsTest {
         BoundedJobs<String, String> jobs = ToolFixtures.jobs(BoundedJobs.WAIT_BUDGET);
         McpOperationRegistry registry = new McpOperationRegistry(Clock.systemUTC());
         OperationHandle<String> finished = jobs.rememberCompleted("s", "r");
-        String id = registry.register(OperationKind.HUB_DOWNLOAD, finished, OperationResults.Value::new);
-        OperationsMcpTools hidden = new OperationsMcpTools(registry, kind -> kind != OperationKind.HUB_DOWNLOAD);
+        String id = registry.register(OperationKind.REMOTE_DOWNLOAD, finished, OperationResults.Value::new);
+        OperationsMcpTools hidden = new OperationsMcpTools(registry, kind -> kind != OperationKind.REMOTE_DOWNLOAD);
         assertThrows(IllegalArgumentException.class, () -> hidden.status(id));
         assertThrows(IllegalArgumentException.class, () -> hidden.cancel(id));
         assertEquals(OperationState.COMPLETED, registry.status(id).status());

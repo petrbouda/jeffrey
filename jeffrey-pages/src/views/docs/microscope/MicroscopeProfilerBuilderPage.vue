@@ -52,7 +52,7 @@ onMounted(() => {
         <strong>Profiler Builder</strong> assembles an
         <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>
         agent command: which events to capture, sampling rates, output layout and the JFR-specific options. It is a
-        top-level page in Microscope, next to Recordings and Hubs, and it does one thing — you build a command and
+        top-level page in Microscope, next to Recordings and Remote, and it does one thing — you build a command and
         copy it. Nothing is saved. Links in the page header lead to the async-profiler documentation on profiling
         modes, profiler options and method tracing.
       </p>
@@ -78,7 +78,7 @@ onMounted(() => {
 
       <DocsCallout type="info">
         <strong>The page stores nothing.</strong> Profiler Builder only assembles a command for you to copy — it does
-        not apply it to anything, and needs no hub, workspace or project. The profiler path and output file are
+        not apply it to anything, and needs no remote, workspace or project. The profiler path and output file are
         literal values that go straight into the command you copy.
       </DocsCallout>
 

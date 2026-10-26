@@ -18,8 +18,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.hub.HubManager;
-import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
+import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -32,21 +31,20 @@ import java.util.Optional;
  * Checks the Recordings store first, then falls back to a direct DB
  * lookup against the microscope-core profile repository.
  *
- * <p>For workspace-scoped profiles, walks the connected hubs in order
- * and returns the first hit — workspace IDs are hub-generated UUIDs so a
- * given profile belongs to exactly one hub.
+ * <p>For workspace-scoped profiles, asks the configured remote, the only
+ * place such a profile can come from.
  */
 public class ProfileManagerResolver {
 
-    private final HubsManager hubsManager;
+    private final RemoteManager remoteManager;
     private final RecordingsManager recordingsManager;
     private final MicroscopeCoreRepositories localCoreRepositories;
 
     public ProfileManagerResolver(
-            HubsManager hubsManager,
+            RemoteManager remoteManager,
             RecordingsManager recordingsManager,
             MicroscopeCoreRepositories localCoreRepositories) {
-        this.hubsManager = hubsManager;
+        this.remoteManager = remoteManager;
         this.recordingsManager = recordingsManager;
         this.localCoreRepositories = localCoreRepositories;
     }
@@ -70,13 +68,8 @@ public class ProfileManagerResolver {
         }
 
         ProfileInfo profileInfo = profileInfoOpt.get();
-        for (HubManager hub : hubsManager.findAll()) {
-            Optional<ProfileManager> resolved = hub.project(profileInfo.workspaceId(), profileInfo.projectId())
-                    .flatMap(pm -> pm.profilesManager().profile(profileId));
-            if (resolved.isPresent()) {
-                return resolved;
-            }
-        }
-        return Optional.empty();
+        return remoteManager.current()
+                .flatMap(remote -> remote.project(profileInfo.workspaceId(), profileInfo.projectId()))
+                .flatMap(pm -> pm.profilesManager().profile(profileId));
     }
 }

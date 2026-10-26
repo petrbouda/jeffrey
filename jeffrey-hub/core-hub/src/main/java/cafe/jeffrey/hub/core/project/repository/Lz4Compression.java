@@ -18,6 +18,7 @@
 package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.volume.VolumePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,6 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.UUID;
 
 /**
  * LZ4 appended to the file's name ({@code profile-1.jfr} → {@code profile-1.jfr.lz4}). Written to
@@ -39,11 +39,6 @@ final class Lz4Compression implements Compression {
     private static final Logger LOG = LoggerFactory.getLogger(Lz4Compression.class);
 
     private static final String SUFFIX = ".lz4";
-
-    /** Hidden (leading dot) so listings skip it; {@code .tmp} so it is never taken for a {@code .jfr.N~} cache. */
-    private static final String SCRATCH_PREFIX = ".";
-    private static final String SCRATCH_SUFFIX = ".tmp";
-    private static final String SCRATCH_SEPARATOR = ".";
 
     @Override
     public Path target(Path source) {
@@ -90,8 +85,7 @@ final class Lz4Compression implements Compression {
      * killed hub is hidden and goes with its session directory.
      */
     private static Path scratch(Path target) {
-        String name = SCRATCH_PREFIX + target.getFileName() + SCRATCH_SEPARATOR + UUID.randomUUID() + SCRATCH_SUFFIX;
-        return target.resolveSibling(name);
+        return target.resolveSibling(VolumePath.scratchName(target.getFileName().toString()));
     }
 
     private static void removeScratch(Path scratch) {

@@ -23,7 +23,7 @@ Check dependency health across the multi-module Maven and NPM project.
 3. **Check version consistency**: Read the root `pom.xml` and verify that:
    - All dependency versions are managed in `<dependencyManagement>` or `<properties>`
    - No child modules override managed versions without good reason
-   - Spring Boot, gRPC, and DuckDB versions are consistent across modules
+   - Spring Boot, Azure SDK and DuckDB versions are consistent across modules
 
 ### Frontend (NPM)
 

@@ -52,13 +52,13 @@ onMounted(() => {
       <p>HotSpot keeps a set of <strong>performance counters</strong> about itself &mdash; uptime, heap and metaspace sizes, collections and their time, safepoints, class loading, JIT compilation, threads &mdash; and can save them as an <code>hsperfdata</code> file: the same data <code>jstat</code> reads from a running JVM. Jeffrey turns such a snapshot into a <strong>Perf Counters profile</strong> of its own, with one mode, <strong>Perf Counters</strong>, and two pages: <a href="#overview">Overview</a> and <a href="#counters">Counters</a>.</p>
 
       <DocsCallout type="info">
-        <strong>A profile of its own, not a page of the JFR profile.</strong> A perf-counters file that came down with a hub session is an item of that session&rsquo;s <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>, beside its JFR recording and heap dumps, and is initialized separately. The JFR profile has no performance-counters page.
+        <strong>A profile of its own, not a page of the JFR profile.</strong> A perf-counters file that came down with a remote session is an item of that session&rsquo;s <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>, beside its JFR recording and heap dumps, and is initialized separately. The JFR profile has no performance-counters page.
       </DocsCallout>
 
       <h2 id="getting-a-snapshot">Getting a Snapshot</h2>
       <ul>
         <li><strong>Upload</strong> a <code>.hsperfdata</code> file on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page &mdash; the drop zone&rsquo;s <strong>Perf counters</strong> pill lists the extension, and the <strong>Perf Counters</strong> type filter shows only these recordings.</li>
-        <li><strong>Download a hub session</strong> provisioned with <router-link to="/docs/provisioner/configuration">perf counters enabled</router-link>: the JVM saves <code>perf-counters.hsperfdata</code> into its session directory on exit (<code>-XX:PerfDataSaveFile</code>), and the download lands it as the bundle&rsquo;s <strong>Perf</strong> item.</li>
+        <li><strong>Download a remote session</strong> provisioned with <router-link to="/docs/provisioner/configuration">perf counters enabled</router-link>: the JVM saves <code>perf-counters.hsperfdata</code> into its session directory on exit (<code>-XX:PerfDataSaveFile</code>), and the download lands it as the bundle&rsquo;s <strong>Perf</strong> item.</li>
         <li><strong>From a coding agent</strong>, <code>recordings_analyzeFile</code> accepts a <code>.hsperfdata</code> path like any other initializable file.</li>
       </ul>
 

@@ -18,38 +18,31 @@
 package cafe.jeffrey.hub.core.volume;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.model.repository.RemoteProject;
+import cafe.jeffrey.shared.volume.layout.ProjectTree;
 
-import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Optional;
 
 /**
- * A project directory on the volume and what its {@code .project-info.json} declares.
+ * A project directory on the volume and the hub's project it declares.
  *
- * @param path the directory the marker was found in; where the project's instances and sessions lie
+ * @param tree the directory as the volume's layout reads it; where the project's instances and
+ *             sessions lie
  */
-public record ProjectDirectory(Path path, ProjectInfo info) {
+public record ProjectDirectory(ProjectTree tree, ProjectInfo info) {
 
     public ProjectDirectory {
-        if (path == null || info == null) {
-            throw new IllegalArgumentException("A project directory needs a path and its project");
+        if (tree == null || info == null) {
+            throw new IllegalArgumentException("A project directory needs its tree and its project");
         }
     }
 
-    /**
-     * The project in this directory, or empty when it holds no readable marker naming a project
-     * id — the one test of "is this a project", shared by the listing and the workspace's count.
-     */
-    public static Optional<ProjectDirectory> at(Path directory, String workspaceId) {
-        return VolumeMarkers.read(directory, JeffreyLayout.PROJECT_INFO_FILE, RemoteProject.class)
-                .filter(marker -> marker.projectId() != null && !marker.projectId().isBlank())
-                .map(marker -> new ProjectDirectory(directory, new ProjectInfo(
-                        marker.projectId(),
-                        marker.projectName(),
-                        workspaceId,
-                        Instant.ofEpochMilli(marker.createdAt()),
-                        marker.attributes())));
+    /** The hub's project the directory's marker declares, in workspace {@code workspaceId}. */
+    public static ProjectDirectory of(ProjectTree tree, String workspaceId) {
+        return new ProjectDirectory(tree, new ProjectInfo(
+                tree.marker().projectId(),
+                tree.marker().projectName(),
+                workspaceId,
+                Instant.ofEpochMilli(tree.marker().createdAt()),
+                tree.marker().attributes()));
     }
 }

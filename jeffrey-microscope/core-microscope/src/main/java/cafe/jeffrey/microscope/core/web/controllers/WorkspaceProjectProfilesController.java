@@ -41,7 +41,7 @@ import java.util.List;
  * lacks, so they live outside the shared {@code WorkspaceProjectsController}.
  */
 @RestController
-@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects")
+@RequestMapping("/api/internal/remote/workspaces/{workspaceId}/projects")
 public class WorkspaceProjectProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectProfilesController.class);
@@ -54,9 +54,8 @@ public class WorkspaceProjectProfilesController {
 
     @GetMapping("/profiles")
     public List<ProjectWithProfilesResponse> projectsWithProfiles(
-            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId) {
-        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
+        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
         ProjectsManager projectsManager = workspace.projectsManager();
         List<ProjectWithProfilesResponse> responses = new ArrayList<>();
         for (ProjectManager projectManager : projectsManager.findAll()) {
@@ -80,8 +79,8 @@ public class WorkspaceProjectProfilesController {
     }
 
     @GetMapping("/namespaces")
-    public List<String> namespaces(@PathVariable("hubId") String hubId, @PathVariable("workspaceId") String workspaceId) {
-        WorkspaceManager workspace = resolver.resolveWorkspace(hubId, workspaceId);
+    public List<String> namespaces(@PathVariable("workspaceId") String workspaceId) {
+        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
         var result = workspace.projectsManager().findAllNamespaces();
         LOG.debug("Listed namespaces: workspaceId={} count={}", workspaceId, result.size());
         return result;

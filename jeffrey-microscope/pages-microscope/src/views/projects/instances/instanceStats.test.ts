@@ -20,7 +20,7 @@ import FormattingService from '@shared/services/FormattingService';
 import { storageFigure, summarizeInstances } from './instanceStats.ts';
 import ProjectInstance, {
   type ProjectInstanceStatus
-} from '@hubs/services/api/model/ProjectInstance.ts';
+} from '@remote/services/api/model/ProjectInstance.ts';
 
 const BASE = 1_750_000_000_000;
 
@@ -73,7 +73,7 @@ describe('storageFigure', () => {
     expect(storageFigure({ totalSize: 1024 }, true)).toEqual({ kind: 'error' });
   });
 
-  it('is unmeasured before the hub has run its first retention pass', () => {
+  it('is unmeasured when nothing has measured the project', () => {
     expect(storageFigure({ totalSize: null }, false)).toEqual({ kind: 'unmeasured' });
   });
 

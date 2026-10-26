@@ -20,13 +20,8 @@ package cafe.jeffrey.hub.core.manager.workspace;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class HubWorkspaceManager implements WorkspaceManager {
-
-    private static final Logger LOG = LoggerFactory.getLogger(HubWorkspaceManager.class);
 
     private final WorkspaceDirectory workspace;
     private final ProjectsManager.Factory projectsManagerFactory;
@@ -44,11 +39,5 @@ public class HubWorkspaceManager implements WorkspaceManager {
     @Override
     public ProjectsManager projectsManager() {
         return projectsManagerFactory.apply(workspace);
-    }
-
-    @Override
-    public void delete() {
-        FileSystemUtils.removeDirectory(workspace.path());
-        LOG.info("Deleted workspace: workspace_id={} path={}", workspace.id(), workspace.path());
     }
 }

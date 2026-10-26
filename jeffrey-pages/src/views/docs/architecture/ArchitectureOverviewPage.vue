@@ -41,10 +41,10 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey consists of two applications: <strong>Jeffrey Microscope</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Hub</strong> (a recording collection service that manages workspaces, sessions, and live recordings). Jeffrey Microscope connects to Jeffrey Hub via gRPC to access remote workspaces, and also offers <strong>Recordings</strong> for analyzing JFR files directly without a server connection.</p>
+        <p>Jeffrey consists of two applications: <strong>Jeffrey Microscope</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Hub</strong> (a maintenance service that runs scheduler jobs — retention and compression — on the shared recording volume). The two never talk to each other: Jeffrey Microscope reads remote workspaces straight from the recording volume on an <router-link to="/docs/microscope/workspaces#azure-files">Azure file share</router-link>, and also offers <strong>Recordings</strong> for analyzing JFR files directly without any remote.</p>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
-        <p>Jeffrey runs as two separate applications. Jeffrey Hub collects and stores recordings from Java applications, while Jeffrey Microscope provides the analysis UI and connects to the server via gRPC:</p>
+        <p>Jeffrey runs as two separate applications that meet only on the shared volume. Profiled Java applications write their recordings there, Jeffrey Hub keeps the volume within its retention limits and compresses finished chunks, and Jeffrey Microscope provides the analysis UI and reads the volume from the Azure file share that holds it:</p>
 
         <DocsArchDiagram />
 

@@ -1292,7 +1292,7 @@ generateConfig();
   font-size: 0.8rem;
 }
 
-/* Step Header Styling - Matching HubsView */
+/* Step Header Styling */
 .step-header {
   background: var(--color-white);
   border-radius: 12px;

@@ -27,14 +27,14 @@ import java.util.Objects;
 
 /**
  * What an operation has to say about its progress beyond its phase: the recording it stored, the
- * stages of the pipeline it runs, the hub session and file it transfers. One shape for every kind,
+ * stages of the pipeline it runs, the remote session and file it transfers. One shape for every kind,
  * each field null or empty where the kind has nothing to put in it, so a reader parses one record
  * whatever started the operation.
  *
  * @param recordingId       the recording an import stored or an analysis builds from
  * @param stages            the pipeline's stages, empty when the operation runs none
- * @param sessionRef        the hub session a download or a fetch reads
- * @param sessionId         the hub session's id, as the hub knows it
+ * @param sessionRef        the remote session a download or a fetch reads
+ * @param sessionId         the remote session's id, as the remote knows it
  * @param fileId            the file a fetch transfers
  * @param fileName          that file's name
  * @param sizeBytes         how many bytes the transfer moves
@@ -84,13 +84,13 @@ public record OperationDetails(
         return new OperationDetails(null, PipelineStage.of(progress.stages()), null, null, null, null, null, null, null);
     }
 
-    /** A hub session being downloaded into the Quick Analysis store. */
-    public static OperationDetails hubDownload(String sessionRef, String sessionId, long sizeBytes) {
+    /** A remote session being downloaded into the Quick Analysis store. */
+    public static OperationDetails remoteDownload(String sessionRef, String sessionId, long sizeBytes) {
         return new OperationDetails(null, List.of(), sessionRef, sessionId, null, null, sizeBytes, null, null);
     }
 
-    /** One file of a hub session being fetched to this machine. */
-    public static OperationDetails hubFetch(
+    /** One file of a remote session being fetched to this machine. */
+    public static OperationDetails remoteFetch(
             String sessionRef, String fileId, String fileName, long sizeBytes, String path) {
         return new OperationDetails(null, List.of(), sessionRef, null, fileId, fileName, sizeBytes, path, null);
     }

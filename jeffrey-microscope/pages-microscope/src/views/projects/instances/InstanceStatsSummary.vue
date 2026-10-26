@@ -30,7 +30,7 @@
       :aria-controls="POPOVER_ID"
       @click="open = !open"
     >
-      <span class="status-dot" :class="{ live: stats.active > 0 }"></span>
+      <StatusDot :tone="stats.active > 0 ? 'success' : 'muted'" />
       <span class="summary-text">
         <template v-if="stats.pending > 0">
           <strong>{{ stats.pending }}</strong> pending ·
@@ -63,7 +63,7 @@
         <div class="popover-title storage-title"><i class="bi bi-hdd"></i>Storage</div>
         <ErrorState v-if="storage.kind === 'error'" message="Repository size could not be loaded" />
         <p v-else-if="storage.kind === 'unmeasured'" class="storage-caption">
-          Not measured yet — the hub measures each project on its next retention pass
+          Not measured here — the Jeffrey Hub's Storage page shows what each project occupies
         </p>
         <template v-else>
           <div class="storage-figure">
@@ -82,6 +82,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import StatusDot from '@shared/components/StatusDot.vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { InstanceStats, StorageFigure } from './instanceStats';
 
@@ -182,18 +183,6 @@ onBeforeUnmount(removeListeners);
 .summary-text strong {
   color: var(--color-dark);
   font-weight: var(--font-weight-semibold);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  background: var(--color-text-light);
-  flex-shrink: 0;
-}
-
-.status-dot.live {
-  background: var(--color-success);
 }
 
 .summary-chevron {

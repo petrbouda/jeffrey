@@ -33,14 +33,14 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.shared.ui.hub.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.ui.hub.controller.RecordingsController;
+import cafe.jeffrey.shared.ui.remote.controller.RecordingsController;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +60,10 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 @ExtendWith(MockitoExtension.class)
 class RecordingsControllerTest {
 
+    /** The recordings here have no profile to report. */
+    private static final RecordingProfileInfoProvider NO_PROFILES =
+            recording -> RecordingProfileInfoProvider.ProfileInfo.NONE;
+
     @Mock
     RecordingsManager recordingsManager;
 
@@ -67,7 +71,7 @@ class RecordingsControllerTest {
     void createsGroup() {
         when(recordingsManager.createGroup("My Group")).thenReturn("group-1");
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
         assertThat(mvc.post().uri("/api/internal/recordings/groups")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -80,7 +84,7 @@ class RecordingsControllerTest {
 
     @Test
     void rejectsBlankGroupName() {
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
         assertThat(mvc.post().uri("/api/internal/recordings/groups")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -95,7 +99,7 @@ class RecordingsControllerTest {
     void importsFromPath() {
         when(recordingsManager.importRecordingFromPath(any())).thenReturn("rec-1");
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
         assertThat(mvc.post().uri("/api/internal/recordings/from-path")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +121,7 @@ class RecordingsControllerTest {
                 "rec-1", "dump.hprof", null, RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, null, null, false, null, null, List.of())));
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
         assertThat(mvc.post().uri("/api/internal/recordings/from-path")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +134,7 @@ class RecordingsControllerTest {
 
     @Test
     void rejectsBlankPath() {
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
         assertThat(mvc.post().uri("/api/internal/recordings/from-path")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -145,7 +149,7 @@ class RecordingsControllerTest {
     void listsRecordings() {
         when(recordingsManager.listRecordings()).thenReturn(List.of());
 
-        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
         assertThat(mvc.get().uri("/api/internal/recordings/recordings"))
                 .hasStatusOk()
@@ -170,9 +174,9 @@ class RecordingsControllerTest {
                     new Bundle("bundle-1", "checkout", "group-1", NOW, List.of(log))));
             when(recordingsManager.listRecordings()).thenReturn(List.of(member("rec-1", "bundle-1", null)));
             when(recordingsManager.tagsForRecordings(any())).thenReturn(Map.of(
-                    "rec-1", List.of(new RecordingTag("origin.hub", "prod-hub"))));
+                    "rec-1", List.of(new RecordingTag("origin.remote", "Production"))));
 
-            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
             assertThat(mvc.get().uri("/api/internal/recordings/bundles"))
                     .hasStatusOk()
@@ -181,7 +185,7 @@ class RecordingsControllerTest {
                         assertThat(json).extractingPath("$[0].name").asString().isEqualTo("checkout");
                         assertThat(json).extractingPath("$[0].groupId").asString().isEqualTo("group-1");
                         assertThat(json).extractingPath("$[0].files[0].filename").asString().isEqualTo("gc.jvm-log");
-                        assertThat(json).extractingPath("$[0].tags[0].value").asString().isEqualTo("prod-hub");
+                        assertThat(json).extractingPath("$[0].tags[0].value").asString().isEqualTo("Production");
                     });
         }
 
@@ -196,7 +200,7 @@ class RecordingsControllerTest {
             when(recordingsManager.listBundles()).thenReturn(List.of(
                     new Bundle("bundle-1", "checkout", "group-1", NOW, List.of())));
 
-            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
             assertThat(mvc.get().uri("/api/internal/recordings/groups"))
                     .hasStatusOk()
@@ -206,7 +210,7 @@ class RecordingsControllerTest {
 
         @Test
         void movesABundleToAGroup() {
-            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
             assertThat(mvc.put().uri("/api/internal/recordings/bundles/bundle-1/group")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -218,7 +222,7 @@ class RecordingsControllerTest {
 
         @Test
         void deletesABundle() {
-            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
             assertThat(mvc.delete().uri("/api/internal/recordings/bundles/bundle-1")).hasStatusOk();
             verify(recordingsManager).deleteBundle("bundle-1");
@@ -232,7 +236,7 @@ class RecordingsControllerTest {
             when(recordingsManager.findBundle("bundle-1")).thenReturn(Optional.of(bundleWithFile("gc.jvm-log")));
 
             ResponseEntity<Resource> response = new RecordingsController(
-                    recordingsManager, RecordingProfileInfoProvider.NOOP).downloadBundleFile("bundle-1", "bf-1");
+                    recordingsManager, NO_PROFILES).downloadBundleFile("bundle-1", "bf-1");
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(savedAs(response)).isEqualTo("gc.jvm-log");
@@ -249,7 +253,7 @@ class RecordingsControllerTest {
             when(recordingsManager.findBundle("bundle-1")).thenReturn(Optional.of(bundleWithFile(name)));
 
             ResponseEntity<Resource> response = new RecordingsController(
-                    recordingsManager, RecordingProfileInfoProvider.NOOP).downloadBundleFile("bundle-1", "bf-1");
+                    recordingsManager, NO_PROFILES).downloadBundleFile("bundle-1", "bf-1");
 
             assertThat(savedAs(response)).isEqualTo(name);
         }
@@ -264,7 +268,7 @@ class RecordingsControllerTest {
                             "rf-1", "rec-1", "profile-20260220-120500.jfr", ManagedFile.JFR, Instant.EPOCH, 5L)))));
 
             ResponseEntity<Resource> response = new RecordingsController(
-                    recordingsManager, RecordingProfileInfoProvider.NOOP).downloadFile("rec-1", "rf-1");
+                    recordingsManager, NO_PROFILES).downloadFile("rec-1", "rf-1");
 
             assertThat(savedAs(response)).isEqualTo("profile-20260220-120500.jfr");
         }
@@ -283,7 +287,7 @@ class RecordingsControllerTest {
         void refusesAFileTheBundleDoesNotHold() {
             when(recordingsManager.findBundleFile("bundle-1", "nope")).thenReturn(Optional.empty());
 
-            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+            MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, NO_PROFILES));
 
             assertThat(mvc.get().uri("/api/internal/recordings/bundles/bundle-1/files/nope/download"))
                     .hasStatus(HttpStatus.BAD_REQUEST);

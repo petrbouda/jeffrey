@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.hub.core.configuration.properties;
 
-import cafe.jeffrey.hub.core.volume.SessionDeadlines;
+import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;

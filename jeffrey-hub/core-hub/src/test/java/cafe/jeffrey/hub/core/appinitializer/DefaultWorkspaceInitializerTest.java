@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 
 import java.time.Instant;
 
@@ -56,8 +55,7 @@ class DefaultWorkspaceInitializerTest {
         void createsDefaultWorkspaceWithConfiguredReferenceIdAndName() {
             when(workspacesManager.isDescribed("$default")).thenReturn(false);
             when(workspacesManager.create(any())).thenReturn(
-                    new WorkspaceInfo("$default", "$default", Instant.parse("2026-01-01T00:00:00Z"),
-                            WorkspaceStatus.UNKNOWN, 0));
+                    new WorkspaceInfo("$default", "$default", Instant.parse("2026-01-01T00:00:00Z"), 0));
 
             DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
                     workspacesManager, properties);
@@ -78,8 +76,7 @@ class DefaultWorkspaceInitializerTest {
 
             when(workspacesManager.isDescribed("$prod")).thenReturn(false);
             when(workspacesManager.create(any())).thenReturn(
-                    new WorkspaceInfo("$prod", "$prod", Instant.parse("2026-01-01T00:00:00Z"),
-                            WorkspaceStatus.UNKNOWN, 0));
+                    new WorkspaceInfo("$prod", "$prod", Instant.parse("2026-01-01T00:00:00Z"), 0));
 
             DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
                     workspacesManager, properties);

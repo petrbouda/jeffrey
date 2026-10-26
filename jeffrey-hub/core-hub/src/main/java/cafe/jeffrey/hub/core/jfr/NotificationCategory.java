@@ -18,7 +18,5 @@
 package cafe.jeffrey.hub.core.jfr;
 
 public enum NotificationCategory {
-    PROJECT,
-    INSTANCE,
     SESSION
 }

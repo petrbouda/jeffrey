@@ -35,13 +35,13 @@ public final class McpTestProperties {
 
     /** Every family the default preset serves, narrowed only by an explicit list. */
     public static ExternalMcpProperties of(
-            boolean enabled, boolean hubsEnabled, boolean ideEnabled, Set<String> families) {
-        return of(enabled, hubsEnabled, ideEnabled, families, DEFAULT_PRESET);
+            boolean enabled, boolean remoteEnabled, boolean ideEnabled, Set<String> families) {
+        return of(enabled, remoteEnabled, ideEnabled, families, DEFAULT_PRESET);
     }
 
     public static ExternalMcpProperties of(
-            boolean enabled, boolean hubsEnabled, boolean ideEnabled, Set<String> families, String preset) {
+            boolean enabled, boolean remoteEnabled, boolean ideEnabled, Set<String> families, String preset) {
         return new ExternalMcpProperties(
-                enabled, hubsEnabled, ideEnabled, families, preset, TRUST_FORWARDED_HEADERS, NO_TOKEN);
+                enabled, remoteEnabled, ideEnabled, families, preset, TRUST_FORWARDED_HEADERS, NO_TOKEN);
     }
 }

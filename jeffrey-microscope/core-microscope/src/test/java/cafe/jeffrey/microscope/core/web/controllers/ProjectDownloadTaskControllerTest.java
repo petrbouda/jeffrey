@@ -22,8 +22,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.hub.controller.ProjectDownloadTaskController;
+import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
+import cafe.jeffrey.shared.ui.remote.controller.ProjectDownloadTaskController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
@@ -40,7 +40,7 @@ class ProjectDownloadTaskControllerTest {
 
         // No task is registered for "ghost-task" — controller throws
         // Exceptions.invalidRequest, mapped to 400.
-        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task/status"))
+        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/download/ghost-task/status"))
                 .hasStatus(400)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("INVALID_REQUEST");
@@ -50,7 +50,7 @@ class ProjectDownloadTaskControllerTest {
     void cancelUnknownTaskReturns404() {
         MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(projectAccess));
 
-        assertThat(mvc.delete().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/download/ghost-task"))
+        assertThat(mvc.delete().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/download/ghost-task"))
                 .hasStatus(404);
     }
 }

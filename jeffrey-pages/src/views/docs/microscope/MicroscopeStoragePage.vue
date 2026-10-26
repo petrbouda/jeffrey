@@ -89,7 +89,7 @@ onMounted(() => {
       </div>
 
       <h2 id="platform-database">Platform Database</h2>
-      <p>Microscope's platform database holds your local catalog: workspaces, projects, recordings, profile metadata, and the connections to remote Jeffrey Hub instances.</p>
+      <p>Microscope's platform database holds your local catalog: recordings, their groups and tags, profile metadata and IDE targets. Workspaces and projects live on the remote, which is declared in configuration rather than stored.</p>
 
       <div class="db-card platform">
         <div class="card-header">
@@ -99,10 +99,9 @@ onMounted(() => {
         </div>
         <div class="card-body">
           <p class="file-path"><i class="bi bi-file-earmark"></i> <code>~/.jeffrey-microscope/jeffrey-data.db</code></p>
-          <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles, plus pointers to remote workspaces on Jeffrey Hub.</p>
+          <p><strong>Purpose:</strong> Manages your local catalog of recordings and profiles. The remote is not stored here: it is declared in configuration and read at startup.</p>
           <h5>Contains:</h5>
           <ul>
-            <li>Hubs it connects to</li>
             <li>Recordings, their files, groups and tags</li>
             <li>Profile metadata</li>
             <li>IDE targets for the IntelliJ plugin</li>
@@ -220,9 +219,9 @@ onMounted(() => {
     └── {bundle-id}-gc.jvm-log            # a bundle's download-only files, under the bundle's id</code></pre>
       </div>
 
-      <p>A recording is <strong>one or more files</strong>. An upload is usually a single file; a session downloaded from a Hub is every JFR file that session wrote, fetched separately and in parallel and kept exactly as it was written — nothing is joined, at download time or later. The parser reads them as independent inputs into one profile, and the recording's window is taken across all of them: the earliest start to the latest end. There is deliberately no &ldquo;export as one file&rdquo; action.</p>
+      <p>A recording is <strong>one or more files</strong>. An upload is usually a single file; a session downloaded from the remote is every JFR file that session wrote, fetched separately and in parallel and kept exactly as it was written — nothing is joined, at download time or later. The parser reads them as independent inputs into one profile, and the recording's window is taken across all of them: the earliest start to the latest end. There is deliberately no &ldquo;export as one file&rdquo; action.</p>
 
-      <p>A download from a hub session is stored as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>: the JFR chunks as one recording, each heap dump and the perf-counters file as a recording of its own (each with its own id and its own profile once initialized), and the logs and crash file as files of the bundle, stored under the bundle&rsquo;s id.</p>
+      <p>A download from a remote session is stored as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>: the JFR chunks as one recording, each heap dump and the perf-counters file as a recording of its own (each with its own id and its own profile once initialized), and the logs and crash file as files of the bundle, stored under the bundle&rsquo;s id.</p>
 
       <p>The directory is flat, and every file is stored under its recording's id followed by the name the file itself carries — the session's name for a downloaded chunk, the uploaded file's own name for an upload. The prefix is what keeps one directory unique across recordings; it is not part of the name the file is known by, and the database row stores the name without it.</p>
 

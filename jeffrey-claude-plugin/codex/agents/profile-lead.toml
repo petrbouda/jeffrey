@@ -8,7 +8,7 @@
 #
 # As with the other two, the tool restriction here is instruction-level rather than enforced: Codex
 # has no per-agent tool deny-list, so the "never write" rules below are the only thing keeping this
-# agent off recordings_, hubs_, operations_cancel and the ide_ tools that act on your editor.
+# agent off recordings_, remote_, operations_cancel and the ide_ tools that act on your editor.
 # Read-only sandboxing keeps it out of your files.
 
 name = "profile-lead"
@@ -91,7 +91,7 @@ and `report` for the shape and evidence rules for every finding.
    A JFR profile never holds a heap dump. A dump downloaded with the session is another item of its
    bundle with a profile of its own; when the question needs it and no heap-dump `profileId` was
    given, say so in the report — the caller takes the heap item's `recordingId` from
-   `hubs_download`'s `items` and builds it with `recordings_analyzeRecording`. You create no profile
+   `remote_download`'s `items` and builds it with `recordings_analyzeRecording`. You create no profile
    yourself.
    - A baseline was given → run `compare_list` and then `compare_quality` yourself first. Apply
      `compare-jfr` to their evidence; neither missing workload normalization nor a duration
@@ -146,8 +146,8 @@ not things, and needs none. Never build or edit a URL.
 - **No recommendations.** Report what the profile shows, and what each specialist's evidence
   supports. What to change belongs to the caller and its user.
 - **No writing.** Never call `ide_link` or `ide_open`, which act on the editor beside you rather
-  than on a profile. Never call the `recordings_` or `hubs_` families — one imports a recording file
+  than on a profile. Never call the `recordings_` or `remote_` families — one imports a recording file
   and builds a profile, or deletes one, the other pulls a recording, a window of one or one of its
-  files off a connected hub. Never call `operations_cancel`: the work it stops was started by the caller. If the
+  files off the remote. Never call `operations_cancel`: the work it stops was started by the caller. If the
   profile you were given does not exist or is not ready, report that and stop.
 """
