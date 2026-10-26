@@ -98,6 +98,7 @@ onMounted(() => {
           <li><strong>Storage</strong> — the bytes the project occupies on the remote. Opening the tab never walks the project's files for it, and only the Jeffrey Hub's retention pass measures it, so on the Azure file share the breakdown says the project is not measured; see the hub's Storage page for the figure.</li>
         </ul>
         <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, an instance's page reads that instance and its sessions, and a session's files are fetched only when the session is expanded or its drawer is opened.</p>
+        <p>Nothing reloads on its own. On the Azure file share every read is a run of round-trips to the share, so an instance's page reads the instance once when it opens, every session starts collapsed, and a recording session's sizes stay as they were read until <strong>Refresh</strong> in the page header reads them again.</p>
 
         <p>Below the tab row, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
 

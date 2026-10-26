@@ -38,9 +38,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * A project's sessions off the volume. A listing is filtered on the sessions alone, then reads the
- * files of the ones it keeps for their count and size, so a narrow filter over a long history
- * lists only a few directories.
+ * A project's sessions off the volume. A listing is filtered on the sessions alone, then describes
+ * the files of the ones it keeps for their count and size, off the listing each session was read
+ * from.
  */
 final class VolumeRepositoryClient implements RepositoryClient {
 
@@ -63,7 +63,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
             List<RecordingSession> kept = filter.apply(sessions.stream().map(VolumeResponses::unlisted).toList());
             return kept.stream()
                     .map(session -> byId.get(session.id()))
-                    .map(session -> VolumeResponses.header(session, project.files(session.path(), session.zone())))
+                    .map(session -> VolumeResponses.header(session, project.files(session)))
                     .toList();
         });
     }
@@ -75,7 +75,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
             ProjectSessions sessions = source.sessions(project);
             VolumeSession session = sessions.session(sessionId)
                     .orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
-            return VolumeResponses.withFiles(session, project.files(session.path(), session.zone()));
+            return VolumeResponses.withFiles(session, project.files(session));
         });
     }
 

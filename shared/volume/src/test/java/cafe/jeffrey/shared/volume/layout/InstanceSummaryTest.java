@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,7 +37,8 @@ class InstanceSummaryTest {
 
     private static VolumeSession newest(SessionLifecycle lifecycle) {
         return new VolumeSession(
-                new SessionDirectory(INSTANCE.resolve("s-1"), T0, ZoneOffset.UTC), lifecycle, false);
+                new SessionDirectory(INSTANCE.resolve("s-1"), T0, ZoneOffset.UTC), lifecycle, false,
+                new SessionListing.Listed(List.of()));
     }
 
     @Test

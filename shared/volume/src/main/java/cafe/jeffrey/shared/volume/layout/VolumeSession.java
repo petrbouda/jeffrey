@@ -25,17 +25,19 @@ import java.time.ZoneId;
 
 /**
  * A session as the volume says it is at the moment of reading: its directory, whether it is still
- * recording, and whether it is pinned against retention. Without its files — a listing reads those
- * only for the sessions it keeps.
+ * recording, whether it is pinned against retention, and the one listing of its directory all of
+ * that was read off — {@link ProjectTree#files(VolumeSession)} describes its files from that
+ * listing, without listing the directory again.
  */
-public record VolumeSession(SessionDirectory directory, SessionLifecycle lifecycle, boolean retained) {
+public record VolumeSession(
+        SessionDirectory directory, SessionLifecycle lifecycle, boolean retained, SessionListing listing) {
 
     /** Joins a session's instance and its own directory into its name, relative to the project. */
     private static final String NAME_SEPARATOR = "/";
 
     public VolumeSession {
-        if (directory == null || lifecycle == null) {
-            throw new IllegalArgumentException("A volume session needs its directory and its lifecycle");
+        if (directory == null || lifecycle == null || listing == null) {
+            throw new IllegalArgumentException("A volume session needs its directory, its lifecycle and its listing");
         }
     }
 

@@ -93,8 +93,9 @@ public record VolumeSource(
         return ProjectTree.allIn(volume, workspaceDirectory);
     }
 
+    /** Off the workspace's listing alone: one that is not there lists no project, so it is not looked at first. */
     Optional<ProjectTree> project(ProjectScope scope) {
-        return workspaceDirectory(scope.workspaceId()).flatMap(workspace -> projects(workspace).stream()
+        return ROOT.visibleChild(scope.workspaceId()).flatMap(workspace -> projects(workspace).stream()
                 .filter(project -> project.marker().projectId().equals(scope.projectId()))
                 .findFirst());
     }

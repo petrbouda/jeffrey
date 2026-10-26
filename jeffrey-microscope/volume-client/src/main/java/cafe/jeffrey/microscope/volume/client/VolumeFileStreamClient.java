@@ -73,7 +73,7 @@ final class VolumeFileStreamClient implements FileStreamClient {
         ProjectTree project = source.requireProject(scope);
         VolumeSession session = source.sessions(project).session(sessionId)
                 .orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
-        List<SessionFile> files = project.files(session.path(), session.zone());
+        List<SessionFile> files = project.files(session);
 
         SessionFile file = files.stream()
                 .filter(candidate -> candidate.id().equals(fileId))

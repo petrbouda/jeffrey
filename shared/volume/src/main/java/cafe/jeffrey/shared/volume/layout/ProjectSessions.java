@@ -17,11 +17,15 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
+import cafe.jeffrey.shared.common.HeartbeatConstants;
+import cafe.jeffrey.shared.volume.liveness.SessionLifecycle;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * A project's sessions as they are at the moment of reading: each one's directory, whether it is
@@ -30,8 +34,11 @@ import java.util.Optional;
  * answers.
  *
  * <p>A session's lifecycle depends on the start of the next one in its instance (a newer session
- * means this one ended), so an instance's sessions are always read together. Files are not read
- * here; a caller lists them for the sessions it keeps.
+ * means this one ended), so an instance's sessions are always read together.
+ *
+ * <p>On a file share every question asked of the volume is a round-trip, so a session costs its
+ * marker, one listing of its directory, and its liveness files only when that listing shows them.
+ * The files are described off the same listing ({@link ProjectTree#files(VolumeSession)}).
  */
 public final class ProjectSessions {
 
@@ -65,11 +72,12 @@ public final class ProjectSessions {
 
     /**
      * One session, or empty when the project holds none by that id. Only this session's liveness
-     * files are read; its siblings are needed for their start times alone, which their markers give.
+     * files are read; its siblings are needed for their start times alone, only when its liveness
+     * files do not settle it — a clean finish never reads them — and then only the ones that may
+     * have started after it ({@link ProjectTree#nextStart(SessionDirectory)}).
      */
     public Optional<VolumeSession> session(String sessionId) {
-        return tree.session(sessionId)
-                .map(session -> read(session, tree.sessionsOldestFirst(session.path().parent())));
+        return tree.session(sessionId).map(session -> read(session, () -> tree.nextStart(session)));
     }
 
     /**
@@ -98,9 +106,22 @@ public final class ProjectSessions {
     }
 
     private VolumeSession read(SessionDirectory session, List<SessionDirectory> siblingsOldestFirst) {
-        return new VolumeSession(
-                session,
-                liveness.assess(session.path(), session.createdAt(), ProjectTree.nextStart(siblingsOldestFirst, session)),
-                tree.isRetained(session));
+        return read(session, () -> ProjectTree.nextStart(siblingsOldestFirst, session));
+    }
+
+    /**
+     * A session off one listing of its directory: the listing says whether it is pinned and whether
+     * anything ever wrote its liveness directory, so neither is asked of the volume again — the
+     * liveness files are read only when that directory is there.
+     */
+    private VolumeSession read(SessionDirectory session, Supplier<Optional<Instant>> nextSessionStart) {
+        SessionListing listing = tree.listing(session);
+        // A failed listing cannot say the directory is missing, so the files are read as before
+        boolean livenessWritten = listing.holdsDirectory(HeartbeatConstants.HEARTBEAT_DIR, () -> true);
+        SessionLifecycle lifecycle = livenessWritten
+                ? liveness.assess(session.path(), session.createdAt(), nextSessionStart)
+                : liveness.assessUnwritten(session.path(), session.createdAt(), nextSessionStart);
+        boolean retained = listing.holdsFile(SessionDirectory.RETAINED_FLAG, () -> tree.isRetained(session));
+        return new VolumeSession(session, lifecycle, retained, listing);
     }
 }

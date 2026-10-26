@@ -310,17 +310,14 @@ const getSortedRecordings = (session: RecordingSession) => {
 
 // --- Session expand/collapse ---
 const initializeExpandedState = () => {
-  // Auto-expand the newest session that actually produced data — a failed
-  // (finished, zero-size) session never auto-expands, it starts collapsed in its group.
-  // Only a session seen for the first time takes the default; one the reader opened or closed
-  // keeps that across refreshes.
-  const firstSessionId = sortedSessions.value.find(session => !isFailedSession(session))?.id ?? null;
+  // Every session starts collapsed: an open session reads its files off the remote, and on an
+  // Azure file share that is a run of round-trips, so files are read only for a session the
+  // reader opens. One the reader opened or closed keeps that across refreshes.
   retainReadSessions(new Set(props.sessions.map(session => session.id)));
 
   props.sessions.forEach(session => {
     if (expandedSessions.value[session.id] === undefined) {
-      expandedSessions.value[session.id] =
-        session.status === RecordingStatus.ACTIVE || session.id === firstSessionId;
+      expandedSessions.value[session.id] = false;
     }
 
     if (visibleFilesCount.value[session.id] === undefined) {
@@ -331,8 +328,8 @@ const initializeExpandedState = () => {
       selectedRepositoryFile.value[session.id] = {};
     }
 
-    // An open session is read again when the list refreshes and it may have changed, so one
-    // that is still recording shows the chunks it wrote since
+    // An open session is read again when the reader refreshes the list and it may have changed,
+    // so one that is still recording shows the chunks it wrote since
     if (expandedSessions.value[session.id] && isStale(session)) {
       loadFilesInBackground(session.id);
     }

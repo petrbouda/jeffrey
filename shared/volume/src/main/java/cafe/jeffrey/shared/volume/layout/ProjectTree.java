@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.UncheckedIOException;
 import java.time.DateTimeException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -57,6 +58,18 @@ public final class ProjectTree {
      */
     private static final Comparator<VolumeEntry> NEWEST_BY_NAME =
             Comparator.comparing(VolumeEntry::name).reversed();
+
+    /** The order an instance's sessions started in: by their markers, a tie broken by name. */
+    private static final Comparator<SessionDirectory> OLDEST_FIRST =
+            Comparator.comparing(SessionDirectory::createdAt).thenComparing(SessionDirectory::id);
+
+    /**
+     * How much earlier than a session's directory a sibling's must have been created before it is
+     * not read as a possibly newer session. The two times come from the volume's own clock, but a
+     * filesystem that keeps no birth time answers its last change instead, so the order is trusted
+     * only well clear of a tie.
+     */
+    private static final Duration DIRECTORY_ORDER_MARGIN = Duration.ofHours(1);
 
     private final VolumeAccess volume;
     private final VolumePath path;
@@ -105,8 +118,9 @@ public final class ProjectTree {
                 .toList();
     }
 
+    /** Read straight off its marker: a read answers whether the directory is there, so it is not looked at first. */
     public Optional<InstanceDirectory> instance(String instanceId) {
-        return instanceDirectory(instanceId).flatMap(this::instanceAt);
+        return path.visibleChild(instanceId).flatMap(this::instanceAt);
     }
 
     /**
@@ -132,12 +146,21 @@ public final class ProjectTree {
 
     // ========== Sessions ==========
 
-    /** A session lies in one of the instance directories, under its own id. */
+    /**
+     * A session lies in one of the instance directories, under its own id. Each instance directory
+     * is asked for the session's marker directly, and only the one that holds it has its own marker
+     * read — not every instance's marker first.
+     */
     public Optional<SessionDirectory> session(String sessionId) {
-        return instances().stream()
-                .map(instance -> childDirectory(instance.path(), sessionId).flatMap(this::sessionAt))
-                .flatMap(Optional::stream)
-                .findFirst();
+        for (VolumePath instanceDir : VolumeMarkers.childDirectories(volume, path)) {
+            Optional<SessionDirectory> session = instanceDir.visibleChild(sessionId)
+                    .flatMap(this::sessionAt)
+                    .filter(found -> instanceAt(instanceDir).isPresent());
+            if (session.isPresent()) {
+                return session;
+            }
+        }
+        return Optional.empty();
     }
 
     /** The session in this directory, or empty when its marker does not read. */
@@ -151,8 +174,38 @@ public final class ProjectTree {
         return VolumeMarkers.childDirectories(volume, instanceDir).stream()
                 .map(this::sessionAt)
                 .flatMap(Optional::stream)
-                .sorted(Comparator.comparing(SessionDirectory::createdAt))
+                .sorted(OLDEST_FIRST)
                 .toList();
+    }
+
+    /**
+     * When the session after this one in its instance started, or empty for the newest — what
+     * {@link #nextStart(List, SessionDirectory)} answers off every sibling, for one session alone.
+     * The instance's listing carries when each directory was created, so only the siblings that may
+     * have started after this one have their markers read: for the newest session, usually none.
+     * A sibling whose listing carries no time (an NFS share lists none) is always read.
+     */
+    Optional<Instant> nextStart(SessionDirectory session) {
+        List<VolumeEntry> siblings = VolumeMarkers.childDirectoryEntries(volume, session.path().parent());
+        Optional<Instant> ownCreated = siblings.stream()
+                .filter(entry -> entry.path().equals(session.path()))
+                .findFirst()
+                .flatMap(VolumeEntry::createdAt);
+        return siblings.stream()
+                .filter(entry -> !entry.path().equals(session.path()))
+                .filter(entry -> mayHaveStartedAfter(entry, ownCreated))
+                .map(entry -> sessionAt(entry.path()))
+                .flatMap(Optional::stream)
+                .filter(sibling -> OLDEST_FIRST.compare(sibling, session) > 0)
+                .min(OLDEST_FIRST)
+                .map(SessionDirectory::createdAt);
+    }
+
+    private static boolean mayHaveStartedAfter(VolumeEntry sibling, Optional<Instant> ownCreated) {
+        if (ownCreated.isEmpty() || sibling.createdAt().isEmpty()) {
+            return true;
+        }
+        return !sibling.createdAt().get().isBefore(ownCreated.get().minus(DIRECTORY_ORDER_MARGIN));
     }
 
     /**
@@ -170,6 +223,20 @@ public final class ProjectTree {
 
     boolean isRetained(SessionDirectory session) {
         return VolumeMarkers.hasFlag(volume, session.path(), SessionDirectory.RETAINED_FLAG);
+    }
+
+    /**
+     * The one listing of a session directory every answer about it is read off. One that fails is
+     * kept as the failure, so the session is still read, each answer asking the volume instead.
+     */
+    SessionListing listing(SessionDirectory session) {
+        try {
+            return new SessionListing.Listed(volume.list(session.path()));
+        } catch (UncheckedIOException e) {
+            LOG.warn("Cannot list a session directory, asking the volume for each answer instead: session_path={} "
+                    + "reason={}", session.path(), e.getMessage());
+            return new SessionListing.Unlisted(e);
+        }
     }
 
     /**
@@ -193,17 +260,26 @@ public final class ProjectTree {
     // ========== Files ==========
 
     /**
+     * The visible files of a session just read, off the listing it was read from.
+     *
+     * @throws UncheckedIOException when its directory could not be listed
+     */
+    public List<SessionFile> files(VolumeSession session) {
+        return files(session.listing().entries(), session.zone());
+    }
+
+    /**
      * The visible files of a session directory, newest first by name, each with its id, its
-     * timestamp read in {@code zone} and whether it is a recording.
+     * timestamp read in {@code zone} and whether it is a recording; none when the directory is gone.
      *
      * @throws UncheckedIOException when the directory is there and cannot be listed
      */
     public List<SessionFile> files(VolumePath sessionDir, ZoneId zone) {
-        if (!VolumeMarkers.isDirectory(volume, sessionDir)) {
-            LOG.warn("Session directory does not exist: session_path={}", sessionDir);
-            return List.of();
-        }
-        return volume.list(sessionDir).stream()
+        return files(volume.list(sessionDir), zone);
+    }
+
+    private List<SessionFile> files(List<VolumeEntry> entries, ZoneId zone) {
+        return entries.stream()
                 .filter(entry -> !entry.path().isHidden())
                 .filter(VolumeEntry::isFile)
                 .sorted(NEWEST_BY_NAME)

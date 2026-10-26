@@ -63,7 +63,7 @@ class SessionLivenessTest {
     }
 
     private SessionLifecycle assess(Instant createdAt) {
-        return liveness.assess(SESSION, createdAt, Optional.empty());
+        return liveness.assess(SESSION, createdAt, Optional::empty);
     }
 
     @Nested
@@ -128,7 +128,7 @@ class SessionLivenessTest {
             VolumeWriter.heartbeat(sessionDir, lastBeat);
 
             assertEquals(SessionLifecycle.finished(lastBeat),
-                    liveness.assess(SESSION, NOW.minusSeconds(600), Optional.of(NOW.minusSeconds(1))));
+                    liveness.assess(SESSION, NOW.minusSeconds(600), () -> Optional.of(NOW.minusSeconds(1))));
         }
 
         @Test
@@ -136,7 +136,7 @@ class SessionLivenessTest {
             Instant nextStart = NOW.minusSeconds(30);
 
             assertEquals(SessionLifecycle.finished(nextStart),
-                    liveness.assess(SESSION, NOW.minusSeconds(40), Optional.of(nextStart)));
+                    liveness.assess(SESSION, NOW.minusSeconds(40), () -> Optional.of(nextStart)));
         }
 
         @Test
@@ -146,7 +146,7 @@ class SessionLivenessTest {
             VolumeWriter.heartbeat(sessionDir, NOW.minusSeconds(51));
 
             assertEquals(SessionLifecycle.finished(exit),
-                    liveness.assess(SESSION, NOW.minusSeconds(600), Optional.of(NOW.minusSeconds(40))));
+                    liveness.assess(SESSION, NOW.minusSeconds(600), () -> Optional.of(NOW.minusSeconds(40))));
         }
     }
 

@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Decides whether a session is still recording from the files under its {@code .heartbeat/},
@@ -61,33 +62,53 @@ public class SessionLiveness {
     }
 
     /**
-     * @param sessionDir      the session's directory
-     * @param createdAt       when the session started, from its marker
-     * @param nextSessionStart when the instance's next session started; empty for its newest
+     * Reads the session's liveness files and decides.
+     *
+     * @param sessionDir       the session's directory
+     * @param createdAt        when the session started, from its marker
+     * @param nextSessionStart when the instance's next session started, empty for its newest; asked
+     *                         only when the finished marker does not settle it
      */
-    public SessionLifecycle assess(VolumePath sessionDir, Instant createdAt, Optional<Instant> nextSessionStart) {
+    public SessionLifecycle assess(
+            VolumePath sessionDir, Instant createdAt, Supplier<Optional<Instant>> nextSessionStart) {
         LivenessRead finishedMarker = reader.readFinishedMarker(sessionDir);
         if (finishedMarker instanceof LivenessRead.Reported(Instant markerAt)) {
             return SessionLifecycle.finished(markerAt);
         }
+        return decide(sessionDir, createdAt, nextSessionStart, finishedMarker, reader.readLastHeartbeat(sessionDir));
+    }
 
-        LivenessRead lastHeartbeat = reader.readLastHeartbeat(sessionDir);
-        if (nextSessionStart.isPresent()) {
-            return SessionLifecycle.finished(lastHeartbeat.timestamp().orElse(nextSessionStart.get()));
+    /**
+     * Decides for a session whose directory was just listed without a {@code .heartbeat/}: nothing
+     * ever wrote a liveness file, so both are absent without reading either.
+     */
+    public SessionLifecycle assessUnwritten(
+            VolumePath sessionDir, Instant createdAt, Supplier<Optional<Instant>> nextSessionStart) {
+        return decide(sessionDir, createdAt, nextSessionStart, LivenessRead.absent(), LivenessRead.absent());
+    }
+
+    /** The rules after the finished marker, which neither read carries a time for. */
+    private SessionLifecycle decide(
+            VolumePath sessionDir,
+            Instant createdAt,
+            Supplier<Optional<Instant>> nextSessionStart,
+            LivenessRead finishedMarker,
+            LivenessRead lastHeartbeat) {
+
+        Optional<Instant> nextStart = nextSessionStart.get();
+        if (nextStart.isPresent()) {
+            return SessionLifecycle.finished(lastHeartbeat.timestamp().orElse(nextStart.get()));
         }
-
         if (lastHeartbeat instanceof LivenessRead.Reported(Instant heartbeatAt)) {
             Instant deadline = clock.instant().minus(deadlines.heartbeatThreshold());
             return heartbeatAt.isBefore(deadline)
                     ? SessionLifecycle.finished(heartbeatAt)
                     : SessionLifecycle.recording();
         }
-
         if (!finishedMarker.isAbsent() || !lastHeartbeat.isAbsent()) {
             LOG.debug("Liveness files unreadable, reporting the session as recording: session_dir={}", sessionDir);
             return SessionLifecycle.recording();
         }
-
         Instant startupDeadline = clock.instant().minus(deadlines.startupGrace());
         return createdAt.isAfter(startupDeadline)
                 ? SessionLifecycle.recording()

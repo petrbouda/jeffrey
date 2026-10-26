@@ -19,7 +19,18 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-box" :title="instance?.instanceName ?? 'Instance'" />
+        <MainCardHeader icon="bi bi-box" :title="instance?.instanceName ?? 'Instance'">
+          <template #actions>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              title="Read the instance and its sessions again"
+              :disabled="loading || refreshing"
+              @click="load(true)"
+            >
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </template>
+        </MainCardHeader>
       </template>
 
       <!-- Loading Indicator -->
@@ -68,8 +79,6 @@ import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingSessionList from '@remote/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus';
-import { usePolling } from '@shared/composables/usePolling';
 import ProjectInstance from '@remote/services/api/model/ProjectInstance';
 import RecordingSession from '@remote/services/api/model/RecordingSession';
 import { useNavigation } from '@/composables/useNavigation';
@@ -85,34 +94,23 @@ const isCollectorOnly = computed(() => {
 });
 
 const loading = ref(true);
+const refreshing = ref(false);
 const failed = ref(false);
 const instance = ref<ProjectInstance | null>(null);
 const sessions = ref<RecordingSession[]>([]);
 
 /**
- * How often an instance with a session still recording is re-read. A session's figures — file
- * sizes above all — come from a listing of the session's directory on the volume taken at request time,
- * so without this the page shows whatever the files measured at the moment it was opened, for
- * as long as it stays open.
- */
-const ACTIVE_SESSION_REFRESH_MS = 10_000;
-
-const hasActiveSession = (): boolean => {
-  return sessions.value.some(session => session.status === RecordingStatus.ACTIVE);
-};
-
-// Declared ahead of load because that is what arms and disarms it; the callback reaches the
-// function below only when a tick fires, long after setup has run.
-const sessionPolling = usePolling(() => load(true), ACTIVE_SESSION_REFRESH_MS);
-
-/**
  * Reads the instance and its sessions (each without its files: the list fetches a session's
- * files when it is expanded) in one call. Background reloads — the poll above and a refresh
- * from the list — leave the loading flag alone so the view on screen never flickers, and keep
- * it when a read fails.
+ * files when it is expanded) in one call. The page reads them when it opens and again only when
+ * asked — the Refresh button, or the list after a change — never on a timer: on an Azure file
+ * share every read is a run of round-trips, so a figure that changes while the page stays open
+ * (a recording session's sizes) waits for a refresh. A refresh leaves the loading flag alone so
+ * the view on screen never flickers, and keeps it when a read fails.
  */
 const load = async (background: boolean = false) => {
-  if (!background) {
+  if (background) {
+    refreshing.value = true;
+  } else {
     loading.value = true;
     failed.value = false;
   }
@@ -126,13 +124,7 @@ const load = async (background: boolean = false) => {
     }
   } finally {
     loading.value = false;
-    // Decided after every load rather than once: a session that finishes while the page is
-    // open ends the polling, one that starts begins it, and a removed instance ends it.
-    if (hasActiveSession()) {
-      sessionPolling.start();
-    } else {
-      sessionPolling.stop();
-    }
+    refreshing.value = false;
   }
 };
 

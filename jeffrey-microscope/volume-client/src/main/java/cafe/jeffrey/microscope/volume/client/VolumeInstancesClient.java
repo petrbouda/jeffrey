@@ -52,7 +52,7 @@ final class VolumeInstancesClient implements InstancesClient {
             return source.sessions(project).instance(instanceId).map(found -> new InstanceRead(
                     VolumeResponses.instance(found.summary()),
                     found.sessions().stream()
-                            .map(session -> VolumeResponses.header(session, project.files(session.path(), session.zone())))
+                            .map(session -> VolumeResponses.header(session, project.files(session)))
                             .toList()));
         });
     }

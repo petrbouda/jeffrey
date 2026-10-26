@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -120,13 +119,10 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 .toList();
     }
 
-    /** A session just read, with its files: its directory and zone are known already. */
-    private RecordingSession withFiles(VolumeSession session) {
-        return withFiles(toRecordingSession(session), session.path(), session.zone());
-    }
-
-    private RecordingSession withFiles(RecordingSession session, VolumePath sessionDir, ZoneId zone) {
-        List<RepositoryFile> files = tree.files(sessionDir, zone).stream()
+    /** A session just read, with its files: described off the listing it was read from. */
+    private RecordingSession withFiles(VolumeSession volumeSession) {
+        RecordingSession session = toRecordingSession(volumeSession);
+        List<RepositoryFile> files = tree.files(volumeSession).stream()
                 .map(this::toRepositoryFile)
                 .toList();
         return new RecordingSession(

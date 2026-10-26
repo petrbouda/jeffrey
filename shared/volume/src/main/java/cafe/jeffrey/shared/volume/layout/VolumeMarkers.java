@@ -84,12 +84,18 @@ public final class VolumeMarkers {
 
     /** The visible child directories, sorted by name; dot-directories are the volume's own bookkeeping. */
     public static List<VolumePath> childDirectories(VolumeAccess volume, VolumePath parent) {
+        return childDirectoryEntries(volume, parent).stream()
+                .map(VolumeEntry::path)
+                .sorted(BY_NAME)
+                .toList();
+    }
+
+    /** The visible child directories as listed, with what the listing says of each; none when unlistable. */
+    public static List<VolumeEntry> childDirectoryEntries(VolumeAccess volume, VolumePath parent) {
         try {
             return volume.list(parent).stream()
                     .filter(VolumeEntry::isDirectory)
-                    .map(VolumeEntry::path)
-                    .filter(path -> !path.isHidden())
-                    .sorted(BY_NAME)
+                    .filter(entry -> !entry.path().isHidden())
                     .toList();
         } catch (UncheckedIOException e) {
             LOG.warn("Cannot list directory: path={}", parent, e);

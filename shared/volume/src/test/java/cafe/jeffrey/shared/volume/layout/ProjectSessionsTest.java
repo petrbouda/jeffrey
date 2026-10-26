@@ -18,6 +18,8 @@
 package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.VolumeAccess;
+import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumeFixture;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.liveness.SessionLifecycle;
@@ -28,16 +30,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -161,6 +169,137 @@ class ProjectSessionsTest {
             assertEquals(InstanceState.ACTIVE, instance.summary().state());
             assertEquals(2, instance.summary().sessionCount());
             assertFalse(sessions.instance("pod-b").isPresent());
+        }
+    }
+
+    /**
+     * A session is read off one listing of its directory, and one that cannot be listed is still
+     * read, each answer asked of the volume instead.
+     */
+    @Nested
+    class OneListing {
+
+        /**
+         * Fails the listing of one directory, records every read, and lists the directories named
+         * in {@code listedTimes} with those creation times, the way an SMB share lists them.
+         */
+        private static final class ProbedVolume implements VolumeAccess {
+
+            private final VolumeAccess delegate;
+            private final VolumePath unlistable;
+            private final Map<String, Instant> listedTimes = new HashMap<>();
+            private final List<VolumePath> reads = new ArrayList<>();
+
+            private ProbedVolume(VolumeAccess delegate, VolumePath unlistable) {
+                this.delegate = delegate;
+                this.unlistable = unlistable;
+            }
+
+            @Override
+            public List<VolumeEntry> list(VolumePath directory) {
+                if (directory.equals(unlistable)) {
+                    throw new UncheckedIOException(new IOException("stale handle"));
+                }
+                return delegate.list(directory).stream()
+                        .map(entry -> listedTimes.containsKey(entry.name())
+                                ? new VolumeEntry(entry.path(), entry.kind(), entry.size(),
+                                Optional.of(listedTimes.get(entry.name())))
+                                : entry)
+                        .toList();
+            }
+
+            @Override
+            public Optional<VolumeEntry> stat(VolumePath path) {
+                return delegate.stat(path);
+            }
+
+            @Override
+            public Optional<byte[]> read(VolumePath file) {
+                reads.add(file);
+                return delegate.read(file);
+            }
+
+            @Override
+            public Optional<OpenedFile> open(VolumePath file) {
+                return delegate.open(file);
+            }
+        }
+
+        private static final VolumePath S_1 = VolumePath.root().resolve("project").resolve("pod-a").resolve("s-1");
+
+        private ProbedVolume volume;
+        private ProjectTree tree;
+
+        private ProjectSessions probed(VolumePath unlistable) {
+            volume = new ProbedVolume(new FilesystemVolume(root), unlistable);
+            tree = ProjectTree.at(volume, VolumePath.root().resolve("project")).orElseThrow();
+            return new ProjectSessions(tree, VolumeFixture.liveness(Clock.fixed(NOW, ZoneOffset.UTC), volume));
+        }
+
+        @Test
+        void aSessionWithoutALivenessDirectoryReadsNoLivenessFile() {
+            session("pod-a", "s-1", T0);
+
+            VolumeSession read = probed(VolumePath.root()).session("s-1").orElseThrow();
+
+            assertTrue(read.lifecycle().heartbeatMissing());
+            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains(".heartbeat")));
+        }
+
+        @Test
+        void aSessionThatCannotBeListedIsStillReadFromItsFiles() throws IOException {
+            Path dir = session("pod-a", "s-1", T0);
+            VolumeWriter.heartbeat(dir, NOW);
+            Files.createFile(dir.resolve(SessionDirectory.RETAINED_FLAG));
+
+            VolumeSession read = probed(S_1).session("s-1").orElseThrow();
+
+            assertTrue(read.lifecycle().isRecording(), "its heartbeat is read, not taken for absent");
+            assertTrue(read.retained(), "its pin is looked at, not taken for unset");
+            assertThrows(UncheckedIOException.class, () -> tree.files(read));
+        }
+
+        @Test
+        void theNewestSessionDoesNotReadASiblingListedWellBeforeIt() {
+            Instant olderStart = T0.minus(Duration.ofHours(2));
+            session("pod-a", "s-1", olderStart);
+            VolumeWriter.heartbeat(session("pod-a", "s-2", T0), NOW);
+            ProjectSessions sessions = probed(VolumePath.root());
+            volume.listedTimes.put("s-1", olderStart);
+            volume.listedTimes.put("s-2", T0);
+
+            VolumeSession newest = sessions.session("s-2").orElseThrow();
+
+            assertTrue(newest.lifecycle().isRecording());
+            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains("s-1")),
+                    "the listing says s-1 started well before, so its marker is not read");
+        }
+
+        @Test
+        void aNewerSiblingStillFinishesTheOlderSession() {
+            Instant olderStart = T0.minus(Duration.ofHours(2));
+            session("pod-a", "s-1", olderStart);
+            VolumeWriter.heartbeat(session("pod-a", "s-2", T0), NOW);
+            ProjectSessions sessions = probed(VolumePath.root());
+            volume.listedTimes.put("s-1", olderStart);
+            volume.listedTimes.put("s-2", T0);
+
+            VolumeSession older = sessions.session("s-1").orElseThrow();
+
+            assertEquals(SessionLifecycle.finished(T0), older.lifecycle());
+        }
+
+        @Test
+        void itsFilesComeFromTheListingItWasReadFrom() {
+            Path dir = session("pod-a", "s-1", T0);
+            VolumeWriter.file(dir, "profile-20260220-120000.jfr", "x");
+
+            ProjectSessions sessions = probed(VolumePath.root());
+            VolumeSession read = sessions.session("s-1").orElseThrow();
+            VolumeWriter.file(dir, "profile-20260220-121000.jfr", "x");
+
+            assertEquals(List.of("profile-20260220-120000.jfr"),
+                    tree.files(read).stream().map(SessionFile::name).toList());
         }
     }
 }
