@@ -103,7 +103,7 @@ onMounted(() => {
           color="blue"
           icon="bi bi-cloud-arrow-down"
           title="Remote Workspaces"
-          description="Declare the remote (a Jeffrey Hub or an Azure file share) in configuration, browse production sessions, and pull only the recordings you want to investigate."
+          description="Declare the remote (the Azure file share holding the recording volume) in configuration, browse production sessions, and pull only the recordings you want to investigate."
         />
         <DocsFeatureCard
           color="neutral"
@@ -119,7 +119,7 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> Quick ad-hoc profiling investigations directly on your laptop.</li>
         <li><i class="bi bi-check2-circle"></i> Deep, side-by-side comparisons with differential flame graphs and timeseries.</li>
         <li><i class="bi bi-check2-circle"></i> Hunting memory leaks and oversized retention with heap-dump tooling.</li>
-        <li><i class="bi bi-check2-circle"></i> Declaring a Jeffrey Hub as the remote for centralised, production-grade recording collection.</li>
+        <li><i class="bi bi-check2-circle"></i> Declaring the Azure file share that holds the recording volume as the remote, for centralised, production-grade recording collection (kept tidy by a Jeffrey Hub).</li>
       </ul>
 
     </div>

@@ -52,7 +52,7 @@ import java.util.Set;
 
 /**
  * The recording volume on an Azure file share, read over the Azure Files REST API — the same
- * directory tree the hub reads off its mount, with no hub in between.
+ * directory tree the hub reads off its mount.
  *
  * <p>The two protocols list differently. An SMB share returns each entry with its timestamps from
  * one listing call; an NFS share returns names and sizes alone, so its entries carry no creation

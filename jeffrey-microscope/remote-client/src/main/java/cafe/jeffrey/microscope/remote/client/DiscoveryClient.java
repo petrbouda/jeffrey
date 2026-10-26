@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The workspaces and projects a source holds: the top two levels of its tree. A jeffrey-hub answers
- * them over gRPC; a volume read straight from storage answers them off its directories.
+ * The workspaces and projects a source holds: the top two levels of its tree, read off the
+ * recording volume's directories.
  */
 public interface DiscoveryClient {
 

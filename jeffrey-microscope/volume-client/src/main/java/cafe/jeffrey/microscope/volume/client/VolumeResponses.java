@@ -41,10 +41,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The volume's types onto Microscope's own, shaped exactly as {@code ClientProtoMappers} decodes
- * what a hub sends — so a page or a tool cannot tell which kind of source a session came from.
- * What a hub decides before it sends (a session's status, whether it failed, an instance's state)
- * is decided here the same way, from the same volume.
+ * The volume's types onto Microscope's own. What the hub's jobs decide from the same volume (a
+ * session's status, whether it failed, an instance's state) is decided here by the same rules, so
+ * Microscope and the hub never disagree about a session.
  */
 final class VolumeResponses {
 
@@ -113,7 +112,7 @@ final class VolumeResponses {
 
     /**
      * A project with its status and session count read off its instances, each from its newest
-     * session alone; its size is never measured here, as only a hub's retention pass does that.
+     * session alone; its size is never measured here, as only the hub's retention pass does that.
      */
     static RemoteProjectResponse project(ProjectTree project, String workspaceId, List<InstanceSummary> instances) {
         int sessionCount = instances.stream().mapToInt(InstanceSummary::sessionCount).sum();
@@ -135,7 +134,7 @@ final class VolumeResponses {
         return new WorkspaceInfo(id, id, null, name, null, null, createdAt, WorkspaceStatus.AVAILABLE, projectCount);
     }
 
-    /** UNKNOWN without a session, as a hub sends no status for one; ACTIVE while any instance records. */
+    /** UNKNOWN without a session, which has no status; ACTIVE while any instance records. */
     private static RecordingStatus projectStatus(List<InstanceSummary> instances, int sessionCount) {
         if (sessionCount == 0) {
             return RecordingStatus.UNKNOWN;
@@ -170,8 +169,7 @@ final class VolumeResponses {
     /**
      * A session that finished without producing any data — a crash before the first chunk. One
      * finished because it never sent a heartbeat is empty too, but it did not crash: it is reported
-     * as missing its heartbeat instead, never as failed. The hub's rule, decided here for a volume
-     * read without one.
+     * as missing its heartbeat instead, never as failed. The rule the hub's retention applies too.
      */
     private static boolean failed(VolumeSession session, long bytes) {
         return !session.lifecycle().isRecording() && bytes == 0 && !session.lifecycle().heartbeatMissing();

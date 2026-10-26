@@ -192,7 +192,6 @@ public class McpConfiguration {
             Clock applicationClock,
             @Value("${jeffrey.microscope.mcp.remote.scan-timeout:PT20S}") Duration scanTimeout,
             @Value("${" + RemoteMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
-            @Value("${" + RemoteMcpTools.DOWNLOAD_TIMEOUT_PROPERTY + ":PT1H}") Duration downloadTimeout,
             @Value("${" + RemoteMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
             @Value("${" + RemoteMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
             McpOperationRegistry operations,
@@ -200,7 +199,7 @@ public class McpConfiguration {
             AdvertisedFamilies advertisedFamilies) {
         return new RemoteMcpTools(
                 remoteManager, projectManagerResolver, recordingsManager, applicationClock,
-                scanTimeout, responseTimeout, downloadTimeout, operations, operationAnswers,
+                scanTimeout, responseTimeout, operations, operationAnswers,
                 new DownloadWindowQuestion(askWindowOverDuration, askWindowOverSize.toBytes()), advertisedFamilies);
     }
 
@@ -228,11 +227,10 @@ public class McpConfiguration {
             OperationAnswers operationAnswers,
             Clock applicationClock,
             @Value("${" + RemoteMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
-            @Value("${" + RemoteMcpTools.DOWNLOAD_TIMEOUT_PROPERTY + ":PT1H}") Duration downloadTimeout,
             AdvertisedFamilies advertisedFamilies) {
         return new RemoteArtifactsMcpTools(
                 projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(), operations,
-                operationAnswers, applicationClock, responseTimeout, downloadTimeout, advertisedFamilies);
+                operationAnswers, applicationClock, responseTimeout, advertisedFamilies);
     }
 
     @Bean

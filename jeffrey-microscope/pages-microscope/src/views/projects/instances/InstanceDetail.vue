@@ -91,7 +91,7 @@ const sessions = ref<RecordingSession[]>([]);
 
 /**
  * How often an instance with a session still recording is re-read. A session's figures — file
- * sizes above all — come from a listing of the hub's repository directory taken at request time,
+ * sizes above all — come from a listing of the session's directory on the volume taken at request time,
  * so without this the page shows whatever the files measured at the moment it was opened, for
  * as long as it stays open.
  */

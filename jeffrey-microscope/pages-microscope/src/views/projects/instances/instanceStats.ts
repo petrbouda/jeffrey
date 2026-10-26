@@ -47,8 +47,8 @@ export function summarizeInstances(instances: readonly ProjectInstance[]): Insta
 }
 
 /**
- * The project's storage size as the summary shows it. The hub measures it on its retention pass
- * only, so a project the pass has not reached yet is "unmeasured", not empty.
+ * The project's storage size as the summary shows it. Only the hub's retention pass measures it,
+ * so a project nothing has measured is "unmeasured", not empty.
  */
 export type StorageFigure =
   | { kind: 'loading' }

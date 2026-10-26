@@ -32,9 +32,9 @@ import java.util.List;
  * "the last hour", which is what a reader asking for recent recordings expects; a session that
  * finished before the window opened does not.
  *
- * <p>The filter is applied on the hub, so the listing that travels over gRPC is already the one
- * the caller asked for. {@link #apply(List)} expects the sessions newest first, which is how the
- * hub storage sorts them; the limit keeps the newest ones.
+ * <p>The filter is applied where the sessions are read, so the listing handed back is already the
+ * one the caller asked for. {@link #apply(List)} expects the sessions newest first, which is how
+ * the volume's layout sorts them; the limit keeps the newest ones.
  *
  * @param activeFrom the session must not have finished before this instant, or {@code null}
  * @param activeTo   the session must have started before this instant, or {@code null}

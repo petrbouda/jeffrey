@@ -34,8 +34,7 @@ import java.util.function.Function;
 
 /**
  * The configured remote: lists its workspaces live, creates workspaces on it, and produces
- * per-workspace and per-project managers. What it talks to — a Jeffrey Hub over gRPC, or a file
- * share directly — is its clients' business.
+ * per-workspace and per-project managers. How the share is read is its clients' business.
  */
 public class RemoteConnection {
 

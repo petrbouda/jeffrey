@@ -18,7 +18,6 @@
 package cafe.jeffrey.shared.ui.remote.controller;
 
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteRegistry;
 import cafe.jeffrey.shared.ui.remote.dto.CurrentRemoteResponse;
@@ -36,8 +35,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/internal/remote")
 public class RemoteController {
 
-    private static final String KIND_GRPC = "GRPC";
-    private static final String KIND_AZURE_FILES = "AZURE_FILES";
     private static final String LOCATION_SEPARATOR = "/";
 
     private final RemoteRegistry registry;
@@ -52,11 +49,8 @@ public class RemoteController {
     }
 
     private static RemoteResponse toResponse(RemoteInfo remote) {
-        return switch (remote.address()) {
-            case HubAddress hub -> new RemoteResponse(remote.name(), KIND_GRPC, hub.identity(), hub.readOnly());
-            case AzureFilesAddress azure ->
-                    new RemoteResponse(remote.name(), KIND_AZURE_FILES, location(azure), azure.readOnly());
-        };
+        AzureFilesAddress share = remote.address();
+        return new RemoteResponse(remote.name(), location(share), share.readOnly());
     }
 
     private static String location(AzureFilesAddress azure) {

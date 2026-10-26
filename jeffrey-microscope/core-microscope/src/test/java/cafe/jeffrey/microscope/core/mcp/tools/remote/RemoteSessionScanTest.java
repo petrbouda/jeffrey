@@ -25,15 +25,18 @@ import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
+import cafe.jeffrey.shared.common.exception.ErrorCode;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import io.grpc.Status;
-import io.grpc.Context;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -65,7 +68,8 @@ class RemoteSessionScanTest {
     private final RemoteSessionScan scan = new RemoteSessionScan(remoteManager, BUDGET);
 
     private static RemoteInfo remoteInfo() {
-        return new RemoteInfo("production", new HubAddress("hub.example.com", 443, false));
+        return new RemoteInfo("production", new AzureFilesAddress("https://jeffreyprod.file.core.windows.net",
+                "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false));
     }
 
     private static WorkspaceInfo workspace(String id, String name) {
@@ -125,7 +129,7 @@ class RemoteSessionScanTest {
         RemoteConnection remote = mock(RemoteConnection.class);
         when(remote.info()).thenReturn(remoteInfo());
         when(remote.infoOrThrow())
-                .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
+                .thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "connection refused"));
         when(remoteManager.current()).thenReturn(Optional.of(remote));
         return remote;
     }
@@ -134,9 +138,14 @@ class RemoteSessionScanTest {
         return result.rows().stream().map(row -> row.session().id()).toList();
     }
 
-    private static void awaitCancellation(CountDownLatch cancelled) throws InterruptedException {
-        Context.current().addListener(_ -> cancelled.countDown(), Runnable::run);
-        cancelled.await(5, TimeUnit.SECONDS);
+    /** Blocks the remote call until the scan cancels it, which interrupts the thread it runs on. */
+    private static void awaitCancellation(CountDownLatch cancelled) {
+        try {
+            new CountDownLatch(1).await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            cancelled.countDown();
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Nested
@@ -224,7 +233,7 @@ class RemoteSessionScanTest {
         void stillReturnsRowsFromTheProjectsThatAnswered() {
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
-                    .thenThrow(Status.UNAVAILABLE.withDescription("connect refused").asRuntimeException());
+                    .thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "connect refused"));
             configured(project("proj-1", "checkout", failing),
                     project("proj-2", "search", repositoryWith(session("s-1", NOW))));
 
@@ -259,10 +268,10 @@ class RemoteSessionScanTest {
         }
 
         @Test
-        void reportsAGrpcUnavailableFromOneProjectAsUnreachable() {
+        void reportsAnUnavailableProjectAsUnreachable() {
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
-                    .thenThrow(Status.UNAVAILABLE.withDescription("connect refused").asRuntimeException());
+                    .thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "connect refused"));
             configured(project("proj-1", "checkout", failing));
 
             RemoteSessionScan.Result result = scan.scan(RemoteScanFilter.ALL);
@@ -276,7 +285,7 @@ class RemoteSessionScanTest {
             // A remote that answered and said no is a different problem with a different next step.
             RepositoryManager failing = mock(RepositoryManager.class);
             when(failing.listRecordingSessions(any()))
-                    .thenThrow(Status.NOT_FOUND.withDescription("project is gone").asRuntimeException());
+                    .thenThrow(new JeffreyClientException(ErrorCode.RESOURCE_NOT_FOUND, "project is gone"));
             configured(project("proj-1", "checkout", failing));
 
             String reason = scan.scan(RemoteScanFilter.ALL).failures().getFirst().reason();
@@ -285,24 +294,12 @@ class RemoteSessionScanTest {
         }
 
         @Test
-        void reportsADeadlineAsADeadlineRatherThanAnUnreachableRemote() {
-            RepositoryManager failing = mock(RepositoryManager.class);
-            when(failing.listRecordingSessions(any()))
-                    .thenThrow(Status.DEADLINE_EXCEEDED.withDescription("scan budget elapsed").asRuntimeException());
-            configured(project("proj-1", "checkout", failing));
-
-            String reason = scan.scan(RemoteScanFilter.ALL).failures().getFirst().reason();
-
-            assertTrue(reason.contains("deadline"), reason);
-        }
-
-        @Test
         void keepsCompletedProjectRowsAndCancelsAnOverdueProjectRpc() throws Exception {
             CountDownLatch cancelled = new CountDownLatch(1);
             RepositoryManager slowRepository = mock(RepositoryManager.class);
             when(slowRepository.listRecordingSessions(any())).thenAnswer(_ -> {
                 awaitCancellation(cancelled);
-                throw Status.CANCELLED.withDescription("scan cancelled").asRuntimeException();
+                throw new IllegalStateException("scan cancelled");
             });
             configured(project("fast-project", "fast", repositoryWith(session("fast-session", NOW))),
                     project("slow-project", "slow", slowRepository));
@@ -323,7 +320,7 @@ class RemoteSessionScanTest {
             when(stalled.info()).thenReturn(remoteInfo());
             when(stalled.infoOrThrow()).thenAnswer(_ -> {
                 awaitCancellation(cancelled);
-                throw Status.CANCELLED.withDescription("probe cancelled").asRuntimeException();
+                throw new IllegalStateException("probe cancelled");
             });
             when(remoteManager.current()).thenReturn(Optional.of(stalled));
 
@@ -349,7 +346,7 @@ class RemoteSessionScanTest {
             ProjectsManager stalledProjects = mock(ProjectsManager.class);
             when(stalledProjects.findAllOrThrow()).thenAnswer(_ -> {
                 awaitCancellation(cancelled);
-                throw Status.CANCELLED.withDescription("project listing cancelled").asRuntimeException();
+                throw new IllegalStateException("project listing cancelled");
             });
             WorkspaceManager stalledManager = mock(WorkspaceManager.class);
             when(stalledManager.projectsManager()).thenReturn(stalledProjects);

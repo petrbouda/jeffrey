@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.shared.ui.remote.controller;
 
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -92,27 +90,7 @@ public class WorkspacesController {
                     "Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
         }
 
-        try {
-            WorkspaceResponse created = access.createWorkspace(referenceId, request.name().trim());
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
-        } catch (StatusRuntimeException e) {
-            throw mapStatusError(e);
-        }
-    }
-
-    private static RuntimeException mapStatusError(StatusRuntimeException e) {
-        if (e.getStatus().getCode() == Status.Code.ALREADY_EXISTS) {
-            return Exceptions.invalidRequest(
-                    e.getStatus().getDescription() != null
-                            ? e.getStatus().getDescription()
-                            : "Workspace already exists on the remote");
-        }
-        if (e.getStatus().getCode() == Status.Code.INVALID_ARGUMENT) {
-            return Exceptions.invalidRequest(
-                    e.getStatus().getDescription() != null
-                            ? e.getStatus().getDescription()
-                            : "Invalid workspace creation request");
-        }
-        return e;
+        WorkspaceResponse created = access.createWorkspace(referenceId, request.name().trim());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

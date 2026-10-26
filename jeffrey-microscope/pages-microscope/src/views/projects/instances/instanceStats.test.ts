@@ -73,7 +73,7 @@ describe('storageFigure', () => {
     expect(storageFigure({ totalSize: 1024 }, true)).toEqual({ kind: 'error' });
   });
 
-  it('is unmeasured before the hub has run its first retention pass', () => {
+  it('is unmeasured when nothing has measured the project', () => {
     expect(storageFigure({ totalSize: null }, false)).toEqual({ kind: 'unmeasured' });
   });
 

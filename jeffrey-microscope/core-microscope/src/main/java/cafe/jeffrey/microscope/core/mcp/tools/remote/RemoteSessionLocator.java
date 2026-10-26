@@ -17,15 +17,12 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
-import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,13 +67,6 @@ public final class RemoteSessionLocator {
     public ProjectManager project(RemoteSessionRef ref) {
         try {
             return resolver.resolve(ref.workspaceId(), ref.projectId());
-        } catch (StatusRuntimeException e) {
-            LOG.debug("Workspace or project lookup failed for a session_ref: workspace_id={} reason={}",
-                    ref.workspaceId(), e.getMessage(), e);
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                throw staleRef(ref, "its workspace or project is no longer there");
-            }
-            throw GrpcClientErrors.toJeffreyException(e);
         } catch (JeffreyException e) {
             LOG.debug("Workspace or project lookup failed for a session_ref: workspace_id={} reason={}",
                     ref.workspaceId(), e.getMessage(), e);
@@ -93,13 +83,6 @@ public final class RemoteSessionLocator {
     public RecordingSession session(ProjectManager project, RemoteSessionRef ref, RemoteInfo remote) {
         try {
             return project.repositoryManager().recordingSession(ref.sessionId());
-        } catch (StatusRuntimeException e) {
-            LOG.debug("Session lookup failed on the remote: session_id={} reason={}",
-                    ref.sessionId(), e.getMessage(), e);
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                throw staleRef(ref, retired(remote));
-            }
-            throw GrpcClientErrors.toJeffreyException(e);
         } catch (JeffreyException e) {
             LOG.debug("Session lookup failed on the remote: session_id={} reason={}",
                     ref.sessionId(), e.getMessage(), e);

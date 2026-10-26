@@ -55,9 +55,8 @@ public class HubWorkspaceConfiguration {
     }
 
     @Bean
-    public WorkspaceManager.Factory workspaceManagerFactory(
-            FilesystemVolume workspacesVolume, ProjectsManager.Factory projectsManagerFactory) {
-        return workspace -> new HubWorkspaceManager(workspace, workspacesVolume, projectsManagerFactory);
+    public WorkspaceManager.Factory workspaceManagerFactory(ProjectsManager.Factory projectsManagerFactory) {
+        return workspace -> new HubWorkspaceManager(workspace, projectsManagerFactory);
     }
 
     @Bean

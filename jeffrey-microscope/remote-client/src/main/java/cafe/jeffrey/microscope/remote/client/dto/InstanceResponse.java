@@ -37,7 +37,7 @@ public record InstanceResponse(
         List<InstanceSessionResponse> sessions) {
 
     /**
-     * An instance as a remote lists it, without its sessions: named by its id, as the hub names it,
+     * An instance as a remote lists it, without its sessions: named by its id,
      * and lasting until it finished — no duration while it runs.
      *
      * @param createdAt  epoch millis

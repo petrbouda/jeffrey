@@ -1,14 +1,13 @@
 ---
 name: analyze-remote
-description: "Finds and analyses JVM recordings that live on the remote (a Jeffrey Hub, or the recording volume on an Azure file share) rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service or pod, \"the last hour\", \"since the deploy\", \"what the remote has\", \"why was prod slow this morning\", \"why did the pod's JVM die\", \"the exceptions in the service log\". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly."
+description: "Finds and analyses JVM recordings that live on the remote (the recording volume on an Azure file share) rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service or pod, \"the last hour\", \"since the deploy\", \"what the remote has\", \"why was prod slow this morning\", \"why did the pod's JVM die\", \"the exceptions in the service log\". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a recording that lives on the remote
 
-The **remote** is where deployed applications send their recordings: a Jeffrey Hub, or the
-recording volume reached straight on an Azure file share. Microscope reaches exactly one, declared in
-its configuration, and this skill is the bridge: find the session, pull it in, and from there it is
+The **remote** is where deployed applications send their recordings: the recording volume on an
+Azure file share. Microscope reaches exactly one, declared in its configuration, and this skill is the bridge: find the session, pull it in, and from there it is
 an ordinary profile that `analyze-jfr` and `analyze-heap` answer about.
 
 Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `remote_sessions`, not `remote_list_sessions`.
@@ -20,12 +19,9 @@ recordings are not reachable from here.
 If `remote_status` answers `state: NOT_CONFIGURED`, remote access is on but Microscope's
 configuration declares no remote. Declaring one is the user's step, in configuration only — no tool
 and no page of the UI does it. Give them the `jeffrey.microscope.remote.*` properties from the
-answer (name, hostname, port, plaintext), followed by a restart. Use the user's own hostname and
-port if they gave them, otherwise keep the placeholders. Never invent an address. `plaintext=true`
-is only for an in-cluster or trusted-LAN hub without TLS. If the recordings sit on an Azure file
-share and there is no hub to reach, the answer also gives the
-`jeffrey.microscope.remote.azure-files.*` entry (endpoint, share, protocol, a SAS token or
-`auth=entra`). Offer to analyse a local `.jfr` in the meantime, and call `remote_status` again once
+answer — `jeffrey.microscope.remote.azure-files.*`: endpoint, share, protocol, a SAS token or
+`auth=entra` — followed by a restart. Use the user's own account and share names if they gave them,
+otherwise keep the placeholders. Never invent an address. Offer to analyse a local `.jfr` in the meantime, and call `remote_status` again once
 they say Microscope has restarted with it.
 
 ## The shape of the whole thing
@@ -312,7 +308,7 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 **It does not delete anything on the remote.** `recordings_delete` removes a recording from *this*
 Jeffrey; no tool here removes a session, a file or a project from the remote. Data retention there
-is the business of the Jeffrey Hub that runs on that volume.
+is the business of the Jeffrey Hub's scheduled jobs on that volume.
 
 **It does not push.** Recordings travel from the remote into this Jeffrey, never the other way.
 
@@ -320,10 +316,8 @@ is the business of the Jeffrey Hub that runs on that volume.
 there is only ever one. If `remote_status` shows a different one than the user
 wants, say so — changing it is an operator's decision, not something to work around.
 
-**It does not treat a file share differently.** A remote of kind `AZURE_FILES` is the recording
-volume reached straight on an Azure file share, with no hub in between: its sessions list, download
-and fetch like a hub's. One with `readOnly: true` is declared to refuse every change; no tool here
-changes a share either way.
+**It does not change the share.** A remote with `readOnly: true` is declared to refuse every
+change; no tool here changes the share either way.
 
 ## When a transfer outlasts the call
 

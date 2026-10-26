@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import org.junit.jupiter.api.Nested;
@@ -60,7 +59,7 @@ class HubWorkspacesManagerTest {
         ProjectManager.Factory projectFactory =
                 project -> new HubProjectManager(project, volume, TestVolume.liveness(clock, volume));
         return new HubWorkspacesManager(volume, clock, autoCreate,
-                workspace -> new HubWorkspaceManager(workspace, volume, ws -> new HubProjectsManager(ws, projectFactory)));
+                workspace -> new HubWorkspaceManager(workspace, ws -> new HubProjectsManager(ws, projectFactory)));
     }
 
     private HubWorkspacesManager manager() {
@@ -78,7 +77,7 @@ class HubWorkspacesManagerTest {
         void writesTheDirectoryAndItsMarker() {
             WorkspaceInfo created = manager().create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", "Production"));
 
-            assertEquals(new WorkspaceInfo("prod-ws", "Production", NOW, WorkspaceStatus.AVAILABLE, 0), created);
+            assertEquals(new WorkspaceInfo("prod-ws", "Production", NOW, 0), created);
             assertTrue(Files.isRegularFile(root.resolve("prod-ws").resolve(WorkspaceMarker.FILE_NAME)));
         }
 
@@ -157,9 +156,8 @@ class HubWorkspacesManagerTest {
             Files.createDirectories(root.resolve("announced-ws"));
 
             assertTrue(manager(false).findAll().isEmpty());
-            assertTrue(manager(false).findById("announced-ws").isEmpty());
 
-            WorkspaceInfo info = manager(true).findById("announced-ws").orElseThrow().info();
+            WorkspaceInfo info = manager(true).findAll().getFirst().info();
             assertEquals("announced-ws", info.name(), "named by its id until someone creates it");
         }
 
@@ -169,23 +167,7 @@ class HubWorkspacesManagerTest {
             TestVolume.project(workspace, "p-1", "orders", NOW);
             TestVolume.project(workspace, "p-2", "payments", NOW);
 
-            assertEquals(2, manager().findById("prod-ws").orElseThrow().info().projectCount());
-        }
-
-        @Test
-        void anIdThatIsNoWorkspaceNameIsNotFound() {
-            assertTrue(manager().findById("../etc").isEmpty());
-            assertTrue(manager().findById("missing-ws").isEmpty());
-        }
-
-        @Test
-        void deleteTakesTheDirectory() {
-            Path workspace = TestVolume.workspace(root, "prod-ws", "Production", NOW);
-            TestVolume.project(workspace, "p-1", "orders", NOW);
-
-            manager().findById("prod-ws").orElseThrow().delete();
-
-            assertFalse(Files.exists(workspace));
+            assertEquals(2, manager().findAll().getFirst().info().projectCount());
         }
     }
 }

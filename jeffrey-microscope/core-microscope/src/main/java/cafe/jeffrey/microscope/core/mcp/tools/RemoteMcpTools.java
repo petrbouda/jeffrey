@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
@@ -34,7 +33,6 @@ import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.BundleItem;
 import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.ChosenWindow;
 import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.Download;
 import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.DownloadStatus;
-import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.RemoteKind;
 import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.RemoteState;
 import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.RemoteStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.remote.RemoteAnswers.SessionRow;
@@ -55,7 +53,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
@@ -78,10 +75,6 @@ import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.Schedulers;
-import io.grpc.Context;
-import io.grpc.Deadline;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -103,8 +96,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * The recordings that never reached this machine: everything on the configured remote — a Jeffrey Hub,
- * or the recording volume on an Azure file share.
+ * The recordings that never reached this machine: everything on the configured remote, the
+ * recording volume on an Azure file share.
  * <p>
  * The other write family, {@code recordings_}, starts from a file the reader already has. This one
  * starts from an environment they do not — "the JFR recordings from the last hour on production" —
@@ -147,16 +140,11 @@ public class RemoteMcpTools {
     /** How long a remote_download or remote_fetchFile call waits before answering with an operationId. */
     public static final String DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.remote.download-response-timeout";
 
-    /** The deadline a transfer itself runs under on the remote, off the caller's thread. */
-    public static final String DOWNLOAD_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.remote.download-timeout";
-
     private static final String OMITTED_FAILURES_SCOPE = "additional remote scopes";
     private static final String OMITTED_FAILURES = "%d additional failed scopes omitted; narrow filters for details.";
     private static final String WINDOW_AND_FILE_IDS = "Choose the part of the session one way: a window "
             + "(startEpochMs/endEpochMs) or fileIds, not both.";
 
-    private static final String DOWNLOAD_PREFLIGHT_FAILED = "Remote download preflight failed: ";
-    private static final String DOWNLOAD_FAILED = "Remote download failed: ";
     private static final String RESPONSE_DEADLINE_ELAPSED = "Remote download response deadline elapsed";
     private static final Logger LOG = LoggerFactory.getLogger(RemoteMcpTools.class);
 
@@ -175,15 +163,11 @@ public class RemoteMcpTools {
     // since the address it dials would otherwise come from whatever text the agent last read.
     private static final String CONFIGURED_REMOTE_PROPERTY = "jeffrey.microscope.remote";
     private static final String NOT_CONFIGURED =
-            ("No remote is configured for this installation. The remote is declared in configuration only; "
-                    + "declare a Jeffrey Hub and restart Microscope:\n\n"
-                    + "  %1$s.name=Production\n"
-                    + "  %1$s.hostname=hub.example.com\n"
-                    + "  %1$s.port=443\n"
-                    + "  %1$s.plaintext=false\n\n"
-                    + "Or reach the recording volume straight on an Azure file share, with no hub in between "
+            ("No remote is configured for this installation. The remote is the recording volume on an Azure "
+                    + "file share, declared in configuration only; declare it and restart Microscope "
                     + "(auth=entra signs in with the machine's Azure identity instead of a SAS token; "
                     + "read-only=true refuses every change):\n\n"
+                    + "  %1$s.name=Production\n"
                     + "  %1$s.azure-files.endpoint=https://<account>.file.core.windows.net\n"
                     + "  %1$s.azure-files.share=recordings\n"
                     + "  %1$s.azure-files.protocol=smb\n"
@@ -192,8 +176,7 @@ public class RemoteMcpTools {
                     .formatted(CONFIGURED_REMOTE_PROPERTY);
     private static final String STATUS_NOTE =
             "A remote marked `UNREACHABLE` did not answer just now, so remote_sessions can list nothing from it. "
-                    + "Kind `AZURE_FILES` is the recording volume on an Azure file share, whose "
-                    + "sessions list and download as usual; a `read_only` remote refuses every change to it "
+                    + "A `read_only` remote lists and downloads as usual but refuses every change to it "
                     + "(no delete, no pin).";
 
     private static final String SESSIONS_WHY = "lists the remote's recording sessions";
@@ -252,7 +235,6 @@ public class RemoteMcpTools {
     private final RecordingsManager recordingsManager;
     private final Clock clock;
     private final Duration downloadResponseBudget;
-    private final Duration downloadDeadline;
 
     /**
      * One transfer per session at a time, and no call waits longer than a client will.
@@ -266,15 +248,12 @@ public class RemoteMcpTools {
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param scanBudget             how long a listing may spend waiting on the remote. Needed because
-     *                               no deadline is set on its channel and a listing runs inside a
-     *                               synchronous tool call, so a remote that neither answers nor refuses
-     *                               would otherwise hang the caller for good
+     * @param scanBudget             how long a listing may spend waiting on the remote. Needed because a
+     *                               listing runs inside a synchronous tool call, so a remote that neither
+     *                               answers nor refuses would otherwise hang the caller for good
      * @param downloadResponseBudget how long a download call waits on its preflight and its transfer
      *                               together; a client that declared tasks waits on the transfer for
      *                               less, see {@link OperationAnswers}
-     * @param downloadDeadline       the deadline the transfer itself runs under on the remote, off the
-     *                               caller's thread
      * @param operations             the registry operations_status reads
      * @param answers                how a call that outlasts its wait answers, by what the client declared
      * @param windowQuestion         which whole-session downloads a client that renders forms is first
@@ -284,7 +263,7 @@ public class RemoteMcpTools {
      */
     public RemoteMcpTools(RemoteManager remoteManager, ProjectManagerResolver resolver,
             RecordingsManager recordingsManager, Clock clock, Duration scanBudget,
-            Duration downloadResponseBudget, Duration downloadDeadline, McpOperationRegistry operations,
+            Duration downloadResponseBudget, McpOperationRegistry operations,
             OperationAnswers answers, DownloadWindowQuestion windowQuestion, AdvertisedFamilies advertised) {
         this.windowQuestion = Objects.requireNonNull(windowQuestion, "windowQuestion");
         this.advertised = Objects.requireNonNull(advertised, "advertised");
@@ -295,17 +274,15 @@ public class RemoteMcpTools {
         this.recordingsManager = recordingsManager;
         this.clock = clock;
         this.downloadResponseBudget = requirePositive(downloadResponseBudget, "downloadResponseBudget");
-        this.downloadDeadline = requirePositive(downloadDeadline, "downloadDeadline");
         this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
                 Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.scan = new RemoteSessionScan(remoteManager, scanBudget);
         this.locator = new RemoteSessionLocator(resolver);
     }
 
-    @Tool(description = "Returns the one remote this installation's configuration declares - a Jeffrey Hub (kind GRPC) "
-            + "or the recording volume on an Azure file share (kind AZURE_FILES) - whether it refuses changes "
-            + "(readOnly), and whether it answers right now (state REACHABLE or UNREACHABLE): why "
-            + "remote_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no "
+    @Tool(description = "Returns the one remote this installation's configuration declares - the recording "
+            + "volume on an Azure file share - whether it refuses changes (readOnly), and whether it answers "
+            + "right now (state REACHABLE or UNREACHABLE): why remote_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no "
             + "remote, and the reason says how the user declares one.")
     @McpOutputSchema(RemoteStatus.class)
     @McpToolMeta(cost = McpToolCost.MODERATE)
@@ -314,7 +291,7 @@ public class RemoteMcpTools {
         Optional<RemoteConnection> configured = remoteManager.current();
         if (configured.isEmpty()) {
             McpFollowUp followUp = NextSteps.builder(advertised).followUp();
-            RemoteStatus none = new RemoteStatus(RemoteState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null, null, null,
+            RemoteStatus none = new RemoteStatus(RemoteState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null, null,
                     followUp, uiLink);
             return McpToolResult.of(LinkedOutput.footed(NOT_CONFIGURED, followUp, uiLink, null).text(), none);
         }
@@ -326,12 +303,11 @@ public class RemoteMcpTools {
                 .nextWhen(probe.reachable(), NextCalls.to(RemoteCalls.REMOTE_SESSIONS).why(SESSIONS_WHY))
                 .guidanceWhen(!probe.reachable(), UNREACHABLE_GUIDANCE)
                 .followUp();
-        RemoteStatus answer = new RemoteStatus(state, null, remote.name(), RemoteKind.of(remote.address()),
-                remote.address().identity(), remote.address().readOnly(),
+        RemoteStatus answer = new RemoteStatus(state, null, remote.name(), remote.address().identity(), remote.address().readOnly(),
                 probe.version().orElse(null), followUp, uiLink);
         MarkdownTable table = MarkdownTable.withColumns(
-                "remote", "kind", "address", "read_only", "state", "version");
-        table.row(answer.name(), answer.kind(), answer.address(), answer.readOnly(),
+                "remote", "address", "read_only", "state", "version");
+        table.row(answer.name(), answer.address(), answer.readOnly(),
                 answer.state(), answer.version());
         String body = table.note(STATUS_NOTE).renderUncapped();
         return McpToolResult.of(LinkedOutput.footed(body, followUp, uiLink, null).text(), answer);
@@ -681,8 +657,8 @@ public class RemoteMcpTools {
 
         // Asked before anything crosses the network. The session is read once, under the call's
         // whole response budget, and that read is what the transfer then starts from.
-        Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
-        DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
+        McpDeadline responseDeadline = McpDeadline.after(downloadResponseBudget);
+        DownloadPreflight preflight = preflight(ref);
         Optional<SessionRead> read = Optional.of(new SessionRead(responseDeadline, preflight));
         Instant now = clock.instant();
         if (!windowQuestion.asks(preflight.session(), now)) {
@@ -769,8 +745,8 @@ public class RemoteMcpTools {
 
         WindowSubject subject() {
             if (subject == null) {
-                Deadline responseDeadline = McpDeadlines.after(downloadResponseBudget);
-                DownloadPreflight preflight = preflightWithin(ref, responseDeadline);
+                McpDeadline responseDeadline = McpDeadline.after(downloadResponseBudget);
+                DownloadPreflight preflight = preflight(ref);
                 read = new SessionRead(responseDeadline, preflight);
                 subject = new WindowSubject(preflight.session(), preflight.remote().name(),
                         preflight.project().info().name(), clock.instant());
@@ -867,15 +843,15 @@ public class RemoteMcpTools {
 
         Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
         if (prior.isPresent() && prior.get().failure() != null && !retryFailed) {
-            throw mapRemoteFailure(prior.get().failure());
+            throw prior.get().failure();
         }
 
         // The preflight has the whole response budget, whatever the client declared: only the wait
         // on the transfer below is shortened for a client that can follow a task.
-        Deadline responseDeadline = read.map(SessionRead::responseDeadline)
-                .orElseGet(() -> McpDeadlines.after(downloadResponseBudget));
+        McpDeadline responseDeadline = read.map(SessionRead::responseDeadline)
+                .orElseGet(() -> McpDeadline.after(downloadResponseBudget));
         DownloadPreflight preflight = read.map(SessionRead::preflight)
-                .orElseGet(() -> preflightWithin(ref, responseDeadline));
+                .orElseGet(() -> preflight(ref));
         ProjectManager project = preflight.project();
         RecordingSession session = preflight.session();
         ChunkWindow.Selection selection = key.select(session);
@@ -908,16 +884,11 @@ public class RemoteMcpTools {
                 control -> {
                     control.phase(OperationPhase.DOWNLOADING);
                     control.progress(OperationDetails.remoteDownload(ref.encode(), ref.sessionId(), transferBytes));
-                    return transferWithinDeadline(project, key, control);
+                    return transfer(project, key, control);
                 });
         String operationId = registerDownload(key, chosen, operation, landing::landed, base);
-        Optional<String> transferred;
-        try {
-            transferred = downloads.awaitWithin(operation, McpDeadlines.remainingWithin(responseDeadline,
-                    answers.waitBudget(call, downloadResponseBudget), RESPONSE_DEADLINE_ELAPSED));
-        } catch (RuntimeException e) {
-            throw mapRemoteFailure(e);
-        }
+        Optional<String> transferred = downloads.awaitWithin(operation, responseDeadline.remainingWithin(
+                answers.waitBudget(call, downloadResponseBudget), RESPONSE_DEADLINE_ELAPSED));
         if (transferred.isEmpty()) {
             // Nothing to poll but this tool and the operation: the tool answers from the local store
             // first, so calling it again with the same part reports the finished copy once it lands.
@@ -1071,48 +1042,15 @@ public class RemoteMcpTools {
         return session;
     }
 
-    private DownloadPreflight preflightWithin(RemoteSessionRef ref, Deadline deadline) {
-        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
-        try {
-            return context.call(() -> {
-                RemoteInfo remote = locator.remoteInfo(ref);
-                ProjectManager project = locator.project(ref);
-                return new DownloadPreflight(remote, project, preflight(project, ref, remote));
-            });
-        } catch (StatusRuntimeException e) {
-            throw GrpcClientErrors.toJeffreyException(e);
-        } catch (Exception e) {
-            if (e instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw new ToolExecutionException(DOWNLOAD_PREFLIGHT_FAILED + e.getMessage(), e);
-        } finally {
-            context.cancel(null);
-        }
+    private DownloadPreflight preflight(RemoteSessionRef ref) {
+        RemoteInfo remote = locator.remoteInfo(ref);
+        ProjectManager project = locator.project(ref);
+        return new DownloadPreflight(remote, project, preflight(project, ref, remote));
     }
 
-    private String transferWithinDeadline(ProjectManager project, DownloadKey key, BoundedJobs.JobControl control) {
-        Context.CancellableContext context = McpDeadlines.withDeadlineAfter(Context.ROOT, downloadDeadline);
-        control.onCancellation(() -> context.cancel(null));
-        try {
-            control.checkCancellation();
-            return context.call(() -> key.transfer(project.recordingsDownloadManager()));
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.CANCELLED) {
-                control.checkCancellation();
-            }
-            throw GrpcClientErrors.toJeffreyException(e);
-        } catch (Exception e) {
-            if (Status.fromThrowable(e).getCode() == Status.Code.CANCELLED) {
-                control.checkCancellation();
-            }
-            if (e instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw new ToolExecutionException(DOWNLOAD_FAILED + e.getMessage(), e);
-        } finally {
-            context.cancel(null);
-        }
+    private static String transfer(ProjectManager project, DownloadKey key, BoundedJobs.JobControl control) {
+        control.checkCancellation();
+        return key.transfer(project.recordingsDownloadManager());
     }
 
     private static Duration requirePositive(Duration value, String name) {
@@ -1120,17 +1058,6 @@ public class RemoteMcpTools {
             throw new IllegalArgumentException(name + " must be positive: " + value);
         }
         return value;
-    }
-
-    private static RuntimeException mapRemoteFailure(RuntimeException exception) {
-        Throwable cause = exception;
-        while (cause != null) {
-            if (cause instanceof StatusRuntimeException grpc) {
-                return GrpcClientErrors.toJeffreyException(grpc);
-            }
-            cause = cause.getCause();
-        }
-        return exception;
     }
 
     /**
@@ -1175,7 +1102,7 @@ public class RemoteMcpTools {
      * The session as the window question read it, and the response deadline that read ran under, so
      * the transfer that follows starts from the same read within the same budget.
      */
-    private record SessionRead(Deadline responseDeadline, DownloadPreflight preflight) {
+    private record SessionRead(McpDeadline responseDeadline, DownloadPreflight preflight) {
     }
 
     /**

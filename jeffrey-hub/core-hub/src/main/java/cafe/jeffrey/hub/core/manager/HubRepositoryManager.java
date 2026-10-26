@@ -18,20 +18,11 @@
 package cafe.jeffrey.hub.core.manager;
 
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
-import cafe.jeffrey.hub.core.project.repository.FileLookup;
-import cafe.jeffrey.hub.core.project.repository.InstanceSessions;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Optional;
 
 public class HubRepositoryManager implements RepositoryManager {
 
@@ -43,34 +34,6 @@ public class HubRepositoryManager implements RepositoryManager {
     public HubRepositoryManager(ProjectInfo projectInfo, RepositoryStorage repositoryStorage) {
         this.projectInfo = projectInfo;
         this.repositoryStorage = repositoryStorage;
-    }
-
-    @Override
-    public Optional<RecordingSession> findSession(String sessionId) {
-        return repositoryStorage.session(sessionId);
-    }
-
-    @Override
-    public List<RecordingSession> listRecordingSessions(RecordingSessionFilter filter) {
-        // Filter on headers first, so only the surviving sessions' directories are walked
-        return withFiles(filter.apply(repositoryStorage.listSessions(SessionDetail.HEADERS)));
-    }
-
-    @Override
-    public List<ProjectInstanceInfo> instances() {
-        return repositoryStorage.instances();
-    }
-
-    @Override
-    public Optional<InstanceSessions> instance(String instanceId) {
-        return repositoryStorage.instanceWithSessions(instanceId)
-                .map(found -> new InstanceSessions(found.instance(), withFiles(found.sessions())));
-    }
-
-    private List<RecordingSession> withFiles(List<RecordingSession> sessions) {
-        return sessions.stream()
-                .map(repositoryStorage::withFiles)
-                .toList();
     }
 
     @Override
@@ -86,15 +49,5 @@ public class HubRepositoryManager implements RepositoryManager {
                 recordingSessionId, projectInfo.id(), deletion.instanceDeleted());
         JfrNotificationEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
         return deletion;
-    }
-
-    @Override
-    public boolean setSessionRetained(String recordingSessionId, boolean retained) {
-        return repositoryStorage.setRetained(recordingSessionId, retained);
-    }
-
-    @Override
-    public FileLookup file(String sessionId, String fileId) {
-        return repositoryStorage.file(sessionId, fileId);
     }
 }

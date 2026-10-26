@@ -22,9 +22,9 @@ import cafe.jeffrey.storage.recording.api.file.FileCategory;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 /**
- * What Microscope makes of a file a hub listed.
+ * What Microscope makes of a file a session lists.
  *
- * <p>The hub says which files a session holds and which of them are recordings; it does not say
+ * <p>The volume says which files a session holds and which of them are recordings; it does not say
  * what the rest are, because it never reads them. Microscope does, so it classifies the name
  * itself with its own {@link ManagedFile} — here, once, rather than at every reader of a listing.
  */
@@ -44,7 +44,7 @@ public final class RepositoryFiles {
     /**
      * A file worth fetching on its own — a log, a dump, a perf-counters file — as opposed to a
      * recording chunk, which a download takes, or the profiler's scratch file, which nothing
-     * takes. Judged on the hub's word for what is a recording and Microscope's for the rest.
+     * takes. Judged on the volume's word for what is a recording and Microscope's for the rest.
      */
     public static boolean isArtifact(RepositoryFile file) {
         return !file.isRecordingFile() && typeOf(file).fileCategory() == FileCategory.ARTIFACT;

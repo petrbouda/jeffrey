@@ -81,13 +81,13 @@ const outputExample = `jeffrey.GrpcServerExchange {
   traceId = 4919739129371883702
   spanId = 6533423119469147918
   parentSpanId = 0
-  name = "jeffrey.api.v1.WorkspaceService/List"   // "{service}/{method}", from @Span
+  name = "shop.api.v1.OrderService/List"         // "{service}/{method}", from @Span
   kind = "SERVER"
   status = "OK"                                   // derived from statusCode in describeSpan()
-  service = "jeffrey.api.v1.WorkspaceService"
+  service = "shop.api.v1.OrderService"
   method = "List"
   statusCode = "OK"
-  authority = "hub.internal:9090"
+  authority = "orders.internal:9090"
   requestSize = 42
   responseSize = 1187
 }
@@ -98,9 +98,9 @@ thread the span actually ran on:
   jeffrey.TraceScope  scopedSpanId=6533423119469147918  thread=grpc-default-executor-2`;
 
 const clientSpans = [
-  { depth: 0, name: 'GET /api/internal/workspaces', kind: 'SERVER' as const, start: 0, duration: 34,
-    event: 'HttpServerExchangeEvent', note: 'microscope' },
-  { depth: 1, name: 'jeffrey.api.v1.WorkspaceService/List', kind: 'CLIENT' as const,
+  { depth: 0, name: 'GET /api/orders', kind: 'SERVER' as const, start: 0, duration: 34,
+    event: 'HttpServerExchangeEvent', note: 'gateway' },
+  { depth: 1, name: 'shop.api.v1.OrderService/List', kind: 'CLIENT' as const,
     start: 5, duration: 21.4, event: 'GrpcClientExchangeEvent', note: 'leaf' }
 ];
 </script>
@@ -220,7 +220,7 @@ const clientSpans = [
       <DocsSpanTree
         trace="4e11d5b8…"
         :spans="clientSpans"
-        caption="The server side of the same call is a separate trace, in the hub's own recording."
+        caption="The server side of the same call is a separate trace, in the order service's own recording."
       />
 
       <h2 id="manual">The Pattern by Hand</h2>

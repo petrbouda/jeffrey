@@ -57,7 +57,7 @@ onMounted(() => {
       <DocsCallout type="tip">
         <strong>Just want to analyse a JFR file?</strong> Skip projects entirely — drop the file on the global
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page.
-        Projects are for staying connected to live applications through the remote (a Jeffrey Hub or an Azure file share).
+        Projects are for staying connected to live applications through the remote (the Azure file share that holds the recording volume).
       </DocsCallout>
 
       <h2 id="project-page">The Project Page</h2>

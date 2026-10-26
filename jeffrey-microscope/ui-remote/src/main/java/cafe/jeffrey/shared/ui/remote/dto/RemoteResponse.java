@@ -18,18 +18,14 @@
 package cafe.jeffrey.shared.ui.remote.dto;
 
 /**
- * The configured remote.
+ * The configured remote, the recording volume on an Azure file share.
  *
- * @param kind      {@code "GRPC"} for a Jeffrey Hub, {@code "AZURE_FILES"} for the recording volume
- *                  on an Azure file share
- * @param location  where it lies, as a person reads it: {@code host:port}, or the share's endpoint,
- *                  name and directory
+ * @param location  where it lies, as a person reads it: the share's endpoint, name and directory
  * @param readOnly  whether it refuses every change: no session deletes or pins, and no workspace
  *                  created or removed through it
  */
 public record RemoteResponse(
         String name,
-        String kind,
         String location,
         boolean readOnly) {
 }

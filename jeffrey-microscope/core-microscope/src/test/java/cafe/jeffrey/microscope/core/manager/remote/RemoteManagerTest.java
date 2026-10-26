@@ -17,7 +17,9 @@
 
 package cafe.jeffrey.microscope.core.manager.remote;
 
-import cafe.jeffrey.microscope.model.remote.HubAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Nested;
@@ -34,7 +36,9 @@ import static org.mockito.Mockito.mock;
 class RemoteManagerTest {
 
     private static final RemoteInfo PRODUCTION =
-            new RemoteInfo("Production", new HubAddress("hub.example.com", 443, false));
+            new RemoteInfo("Production", new AzureFilesAddress(
+                    "https://jeffreyprod.file.core.windows.net", "recordings", "",
+                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false));
 
     @Nested
     class NothingConfigured {

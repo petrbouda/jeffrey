@@ -44,7 +44,6 @@
           <h3 class="ws-head-name">
             <StatusDot :tone="STATUS_TONES[status]" size="l" :label="statusLabel" />
             {{ remote.name }}
-            <Badge v-if="isAzureFiles" value="Azure Files" variant="secondary" size="xs" />
             <Badge v-if="remote.readOnly" value="Read-only" variant="warning" size="xs" />
           </h3>
           <div class="ws-head-location">{{ remote.location }}</div>
@@ -417,7 +416,6 @@ const isCreateFormValid = computed(
     WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim())
 );
 
-const isAzureFiles = computed(() => remote.value?.kind === 'AZURE_FILES');
 
 const statusLabel = computed(() => STATUS_LABELS[status.value]);
 

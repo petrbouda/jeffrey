@@ -23,14 +23,12 @@ import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.remote.AzureFilesClientsFactory;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteClientsFactory;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
-import cafe.jeffrey.microscope.remote.client.CachedHubClientsFactory;
 import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -51,25 +49,25 @@ public class RemoteConfiguration {
     /** The Jeffrey Hub's default {@code jeffrey.hub.liveness.startup-grace}. */
     private static final Duration VOLUME_STARTUP_GRACE = Duration.ofMinutes(1);
 
-    /**
-     * The remote's clients by its address's kind. An Azure file share reads a session's heartbeat
-     * against the Jeffrey Hub's default deadlines ({@code jeffrey.hub.liveness.*}), since no hub
-     * stands between it and Microscope.
-     */
     /** The declaration read once, so an unusable one is reported once rather than per bean. */
     @Bean
     public ConfiguredRemoteProperties.Declared declaredRemote(ConfiguredRemoteProperties configuredRemote) {
         return configuredRemote.read();
     }
 
-    @Bean(destroyMethod = "close")
-    public RemoteClientsFactory remoteClientsFactory(Clock clock, ConfiguredRemoteProperties.Declared declaredRemote) {
-        return new RemoteClientsFactory(
-                new CachedHubClientsFactory(),
-                new AzureFilesClientsFactory(
-                        clock,
-                        new SessionDeadlines(VOLUME_HEARTBEAT_THRESHOLD, VOLUME_STARTUP_GRACE),
-                        declaredRemote.sasToken()));
+    /**
+     * The share's clients. A session's heartbeat is read against the Jeffrey Hub's default
+     * deadlines ({@code jeffrey.hub.liveness.*}), so Microscope and the hub's jobs on the same
+     * volume agree on which sessions are still recording.
+     */
+    @Bean
+    public AzureFilesClientsFactory azureFilesClientsFactory(
+            Clock clock, ConfiguredRemoteProperties.Declared declaredRemote) {
+
+        return new AzureFilesClientsFactory(
+                clock,
+                new SessionDeadlines(VOLUME_HEARTBEAT_THRESHOLD, VOLUME_STARTUP_GRACE),
+                declaredRemote.sasToken());
     }
 
     @Bean
@@ -98,13 +96,13 @@ public class RemoteConfiguration {
 
     @Bean
     public RemoteConnection.Factory remoteConnectionFactory(
-            RemoteClientsFactory remoteClientsFactory,
+            AzureFilesClientsFactory azureFilesClientsFactory,
             WorkspaceManagerFactory workspaceManagerFactory,
             RemoteProjectManagerFactory remoteProjectManagerFactory) {
 
         return remote -> new RemoteConnection(
                 remote,
-                remoteClientsFactory.apply(remote.address()),
+                azureFilesClientsFactory.apply(remote.address()),
                 workspaceManagerFactory,
                 remoteProjectManagerFactory);
     }

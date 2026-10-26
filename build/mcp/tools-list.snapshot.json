@@ -24767,17 +24767,6 @@
             ],
             "type": "object"
           },
-          "kind": {
-            "enum": [
-              "GRPC",
-              "AZURE_FILES",
-              null
-            ],
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "name": {
             "type": [
               "string",
@@ -24817,7 +24806,6 @@
         "required": [
           "address",
           "followUp",
-          "kind",
           "name",
           "readOnly",
           "reason",

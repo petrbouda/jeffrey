@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 /**
  * A project's sessions off the volume. A listing is filtered on the sessions alone, then reads the
- * files of the ones it keeps for their count and size — as the hub does, so a narrow filter over a
- * long history lists only a few directories.
+ * files of the ones it keeps for their count and size, so a narrow filter over a long history
+ * lists only a few directories.
  */
 final class VolumeRepositoryClient implements RepositoryClient {
 
@@ -79,7 +79,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
         });
     }
 
-    /** Its instance goes too when nothing is left in it, as on the hub ({@link VolumeChanges#deleteSession}). */
+    /** Its instance goes too when nothing is left in it ({@link VolumeChanges#deleteSession}). */
     @Override
     public void deleteSession(ProjectScope scope, String sessionId) {
         WritableVolume volume = source.writable("Cannot delete session " + sessionId);

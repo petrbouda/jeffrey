@@ -108,12 +108,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- gRPC remote clients (brings in hub-api + grpc-netty transitively) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>grpc-client</artifactId>
-        </dependency>
-
         <!-- Shared remote-workspace clients/DTOs/managers (extracted from core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>

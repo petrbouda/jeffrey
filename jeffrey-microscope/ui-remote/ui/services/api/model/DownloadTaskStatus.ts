@@ -22,7 +22,7 @@ enum DownloadTaskStatus {
   /** Task has been created but download has not started yet. */
   PENDING = 'PENDING',
 
-  /** Files are currently being downloaded from the hub. */
+  /** Files are currently being downloaded from the remote. */
   DOWNLOADING = 'DOWNLOADING',
 
   /** Files have been downloaded and are being copied into storage. */

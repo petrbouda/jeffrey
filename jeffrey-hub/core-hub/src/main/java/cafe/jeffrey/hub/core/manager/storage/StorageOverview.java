@@ -19,6 +19,7 @@ package cafe.jeffrey.hub.core.manager.storage;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 
@@ -33,8 +34,8 @@ public record StorageOverview(List<ProjectStorage> projects) {
 
     /**
      * Storage used by a single project's recording repository: the bytes and the file count over
-     * every session, and the newest file's timestamp. The hub does not read the files it stores,
-     * so there is deliberately no breakdown by kind.
+     * every session, the newest file's timestamp, and whether a session is still recording. The
+     * hub does not read the files it stores, so there is deliberately no breakdown by kind.
      */
     public record ProjectStorage(
             String workspaceId,
@@ -43,7 +44,8 @@ public record StorageOverview(List<ProjectStorage> projects) {
             String projectName,
             long totalSizeBytes,
             int totalFiles,
-            long lastActivityTimeMillis) {
+            long lastActivityTimeMillis,
+            boolean active) {
 
         /** Measures a project from its sessions, loaded with their files. */
         public static ProjectStorage measure(
@@ -64,7 +66,8 @@ public record StorageOverview(List<ProjectStorage> projects) {
 
             return new ProjectStorage(
                     workspace.id(), workspace.name(), project.id(), project.name(),
-                    totalSize, files.size(), lastActivity);
+                    totalSize, files.size(), lastActivity,
+                    sessions.stream().anyMatch(session -> session.status() == RecordingStatus.ACTIVE));
         }
     }
 }

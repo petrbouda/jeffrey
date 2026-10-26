@@ -23,8 +23,8 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -51,6 +51,8 @@ import static org.mockito.Mockito.when;
 class ProjectManagerResolverTest {
 
     private static final String WORKSPACE_ID = "ws-1";
+    private static final JeffreyInternalException UNREACHABLE =
+            new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "Cannot reach the recording volume");
     private static final String PROJECT_ID = "proj-1";
 
     @Mock
@@ -96,12 +98,12 @@ class ProjectManagerResolverTest {
 
         @Test
         void anUnreachableRemoteIsNotReportedAsAMissingProject() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenThrow(UNREACHABLE);
 
-            StatusRuntimeException e = assertThrows(StatusRuntimeException.class,
+            JeffreyException e = assertThrows(JeffreyException.class,
                     () -> resolver.resolve(WORKSPACE_ID, PROJECT_ID));
 
-            assertEquals(Status.Code.UNAVAILABLE, e.getStatus().getCode());
+            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, e.getCode());
         }
     }
 
@@ -120,12 +122,12 @@ class ProjectManagerResolverTest {
 
         @Test
         void anUnreachableRemoteIsNotReportedAsAMissingWorkspace() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenThrow(UNREACHABLE);
 
-            StatusRuntimeException e = assertThrows(StatusRuntimeException.class,
+            JeffreyException e = assertThrows(JeffreyException.class,
                     () -> resolver.resolveWorkspace(WORKSPACE_ID));
 
-            assertEquals(Status.Code.UNAVAILABLE, e.getStatus().getCode());
+            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, e.getCode());
         }
 
         @Test

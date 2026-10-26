@@ -68,7 +68,7 @@ public record RecordingSessionResponse(
      *
      * <p>For the decoder, and only for it: the wire carries no per-file status, because whether
      * a file is still being written is a fact about the session rather than about the file. A
-     * session decoded from a hub therefore arrives with that column unfilled, and it is filled
+     * session read off the remote therefore arrives with that column unfilled, and it is filled
      * here, once, instead of leaving each reader of a row to work it out or to trust a value
      * nobody set. {@code RepositoryClient} calls this as the last step of decoding a session, so
      * no session with an unfilled column is ever handed out and there is nothing for a caller to
@@ -88,7 +88,7 @@ public record RecordingSessionResponse(
                 sizeBytes);
     }
 
-    /** The session in Microscope's own model, its size as the hub reported it. */
+    /** The session in Microscope's own model, its size as the remote reported it. */
     public RecordingSession toSession() {
         return new RecordingSession(
                 id,

@@ -18,14 +18,14 @@
 package cafe.jeffrey.microscope.model.remote;
 
 /**
- * The one remote this Microscope reaches: a Jeffrey Hub, or the recording volume on an Azure file
- * share. It is declared in configuration only ({@code jeffrey.microscope.remote.*}) and never stored;
- * its workspaces and projects are read live and never cached here.
+ * The one remote this Microscope reaches: the recording volume on an Azure file share. It is
+ * declared in configuration only ({@code jeffrey.microscope.remote.*}) and never stored; its
+ * workspaces and projects are read live and never cached here.
  *
  * @param name    what the UI and the MCP answers call it
- * @param address where it is and what kind it is
+ * @param address where the share is and how it is reached
  */
-public record RemoteInfo(String name, RemoteAddress address) {
+public record RemoteInfo(String name, AzureFilesAddress address) {
 
     public RemoteInfo {
         if (name == null || name.isBlank() || address == null) {

@@ -15,14 +15,10 @@
  * limitations under the License.
  */
 
-/** A Jeffrey Hub reached over gRPC, or the recording volume reached straight on an Azure file share. */
-export type RemoteKind = 'GRPC' | 'AZURE_FILES';
-
-/** The one remote this Microscope reaches, as configuration declares it. */
+/** The one remote this Microscope reaches, the recording volume on an Azure file share, as configuration declares it. */
 export default interface Remote {
   name: string;
-  kind: RemoteKind;
-  /** Where the remote lies, as a person reads it: `host:port`, or the share's endpoint and name. */
+  /** Where the share lies, as a person reads it: its endpoint, name and directory. */
   location: string;
   /**
    * A remote declared read-only (`azure-files.read-only=true`): no workspace is created or

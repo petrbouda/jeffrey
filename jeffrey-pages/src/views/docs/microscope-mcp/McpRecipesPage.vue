@@ -138,7 +138,7 @@ LIMIT 20`;
 
       <p>Drives <code>remote_sessions</code> &rarr; <code>remote_download</code> &rarr; <code>recordings_analyzeRecording</code> &rarr; the usual analysis.</p>
 
-      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every workspace and project of the configured remote &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link> or an Azure file share &mdash; at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
+      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every workspace and project of the configured remote &mdash; the recording volume on an Azure file share &mdash; at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
 
       <p>&ldquo;The last hour&rdquo; means <em>recording during</em> the last hour, not <em>started within</em> it, so a JVM that came up this morning and is still running is included. That is almost always what the question meant.</p>
 
@@ -163,7 +163,7 @@ LIMIT 20`;
       <p>From there Jeffrey steps aside. It does not parse the log, group the exceptions or summarise the crash: the agent runs on the same machine (the endpoint accepts loopback hosts only), and its own tools are better at a text file than anything a tool result could carry. A crash file reads top-down &mdash; the <code>#</code> header names the signal, <code>Current thread</code> and the <code>Java frames:</code> block say where &mdash; and a GC log&rsquo;s <code>[12.345s]</code> is an uptime, and when the session&rsquo;s recording has been analysed too, <code>remote_files</code> names the profile and the instant that uptime counts from.</p>
 
       <DocsCallout type="tip" title="The crash file's two names">
-        A JVM Jeffrey provisioned writes <code>hs-jvm-err.log</code>; one it did not writes the JVM&rsquo;s default <code>hs_err_pid&lt;pid&gt;.log</code>. Both are classified as a crash file, so the hub&rsquo;s crash notification and <code>remote_files</code> see either.
+        A JVM Jeffrey provisioned writes <code>hs-jvm-err.log</code>; one it did not writes the JVM&rsquo;s default <code>hs_err_pid&lt;pid&gt;.log</code>. Both are classified as a crash file, so <code>remote_files</code> sees either.
       </DocsCallout>
 
       <h2 id="where-does-the-time-go">Where Does the Time Go</h2>

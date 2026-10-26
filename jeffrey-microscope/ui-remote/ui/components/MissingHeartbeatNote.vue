@@ -27,8 +27,8 @@ const HEARTBEAT_SETUP_DOCS_URL =
     <div>
       <div class="heartbeat-note-title">No heartbeat received</div>
       <div>
-        This session sent no heartbeat within its startup grace (1 minute by default), so the hub
-        finished it. Every profiled JVM must report a heartbeat — through the Jeffrey Agent the
+        This session sent no heartbeat within its startup grace (1 minute by default), so it is
+        read as finished. Every profiled JVM must report a heartbeat — through the Jeffrey Agent the
         Provisioner attaches by default, or the
         <code class="heartbeat-note-code">jeffrey-heartbeat</code> library.
       </div>

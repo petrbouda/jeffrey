@@ -63,7 +63,7 @@
         <div class="popover-title storage-title"><i class="bi bi-hdd"></i>Storage</div>
         <ErrorState v-if="storage.kind === 'error'" message="Repository size could not be loaded" />
         <p v-else-if="storage.kind === 'unmeasured'" class="storage-caption">
-          Not measured yet — the hub measures each project on its next retention pass
+          Not measured here — the Jeffrey Hub's Storage page shows what each project occupies
         </p>
         <template v-else>
           <div class="storage-figure">

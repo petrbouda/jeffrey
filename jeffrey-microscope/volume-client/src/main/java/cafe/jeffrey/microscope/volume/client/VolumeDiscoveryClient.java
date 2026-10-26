@@ -39,8 +39,8 @@ import java.util.Optional;
 
 /**
  * The workspaces and projects at the volume's root. Every visible directory there is a workspace:
- * named by the hub's {@code .workspace-info.json} when a hub created it, by its id otherwise — a
- * volume read without a hub may never have had one to describe it.
+ * named by its {@code .workspace-info.json} when someone created it, by its id otherwise — the
+ * provisioner writes into a workspace before anyone describes it.
  */
 final class VolumeDiscoveryClient implements DiscoveryClient {
 
@@ -88,9 +88,9 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
     }
 
     /**
-     * Creates a workspace as the hub does: its directory, adopting one the provisioner already
-     * wrote into, described by its marker; refused for an id already described or a name another
-     * workspace goes by — in the hub's words.
+     * Creates a workspace: its directory, adopting one the provisioner already wrote into,
+     * described by its marker; refused for an id already described or a name another workspace
+     * goes by.
      */
     @Override
     public WorkspaceInfo createWorkspace(String referenceId, String name) {

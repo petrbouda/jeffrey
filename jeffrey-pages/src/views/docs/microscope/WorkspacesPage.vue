@@ -49,13 +49,12 @@ onMounted(() => {
       <h2 id="overview">Overview</h2>
       <p>
         A <strong>workspace</strong> is a folder that lives on the <strong>remote</strong>. It groups
-        projects, their JVM instances, and their recording sessions. Microscope connects to exactly
-        one remote &mdash; a Jeffrey Hub reached over gRPC, or the recording volume itself on an Azure
-        file share &mdash; and lets you browse the workspaces it holds. Heavy analysis still runs
-        locally — Microscope just borrows the data.
+        projects, their JVM instances, and their recording sessions. Microscope reaches exactly one
+        remote &mdash; the recording volume itself on an Azure file share &mdash; and lets you browse
+        the workspaces it holds. Heavy analysis still runs locally — Microscope just borrows the data.
       </p>
       <p>
-        Getting there is a two-step process: declare the remote in Microscope's configuration, then
+        Getting there is a two-step process: declare the share in Microscope's configuration, then
         create or pick a workspace on it.
       </p>
 
@@ -63,8 +62,8 @@ onMounted(() => {
       <p>
         The remote is declared in configuration only, with
         <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>,
-        and read when Microscope starts. A Jeffrey Hub needs its host, and optionally a name, port and
-        plaintext switch:
+        and read when Microscope starts. It names the Azure file share that holds the recording
+        volume and how to sign in to it:
       </p>
 
       <table>
@@ -77,67 +76,71 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>name</code></td>
-            <td>How the remote is named in Microscope's Remote page. Defaults to the hostname.</td>
+            <td>How the remote is named in Microscope's Remote page. Defaults to the share's name.</td>
           </tr>
           <tr>
-            <td><code>hostname</code></td>
-            <td>The host that runs Jeffrey Hub (e.g. <code>jeffrey.internal</code> or an IP).</td>
+            <td><code>azure-files.endpoint</code></td>
+            <td>The storage account's file endpoint, e.g. <code>https://&lt;account&gt;.file.core.windows.net</code>.</td>
           </tr>
           <tr>
-            <td><code>port</code></td>
-            <td>The gRPC port the hub listens on (<code>9090</code> by default).</td>
+            <td><code>azure-files.share</code></td>
+            <td>The file share the provisioner writes into.</td>
           </tr>
           <tr>
-            <td><code>plaintext</code></td>
-            <td><code>false</code> for a TLS connection (the default, recommended); <code>true</code> only for an in-cluster or local hub without TLS.</td>
+            <td><code>azure-files.auth</code></td>
+            <td><code>sas</code> (the default) with a <code>sas-token</code>, or <code>entra</code> for Microsoft Entra ID.</td>
+          </tr>
+          <tr>
+            <td><code>azure-files.read-only</code></td>
+            <td><code>true</code> to refuse every change to the share (<a href="#azure-files">below</a>).</td>
           </tr>
         </tbody>
       </table>
 
       <p>
-        Open the <strong>Remote</strong> page from the sidebar: it shows the remote's name with a
-        <a href="#status">status</a> dot, and its workspaces beneath. With nothing declared the page
-        says so and names the properties to set. Microscope holds exactly one remote, and the UI
-        never connects, changes or removes it — to point Microscope at another remote, change the
-        configuration and restart.
-        No connection is attempted at startup, so a hub that boots after Microscope starts working as
-        soon as it comes up. A declaration that cannot be used (both a hostname and a share, a port out
-        of range, …) is logged and ignored rather than failing startup.
+        The <router-link to="/docs/microscope/configuration/application-properties#remote-azure-files">configuration reference</router-link>
+        lists the rest (root path, protocol). Open the <strong>Remote</strong> page from the sidebar:
+        it shows the remote's name with a <a href="#status">status</a> dot, and its workspaces beneath.
+        With nothing declared the page says so and names the properties to set. Microscope holds
+        exactly one remote, and the UI never connects, changes or removes it — to point Microscope at
+        another share, change the configuration and restart.
+        No connection is attempted at startup, so a share that is unreachable when Microscope boots
+        starts working as soon as it can be reached. A declaration that cannot be used (a missing
+        endpoint or share, …) is logged and ignored rather than failing startup.
       </p>
 
       <h3 id="azure-files">Working on an Azure File Share</h3>
       <p>
-        The remote does not have to be a Jeffrey Hub. Declared with
-        <router-link to="/docs/microscope/configuration/application-properties#remote-azure-files"><code>jeffrey.microscope.remote.azure-files.*</code></router-link>,
-        it points at the recording volume itself — the Azure file share (SMB or NFS) the provisioner
+        The remote is the recording volume itself — the Azure file share (SMB or NFS) the provisioner
         writes into — and Microscope works with it over the Azure Files REST API, signing in with a
-        SAS token or with Microsoft Entra ID. Its header carries an <strong>Azure Files</strong>
-        badge, and its workspaces, projects, instances and recording sessions are browsed and
-        downloaded exactly as through a hub. Each directory at the share's root (or under its
-        configured root path) is a workspace, named by the hub's workspace marker when one is there.
+        SAS token or with Microsoft Entra ID. Its workspaces, projects, instances and recording
+        sessions are browsed and downloaded straight off the share. Each directory at the share's
+        root (or under its configured root path) is a workspace, named by its workspace marker when
+        one is there.
       </p>
       <p>
-        The changes you make through a hub work here too, and land on the share exactly as a hub
-        would write them: <strong>Create Workspace</strong> writes the workspace's marker (adopting
-        a directory the provisioner already wrote into), deleting a workspace or a project removes
-        its directory, deleting a session takes its instance with its last session, and pinning
-        writes the <code>.retained</code> flag a hub's retention honours. Whether a session is still
+        Microscope makes your changes on the share, exactly where the Jeffrey Hub's jobs expect them:
+        <strong>Create Workspace</strong> writes the workspace's marker (adopting a directory the
+        provisioner already wrote into), deleting a workspace or a project removes its directory,
+        deleting a session takes its instance with its last session, and pinning writes the
+        <code>.retained</code> flag the hub's retention honours. Whether a session is still
         recording is decided from its heartbeat file, by the same rules the hub applies.
       </p>
       <p>
         Declared with <code>read-only=true</code>, the remote carries a <strong>Read-only</strong>
         badge and changes nothing: there is no <strong>Create Workspace</strong>, and no button to
         delete a workspace or a project or to delete or pin a session (a request that reaches the
-        backend anyway is refused, saying the remote is read-only). Pins a hub set are still shown.
+        backend anyway is refused, saying the remote is read-only). Existing pins are still shown.
         Use it with a credential that may only read.
       </p>
 
       <DocsCallout type="warning">
         <strong>Keep a hub on the share for upkeep.</strong> Retention, cleanup of stale instances
-        and LZ4 compression of finished recordings are the hub's jobs, because the hub owns the
+        and LZ4 compression of finished recordings are the scheduled jobs of a
+        <router-link to="/docs/hub">Jeffrey Hub</router-link>, because the hub maintains the
         volume. A share that only Microscope reads gets none of them and only grows. Run a Jeffrey
-        Hub on the same volume — it needs no connection from Microscope — and let Microscope read
-        the share directly. They work side by side: the hub writes an archive whole before it
+        Hub on the same volume — Microscope never connects to it — and let Microscope read the
+        share directly. They work side by side: the hub writes an archive whole before it
         removes the original, and a download whose file was just compressed is retried on the
         archive.
       </DocsCallout>
@@ -165,8 +168,8 @@ onMounted(() => {
             <td>
               A stable identifier the workspace exposes to <code>provisioner</code>. The provisioner uses
               this ID to route uploads to the right workspace, so it has to match the value in
-              your provisioner's configuration. On the hub it becomes the workspace's id and the
-              name of its directory on the shared volume; if the provisioner already wrote into a
+              your provisioner's configuration. On the share it becomes the workspace's id and the
+              name of its directory on the recording volume; if the provisioner already wrote into a
               directory of that name, creating the workspace adopts it with its projects.
             </td>
           </tr>
@@ -206,7 +209,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><strong>Unreachable</strong></td>
-            <td>Microscope could not read the remote (network, TLS, credentials, or the hub is down). The page shows the error.</td>
+            <td>Microscope could not read the remote (network, credentials, or the share is unavailable). The page shows the error.</td>
             <td>Check the remote's declaration in configuration, its credentials and your network/VPN, then reopen the page.</td>
           </tr>
         </tbody>
@@ -218,7 +221,7 @@ onMounted(() => {
         <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
         <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>
         <li><strong>More than one remote</strong> — Microscope reaches exactly one.</li>
-        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (TLS, or the SAS token / Entra identity of an Azure file share); there's no separate workspace-level token.</li>
+        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (the SAS token or Entra identity of the Azure file share); there's no separate workspace-level token.</li>
         <li><strong>Retention and compression on a share</strong> — Microscope makes the changes you ask for, never upkeep; keep a hub on the volume for that.</li>
       </ul>
     </div>

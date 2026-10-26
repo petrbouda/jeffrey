@@ -41,7 +41,6 @@
         <module>ui-remote</module>
         <module>microscope-core-persistence-api</module>
         <module>microscope-core-sql-persistence</module>
-        <module>grpc-client</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>
         <module>mcp-protocol</module>
@@ -78,11 +77,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>microscope-core-sql-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>grpc-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

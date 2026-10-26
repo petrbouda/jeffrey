@@ -22,7 +22,6 @@ import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,12 +36,6 @@ class ConfiguredRemotePropertiesTest {
 
     private static final String ENDPOINT = "https://jeffreyprod.file.core.windows.net";
     private static final String SAS = "sv=2026-06-06&ss=f&srt=sco&sp=rl&sig=c2lnbmF0dXJl";
-
-    private static ConfiguredRemoteProperties hub(String hostname) {
-        ConfiguredRemoteProperties properties = new ConfiguredRemoteProperties();
-        properties.setHostname(hostname);
-        return properties;
-    }
 
     private static ConfiguredRemoteProperties share(String share, String auth, String sasToken) {
         AzureFilesEntry azure = new AzureFilesEntry();
@@ -59,41 +52,6 @@ class ConfiguredRemotePropertiesTest {
     void nothing_declared_is_no_remote() {
         assertEquals(Optional.empty(), new ConfiguredRemoteProperties().resolve());
         assertEquals(Optional.empty(), new ConfiguredRemoteProperties().sasToken());
-    }
-
-    @Nested
-    @DisplayName("A Jeffrey Hub")
-    class JeffreyHub {
-
-        @Test
-        void a_hostname_alone_is_a_complete_declaration_named_by_its_host() {
-            RemoteInfo remote = hub(" hub.example.com ").resolve().orElseThrow();
-
-            assertEquals(new HubAddress("hub.example.com", 9090, false), remote.address());
-            assertEquals("hub.example.com", remote.name());
-        }
-
-        @Test
-        void an_explicit_name_and_port_win() {
-            ConfiguredRemoteProperties properties = hub("hub.example.com");
-            properties.setName(" Production ");
-            properties.setPort(443);
-            properties.setPlaintext(true);
-
-            RemoteInfo remote = properties.resolve().orElseThrow();
-
-            assertEquals("Production", remote.name());
-            assertEquals(new HubAddress("hub.example.com", 443, true), remote.address());
-        }
-
-        /** A typo in an optional remote must not cost the user Microscope; it is logged and left out. */
-        @Test
-        void a_port_out_of_range_is_left_out_rather_than_failing_startup() {
-            ConfiguredRemoteProperties properties = hub("hub.example.com");
-            properties.setPort(70_000);
-
-            assertEquals(Optional.empty(), properties.resolve());
-        }
     }
 
     @Nested
@@ -160,20 +118,20 @@ class ConfiguredRemotePropertiesTest {
         }
 
         @Test
+        void an_explicit_name_wins_over_the_share_name() {
+            ConfiguredRemoteProperties properties = share("recordings", "sas", SAS);
+            properties.setName(" Production ");
+
+            assertEquals("Production", properties.resolve().orElseThrow().name());
+        }
+
+        @Test
         void an_unknown_protocol_or_sign_in_is_left_out() {
             ConfiguredRemoteProperties ftp = share("recordings", "sas", SAS);
             ftp.getAzureFiles().setProtocol("ftp");
 
             assertEquals(Optional.empty(), ftp.resolve());
             assertEquals(Optional.empty(), share("recordings", "password", SAS).resolve());
-        }
-
-        @Test
-        void a_hostname_and_a_share_together_are_left_out() {
-            ConfiguredRemoteProperties both = share("recordings", "sas", SAS);
-            both.setHostname("hub.example.com");
-
-            assertEquals(Optional.empty(), both.resolve());
         }
     }
 }

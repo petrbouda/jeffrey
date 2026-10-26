@@ -29,16 +29,6 @@
     <artifactId>remote-client</artifactId>
 
     <dependencies>
-        <!-- Proto stubs (InstanceServiceGrpc, RepositoryServiceGrpc, etc.) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>hub-api</artifactId>
-        </dependency>
-        <!-- GrpcHubConnection and the per-service clients -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>grpc-client</artifactId>
-        </dependency>
         <!-- Domain models (ProjectInfo, RecordingSession, InstantUtils, ...) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -51,16 +41,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>recording-storage-api</artifactId>
-        </dependency>
-        <!-- ManagedChannel + Netty -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty</artifactId>
-        </dependency>
-        <!-- StatusRuntimeException -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-stub</artifactId>
         </dependency>
         <!-- JsonNode (InstanceSessionDetailResponse environment) -->
         <dependency>
@@ -76,12 +56,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- In-process gRPC server for the client tests -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-inprocess</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

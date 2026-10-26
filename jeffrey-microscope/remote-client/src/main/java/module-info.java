@@ -15,14 +15,10 @@
  * limitations under the License.
  */
 module cafe.jeffrey.microscope.remote.client {
-    requires transitive cafe.jeffrey.microscope.grpc.client;
-    requires transitive cafe.jeffrey.shared.hub.api;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.shared.storage.recording.api;
     requires jdk.jfr;
-    requires io.grpc;
-    requires io.grpc.stub;
     requires tools.jackson.databind;
     requires org.slf4j;
 

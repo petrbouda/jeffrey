@@ -28,6 +28,5 @@ public record WorkspaceInfo(
         String id,
         String name,
         Instant createdAt,
-        WorkspaceStatus status,
         int projectCount) {
 }

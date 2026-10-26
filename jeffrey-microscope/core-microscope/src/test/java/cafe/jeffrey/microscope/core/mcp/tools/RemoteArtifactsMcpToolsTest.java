@@ -33,12 +33,12 @@ import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import io.grpc.Context;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
-import cafe.jeffrey.microscope.model.remote.RemoteAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
@@ -80,7 +80,6 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
@@ -108,7 +107,7 @@ class RemoteArtifactsMcpToolsTest {
     private static final Instant PROFILE_START = Instant.parse("2026-09-14T11:00:00Z");
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
-    private static final String ADDRESS = "hub.example.com:443";
+    private static final String ADDRESS = "azure-files:https://jeffreyprod.file.core.windows.net/recordings";
     private static final String WORKSPACE_ID = "ws-1";
     private static final String PROJECT_ID = "proj-1";
     private static final String SESSION_ID = "session-1";
@@ -130,7 +129,7 @@ class RemoteArtifactsMcpToolsTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()), true);
         tools = RemoteArtifactsMcpToolsFixture.of(resolver, recordingsManager, home.resolve("artifacts"),
                         home.resolve("profiles"), operations, CLOCK, EVERY_FAMILY)
-                .withBudgets(Duration.ofSeconds(5), Duration.ofSeconds(5)).build();
+                .withBudget(Duration.ofSeconds(5)).build();
     }
 
     @AfterEach
@@ -170,8 +169,9 @@ class RemoteArtifactsMcpToolsTest {
         when(project.info()).thenReturn(new ProjectInfo(
                 PROJECT_ID, "checkout", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
         RemoteConnection remote = mock(RemoteConnection.class);
-        when(remote.info()).thenReturn(new RemoteInfo(
-                "production", new HubAddress("hub.example.com", 443, false)));
+        when(remote.info()).thenReturn(new RemoteInfo("production", new AzureFilesAddress(
+                "https://jeffreyprod.file.core.windows.net", "recordings", "",
+                AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false)));
         when(resolver.resolveRemote()).thenReturn(remote);
         when(resolver.currentRemote()).thenReturn(Optional.of(remote));
         when(resolver.resolve(WORKSPACE_ID, PROJECT_ID)).thenReturn(project);
@@ -481,18 +481,13 @@ class RemoteArtifactsMcpToolsTest {
             private RemoteArtifactsMcpTools standardBudget(OperationAnswers answers) {
                 return new RemoteArtifactsMcpTools(resolver, recordingsManager, home.resolve("artifacts"),
                         home.resolve("profiles"), operations, answers, CLOCK, BoundedJobs.WAIT_BUDGET,
-                        Duration.ofMinutes(5), EVERY_FAMILY);
+                        EVERY_FAMILY);
             }
 
             @Test
-            void handsBackARunningTransferAsATaskWhileThePreflightKeepsTheFullBudget() throws Exception {
+            void handsBackARunningTransferAsATask() throws Exception {
                 RecordingSession session = session(finished("f-log", "service-app.log", ManagedFile.APP_LOG));
                 remoteHolds(session);
-                AtomicLong preflightSecondsLeft = new AtomicLong(-1);
-                when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
-                    preflightSecondsLeft.set(Context.current().getDeadline().timeRemaining(TimeUnit.SECONDS));
-                    return session;
-                });
                 StreamedFile streamed = streamed("service-app.log");
                 CountDownLatch release = new CountDownLatch(1);
                 when(repository.streamFile(SESSION_ID, "f-log")).thenAnswer(_ -> {
@@ -512,8 +507,6 @@ class RemoteArtifactsMcpToolsTest {
 
                 String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
                 assertEquals(OperationKind.REMOTE_FETCH, operations.status(taskId).kind());
-                assertTrue(preflightSecondsLeft.get() > BoundedJobs.TASK_WAIT_BUDGET.toSeconds(),
-                        "the preflight ran under " + preflightSecondsLeft.get() + " s, not the full budget");
 
                 release.countDown();
                 await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
@@ -645,7 +638,7 @@ class RemoteArtifactsMcpToolsTest {
                             home.resolve("profiles"), operations, CLOCK,
                             AdvertisedFamilies.of(McpTestProperties.of(
                                     true, true, true, Set.of("profiles", "recordings", "remote", "operations"))))
-                    .withBudgets(Duration.ofSeconds(5), Duration.ofSeconds(5)).build();
+                    .withBudget(Duration.ofSeconds(5)).build();
             remoteHolds(session(finished("f-heap", "heap-dump.hprof.gz", ManagedFile.HEAP_DUMP_GZ)));
             when(repository.streamFile(SESSION_ID, "f-heap")).thenReturn(streamed("heap-dump.hprof.gz"));
 

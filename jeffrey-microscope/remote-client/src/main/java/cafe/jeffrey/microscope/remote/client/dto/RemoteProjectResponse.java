@@ -23,12 +23,12 @@ import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import java.time.Instant;
 
 /**
- * A project as the hub reports it.
+ * A project as the remote reports it.
  *
- * @param createdAt   when the hub created the project, or {@code null} when the hub sent none
- * @param workspaceId the project's workspace, which is also its reference id: the hub names a
+ * @param createdAt   when the project was created, or {@code null} when its marker says nothing
+ * @param workspaceId the project's workspace, which is also its reference id: the volume names a
  *                    workspace by its directory on the volume
- * @param statistics  what the hub's last retention pass measured for the project
+ * @param statistics  what was measured for the project; never measured by Microscope
  */
 public record RemoteProjectResponse(
         String id,

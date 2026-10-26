@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -28,7 +27,6 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorResponse;
 import cafe.jeffrey.shared.common.exception.ErrorType;
@@ -66,17 +64,6 @@ public class JeffreyExceptionHandler {
         LOG.warn("Handling an IllegalArgumentException: message={}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ErrorType.CLIENT, ErrorCode.INVALID_REQUEST, ex.getMessage()));
-    }
-
-    /**
-     * A call to the remote failed and its {@link StatusRuntimeException} propagated up to the
-     * web layer unmapped. Translate the gRPC status into the application's error model here at
-     * the boundary, so a remote NOT_FOUND still answers 404 and a validation failure 400 instead
-     * of everything collapsing into a generic 500.
-     */
-    @ExceptionHandler(StatusRuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleGrpcStatus(StatusRuntimeException ex) {
-        return handleJeffreyException(GrpcClientErrors.toJeffreyException(ex));
     }
 
     /**

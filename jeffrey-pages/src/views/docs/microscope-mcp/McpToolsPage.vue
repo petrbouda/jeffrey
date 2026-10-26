@@ -182,7 +182,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
     />
 
     <div class="docs-content">
-      <p>Tools are grouped by the questions they answer. Most families read a profile; <code>recordings_</code> and <code>remote_</code> create one &mdash; from a file on this machine, or from a recording still sitting on the remote (a Jeffrey Hub or an Azure file share) &mdash; and <code>ide_</code> reads the code behind it out of the developer&rsquo;s running IntelliJ.</p>
+      <p>Tools are grouped by the questions they answer. Most families read a profile; <code>recordings_</code> and <code>remote_</code> create one &mdash; from a file on this machine, or from a recording still sitting on the remote (the Azure file share holding the recording volume) &mdash; and <code>ide_</code> reads the code behind it out of the developer&rsquo;s running IntelliJ.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
@@ -1165,7 +1165,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
       <DocsCodeBlock :code="exHeap" language="json" />
 
       <h2 id="remote">remote_ &mdash; recordings that are not on this machine</h2>
-      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to the configured remote &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link>, or the recording volume on an Azure file share (<router-link to="/docs/microscope/configuration/application-properties#remote">one or the other</router-link>) &mdash; which is where the interesting ones usually are.</p>
+      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to the configured remote &mdash; the recording volume on an <router-link to="/docs/microscope/configuration/application-properties#remote">Azure file share</router-link> &mdash; which is where the interesting ones usually are.</p>
       <DocsCodeBlock :code="remoteExample" language="text" />
 
       <table>
@@ -1180,7 +1180,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>remote_status</code></td>
             <td>&mdash;</td>
-            <td>The one remote this installation's configuration declares, with its <code>state</code>: <code>REACHABLE</code>, <code>UNREACHABLE</code>, or <code>NOT_CONFIGURED</code> when there is none &mdash; then the <code>reason</code> says how the user declares one through <code>jeffrey.microscope.remote.*</code> (configuration only; no tool or page connects one). Beside the state, its <code>name</code>, <code>address</code>, <code>kind</code> (<code>GRPC</code> for a Jeffrey Hub, <code>AZURE_FILES</code> for the recording volume reached straight on an Azure file share), whether it is <code>readOnly</code> (declared to refuse every change), the <code>version</code> it reported, and the Remote page&rsquo;s link. No paging and no cursor: there is only one</td>
+            <td>The one remote this installation's configuration declares, with its <code>state</code>: <code>REACHABLE</code>, <code>UNREACHABLE</code>, or <code>NOT_CONFIGURED</code> when there is none &mdash; then the <code>reason</code> says how the user declares one through <code>jeffrey.microscope.remote.*</code> (configuration only; no tool or page connects one). Beside the state, its <code>name</code>, its <code>address</code> (<code>azure-files:&lt;endpoint&gt;/&lt;share&gt;[/&lt;root&gt;]</code>), whether it is <code>readOnly</code> (declared to refuse every change), the <code>version</code> it reported, and the Remote page&rsquo;s link. No paging and no cursor: there is only one</td>
           </tr>
           <tr>
             <td><code>remote_sessions</code></td>

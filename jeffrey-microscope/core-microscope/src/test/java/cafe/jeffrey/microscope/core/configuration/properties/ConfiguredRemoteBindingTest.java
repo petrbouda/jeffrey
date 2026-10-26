@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.configuration.properties;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,18 +55,18 @@ class ConfiguredRemoteBindingTest {
     }
 
     @Test
-    @DisplayName("A Jeffrey Hub binds every field")
-    void bindsAJeffreyHub() {
+    @DisplayName("A name binds beside the share it names")
+    void bindsTheName() {
         ConfiguredRemoteProperties properties = bind(
                 "jeffrey.microscope.remote.name=Production",
-                "jeffrey.microscope.remote.hostname=hub.example.com",
-                "jeffrey.microscope.remote.port=443",
-                "jeffrey.microscope.remote.plaintext=true");
+                "jeffrey.microscope.remote.azure-files.endpoint=https://jeffreyprod.file.core.windows.net",
+                "jeffrey.microscope.remote.azure-files.share=recordings",
+                "jeffrey.microscope.remote.azure-files.sas-token=sv=2026-06-06&sig=c2ln");
 
         RemoteInfo remote = properties.resolve().orElseThrow();
 
         assertEquals("Production", remote.name());
-        assertEquals(new HubAddress("hub.example.com", 443, true), remote.address());
+        assertEquals("recordings", remote.address().share());
     }
 
     @Test
@@ -99,12 +98,14 @@ class ConfiguredRemoteBindingTest {
                             // ends with "-systemEnvironment"; any other name silently binds nothing.
                             "test-systemEnvironment",
                             Map.of(
-                                    "JEFFREY_MICROSCOPE_REMOTE_HOSTNAME", "hub.example.com",
-                                    "JEFFREY_MICROSCOPE_REMOTE_PORT", "443")));
+                                    "JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_ENDPOINT", "https://jeffreyprod.file.core.windows.net",
+                                    "JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SHARE", "recordings",
+                                    "JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_AUTH", "entra")));
             context.register(BindingTestConfiguration.class);
             context.refresh();
 
-            assertEquals(new HubAddress("hub.example.com", 443, false),
+            assertEquals(new AzureFilesAddress("https://jeffreyprod.file.core.windows.net", "recordings", "",
+                            AzureFilesProtocol.SMB, AzureFilesAuth.ENTRA, false),
                     context.getBean(ConfiguredRemoteProperties.class).resolve().orElseThrow().address());
         }
     }

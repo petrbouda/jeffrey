@@ -36,10 +36,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * One file of a session off the volume, refused for the same reasons and in the same words as the
- * hub refuses it: a file the session does not hold, the chunk the profiler is still writing, an
- * empty recording, and one gone by the time it is opened — looked up once more first, since the
- * hub's compression job may have just replaced a recording with its archive under the same id.
+ * One file of a session off the volume, refused in {@code FileRefusal}'s words: a file the session
+ * does not hold, the chunk the profiler is still writing, an empty recording, and one gone by the
+ * time it is opened — looked up once more first, since the hub's compression job may have just
+ * replaced a recording with its archive under the same id.
  */
 final class VolumeFileStreamClient implements FileStreamClient {
 

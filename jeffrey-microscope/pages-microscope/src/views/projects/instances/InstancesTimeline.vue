@@ -672,11 +672,11 @@ function countSessions(predicate: (session: ProjectInstanceSession) => boolean):
 
 const totalFailedSessions = computed(() => countSessions(session => session.failed === true));
 
-// Sessions the hub finished because no heartbeat ever arrived — drawn purple
+// Sessions read as finished because no heartbeat ever arrived — drawn purple
 const totalNoHeartbeatSessions = computed(() => countSessions(session => session.heartbeatMissing));
 
 const NO_HEARTBEAT_CHIP_TITLE =
-  'The newest session sent no heartbeat within the startup grace, so the hub finished it: ' +
+  'The newest session sent no heartbeat within the startup grace, so it reads as finished: ' +
   'heartbeats are not configured or not emitted. The session list links to how to set them up.';
 
 function newestSession(instanceId: string): ProjectInstanceSession | undefined {
@@ -1336,7 +1336,7 @@ function isSessionRetained(sessionId: string): boolean {
 
 /**
  * Toggles retention for a session — the same rule as the sessions list's pin: a
- * retained session is exempt from every retention job on the hub, so releasing one
+ * retained session is exempt from the hub's retention job, so releasing one
  * hands it back to normal expiry.
  */
 async function togglePinned(sessionId: string): Promise<void> {

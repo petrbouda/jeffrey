@@ -20,8 +20,6 @@ package cafe.jeffrey.microscope.core.configuration.properties;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
-import cafe.jeffrey.microscope.model.remote.RemoteAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +28,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.Optional;
 
 /**
- * The one remote declared under {@code jeffrey.microscope.remote.*}: a Jeffrey Hub reached over gRPC,
- * <pre>
- * jeffrey.microscope.remote.hostname=hub.example.com
- * jeffrey.microscope.remote.port=443
- * </pre>
- * or the recording volume on an Azure file share, with no hub between —
- * {@code azure-files.read-only=true} makes Microscope refuse every change to it:
+ * The one remote declared under {@code jeffrey.microscope.remote.*}: the recording volume on an
+ * Azure file share — {@code azure-files.read-only=true} makes Microscope refuse every change to it:
  * <pre>
  * jeffrey.microscope.remote.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
  * jeffrey.microscope.remote.azure-files.share=recordings
@@ -57,14 +50,7 @@ public class ConfiguredRemoteProperties {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfiguredRemoteProperties.class);
 
-    private static final int DEFAULT_PORT = 9090;
-    private static final int MIN_PORT = 1;
-    private static final int MAX_PORT = 65535;
-
     private String name;
-    private String hostname;
-    private int port = DEFAULT_PORT;
-    private boolean plaintext;
     private AzureFilesEntry azureFiles;
 
     public String getName() {
@@ -73,30 +59,6 @@ public class ConfiguredRemoteProperties {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getHostname() {
-        return hostname;
-    }
-
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public boolean isPlaintext() {
-        return plaintext;
-    }
-
-    public void setPlaintext(boolean plaintext) {
-        this.plaintext = plaintext;
     }
 
     public AzureFilesEntry getAzureFiles() {
@@ -113,15 +75,15 @@ public class ConfiguredRemoteProperties {
      * profile viewer, and a typo in an optional remote should not cost the user their recordings.
      */
     public Optional<RemoteInfo> resolve() {
-        if (!declaresAny()) {
+        if (azureFiles == null) {
             return Optional.empty();
         }
-        String problem = validate();
+        String problem = azureFiles.validate(PREFIX + ".azure-files");
         if (problem != null) {
             LOG.warn("Ignoring the declared remote: reason={}", problem);
             return Optional.empty();
         }
-        RemoteAddress address = address();
+        AzureFilesAddress address = azureFiles.address();
         return Optional.of(new RemoteInfo(resolveName(address), address));
     }
 
@@ -134,69 +96,27 @@ public class ConfiguredRemoteProperties {
         return new Declared(remote, sasTokenOf(remote));
     }
 
-    /**
-     * The SAS token of a valid Azure Files declaration that signs in with one; it never leaves
-     * memory.
-     */
+    /** The SAS token of a valid declaration that signs in with one; it never leaves memory. */
     public Optional<String> sasToken() {
         return sasTokenOf(resolve());
     }
 
     private Optional<String> sasTokenOf(Optional<RemoteInfo> remote) {
         return remote
-                .map(RemoteInfo::address)
-                .filter(address -> address instanceof AzureFilesAddress azure && azure.auth() == AzureFilesAuth.SAS)
+                .filter(declared -> declared.address().auth() == AzureFilesAuth.SAS)
                 .map(_ -> azureFiles.getSasToken().trim());
     }
 
-    /**
-     * The remote configuration declares, and the SAS token it signs in with when it is a share
-     * that uses one.
-     */
+    /** The remote configuration declares, and the SAS token it signs in with when it uses one. */
     public record Declared(Optional<RemoteInfo> remote, Optional<String> sasToken) {
     }
 
-    private boolean declaresAny() {
-        return hasHostname() || azureFiles != null;
-    }
-
-    private boolean hasHostname() {
-        return hostname != null && !hostname.isBlank();
-    }
-
-    /** The address declared; call only once {@link #validate} has passed. */
-    private RemoteAddress address() {
-        if (azureFiles != null) {
-            return azureFiles.address();
-        }
-        return new HubAddress(hostname.trim(), port, plaintext);
-    }
-
-    /**
-     * @return why the declaration is unusable, or {@code null} when it is valid
-     */
-    private String validate() {
-        if (hasHostname() && azureFiles != null) {
-            return PREFIX + " declares both a hostname and azure-files; a remote is one or the other";
-        }
-        if (azureFiles != null) {
-            return azureFiles.validate(PREFIX + ".azure-files");
-        }
-        if (port < MIN_PORT || port > MAX_PORT) {
-            return "%s.port=%d must be between %d and %d".formatted(PREFIX, port, MIN_PORT, MAX_PORT);
-        }
-        return null;
-    }
-
-    /** Falls back to the hub's host or the share's name, so an address on its own is a complete declaration. */
-    private String resolveName(RemoteAddress address) {
+    /** Falls back to the share's name, so an address on its own is a complete declaration. */
+    private String resolveName(AzureFilesAddress address) {
         if (name != null && !name.isBlank()) {
             return name.trim();
         }
-        return switch (address) {
-            case HubAddress hub -> hub.hostname();
-            case AzureFilesAddress share -> share.share();
-        };
+        return address.share();
     }
 
     /**

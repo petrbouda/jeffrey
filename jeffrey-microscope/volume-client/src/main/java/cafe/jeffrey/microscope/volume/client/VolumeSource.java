@@ -37,16 +37,16 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * A recording volume reached straight on its storage, as its clients see it: where its workspaces
- * and projects lie, whether it may be changed, and the one place a volume that cannot be read or
- * written becomes the error a hub's clients raise for an unreachable hub. Nothing is cached; every
- * call reads the volume again, as the hub does.
+ * The recording volume reached on its storage, as its clients see it: where its workspaces and
+ * projects lie, whether it may be changed, and the one place a volume that cannot be read or
+ * written becomes the remote-unavailable error. Nothing is cached; every call reads the volume
+ * again.
  *
  * @param volume      the storage the volume lies on, its root holding the workspaces; a
  *                    {@link WritableVolume} unless the source is read-only
  * @param liveness    how a session's liveness files are read, with this machine's clock
  * @param clock       when a change happened, for the markers a change writes
- * @param description what the source says about itself where a hub would report its version
+ * @param description what the source says about itself, reported as its version
  * @param readOnly    whether every change is refused
  */
 public record VolumeSource(
@@ -54,8 +54,8 @@ public record VolumeSource(
 
     private static final VolumePath ROOT = VolumePath.root();
     private static final String READ_ONLY =
-            "%s: the remote is declared read-only. "
-                    + "Make the change through the Jeffrey Hub that maintains the volume, or declare the remote writable.";
+            "%s: the remote is declared read-only (azure-files.read-only=true). "
+                    + "Declare it writable to make changes through Microscope.";
 
     public VolumeSource {
         if (volume == null || liveness == null || clock == null || description == null || description.isBlank()) {
@@ -108,8 +108,8 @@ public record VolumeSource(
     }
 
     /**
-     * Runs a read or a change, reporting a volume that cannot be read or written the way a hub's
-     * clients report a hub that cannot be reached, so every caller already handles it.
+     * Runs a read or a change, reporting a volume that cannot be read or written as the remote
+     * being unavailable, so every caller already handles it.
      */
     <T> T read(Supplier<T> read) {
         try {

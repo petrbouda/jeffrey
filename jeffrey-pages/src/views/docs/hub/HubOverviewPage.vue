@@ -44,14 +44,15 @@ onMounted(() => {
     <div class="docs-content">
 
       <section class="hero">
-        <p class="hero-eyebrow"><i class="bi bi-stars"></i> Production Recording Backend</p>
-        <h2 class="hero-title">Collect once, analyze anywhere.</h2>
+        <p class="hero-eyebrow"><i class="bi bi-stars"></i> Recording Volume Maintenance</p>
+        <h2 class="hero-title">Keep the shared volume tidy.</h2>
         <p class="hero-lede">
-          Jeffrey Hub runs alongside your Java fleet — typically on Kubernetes or a dedicated
-          host — and continuously collects JFR recordings. It lists them by workspace, project,
-          and instance straight off the shared volume — its only state, with no database —
-          runs retention and compression jobs, and serves the results over gRPC. Detailed profile
-          analysis happens in Microscope. <router-link to="/docs/microscope-mcp/tools#remote">Microscope’s <code>remote_</code> tools</router-link>
+          Jeffrey Hub runs next to the shared recording volume — typically on Kubernetes or a dedicated
+          host — and maintains it. The volume is its only state, with no database: the hub runs its
+          scheduler jobs on it, applying retention and quotas, cleaning up instances that never started,
+          and LZ4-compressing finished JFR chunks. It exposes no API to Microscope — Microscope reads the
+          same volume itself, from the Azure file share that holds it, and
+          <router-link to="/docs/microscope-mcp/tools#remote">its <code>remote_</code> tools</router-link>
           pick a session, or the hours of it that matter, and download that.
         </p>
         <div class="hero-actions">
@@ -68,19 +69,19 @@ onMounted(() => {
 
       <section class="value-tiles">
         <div class="value-tile tile-broadcast">
-          <div class="value-icon"><i class="bi bi-broadcast-pin"></i></div>
-          <h3>Continuous Recording</h3>
-          <p>Async-Profiler writes JFR chunks to the shared volume on every loop and the hub lists them on the next request — no manual capture, no missed windows.</p>
+          <div class="value-icon"><i class="bi bi-trash3"></i></div>
+          <h3>Retention</h3>
+          <p>Sessions are dropped by age and by a per-project cap, a live session is trimmed, a storage quota is enforced, and stale <code>PENDING</code> instances are cleaned up.</p>
         </div>
         <div class="value-tile tile-collection">
-          <div class="value-icon"><i class="bi bi-collection"></i></div>
-          <h3>Recording Sessions</h3>
-          <p>Recordings are grouped into sessions per JVM lifecycle, with their status read from heartbeat files, retention, and lifecycle states.</p>
+          <div class="value-icon"><i class="bi bi-file-zip"></i></div>
+          <h3>Compression</h3>
+          <p>Finished JFR chunks are LZ4-compressed in place by a scheduled job — never on a read path.</p>
         </div>
         <div class="value-tile tile-grpc">
-          <div class="value-icon"><i class="bi bi-hdd-network"></i></div>
-          <h3>gRPC to Microscope</h3>
-          <p>Microscope connects a hub as its remote, browses its sessions, and pulls only the recordings worth investigating.</p>
+          <div class="value-icon"><i class="bi bi-speedometer2"></i></div>
+          <h3>Storage &amp; Scheduler UI</h3>
+          <p>A small web UI shows what the last retention pass measured per workspace and project, and lists the scheduler jobs so you can run one now.</p>
         </div>
       </section>
 
@@ -89,48 +90,47 @@ onMounted(() => {
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
           color="purple"
-          icon="bi bi-broadcast-pin"
-          title="Continuous Recording"
-          description="Always-on JFR collection from running applications via Async-Profiler agents — no operator in the loop."
+          icon="bi bi-calendar-check"
+          title="Scheduler Jobs"
+          description="Retention (age, session cap, live-session trim, storage quota, stale PENDING instance cleanup) and LZ4 compression of finished JFR chunks run on a schedule against the shared volume."
         />
         <DocsFeatureCard
           color="orange"
           icon="bi bi-collection"
           title="Recording Sessions"
-          description="JFR chunks are grouped into sessions per JVM run, indexed by workspace, project, and instance."
+          description="JFR chunks are grouped into sessions per JVM run, laid out on the volume by workspace, project, and instance; their status is read from heartbeat files."
         />
         <DocsFeatureCard
           color="red"
           icon="bi bi-archive"
           title="All Artifacts in One Place"
-          description="Heap dumps, JVM logs, application logs, and hotspot crash dumps — collected next to JFR recordings so you have everything in one place when something breaks."
+          description="Heap dumps, JVM logs, application logs, and hotspot crash dumps sit next to JFR recordings on the volume, under the same retention."
         />
         <DocsFeatureCard
           color="green"
-          icon="bi bi-hdd-network"
-          title="gRPC API"
-          description="Workspace, project, instance, repository and file-download services — defined by proto."
+          icon="bi bi-hdd-stack"
+          title="Storage Dashboard"
+          description="Size, file count and last activity per workspace and project, as the last retention pass measured them, plus whether a session is still recording."
         />
         <DocsFeatureCard
           color="neutral"
-          icon="bi bi-clock-history"
-          title="A Session by the Hour"
-          description="Microscope, and a coding agent through MCP, pull a whole session or only the chunks covering the hour that matters."
+          icon="bi bi-play-circle"
+          title="Run a Job Now"
+          description="The Scheduler page lists the jobs and runs one on demand, without waiting for its next tick."
         />
         <DocsFeatureCard
           color="blue"
           icon="bi bi-folder2-open"
           title="Multi-Tenant Workspaces"
-          description="Many teams, many projects, one server. Each workspace owns its storage scope."
+          description="Many teams, many projects, one volume. Each workspace owns its storage scope."
         />
       </div>
 
       <h2 id="when-to-use-jeffrey-hub">When to Use</h2>
       <ul class="usecase-list">
-        <li><i class="bi bi-check2-circle"></i> Always-on production / staging recording collection across many JVMs.</li>
-        <li><i class="bi bi-check2-circle"></i> Centralised, retention-governed storage of JFR recordings, heap dumps, JVM &amp; application logs, and crash dumps on a shared filesystem.</li>
-        <li><i class="bi bi-check2-circle"></i> Letting many developers analyze the same recordings with Microscope without each pulling files manually.</li>
-        <li><i class="bi bi-check2-circle"></i> CI / automated profiling pipelines that need a server-side queue and durable session lifecycle.</li>
+        <li><i class="bi bi-check2-circle"></i> Always-on production / staging recording onto a shared volume across many JVMs — the hub keeps that volume from growing without bound.</li>
+        <li><i class="bi bi-check2-circle"></i> Retention-governed storage of JFR recordings, heap dumps, JVM &amp; application logs, and crash dumps on a shared filesystem.</li>
+        <li><i class="bi bi-check2-circle"></i> Whenever Microscope uses the volume on an Azure file share as its remote — without a hub running on the volume, nothing is retained, cleaned up or compressed, and the share only grows.</li>
       </ul>
 
     </div>

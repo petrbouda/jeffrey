@@ -123,7 +123,7 @@ onMounted(() => {
         <div class="artifact-tile tile-perf">
           <div class="artifact-icon"><i class="bi bi-speedometer2"></i></div>
           <h3>Perf Counters</h3>
-          <p>A HotSpot <code>hsperfdata</code> snapshot &mdash; the counters <code>jstat</code> reads, saved by <code>-XX:PerfDataSaveFile</code> or collected by a Jeffrey Hub session.</p>
+          <p>A HotSpot <code>hsperfdata</code> snapshot &mdash; the counters <code>jstat</code> reads, saved by <code>-XX:PerfDataSaveFile</code> or saved into a recording session on the remote.</p>
           <ul class="artifact-features">
             <li><i class="bi bi-speedometer2"></i> Uptime, heap, GC, safepoint &amp; JIT figures</li>
             <li><i class="bi bi-info-circle"></i> JVM identity, command &amp; VM arguments</li>

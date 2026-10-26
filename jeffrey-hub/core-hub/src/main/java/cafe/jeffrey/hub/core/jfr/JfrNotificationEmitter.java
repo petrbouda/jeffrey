@@ -32,38 +32,7 @@ public final class JfrNotificationEmitter {
     private JfrNotificationEmitter() {
     }
 
-    // ==================== PROJECT events (HIGH severity) ====================
-
-    public static void projectCreated(String projectName, String projectId) {
-        emit(NotificationType.PROJECT_CREATED, Severity.HIGH, NotificationCategory.PROJECT,
-                "Project created", kv("project_name", projectName), kv("project_id", projectId));
-    }
-
-    public static void projectDeleted(String projectId) {
-        emit(NotificationType.PROJECT_DELETED, Severity.HIGH, NotificationCategory.PROJECT,
-                "Project deleted", kv("project_id", projectId));
-    }
-
-    // ==================== INSTANCE events (MEDIUM severity) ====================
-
-    public static void instanceCreated(String instanceId, String projectName, String projectId) {
-        emit(NotificationType.INSTANCE_CREATED, Severity.MEDIUM, NotificationCategory.INSTANCE,
-                "New instance started",
-                kv("instance_id", instanceId), kv("project_name", projectName), kv("project_id", projectId));
-    }
-
     // ==================== SESSION events ====================
-
-    public static void sessionCreated(String sessionId, String instanceId, int order, String projectId) {
-        emit(NotificationType.SESSION_CREATED, Severity.LOW, NotificationCategory.SESSION,
-                "New recording session started",
-                kv("session_id", sessionId), kv("instance_id", instanceId), kv("order", order), kv("project_id", projectId));
-    }
-
-    public static void sessionFinished(String sessionId, String projectId) {
-        emit(NotificationType.SESSION_FINISHED, Severity.LOW, NotificationCategory.SESSION,
-                "Recording session finished", kv("session_id", sessionId), kv("project_id", projectId));
-    }
 
     public static void sessionDeleted(String sessionId, String projectId) {
         emit(NotificationType.SESSION_DELETED, Severity.LOW, NotificationCategory.SESSION,

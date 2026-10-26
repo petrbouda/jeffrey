@@ -20,10 +20,10 @@ package cafe.jeffrey.microscope.remote.client.dto;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 
 /**
- * What a project's repository occupies on the hub, in bytes. See {@link RepositoryStatistics}
+ * What a project's repository occupies on the volume, in bytes. See {@link RepositoryStatistics}
  * for why it is only that.
  *
- * @param totalSize {@code null} until the hub's first retention pass has measured the project
+ * @param totalSize {@code null} unless the project was measured; Microscope never measures one
  */
 public record RepositoryStatisticsResponse(Long totalSize) {
 

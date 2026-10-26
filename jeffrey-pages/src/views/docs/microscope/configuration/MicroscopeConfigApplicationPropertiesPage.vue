@@ -37,11 +37,6 @@ const headings = [
   { id: 'ide-integration', text: 'IDE Integration', level: 2 }
 ];
 
-const remotePropertiesExample = `jeffrey.microscope.remote.name=Production
-jeffrey.microscope.remote.hostname=hub.example.com
-jeffrey.microscope.remote.port=443
-jeffrey.microscope.remote.plaintext=false`;
-
 const azureFilesPropertiesExample = `jeffrey.microscope.remote.name=Production share
 jeffrey.microscope.remote.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
 jeffrey.microscope.remote.azure-files.share=recordings
@@ -50,9 +45,10 @@ jeffrey.microscope.remote.azure-files.auth=sas
 jeffrey.microscope.remote.azure-files.sas-token=\${AZURE_FILES_SAS}
 jeffrey.microscope.remote.azure-files.read-only=false`;
 
-const remoteEnvExample = `JEFFREY_MICROSCOPE_REMOTE_NAME=Production
-JEFFREY_MICROSCOPE_REMOTE_HOSTNAME=hub.example.com
-JEFFREY_MICROSCOPE_REMOTE_PORT=443`;
+const remoteEnvExample = `JEFFREY_MICROSCOPE_REMOTE_NAME="Production share"
+JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_ENDPOINT=https://jeffreyprod.file.core.windows.net
+JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SHARE=recordings
+JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SASTOKEN=<sas-token>`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -176,61 +172,24 @@ onMounted(() => {
       <h2 id="remote">Remote</h2>
       <p>
         The <strong>remote</strong> is the one place Microscope reads recordings from beyond its own
-        disk: either a <router-link to="/docs/hub">Jeffrey Hub</router-link> reached over gRPC, or the
-        recording volume itself on an Azure file share (below). Microscope reads exactly one remote,
-        declared here and read at startup; nothing in the UI or the MCP server connects, changes or
-        removes it. Without a declaration the <strong>Remote</strong> page says so and the MCP
-        <code>remote_</code> tools answer that none is configured. For a Jeffrey Hub only
-        <code>hostname</code> is required.
+        disk: the recording volume itself on an <strong>Azure file share</strong> &mdash; the share the
+        provisioner writes into, mounted in AKS through the <code>azurefile-csi</code> storage class.
+        Microscope reads exactly one remote, declared here and read at startup; nothing in the UI or
+        the MCP server connects, changes or removes it. Without a declaration the
+        <strong>Remote</strong> page says so and the MCP <code>remote_</code> tools answer that none
+        is configured.
       </p>
-
-      <DocsCodeBlock language="properties" :code="remotePropertiesExample" />
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.microscope.remote.hostname</code></td>
-            <td>—</td>
-            <td><strong>Required.</strong> Host name of the hub's gRPC endpoint.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.remote.port</code></td>
-            <td><code>9090</code></td>
-            <td>gRPC port. Note this is the gRPC port, not the hub's HTTP port.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.remote.name</code></td>
-            <td>the hostname</td>
-            <td>Display name shown on the Remote page.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.remote.plaintext</code></td>
-            <td><code>false</code></td>
-            <td>
-              Connect in cleartext h2c instead of TLS. Enable for in-cluster Service DNS or
-              trusted-LAN setups.
-            </td>
-          </tr>
-        </tbody>
-      </table>
 
       <h3 id="remote-azure-files">Azure File Share</h3>
       <p>
-        Instead of a <code>hostname</code>, the remote can be the recording volume itself,
-        reached straight on an <strong>Azure file share</strong> with no Jeffrey Hub in between — the
-        share the provisioner writes into, mounted in AKS through the <code>azurefile-csi</code>
-        storage class. Microscope works with it over the Azure Files REST API, so it needs no mount
-        of its own. It lists and downloads like a hub and makes the same changes a hub makes —
-        unless it is declared <code>read-only</code>; see
+        Microscope works with the share over the Azure Files REST API, so it needs no mount of its
+        own. It lists workspaces, projects, instances and sessions straight off the share, downloads
+        what you open, and makes your changes there &mdash; unless it is declared
+        <code>read-only</code>; see
         <router-link to="/docs/microscope/workspaces#azure-files">Workspaces</router-link> for what
-        that means in the UI.
+        that means in the UI. Retention, cleanup and compression are not Microscope's: they are the
+        scheduled jobs of a <router-link to="/docs/hub">Jeffrey Hub</router-link> running on the same
+        volume.
       </p>
 
       <DocsCodeBlock language="properties" :code="azureFilesPropertiesExample" />
@@ -244,6 +203,11 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td><code>jeffrey.microscope.remote.name</code></td>
+            <td>the share's name</td>
+            <td>Display name shown on the Remote page.</td>
+          </tr>
           <tr>
             <td><code>jeffrey.microscope.remote.azure-files.endpoint</code></td>
             <td>—</td>
@@ -267,8 +231,8 @@ onMounted(() => {
             <td><code>jeffrey.microscope.remote.azure-files.root-path</code></td>
             <td>the share's root</td>
             <td>
-              Directory on the share that holds the workspaces — the same directory the hub would use
-              as its volume. Every directory under it is shown as a workspace.
+              Directory on the share that holds the workspaces — the same directory the Jeffrey Hub
+              uses as its volume. Every directory under it is shown as a workspace.
             </td>
           </tr>
           <tr>
@@ -317,10 +281,9 @@ onMounted(() => {
       </table>
 
       <p>
-        The remote is either a <code>hostname</code> or an <code>azure-files</code> block, never
-        both. A declaration that cannot be used &mdash; both forms at once, a port out of range, an
-        Azure Files block missing its endpoint or share &mdash; is logged as a warning and ignored,
-        rather than failing startup: Microscope then runs as if no remote were declared.
+        A declaration that cannot be used &mdash; an <code>azure-files</code> block missing its
+        endpoint or share, say &mdash; is logged as a warning and ignored, rather than failing
+        startup: Microscope then runs as if no remote were declared.
       </p>
 
       <DocsCallout type="warning">
@@ -342,8 +305,8 @@ onMounted(() => {
 
       <DocsCallout type="tip">
         <strong>No connection is attempted at startup.</strong> A declared remote is taken as it is
-        whether or not it answers, so a hub that boots after Microscope — the normal case in a compose file or
-        a pod — starts working as soon as it comes up.
+        whether or not it answers, so a share that is unreachable when Microscope boots starts
+        working as soon as it can be reached.
       </DocsCallout>
 
       <h2 id="mcp-server">MCP Server</h2>
@@ -438,18 +401,6 @@ onMounted(() => {
               carries on, and calling the tool again with the same arguments reports the finished copy. Sized under the shortest client timeout worth designing for, so raising it
               mostly buys a client that has already given up. A positive ISO-8601 duration. Read at
               startup.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.mcp.remote.download-timeout</code></td>
-            <td><code>PT1H</code></td>
-            <td>
-              How long a transfer itself may take, once it is running in the background &mdash; a whole
-              session under <code>remote_download</code> or one artifact under <code>remote_fetchFile</code>,
-              which is the same bytes off the same link. Its own setting because it measures something
-              else entirely from the response deadline above: gigabytes over whatever link the remote is on.
-              This is the one to raise for large recordings on a slow connection. A positive ISO-8601 duration. Read at startup. See
-              <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
             </td>
           </tr>
           <tr>

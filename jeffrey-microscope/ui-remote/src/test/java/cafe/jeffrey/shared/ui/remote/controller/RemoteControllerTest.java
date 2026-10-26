@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.ui.remote.controller;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.shared.ui.remote.dto.RemoteResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -61,13 +60,13 @@ class RemoteControllerTest {
         }
 
         @Test
-        void aJeffreyHubIsReportedByItsHostAndPort() {
-            RemoteResponse response = answering(new RemoteInfo("Production", new HubAddress("hub.example.com", 443, false)))
-                    .current().remote();
+        void aWritableShareIsReportedByItsNameAndLocation() {
+            RemoteResponse response = answering(new RemoteInfo("Production", new AzureFilesAddress(
+                    "https://jeffreyprod.file.core.windows.net", "recordings", "",
+                    AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false))).current().remote();
 
             assertEquals("Production", response.name());
-            assertEquals("GRPC", response.kind());
-            assertEquals("hub.example.com:443", response.location());
+            assertEquals("https://jeffreyprod.file.core.windows.net/recordings", response.location());
             assertFalse(response.readOnly());
         }
 
@@ -78,7 +77,6 @@ class RemoteControllerTest {
                     "https://jeffreyprod.file.core.windows.net", "recordings", "volume",
                     AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true))).current().remote();
 
-            assertEquals("AZURE_FILES", response.kind());
             assertEquals("https://jeffreyprod.file.core.windows.net/recordings/volume", response.location());
             assertTrue(response.readOnly());
         }

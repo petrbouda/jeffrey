@@ -25,7 +25,6 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.volume.layout.SessionDirectory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,10 +39,10 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FilesystemRepositoryStorageTest {
@@ -74,6 +73,13 @@ class FilesystemRepositoryStorageTest {
         }
         return TestVolume.storage(
                 PROJECT_INFO, workspacesDir, projectDir(workspacesDir), Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    /** One session as the retention pass and the compression job read it: from the listing, with its files. */
+    private static Optional<RecordingSession> listed(RepositoryStorage storage, String sessionId) {
+        return storage.listSessions(SessionDetail.WITH_FILES).stream()
+                .filter(session -> session.id().equals(sessionId))
+                .findFirst();
     }
 
     /** The session directory's files as a reader sees them: dot-files are the volume's own bookkeeping. */
@@ -138,7 +144,7 @@ class FilesystemRepositoryStorageTest {
             Files.writeString(dir.resolve("profile-20260220-130500.jfr"), CHUNK_BODY);
             TestVolume.finished(dir, T0.plusSeconds(600));
 
-            RecordingSession session = storage.withFiles(storage.session("s-1").orElseThrow());
+            RecordingSession session = listed(storage, "s-1").orElseThrow();
 
             assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
         }
@@ -150,15 +156,9 @@ class FilesystemRepositoryStorageTest {
             Files.writeString(dir.resolve("profile-20260220-120500.jfr"), CHUNK_BODY);
             TestVolume.finished(dir, T0.plusSeconds(600));
 
-            RecordingSession session = storage.withFiles(storage.session("s-1").orElseThrow());
+            RecordingSession session = listed(storage, "s-1").orElseThrow();
 
             assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
-        }
-
-        @Test
-        void anUnknownInstanceIsEmpty() {
-            assertTrue(storage.instanceWithSessions("ghost").isEmpty());
-            assertTrue(storage.instanceWithSessions("../escape").isEmpty());
         }
 
         /** One test of "is this an instance": a marker that does not read names no instance anywhere. */
@@ -168,9 +168,8 @@ class FilesystemRepositoryStorageTest {
             Files.writeString(project.resolve(INSTANCE).resolve(JeffreyLayout.INSTANCE_INFO_FILE), "{not json");
 
             assertTrue(storage.instances().isEmpty());
-            assertTrue(storage.instanceWithSessions(INSTANCE).isEmpty());
             assertTrue(storage.listSessions(SessionDetail.HEADERS).isEmpty());
-            assertTrue(storage.session("s-1").isEmpty());
+            assertTrue(listed(storage, "s-1").isEmpty());
         }
 
         @Test
@@ -178,8 +177,8 @@ class FilesystemRepositoryStorageTest {
             session(INSTANCE, "s-1", T0);
             TestVolume.heartbeat(session(INSTANCE, "s-2", T0.plusSeconds(600)), NOW);
 
-            assertEquals(T0.plusSeconds(600), storage.session("s-1").orElseThrow().finishedAt());
-            assertEquals(RecordingStatus.ACTIVE, storage.session("s-2").orElseThrow().status());
+            assertEquals(T0.plusSeconds(600), listed(storage, "s-1").orElseThrow().finishedAt());
+            assertEquals(RecordingStatus.ACTIVE, listed(storage, "s-2").orElseThrow().status());
         }
 
         @Test
@@ -189,23 +188,6 @@ class FilesystemRepositoryStorageTest {
 
             assertEquals(List.of("s-1"), storage.listSessions(SessionDetail.HEADERS).stream()
                     .map(RecordingSession::id).toList());
-        }
-
-        @Test
-        void theRetainedFlagIsAFileInTheSession() {
-            Path dir = session(INSTANCE, "s-1", T0);
-            TestVolume.finished(dir, T0.plusSeconds(60));
-
-            assertTrue(storage.setRetained("s-1", true));
-            assertTrue(Files.exists(dir.resolve(SessionDirectory.RETAINED_FLAG)));
-            assertTrue(storage.session("s-1").orElseThrow().retained());
-            assertTrue(storage.session("s-1").orElseThrow().files().isEmpty(), "the flag is no file of the session");
-
-            storage.setRetained("s-1", true);
-            assertTrue(storage.session("s-1").orElseThrow().retained(), "setting it again is no error");
-
-            storage.setRetained("s-1", false);
-            assertFalse(storage.session("s-1").orElseThrow().retained());
         }
 
         @Nested
@@ -237,146 +219,6 @@ class FilesystemRepositoryStorageTest {
                 assertEquals(NOW.minusSeconds(5), instance.finishedAt());
                 assertEquals(2, instance.sessionCount());
             }
-        }
-    }
-
-    /**
-     * Looking up one file of a session for download — a chunk, a log, a dump, through the same
-     * call. A lookup only: it never rewrites the file, and each refusal is named.
-     */
-    @Nested
-    class OneFile {
-
-        @TempDir
-        Path workspacesDir;
-
-        private Path sessionDir() {
-            return FilesystemRepositoryStorageTest.sessionDir(workspacesDir);
-        }
-
-        private FilesystemRepositoryStorage storage(Instant finishedAt) {
-            return FilesystemRepositoryStorageTest.storage(workspacesDir, finishedAt);
-        }
-
-        private FilesystemRepositoryStorage finishedSession() {
-            return storage(T0.plusSeconds(600));
-        }
-
-        private static Path write(Path dir, String name, String content) throws IOException {
-            return Files.write(dir.resolve(name), content.getBytes(StandardCharsets.UTF_8));
-        }
-
-        private static Path served(FileLookup lookup) {
-            return assertInstanceOf(FileLookup.Found.class, lookup).path();
-        }
-
-        /** The file is handed over as it lies; a read path never compresses. */
-        @Test
-        void isHandedOverAsTheListingNamedIt() throws IOException {
-            Path session = sessionDir();
-            write(session, "profile-20260220-120000.jfr", "chunk one");
-
-            Path served = served(finishedSession().file(SESSION_ID, "profile-20260220-120000"));
-
-            assertEquals("profile-20260220-120000.jfr", served.getFileName().toString());
-            assertTrue(Files.exists(session.resolve("profile-20260220-120000.jfr")),
-                    "reading a session must not rewrite it");
-            assertFalse(Files.exists(session.resolve("profile-20260220-120000.jfr.lz4")));
-        }
-
-        /** One call for every kind of file. */
-        @Test
-        void servesAnArtifactThroughTheSameCall() throws IOException {
-            Path session = sessionDir();
-            write(session, "service-app.log", "a line");
-
-            assertEquals("service-app.log",
-                    served(finishedSession().file(SESSION_ID, "service-app.log")).getFileName().toString());
-        }
-
-        @Test
-        void refusesAnIdTheSessionDoesNotHold() throws IOException {
-            sessionDir();
-
-            FileLookup lookup = finishedSession().file(SESSION_ID, "profile-20260220-999999");
-
-            assertEquals(new FileLookup.NotInSession(SESSION_ID, "profile-20260220-999999"), lookup);
-            assertTrue(assertInstanceOf(FileLookup.Refused.class, lookup).reason().contains("holds no file with id"));
-        }
-
-        @Test
-        void refusesTheChunkTheProfilerIsStillWriting() throws IOException {
-            Path session = sessionDir();
-            write(session, "profile-20260220-120000.jfr", "closed");
-            write(session, "profile-20260220-120500.jfr", "still being written");
-
-            assertEquals(new FileLookup.StillWriting("profile-20260220-120500.jfr"),
-                    storage(null).file(SESSION_ID, "profile-20260220-120500"));
-        }
-
-        /** A profiler stopped before it wrote an event leaves a zero-byte recording. */
-        @Test
-        void refusesAnEmptyRecordingAndSaysSo() throws IOException {
-            Path session = sessionDir();
-            Files.createFile(session.resolve("profile-20260220-120000.jfr"));
-
-            assertEquals(new FileLookup.EmptyRecording("profile-20260220-120000.jfr"),
-                    finishedSession().file(SESSION_ID, "profile-20260220-120000"));
-        }
-
-        /** Emptiness is refused for recordings only; an empty log is still an answer. */
-        @Test
-        void servesAnEmptyArtifact() throws IOException {
-            Path session = sessionDir();
-            Files.createFile(session.resolve("service-app.log"));
-
-            Path served = served(finishedSession().file(SESSION_ID, "service-app.log"));
-
-            assertEquals("service-app.log", served.getFileName().toString());
-            assertEquals(0, Files.size(served));
-        }
-
-        /** The profiler's {@code .jfr.N~} cache is served like any file; Microscope declines to ask for it. */
-        @Test
-        void servesTheProfilersCacheFileLikeAnyOther() throws IOException {
-            Path session = sessionDir();
-            Path cache = write(session, "profile-20260220-120000.jfr.1~", "cache");
-
-            assertEquals(cache, served(finishedSession().file(SESSION_ID, "profile-20260220-120000.jfr.1~")));
-        }
-
-        /**
-         * Mid-compression one id names a recording and its archive; the archive is served because it
-         * is the one that stays.
-         */
-        @Test
-        void prefersTheArchiveOverTheRecordingItWasMadeFrom() throws IOException {
-            Path session = sessionDir();
-            write(session, "profile-20260220-120000.jfr", "the whole chunk");
-            write(session, "profile-20260220-120000.jfr.lz4", "the archive of it");
-
-            assertEquals("profile-20260220-120000.jfr.lz4",
-                    served(finishedSession().file(SESSION_ID, "profile-20260220-120000")).getFileName().toString());
-        }
-
-        /** Whichever order the listing gives them in. */
-        @Test
-        void prefersTheArchiveWhicheverWayTheListingOrdersThem() throws IOException {
-            Path session = sessionDir();
-            write(session, "profile-20260220-120000.jfr.lz4", "the archive of it");
-            write(session, "profile-20260220-120000.jfr", "the whole chunk");
-
-            assertEquals("profile-20260220-120000.jfr.lz4",
-                    served(finishedSession().file(SESSION_ID, "profile-20260220-120000")).getFileName().toString());
-        }
-
-        @Test
-        void servesTheArchiveOnceTheRecordingIsGone() throws IOException {
-            Path session = sessionDir();
-            write(session, "profile-20260220-120000.jfr.lz4", "the archive");
-
-            assertEquals("profile-20260220-120000.jfr.lz4",
-                    served(finishedSession().file(SESSION_ID, "profile-20260220-120000")).getFileName().toString());
         }
     }
 
@@ -544,8 +386,7 @@ class FilesystemRepositoryStorageTest {
             Files.write(session.resolve(".profile-20260220-120000.jfr.lz4.0e57.tmp"),
                     "half an archive".getBytes(StandardCharsets.UTF_8));
 
-            List<RepositoryFile> files = finishedSession()
-                    .session(SESSION_ID)
+            List<RepositoryFile> files = listed(finishedSession(), SESSION_ID)
                     .orElseThrow()
                     .files();
 

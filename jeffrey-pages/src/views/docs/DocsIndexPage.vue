@@ -24,7 +24,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Heap dump', 'MCP server', 'Events'];
-const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Heartbeat'];
+const serverComponents = ['Retention', 'Compression', 'Scheduler', 'Storage dashboard'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
@@ -59,8 +59,8 @@ onMounted(() => {
         <DocsProductCard
           to="/docs/hub"
           title="Hub"
-          role="Headless · Multi-workspace"
-          description="The headless multi-workspace server. Continuously collect JFR recordings from running applications and serve them to Microscope clients."
+          role="Maintenance · Multi-workspace"
+          description="The maintenance service of the shared recording volume. Runs retention and compression as scheduled jobs, with Storage and Scheduler pages; Microscope reads the volume itself."
           icon="bi bi-cloud"
           :components="serverComponents"
           cta-text="Open Server docs"
@@ -70,7 +70,7 @@ onMounted(() => {
           to="/docs/provisioner"
           title="Provisioner"
           role="Standalone · Session bootstrap"
-          description="The profiling-session bootstrap tool. Reads a HOCON config to lay out the workspace/project/session tree, register sessions with the Hub, and generate the JVM argfile that starts your app under the profiler."
+          description="The profiling-session bootstrap tool. Reads a HOCON config to lay out the workspace/project/session tree, register sessions on the shared volume, and generate the JVM argfile that starts your app under the profiler."
           icon="bi bi-terminal"
           :components="provisionerComponents"
           cta-text="Open Provisioner docs"

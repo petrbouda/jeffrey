@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.manager.project;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,8 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -75,43 +72,11 @@ class HubProjectsManagerTest {
     }
 
     @Test
-    void findsAProjectByTheProvisionersId() {
-        TestVolume.project(workspaceDir, "p-1", "orders", T0);
-        TestVolume.project(workspaceDir, "p-2", "payments", T0);
-
-        assertEquals("payments", projects.project("p-2").orElseThrow().info().name());
-        assertTrue(projects.project("orders").isEmpty(), "the directory name is not the id");
-    }
-
-    @Test
     void aDirectoryWithoutAReadableMarkerIsNoProject() throws IOException {
         Files.createDirectories(workspaceDir.resolve("empty"));
         Path broken = Files.createDirectories(workspaceDir.resolve("broken"));
         Files.writeString(broken.resolve(".project-info.json"), "{ not json");
 
         assertTrue(projects.findAll().isEmpty());
-    }
-
-    @Test
-    void detailCountsTheSessionsAndSaysWhetherOneRecords() {
-        Path project = TestVolume.project(workspaceDir, "p-1", "orders", T0);
-        assertNull(projects.project("p-1").orElseThrow().detailedInfo().status(), "no session yet");
-
-        Path instance = TestVolume.instance(project, "pod-a", T0);
-        TestVolume.finished(TestVolume.session(instance, "s-1", T0), T0.plusSeconds(60));
-        TestVolume.heartbeat(TestVolume.session(instance, "s-2", T0.plusSeconds(120)), NOW);
-
-        ProjectManager.DetailedProjectInfo detail = projects.project("p-1").orElseThrow().detailedInfo();
-        assertEquals(RecordingStatus.ACTIVE, detail.status());
-        assertEquals(2, detail.sessionCount());
-    }
-
-    @Test
-    void deleteTakesTheProjectDirectory() {
-        Path project = TestVolume.project(workspaceDir, "p-1", "orders", T0);
-
-        projects.project("p-1").orElseThrow().delete();
-
-        assertFalse(Files.exists(project));
     }
 }

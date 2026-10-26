@@ -26,9 +26,6 @@ import java.util.List;
  * Access to the remote's workspaces and projects, used by the shared WorkspaceBrowser controllers.
  * Microscope supplies the implementation over its manager objects and maps the data into the shared
  * response DTOs, so the controllers stay free of Microscope's own types.
- *
- * <p>Implementations may throw {@link io.grpc.StatusRuntimeException} from the mutating operations;
- * the controllers translate those into HTTP errors at the boundary.
  */
 public interface RemoteBrowserAccess {
 

@@ -102,18 +102,6 @@ public final class HubWorkspacesManager implements WorkspacesManager {
                 && VolumeChanges.isDescribedWorkspace(volume, VolumePath.root().resolve(workspaceId));
     }
 
-    @Override
-    public Optional<WorkspaceManager> findById(String workspaceId) {
-        if (!WorkspaceReferenceId.isValid(workspaceId)) {
-            return Optional.empty();
-        }
-        VolumePath directory = VolumePath.root().resolve(workspaceId);
-        if (!VolumeMarkers.isDirectory(volume, directory)) {
-            return Optional.empty();
-        }
-        return workspace(directory).map(workspaceManagerFactory);
-    }
-
     private Optional<WorkspaceDirectory> workspace(VolumePath directory) {
         if (!WorkspaceReferenceId.isValid(directory.name())) {
             return Optional.empty();

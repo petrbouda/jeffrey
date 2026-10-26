@@ -25,11 +25,6 @@ package cafe.jeffrey.hub.core.jfr;
  * separate label.
  */
 public enum NotificationType {
-    PROJECT_CREATED,
-    PROJECT_DELETED,
-    INSTANCE_CREATED,
-    SESSION_CREATED,
-    SESSION_FINISHED,
     SESSION_DELETED,
     SESSIONS_CLEANED
 }

@@ -25,7 +25,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'architecture', text: 'Architecture', level: 2 },
-  { id: 'server-connection', text: 'Connection to Jeffrey Hub', level: 3 },
+  { id: 'remote-connection', text: 'Connection to the Remote', level: 3 },
   { id: 'recording-pipeline', text: 'Recording → Profile Pipeline', level: 3 },
   { id: 'mcp-integration', text: 'MCP Integration', level: 3 }
 ];
@@ -44,7 +44,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <h2 id="architecture">Architecture</h2>
-      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or connect to one remote &mdash; a Jeffrey Hub over gRPC, or the recording volume on an Azure file share &mdash; to read recordings from its workspaces. From Microscope's perspective, the server is an external dependency — its internals are documented separately.</p>
+      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read one remote &mdash; the recording volume on an Azure file share &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
 
       <div class="arch-diagram">
         <div class="arch-apps">
@@ -83,24 +83,24 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="arch-grpc-link">
-            <div class="grpc-line"></div>
-            <div class="grpc-label">
+          <div class="arch-remote-link">
+            <div class="remote-line"></div>
+            <div class="remote-label">
               <i class="bi bi-arrow-left-right"></i>
-              <span>gRPC</span>
+              <span>Azure Files REST</span>
             </div>
-            <div class="grpc-line"></div>
+            <div class="remote-line"></div>
           </div>
 
           <div class="arch-app server blackbox">
             <div class="arch-app-header server-header">
-              <i class="bi bi-cloud"></i>
-              <span>Jeffrey Hub</span>
-              <small>Remote</small>
+              <i class="bi bi-hdd-stack"></i>
+              <span>Recording Volume</span>
+              <small>Azure file share</small>
             </div>
             <div class="arch-blackbox-body">
               <i class="bi bi-box"></i>
-              <p>External service.</p>
+              <p>The shared volume the provisioner writes into, maintained by a Jeffrey Hub.</p>
               <router-link to="/docs/hub" class="arch-blackbox-link">
                 See Jeffrey Hub <i class="bi bi-arrow-right"></i>
               </router-link>
@@ -109,12 +109,11 @@ onMounted(() => {
         </div>
       </div>
 
-      <h3 id="server-connection">Connection to Jeffrey Hub</h3>
-      <p>When a Jeffrey Hub is connected as the remote, Microscope opens one cached gRPC client per service, all bundled into a <code>RemoteClients</code> record. Every file a session holds streams as 64&nbsp;KB chunks, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no remote connected, Microscope is fully offline and operates only on local files and heap dumps.</p>
+      <h3 id="remote-connection">Connection to the Remote</h3>
+      <p>When an Azure file share is declared as the remote, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>RemoteClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no remote declared, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>
-        <div class="service-chip"><i class="bi bi-collection"></i> Workspaces</div>
         <div class="service-chip"><i class="bi bi-folder"></i> Projects</div>
         <div class="service-chip"><i class="bi bi-hdd-network"></i> Instances</div>
         <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
@@ -264,8 +263,8 @@ onMounted(() => {
   color: #92400e;
 }
 
-/* gRPC link between apps */
-.arch-grpc-link {
+/* Link between Microscope and the remote */
+.arch-remote-link {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -274,13 +273,13 @@ onMounted(() => {
   min-width: 80px;
 }
 
-.grpc-line {
+.remote-line {
   width: 2px;
   height: 24px;
   background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 100%);
 }
 
-.grpc-label {
+.remote-label {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -291,8 +290,8 @@ onMounted(() => {
   border: 1px solid #c4b5fd;
 }
 
-.grpc-label i { color: #7c3aed; font-size: 0.9rem; }
-.grpc-label span {
+.remote-label i { color: #7c3aed; font-size: 0.9rem; }
+.remote-label span {
   font-size: 0.6rem;
   color: #6d28d9;
   font-weight: 600;
@@ -349,7 +348,7 @@ onMounted(() => {
   background: #ddd6fe;
 }
 
-/* ===== gRPC SERVICE CHIPS ===== */
+/* ===== REMOTE CLIENT CHIPS ===== */
 .service-chips {
   display: flex;
   flex-wrap: wrap;
@@ -432,13 +431,13 @@ onMounted(() => {
     gap: 0.75rem;
   }
 
-  .arch-grpc-link {
+  .arch-remote-link {
     flex-direction: row;
     padding: 0.5rem 0;
     min-width: auto;
   }
 
-  .grpc-line {
+  .remote-line {
     width: 24px;
     height: 2px;
   }

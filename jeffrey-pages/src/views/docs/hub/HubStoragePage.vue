@@ -46,7 +46,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Jeffrey Hub has no database. Workspaces, projects, instances, recording sessions and the JFR recordings themselves all live on a shared filesystem laid out by workspace and project, and every call reads that volume when it is asked. There is no managed database, no object store, no cache and no per-profile databases — Server collects and serves; analysis happens in Microscope.</p>
+      <p>Jeffrey Hub has no database. Workspaces, projects, instances, recording sessions and the JFR recordings themselves all live on a shared filesystem laid out by workspace and project, and every scheduler job reads that volume when it runs. There is no managed database, no object store and no per-profile databases — Server maintains the volume; analysis happens in Microscope, which reads the same volume from the Azure file share that holds it.</p>
 
       <h2 id="design-philosophy">Design Philosophy</h2>
       <p>Server's storage choices are driven by deployment realism — fleets, retention, and shared filesystems:</p>
@@ -83,7 +83,7 @@ onMounted(() => {
       </div>
 
       <h2 id="volume-state">The Volume Is the State</h2>
-      <p>The workspaces directory is the single source of truth for what exists in this deployment. Every listing, download and job reads the marker files there when it runs; nothing is copied into a store of the Hub's own, so nothing can drift from the files. Scheduler jobs are <em>not</em> stored anywhere either — they are resolved from configuration at startup, so changing a job requires editing properties and restarting.</p>
+      <p>The workspaces directory is the single source of truth for what exists in this deployment. Every job — and Microscope, from its side — reads the marker files there when it runs; nothing is copied into a store of the Hub's own, so nothing can drift from the files. Scheduler jobs are <em>not</em> stored anywhere either — they are resolved from configuration at startup, so changing a job requires editing properties and restarting.</p>
 
       <div class="db-card platform">
         <div class="card-header">
@@ -96,7 +96,7 @@ onMounted(() => {
           <p><strong>Purpose:</strong> Describe every entity the Hub lists.</p>
           <h5>Contains:</h5>
           <ul>
-            <li><code>.workspace-info.json</code> — a workspace's name and creation time, written by the Hub when the workspace is created</li>
+            <li><code>.workspace-info.json</code> — a workspace's name and creation time, written by the Hub's default-workspace initializer or by Microscope when a user creates the workspace</li>
             <li><code>.project-info.json</code>, <code>.instance-info.json</code>, <code>.session-info.json</code> — written by the Provisioner</li>
             <li><code>.heartbeat/</code> — a session's liveness files, from which the Hub derives its status on every read</li>
             <li><code>.retained</code> — an empty flag file pinning a session against retention</li>
@@ -106,7 +106,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="info">
-        Server never builds per-profile databases. Profiles are a Microscope concept — Server's job is to capture JFR files and serve them over gRPC; Microscope is what parses them on demand.
+        Server never builds per-profile databases and never serves a recording. Profiles are a Microscope concept — Server's job is to keep the volume within its retention limits and compress finished chunks; Microscope downloads the files straight off the share and parses them on demand.
       </DocsCallout>
 
       <h2 id="recording-storage">Recording Storage</h2>
@@ -125,7 +125,7 @@ onMounted(() => {
       <p>Each session ends up with its rotated JFR chunks and any optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, instance or session.</p>
 
       <h2 id="shared-filesystem">Shared Filesystem</h2>
-      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner and the profiled application — also mounts. The producers write JFR files; Server discovers and serves them.</p>
+      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner and the profiled application — also mounts. The producers write JFR files; Server retains and compresses them, and Microscope reads them from the same volume on an Azure file share.</p>
 
       <div class="db-card profile">
         <div class="card-header">
@@ -144,17 +144,17 @@ onMounted(() => {
             <li>JFR recordings (chunked)</li>
             <li>Heap dumps and JVM artifacts</li>
           </ul>
-          <h5>Read by Jeffrey Hub:</h5>
+          <h5>Maintained by Jeffrey Hub:</h5>
           <ul>
-            <li>Lists workspaces, projects, instances and sessions from the marker files on every request</li>
+            <li>Lists workspaces, projects, instances and sessions from the marker files on every job run</li>
             <li>Derives each session's status from its heartbeat files when it reads it</li>
-            <li>Streams JFR chunks to Microscope clients over gRPC</li>
+            <li>Deletes what retention no longer allows and LZ4-compresses finished JFR chunks</li>
           </ul>
         </div>
       </div>
 
       <DocsCallout type="tip">
-        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention job deletes sessions and instance directories, creating a workspace writes its <code>.workspace-info.json</code>, retaining a session writes its <code>.retained</code> flag, and the delete RPCs remove files on request. A read-only mount leaves every one of those failing quietly.
+        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention job deletes sessions and instance directories, and the default-workspace initializer writes its <code>.workspace-info.json</code>. A read-only mount leaves every one of those failing quietly. The user's own changes — creating or deleting a workspace, deleting a project, deleting or pinning a session — are made by Microscope on the Azure file share, not by the Server.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
@@ -164,7 +164,7 @@ onMounted(() => {
         <pre><code>$JEFFREY_HOME/                        # Server home
 └── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
     └── {workspace-ref-id}/
-        ├── .workspace-info.json      # written by the Hub when the workspace is created
+        ├── .workspace-info.json      # written when the workspace is created
         └── {project}/
             ├── .project-info.json
             └── {instance}/
@@ -185,7 +185,7 @@ onMounted(() => {
       <p>Earlier Hubs kept a copy of the volume in an embedded DuckDB file. Moving to a Hub without one is a one-time break:</p>
       <ul>
         <li><strong>The old database is ignored.</strong> An existing <code>$JEFFREY_HOME/jeffrey-data.db</code> (and its <code>.wal</code>) is never opened and can be deleted.</li>
-        <li><strong>Workspaces need their marker.</strong> A workspace created over gRPC before the upgrade has no <code>.workspace-info.json</code>, so it is not listed. Create it again with the same reference id — creating adopts the existing directory with its projects — or set <code>jeffrey.hub.workspaces.auto-create=true</code> to list every workspace directory.</li>
+        <li><strong>Workspaces need their marker.</strong> A workspace created before the upgrade has no <code>.workspace-info.json</code>, so it is not listed. Create it again with the same reference id from Microscope — creating adopts the existing directory with its projects — or set <code>jeffrey.hub.workspaces.auto-create=true</code> to list every workspace directory.</li>
         <li><strong>Microscope loses its links to older downloads.</strong> Recordings and profiles Microscope downloaded before the upgrade carry the old hub UUIDs, so they no longer link to their hub project: they are not recognised as already downloaded and do not appear in that project's profile list. Download them again to restore the link.</li>
       </ul>
     </div>

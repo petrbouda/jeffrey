@@ -38,25 +38,22 @@ public record RemoteArtifactsMcpToolsFixture(
         OperationAnswers answers,
         Clock clock,
         Duration responseBudget,
-        Duration fetchDeadline,
         AdvertisedFamilies advertised) {
-
-    public static final Duration FETCH_DEADLINE = Duration.ofHours(1);
 
     public static RemoteArtifactsMcpToolsFixture of(
             ProjectManagerResolver resolver, RecordingsManager recordings, Path artifactsDir, Path profilesDir,
             McpOperationRegistry operations, Clock clock, AdvertisedFamilies advertised) {
         return new RemoteArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, operations,
-                ToolFixtures.answers(), clock, BoundedJobs.WAIT_BUDGET, FETCH_DEADLINE, advertised);
+                ToolFixtures.answers(), clock, BoundedJobs.WAIT_BUDGET, advertised);
     }
 
-    public RemoteArtifactsMcpToolsFixture withBudgets(Duration response, Duration deadline) {
+    public RemoteArtifactsMcpToolsFixture withBudget(Duration response) {
         return new RemoteArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, operations, answers,
-                clock, response, deadline, advertised);
+                clock, response, advertised);
     }
 
     public RemoteArtifactsMcpTools build() {
         return new RemoteArtifactsMcpTools(resolver, recordings, artifactsDir, profilesDir, operations, answers, clock,
-                responseBudget, fetchDeadline, advertised);
+                responseBudget, advertised);
     }
 }

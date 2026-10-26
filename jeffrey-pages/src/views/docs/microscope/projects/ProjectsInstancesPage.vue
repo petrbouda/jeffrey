@@ -52,7 +52,7 @@ onMounted(() => {
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-grid" title="Instances">
-            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the remote, as the hub&rsquo;s last retention pass measured them.
+            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the remote. Only the Jeffrey Hub&rsquo;s retention pass measures that figure, and Microscope does not connect to the hub, so on the Azure file share the size reads as not measured; the hub&rsquo;s own <router-link to="/docs/hub/architecture#web-ui">Storage page</router-link> shows it.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-bar-chart-steps" title="Timeline">
             A swimlane view of when each instance and its sessions were active. Pick a time range (1H, 6H, 24H, 7D, 30D) to focus on the period you care about.
@@ -89,13 +89,13 @@ onMounted(() => {
           </tbody>
         </table>
 
-        <p>The status is derived by the hub from the instance's sessions each time it is listed. When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
+        <p>The status is derived from the instance's sessions each time it is listed. When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
 
         <h2 id="instances-tab">Instances Tab</h2>
         <p>On the Instances tab, the right end of the tab row carries a one-line summary of the project: active and finished instances (pending too, when there are any), sessions and storage size. Click it to open the full breakdown:</p>
         <ul>
           <li><strong>Instances</strong> — counts by status (pending, active, finished), total instances, total sessions, and uptime range.</li>
-          <li><strong>Storage</strong> — the bytes the project occupies on the remote, as the hub's last retention pass measured them. Opening the tab never walks the project's files for it; until the first pass has run the breakdown says the project is not measured yet.</li>
+          <li><strong>Storage</strong> — the bytes the project occupies on the remote. Opening the tab never walks the project's files for it, and only the Jeffrey Hub's retention pass measures it, so on the Azure file share the breakdown says the project is not measured; see the hub's Storage page for the figure.</li>
         </ul>
         <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, an instance's page reads that instance and its sessions, and a session's files are fetched only when the session is expanded or its drawer is opened.</p>
 

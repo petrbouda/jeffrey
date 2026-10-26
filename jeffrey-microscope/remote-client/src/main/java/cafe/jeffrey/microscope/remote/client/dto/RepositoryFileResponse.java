@@ -36,7 +36,7 @@ public record RepositoryFileResponse(
     /**
      * The file as this application's own API reports it, with the status resolved here.
      *
-     * <p>A file has no status of its own and none comes over the wire: the hub says which files
+     * <p>A file has no status of its own and none comes with the listing: the volume says which files
      * exist, and whether one is still being written is a fact about the session, which
      * {@link RecordingSession#isOpen} answers. It is resolved at this boundary because a reader
      * of this response holds one file at a time — a table row, a checkbox — and asking it to

@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.core.volume;
 
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
@@ -57,6 +56,6 @@ public record WorkspaceDirectory(VolumeAccess volume, VolumePath path, String na
      * caller that shows the count asks for it, not every request that merely names the workspace.
      */
     public WorkspaceInfo info() {
-        return new WorkspaceInfo(id(), name, createdAt, WorkspaceStatus.AVAILABLE, projects().size());
+        return new WorkspaceInfo(id(), name, createdAt, projects().size());
     }
 }

@@ -108,7 +108,6 @@ class HubRepositoryManagerDeleteSessionTest {
         Files.writeString(corrupt.resolve(JeffreyLayout.SESSION_INFO_FILE), "{not json");
 
         assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("s-1"));
-        assertFalse(manager.setSessionRetained("s-1", true), "pinning answers the same as deleting");
         assertTrue(Files.exists(corrupt));
     }
 

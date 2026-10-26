@@ -382,13 +382,9 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsRecordingSessionsLifecycle',
         component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsLifecyclePage.vue')
       },
-      // Server gRPC API
-      {
-        path: 'hub/grpc-api',
-        alias: 'server/grpc-api',
-        name: 'DocsServerGrpcApi',
-        component: () => import('@/views/docs/hub/HubGrpcApiPage.vue')
-      },
+      // Legacy: the hub's gRPC API page was removed together with the API itself.
+      { path: 'hub/grpc-api', redirect: '/docs/hub/architecture' },
+      { path: 'server/grpc-api', redirect: '/docs/hub/architecture' },
       // Server Configuration — single merged page
       {
         path: 'hub/configuration',
@@ -739,7 +735,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'configuration/application-properties', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/advanced-properties', redirect: '/docs/microscope/configuration/advanced-properties' },
       { path: 'configuration/secrets', redirect: '/docs/microscope/configuration/application-properties' },
-      { path: 'architecture/public-api', redirect: '/docs/hub/grpc-api' },
+      { path: 'architecture/public-api', redirect: '/docs/hub/architecture' },
       { path: 'jeffrey-jfr-events/overview', redirect: '/docs/tracing/events' },
       { path: 'features/overview', redirect: '/docs/getting-started/introduction' },
 

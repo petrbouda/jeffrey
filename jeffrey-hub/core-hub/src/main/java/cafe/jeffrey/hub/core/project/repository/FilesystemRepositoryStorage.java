@@ -35,7 +35,6 @@ import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import cafe.jeffrey.shared.volume.layout.SessionDirectory;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
-import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
 import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.shared.volume.recording.RecordingFormat;
@@ -46,7 +45,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -111,8 +109,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.lifecycle().heartbeatMissing());
     }
 
-    @Override
-    public Optional<RecordingSession> session(String sessionId) {
+    private Optional<RecordingSession> session(String sessionId) {
         return sessions.session(sessionId).map(this::withFiles);
     }
 
@@ -121,13 +118,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         return sessions.all().stream()
                 .map(session -> detail.withFiles() ? withFiles(session) : toRecordingSession(session))
                 .toList();
-    }
-
-    @Override
-    public RecordingSession withFiles(RecordingSession session) {
-        VolumePath sessionDir = tree.path().resolve(session.instanceId()).resolve(session.id());
-        ZoneId zone = tree.sessionAt(sessionDir).map(SessionDirectory::zone).orElse(ZoneOffset.UTC);
-        return withFiles(session, sessionDir, zone);
     }
 
     /** A session just read, with its files: its directory and zone are known already. */
@@ -163,13 +153,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 .toList();
     }
 
-    @Override
-    public Optional<InstanceSessions> instanceWithSessions(String instanceId) {
-        return sessions.instance(instanceId).map(found -> new InstanceSessions(
-                instanceInfo(found.summary()),
-                found.sessions().stream().map(FilesystemRepositoryStorage::toRecordingSession).toList()));
-    }
-
     private static ProjectInstanceInfo instanceInfo(InstanceSummary summary) {
         return new ProjectInstanceInfo(
                 summary.instance().id(),
@@ -177,16 +160,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 summary.instance().createdAt(),
                 summary.finishedAt().orElse(null),
                 summary.sessionCount());
-    }
-
-    @Override
-    public boolean setRetained(String sessionId, boolean retained) {
-        if (!VolumeChanges.setRetained(volume, tree, sessionId, retained)) {
-            return false;
-        }
-        LOG.info("Updated session retention: project_id={} session_id={} retained={}",
-                projectInfo.id(), sessionId, retained);
-        return true;
     }
 
     /**
@@ -255,41 +228,6 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         }
         volume.delete(instanceDir.get());
         LOG.info("Deleted instance directory: instance_path={}", instanceDir.get());
-    }
-
-    @Override
-    public void deleteProjectDirectory() {
-        if (!VolumeMarkers.isDirectory(volume, tree.path())) {
-            return;
-        }
-        volume.delete(tree.path());
-        LOG.info("Deleted project directory: project_path={}", tree.path());
-    }
-
-    // ========== Files ==========
-
-    @Override
-    public FileLookup file(String sessionId, String fileId) {
-        RecordingSession session = resolveSession(sessionId);
-
-        Optional<RepositoryFile> match = session.files().stream()
-                .filter(candidate -> candidate.id().equals(fileId))
-                .reduce(RecordingFormat.theOneThatStays(RepositoryFile::name));
-        if (match.isEmpty()) {
-            return new FileLookup.NotInSession(sessionId, fileId);
-        }
-
-        RepositoryFile file = match.get();
-        if (session.isOpen(file)) {
-            return new FileLookup.StillWriting(file.name());
-        }
-        if (!Files.isRegularFile(file.filePath())) {
-            return new FileLookup.Vanished(sessionId, file.name());
-        }
-        if (file.isRecordingFile() && !file.hasContent()) {
-            return new FileLookup.EmptyRecording(file.name());
-        }
-        return new FileLookup.Found(file.filePath());
     }
 
     // ========== Session Compression ==========

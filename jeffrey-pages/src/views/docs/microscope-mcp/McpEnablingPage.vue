@@ -49,8 +49,7 @@ const remoteToggle = `jeffrey.microscope.mcp.remote.enabled=false`;
 
 const remoteTimeouts = `# Positive ISO-8601 durations; defaults shown
 jeffrey.microscope.mcp.remote.scan-timeout=PT20S
-jeffrey.microscope.mcp.remote.download-response-timeout=PT45S
-jeffrey.microscope.mcp.remote.download-timeout=PT1H`;
+jeffrey.microscope.mcp.remote.download-response-timeout=PT45S`;
 
 const windowQuestion = `# A whole-session remote_download of a session longer than this, or holding more than
 # that, first asks a client that declared form elicitation which part to bring; defaults shown.
@@ -146,14 +145,14 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
       <h2 id="turning-remote-access-off">Turning Remote Access Off</h2>
-      <p>The <code>remote_</code> family lets a session list the recording sessions on the remote this Microscope is configured with &mdash; a <router-link to="/docs/hub">Jeffrey Hub</router-link> or the recording volume on an Azure file share, see <router-link to="/docs/microscope/configuration/application-properties#remote">Remote</router-link> &mdash; and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
+      <p>The <code>remote_</code> family lets a session list the recording sessions on the remote this Microscope is configured with &mdash; the recording volume on an Azure file share, see <router-link to="/docs/microscope/configuration/application-properties#remote">Remote</router-link> &mdash; and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
       <DocsCodeBlock :code="remoteToggle" language="properties" />
 
       <p>It is one of two families with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Remote access reaches <em>out</em>, to whatever infrastructure the configured remote points at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
 
       <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>remote_</code> tool means it is off. The switch takes <code>remote_files</code> and <code>remote_fetchFile</code> with it.</p>
 
-      <p>Remote discovery has a shared deadline across all remote calls. Downloads &mdash; and single-file fetches, which share the two settings &mdash; have a response deadline, including session lookup, and a separate transfer deadline for work continuing in the background. Increase the transfer deadline for large recordings on a slow connection:</p>
+      <p>Remote discovery has a shared deadline across all remote calls. Downloads &mdash; and single-file fetches, which share the setting &mdash; have a response deadline, including session lookup; a transfer that outlasts it carries on in the background, and calling the tool again with the same arguments reports the finished copy:</p>
       <DocsCodeBlock :code="remoteTimeouts" language="properties" />
 
       <p>A client that declared MCP form elicitation is asked which part of a <em>large</em> session to bring before a whole-session <code>remote_download</code> moves it &mdash; the last N minutes, its startup, its latest or busiest chunk, the minutes before or around a moment, a window of the user&rsquo;s own, or all of it; the <router-link to="/docs/microscope-mcp/tools#window-question">Tool Reference</router-link> has the question and its answers. Two properties say what large means: a session that runs longer than the duration &mdash; to its finish, or to now while it is still recording &mdash; or holds more than the size. Anything smaller comes down whole without a question, and so does every session for a client that did not declare form elicitation, and a call that already names a <code>window</code>, bounds or <code>fileIds</code>. The duration is ISO-8601; the size is a data size such as <code>500MB</code> or <code>2GB</code>, where <code>1GB</code> is 1024<sup>3</sup> bytes. <code>PT0S</code> or <code>0B</code> means always ask. Both are read at startup.</p>

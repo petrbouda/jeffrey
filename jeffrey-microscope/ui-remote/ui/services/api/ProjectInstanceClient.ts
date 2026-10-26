@@ -41,7 +41,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
 
   /**
    * One instance with its sessions, newest first, each with its file count and size but not its
-   * files — what the instance's page shows, in one call. Undefined when the hub no longer has it.
+   * files — what the instance's page shows, in one call. Undefined when the remote no longer has it.
    */
   async find(instanceId: string): Promise<InstanceWithSessions | undefined> {
     return super

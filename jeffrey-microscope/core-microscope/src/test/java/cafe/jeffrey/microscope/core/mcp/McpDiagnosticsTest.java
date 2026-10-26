@@ -22,7 +22,9 @@ import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolMetrics;
@@ -31,7 +33,6 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
-import io.grpc.Status;
 import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
@@ -43,6 +44,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -105,7 +107,8 @@ class McpDiagnosticsTest {
     void separatesAnUnreachableRemoteWithoutReturningItsAddressOrErrorDetails() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
         RemoteConnection remote = configured();
-        when(remote.infoOrThrow()).thenThrow(Status.UNAVAILABLE.withDescription("credential-secret").asRuntimeException());
+        when(remote.infoOrThrow()).thenThrow(
+                new JeffreyException(ErrorType.INTERNAL, ErrorCode.REMOTE_UNAVAILABLE, "credential-secret"));
 
         String text = diagnostics(McpTestProperties.of(true, true, false, Set.of())).json(tools, List.of(), 0);
         var result = Json.readTree(text).path("remote");
@@ -114,16 +117,22 @@ class McpDiagnosticsTest {
         assertTrue(result.path("unreachable").asBoolean());
         assertFalse(result.path("deadlineExceeded").asBoolean(true));
         assertFalse(text.contains("credential-secret"));
-        assertFalse(text.contains("internal.example"));
+        assertFalse(text.contains("internal.file.core.windows.net"));
     }
 
     @Test
     void separatesAMissedDeadline() {
         when(repositories.findAllProfiles()).thenReturn(List.of());
         RemoteConnection remote = configured();
-        when(remote.infoOrThrow()).thenThrow(Status.DEADLINE_EXCEEDED.withDescription("credential-secret").asRuntimeException());
+        // A probe that never answers, against a budget far shorter than the default
+        when(remote.infoOrThrow()).thenAnswer(invocation -> {
+            new CountDownLatch(1).await();
+            return null;
+        });
 
-        var result = remoteStatus();
+        String text = diagnostics(McpTestProperties.of(true, true, false, Set.of()), Duration.ofMillis(50))
+                .json(tools, List.of(), 0);
+        var result = Json.readTree(text).path("remote");
 
         assertFalse(result.path("unreachable").asBoolean(true));
         assertTrue(result.path("deadlineExceeded").asBoolean());
@@ -157,8 +166,12 @@ class McpDiagnosticsTest {
     }
 
     private McpDiagnostics diagnostics(ExternalMcpProperties properties) {
+        return diagnostics(properties, Duration.ofSeconds(1));
+    }
+
+    private McpDiagnostics diagnostics(ExternalMcpProperties properties, Duration probeTimeout) {
         return new McpDiagnostics(repositories, remoteManager, properties,
-                CLOCK, Duration.ofSeconds(1), McpSkillProvider.NONE);
+                CLOCK, probeTimeout, McpSkillProvider.NONE);
     }
 
     private JsonNode remoteStatus() {
@@ -168,8 +181,9 @@ class McpDiagnosticsTest {
 
     private RemoteConnection configured() {
         RemoteConnection connection = mock(RemoteConnection.class);
-        when(connection.info()).thenReturn(new RemoteInfo("internal",
-                new HubAddress("internal.example", 9090, true)));
+        when(connection.info()).thenReturn(new RemoteInfo("internal", new AzureFilesAddress(
+                "https://internal.file.core.windows.net", "recordings", "",
+                AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false)));
         when(remoteManager.current()).thenReturn(Optional.of(connection));
         return connection;
     }

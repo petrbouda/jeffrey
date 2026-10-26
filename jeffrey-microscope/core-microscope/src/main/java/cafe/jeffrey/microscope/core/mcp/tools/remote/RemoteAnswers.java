@@ -23,9 +23,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
-import cafe.jeffrey.microscope.model.remote.RemoteAddress;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
@@ -54,21 +51,6 @@ public final class RemoteAnswers {
         UNREACHABLE
     }
 
-    /** What the remote is: a Jeffrey Hub, or the recording volume on an Azure file share. */
-    public enum RemoteKind {
-        /** A Jeffrey Hub reached over gRPC. */
-        GRPC,
-        /** The recording volume on an Azure file share, reached with no hub in between. */
-        AZURE_FILES;
-
-        public static RemoteKind of(RemoteAddress address) {
-            return switch (address) {
-                case HubAddress _ -> GRPC;
-                case AzureFilesAddress _ -> AZURE_FILES;
-            };
-        }
-    }
-
     /** The one remote this installation's configuration declares, and whether it answers right now. */
     public record RemoteStatus(
             RemoteState state,
@@ -79,12 +61,8 @@ public final class RemoteAnswers {
             @McpDescription("What the remote is called; null when none is configured")
             String name,
             @McpNullable
-            @McpDescription("GRPC for a Jeffrey Hub, AZURE_FILES for the recording volume on an Azure file share; "
+            @McpDescription("The Azure file share holding the recording volume, as azure-files:<endpoint>/<share>[/<root>]; "
                     + "null when none is configured")
-            RemoteKind kind,
-            @McpNullable
-            @McpDescription("Where it is reached: host:port for GRPC, azure-files:<endpoint>/<share>[/<root>] for "
-                    + "AZURE_FILES; null when none is configured")
             String address,
             @McpNullable
             @McpDescription("True for a remote declared read-only: its sessions list and download as usual, but "

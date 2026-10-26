@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.manager.project;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 public interface ProjectsManager {
@@ -31,9 +30,4 @@ public interface ProjectsManager {
 
     /** Every project directory of the workspace that carries a readable project marker. */
     List<ProjectManager> findAll();
-
-    /**
-     * @param projectId the provisioner's project id, as its marker declares it
-     */
-    Optional<ProjectManager> project(String projectId);
 }

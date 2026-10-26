@@ -1,13 +1,13 @@
 ---
 name: api-contract-reviewer
-description: Reviews API contracts for consistency between the Java backend, the TypeScript frontend and the gRPC proto definitions. Use after changing a REST DTO, a controller signature, a proto message or an API client.
+description: Reviews API contracts for consistency between the Java backend and the TypeScript frontend. Use after changing a REST DTO, a controller signature or an API client.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---
 
 # API Contract Reviewer
 
-Review API contracts for consistency between backend (Java), frontend (TypeScript), and gRPC (Proto) definitions.
+Review API contracts for consistency between backend (Java) and frontend (TypeScript).
 
 ## Instructions
 
@@ -16,9 +16,6 @@ Review API contracts for consistency between backend (Java), frontend (TypeScrip
    - Java DTOs/records used in API responses
    - TypeScript API clients (`jeffrey-microscope/pages-microscope/src/services/api/*.ts`)
    - TypeScript model types (`jeffrey-microscope/pages-microscope/src/services/api/model/*.ts`)
-   - Proto files (`shared/hub-api/src/main/proto/**/*.proto`)
-   - gRPC service implementations (`*GrpcService.java`)
-   - gRPC clients (`Remote*Client.java`)
 
 2. **Check REST API consistency**:
    - TypeScript API client URLs must match Java `@Path` annotations
@@ -26,30 +23,18 @@ Review API contracts for consistency between backend (Java), frontend (TypeScrip
    - HTTP methods in TypeScript (axios.get/post/put/delete) must match Java annotations (@GET/@POST/@PUT/@DELETE)
    - Request/response content types must be consistent (JSON headers where expected)
 
-3. **Check gRPC contract consistency**:
-   - Proto service RPCs must have corresponding methods in `*GrpcService.java` implementations
-   - Proto message fields must match the data being serialized in gRPC service implementations
-   - gRPC client methods (`Remote*Client.java`) must match proto service definitions
-   - `HubClients` record must include all gRPC clients
-
-4. **Check REST-to-gRPC parity** (for features that support both local and remote):
-   - Internal REST endpoints in `jeffrey-microscope` should have corresponding gRPC service methods
-   - Manager interfaces should have both local and remote implementations
-   - Data returned via REST and gRPC should be structurally equivalent
-
-5. **Report findings**:
-   - **BREAKING**: Missing endpoints, mismatched types, missing gRPC implementations
+3. **Report findings**:
+   - **BREAKING**: Missing endpoints, mismatched types
    - **WARNING**: Inconsistent naming, missing TypeScript types for new Java DTOs
    - **INFO**: Suggestions for improving API consistency
    - For each finding: file paths, line numbers, and specific fix needed
 
-6. If all contracts are consistent, confirm with a summary of what was checked.
+4. If all contracts are consistent, confirm with a summary of what was checked.
 
 ## When to Use
 
 Run this agent after:
 - Adding or modifying REST resources or endpoints
 - Changing Java DTOs or record types used in API responses
-- Modifying proto files or gRPC service implementations
 - Adding or updating TypeScript API clients or model types
-- Extending features from local to remote workspace (gRPC)
+- Changing the remote workspace REST API (`ui-remote`)

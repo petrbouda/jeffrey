@@ -38,7 +38,6 @@ public record RemoteMcpToolsFixture(
         Clock clock,
         Duration scanBudget,
         Duration downloadResponseBudget,
-        Duration downloadDeadline,
         McpOperationRegistry operations,
         OperationAnswers answers,
         DownloadWindowQuestion windowQuestion,
@@ -46,7 +45,6 @@ public record RemoteMcpToolsFixture(
 
     public static final Duration SCAN_BUDGET = Duration.ofSeconds(20);
     public static final Duration DOWNLOAD_RESPONSE_BUDGET = BoundedJobs.WAIT_BUDGET;
-    public static final Duration DOWNLOAD_DEADLINE = Duration.ofHours(1);
 
     /** The defaults of the two {@code ask-window-over-*} properties: an hour or a gibibyte. */
     public static final DownloadWindowQuestion WINDOW_QUESTION =
@@ -61,39 +59,39 @@ public record RemoteMcpToolsFixture(
             Clock clock) {
         McpOperationRegistry operations = new McpOperationRegistry(clock);
         return new RemoteMcpToolsFixture(remoteManager, resolver, recordingsManager, clock, SCAN_BUDGET,
-                DOWNLOAD_RESPONSE_BUDGET, DOWNLOAD_DEADLINE, operations, ToolFixtures.answers(),
+                DOWNLOAD_RESPONSE_BUDGET, operations, ToolFixtures.answers(),
                 WINDOW_QUESTION, AdvertisedFamiliesFixture.EVERY_FAMILY);
     }
 
-    public RemoteMcpToolsFixture withBudgets(Duration scan, Duration downloadResponse, Duration deadline) {
+    public RemoteMcpToolsFixture withBudgets(Duration scan, Duration downloadResponse) {
         return new RemoteMcpToolsFixture(remoteManager, resolver, recordingsManager, clock, scan, downloadResponse,
-                deadline, operations, answers, windowQuestion, advertised);
+                operations, answers, windowQuestion, advertised);
     }
 
     /** Another registry, and the standard answers over it. */
     public RemoteMcpToolsFixture withOperations(McpOperationRegistry registry) {
         return new RemoteMcpToolsFixture(remoteManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, downloadDeadline, registry, ToolFixtures.answers(), windowQuestion, advertised);
+                downloadResponseBudget, registry, ToolFixtures.answers(), windowQuestion, advertised);
     }
 
     public RemoteMcpToolsFixture withAnswers(OperationAnswers replacement) {
         return new RemoteMcpToolsFixture(remoteManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, downloadDeadline, operations, replacement, windowQuestion, advertised);
+                downloadResponseBudget, operations, replacement, windowQuestion, advertised);
     }
 
     /** Only the families an installation serves, so a next call to a withheld one is left out. */
     public RemoteMcpToolsFixture withAdvertised(AdvertisedFamilies replacement) {
         return new RemoteMcpToolsFixture(remoteManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, downloadDeadline, operations, answers, windowQuestion, replacement);
+                downloadResponseBudget, operations, answers, windowQuestion, replacement);
     }
 
     public RemoteMcpToolsFixture withWindowQuestion(DownloadWindowQuestion replacement) {
         return new RemoteMcpToolsFixture(remoteManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, downloadDeadline, operations, answers, replacement, advertised);
+                downloadResponseBudget, operations, answers, replacement, advertised);
     }
 
     public RemoteMcpTools build() {
         return new RemoteMcpTools(remoteManager, resolver, recordingsManager, clock, scanBudget, downloadResponseBudget,
-                downloadDeadline, operations, answers, windowQuestion, advertised);
+                operations, answers, windowQuestion, advertised);
     }
 }

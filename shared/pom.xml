@@ -34,7 +34,6 @@
         <module>common</module>
         <module>volume</module>
         <module>persistence</module>
-        <module>hub-api</module>
         <module>test</module>
         <module>sql-builder</module>
         <module>ui</module>

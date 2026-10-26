@@ -56,8 +56,9 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.remote.HubAddress;
-import cafe.jeffrey.microscope.model.remote.RemoteAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
+import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
@@ -72,11 +73,10 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
-import io.grpc.Context;
-import io.grpc.Status;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -103,7 +103,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING;
@@ -135,7 +134,7 @@ class RemoteMcpToolsTest {
     private static final Instant NOW = Instant.parse("2026-03-01T12:00:00Z");
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
-    private static final String ADDRESS = "hub.example.com:443";
+    private static final String ADDRESS = "azure-files:https://jeffreyprod.file.core.windows.net/recordings";
     private static final String WORKSPACE_ID = "ws-1";
     private static final String PROJECT_ID = "proj-1";
     private static final String SESSION_ID = "session-1";
@@ -164,7 +163,8 @@ class RemoteMcpToolsTest {
     }
 
     private static RemoteInfo remoteInfo(String name) {
-        return new RemoteInfo(name, new HubAddress("hub.example.com", 443, false));
+        return new RemoteInfo(name, new AzureFilesAddress("https://jeffreyprod.file.core.windows.net",
+                "recordings", "", AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false));
     }
 
     /** The remote configuration declares: what every listing and download reaches. */
@@ -183,7 +183,7 @@ class RemoteMcpToolsTest {
         RemoteConnection down = mock(RemoteConnection.class);
         when(down.info()).thenReturn(remoteInfo(name));
         when(down.infoOrThrow())
-                .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
+                .thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "connection refused"));
         return down;
     }
 
@@ -401,7 +401,7 @@ class RemoteMcpToolsTest {
         void partialEmptyCatalogueNeverClaimsThereAreZeroSessions() {
             RemoteConnection down = mock(RemoteConnection.class);
             when(down.info()).thenReturn(remoteInfo("production"));
-            when(down.infoOrThrow()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+            when(down.infoOrThrow()).thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "Cannot reach the recording volume"));
             configure(down);
             noLocalRecordings();
             JsonNode result = page(tools, null, null, 1, null);
@@ -524,8 +524,8 @@ class RemoteMcpToolsTest {
             assertEquals("REACHABLE", answer.get("state").asString());
             assertTrue(answer.get("reason").isNull());
             assertEquals("production", answer.get("name").asString());
-            assertEquals("hub.example.com:443", answer.get("address").asString());
-            assertEquals("GRPC", answer.get("kind").asString());
+            assertEquals("azure-files:https://jeffreyprod.file.core.windows.net/recordings",
+                    answer.get("address").asString());
             assertFalse(answer.get("readOnly").asBoolean());
             assertEquals("2.1.0", answer.get("version").asString());
             assertTrue(answer.get("uiLink").asString().endsWith("/remote"), answer.get("uiLink").asString());
@@ -557,11 +557,11 @@ class RemoteMcpToolsTest {
             McpToolResult result = tools.status();
             JsonNode answer = status(result);
 
-            assertEquals("AZURE_FILES", answer.get("kind").asString());
+            assertFalse(answer.has("kind"));
             assertTrue(answer.get("readOnly").asBoolean());
             assertEquals("azure-files:https://jeffreyprod.file.core.windows.net/recordings",
                     answer.get("address").asString());
-            assertTrue(result.text().contains("| AZURE_FILES |"), result.text());
+            assertTrue(result.text().contains("| true |"), result.text());
         }
 
         @Test
@@ -589,9 +589,7 @@ class RemoteMcpToolsTest {
             assertTrue(reason.contains("configuration only"), reason);
             assertFalse(reason.contains("Remote page"), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.name=Production"), reason);
-            assertTrue(reason.contains("jeffrey.microscope.remote.hostname="), reason);
-            assertTrue(reason.contains("jeffrey.microscope.remote.port="), reason);
-            assertTrue(reason.contains("jeffrey.microscope.remote.plaintext=false"), reason);
+            assertFalse(reason.contains("hostname"), reason);
             assertTrue(reason.contains("jeffrey.microscope.remote.azure-files.share="), reason);
             assertTrue(result.text().contains(UiLinks.page(MicroscopePage.REMOTE)), result.text());
         }
@@ -840,7 +838,7 @@ class RemoteMcpToolsTest {
         void aRemoteThatDidNotAnswerIsNeverAnEmptyCatalogue() {
             RemoteConnection down = mock(RemoteConnection.class);
             when(down.info()).thenReturn(remoteInfo("production"));
-            when(down.infoOrThrow()).thenThrow(Status.UNAVAILABLE.asRuntimeException());
+            when(down.infoOrThrow()).thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "Cannot reach the recording volume"));
             configure(down);
             noLocalRecordings();
 
@@ -883,7 +881,7 @@ class RemoteMcpToolsTest {
 
         private RemoteMcpTools toolsWithBudget(Duration responseBudget) {
             return RemoteMcpToolsFixture.of(remoteManager, resolver, recordingsManager, CLOCK)
-                    .withBudgets(Duration.ofSeconds(1), responseBudget, Duration.ofSeconds(5))
+                    .withBudgets(Duration.ofSeconds(1), responseBudget)
                     .build();
         }
 
@@ -896,18 +894,14 @@ class RemoteMcpToolsTest {
         class TaskCapableClient {
 
             @Test
-            void handsBackARunningTransferAsATaskWhileThePreflightKeepsTheFullBudget() throws Exception {
+            void handsBackARunningTransferAsATask() throws Exception {
                 McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
                 RemoteMcpTools standard = RemoteMcpToolsFixture.of(remoteManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, Duration.ofMinutes(5))
+                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
                         .withOperations(operations).withAnswers(new OperationAnswers(SHORT_TASK_WAIT))
                         .build();
-                AtomicLong preflightSecondsLeft = new AtomicLong(-1);
                 RepositoryManager repo = mock(RepositoryManager.class);
-                when(repo.recordingSession(SESSION_ID)).thenAnswer(_ -> {
-                    preflightSecondsLeft.set(Context.current().getDeadline().timeRemaining(TimeUnit.SECONDS));
-                    return jfrSession(SESSION_ID, NOW);
-                });
+                when(repo.recordingSession(SESSION_ID)).thenReturn(jfrSession(SESSION_ID, NOW));
                 CountDownLatch release = new CountDownLatch(1);
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
                 when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
@@ -933,8 +927,6 @@ class RemoteMcpToolsTest {
 
                 String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
                 assertEquals(OperationKind.REMOTE_DOWNLOAD, operations.status(taskId).kind());
-                assertTrue(preflightSecondsLeft.get() > BoundedJobs.TASK_WAIT_BUDGET.toSeconds(),
-                        "the preflight ran under " + preflightSecondsLeft.get() + " s, not the full budget");
 
                 release.countDown();
                 await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
@@ -950,7 +942,7 @@ class RemoteMcpToolsTest {
             void answersATransferThatLandsInsideTheTaskBudgetWithTheTasksOwnAnswer() {
                 McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
                 RemoteMcpTools standard = RemoteMcpToolsFixture.of(remoteManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, Duration.ofMinutes(5))
+                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
                         .withOperations(operations).build();
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
                 when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
@@ -1293,7 +1285,7 @@ class RemoteMcpToolsTest {
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
                 McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
                 RemoteMcpTools strict = new RemoteMcpTools(remoteManager, resolver, recordingsManager, CLOCK,
-                        Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, Duration.ofMinutes(5), operations,
+                        Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, operations,
                         ToolFixtures.answers(), new DownloadWindowQuestion(Duration.ofHours(1), 1000),
                         AdvertisedFamiliesFixture.EVERY_FAMILY);
                 resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
@@ -1552,7 +1544,7 @@ class RemoteMcpToolsTest {
             void aClientWithTasksIsAskedAndThenHandedATask() throws Exception {
                 McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
                 RemoteMcpTools standard = RemoteMcpToolsFixture.of(remoteManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, Duration.ofMinutes(5))
+                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
                         .withOperations(operations).withAnswers(new OperationAnswers(SHORT_TASK_WAIT))
                         .build();
                 CountDownLatch release = new CountDownLatch(1);
@@ -1950,14 +1942,14 @@ class RemoteMcpToolsTest {
             ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
             when(project.repositoryManager().recordingSession(SESSION_ID))
                     .thenReturn(jfrSession(SESSION_ID, NOW))
-                    .thenThrow(Status.UNAVAILABLE.withDescription("new preflight failure").asRuntimeException());
+                    .thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "new preflight failure"));
             resolvesTo(project);
             noLocalRecordings();
             assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
             JeffreyException failure = assertThrows(JeffreyException.class,
                     () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
             assertEquals(ErrorCode.REMOTE_UNAVAILABLE, failure.getCode());
-            assertTrue(failure.getMessage().contains("UNAVAILABLE"), failure.getMessage());
+            assertTrue(failure.getMessage().contains("new preflight failure"), failure.getMessage());
             verify(downloads, times(1)).downloadSession(SESSION_ID);
         }
 
@@ -2161,44 +2153,20 @@ class RemoteMcpToolsTest {
         }
 
         @Test
-        void preflightDeadlineCancelsTheRpcAndPreservesDeadlineStatus() throws Exception {
-            CountDownLatch cancelled = new CountDownLatch(1);
-            RepositoryManager repository = mock(RepositoryManager.class);
-            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
-                Context.current().addListener(_ -> cancelled.countDown(), Runnable::run);
-                cancelled.await(1, TimeUnit.SECONDS);
-                throw Status.DEADLINE_EXCEEDED
-                        .withDescription("download preflight deadline elapsed")
-                        .asRuntimeException();
-            });
-            ProjectManager project = mock(ProjectManager.class);
-            when(project.repositoryManager()).thenReturn(repository);
-            resolvesTo(project);
-            noLocalRecordings();
-
-            JeffreyException exception = assertThrows(JeffreyException.class,
-                    () -> complete(toolsWithBudget(Duration.ofMillis(50)).download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-
-            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, exception.getCode());
-            assertTrue(exception.getMessage().contains("DEADLINE_EXCEEDED"), exception.getMessage());
-            assertTrue(cancelled.await(1, TimeUnit.SECONDS));
-        }
-
-        @Test
         void unavailableProjectLookupIsNotReportedAsAStaleRef() {
             noLocalRecordings();
             RemoteConnection remote = mock(RemoteConnection.class);
             when(remote.info()).thenReturn(remoteInfo("production"));
             when(resolver.resolveRemote()).thenReturn(remote);
             when(resolver.resolve(WORKSPACE_ID, PROJECT_ID))
-                    .thenThrow(Status.UNAVAILABLE.withDescription("connection refused").asRuntimeException());
+                    .thenThrow(new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "connection refused"));
 
             JeffreyException exception = assertThrows(
                     JeffreyException.class,
                             () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
             assertEquals(ErrorCode.REMOTE_UNAVAILABLE, exception.getCode());
-            assertTrue(exception.getMessage().contains("UNAVAILABLE"), exception.getMessage());
+            assertTrue(exception.getMessage().contains("connection refused"), exception.getMessage());
         }
 
         private RecordingsDownloadManager blockingDownload(

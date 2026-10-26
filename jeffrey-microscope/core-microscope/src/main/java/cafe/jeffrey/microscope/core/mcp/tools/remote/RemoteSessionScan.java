@@ -17,23 +17,17 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
-import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
 import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.mcp.tools.McpDeadlines;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.core.mcp.tools.McpDeadline;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
-import io.grpc.Context;
-import io.grpc.Deadline;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +55,6 @@ import java.util.concurrent.TimeUnit;
  */
 public final class RemoteSessionScan {
 
-    private static final String SCAN_FAILED = "Remote scan failed: ";
-    private static final String PROBE_FAILED = "Remote probe failed: ";
     private static final String REMOTE_SCOPE = "remote";
     private static final Logger LOG = LoggerFactory.getLogger(RemoteSessionScan.class);
 
@@ -184,18 +176,7 @@ public final class RemoteSessionScan {
             return new Result(List.of(), List.of());
         }
 
-        Deadline deadline = McpDeadlines.after(budget);
-        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
-        try {
-            return context.call(() -> scanWithin(remote.get(), filter, context, deadline));
-        } catch (Exception e) {
-            if (e instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw new ToolExecutionException(SCAN_FAILED + e.getMessage(), e);
-        } finally {
-            context.cancel(null);
-        }
+        return scanWithin(remote.get(), filter, McpDeadline.after(budget));
     }
 
     /**
@@ -211,31 +192,17 @@ public final class RemoteSessionScan {
     }
 
     public ProbeResult probe(RemoteConnection remote) {
-        Deadline deadline = McpDeadlines.after(budget);
-        Context.CancellableContext context = McpDeadlines.withDeadline(Context.current(), deadline);
-        try {
-            return context.call(() -> {
-                StageResult<String> probes = await(List.of(new ScopedCall<String>(REMOTE_SCOPE, () -> {
-                    String version = remote.infoOrThrow().version();
-                    return version == null ? "" : version;
-                })), context, deadline);
-                return new ProbeResult(probes.values().stream().findFirst(), probes.failures());
-            });
-        } catch (Exception e) {
-            if (e instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw new ToolExecutionException(PROBE_FAILED + e.getMessage(), e);
-        } finally {
-            context.cancel(null);
-        }
+        StageResult<String> probes = await(List.of(new ScopedCall<String>(REMOTE_SCOPE, () -> {
+            String version = remote.infoOrThrow().version();
+            return version == null ? "" : version;
+        })), McpDeadline.after(budget));
+        return new ProbeResult(probes.values().stream().findFirst(), probes.failures());
     }
 
     private Result scanWithin(
             RemoteConnection remote,
             RemoteScanFilter filter,
-            Context context,
-            Deadline deadline) {
+            McpDeadline deadline) {
 
         ExecutorCompletionService<TaskResult<ScanExpansion>> completion =
                 new ExecutorCompletionService<>(RPC_EXECUTOR);
@@ -243,7 +210,7 @@ public final class RemoteSessionScan {
         List<Failure> failures = new ArrayList<>();
         List<Row> rows = new ArrayList<>();
 
-        submit(probeCall(remote, filter), context, completion, pending, failures);
+        submit(probeCall(remote, filter), completion, pending, failures);
 
         while (!pending.isEmpty()) {
             Future<TaskResult<ScanExpansion>> completed = completion.poll();
@@ -263,14 +230,14 @@ public final class RemoteSessionScan {
                     continue;
                 }
             }
-            collect(completed, context, completion, pending, failures, rows);
+            collect(completed, completion, pending, failures, rows);
         }
 
         // A deadline can expire between the non-blocking poll and the remaining-time check. Drain
         // completions once more so a row already returned by a fast project is never mislabeled lost.
         Future<TaskResult<ScanExpansion>> completed;
         while ((completed = completion.poll()) != null) {
-            collect(completed, context, completion, pending, failures, rows);
+            collect(completed, completion, pending, failures, rows);
         }
 
         if (!pending.isEmpty()) {
@@ -327,13 +294,12 @@ public final class RemoteSessionScan {
 
     private static void submit(
             ScopedCall<ScanExpansion> call,
-            Context context,
             ExecutorCompletionService<TaskResult<ScanExpansion>> completion,
             Map<Future<TaskResult<ScanExpansion>>, ScopedCall<ScanExpansion>> pending,
             List<Failure> failures) {
 
         try {
-            Future<TaskResult<ScanExpansion>> future = completion.submit(context.wrap(() -> execute(call)));
+            Future<TaskResult<ScanExpansion>> future = completion.submit(() -> execute(call));
             pending.put(future, call);
         } catch (RejectedExecutionException e) {
             failures.add(capacityFailure(call.scope()));
@@ -342,7 +308,6 @@ public final class RemoteSessionScan {
 
     private static void collect(
             Future<TaskResult<ScanExpansion>> completed,
-            Context context,
             ExecutorCompletionService<TaskResult<ScanExpansion>> completion,
             Map<Future<TaskResult<ScanExpansion>>, ScopedCall<ScanExpansion>> pending,
             List<Failure> failures,
@@ -361,7 +326,7 @@ public final class RemoteSessionScan {
             ScanExpansion expansion = result.value();
             rows.addAll(expansion.rows());
             for (ScopedCall<ScanExpansion> child : expansion.children()) {
-                submit(child, context, completion, pending, failures);
+                submit(child, completion, pending, failures);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -374,8 +339,7 @@ public final class RemoteSessionScan {
 
     private <T> StageResult<T> await(
             List<ScopedCall<T>> calls,
-            Context context,
-            Deadline deadline) {
+            McpDeadline deadline) {
 
         if (calls.isEmpty()) {
             return new StageResult<>(List.of(), List.of());
@@ -386,7 +350,7 @@ public final class RemoteSessionScan {
         List<Failure> failures = new ArrayList<>();
         for (ScopedCall<T> call : calls) {
             try {
-                Future<TaskResult<T>> future = completion.submit(context.wrap(() -> execute(call)));
+                Future<TaskResult<T>> future = completion.submit(() -> execute(call));
                 pending.put(future, call);
             } catch (RejectedExecutionException e) {
                 failures.add(capacityFailure(call.scope()));
@@ -450,7 +414,7 @@ public final class RemoteSessionScan {
     private static <T> Future<TaskResult<T>> poll(
             ExecutorCompletionService<TaskResult<T>> completion,
             Map<Future<TaskResult<T>>, ScopedCall<T>> pending,
-            Deadline deadline) {
+            McpDeadline deadline) {
 
         long remaining = deadline.timeRemaining(TimeUnit.NANOSECONDS);
         if (remaining <= 0) {
@@ -496,21 +460,10 @@ public final class RemoteSessionScan {
         return new Failure(scope, Failure.Kind.CAPACITY_EXHAUSTED, CAPACITY_EXHAUSTED);
     }
 
-    /** Classifies what a remote call threw, walking the cause chain for the gRPC status or Jeffrey code underneath. */
+    /** Classifies what a remote call threw, walking the cause chain for the Jeffrey code underneath. */
     private static Failure failureOf(String scope, Exception exception) {
         Throwable cause = exception;
         while (cause != null) {
-            if (cause instanceof StatusRuntimeException grpc) {
-                Status.Code code = grpc.getStatus().getCode();
-                if (code == Status.Code.UNAVAILABLE) {
-                    return new Failure(scope, Failure.Kind.UNREACHABLE, UNREACHABLE);
-                }
-                if (code == Status.Code.DEADLINE_EXCEEDED || code == Status.Code.CANCELLED) {
-                    return new Failure(scope, Failure.Kind.DEADLINE_EXCEEDED, DEADLINE_EXCEEDED);
-                }
-                return new Failure(scope, Failure.Kind.OTHER,
-                        GrpcClientErrors.toJeffreyException(grpc).getMessage());
-            }
             if (cause instanceof JeffreyException jeffrey) {
                 if (jeffrey.getCode() == ErrorCode.REMOTE_UNAVAILABLE) {
                     return new Failure(scope, Failure.Kind.UNREACHABLE, UNREACHABLE);

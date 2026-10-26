@@ -24,9 +24,9 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * A recording volume on an Azure file share, reached over the Azure Files REST API with no hub in
- * between, SMB and NFS shares alike. The share holds the hub's shared volume as it is, so the
- * workspaces lie directly under {@code rootPath}.
+ * The recording volume on an Azure file share, reached over the Azure Files REST API, SMB and
+ * NFS shares alike. The share holds the volume as the provisioner and the hub's jobs keep it, so
+ * the workspaces lie directly under {@code rootPath}.
  *
  * @param endpoint the storage account's file endpoint, {@code https://<account>.file.core.windows.net}:
  *                 a scheme and a host, nothing else — a SAS travels separately, never in it
@@ -44,7 +44,7 @@ public record AzureFilesAddress(
         String rootPath,
         AzureFilesProtocol protocol,
         AzureFilesAuth auth,
-        boolean readOnly) implements RemoteAddress {
+        boolean readOnly) {
 
     private static final String HTTPS = "https";
     private static final String SCHEME_SEPARATOR = "://";
@@ -76,10 +76,10 @@ public record AzureFilesAddress(
     }
 
     /**
-     * The share and the directory in it, never the credential nor whether it may be changed: one
-     * volume is one source however it is reached.
+     * What makes two addresses the same remote — what a download's {@code origin.remoteAddress} tag
+     * records, so a copy is recognised as this remote's: the share and the directory in it, never
+     * the credential nor whether it may be changed.
      */
-    @Override
     public String identity() {
         return IDENTITY_PREFIX + location();
     }

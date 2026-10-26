@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.model.ProjectInfo;
 import java.util.Objects;
 
 /**
- * The hub project a call is about. The hub keeps no index of its volume, so every request below
+ * The project a call is about. Nothing keeps an index of the volume, so every request below
  * the workspace names both the workspace and the project it reads.
  */
 public record ProjectScope(String workspaceId, String projectId) {

@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.remote.client.GrpcClientErrors;
 import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -40,7 +39,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
@@ -60,10 +58,6 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import io.grpc.Context;
-import io.grpc.Deadline;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -81,7 +75,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 /**
@@ -106,7 +99,6 @@ public class RemoteArtifactsMcpTools {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteArtifactsMcpTools.class);
 
-    private static final String FETCH_FAILED = "Remote file fetch failed: ";
     private static final String RESPONSE_DEADLINE_ELAPSED = "Remote fetch response deadline elapsed";
     private static final String PROFILE_ARTIFACTS_DIR = "artifacts";
 
@@ -147,7 +139,6 @@ public class RemoteArtifactsMcpTools {
     private final McpOperationRegistry operations;
     private final OperationAnswers answers;
     private final Duration responseBudget;
-    private final Duration fetchDeadline;
     private final BoundedJobs<RemoteFileRef, Path> fetches;
     private final AdvertisedFamilies advertised;
 
@@ -155,10 +146,6 @@ public class RemoteArtifactsMcpTools {
      * @param answers        how a call that outlasts its wait answers, by what the client declared
      * @param responseBudget how long a fetch call waits on its preflight and its transfer together; a
      *                       client that declared tasks waits on the transfer for less
-     * @param fetchDeadline  the deadline the transfer itself runs under: production passes
-     *                       {@code jeffrey.microscope.mcp.remote.download-timeout}, shared with
-     *                       {@code remote_download} because it measures the same thing, a transfer off the
-     *                       same remote over the same link
      */
     public RemoteArtifactsMcpTools(
             ProjectManagerResolver resolver,
@@ -169,7 +156,6 @@ public class RemoteArtifactsMcpTools {
             OperationAnswers answers,
             Clock clock,
             Duration responseBudget,
-            Duration fetchDeadline,
             AdvertisedFamilies advertised) {
         this.answers = answers;
         this.locator = new RemoteSessionLocator(resolver);
@@ -178,7 +164,6 @@ public class RemoteArtifactsMcpTools {
         this.profilesDir = profilesDir.toAbsolutePath();
         this.operations = operations;
         this.responseBudget = responseBudget;
-        this.fetchDeadline = fetchDeadline;
         this.fetches = new BoundedJobs<>(responseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
                 Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.advertised = advertised;
@@ -202,10 +187,6 @@ public class RemoteArtifactsMcpTools {
         McpNextTool retryCall() {
             return call().why(RETRY_WHY);
         }
-    }
-
-    /** What one bounded lookup reads before a listing is rendered. */
-    private record Listing(RemoteInfo remote, ProjectManager project, RecordingSession session) {
     }
 
     /**
@@ -278,19 +259,9 @@ public class RemoteArtifactsMcpTools {
         McpCursor.Filters filters = McpCursor.Filters.of(RemoteCalls.REMOTE_FILES, encodedRef);
         int start = OffsetPaging.offset(cursor, filters);
         String uiLink = UiLinks.page(MicroscopePage.REMOTE);
-        // Bounded like the fetch preflight: an unresponsive remote must fail in a sentence rather than
-        // hold the MCP request open for as long as the channel lets it.
-        Listing listing = withinDeadline(
-                McpDeadlines.after(responseBudget),
-                Context.current(),
-                () -> {
-                    RemoteInfo remote = locator.remoteInfo(ref);
-                    ProjectManager owner = locator.project(ref);
-                    return new Listing(remote, owner, locator.session(owner, ref, remote));
-                });
-        RemoteInfo remote = listing.remote();
-        ProjectManager project = listing.project();
-        RecordingSession session = listing.session();
+        RemoteInfo remote = locator.remoteInfo(ref);
+        ProjectManager project = locator.project(ref);
+        RecordingSession session = locator.session(project, ref, remote);
         LocalSession local = localSession(ref);
 
         List<RepositoryFile> files = session.files() == null ? List.of() : session.files();
@@ -393,8 +364,8 @@ public class RemoteArtifactsMcpTools {
 
         // The preflight has the whole response budget, whatever the client declared: only the wait
         // on the transfer below is shortened for a client that can follow a task.
-        Deadline responseDeadline = McpDeadlines.after(responseBudget);
-        Preflight preflight = preflightWithin(ref, fileId, responseDeadline);
+        McpDeadline responseDeadline = McpDeadline.after(responseBudget);
+        Preflight preflight = preflight(ref, fileId);
         RepositoryFile file = preflight.file();
         LocalSession local = localSession(ref);
         Path target = targetOf(ref, file.name(), local);
@@ -419,16 +390,11 @@ public class RemoteArtifactsMcpTools {
                     control.phase(OperationPhase.FETCHING);
                     control.progress(OperationDetails.remoteFetch(
                             ref.encode(), fileId, file.name(), file.size(), target.toString()));
-                    return transferWithinDeadline(preflight.project(), ref, fileId, target, control);
+                    return transfer(preflight.project(), ref, fileId, target, control);
                 });
         String operationId = register(key, operation, path -> fetched(file, path, false, local), uiLink);
-        Optional<Path> transferred;
-        try {
-            transferred = fetches.awaitWithin(operation, McpDeadlines.remainingWithin(
-                    responseDeadline, answers.waitBudget(call, responseBudget), RESPONSE_DEADLINE_ELAPSED));
-        } catch (RuntimeException e) {
-            throw mapRemoteFailure(e);
-        }
+        Optional<Path> transferred = fetches.awaitWithin(operation, responseDeadline.remainingWithin(
+                answers.waitBudget(call, responseBudget), RESPONSE_DEADLINE_ELAPSED));
         if (transferred.isEmpty()) {
             return answers.stillRunning(call, operationId, () -> answer(key,
                     running(file, target, local), operationId, uiLink));
@@ -576,34 +542,11 @@ public class RemoteArtifactsMcpTools {
      * Reads the session and finds the file before anything is transferred, so a stale ref, a wrong
      * id and a recording chunk each fail in a sentence.
      */
-    private Preflight preflightWithin(RemoteSessionRef ref, String fileId, Deadline deadline) {
-        return withinDeadline(deadline, Context.current(), () -> {
-            RemoteInfo remote = locator.remoteInfo(ref);
-            ProjectManager project = locator.project(ref);
-            RecordingSession session = locator.session(project, ref, remote);
-            return new Preflight(project, fileIn(session, ref, fileId));
-        });
-    }
-
-    /**
-     * Runs a remote lookup under a deadline, so no tool here can wait on the remote for longer than the
-     * response budget. The gRPC clients set no per-call deadline of their own, so this is the only
-     * thing between an unresponsive remote and an MCP request that never answers.
-     */
-    private static <T> T withinDeadline(Deadline deadline, Context parent, Callable<T> work) {
-        Context.CancellableContext context = McpDeadlines.withDeadline(parent, deadline);
-        try {
-            return context.call(work);
-        } catch (StatusRuntimeException e) {
-            throw GrpcClientErrors.toJeffreyException(e);
-        } catch (Exception e) {
-            if (e instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw new ToolExecutionException(FETCH_FAILED + e.getMessage(), e);
-        } finally {
-            context.cancel(null);
-        }
+    private Preflight preflight(RemoteSessionRef ref, String fileId) {
+        RemoteInfo remote = locator.remoteInfo(ref);
+        ProjectManager project = locator.project(ref);
+        RecordingSession session = locator.session(project, ref, remote);
+        return new Preflight(project, fileIn(session, ref, fileId));
     }
 
     private static RepositoryFile fileIn(RecordingSession session, RemoteSessionRef ref, String fileId) {
@@ -630,29 +573,10 @@ public class RemoteArtifactsMcpTools {
         return file;
     }
 
-    private Path transferWithinDeadline(
+    private static Path transfer(
             ProjectManager project, RemoteSessionRef ref, String fileId, Path target, BoundedJobs.JobControl control) {
-        Context.CancellableContext context = McpDeadlines.withDeadlineAfter(Context.ROOT, fetchDeadline);
-        control.onCancellation(() -> context.cancel(null));
-        try {
-            control.checkCancellation();
-            return context.call(() -> place(project.repositoryManager().streamFile(ref.sessionId(), fileId), target));
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.CANCELLED) {
-                control.checkCancellation();
-            }
-            throw GrpcClientErrors.toJeffreyException(e);
-        } catch (Exception e) {
-            if (Status.fromThrowable(e).getCode() == Status.Code.CANCELLED) {
-                control.checkCancellation();
-            }
-            if (e instanceof RuntimeException runtime) {
-                throw runtime;
-            }
-            throw new ToolExecutionException(FETCH_FAILED + e.getMessage(), e);
-        } finally {
-            context.cancel(null);
-        }
+        control.checkCancellation();
+        return place(project.repositoryManager().streamFile(ref.sessionId(), fileId), target);
     }
 
     /**
@@ -836,17 +760,6 @@ public class RemoteArtifactsMcpTools {
                 local.recording() == null ? null : local.recording().id(),
                 local.profileId(),
                 local.profilingStartedAt() == null ? null : local.profilingStartedAt().toEpochMilli());
-    }
-
-    private static RuntimeException mapRemoteFailure(RuntimeException exception) {
-        Throwable cause = exception;
-        while (cause != null) {
-            if (cause instanceof StatusRuntimeException grpc) {
-                return GrpcClientErrors.toJeffreyException(grpc);
-            }
-            cause = cause.getCause();
-        }
-        return exception;
     }
 
     /**

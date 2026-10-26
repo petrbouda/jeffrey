@@ -77,11 +77,11 @@ public class RemoteRepositoryManager implements RepositoryManager {
 
     /**
      * Pulls one file of a session by its id, into a temp directory of its own, under the name the
-     * hub gave it — and hands back both, so the caller can release the directory when it is done
+     * remote gave it — and hands back both, so the caller can release the directory when it is done
      * reading.
      *
      * <p>The session is not listed first: the transfer itself carries the name to write, so no
-     * gRPC round trip is spent on an answer already on its way.
+     * round trip to the remote is spent on an answer already on its way.
      */
     @Override
     public StreamedFile streamFile(String sessionId, String fileId) {
