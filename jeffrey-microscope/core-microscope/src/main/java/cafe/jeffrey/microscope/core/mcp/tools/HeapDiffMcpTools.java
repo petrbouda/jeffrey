@@ -75,7 +75,7 @@ public class HeapDiffMcpTools {
     private static final String NO_PRIMARY_DUMP =
             "This profile is not a heap dump, so there is nothing to compare. profiles_list shows which "
                     + "profiles are heap dumps - their event source reads HEAP_DUMP - and a heap dump "
-                    + "downloaded with a recording is another item of its bundle, which remote_download lists.";
+                    + "downloaded with a recording is another item of its bundle, which hubs_download lists.";
 
     private static final String PRIMARY_DUMP_LOST =
             "This heap dump profile has lost its copy of the dump, so there is nothing to compare. "

@@ -17,20 +17,20 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

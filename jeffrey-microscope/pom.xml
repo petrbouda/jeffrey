@@ -34,13 +34,12 @@
         <module>microscope-model</module>
         <module>notifications</module>
         <module>recording-storage-api</module>
-        <module>remote-client</module>
-        <module>volume-client</module>
-        <module>azure-files-volume</module>
+        <module>hub-client</module>
         <module>recordings-core</module>
-        <module>ui-remote</module>
+        <module>ui-hubs</module>
         <module>microscope-core-persistence-api</module>
         <module>microscope-core-sql-persistence</module>
+        <module>grpc-client</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>
         <module>mcp-protocol</module>
@@ -77,6 +76,11 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>microscope-core-sql-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>grpc-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

@@ -32,4 +32,7 @@ public interface WorkspaceManager {
     WorkspaceInfo info();
 
     ProjectsManager projectsManager();
+
+    /** Deletes the workspace's directory with every project in it. */
+    void delete();
 }

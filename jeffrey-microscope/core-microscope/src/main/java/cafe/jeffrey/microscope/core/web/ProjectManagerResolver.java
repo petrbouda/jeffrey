@@ -18,52 +18,45 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
-import java.util.Optional;
-
 /**
- * Resolves a (workspaceId, projectId) tuple to the corresponding
+ * Resolves a (hubId, workspaceId, projectId) tuple to the corresponding
  * {@link ProjectManager}. Used by every workspace/project-scoped controller.
  */
 public class ProjectManagerResolver {
 
-    private final RemoteManager remoteManager;
+    private final HubsManager hubsManager;
 
-    public ProjectManagerResolver(RemoteManager remoteManager) {
-        this.remoteManager = remoteManager;
+    public ProjectManagerResolver(HubsManager hubsManager) {
+        this.hubsManager = hubsManager;
     }
 
-    /** The configured remote, or empty when none is configured. */
-    public Optional<RemoteConnection> currentRemote() {
-        return remoteManager.current();
-    }
-
-    /** The configured remote; not found when none is. */
-    public RemoteConnection resolveRemote() {
-        return remoteManager.require();
+    public HubManager resolveHub(String hubId) {
+        return hubsManager.findById(hubId)
+                .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
     }
 
     /**
-     * Resolves a workspace of the remote. A remote that cannot be reached surfaces as its failure —
-     * reported as the remote being unavailable — never as a workspace that is not there.
+     * Resolves a workspace of a hub. A hub that cannot be reached surfaces as its gRPC failure —
+     * reported as the hub being unavailable — never as a workspace that is not there.
      */
-    public WorkspaceManager resolveWorkspace(String workspaceId) {
-        return resolveRemote().workspaceOrThrow(workspaceId)
+    public WorkspaceManager resolveWorkspace(String hubId, String workspaceId) {
+        return resolveHub(hubId).workspaceOrThrow(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
     }
 
     /**
-     * Resolves a project of one of the remote's workspaces in one call: the remote checks that the
+     * Resolves a project of a hub's workspace in one GetProject call: the hub checks that the
      * workspace holds the project and answers with all the manager needs. Not found means the
-     * remote said so, whether of the workspace or the project; an unreachable remote is reported as
+     * hub said so, whether of the workspace or the project; an unreachable hub is reported as
      * unavailable.
      */
-    public ProjectManager resolve(String workspaceId, String projectId) {
-        return resolveRemote().projectOrThrow(workspaceId, projectId)
+    public ProjectManager resolve(String hubId, String workspaceId, String projectId) {
+        return resolveHub(hubId).projectOrThrow(workspaceId, projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));
     }
 }

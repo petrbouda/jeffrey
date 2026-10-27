@@ -27,9 +27,9 @@ export const globalChildRoutes = [
     component: () => import('@/views/global/RecordingsView.vue')
   },
   {
-    path: 'remote',
-    name: 'remote',
-    component: () => import('@/views/remote/RemoteView.vue')
+    path: 'hubs',
+    name: 'hubs',
+    component: () => import('@/views/hubs/HubsView.vue')
   },
   {
     path: 'profiler-builder',

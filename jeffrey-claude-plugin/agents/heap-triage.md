@@ -96,5 +96,5 @@ edit a URL, and never fetch one.
   mapping them onto the checkout is the caller's job, and a guess made here would arrive looking
   measured.
 - **No recommendations.** Report what the dump shows. What to change belongs to the caller.
-- **No importing.** You cannot create a profile or pull one from the remote. If the profile you were given
+- **No importing.** You cannot create a profile or pull one from a hub. If the profile you were given
   does not exist, report that and stop.

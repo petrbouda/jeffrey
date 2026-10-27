@@ -57,17 +57,6 @@ export type Variant =
   | 'status-unknown';
 
 /**
- * Colour of a {@link StatusDot}: the state it shows, in the app's tokens. `amber` is a state still
- * going on (a session recording), `purple` one finished for want of a heartbeat, `muted` a state
- * with nothing live, and `faint` one with nothing to show. Only `success`, `warning` and `danger`
- * draw a halo.
- */
-export type StatusDotTone = 'success' | 'warning' | 'danger' | 'amber' | 'purple' | 'muted' | 'faint';
-
-/** Diameter of a {@link StatusDot}: 6, 7, 8 or 10 pixels. */
-export type StatusDotSize = Extract<Size, 'xs' | 's' | 'm' | 'l'>;
-
-/**
  * Left-gutter colour of a {@link SlowestRowList} row. A subset of {@link Variant} plus the
  * unmarked default, so callers translate their own domain (span kind, outcome, ...) into a
  * neutral vocabulary the shared list understands.

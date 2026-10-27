@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -35,7 +36,7 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.volume.layout.SessionDeletion;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -76,7 +77,7 @@ class ProjectRetentionJobTest {
     private static final long MB = 1024L * 1024L;
 
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "production", NOW, 1);
+            new WorkspaceInfo("ws-1", "production", NOW, WorkspaceStatus.AVAILABLE, 1);
 
     @Mock
     WorkspacesManager workspacesManager;

@@ -36,7 +36,7 @@
         <!-- Remote gRPC client wrappers + DTOs + TempDirProvider/RepositoryManager -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>remote-client</artifactId>
+            <artifactId>hub-client</artifactId>
         </dependency>
         <!-- RecordingRepository / RecordingTagsRepository / RecordingGroup / RecordingTag -->
         <dependency>

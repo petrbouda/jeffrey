@@ -20,7 +20,7 @@ import { globalChildRoutes } from '@/router/globalRoutes';
 
 // Every top-level page of the application shell (the children of '/', rendered in Index.vue) that a
 // link can land on. Only this level counts: a profile's pages are in profile-routes.json, and the
-// workspace pages under /remote/workspaces/... are reached from the remote browser, not linked to.
+// workspace pages under /hubs/:hubId/workspaces/... are reached from the hub browser, not linked to.
 function landablePaths(): string[] {
   return (globalChildRoutes as readonly { path: string; redirect?: unknown }[])
     .filter(route => route.redirect === undefined && route.path.length > 0)

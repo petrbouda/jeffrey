@@ -18,6 +18,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import ServerDashboard from '@/views/server/ServerDashboard.vue';
 import SchedulerView from '@/views/server/SchedulerView.vue';
+import GrpcApiDocs from '@/views/server/GrpcApiDocs.vue';
 
 const router = createRouter({
     history: createWebHistory(),
@@ -33,9 +34,14 @@ const router = createRouter({
             component: SchedulerView
         },
         {
-            // The storage overview is the dashboard; keep old bookmarks working
+            // Storage merged into the Workspaces dashboard; keep old bookmarks working
             path: '/storage',
             redirect: '/'
+        },
+        {
+            path: '/api-docs',
+            name: 'api-docs',
+            component: GrpcApiDocs
         },
         {
             path: '/:pathMatch(.*)*',

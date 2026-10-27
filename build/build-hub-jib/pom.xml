@@ -81,6 +81,7 @@
                         <mainClass>${mainClass}</mainClass>
                         <ports>
                             <port>8080</port>
+                            <port>9090</port>
                         </ports>
                         <environment>
                             <JEFFREY_ENABLED>false</JEFFREY_ENABLED>

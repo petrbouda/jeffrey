@@ -7,7 +7,7 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 # Analysing a Jeffrey profile
 
 Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. Nearly every tool reads.
-The few that do not create a profile or a cache, start work on the remote or in your editor, or stop
+The few that do not create a profile or a cache, start work on a hub or in your editor, or stop
 work that was started — `recordings_` turns a recording *file* into a profile, and
 `operations_cancel` stops an import that was a mistake — and none of them changes an analysed
 profile.
@@ -16,7 +16,7 @@ Tool names below omit the prefix your client puts in front of them — `mcp__plu
 
 ## 1. Get a `profileId`
 
-Every tool takes one, except `profiles_list` and the `recordings_`, `remote_` and `operations_`
+Every tool takes one, except `profiles_list` and the `recordings_`, `hubs_` and `operations_`
 families, which are how a `profileId` comes to exist. `profiles_list` pages: a hundred profiles per
 call, with `nextCursor` and `hasMore` in the answer, so a catalogue past that size needs a second
 call carrying the cursor before "it is not there" is true.
@@ -34,9 +34,9 @@ follows the copy and the analysis until the `profileId` appears. Poll that rathe
 `recordings_analyzeFile` a second time to see whether it is done. `operations_cancel(operationId)` stops an import started by
 mistake. Operation ids live for an hour in Jeffrey's memory and do not survive a restart.
 
-**The recording is on the remote** — the user asked about an environment rather than a file
+**The recording is on a hub** — the user asked about an environment rather than a file
 ("production", "staging", "what recorded in the last hour"), and nothing local matches. Switch to
-the **analyze-remote** skill: it finds the session on the remote, pulls it in and comes
+the **analyze-hub** skill: it finds the session across the connected hubs, pulls it in and comes
 back here with a `profileId`.
 
 **Otherwise** — `profiles_list`, pick the profile, then `profiles_summary` to learn what it can

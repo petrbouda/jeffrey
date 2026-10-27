@@ -1,0 +1,87 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.hub.core.grpc;
+
+import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcServerInterceptor;
+import cafe.jeffrey.shared.common.Schedulers;
+import io.grpc.BindableService;
+import io.grpc.ServerInterceptor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.grpc.server.GlobalServerInterceptor;
+
+
+/**
+ * Wires the hub's gRPC services as Spring beans. Spring gRPC's auto-configuration owns the
+ * server lifecycle (start/stop, port, transport) — it collects every {@link BindableService}
+ * bean declared here and registers it with the Netty server. The server port and the
+ * disabling of the built-in health/reflection services are configured in application.properties
+ * (spring.grpc.server.*).
+ */
+@Configuration
+public class GrpcServerConfiguration {
+
+    /**
+     * Emits a JFR {@code GrpcServerExchangeEvent} for every RPC. Marked as a global interceptor
+     * so Spring gRPC applies it to all registered services.
+     */
+    @Bean
+    @GlobalServerInterceptor
+    public ServerInterceptor jfrGrpcServerInterceptor() {
+        return new JfrGrpcServerInterceptor();
+    }
+
+    /**
+     * Shared resource-resolution collaborator for the gRPC services, so each resolves the workspace
+     * and project a request names with the same NOT_FOUND handling.
+     */
+    @Bean
+    public GrpcLookups grpcLookups(WorkspacesManager workspacesManager) {
+        return new GrpcLookups(workspacesManager);
+    }
+
+    @Bean
+    public BindableService workspaceGrpcService(
+            WorkspacesManager workspacesManager,
+            DefaultWorkspaceProperties defaultWorkspaceProperties) {
+        return new WorkspaceGrpcService(workspacesManager, defaultWorkspaceProperties);
+    }
+
+    @Bean
+    public BindableService projectGrpcService(GrpcLookups grpcLookups, StorageOverviewCache storageOverviewCache) {
+        return new ProjectGrpcService(grpcLookups, storageOverviewCache);
+    }
+
+    @Bean
+    public BindableService instanceGrpcService(GrpcLookups grpcLookups) {
+        return new InstanceGrpcService(grpcLookups);
+    }
+
+    @Bean
+    public BindableService repositoryGrpcService(GrpcLookups grpcLookups) {
+        return new RepositoryGrpcService(grpcLookups);
+    }
+
+    @Bean
+    public BindableService fileDownloadGrpcService(GrpcLookups grpcLookups) {
+        return new FileDownloadGrpcService(grpcLookups, Schedulers.streamingExecutor());
+    }
+}

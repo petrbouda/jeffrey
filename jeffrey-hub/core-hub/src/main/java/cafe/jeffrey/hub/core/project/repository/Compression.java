@@ -17,17 +17,14 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
-import cafe.jeffrey.shared.volume.recording.RecordingFormat;
-
 import java.nio.file.Path;
-import java.util.Optional;
 
 /**
  * How a file of a given type is compressed.
  *
  * <p>A type may be compressed only when its compressed name keeps its type, id and timestamp:
  * {@code profile-1.jfr} → {@code profile-1.jfr.lz4} does; {@code app.pprof.lz4} would not, and the
- * original would be deleted. So {@link #of(RecordingFormat)} is empty for every format but JFR.
+ * original would be deleted. So {@link HubManagedFile#compression()} is empty for every type but JFR.
  */
 public sealed interface Compression permits Lz4Compression {
 
@@ -46,13 +43,4 @@ public sealed interface Compression permits Lz4Compression {
 
     /** LZ4, for recordings the rest of the tree can read compressed. */
     Compression LZ4 = new Lz4Compression();
-
-    /**
-     * How a recording of this format is compressed, or empty for the archive itself: only a format
-     * that reads its timestamp from its own name may be rewritten, or the file would change its id
-     * and lose its original timestamp.
-     */
-    static Optional<Compression> of(RecordingFormat format) {
-        return format.isArchive() ? Optional.empty() : Optional.of(LZ4);
-    }
 }

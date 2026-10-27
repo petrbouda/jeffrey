@@ -95,6 +95,7 @@ class ProfileMcpToolsTest {
         RequestContextHolder.resetRequestAttributes();
     }
 
+
     private static final Instant START = Instant.parse("2026-01-01T10:00:00Z");
 
     @Mock
@@ -334,7 +335,7 @@ class ProfileMcpToolsTest {
 
             String result = tools().summary().text();
             assertTrue(result.contains("A recording holds no heap dump"), result);
-            assertTrue(result.contains("remote_download lists the items"), result);
+            assertTrue(result.contains("hubs_download lists the items"), result);
         }
 
         @Test

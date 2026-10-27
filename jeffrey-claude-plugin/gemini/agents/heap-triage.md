@@ -10,8 +10,8 @@
 # The tool restriction is instruction-level rather than enforced, as it is in Codex: a Gemini subagent
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
-# recordings_ (including recordings_delete), the two remote_ tools that write (remote_download,
-# remote_fetchFile), operations_cancel and the two ide_ tools. Of the eleven writers it keeps
+# recordings_ (including recordings_delete), the two hubs_ tools that write (hubs_download,
+# hubs_fetchFile), operations_cancel and the two ide_ tools. Of the eleven writers it keeps
 # heap_prepare, which writes only a cache, and jvm_autoAnalysis with compute and heap_oql with
 # includeRetainedSize, which fill a cache and are bounded (45 s, then an operationId). To make it a
 # wall, name the denied tools in excludeTools on the server entry in settings.json.
@@ -86,7 +86,7 @@ edit a URL, and never fetch one.
 
 - **No source.** Name the class and the field, never a file or a line.
 - **No recommendations.** What to change belongs to the caller.
-- **No writing.** Never call the `recordings_` or `remote_` families, and never `operations_cancel` —
+- **No writing.** Never call the `recordings_` or `hubs_` families, and never `operations_cancel` —
   the work it stops was started by the caller. `heap_prepare` is the one exception and it writes only
   a cache — use it when a report or a retained size is missing, and follow it with `heap_status`, or
   `operations_status` with the `operationId` it returned.

@@ -68,7 +68,7 @@ const folderStructure = `$JEFFREY_HOME/
       <p>Profiles are the core analysis unit in Jeffrey — they represent <strong>processed and analyzed recordings</strong> optimized for fast querying and interactive visualization. A JFR recording, a heap dump, a perf-counters snapshot, a pprof or an OpenTelemetry profile each becomes a profile of its own, and each <a href="#profile-kinds">kind</a> offers the analysis sections its data can answer.</p>
 
       <h2 id="what-are-profiles">What are Profiles?</h2>
-      <p>A profile is created when Jeffrey initializes a recording from the <router-link to="/docs/microscope/recordings">Recordings</router-link> page — one uploaded on its own, or one item of a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> downloaded from a remote session. Unlike raw JFR files, profiles are stored in a database format that enables fast querying, pre-computed visualizations, indexed data, and cached analysis. Think of a profile as a "materialized view" of your JFR recording — all the data is there, but organized for analysis.</p>
+      <p>A profile is created when Jeffrey initializes a recording from the <router-link to="/docs/microscope/recordings">Recordings</router-link> page — one uploaded on its own, or one item of a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> downloaded from a hub session. Unlike raw JFR files, profiles are stored in a database format that enables fast querying, pre-computed visualizations, indexed data, and cached analysis. Think of a profile as a "materialized view" of your JFR recording — all the data is there, but organized for analysis.</p>
 
       <DocsCallout type="tip">
         <strong>Storage strategy:</strong> Keep recordings as your source of truth. Profiles can be deleted and recreated anytime — they're just a processed view of the recording data.
@@ -89,7 +89,7 @@ const folderStructure = `$JEFFREY_HOME/
         <tbody>
           <tr>
             <td><strong>JFR</strong></td>
-            <td><code>.jfr</code>, <code>.jfr.lz4</code> &mdash; one file, or every chunk of a remote session</td>
+            <td><code>.jfr</code>, <code>.jfr.lz4</code> &mdash; one file, or every chunk of a hub session</td>
             <td>Overview, JVM Internals, Application, Traces, Visualization, Technologies, Tools</td>
             <td>Summary dashboard</td>
           </tr>

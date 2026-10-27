@@ -17,14 +17,14 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,23 +43,22 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Not found means the remote said so. A remote that cannot be reached is reported as its gRPC
- * failure, which the exception handler turns into "remote unavailable", rather than as a missing
- * workspace or project.
+ * Not found means the hub said so. A hub that cannot be reached is reported as its gRPC failure,
+ * which the exception handler turns into "hub unavailable", rather than as a missing workspace or
+ * project.
  */
 @ExtendWith(MockitoExtension.class)
 class ProjectManagerResolverTest {
 
+    private static final String HUB_ID = "hub-1";
     private static final String WORKSPACE_ID = "ws-1";
-    private static final JeffreyInternalException UNREACHABLE =
-            new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "Cannot reach the recording volume");
     private static final String PROJECT_ID = "proj-1";
 
     @Mock
-    RemoteManager remoteManager;
+    HubsManager hubsManager;
 
     @Mock
-    RemoteConnection remote;
+    HubManager hub;
 
     @Mock
     WorkspaceManager workspace;
@@ -71,39 +70,39 @@ class ProjectManagerResolverTest {
 
     @BeforeEach
     void setUp() {
-        when(remoteManager.require()).thenReturn(remote);
-        resolver = new ProjectManagerResolver(remoteManager);
+        when(hubsManager.findById(HUB_ID)).thenReturn(Optional.of(hub));
+        resolver = new ProjectManagerResolver(hubsManager);
     }
 
     @Nested
     class Project {
 
         @Test
-        void isResolvedInOneRemoteCallWithoutAWorkspaceLookup() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.of(project));
+        void isResolvedInOneHubCallWithoutAWorkspaceLookup() {
+            when(hub.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.of(project));
 
-            assertSame(project, resolver.resolve(WORKSPACE_ID, PROJECT_ID));
-            verify(remote, never()).workspaceOrThrow(any());
+            assertSame(project, resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID));
+            verify(hub, never()).workspaceOrThrow(any());
         }
 
         @Test
-        void aProjectTheRemoteDoesNotHoldIsNotFound() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.empty());
+        void aProjectTheHubDoesNotHoldIsNotFound() {
+            when(hub.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.empty());
 
             JeffreyClientException e = assertThrows(JeffreyClientException.class,
-                    () -> resolver.resolve(WORKSPACE_ID, PROJECT_ID));
+                    () -> resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID));
 
             assertEquals(ErrorCode.PROJECT_NOT_FOUND, e.getCode());
         }
 
         @Test
-        void anUnreachableRemoteIsNotReportedAsAMissingProject() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenThrow(UNREACHABLE);
+        void anUnreachableHubIsNotReportedAsAMissingProject() {
+            when(hub.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenThrow(Status.UNAVAILABLE.asRuntimeException());
 
-            JeffreyException e = assertThrows(JeffreyException.class,
-                    () -> resolver.resolve(WORKSPACE_ID, PROJECT_ID));
+            StatusRuntimeException e = assertThrows(StatusRuntimeException.class,
+                    () -> resolver.resolve(HUB_ID, WORKSPACE_ID, PROJECT_ID));
 
-            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, e.getCode());
+            assertEquals(Status.Code.UNAVAILABLE, e.getStatus().getCode());
         }
     }
 
@@ -111,30 +110,30 @@ class ProjectManagerResolverTest {
     class Workspace {
 
         @Test
-        void aWorkspaceTheRemoteDoesNotHoldIsNotFound() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.empty());
+        void aWorkspaceTheHubDoesNotHoldIsNotFound() {
+            when(hub.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.empty());
 
             JeffreyClientException e = assertThrows(JeffreyClientException.class,
-                    () -> resolver.resolveWorkspace(WORKSPACE_ID));
+                    () -> resolver.resolveWorkspace(HUB_ID, WORKSPACE_ID));
 
             assertEquals(ErrorCode.WORKSPACE_NOT_FOUND, e.getCode());
         }
 
         @Test
-        void anUnreachableRemoteIsNotReportedAsAMissingWorkspace() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenThrow(UNREACHABLE);
+        void anUnreachableHubIsNotReportedAsAMissingWorkspace() {
+            when(hub.workspaceOrThrow(WORKSPACE_ID)).thenThrow(Status.UNAVAILABLE.asRuntimeException());
 
-            JeffreyException e = assertThrows(JeffreyException.class,
-                    () -> resolver.resolveWorkspace(WORKSPACE_ID));
+            StatusRuntimeException e = assertThrows(StatusRuntimeException.class,
+                    () -> resolver.resolveWorkspace(HUB_ID, WORKSPACE_ID));
 
-            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, e.getCode());
+            assertEquals(Status.Code.UNAVAILABLE, e.getStatus().getCode());
         }
 
         @Test
-        void aWorkspaceTheRemoteHoldsIsResolved() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.of(workspace));
+        void aWorkspaceTheHubHoldsIsResolved() {
+            when(hub.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.of(workspace));
 
-            assertSame(workspace, resolver.resolveWorkspace(WORKSPACE_ID));
+            assertSame(workspace, resolver.resolveWorkspace(HUB_ID, WORKSPACE_ID));
         }
     }
 }

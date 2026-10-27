@@ -29,8 +29,8 @@ public enum MicroscopePage {
     /** The Quick Analysis store: every recording, analysed or not, with the profile built from it. */
     RECORDINGS("recordings"),
 
-    /** The remote browser: the configured remote, its workspaces, projects and recording sessions. */
-    REMOTE("remote");
+    /** The hub browser: every connected hub, its workspaces, projects and recording sessions. */
+    HUBS("hubs");
 
     private final String path;
 

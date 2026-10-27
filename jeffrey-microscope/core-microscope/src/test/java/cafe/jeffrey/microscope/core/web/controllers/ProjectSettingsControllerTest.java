@@ -48,13 +48,13 @@ class ProjectSettingsControllerTest {
         ProjectInfo info = new ProjectInfo(
                 "p-1", "p-1", "demo", "demo", "ws-1",
                 Instant.EPOCH, Instant.EPOCH, Map.of());
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(projectManager);
         when(projectManager.info()).thenReturn(info);
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectSettingsController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/settings"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1/settings"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.name").asString().isEqualTo("demo");
@@ -62,11 +62,11 @@ class ProjectSettingsControllerTest {
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectSettingsController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/ghost/settings"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost/settings"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

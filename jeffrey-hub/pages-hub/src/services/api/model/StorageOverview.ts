@@ -24,8 +24,6 @@ export interface ProjectStorage {
     totalFiles: number;
     // UTC epoch millis — format with FormattingService, never by parsing date strings
     lastActivityTimeMillis: number;
-    // Whether a session of the project was still recording when the pass measured it
-    active: boolean;
 }
 
 export interface StorageOverview {

@@ -17,7 +17,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { splitTimelineSessions } from './timelineFailedBlocks.ts';
-import ProjectInstanceSession from '@remote/services/api/model/ProjectInstanceSession.ts';
+import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession.ts';
 
 const BASE = 1_750_000_000_000;
 const MINUTE = 60_000;

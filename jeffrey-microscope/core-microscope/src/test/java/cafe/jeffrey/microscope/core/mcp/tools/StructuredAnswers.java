@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
@@ -192,12 +192,12 @@ public final class StructuredAnswers {
                     CatalogueSpecs.profileScoped(IdeMcpTools.class, AdvertisedFamilies.IDE),
                     CatalogueSpecs.profileScoped(DuckDbMcpTools.class, AdvertisedFamilies.JFR),
                     CatalogueSpecs.profileScoped(EventTypeMcpTools.class, AdvertisedFamilies.JFR),
-                    CatalogueSpecs.served(RemoteMcpToolsFixture.of(mock(RemoteManager.class), mock(ProjectManagerResolver.class),
-                            mock(RecordingsManager.class), CLOCK).build(), AdvertisedFamilies.REMOTE),
-                    CatalogueSpecs.served(RemoteArtifactsMcpToolsFixture.of(mock(ProjectManagerResolver.class),
+                    CatalogueSpecs.served(HubsMcpToolsFixture.of(mock(HubsManager.class), mock(ProjectManagerResolver.class),
+                            mock(RecordingsManager.class), CLOCK).build(), AdvertisedFamilies.HUBS),
+                    CatalogueSpecs.served(HubsArtifactsMcpToolsFixture.of(mock(ProjectManagerResolver.class),
                             mock(RecordingsManager.class), Path.of("artifacts"), Path.of("profiles"),
                             new McpOperationRegistry(CLOCK), CLOCK, AdvertisedFamiliesFixture.EVERY_FAMILY).build(),
-                            AdvertisedFamilies.REMOTE),
+                            AdvertisedFamilies.HUBS),
                     CatalogueSpecs.served(RecordingsMcpToolsFixture.of(mock(RecordingsManager.class),
                             new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK),
                             new McpOperationRegistry(CLOCK), CLOCK).build(), AdvertisedFamilies.RECORDINGS),

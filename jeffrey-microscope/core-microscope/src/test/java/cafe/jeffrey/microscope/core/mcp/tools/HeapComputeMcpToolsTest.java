@@ -320,7 +320,7 @@ class HeapComputeMcpToolsTest {
                             () -> complete(tools().prepare(null, true, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("is not a heap dump"), e.getMessage());
-            assertTrue(e.getMessage().contains("remote_download"), e.getMessage());
+            assertTrue(e.getMessage().contains("hubs_download"), e.getMessage());
         }
 
         /** A heap dump profile whose copy of the dump is gone is rebuilt by analysing its recording again. */

@@ -21,6 +21,7 @@ import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface WorkspacesManager {
 
@@ -45,6 +46,11 @@ public interface WorkspacesManager {
 
     /** Every workspace directory on the volume. */
     List<WorkspaceManager> findAll();
+
+    /**
+     * @param workspaceId the workspace's directory name, which is its reference id
+     */
+    Optional<WorkspaceManager> findById(String workspaceId);
 
     /**
      * Whether the workspace was created — its directory carries the hub's marker — as opposed to

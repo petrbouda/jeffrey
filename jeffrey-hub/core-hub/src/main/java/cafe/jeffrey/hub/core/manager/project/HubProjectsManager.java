@@ -21,6 +21,7 @@ import cafe.jeffrey.hub.core.volume.ProjectDirectory;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The projects of one workspace: its child directories with a {@code .project-info.json}, each
@@ -41,6 +42,14 @@ public class HubProjectsManager implements ProjectsManager {
         return projectDirectories().stream()
                 .map(projectManagerFactory)
                 .toList();
+    }
+
+    @Override
+    public Optional<ProjectManager> project(String projectId) {
+        return projectDirectories().stream()
+                .filter(project -> project.info().id().equals(projectId))
+                .findFirst()
+                .map(projectManagerFactory);
     }
 
     private List<ProjectDirectory> projectDirectories() {

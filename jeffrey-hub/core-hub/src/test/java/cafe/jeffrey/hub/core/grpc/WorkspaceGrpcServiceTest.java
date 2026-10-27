@@ -1,0 +1,302 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.hub.core.grpc;
+
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import cafe.jeffrey.hub.api.v1.*;
+import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspaceAlreadyExistsException;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
+import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+
+class WorkspaceGrpcServiceTest {
+
+    private static final String WORKSPACE_ID = "ws-1";
+    private static final Instant FIXED_TIME = Instant.parse("2026-01-15T10:00:00Z");
+
+    private InProcessGrpcServer grpc;
+
+    private WorkspaceServiceGrpc.WorkspaceServiceBlockingStub startServer(
+            WorkspaceGrpcService service) {
+        grpc = InProcessGrpcServer.start(service);
+        return WorkspaceServiceGrpc.newBlockingStub(grpc.channel());
+    }
+
+    @AfterEach
+    void shutdown() {
+        if (grpc != null) {
+            grpc.close();
+        }
+    }
+
+    @Nested
+    class GetApiInfo {
+
+        @Test
+        void returnsVersion() throws IOException {
+            var stub = startServer(new WorkspaceGrpcService(mock(WorkspacesManager.class), defaultProperties()));
+
+            GetApiInfoResponse response = stub.getApiInfo(GetApiInfoRequest.getDefaultInstance());
+
+            assertFalse(response.getVersion().isEmpty());
+        }
+    }
+
+    @Nested
+    class ListWorkspaces {
+
+        @Test
+        void returnsWorkspaceList() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            var workspaceManager = mock(WorkspaceManager.class);
+            when(workspaceManager.info()).thenReturn(testWorkspaceInfo());
+            doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            ListWorkspacesResponse response = stub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
+
+            assertEquals(1, response.getWorkspacesCount());
+            assertEquals(WORKSPACE_ID, response.getWorkspaces(0).getId());
+            assertEquals("Test Workspace", response.getWorkspaces(0).getName());
+        }
+
+        @Test
+        void returnsEmptyList() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            doReturn(List.of()).when(workspacesManager).findAll();
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            ListWorkspacesResponse response = stub.listWorkspaces(ListWorkspacesRequest.getDefaultInstance());
+
+            assertEquals(0, response.getWorkspacesCount());
+        }
+    }
+
+    @Nested
+    class CreateWorkspace {
+
+        @Test
+        void createsWorkspaceAndReturnsIt() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            CreateWorkspaceResponse response = stub.createWorkspace(
+                    CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("origin-1")
+                            .setName("Test Workspace")
+                            .build());
+
+            assertEquals(WORKSPACE_ID, response.getWorkspace().getId());
+            assertEquals("Test Workspace", response.getWorkspace().getName());
+            assertEquals(3, response.getWorkspace().getProjectCount());
+        }
+
+        @Test
+        void duplicateReferenceId_returnsAlreadyExists() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any()))
+                    .thenThrow(new WorkspaceAlreadyExistsException(
+                            "Workspace with reference ID 'origin-1' already exists"));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("origin-1")
+                            .setName("Test Workspace")
+                            .build()));
+            assertEquals(Status.Code.ALREADY_EXISTS, ex.getStatus().getCode());
+        }
+
+        @Test
+        void blankReferenceId_returnsInvalidArgument() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any()))
+                    .thenThrow(new IllegalArgumentException("Workspace Source ID cannot be null or empty"));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("")
+                            .setName("Test Workspace")
+                            .build()));
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+        }
+
+        @Test
+        void blankName_returnsInvalidArgument() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any()))
+                    .thenThrow(new IllegalArgumentException("Workspace Name cannot be null or empty"));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.createWorkspace(CreateWorkspaceRequest.newBuilder()
+                            .setReferenceId("origin-1")
+                            .setName("")
+                            .build()));
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+        }
+    }
+
+    @Nested
+    class DeleteWorkspace {
+
+        @Test
+        void deletesWorkspace() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            var workspaceManager = mock(WorkspaceManager.class);
+            when(workspaceManager.info()).thenReturn(testWorkspaceInfo());
+            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder().setWorkspaceId(WORKSPACE_ID).build());
+
+            verify(workspaceManager).delete();
+        }
+
+        @Test
+        void workspaceNotFound_returnsNotFound() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.findById(any())).thenReturn(Optional.empty());
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            var ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder().setWorkspaceId("missing").build()));
+            assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        }
+    }
+
+    private static WorkspaceInfo testWorkspaceInfo() {
+        return new WorkspaceInfo(WORKSPACE_ID, "Test Workspace", FIXED_TIME, WorkspaceStatus.AVAILABLE, 3);
+    }
+
+    private static DefaultWorkspaceProperties defaultProperties() {
+        return new DefaultWorkspaceProperties("$default", "$default");
+    }
+
+    @Nested
+    class CreateWorkspaceRejectsSystemReferenceIds {
+
+        @Test
+        void dollarPrefixedReferenceId_returnsInvalidArgument() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            CreateWorkspaceRequest request = CreateWorkspaceRequest.newBuilder()
+                    .setReferenceId("$myws")
+                    .setName("My Workspace")
+                    .build();
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class,
+                    () -> stub.createWorkspace(request));
+
+            assertEquals(Status.INVALID_ARGUMENT.getCode(), ex.getStatus().getCode());
+            assertTrue(ex.getStatus().getDescription().contains("reserved"),
+                    "Expected description to mention 'reserved', got: " + ex.getStatus().getDescription());
+            verify(workspacesManager, never()).create(any());
+        }
+
+        @Test
+        void plainReferenceId_passesThroughToManager() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            when(workspacesManager.create(any())).thenReturn(testWorkspaceInfo());
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            CreateWorkspaceRequest request = CreateWorkspaceRequest.newBuilder()
+                    .setReferenceId("uat")
+                    .setName("UAT")
+                    .build();
+
+            CreateWorkspaceResponse response = stub.createWorkspace(request);
+            assertNotNull(response.getWorkspace());
+            verify(workspacesManager).create(any());
+        }
+    }
+
+    @Nested
+    class DeleteWorkspaceRejectsDefault {
+
+        @Test
+        void deletingDefaultWorkspace_returnsFailedPrecondition() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            var workspaceManager = mock(WorkspaceManager.class);
+            WorkspaceInfo defaultInfo = new WorkspaceInfo(
+                    "$default", "$default", FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
+            when(workspaceManager.info()).thenReturn(defaultInfo);
+            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class,
+                    () -> stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder()
+                            .setWorkspaceId(WORKSPACE_ID)
+                            .build()));
+
+            assertEquals(Status.FAILED_PRECONDITION.getCode(), ex.getStatus().getCode());
+            assertTrue(ex.getStatus().getDescription().contains("$default"),
+                    "Expected description to mention '$default', got: " + ex.getStatus().getDescription());
+            verify(workspaceManager, never()).delete();
+        }
+
+        @Test
+        void deletingNonDefaultWorkspace_succeeds() throws IOException {
+            var workspacesManager = mock(WorkspacesManager.class);
+            var workspaceManager = mock(WorkspaceManager.class);
+            WorkspaceInfo info = new WorkspaceInfo(
+                    WORKSPACE_ID, "Uat", FIXED_TIME, WorkspaceStatus.AVAILABLE, 0);
+            when(workspaceManager.info()).thenReturn(info);
+            when(workspacesManager.findById(WORKSPACE_ID)).thenReturn(Optional.of(workspaceManager));
+
+            var stub = startServer(new WorkspaceGrpcService(workspacesManager, defaultProperties()));
+
+            stub.deleteWorkspace(DeleteWorkspaceRequest.newBuilder()
+                    .setWorkspaceId(WORKSPACE_ID)
+                    .build());
+
+            verify(workspaceManager).delete();
+        }
+    }
+}

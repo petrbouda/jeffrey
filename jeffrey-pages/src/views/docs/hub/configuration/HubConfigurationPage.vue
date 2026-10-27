@@ -29,11 +29,12 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'server', text: 'Server', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
+  { id: 'grpc', text: 'gRPC', level: 2 },
   { id: 'logging', text: 'Logging', level: 2 },
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
-  { id: 'live-workspace', text: 'No Profile Analysis', level: 2 },
+  { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
   { id: 'session-liveness', text: 'Session Liveness', level: 2 },
 ];
 
@@ -69,7 +70,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         Jeffrey Hub (<code>jeffrey-hub.jar</code>) is configured through a single
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
-        (port, directories) come first; advanced tuning (jobs, storage paths,
+        (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths,
         workspace defaults and session liveness) follows. The Hub has no database: the shared
         volume is its only state.
       </p>
@@ -114,6 +115,24 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td>
               Base directory for all Jeffrey Hub data. Env var: <code>JEFFREY_HUB_HOME_DIR</code>
             </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="grpc">gRPC</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>spring.grpc.server.port</code></td>
+            <td><code>9090</code></td>
+            <td>gRPC server port for Jeffrey Microscope connections</td>
           </tr>
         </tbody>
       </table>
@@ -229,8 +248,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
 
       <h3>Tuning a job's period</h3>
       <p>
-        No job governs discovery: every job reads the shared volume afresh, so a newly provisioned
-        project, instance or session is picked up on the job's next run. A period only says how
+        No job governs discovery: the Hub reads the shared volume on every request, so a newly
+        provisioned project, instance or session shows up on the next listing. A period only says how
         often retention or compression runs:
       </p>
       <pre><code>jeffrey.hub.scheduler.jobs.repository-jfr-compression.period=1m</code></pre>
@@ -259,7 +278,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>jeffrey.hub.scheduler.enabled</code></td>
             <td><code>true</code></td>
-            <td>Whether the scheduler starts at all. Off, no job runs on its schedule — and nothing on the volume is retained, cleaned up or compressed.</td>
+            <td>Whether the scheduler starts at all. Off, no job runs — for a hub brought up only to serve what is already on the volume.</td>
           </tr>
           <tr>
             <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
@@ -324,24 +343,24 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         There is no property for this. Recordings are not copied into a directory of the Hub's own:
         they stay where the provisioner and the application wrote them, under the workspace tree on
         the shared volume — <code>&lt;workspaces&gt;/&lt;workspace-ref-id&gt;/&lt;project&gt;/&lt;instance&gt;/&lt;session&gt;/</code>.
-        The Hub's scheduler jobs retain and compress those files in place, reading the marker files on
-        every run rather than keeping a copy of them; see
+        The Hub lists, compresses and serves those files in place, reading the marker files on every
+        request rather than keeping a copy of them; see
         <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link> for the layout.
       </p>
 
       <h2 id="workspace-discovery">Workspace Discovery</h2>
       <p>
         How the server learns about projects, instances and sessions the provisioner wrote to the
-        shared volume. There is no discovery job and no index: every scheduler run lists the workspace
-        directories and reads their marker files afresh. A workspace's id is its
+        shared volume. There is no discovery job and no index: every call lists the workspace
+        directories and reads their marker files when it is asked. A workspace's id is its
         directory name (the reference id the provisioner's <code>project.workspace-id</code>
         names); a project's id is the <code>projectId</code> in its
         <code>.project-info.json</code>; instance and session ids are their directory names.
       </p>
       <p>
         A directory is a workspace once the Hub wrote its <code>.workspace-info.json</code> (name and
-        creation time) — by the default-workspace initializer — or Microscope wrote it when a user
-        created the workspace on the Azure file share. Creating a workspace whose directory already exists adopts it with its projects.
+        creation time) — when the workspace is created over gRPC or REST, or by the default-workspace
+        initializer. Creating a workspace whose directory already exists adopts it with its projects.
         Directories starting with <code>.</code> are skipped.
       </p>
 
@@ -377,17 +396,16 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         </tbody>
       </table>
 
-      <h2 id="live-workspace">No Profile Analysis</h2>
+      <h2 id="live-workspace">Server Collection Mode</h2>
       <p>
-        Jeffrey Hub maintains the recording volume and does not perform profile analysis — it serves
-        no recordings either. Every flamegraph and trace is computed in Jeffrey Microscope, which
-        reads the volume from the Azure file share that holds it.
+        Jeffrey Hub is designed for recording collection and does not perform profile analysis —
+        every flamegraph and trace is computed in Jeffrey Microscope.
       </p>
 
       <h2 id="session-liveness">Session Liveness</h2>
       <p>
         No job finishes a session. The Hub decides whether a session is still recording each time it
-        reads it — for compression, retention or the storage dashboard alike — from the session's
+        reads it — for a listing, a download, compression or retention alike — from the session's
         <code>.heartbeat/</code> files; see
         <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>
         for the rules. Two thresholds tune it:

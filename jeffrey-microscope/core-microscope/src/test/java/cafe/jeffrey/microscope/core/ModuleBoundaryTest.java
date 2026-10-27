@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Microscope talks to a hub over gRPC and nothing else: it maps the proto onto records of its
- * own and never reaches for the hub's. {@code cafe.jeffrey.microscope.remote.client} and
+ * own and never reaches for the hub's. {@code cafe.jeffrey.hub.client} and
  * {@code cafe.jeffrey.hub.api} are Microscope's — the client and the contract — and are not
  * matched here.
  */

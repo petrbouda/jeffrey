@@ -51,13 +51,13 @@ onMounted(() => {
 const promptFreshRecording = `analyze target/checkout-run.jfr in Jeffrey and tell me which of my own
 methods dominate the CPU profile`;
 
-const promptFromRemote = `analyse what production recorded in the last hour and tell me where the time
+const promptFromHub = `analyse what production recorded in the last hour and tell me where the time
 went`;
 
 const promptCrash = `the checkout pod in production restarted twice this morning - find out why the JVM died`;
 
 const promptLogs = `find the exceptions in the checkout service's application log from the last
-session on the remote, and show me what was logged just before the first one`;
+session on the hub, and show me what was logged just before the first one`;
 
 const promptHotPaths = `list the Jeffrey profiles, then show me where the CPU time goes in the most recent one`;
 
@@ -134,36 +134,36 @@ LIMIT 20`;
       </DocsCallout>
 
       <h2 id="analyse-what-production-recorded">Analyse What Production Recorded</h2>
-      <DocsCodeBlock :code="promptFromRemote" language="bash" />
+      <DocsCodeBlock :code="promptFromHub" language="bash" />
 
-      <p>Drives <code>remote_sessions</code> &rarr; <code>remote_download</code> &rarr; <code>recordings_analyzeRecording</code> &rarr; the usual analysis.</p>
+      <p>Drives <code>hubs_sessions</code> &rarr; <code>hubs_download</code> &rarr; <code>recordings_analyzeRecording</code> &rarr; the usual analysis.</p>
 
-      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every workspace and project of the configured remote &mdash; the recording volume on an Azure file share &mdash; at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
+      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every connected <router-link to="/docs/hub">Jeffrey Hub</router-link> at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a hub, then a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
 
       <p>&ldquo;The last hour&rdquo; means <em>recording during</em> the last hour, not <em>started within</em> it, so a JVM that came up this morning and is still running is included. That is almost always what the question meant.</p>
 
       <p>You will be asked to choose only when the choice is real &mdash; several projects matched, or the session runs for hours or days and you have not said which part of it you mean &mdash; and when you are, the projects, start times, durations and sizes come with the question.</p>
 
-      <p><strong>The interval, not the session.</strong> A session on the remote is a JVM&rsquo;s whole recording life, and a question is about an hour of it. The agent asks which &mdash; the last hour, yesterday, 14:00 to 15:00 &mdash; and <code>remote_download</code> brings only the chunks covering it, every chunk that touches the window, so the recording covers the whole interval with some slack at either end. The answer says what span it actually covers, and the profile&rsquo;s figures are about that span. A narrow window is also the cheap look before a wider one: <em>&ldquo;does the checkout service throw at all this morning&rdquo;</em> is two chunks, a profile and an answer, and <code>recordings_delete</code> takes the look away again once the real window is in. Files can be picked by name as well &mdash; the chunk rolled right after the deploy, the heap dump beside it &mdash; from <code>remote_files</code>. Most answers have a name &mdash; the last hour, since startup, right now, the worst moment, before the heap dump &mdash; and the download takes it as a <router-link to="/docs/microscope-mcp/tools#named-windows">named window</router-link> that Jeffrey measures on the session itself, saying in its answer what it picked and why. Answer &ldquo;all of it&rdquo; and the download carries <code>window: WHOLE</code>: the whole session comes down without Jeffrey putting its own question about which part.</p>
+      <p><strong>The interval, not the session.</strong> A session on a hub is a JVM&rsquo;s whole recording life, and a question is about an hour of it. The agent asks which &mdash; the last hour, yesterday, 14:00 to 15:00 &mdash; and <code>hubs_download</code> brings only the chunks covering it, every chunk that touches the window, so the recording covers the whole interval with some slack at either end. The answer says what span it actually covers, and the profile&rsquo;s figures are about that span. A narrow window is also the cheap look before a wider one: <em>&ldquo;does the checkout service throw at all this morning&rdquo;</em> is two chunks, a profile and an answer, and <code>recordings_delete</code> takes the look away again once the real window is in. Files can be picked by name as well &mdash; the chunk rolled right after the deploy, the heap dump beside it &mdash; from <code>hubs_files</code>. Most answers have a name &mdash; the last hour, since startup, right now, the worst moment, before the heap dump &mdash; and the download takes it as a <router-link to="/docs/microscope-mcp/tools#named-windows">named window</router-link> that Jeffrey measures on the session itself, saying in its answer what it picked and why. Answer &ldquo;all of it&rdquo; and the download carries <code>window: WHOLE</code>: the whole session comes down without Jeffrey putting its own question about which part.</p>
 
       <DocsCallout type="tip" title="The second time costs nothing">
         Whole sessions already pulled in are marked in the listing, with the profile id when they have been analysed. Ask the same question tomorrow and yesterday's finished session is not downloaded again; one that was still recording when it was pulled in is, since it has grown since. A window is a bundle of its own, marked as a part with its span in its <code>origin.window</code> tag, and its recordings show up in <code>recordings_list</code> rather than in that column.
       </DocsCallout>
 
-      <p>A heap dump in the session arrives with it &mdash; not inside the JFR profile, but as another item of the download&rsquo;s <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>. <code>remote_download</code> answers with the bundle&rsquo;s <code>items</code>, the session&rsquo;s JFR recording first and each heap dump with its own <code>recordingId</code>, and names the heap-dump items in its guidance. So <em>&ldquo;pull the dump from the pod that OOMed and tell me what was holding memory&rdquo;</em> is the same recipe with one change: <code>recordings_analyzeRecording</code> on the heap-dump item&rsquo;s <code>recordingId</code>, then the <code>heap_</code> family on that profile. A perf-counters file in the session is an item too; its profile is for the user to read in the UI, since no tool reads its counters yet.</p>
+      <p>A heap dump in the session arrives with it &mdash; not inside the JFR profile, but as another item of the download&rsquo;s <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>. <code>hubs_download</code> answers with the bundle&rsquo;s <code>items</code>, the session&rsquo;s JFR recording first and each heap dump with its own <code>recordingId</code>, and names the heap-dump items in its guidance. So <em>&ldquo;pull the dump from the pod that OOMed and tell me what was holding memory&rdquo;</em> is the same recipe with one change: <code>recordings_analyzeRecording</code> on the heap-dump item&rsquo;s <code>recordingId</code>, then the <code>heap_</code> family on that profile. A perf-counters file in the session is an item too; its profile is for the user to read in the UI, since no tool reads its counters yet.</p>
 
       <h2 id="read-what-the-jvm-wrote">Read What the JVM Wrote</h2>
       <DocsCodeBlock :code="promptCrash" language="bash" />
       <DocsCodeBlock :code="promptLogs" language="bash" />
 
-      <p>Drives <code>remote_sessions</code> &rarr; <code>remote_files</code> &rarr; <code>remote_fetchFile</code> &rarr; the agent&rsquo;s own <code>grep</code>, <code>sed</code> and file reader.</p>
+      <p>Drives <code>hubs_sessions</code> &rarr; <code>hubs_files</code> &rarr; <code>hubs_fetchFile</code> &rarr; the agent&rsquo;s own <code>grep</code>, <code>sed</code> and file reader.</p>
 
-      <p>A session holds more than its recording. A JVM provisioned by Jeffrey leaves its <code>-Xlog</code> output beside the JFR chunks, the perf-counters file, the application&rsquo;s own log if it was pointed at the session directory, and &mdash; when it died &mdash; the HotSpot crash file, often with nothing else next to it because the first chunk never rolled. <code>remote_files</code> says what a session holds; <code>remote_fetchFile</code> pulls one file down and answers with the absolute path it now has on the machine Jeffrey runs on.</p>
+      <p>A session holds more than its recording. A JVM provisioned by Jeffrey leaves its <code>-Xlog</code> output beside the JFR chunks, the perf-counters file, the application&rsquo;s own log if it was pointed at the session directory, and &mdash; when it died &mdash; the HotSpot crash file, often with nothing else next to it because the first chunk never rolled. <code>hubs_files</code> says what a session holds; <code>hubs_fetchFile</code> pulls one file down and answers with the absolute path it now has on the machine Jeffrey runs on.</p>
 
-      <p>From there Jeffrey steps aside. It does not parse the log, group the exceptions or summarise the crash: the agent runs on the same machine (the endpoint accepts loopback hosts only), and its own tools are better at a text file than anything a tool result could carry. A crash file reads top-down &mdash; the <code>#</code> header names the signal, <code>Current thread</code> and the <code>Java frames:</code> block say where &mdash; and a GC log&rsquo;s <code>[12.345s]</code> is an uptime, and when the session&rsquo;s recording has been analysed too, <code>remote_files</code> names the profile and the instant that uptime counts from.</p>
+      <p>From there Jeffrey steps aside. It does not parse the log, group the exceptions or summarise the crash: the agent runs on the same machine (the endpoint accepts loopback hosts only), and its own tools are better at a text file than anything a tool result could carry. A crash file reads top-down &mdash; the <code>#</code> header names the signal, <code>Current thread</code> and the <code>Java frames:</code> block say where &mdash; and a GC log&rsquo;s <code>[12.345s]</code> is an uptime, and when the session&rsquo;s recording has been analysed too, <code>hubs_files</code> names the profile and the instant that uptime counts from.</p>
 
       <DocsCallout type="tip" title="The crash file's two names">
-        A JVM Jeffrey provisioned writes <code>hs-jvm-err.log</code>; one it did not writes the JVM&rsquo;s default <code>hs_err_pid&lt;pid&gt;.log</code>. Both are classified as a crash file, so <code>remote_files</code> sees either.
+        A JVM Jeffrey provisioned writes <code>hs-jvm-err.log</code>; one it did not writes the JVM&rsquo;s default <code>hs_err_pid&lt;pid&gt;.log</code>. Both are classified as a crash file, so the hub&rsquo;s crash notification and <code>hubs_files</code> see either.
       </DocsCallout>
 
       <h2 id="where-does-the-time-go">Where Does the Time Go</h2>

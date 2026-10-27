@@ -17,19 +17,19 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.microscope.remote.client.RemoteClients;
-import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.model.remote.RemoteInfo;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.recordings.core.OriginContext;
 
 /**
- * Turns a project the remote reported into its manager. Everything the manager needs comes with the
+ * Turns a project the hub reported into its manager. Everything the manager needs comes with the
  * project itself — its workspace id included — so building one takes no further
- * call to the remote, whether the project came from a workspace listing or from a single lookup.
+ * call to the hub, whether the project came from a workspace listing or from a single lookup.
  */
 public class RemoteProjectManagerFactory {
 
@@ -47,19 +47,19 @@ public class RemoteProjectManagerFactory {
         this.recordingsManager = recordingsManager;
     }
 
-    public ProjectManager create(RemoteInfo remote, RemoteClients clients, RemoteProjectResponse project) {
+    public ProjectManager create(HubInfo hubInfo, HubClients hubClients, RemoteProjectResponse project) {
         OriginContext originContext = new OriginContext(
-                remote.address().identity(),
-                remote.name(),
+                hubInfo.hubId(),
+                hubInfo.name(),
                 project.workspaceId(),
                 project.id(),
                 project.name());
 
         return new RemoteProjectManager(
                 jeffreyDirs,
-                RemoteMappers.toProjectInfo(project),
+                RemoteMappers.toDetailedProjectInfo(project),
                 project.statistics(),
-                clients,
+                hubClients,
                 profilesManagerFactory,
                 recordingsManager,
                 originContext);

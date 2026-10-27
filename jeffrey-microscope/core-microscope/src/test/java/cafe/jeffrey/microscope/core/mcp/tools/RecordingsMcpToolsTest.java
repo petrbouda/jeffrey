@@ -859,7 +859,7 @@ class RecordingsMcpToolsTest {
         }
 
         @Test
-        void theQuestionNamesTheRecordingItsIdAndItsProfileAndSparesTheRemoteCopy() {
+        void theQuestionNamesTheRecordingItsIdAndItsProfileAndSparesTheHubCopy() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
             String message = question(tools.delete(RECORDING_ID, ELICITING)).path("params").path("message").asString();
@@ -867,7 +867,7 @@ class RecordingsMcpToolsTest {
             assertTrue(message.contains("app.jfr"), message);
             assertTrue(message.contains(RECORDING_ID), message);
             assertTrue(message.contains(PROFILE_ID), message);
-            assertTrue(message.contains("remote"), message);
+            assertTrue(message.contains("hub"), message);
             assertTrue(message.contains("untouched"), message);
         }
 
@@ -1919,6 +1919,7 @@ class RecordingsMcpToolsTest {
             }
         }
     }
+
 
     private static int occurrences(String text, String needle) {
         int count = 0;

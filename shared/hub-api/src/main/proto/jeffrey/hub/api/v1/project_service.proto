@@ -1,0 +1,88 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+import "jeffrey/hub/api/v1/common.proto";
+
+// Manages projects within a workspace — listing and deletion.
+// A project is a directory jeffrey-provisioner declared with its .project-info.json; its id is
+// the one the provisioner wrote there.
+service ProjectService {
+  // Lists all projects in a workspace.
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+
+  // Gets one project of a workspace. NOT_FOUND when the workspace, or the project in it, is not
+  // there.
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
+
+  // Deletes a project for good: its directory on the workspace volume is gone before the
+  // response is returned. There is no restore.
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
+}
+
+message ListProjectsRequest {
+  // The workspace containing the projects.
+  string workspace_id = 1;
+}
+
+message ListProjectsResponse {
+  repeated ProjectInfo projects = 1;
+}
+
+message GetProjectRequest {
+  // The workspace containing the project.
+  string workspace_id = 1;
+  // The project to fetch.
+  string project_id = 2;
+}
+
+message GetProjectResponse {
+  ProjectInfo project = 1;
+}
+
+message DeleteProjectRequest {
+  string workspace_id = 1;
+  string project_id = 2;
+}
+
+message DeleteProjectResponse {}
+
+// Detailed information about a project and its current state.
+message ProjectInfo {
+  // The project's id, as the provisioner wrote it into the project's marker file.
+  string id = 1;
+  // Project name.
+  string name = 2;
+  // Creation timestamp (epoch millis).
+  int64 created_at = 3;
+  // ID of the workspace this project belongs to.
+  string workspace_id = 4;
+  // ACTIVE while the newest session of any instance is recording, FINISHED otherwise;
+  // unspecified for a project without a session.
+  RecordingStatus status = 5;
+  // Number of recording sessions across the project's instances.
+  int32 session_count = 6;
+  // Bytes the project occupies, as the last retention pass measured them; absent until the
+  // first pass has run. Not re-measured on request.
+  optional int64 size_bytes = 7;
+}

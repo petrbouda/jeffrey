@@ -190,6 +190,15 @@ public enum StatementLabel {
     DELETE_WORKSPACE,
 
     /**
+     * {@link GroupLabel#HUBS}
+     */
+    FIND_ALL_HUBS,
+    FIND_HUB_BY_ID,
+    INSERT_HUB,
+    UPDATE_HUB,
+    DELETE_HUB,
+
+    /**
      * {@link GroupLabel#PROFILE_FRAMES}
      */
     COUNT_FRAMES_BY_CLASS_NAME,

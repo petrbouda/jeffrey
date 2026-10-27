@@ -80,9 +80,9 @@ asyncClient.send(request).whenComplete((response, failure) ->
         }));`;
 
 const outputSpans = [
-  { depth: 0, name: 'shop.api.v1.OrderService/List', kind: 'SERVER' as const,
+  { depth: 0, name: 'jeffrey.api.v1.WorkspaceService/List', kind: 'SERVER' as const,
     start: 0, duration: 18.4, event: 'GrpcServerExchangeEvent', note: 'root' },
-  { depth: 1, name: 'select_orders', kind: 'CLIENT' as const,
+  { depth: 1, name: 'select_workspaces', kind: 'CLIENT' as const,
     start: 3.1, duration: 11.2, event: 'JdbcQueryEvent', note: 'stamped in a re-entry' }
 ];
 </script>

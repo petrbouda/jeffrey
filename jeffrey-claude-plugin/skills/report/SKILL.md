@@ -49,11 +49,11 @@ that shaped the result:
 If you cannot name the call, you cannot make the claim. Delete it, or go and measure it.
 
 A claim drawn from a file rather than a tool — an application log, a GC log or a crash file that
-`remote_fetchFile` put on this machine — names the file and the line instead, so the reader can open
+`hubs_fetchFile` put on this machine — names the file and the line instead, so the reader can open
 the same line:
 
 > The JVM died of `SIGSEGV` in `libzip.so` while `main` was inside `Inflater.inflateBytes`.
-> Evidence: `hs-jvm-err.log`, fetched from session `instance-1` by `remote_fetchFile` to
+> Evidence: `hs-jvm-err.log`, fetched from session `instance-1` by `hubs_fetchFile` to
 > `~/.jeffrey-microscope/artifacts/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
 > at lines 38–46.
 
@@ -75,9 +75,9 @@ Everything else needs a denominator before it means anything:
   `jdk.ObjectAllocationSample`
 - **a heap figure → retained bytes**, never shallow; and against the heap's total
 
-A profile built from a **window of a remote session** — `remote_download` with `startEpochMs`/`endEpochMs`
+A profile built from a **window of a hub session** — `hubs_download` with `startEpochMs`/`endEpochMs`
 or `fileIds` — is that window, not the session. Its recording length is the span the chunks cover,
-which `remote_download` reported as `coveredStartEpochMs`/`coveredEndEpochMs`; name that span with every rate drawn
+which `hubs_download` reported as `coveredStartEpochMs`/`coveredEndEpochMs`; name that span with every rate drawn
 from it, and never extrapolate a rate or a count across the session it was cut from. "12 GC pauses
 in the 14:00–14:30 window" is a finding; "about 600 a day" is not.
 

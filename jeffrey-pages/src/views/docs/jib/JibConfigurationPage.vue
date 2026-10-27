@@ -115,7 +115,7 @@ onMounted(() => {
                 <td><code>projectName</code></td>
                 <td><code>JEFFREY_PROJECT_NAME</code></td>
                 <td>the Maven artifactId or Gradle project name</td>
-                <td>The Jeffrey project name. It is a stable identity: it keys the project directory on the shared volume and links every session to the same project on the volume, so pin it here if you ever rename the module. Only the label is safe to change freely.</td>
+                <td>The Jeffrey project name. It is a stable identity: it keys the project directory on the shared volume and links every session to the same project on Jeffrey Hub, so pin it here if you ever rename the module. Only the label is safe to change freely.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>

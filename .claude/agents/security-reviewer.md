@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Reviews code changes for security concerns in Jeffrey's sensitive areas — file uploads and paths, SQL built from input, the MCP endpoint, paths and names read off the recording volume. Use before merging changes that touch those areas.
+description: Reviews code changes for security concerns in Jeffrey's sensitive areas — file uploads and paths, SQL built from input, the MCP endpoint, gRPC boundaries. Use before merging changes that touch those areas.
 tools: Read, Grep, Glob, Bash
 model: inherit
 ---

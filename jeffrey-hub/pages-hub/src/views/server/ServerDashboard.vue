@@ -21,19 +21,19 @@
 
     <div v-if="loading" class="loading-state">
       <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-      <span>Loading the storage overview...</span>
+      <span>Loading workspaces...</span>
     </div>
 
     <div v-else-if="error" class="empty-state">
       <i class="bi bi-exclamation-triangle"></i>
-      <span>Failed to load the storage overview</span>
+      <span>Failed to load workspaces</span>
       <span class="empty-hint">{{ error }}</span>
     </div>
 
     <div v-else-if="workspaceRows.length === 0" class="empty-state">
       <i class="bi bi-inbox"></i>
-      <span>Nothing measured yet</span>
-      <span class="empty-hint">The retention pass measures every project on the volume; run it from the Scheduler page</span>
+      <span>No workspaces registered</span>
+      <span class="empty-hint">Workspaces are created automatically when applications connect</span>
     </div>
 
     <div v-else class="dashboard-layout">
@@ -101,7 +101,13 @@
             </span>
           </div>
 
-          <table class="projects-table">
+          <div v-if="selectedWorkspace.projects.length === 0" class="empty-state">
+            <i class="bi bi-hdd"></i>
+            <span>No projects in this workspace</span>
+            <span class="empty-hint">Projects appear when applications connect to this workspace</span>
+          </div>
+
+          <table v-else class="projects-table">
             <thead>
             <tr>
               <th class="sortable" @click="sortBy('project')">
@@ -122,7 +128,7 @@
             <tr v-for="row in sortedProjects" :key="row.projectId">
               <td>
                 <span class="project-cell">
-                  <StatusDot :tone="row.active ? 'success' : 'muted'" />
+                  <span class="status-dot" :class="{ inactive: !row.active }"></span>
                   <span class="project-name" :class="{ inactive: !row.active }">{{ row.name }}</span>
                 </span>
               </td>
@@ -149,15 +155,19 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
-import StatusDot from '@shared/components/StatusDot.vue';
 import HubPageHeader from '@/components/HubPageHeader.vue';
 import StorageClient from '@/services/api/StorageClient';
+import WorkspaceClient from '@/services/api/WorkspaceClient';
+import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
+import RecordingStatus from '@/services/api/model/RecordingStatus';
+import type Workspace from '@/services/api/model/Workspace';
+import type Project from '@/services/api/model/Project';
 import type { ProjectStorage, StorageOverview } from '@/services/api/model/StorageOverview';
 
 type SortColumn = 'project' | 'size' | 'files' | 'activity';
 type SortDirection = 'asc' | 'desc';
 
-/** One project row in the detail table: what the last retention pass measured of it. */
+/** One project row in the detail table: the live project merged with its storage figures. */
 interface ProjectRow {
   projectId: string;
   name: string;
@@ -168,14 +178,8 @@ interface ProjectRow {
   storage: ProjectStorage;
 }
 
-/** A workspace as the retention pass found it: the workspace its measured projects lie in. */
-interface WorkspaceSummary {
-  id: string;
-  name: string;
-}
-
 interface WorkspaceRow {
-  workspace: WorkspaceSummary;
+  workspace: Workspace;
   projects: ProjectRow[];
   totalSizeBytes: number;
   totalFiles: number;
@@ -185,6 +189,7 @@ interface WorkspaceRow {
 const RELATIVE_TIME_REFRESH_MS = 30_000;
 
 const storageClient = new StorageClient();
+const workspaceClient = new WorkspaceClient();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -211,35 +216,52 @@ const storageComputedAgo = computed(() => {
   return FormattingService.formatRelativeTime(computedAt);
 });
 
-const toProjectRow = (storage: ProjectStorage): ProjectRow => ({
+/** Placeholder storage for a project the storage scan has no data for (nothing recorded yet). */
+const emptyStorage = (workspace: Workspace, project: Project): ProjectStorage => ({
+  workspaceId: workspace.id,
+  workspaceName: workspace.name,
+  projectId: project.id,
+  projectName: project.name,
+  totalSizeBytes: 0,
+  totalFiles: 0,
+  lastActivityTimeMillis: 0
+});
+
+const toProjectRow = (storage: ProjectStorage, project: Project | undefined): ProjectRow => ({
   projectId: storage.projectId,
-  name: storage.projectName,
-  active: storage.active,
+  name: project ? project.name : storage.projectName,
+  active: project?.status === RecordingStatus.ACTIVE,
   totalSizeBytes: storage.totalSizeBytes,
   totalFiles: storage.totalFiles,
   lastActivityTimeMillis: storage.lastActivityTimeMillis,
   storage
 });
 
-/** The measured projects grouped by the workspace they lie in, in the order the pass met them. */
-const groupByWorkspace = (projects: ProjectStorage[]): WorkspaceRow[] => {
-  const rows = new Map<string, WorkspaceRow>();
-  for (const project of projects) {
-    let row = rows.get(project.workspaceId);
-    if (!row) {
-      row = {
-        workspace: { id: project.workspaceId, name: project.workspaceName },
-        projects: [],
-        totalSizeBytes: 0,
-        totalFiles: 0
-      };
-      rows.set(project.workspaceId, row);
+const buildWorkspaceRow = (
+    workspace: Workspace,
+    projects: Project[],
+    storageByProjectId: Map<string, ProjectStorage>): WorkspaceRow => {
+
+  const projectById = new Map(projects.map(p => [p.id, p]));
+
+  // Projects known to the workspace, enriched with storage; storage-only rows
+  // (project deleted meanwhile) are still listed so sizes always add up
+  const rows: ProjectRow[] = projects.map(project => {
+    const storage = storageByProjectId.get(project.id) ?? emptyStorage(workspace, project);
+    return toProjectRow(storage, project);
+  });
+  for (const [projectId, storage] of storageByProjectId) {
+    if (storage.workspaceId === workspace.id && !projectById.has(projectId)) {
+      rows.push(toProjectRow(storage, undefined));
     }
-    row.projects.push(toProjectRow(project));
-    row.totalSizeBytes += project.totalSizeBytes;
-    row.totalFiles += project.totalFiles;
   }
-  return [...rows.values()];
+
+  return {
+    workspace,
+    projects: rows,
+    totalSizeBytes: rows.reduce((sum, row) => sum + row.totalSizeBytes, 0),
+    totalFiles: rows.reduce((sum, row) => sum + row.totalFiles, 0)
+  };
 };
 
 const selectedWorkspace = computed(() => {
@@ -340,9 +362,25 @@ const sortArrow = (column: SortColumn) => {
   return sortDirection.value === 'asc' ? '▲' : '▼';
 };
 
-const applyOverview = (storageOverview: StorageOverview) => {
+const applyOverview = async (workspaces: Workspace[], storageOverview: StorageOverview) => {
   overview.value = storageOverview;
-  workspaceRows.value = groupByWorkspace(storageOverview.projects);
+
+  const storageByProjectId = new Map(
+      storageOverview.projects.map(project => [project.projectId, project]));
+
+  // Fetch the project lists of all workspaces concurrently — a serial per-workspace
+  // round-trip makes the dashboard load time grow linearly with the workspace count
+  workspaceRows.value = await Promise.all(
+      workspaces.map(async (workspace): Promise<WorkspaceRow> => {
+        const projectsClient = new WorkspaceProjectsClient(workspace.id);
+        try {
+          const projects = await projectsClient.list();
+          return buildWorkspaceRow(workspace, projects, storageByProjectId);
+        } catch {
+          return buildWorkspaceRow(workspace, [], storageByProjectId);
+        }
+      })
+  );
 
   // Preselect the first workspace that has projects, falling back to the first one,
   // but keep the current selection when it survived the reload
@@ -354,7 +392,11 @@ const applyOverview = (storageOverview: StorageOverview) => {
 
 const loadDashboard = async () => {
   try {
-    applyOverview(await storageClient.overview());
+    const [workspaces, storageOverview] = await Promise.all([
+      workspaceClient.list(),
+      storageClient.overview()
+    ]);
+    await applyOverview(workspaces, storageOverview);
     error.value = null;
   } catch (e) {
     console.error('Failed to load dashboard:', e);
@@ -627,6 +669,18 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-emerald);
+  flex-shrink: 0;
+}
+
+.status-dot.inactive {
+  background: var(--color-slate-light);
 }
 
 .project-name {
