@@ -35,22 +35,18 @@ shared/                                common (utilities + hub↔provisioner con
                                        projects/instances/sessions/files, markers; the hub's reader),
                                        sql-builder, test (@DuckDBTest, VolumeWriter),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
-jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from
-                                       jeffrey-agent.path (like profiler-path) unless jeffrey-agent.enabled=false
-jeffrey-agent/                         heartbeat-only Java agent (Java 21), a release asset baked by jeffrey-jib; runs
-                                       jeffrey-heartbeat-core shaded+relocated. Off → liveness only from the
-                                       jeffrey-heartbeat library, which stands down while the agent reports
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session layout, markers and
+                                       the argfile that starts it under async-profiler (profiler-path)
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
-utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of three
-                                       independent parts: jeffrey-events, jeffrey-heartbeat-parent
-                                       (dependency-free core shared with jeffrey-agent, library + starter), jeffrey-tracing-parent:
+utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of two
+                                       independent parts: jeffrey-events and jeffrey-tracing-parent:
                                        tracing API on Java 21 + two span storages picked by ServiceLoader —
                                        jeffrey-tracing-scoped-value (ScopedValue, 25, opt-in) and
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
-jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler, agent (release-jib.yml)
-build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
+jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler (release-jib.yml)
+build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native)
 ```
 
 ## Build, run, verify

@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
@@ -139,11 +138,11 @@ class InitExecutorTest {
         }
 
         @Test
-        void createsHeartbeatDirectoryWithoutALiveRepository() throws Exception {
+        void createsNothingInsideTheSessionDirectory() throws Exception {
             new InitExecutor(Clock.systemUTC()).execute(config());
 
             assertFalse(Files.exists(sessionPath().resolve("streaming-repo")));
-            assertTrue(Files.isDirectory(sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
+            assertFalse(Files.exists(sessionPath().resolve(".heartbeat")), "no heartbeat directory any more");
         }
 
         @Test
@@ -226,82 +225,9 @@ class InitExecutorTest {
                     "export JEFFREY_CURRENT_PROJECT="
                             + workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME),
                     "export JEFFREY_CURRENT_SESSION=" + session,
-                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr",
-                    // Where the files would go, not that anything will write them: whether to
-                    // report is the application's decision
-                    "export JEFFREY_HEARTBEAT_DIR=" + session + "/.heartbeat"),
+                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr"),
                     layoutExports);
             assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
-        }
-    }
-
-    @Nested
-    class JeffreyAgent {
-
-        private Path agentJar;
-
-        /** A run whose jeffrey-agent.path jar is in place, as jeffrey-jib bakes it. */
-        private InitConfig config(String agentEnabled) throws IOException {
-            agentJar = tempDir.resolve("jeffrey-agent.jar");
-            if (Files.notExists(agentJar)) {
-                Files.createFile(agentJar);
-            }
-            return config(agentEnabled, agentJar);
-        }
-
-        private InitConfig config(String agentEnabled, Path agentPath) throws IOException {
-            return InitExecutorTest.this.config(Map.of(
-                    "JEFFREY_AGENT_ENABLED", agentEnabled,
-                    "JEFFREY_AGENT_PATH", agentPath.toString()));
-        }
-
-        private List<String> agentOptions() throws IOException {
-            return argFileOptions().stream().filter(option -> option.startsWith("-javaagent:")).toList();
-        }
-
-        private List<String> sessionFiles() throws IOException {
-            try (Stream<Path> files = Files.list(sessionPath())) {
-                return files.map(path -> path.getFileName().toString()).toList();
-            }
-        }
-
-        /** Loaded from where the image keeps it, so nothing is copied into the session. */
-        @Test
-        void attachesTheAgentFromTheAgentPath() throws Exception {
-            new InitExecutor(Clock.systemUTC()).execute(config("true"));
-
-            assertEquals(List.of("-javaagent:" + agentJar), agentOptions());
-            List<String> sessionFiles = sessionFiles();
-            assertTrue(sessionFiles.stream().noneMatch(name -> name.endsWith(".jar")),
-                    () -> "no jar is written into the session: " + sessionFiles);
-        }
-
-        /** The agent reads the same directory the library would, so the argfile still names it. */
-        @Test
-        void keepsNamingTheHeartbeatDirectory() throws Exception {
-            new InitExecutor(Clock.systemUTC()).execute(config("true"));
-
-            assertTrue(argFileOptions().contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="
-                    + sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
-        }
-
-        /** Switched off, liveness is left to the jeffrey-heartbeat library the application carries. */
-        @Test
-        void leavesTheAgentOutWhenSwitchedOff() throws Exception {
-            new InitExecutor(Clock.systemUTC()).execute(config("false"));
-
-            assertEquals(List.of(), agentOptions());
-            assertTrue(argFileOptions().contains("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="
-                    + sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)), "the library still needs the directory");
-        }
-
-        /** A missing jar would stop the JVM, so the session runs without the agent instead. */
-        @Test
-        void provisionsWithoutTheAgentWhenTheJarIsMissing() throws Exception {
-            new InitExecutor(Clock.systemUTC()).execute(config("true", tempDir.resolve("missing.jar")));
-
-            assertEquals(List.of(), agentOptions());
-            assertTrue(Files.exists(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)), "the session is still recorded");
         }
     }
 

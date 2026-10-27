@@ -71,8 +71,6 @@ JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUI
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
-JEFFREY_AGENT_ENABLED=true           # default; false leaves liveness to jeffrey-heartbeat
-JEFFREY_AGENT_PATH=/opt/jeffrey/jeffrey-agent.jar   # baked by jeffrey-jib; set it yourself elsewhere
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
@@ -113,7 +111,6 @@ attributes { cluster = "blue", namespace = "production" }
 
 debug-non-safepoints { enabled = true }
 perf-counters { enabled = true }
-jeffrey-agent { enabled = true, path = "/opt/jeffrey-agent/jeffrey-agent.jar" }
 tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jdk-java-options { enabled = true }
@@ -209,6 +206,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <h2 id="configuration-options">Configuration Options</h2>
 
         <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>environment variable &rarr; HOCON value &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. The environment sits on top because of when each source is written: a config file is baked into the image at build time, while environment variables are set at deploy time on the pod — so an operator can change one setting without rebuilding the image. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key without shadowing the defaults.</p>
+
+        <p>A configuration written for an older release may still carry a <code>jeffrey-agent { … }</code> block or set <code>JEFFREY_AGENT_ENABLED</code> / <code>JEFFREY_AGENT_PATH</code>. The agent is gone: the block is logged as an unknown key and ignored, the variables are not read, and nothing else changes — delete them at your convenience.</p>
 
         <p>Flags read <code>true</code> and <code>false</code> only, case-insensitive. Any other value is reported in the log and ignored, leaving the configured value in place — reading an unrecognized value as <code>false</code> would let a typo silently disable a feature. The one exception is <code>JEFFREY_HEAP_DUMP</code>, which takes <code>exit</code>, <code>crash</code> or <code>off</code> rather than a boolean.</p>
 
@@ -309,18 +308,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_PERF_COUNTERS</code></td>
               <td>Save JVM performance counters into the session directory</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-agent.enabled</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_AGENT_ENABLED</code></td>
-              <td><strong>On by default.</strong> Attach the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that <code>jeffrey-agent.path</code> names with <code>-javaagent</code>, so the JVM reports liveness to the Hub with no change to the application. Set <code>false</code> to leave liveness to the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-agent.path</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_AGENT_PATH</code></td>
-              <td>Path to <code>jeffrey-agent.jar</code>, located exactly like <code>profiler-path</code>. Normally baked into the image as <code>JEFFREY_AGENT_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Outside jeffrey-jib, download <code>jeffrey-agent.jar</code> from the Jeffrey release and set this to where you put it. Nothing is copied into the session and nothing is discovered on disk: when no path resolves, or the file it names does not exist, the provisioner logs a warning and the session runs without the agent.</td>
             </tr>
             <tr>
               <td><code>tracing.enabled</code></td>
@@ -457,13 +444,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
             <h4>Heap Dump</h4>
             <p>Automatic heap dumps on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
             <code>heap-dump { enabled = true; type = "crash" }</code>
-          </div>
-          <div class="feature-card heartbeat">
-            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
-            <h4>Jeffrey Agent: Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>The <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. On by default: at <code>init</code> the Provisioner adds <code>-javaagent</code> for the jar <code>jeffrey-agent.path</code> names &mdash; <code>/opt/jeffrey/jeffrey-agent.jar</code> in a jeffrey-jib image &mdash; to the argfile. It always creates the session's <code>.heartbeat</code> folder, passes it to the JVM as <code>-Djeffrey.heartbeat.dir</code> and exports it as <code>JEFFREY_HEARTBEAT_DIR</code>. Switched off, liveness is reported only if the application carries the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library; an application carrying the library is safe with the agent on, as the library stands down while the agent reports. If no agent path is configured, or the jar is not there, the session is provisioned without it and a warning is logged.</p>
-            <code>jeffrey-agent { enabled = true }</code>
-            <code>JEFFREY_AGENT_ENABLED=false</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
@@ -675,10 +655,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
 
 .feature-card.debug-safepoints .feature-icon {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-}
-
-.feature-card.heartbeat .feature-icon {
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
 }
 
 .feature-card.jdk-options .feature-icon {

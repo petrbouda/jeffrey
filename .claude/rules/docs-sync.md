@@ -12,7 +12,6 @@ Paths below are relative to `jeffrey-pages/src/views/docs/`.
 | `jeffrey-microscope/core-microscope` | `docs/microscope/` (overview, quick start, workspaces, recordings, storage, profiler builder), `docs/microscope/projects/`, `docs/microscope/configuration/` |
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature |
 | `jeffrey-hub/core-hub` | `docs/hub/` (overview, architecture, storage), `docs/hub/recording-sessions/`, `docs/hub/configuration/`, `docs/hub/deployment/` |
-| `jeffrey-agent/`, `utilities/jeffrey-heartbeat-parent/` (library + starter) | `docs/agent/` |
 | tracing instrumentation (`utilities/`) | `docs/tracing/`, `docs/tracing/tracer-api/` (one page per Tracer API method) |
 | `jeffrey-provisioner/` | `docs/provisioner/` |
 | Jib build | `docs/jib/` |

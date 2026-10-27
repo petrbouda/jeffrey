@@ -112,10 +112,8 @@ const moduleClient = `<plugin>
         and modifies the image's entrypoint at build time. The result: a Spring Boot image
         that, when launched in a pod with <code>JEFFREY_ENABLED=true</code> and a populated
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
-        the JVM starts and boots with the right async-profiler flags, the
-        <code>-Djeffrey.heartbeat.dir</code> property and the
-        <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that writes heartbeat files (which the Hub and Microscope no longer read). There is no Dockerfile and no shell script to
-        maintain; the provisioner, async-profiler and the agent are installed by the extension under
+        the JVM starts and boots with the right async-profiler flags. There is no Dockerfile and no shell script to
+        maintain; the provisioner and async-profiler are installed by the extension under
         <code>/opt/jeffrey</code>.
       </p>
 
@@ -251,8 +249,7 @@ const moduleClient = `<plugin>
       <h2 id="self-contained-image">A Self-Contained Image</h2>
       <p>
         The extension bakes everything the image needs to profile itself: the entrypoint wrapper at
-        <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner, async-profiler and
-        <code>jeffrey-agent.jar</code> under
+        <code>/usr/local/bin/jeffrey-entrypoint</code>, and the provisioner and async-profiler under
         <code>/opt/jeffrey</code>. The payload arrives with the flavour you declared, like any other
         plugin dependency, and the build log prints which Jeffrey release and async-profiler version
         that jeffrey-jib release bundles.

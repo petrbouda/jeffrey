@@ -58,9 +58,8 @@ export type Variant =
 
 /**
  * Colour of a {@link StatusDot}: the state it shows, in the app's tokens. `amber` is a state still
- * going on (a session recording), `purple` one finished for want of a heartbeat, `muted` a state
- * with nothing live, and `faint` one with nothing to show. Only `success`, `warning` and `danger`
- * draw a halo.
+ * going on, `purple` one set apart from the others, `muted` a state with nothing live, and `faint`
+ * one with nothing to show. Only `success`, `warning` and `danger` draw a halo.
  */
 export type StatusDotTone = 'success' | 'warning' | 'danger' | 'amber' | 'purple' | 'muted' | 'faint';
 

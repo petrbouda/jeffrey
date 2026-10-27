@@ -40,28 +40,6 @@ class EnvFileBuilderTest {
     }
 
     @Nested
-    class Heartbeat {
-
-        @Test
-        void namesTheDirectoryInsideTheSession() {
-            // Named outright so the jeffrey-heartbeat library needs no opinion about where inside
-            // a session directory the liveness files belong
-            String result = builder.build(new EnvFileBuilder.Context(layout(), null, false));
-
-            assertTrue(result.contains("export JEFFREY_HEARTBEAT_DIR=" + SESSION_PATH.resolve(".heartbeat")),
-                    result);
-        }
-
-        @Test
-        void neverDecidesWhetherTheApplicationReports() {
-            // Switching the library off is the application's decision alone
-            String result = builder.build(new EnvFileBuilder.Context(layout(), null, false));
-
-            assertFalse(result.contains("JEFFREY_HEARTBEAT_ENABLED"), result);
-        }
-    }
-
-    @Nested
     class RequiredExports {
 
         @Test
@@ -212,9 +190,8 @@ class EnvFileBuilderTest {
             String result = builder.build(context);
             String[] lines = result.split("\n");
 
-            // JEFFREY_HOME, WORKSPACES, WORKSPACE, PROJECT, SESSION, FILE_PATTERN,
-            // HEARTBEAT_DIR = 7 exports
-            assertEquals(7, lines.length);
+            // JEFFREY_HOME, WORKSPACES, WORKSPACE, PROJECT, SESSION, FILE_PATTERN = 6 exports
+            assertEquals(6, lines.length);
             for (String line : lines) {
                 assertTrue(line.startsWith("export "));
             }

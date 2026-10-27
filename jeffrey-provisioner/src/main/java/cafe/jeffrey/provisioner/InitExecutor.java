@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.provisioner.feature.JvmFeature;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import org.slf4j.Logger;
@@ -36,14 +35,12 @@ public class InitExecutor {
     private final Clock clock;
     private final LayoutProvisioner layoutProvisioner;
     private final AsyncProfilerResolver profilerResolver;
-    private final JeffreyAgentResolver agentResolver;
     private final OutputWriter outputWriter;
 
     public InitExecutor(Clock clock) {
         this.clock = clock;
         this.layoutProvisioner = new LayoutProvisioner();
         this.profilerResolver = new AsyncProfilerResolver();
-        this.agentResolver = new JeffreyAgentResolver();
         this.outputWriter = new OutputWriter();
     }
 
@@ -71,10 +68,7 @@ public class InitExecutor {
         AsyncProfilerResolver.ResolvedProfiler profiler =
                 profilerResolver.resolve(config.getProfilerCommand(), config.getProfilerPath());
 
-        JvmFeature.JeffreyAgent agent =
-                agentResolver.resolve(config.isJeffreyAgentEnabled(), config.getJeffreyAgentPath());
-
-        String jvmOptions = JvmFeatures.of(config, profiler.feature(), agent)
+        String jvmOptions = JvmFeatures.of(config, profiler.feature())
                 .render(session.layout().session(), placeholders);
 
         registrar.recordSession(session);
@@ -82,9 +76,9 @@ public class InitExecutor {
 
         // Single greppable verdict line — the one place that tells a user their setup works
         if (profiler.feature().enabled()) {
-            LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} jeffrey_agent={} arg_file={}",
+            LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
                     config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
-                    profiler.source(), agent.enabled(), config.getArgFilePath());
+                    profiler.source(), config.getArgFilePath());
         } else {
             LOG.warn("Jeffrey profiling DISABLED, async-profiler is not available: project={} workspace={} instance={} session={} arg_file={}",
                     config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),

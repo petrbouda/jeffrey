@@ -63,7 +63,7 @@ onMounted(() => {
           <div class="card-icon"><i class="bi bi-hdd-network"></i></div>
           <div class="card-content">
             <h4>Shared filesystem for recordings</h4>
-            <p>Producers (Provisioner + Agent) and Server share an NFS / PVC-backed directory.</p>
+            <p>Producers (Provisioner + the profiled JVM) and Server share an NFS / PVC-backed directory.</p>
           </div>
         </div>
         <div class="principle-card">
@@ -98,7 +98,6 @@ onMounted(() => {
           <ul>
             <li><code>.workspace-info.json</code> — a workspace's name and creation time, written by the Hub's default-workspace initializer or by Microscope when a user creates the workspace</li>
             <li><code>.project-info.json</code>, <code>.instance-info.json</code>, <code>.session-info.json</code> — written by the Provisioner</li>
-            <li><code>.heartbeat/</code> — written by the Jeffrey Agent; not read by the Hub or Microscope, which order sessions by their UUIDv7 directory names</li>
           </ul>
           <p>Ids come from the volume: a workspace's id is its directory name (the reference id the Provisioner names), a project's is the <code>projectId</code> in its marker, and an instance's and a session's are their directory names.</p>
         </div>
@@ -170,7 +169,6 @@ onMounted(() => {
                 ├── .instance-info.json
                 └── {session}/
                     ├── .session-info.json
-                    ├── .heartbeat/                      # written by the agent; not read by the Hub or Microscope
                     ├── profile-20260220-120500.jfr      # a chunk (or .jfr.lz4 once compressed)
                     └── ...                              # heap dumps, JVM logs, perf-counters</code></pre>
       </div>

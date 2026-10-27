@@ -19,7 +19,7 @@ package cafe.jeffrey.jib.gradle;
 
 /**
  * Marks the native flavour of the Jeffrey JIB extension for Gradle: the extension plus a payload
- * jar carrying the GraalVM provisioner, async-profiler and the Jeffrey agent.
+ * jar carrying the GraalVM provisioner and async-profiler.
  *
  * <p>This class carries no behaviour. It exists so the module publishes a non-empty sources and
  * javadoc jar, which Maven Central requires of every artifact; the module is its two dependencies.

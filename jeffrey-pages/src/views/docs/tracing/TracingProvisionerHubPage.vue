@@ -69,8 +69,6 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 ├── .workspace-info.json               # written by the Hub when the workspace is created
 └── <project-name>/<instance-id>/<session-id>/
     ├── profile-<timestamp>.jfr        # the durable chunks — traces live in these
-    ├── .heartbeat/heartbeat           # epoch millis, rewritten every 5s
-    ├── .heartbeat/finished            # clean-exit marker, written on shutdown
     └── .session-info.json`;
 </script>
 
@@ -92,7 +90,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <ul>
         <li><strong>The Provisioner never talks to the Hub.</strong> It is a short-lived CLI that runs before <code>main()</code>, writes the session tree and an <code>@argfile</code>, and exits. Its only channel to the Hub is the shared volume — there is no event transport in between.</li>
-        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the marker files and directory listings when it is made, so a session shows up on the next listing after the Provisioner writes it. Neither reads <code>.heartbeat/</code> any more: session order and file names decide everything. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
+        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the marker files and directory listings when it is made, so a session shows up on the next listing after the Provisioner writes it. Session order and file names decide everything. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
       </ul>
 
       <h2 id="switch">Turning Tracing On</h2>
@@ -139,7 +137,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes the marker files — atomically, because they are the Hub's only record of what exists. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval, and the heartbeat library rewrites the liveness file every 5&nbsp;seconds.</p>
+      <p>The Provisioner creates the tree and writes the marker files — atomically, because they are the Hub's only record of what exists. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -155,7 +153,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           <tr>
             <td>Listing (no job)</td>
             <td>Every job run</td>
-            <td>Reads the marker JSONs to list projects, instances and sessions, ordered by their UUIDv7 directory names: a newer session in the same instance ends the one before it. <code>.heartbeat/</code> is not read. A crash log left in the directory is listed as a session file, not acted on.</td>
+            <td>Reads the marker JSONs to list projects, instances and sessions, ordered by their UUIDv7 directory names: a newer session in the same instance ends the one before it. A crash log left in the directory is listed as a session file, not acted on.</td>
           </tr>
           <tr>
             <td>Compression &amp; retention</td>

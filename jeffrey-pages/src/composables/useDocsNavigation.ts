@@ -87,7 +87,7 @@ const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events']);
 const MICROSCOPE_MCP_SEGMENTS = new Set(['microscope-mcp']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
-const HUB_SEGMENTS = new Set(['hub', 'server', 'agent']);
+const HUB_SEGMENTS = new Set(['hub', 'server']);
 // The Provisioner is its own product. 'cli' is kept so a direct hit on a legacy
 // /docs/cli/* URL still resolves to the Provisioner sidebar before the router redirects.
 const PROVISIONER_SEGMENTS = new Set(['provisioner', 'cli']);
@@ -349,15 +349,6 @@ export const hubNavigation: DocSection[] = [
     children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
   },
   {
-    title: 'Liveness',
-    path: 'agent',
-    icon: 'bi-heart-pulse',
-    children: [
-      { title: 'Jeffrey Agent', path: 'jeffrey-agent' },
-      { title: 'Heartbeat Library', path: 'heartbeat-library' }
-    ]
-  },
-  {
     // Jeffrey JIB has its own top-level documentation section; Hub keeps just a link.
     title: 'Jeffrey JIB',
     path: '_hub-jib-link',
@@ -550,17 +541,6 @@ export const tracingNavigation: DocSection[] = [
     path: '_tracing-events',
     icon: 'bi-activity',
     children: [{ title: 'Event catalog', to: '/docs/tracing/events' }]
-  },
-  {
-    // Liveness (Jeffrey Agent + Heartbeat Library) lives in the Hub docs ('agent' segment); Tracing keeps just links.
-    title: 'Liveness',
-    path: '_tracing-heartbeat-link',
-    icon: 'bi-heart-pulse',
-    crossLink: true,
-    children: [
-      { title: 'Jeffrey Agent docs', to: '/docs/agent/jeffrey-agent' },
-      { title: 'Heartbeat Library docs', to: '/docs/agent/heartbeat-library' }
-    ]
   }
 ];
 

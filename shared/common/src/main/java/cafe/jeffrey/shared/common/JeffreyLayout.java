@@ -33,13 +33,10 @@ package cafe.jeffrey.shared.common;
  *         .instance-info.json
  *         &lt;session-id&gt;/
  *           .session-info.json
- *           .heartbeat/                   heartbeat liveness files
  * </pre>
  *
  * <p>Both sides must resolve these names from this single class; any rename
- * silently desynchronizes producer and consumer otherwise. The heartbeat
- * directory and file names live in {@link HeartbeatConstants} because the
- * zero-dependency agent duplicates that subset.</p>
+ * silently desynchronizes producer and consumer otherwise.</p>
  */
 public abstract class JeffreyLayout {
 

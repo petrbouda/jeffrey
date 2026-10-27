@@ -121,7 +121,6 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>Generates JVM flags for async-profiler and enabled features</li>
           <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
           <li>Stores session metadata for Jeffrey to detect</li>
-          <li>Attaches the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> with <code>-javaagent</code> for liveness reporting, from the jar <code>jeffrey-agent.path</code> names (on by default; <code>JEFFREY_AGENT_ENABLED=false</code> leaves it to the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library)</li>
         </ul>
 
         <h3>When to Use Jeffrey Provisioner</h3>
@@ -210,8 +209,8 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
 
         <h2 id="installation">Installation</h2>
         <p>For a container image built with JIB, you install nothing: the
-          <router-link to="/docs/jib/setup">Jeffrey JIB extension</router-link> puts the provisioner,
-          async-profiler and the Jeffrey Agent into the image under <code>/opt/jeffrey</code> at build time. Pick the build
+          <router-link to="/docs/jib/setup">Jeffrey JIB extension</router-link> puts the provisioner
+          and async-profiler into the image under <code>/opt/jeffrey</code> at build time. Pick the build
           by the flavour you declare (<code>jeffrey-jib-maven-native</code> or
           <code>-jar</code>, and the Gradle equivalents); its version is the jeffrey-jib release
           whose payload the image carries.</p>
@@ -225,8 +224,6 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>For async-profiler support, also include <code>libasyncProfiler.so</code> and point
             <code>profiler-path</code> (or <code>JEFFREY_PROFILER_PATH</code>) at it &mdash; nothing is
             discovered on disk</li>
-          <li>For liveness reporting, also include <code>jeffrey-agent.jar</code> from the same release and
-            point <code>jeffrey-agent.path</code> (or <code>JEFFREY_AGENT_PATH</code>) at it, the same way</li>
         </ol>
 
         <h3>Basic Usage</h3>

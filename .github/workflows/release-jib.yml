@@ -61,9 +61,8 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
-      # The payload modules ship the provisioner, the Jeffrey agent and async-profiler that
-      # jeffrey-jib bakes into application images. The provisioner and the agent come from a
-      # published Jeffrey release rather than a build of this repository, because jeffrey-jib
+      # The payload modules ship the provisioner and async-profiler that jeffrey-jib bakes into
+      # application images. The provisioner comes from a published Jeffrey release rather than a build of this repository, because jeffrey-jib
       # releases on its own cadence: which Jeffrey
       # release an extension carries is a choice, stated here (or defaulted to the latest
       # release), recorded in each payload jar's descriptor (jeffrey-payload/payload.properties)
@@ -89,23 +88,18 @@ jobs:
           echo "Bundling the provisioner from Jeffrey ${RELEASE}"
           echo "RELEASE=${RELEASE}" >> "$GITHUB_OUTPUT"
 
-      # The agent is the same jar in both flavours: one file, attached with -javaagent.
-      - name: Stage provisioner and agent payloads
+      - name: Stage provisioner payloads
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download "${{ steps.jeffrey.outputs.RELEASE }}" -R petrbouda/jeffrey \
-            -p provisioner-amd64 -p provisioner-arm64 -p provisioner.jar -p jeffrey-agent.jar -D /tmp/payload
+            -p provisioner-amd64 -p provisioner-arm64 -p provisioner.jar -D /tmp/payload
           install -Dm644 /tmp/payload/provisioner-amd64 \
             jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-amd64
           install -Dm644 /tmp/payload/provisioner-arm64 \
             jeffrey-jib-payload-native/src/main/payload/jeffrey-payload/provisioner-linux-arm64
           install -Dm644 /tmp/payload/provisioner.jar \
             jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload/provisioner.jar
-          for MODULE in jeffrey-jib-payload-jar jeffrey-jib-payload-native; do
-            install -Dm644 /tmp/payload/jeffrey-agent.jar \
-              "${MODULE}/src/main/payload/jeffrey-payload/jeffrey-agent.jar"
-          done
 
       # async-profiler is pinned by the async-profiler.version property in the jeffrey-jib pom; the
       # script fails on a missing release rather than staging an empty download.

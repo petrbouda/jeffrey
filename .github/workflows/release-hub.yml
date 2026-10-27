@@ -33,9 +33,9 @@ jobs:
     - uses: actions/checkout@v6
 
     # The hub image is built with the jar flavour of the jeffrey-jib extension
-    # (jeffrey-jib-maven-jar), which bakes the provisioner jar, the Jeffrey agent and async-profiler
+    # (jeffrey-jib-maven-jar), which bakes the provisioner jar and async-profiler
     # from the jeffrey-jib-payload-jar artifact. That payload is built here, in this reactor, from
-    # THIS release's own provisioner.jar and jeffrey-agent.jar (uploaded by the build job) and the
+    # THIS release's own provisioner.jar (uploaded by the build job) and the
     # async-profiler pinned in
     # jeffrey-jib/pom.xml — so the hub image never depends on a jeffrey-jib release
     # having been published to Maven Central first, and always self-profiles with the provisioner
@@ -44,12 +44,6 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: provisioner-jar
-        path: ./jeffrey-jib/jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload
-
-    - name: Stage this release's jeffrey-agent.jar as the jar payload
-      uses: actions/download-artifact@v8
-      with:
-        name: jeffrey-agent-jar
         path: ./jeffrey-jib/jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload
 
     - name: Stage async-profiler payloads

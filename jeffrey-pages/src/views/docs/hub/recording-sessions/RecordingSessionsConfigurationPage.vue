@@ -87,7 +87,6 @@ onMounted(() => {
           <li><strong>Output directory</strong> - Where session files are written (monitored by Jeffrey)</li>
           <li><strong>Chunk settings</strong> - Duration and size limits for JFR file rotation</li>
           <li><strong>Event configuration</strong> - Which profiling events to capture</li>
-          <li><strong>Heartbeat directory</strong> - File-based liveness timestamps and a clean-exit marker written in the profiled JVM by the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> (attached by default) or the <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>; the Hub and Microscope no longer read them, since session order and file names decide everything</li>
         </ul>
 
         <DocsLinkCard

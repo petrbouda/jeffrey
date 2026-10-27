@@ -36,12 +36,12 @@ import java.util.Optional;
 /**
  * JIB Maven plugin extension that wraps the image entrypoint so Jeffrey profiling is initialised
  * before the app starts, without forcing operators to override the container {@code command:} in
- * Kubernetes YAML, and bakes the provisioner, async-profiler and the Jeffrey agent into the image.
+ * Kubernetes YAML, and bakes the provisioner and async-profiler into the image.
  *
  * <p>Consumer side (Maven). The plugin dependency is a <em>flavour</em> of the extension —
  * {@code jeffrey-jib-maven-jar} or {@code jeffrey-jib-maven-native} — which brings this class and
- * the payload jar carrying the matching provisioner build plus async-profiler and the Jeffrey
- * agent. Nothing else is required:
+ * the payload jar carrying the matching provisioner build plus async-profiler. Nothing else is
+ * required:
  * <pre>{@code
  * <plugin>
  *   <groupId>com.google.cloud.tools</groupId>

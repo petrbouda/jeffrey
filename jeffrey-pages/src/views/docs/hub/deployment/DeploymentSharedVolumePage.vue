@@ -96,8 +96,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
             └── <instance-id>/
                 ├── .instance-info.json
                 └── <session-id>/            # the JFR recordings land here
-                    ├── .session-info.json
-                    └── .heartbeat/          # written by the agent; not read by the Hub or Microscope`;
+                    └── .session-info.json`;
 </script>
 
 <template>

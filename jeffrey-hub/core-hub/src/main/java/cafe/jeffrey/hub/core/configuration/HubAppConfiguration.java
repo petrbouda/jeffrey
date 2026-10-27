@@ -42,7 +42,6 @@ import java.time.Clock;
 @Configuration
 @Import({
         SchedulerConfiguration.class,
-        HeartbeatConfiguration.class,
         VersionFeatureConfiguration.class
 })
 @EnableConfigurationProperties({
