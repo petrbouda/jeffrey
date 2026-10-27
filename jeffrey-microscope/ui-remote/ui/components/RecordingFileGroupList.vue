@@ -165,7 +165,7 @@ const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
         </template>
         <template #extra-badges>
           <span class="recording-file-size ms-2">
-            <i class="bi bi-files me-1"></i>{{ panel.fileCount }} files
+            <i class="bi bi-files me-1"></i>{{ panel.fileCount }} file{{ panel.fileCount === 1 ? '' : 's' }}
           </span>
         </template>
       </RecordingFileRow>

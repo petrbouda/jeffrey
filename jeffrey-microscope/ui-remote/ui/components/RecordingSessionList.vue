@@ -880,7 +880,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 </div>
                 <div class="session-meta">
                   <span
-                    ><i class="bi bi-files me-1"></i>{{ session.fileCount }} sources</span
+                    ><i class="bi bi-files me-1"></i>{{ session.fileCount }} source{{ session.fileCount === 1 ? '' : 's' }}</span
                   >
                   <Badge
                     v-if="hasUnreportedSizes(session)"
@@ -1043,7 +1043,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               </template>
               <template #extra-badges>
                 <span class="recording-file-size ms-2">
-                  <i class="bi bi-files me-1"></i>{{ getRecordingFiles(session).length }} files
+                  <i class="bi bi-files me-1"></i>{{ getRecordingFiles(session).length }} file{{ getRecordingFiles(session).length === 1 ? '' : 's' }}
                 </span>
               </template>
             </RecordingFileRow>
@@ -1229,7 +1229,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               </template>
               <template #extra-badges>
                 <span class="recording-file-size ms-2">
-                  <i class="bi bi-files me-1"></i>{{ panel.fileCount }} files
+                  <i class="bi bi-files me-1"></i>{{ panel.fileCount }} file{{ panel.fileCount === 1 ? '' : 's' }}
                 </span>
               </template>
             </RecordingFileRow>
