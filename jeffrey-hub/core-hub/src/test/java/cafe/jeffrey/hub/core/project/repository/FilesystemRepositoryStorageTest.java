@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,6 +76,11 @@ class FilesystemRepositoryStorageTest {
                 .findFirst();
     }
 
+    /** Compresses the one session as the compression job reads it: listed, with its files. */
+    private static int compress(RepositoryStorage storage) {
+        return storage.compressSession(listed(storage, SESSION_ID).orElseThrow());
+    }
+
     /** The session directory's files as a reader sees them: dot-files are the volume's own bookkeeping. */
     private static List<String> names(Path dir) throws IOException {
         try (var entries = Files.list(dir)) {
@@ -111,6 +117,20 @@ class FilesystemRepositoryStorageTest {
 
         private Path session(String instanceId, String sessionId, Instant createdAt) {
             return TestVolume.session(TestVolume.instance(project, instanceId, T0), sessionId, createdAt);
+        }
+
+        /** What the compression job works on: each instance's two newest sessions, read with their files. */
+        @Test
+        void theNewestSessionsAreEachInstancesNewestTwo() {
+            session(INSTANCE, "a-1", T0);
+            session(INSTANCE, "a-2", T0.plusSeconds(60));
+            session(INSTANCE, "a-3", T0.plusSeconds(120));
+            session("pod-b", "b-1", T0.plusSeconds(30));
+
+            Map<String, Boolean> newestById = storage.newestSessions(2).stream()
+                    .collect(Collectors.toMap(RecordingSession::id, RecordingSession::newest));
+
+            assertEquals(Map.of("a-3", true, "a-2", false, "b-1", true), newestById);
         }
 
         @Test
@@ -231,7 +251,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr");
             write(session, "profile-20260220-121000.jfr");
 
-            assertEquals(2, endedSession().compressSession(SESSION_ID));
+            assertEquals(2, compress(endedSession()));
 
             assertEquals(
                     List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr.lz4"),
@@ -241,7 +261,7 @@ class FilesystemRepositoryStorageTest {
 
         /**
          * Compressing a recording still being copied into place would compress a prefix of it and
-         * then delete the file being written into. It is left out by {@code finishedRecordings()},
+         * then delete the file being written into. It is left out by {@code trimmableRecordings()},
          * which is the one definition of which recording that may be.
          */
         @Test
@@ -250,7 +270,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr");
             write(session, "profile-20260220-121000.jfr");
 
-            assertEquals(1, newestSession().compressSession(SESSION_ID));
+            assertEquals(1, compress(newestSession()));
 
             assertEquals(
                     List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr"),
@@ -293,7 +313,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "app.pprof");
             write(session, "app.otlp");
 
-            endedSession().compressSession(SESSION_ID);
+            compress(endedSession());
 
             assertEquals(List.of("app.otlp", "app.pprof"), names(session));
         }
@@ -308,7 +328,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Files.createFile(session.resolve("profile-20260220-120000.jfr"));
 
-            assertEquals(0, endedSession().compressSession(SESSION_ID));
+            assertEquals(0, compress(endedSession()));
 
             assertEquals(List.of("profile-20260220-120000.jfr"), names(session));
         }
@@ -322,10 +342,10 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr");
 
-            assertEquals(1, endedSession().compressSession(SESSION_ID));
+            assertEquals(1, compress(endedSession()));
             long firstSize = Files.size(session.resolve("profile-20260220-120000.jfr.lz4"));
 
-            assertEquals(1, endedSession().compressSession(SESSION_ID));
+            assertEquals(1, compress(endedSession()));
 
             assertEquals(List.of("profile-20260220-120000.jfr.lz4"), names(session));
             assertEquals(firstSize, Files.size(session.resolve("profile-20260220-120000.jfr.lz4")));
@@ -343,7 +363,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr");
             write(session, "profile-20260220-120000.jfr.lz4");
 
-            endedSession().compressSession(SESSION_ID);
+            compress(endedSession());
 
             assertEquals(List.of("profile-20260220-120000.jfr.lz4"), names(session));
         }

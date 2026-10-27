@@ -43,8 +43,8 @@ public record OriginContext(
     public static final String TAG_WINDOW = "origin.window";
 
     /**
-     * Present on a whole-session copy taken once the session had finished. A copy of a session
-     * still recording holds the chunks it had then, so only a copy carrying this is handed back
+     * Present on a whole-session copy taken once a newer session had ended the session. A copy of
+     * an instance's newest session holds the chunks it had then, so only a copy carrying this is handed back
      * as "already here" instead of downloading the session again.
      */
     public static final String TAG_COMPLETE = "origin.complete";

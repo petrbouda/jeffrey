@@ -56,7 +56,7 @@ record StorageQuotaRule(long budgetBytes) implements RetentionRule {
         LOG.info("Project storage over budget, reclaiming oldest data: project_name={} total_bytes={} budget_bytes={}",
                 pass.projectName(), totalSize, budgetBytes);
 
-        reclaimFinishedSessions(pass);
+        reclaimEndedSessions(pass);
         if (pass.totalSizeBytes() > budgetBytes) {
             trimNewestSessions(pass);
         }
@@ -68,7 +68,7 @@ record StorageQuotaRule(long budgetBytes) implements RetentionRule {
         }
     }
 
-    private void reclaimFinishedSessions(ProjectRetentionPass pass) {
+    private void reclaimEndedSessions(ProjectRetentionPass pass) {
         List<RecordingSession> deletable = pass.sessions().stream()
                 .filter(session -> !session.newest())
                 .sorted(OLDEST_FIRST)
@@ -97,7 +97,7 @@ record StorageQuotaRule(long budgetBytes) implements RetentionRule {
                 return;
             }
             List<RepositoryFile> toDelete = new ArrayList<>();
-            for (RepositoryFile file : session.finishedRecordings()) {
+            for (RepositoryFile file : session.trimmableRecordings()) {
                 if (projected <= budgetBytes) {
                     break;
                 }

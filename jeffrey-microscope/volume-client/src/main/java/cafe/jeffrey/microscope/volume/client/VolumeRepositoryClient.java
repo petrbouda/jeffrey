@@ -65,7 +65,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
                     .toList());
             return kept.stream()
                     .map(session -> byId.get(session.id()))
-                    .map(session -> VolumeResponses.header(session, project.files(session)))
+                    .map(session -> VolumeResponses.header(project, session))
                     .toList();
         });
     }
@@ -77,7 +77,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
             ProjectSessions sessions = source.sessions(project);
             VolumeSession session = sessions.session(sessionId)
                     .orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
-            return VolumeResponses.withFiles(session, project.files(session));
+            return VolumeResponses.withFiles(project, session);
         });
     }
 

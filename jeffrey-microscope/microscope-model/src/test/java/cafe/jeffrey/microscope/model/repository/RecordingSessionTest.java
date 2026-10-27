@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecordingSessionTest {
@@ -88,8 +87,7 @@ class RecordingSessionTest {
             RecordingSession recordingSession = newest(older, newer);
 
             assertEquals(Optional.of(newer), recordingSession.openRecording());
-            assertTrue(recordingSession.isOpen(newer));
-            assertFalse(recordingSession.isOpen(older));
+            assertEquals(List.of(older, newer), recordingSession.recordings(), "it is a recording like the others");
         }
 
         /**
@@ -136,7 +134,6 @@ class RecordingSessionTest {
             RecordingSession recordingSession = ended(chunk);
 
             assertEquals(Optional.empty(), recordingSession.openRecording());
-            assertFalse(recordingSession.isOpen(chunk));
         }
 
         @Test

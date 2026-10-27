@@ -16,7 +16,7 @@
   -->
 
 <!--
-  A small round indicator of a state — online, active, finished, available — on its own or beside a
+  A small round indicator of a state — online, offline, a verdict, available — on its own or beside a
   label. Takes a tone, never a colour, so every dot in the app draws from the same tokens. With a
   `label` the dot is announced and shown as its tooltip; without one it is decoration, and the text
   beside it carries the meaning.
@@ -24,7 +24,7 @@
 <template>
   <span
     class="status-dot"
-    :class="[`tone-${tone}`, `size-${size}`, { pulse, halo }]"
+    :class="[`tone-${tone}`, `size-${size}`, { halo }]"
     :title="label"
     :role="label ? 'img' : undefined"
     :aria-label="label"
@@ -38,8 +38,6 @@ import type { StatusDotSize, StatusDotTone } from '@shared/types/ui.ts';
 interface Props {
   tone: StatusDotTone;
   size?: StatusDotSize;
-  /** A slow pulse for a state that is still going on, such as a session still recording. */
-  pulse?: boolean;
   /** A soft ring in a light shade of the tone, for a dot that is a page's headline verdict. */
   halo?: boolean;
   label?: string;
@@ -47,7 +45,6 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   size: 'm',
-  pulse: false,
   halo: false,
   label: undefined
 });
@@ -92,14 +89,6 @@ withDefaults(defineProps<Props>(), {
   background: var(--color-danger);
 }
 
-.tone-amber {
-  background: var(--color-amber);
-}
-
-.tone-purple {
-  background: var(--color-purple-border);
-}
-
 .tone-muted {
   background: var(--color-text-light);
 }
@@ -119,25 +108,5 @@ withDefaults(defineProps<Props>(), {
 
 .halo.tone-danger {
   outline: 4px solid var(--color-danger-light);
-}
-
-.pulse {
-  animation: status-dot-pulse 2s ease-in-out infinite;
-}
-
-@keyframes status-dot-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulse {
-    animation: none;
-  }
 }
 </style>

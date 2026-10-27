@@ -57,11 +57,11 @@ export type Variant =
   | 'status-unknown';
 
 /**
- * Colour of a {@link StatusDot}: the state it shows, in the app's tokens. `amber` is a state still
- * going on, `purple` one set apart from the others, `muted` a state with nothing live, and `faint`
- * one with nothing to show. Only `success`, `warning` and `danger` draw a halo.
+ * Colour of a {@link StatusDot}: the state it shows, in the app's tokens. `muted` is a state with
+ * nothing live, and `faint` one with nothing to show. Only `success`, `warning` and `danger` draw a
+ * halo.
  */
-export type StatusDotTone = 'success' | 'warning' | 'danger' | 'amber' | 'purple' | 'muted' | 'faint';
+export type StatusDotTone = 'success' | 'warning' | 'danger' | 'muted' | 'faint';
 
 /** Diameter of a {@link StatusDot}: 6, 7, 8 or 10 pixels. */
 export type StatusDotSize = Extract<Size, 'xs' | 's' | 'm' | 'l'>;
@@ -77,22 +77,3 @@ export type SlowestRowAccent =
 
 /** Time-bar treatment of a {@link SlowestRowList} row: the brand ramp, or the failure ramp. */
 export type SlowestRowTone = 'default' | 'danger';
-
-/** Colour of a {@link TimelineBar} extra cell's icon badge and value. */
-export type TimelineBarTone = Extract<Variant, 'purple'>;
-
-/**
- * An extra cell a caller appends to {@link TimelineBar}'s Started / Last data / Duration row, so a
- * page can add a fact of its own without the shared bar knowing its domain.
- */
-export interface TimelineBarItem {
-  /** Stable key for the v-for. */
-  key: string;
-  /** Bootstrap icon class of the badge, e.g. `bi bi-activity`. */
-  icon: string;
-  tone: TimelineBarTone;
-  /** Small uppercase caption, e.g. "Files". */
-  label: string;
-  /** The cell's main value, right-aligned and tinted with the tone. */
-  value: string;
-}

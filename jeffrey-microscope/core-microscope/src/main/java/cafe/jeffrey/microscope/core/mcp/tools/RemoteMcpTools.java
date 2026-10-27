@@ -850,13 +850,13 @@ public class RemoteMcpTools {
         RecordingSession session = preflight.session();
         ChunkWindow.Selection selection = key.select(session);
         Landing landing = new Landing(key, preflight, selection, alreadyHere);
+        boolean mayHaveChanged = key.mayHaveChanged(session, selection);
 
         // Handing back the recording an identical call already made, unless the answer may have moved
-        // on since. A window with no end means "up to the last chunk" on an instance's newest
-        // session, which keeps adding chunks: the retained recording stops where the session stood
-        // an hour ago. A part holding that session's newest recording may have been copied during
-        // the profiler's dump. Everything else is settled and is answered from what is here.
-        if (prior.isPresent() && !key.mayHaveChanged(session)) {
+        // on since: a part holding the newest recording of an instance's newest session — an
+        // open-ended window always does — is fetched again. Everything else is settled and is
+        // answered from what is here. A transfer still in flight is joined either way.
+        if (prior.isPresent() && !mayHaveChanged) {
             String recordingId = prior.get().value();
             if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
                 String operationId = registerDownload(key, chosen, downloads.current(key).orElseThrow(), landing::landed, base);
@@ -866,15 +866,11 @@ public class RemoteMcpTools {
 
         LOG.info("Downloading a remote session over MCP: project_id={} session_id={} window={} file_ids={}",
                 ref.projectId(), ref.sessionId(), key.window(), key.fileIds());
-        // A recording an identical call already made is handed back instead of fetched again --
-        // unless what was asked for may have changed since, in which case the retained one may answer
-        // a shorter question than the one being put. A transfer still in flight is joined either way.
-        boolean stillGrowing = key.mayHaveChanged(session);
         long transferBytes = selection == null
                 ? session.totalSizeBytes()
                 : selection.files().stream().mapToLong(RepositoryFile::size).sum();
         OperationHandle<String> operation = downloads.startOrJoin(key, retryFailed,
-                recordingId -> !stillGrowing && recordingsManager.findRecording(recordingId).isPresent(),
+                recordingId -> !mayHaveChanged && recordingsManager.findRecording(recordingId).isPresent(),
                 control -> {
                     control.phase(OperationPhase.DOWNLOADING);
                     control.progress(OperationDetails.remoteDownload(ref.encode(), ref.sessionId(), transferBytes));
@@ -1316,33 +1312,19 @@ public class RemoteMcpTools {
         }
 
         /**
-         * Whether an answer retained from an earlier call may be short of this question. An open-ended
-         * window on an instance's newest session covers more of it with every chunk that lands; and a
-         * part holding that session's newest recording may have been taken while the profiler was
-         * still writing the file into place, which the arrival check cannot always tell from a whole
-         * one. Either is fetched again rather than handed back.
+         * Whether an answer retained from an earlier call may be short of this question: whether the
+         * part holds the newest recording of an instance's newest session. That file may have been
+         * copied during the profiler's dump, at a chunk boundary the arrival check cannot tell from
+         * the end ({@code JfrChunkChain}), and an open-ended window covers every chunk that lands
+         * after it — it always holds the newest. Either is fetched again rather than handed back.
+         *
+         * @param selection what the part takes, as {@link #select} chose it; {@code null} for the
+         *                  whole session
          */
-        boolean mayHaveChanged(RecordingSession session) {
-            if (!session.newest()) {
-                return false;
-            }
-            if (window != null && window.end() == null) {
-                return true;
-            }
+        boolean mayHaveChanged(RecordingSession session, ChunkWindow.Selection selection) {
             return session.openRecording()
-                    .filter(newestFile -> takes(session, newestFile))
+                    .filter(newest -> selection == null || selection.files().contains(newest))
                     .isPresent();
-        }
-
-        /** Whether this part brings {@code file} of the session. */
-        private boolean takes(RecordingSession session, RepositoryFile file) {
-            if (window != null) {
-                return window.select(session).files().contains(file);
-            }
-            if (fileIds != null) {
-                return fileIds.contains(file.id());
-            }
-            return true;
         }
 
         /** The non-chunk files a part brings: those named by id; a window brings none. */

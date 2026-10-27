@@ -29,13 +29,13 @@ import java.util.List;
 /**
  * The closed chunks older than {@code retention} in each instance's newest session, so a session
  * that records for weeks stays bounded by age. The recording that may still be on its way onto
- * the volume is never among them ({@link RecordingSession#finishedRecordings()} leaves it out).
+ * the volume is never among them ({@link RecordingSession#trimmableRecordings()} leaves it out).
  * A session a newer one has ended cannot grow; it goes whole once its last data is past the
  * session window, and trimming it first would leave it empty and read as failed.
  */
-record LiveSessionTrimRule(Duration retention) implements RetentionRule {
+record NewestSessionTrimRule(Duration retention) implements RetentionRule {
 
-    private static final Logger LOG = LoggerFactory.getLogger(LiveSessionTrimRule.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NewestSessionTrimRule.class);
 
     @Override
     public void apply(ProjectRetentionPass pass) {
@@ -44,7 +44,7 @@ record LiveSessionTrimRule(Duration retention) implements RetentionRule {
             if (!session.newest()) {
                 continue;
             }
-            List<RepositoryFile> expired = session.finishedRecordings().stream()
+            List<RepositoryFile> expired = session.trimmableRecordings().stream()
                     .filter(file -> file.createdAt().isBefore(cutoff))
                     .toList();
             if (!expired.isEmpty()) {

@@ -936,8 +936,8 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <!-- Timeline section -->
         <TimelineBar
           :createdAt="session.createdAt"
-          :last-data-at="session.lastDataAt ?? undefined"
-          :duration="session.duration ?? undefined"
+          :last-data-at="session.lastDataAt"
+          :duration="session.duration"
         />
       </div>
 

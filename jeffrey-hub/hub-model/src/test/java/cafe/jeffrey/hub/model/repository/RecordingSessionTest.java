@@ -110,8 +110,7 @@ class RecordingSessionTest {
             RecordingSession recordingSession = newest(older, newer);
 
             assertEquals(Optional.of(newer), recordingSession.openRecording());
-            assertTrue(recordingSession.isOpen(newer));
-            assertFalse(recordingSession.isOpen(older));
+            assertEquals(List.of(older), recordingSession.trimmableRecordings());
         }
 
         /**
@@ -158,7 +157,7 @@ class RecordingSessionTest {
             RecordingSession recordingSession = ended(chunk);
 
             assertEquals(Optional.empty(), recordingSession.openRecording());
-            assertFalse(recordingSession.isOpen(chunk));
+            assertEquals(List.of(chunk), recordingSession.trimmableRecordings());
         }
 
         @Test
@@ -183,7 +182,7 @@ class RecordingSessionTest {
                     recording("c1", CREATED_AT),
                     recording("c2", CREATED_AT.plusSeconds(60)));
 
-            assertEquals(List.of("c1", "c2", "c3"), namesOf(recordingSession.finishedRecordings()));
+            assertEquals(List.of("c1", "c2", "c3"), namesOf(recordingSession.trimmableRecordings()));
         }
     }
 
@@ -197,12 +196,12 @@ class RecordingSessionTest {
                     recording("c2", CREATED_AT.plusSeconds(960)),
                     artifact("app.log", CREATED_AT.plusSeconds(1200)));
 
-            assertEquals(CREATED_AT.plusSeconds(960), recordingSession.lastDataAt());
+            assertEquals(CREATED_AT.plusSeconds(960), recordingSession.lastRecordingStart());
         }
 
         @Test
         void isTheStartWhileThereIsNoRecording() {
-            assertEquals(CREATED_AT, newest(artifact("app.log", CREATED_AT.plusSeconds(30))).lastDataAt());
+            assertEquals(CREATED_AT, newest(artifact("app.log", CREATED_AT.plusSeconds(30))).lastRecordingStart());
         }
     }
 }

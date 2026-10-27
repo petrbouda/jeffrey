@@ -24,7 +24,7 @@ import java.util.List;
 public interface RecordingsDownloadManager {
 
     /**
-     * Downloads every finished file of the session and stores it as one local recording.
+     * Downloads every file of the session and stores it as one local recording.
      *
      * @param recordingSessionId the upstream session to download
      * @return id of the recording created in the local store, so the caller can go on to
@@ -49,7 +49,7 @@ public interface RecordingsDownloadManager {
      * @param recordingSessionId the upstream session to take the window from
      * @param window             the span of interest; the files straddling its bounds are included
      * @return id of the recording created in the local store
-     * @throws IllegalArgumentException when no finished recording file of the session touches the window
+     * @throws IllegalArgumentException when no recording file of the session touches the window
      */
     String downloadWindow(String recordingSessionId, ChunkWindow window);
 }

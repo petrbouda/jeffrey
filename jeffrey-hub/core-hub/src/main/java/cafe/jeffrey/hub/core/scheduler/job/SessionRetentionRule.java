@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
  * {@code retention}, or beyond the newest {@code maxSessions} logical sessions, where a consecutive
  * run of failed-empty sessions counts as one ({@link InstanceSessionUnits}).
  *
- * <p>Age is measured from the last data, not the start, so a session still recording — whose
- * newest recording is always recent — is never aged out, while an instance that stopped goes with
+ * <p>Age is measured from the last data, not the start, so a running JVM's session — its profiler
+ * loops, so its newest chunk is recent — is never aged out, while an instance that stopped goes with
  * its last session once the window has passed. The cap never takes an instance's newest session:
  * it is the first unit.</p>
  */
@@ -73,7 +73,7 @@ record SessionRetentionRule(Duration retention, int maxSessions) implements Rete
         for (int unitIndex = 0; unitIndex < unitList.size(); unitIndex++) {
             boolean overCap = unitIndex >= maxSessions;
             for (RecordingSession session : unitList.get(unitIndex)) {
-                boolean aged = session.lastDataAt().isBefore(cutoff);
+                boolean aged = session.lastRecordingStart().isBefore(cutoff);
                 if (aged || overCap) {
                     expired.add(session);
                 }

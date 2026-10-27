@@ -137,7 +137,7 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
         long largest = compressed.stream().mapToLong(chunk -> chunk.file().size()).max().orElseThrow();
         List<Chunk> atLargest = compressed.stream().filter(chunk -> chunk.file().size() == largest).toList();
         Chunk peak = atLargest.stream().max(Comparator.comparing(Chunk::start)).orElseThrow();
-        long median = lowerMedian(compressed.stream().map(chunk -> chunk.file().size()).toList());
+        long median = RecordedSpan.lowerMedian(compressed.stream().map(chunk -> chunk.file().size()).toList());
         int notCompressed = (int) chunks.stream()
                 .filter(SessionChunks::hasBytes)
                 .filter(chunk -> RepositoryFiles.typeOf(chunk.file()) != ManagedFile.JFR_LZ4)
@@ -148,11 +148,5 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
     private static boolean hasBytes(Chunk chunk) {
         Long size = chunk.file().size();
         return size != null && size > 0;
-    }
-
-    /** The lower of the two middle values for an even count, so the answer is one that occurred. */
-    private static long lowerMedian(List<Long> values) {
-        List<Long> sorted = values.stream().sorted().toList();
-        return sorted.get((sorted.size() - 1) / 2);
     }
 }

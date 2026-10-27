@@ -113,14 +113,10 @@ public record RecordingSession(
         if (!newest) {
             return Optional.empty();
         }
-        return recordings().stream().reduce((older, newer) -> newer);
-    }
-
-    /**
-     * Whether this file is the recording that may still be on its way onto the volume.
-     */
-    public boolean isOpen(RepositoryFile file) {
-        return openRecording().filter(open -> open.equals(file)).isPresent();
+        return files.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(file -> file.createdAt() != null)
+                .max(Comparator.comparing(RepositoryFile::createdAt));
     }
 
     /**

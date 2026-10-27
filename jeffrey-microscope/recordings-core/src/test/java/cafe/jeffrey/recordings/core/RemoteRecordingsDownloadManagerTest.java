@@ -229,10 +229,7 @@ class RemoteRecordingsDownloadManagerTest {
         return file(id, name, type, CREATED_AT);
     }
 
-    /**
-     * The newest-recording column is the one the hub does not send: the reader fills it in from
-     * the session.
-     */
+    /** A file as the remote lists it; the download decides from the session, never from its newest flag. */
     private static RepositoryFileResponse file(
             String id, String name, ManagedFile type, Instant createdAt) {
         return new RepositoryFileResponse(
@@ -258,8 +255,7 @@ class RemoteRecordingsDownloadManagerTest {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
                 CREATED_AT.toEpochMilli(), CREATED_AT.plusSeconds(60).toEpochMilli(),
-                newest, 60_000L, List.of(files), false, files.length, sizeOf(files))
-                .withResolvedFiles();
+                newest, 60_000L, List.of(files), false, files.length, sizeOf(files));
     }
 
     /** What the hub reports alongside the files, measured from them. */

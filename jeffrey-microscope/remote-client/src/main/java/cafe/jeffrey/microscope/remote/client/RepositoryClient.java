@@ -24,7 +24,7 @@ import java.util.List;
 
 /**
  * A project's recording sessions: listed, read one at a time with their files, and — on a source
- * that allows it — deleted or pinned.
+ * that allows it — deleted.
  */
 public interface RepositoryClient {
 

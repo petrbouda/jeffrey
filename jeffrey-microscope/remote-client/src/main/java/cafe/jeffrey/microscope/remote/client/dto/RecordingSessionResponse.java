@@ -19,9 +19,11 @@ package cafe.jeffrey.microscope.remote.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A session as this application's API reports it.
@@ -54,39 +56,22 @@ public record RecordingSessionResponse(
                 lastDataAt,
                 session.newest(),
                 duration(createdAt, lastDataAt),
-                session.files().stream()
-                        .map(file -> RepositoryFileResponse.from(session, file))
-                        .toList(),
+                files(session),
                 session.failed(),
                 session.fileCount(),
                 session.totalSizeBytes());
     }
 
-    private static Long duration(Long createdAt, Long lastDataAt) {
-        return createdAt != null && lastDataAt != null ? lastDataAt - createdAt : null;
+    /** Its files, each flagged against the session's newest recording, worked out once. */
+    private static List<RepositoryFileResponse> files(RecordingSession session) {
+        Optional<RepositoryFile> newestRecording = session.openRecording();
+        return session.files().stream()
+                .map(file -> RepositoryFileResponse.from(file, newestRecording.filter(file::equals).isPresent()))
+                .toList();
     }
 
-    /**
-     * The same session with every file's flags resolved against it.
-     *
-     * <p>For the decoder, and only for it: the wire carries no per-file "newest recording" flag,
-     * because whether a file may still be on its way is a fact about the session rather than about
-     * the file. A session read off the remote therefore arrives with that column unfilled, and it
-     * is filled here, once, instead of leaving each reader of a row to work it out or to trust a
-     * value nobody set. The volume clients call this as the last step of decoding a session, so no
-     * session with an unfilled column is ever handed out and there is nothing for a caller to
-     * remember.
-     */
-    public RecordingSessionResponse withResolvedFiles() {
-        RecordingSession session = toSession();
-        return new RecordingSessionResponse(
-                id, name, instanceId, createdAt, lastDataAt, newest, duration,
-                session.files().stream()
-                        .map(file -> RepositoryFileResponse.from(session, file))
-                        .toList(),
-                failed,
-                fileCount,
-                sizeBytes);
+    private static Long duration(Long createdAt, Long lastDataAt) {
+        return createdAt != null && lastDataAt != null ? lastDataAt - createdAt : null;
     }
 
     /** The session in Microscope's own model, its size as the remote reported it. */

@@ -264,10 +264,12 @@ public class RemoteArtifactsMcpTools {
         List<FileRow> fileRows = new ArrayList<>(page.size());
         MarkdownTable table = MarkdownTable.withColumns(
                 "fileId", "name", "type", "category", "newest", "size", "created", "local", "fetch");
+        Optional<RepositoryFile> newestRecording = session.openRecording();
         for (RepositoryFile file : page) {
             ManagedFile type = RepositoryFiles.typeOf(file);
             String localPath = localPath(file, ref, local);
-            FileRow row = new FileRow(file.id(), file.name(), type, type.fileCategory(), session.isOpen(file),
+            FileRow row = new FileRow(file.id(), file.name(), type, type.fileCategory(),
+                    newestRecording.filter(file::equals).isPresent(),
                     file.size(), file.createdAt() == null ? null : file.createdAt().toEpochMilli(), localPath,
                     fetchability(file));
             fileRows.add(row);

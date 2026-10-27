@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumePath;
@@ -84,34 +83,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     // ========== Instances and sessions ==========
 
-    /** The session without its files, as the volume's layout read it at this moment. */
-    private static RecordingSession toRecordingSession(VolumeSession session) {
-        return new RecordingSession(
-                session.id(),
-                session.name(),
-                session.instanceId(),
-                session.createdAt(),
-                session.newest(),
-                List.of());
-    }
-
-    private Optional<RecordingSession> session(String sessionId) {
-        return sessions.session(sessionId).map(this::withFiles);
-    }
-
-    @Override
-    public List<RecordingSession> listSessions(SessionDetail detail) {
-        return sessions.all().stream()
-                .map(session -> detail.withFiles() ? withFiles(session) : toRecordingSession(session))
-                .toList();
-    }
-
-    /** A session just read, with its files: described off the listing it was read from. */
-    private RecordingSession withFiles(VolumeSession volumeSession) {
-        RecordingSession session = toRecordingSession(volumeSession);
-        List<RepositoryFile> files = tree.files(volumeSession).stream()
-                .map(this::toRepositoryFile)
-                .toList();
+    /** The session as the volume's layout read it at this moment, with the files given. */
+    private static RecordingSession toRecordingSession(VolumeSession session, List<RepositoryFile> files) {
         return new RecordingSession(
                 session.id(),
                 session.name(),
@@ -119,6 +92,28 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.createdAt(),
                 session.newest(),
                 files);
+    }
+
+    @Override
+    public List<RecordingSession> listSessions(SessionDetail detail) {
+        return sessions.all().stream()
+                .map(session -> detail.withFiles() ? withFiles(session) : toRecordingSession(session, List.of()))
+                .toList();
+    }
+
+    @Override
+    public List<RecordingSession> newestSessions(int perInstance) {
+        return sessions.newestOfEachInstance(perInstance).stream()
+                .map(this::withFiles)
+                .toList();
+    }
+
+    /** A session just read, with its files: described off the listing it was read from. */
+    private RecordingSession withFiles(VolumeSession session) {
+        List<RepositoryFile> files = tree.files(session).stream()
+                .map(this::toRepositoryFile)
+                .toList();
+        return toRecordingSession(session, files);
     }
 
     private RepositoryFile toRepositoryFile(SessionFile file) {
@@ -211,22 +206,16 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     // ========== Session Compression ==========
 
     @Override
-    public int compressSession(String sessionId) {
-        RecordingSession session = resolveSession(sessionId);
-
-        // Every closed chunk; for an instance's newest session, all but its newest recording
-        return (int) session.finishedRecordings().stream()
-                .map(file -> compress(sessionId, file))
+    public int compressSession(RecordingSession session) {
+        // Every recording; for an instance's newest session, all but its newest
+        return (int) session.trimmableRecordings().stream()
+                .map(file -> compress(session.id(), file))
                 .filter(Objects::nonNull)
                 .distinct()
                 .count();
     }
 
     // ========== Private Helpers ==========
-
-    private RecordingSession resolveSession(String sessionId) {
-        return session(sessionId).orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
-    }
 
     /**
      * Compresses one closed recording in place, replacing it with its LZ4 archive. Reached only from

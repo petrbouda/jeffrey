@@ -17,7 +17,6 @@
 package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
 import cafe.jeffrey.microscope.core.mcp.tools.ByteSizes;
-import cafe.jeffrey.microscope.model.repository.ChunkWindow.Selection.Chunk;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 
 import java.time.Duration;
@@ -68,8 +67,8 @@ public record WindowSubject(RecordingSession session, String remote, String proj
         if (session.lastDataAt() == null) {
             return false;
         }
-        List<Chunk> chunks = chunks().chunks();
-        return !chunks.isEmpty() && !session.lastDataAt().isAfter(chunks.getLast().start());
+        List<Instant> starts = session.recordingStarts();
+        return !starts.isEmpty() && !session.lastDataAt().isAfter(starts.getLast());
     }
 
     /** Whether it may still grow: no newer session has started in its instance. */

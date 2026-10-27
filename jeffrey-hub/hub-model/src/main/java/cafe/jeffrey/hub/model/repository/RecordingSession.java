@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.model.repository;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Stream;
 import java.util.Optional;
 
 /**
@@ -41,6 +41,8 @@ public record RecordingSession(
      * A session loaded without its files holds an empty list rather than none, so every reader
      * below can ask it about its files without first asking whether it has any.
      */
+    private static final Comparator<RepositoryFile> BY_START = Comparator.comparing(RepositoryFile::createdAt);
+
     public RecordingSession {
         files = files == null ? List.of() : files;
     }
@@ -77,46 +79,41 @@ public record RecordingSession(
         if (!newest) {
             return Optional.empty();
         }
-        return files.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.createdAt() != null)
-                .max(Comparator.comparing(RepositoryFile::createdAt));
+        return recordings().max(BY_START);
     }
 
     /**
-     * Whether this file is the recording that may still be on its way onto the volume.
+     * The session's recordings a trim or the quota may delete, oldest first: every one but the
+     * newest-file guard's ({@link #openRecording()}). One definition, because a reader that counted
+     * chunks differently from the way it picked them would call a whole session a part of itself.
      */
-    public boolean isOpen(RepositoryFile file) {
-        return openRecording().filter(open -> open.equals(file)).isPresent();
-    }
-
-    /**
-     * The session's closed recording chunks, oldest first. One definition, because a reader that
-     * counted chunks differently from the way it picked them would call a whole session a part of
-     * itself.
-     */
-    public List<RepositoryFile> finishedRecordings() {
+    public List<RepositoryFile> trimmableRecordings() {
         Optional<RepositoryFile> open = openRecording();
-        return files.stream()
-                .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> file.createdAt() != null)
+        return recordings()
                 .filter(file -> open.filter(file::equals).isEmpty())
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
+                .sorted(BY_START)
                 .toList();
     }
 
     /**
-     * When the session last recorded data: its newest recording's timestamp, or its start while it
-     * has none. What retention measures a session's age by — a session still recording always has
-     * a recent one. Only meaningful when the session was loaded WITH files.
+     * When the session's newest recording started — the timestamp in its name — or the session's
+     * own start while it has none. What retention measures a session's age by: a running JVM's
+     * profiler loops, so its session always has a recent one. Microscope's "last data" goes one
+     * measured chunk further; retention needs no more than the start. Only meaningful when the
+     * session was loaded WITH files.
      */
-    public Instant lastDataAt() {
-        return files.stream()
-                .filter(RepositoryFile::isRecordingFile)
+    public Instant lastRecordingStart() {
+        return recordings()
                 .map(RepositoryFile::createdAt)
-                .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder())
                 .orElse(createdAt);
+    }
+
+    /** The session's recordings that carry a start: the files every rule above reads. */
+    private Stream<RepositoryFile> recordings() {
+        return files.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .filter(file -> file.createdAt() != null);
     }
 
     /**

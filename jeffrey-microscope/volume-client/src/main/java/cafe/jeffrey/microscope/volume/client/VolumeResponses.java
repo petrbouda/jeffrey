@@ -17,14 +17,13 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
 import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.model.repository.RecordedSpan;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
@@ -37,7 +36,6 @@ import cafe.jeffrey.shared.volume.layout.VolumeSession;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -51,13 +49,13 @@ final class VolumeResponses {
     }
 
     /** A session as a listing carries it: its file count and size, none of its files. */
-    static RecordingSessionResponse header(VolumeSession session, List<SessionFile> files) {
-        return response(session, files, List.of());
+    static RecordingSessionResponse header(ProjectTree project, VolumeSession session) {
+        return response(project, session, false);
     }
 
     /** A session read on its own, with every file. */
-    static RecordingSessionResponse withFiles(VolumeSession session, List<SessionFile> files) {
-        return response(session, files, files.stream().map(VolumeResponses::file).toList());
+    static RecordingSessionResponse withFiles(ProjectTree project, VolumeSession session) {
+        return response(project, session, true);
     }
 
     /**
@@ -120,33 +118,25 @@ final class VolumeResponses {
         return summary.newest().flatMap(newest -> RecordedSpan.end(project.recordingStarts(newest)));
     }
 
-    private static RecordingSessionResponse response(
-            VolumeSession session, List<SessionFile> measured, List<RepositoryFileResponse> carried) {
-
-        long createdAt = session.createdAt().toEpochMilli();
-        Long lastDataAt = RecordedSpan.end(recordingStarts(measured)).map(Instant::toEpochMilli).orElse(null);
-        long bytes = measured.stream().mapToLong(SessionFile::size).sum();
-        return new RecordingSessionResponse(
+    /**
+     * The session in Microscope's model, then on the wire: its span from the names its listing
+     * shows, its size from its files, and those files themselves only when it carries them.
+     */
+    private static RecordingSessionResponse response(ProjectTree project, VolumeSession session, boolean carryFiles) {
+        List<SessionFile> files = project.files(session);
+        long bytes = files.stream().mapToLong(SessionFile::size).sum();
+        RecordingSession described = new RecordingSession(
                 session.id(),
                 session.name(),
                 session.instanceId(),
-                createdAt,
-                lastDataAt,
+                session.createdAt(),
+                RecordedSpan.end(project.recordingStarts(session)).orElse(null),
                 session.newest(),
-                lastDataAt != null ? lastDataAt - createdAt : null,
-                carried,
+                null,
+                carryFiles ? files.stream().map(VolumeResponses::file).toList() : List.of(),
                 failed(session, bytes),
-                measured.size(),
-                bytes)
-                .withResolvedFiles();
-    }
-
-    private static List<Instant> recordingStarts(List<SessionFile> files) {
-        return files.stream()
-                .filter(SessionFile::recording)
-                .map(SessionFile::createdAt)
-                .filter(Objects::nonNull)
-                .toList();
+                new SessionSize(files.size(), bytes));
+        return RecordingSessionResponse.from(described);
     }
 
     /**
@@ -158,14 +148,7 @@ final class VolumeResponses {
         return !session.newest() && bytes == 0;
     }
 
-    private static RepositoryFileResponse file(SessionFile file) {
-        return new RepositoryFileResponse(
-                file.id(),
-                file.name(),
-                file.createdAt().toEpochMilli(),
-                file.size(),
-                RepositoryFiles.typeOf(file.name()),
-                false,
-                file.recording());
+    private static RepositoryFile file(SessionFile file) {
+        return new RepositoryFile(file.id(), file.name(), file.createdAt(), file.size(), file.recording(), null);
     }
 }

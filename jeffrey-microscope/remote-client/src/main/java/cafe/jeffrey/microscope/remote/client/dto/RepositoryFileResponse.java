@@ -37,22 +37,22 @@ public record RepositoryFileResponse(
         boolean isRecording) {
 
     /**
-     * The file as this application's own API reports it, with its flag resolved here.
+     * The file as this application's own API reports it.
      *
-     * <p>A file has no status of its own and none comes with the listing: the volume says which
-     * files exist, and whether one may still be on its way is a fact about the session, which
-     * {@link RecordingSession#isOpen} answers. It is resolved at this boundary because a reader of
-     * this response holds one file at a time — a table row, a checkbox — and asking it to carry
-     * the session around to find out would put the rule in every such reader.
+     * <p>A file has no status of its own: whether it may still be on its way is a fact about the
+     * session ({@link RecordingSession#openRecording()}), resolved once per session by the caller
+     * and handed to each file here, because a reader of this response holds one file at a time — a
+     * table row, a checkbox — and asking it to carry the session around would put the rule in
+     * every such reader.
      */
-    public static RepositoryFileResponse from(RecordingSession session, RepositoryFile file) {
+    public static RepositoryFileResponse from(RepositoryFile file, boolean newestRecording) {
         return new RepositoryFileResponse(
                 file.id(),
                 file.name(),
                 InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
                 RepositoryFiles.typeOf(file),
-                session.isOpen(file),
+                newestRecording,
                 file.isRecordingFile());
     }
 

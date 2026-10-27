@@ -80,10 +80,19 @@ public final class ProjectSessions {
                 .toList();
     }
 
-    /** One instance's sessions, newest first. */
-    public List<VolumeSession> of(InstanceDirectory instance) {
-        List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(instance.path(), fanOut);
-        return fanOut.map(oldestFirst, session -> read(session, session.equals(oldestFirst.getLast()))).reversed();
+    /**
+     * The newest {@code limit} sessions of every instance, each instance's newest first: a page of
+     * each, so only those sessions are read — their markers and listings — off one listing of the
+     * instance's directory.
+     */
+    public List<VolumeSession> newestOfEachInstance(int limit) {
+        SessionPage page = new SessionPage(limit, Optional.empty());
+        return fanOut.map(tree.instances(fanOut), instance -> tree.instanceListing(instance)
+                        .map(listed -> pageOf(instance, listed, page).sessions())
+                        .orElse(List.of()))
+                .stream()
+                .flatMap(List::stream)
+                .toList();
     }
 
     /**
@@ -103,7 +112,7 @@ public final class ProjectSessions {
      * the marker was remembered from before.
      */
     private static boolean stillListed(VolumeSession session) {
-        return session.listing().holdsFile(JeffreyLayout.SESSION_INFO_FILE, () -> true);
+        return session.listing().holdsFile(JeffreyLayout.SESSION_INFO_FILE);
     }
 
     /**
@@ -144,9 +153,13 @@ public final class ProjectSessions {
      */
     public Optional<InstanceSessionList> instance(String instanceId, SessionPage page) {
         return tree.instance(instanceId).flatMap(instance -> tree.instanceListing(instance)
-                .map(listed -> page.isAll() || !ProjectTree.namesCarryStarts(listed)
-                        ? pageOfEvery(instance, listed, page)
-                        : pageByName(instance, listed, page)));
+                .map(listed -> pageOf(instance, listed, page)));
+    }
+
+    private InstanceSessionList pageOf(InstanceDirectory instance, List<VolumeEntry> listed, SessionPage page) {
+        return page.isAll() || !ProjectTree.namesCarryStarts(listed)
+                ? pageOfEvery(instance, listed, page)
+                : pageByName(instance, listed, page);
     }
 
     /** Every session's marker read and ordered, the page taken from that order. */

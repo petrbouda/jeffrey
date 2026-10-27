@@ -21,7 +21,6 @@ import cafe.jeffrey.shared.volume.VolumeEntry;
 
 import java.io.UncheckedIOException;
 import java.util.List;
-import java.util.function.BooleanSupplier;
 
 /**
  * One listing of a session directory, which answers everything a reader asks of the directory
@@ -41,8 +40,11 @@ public sealed interface SessionListing {
      */
     List<VolumeEntry> entries();
 
-    /** Whether a file by this name was listed; {@code otherwise} asks the volume when the listing failed. */
-    boolean holdsFile(String name, BooleanSupplier otherwise);
+    /**
+     * Whether a file by this name was listed. A listing that failed cannot say, and answers that it
+     * does: the session is then read as it lies rather than dropped for a failure of the share.
+     */
+    boolean holdsFile(String name);
 
     /** The session directory as it was listed; empty when nothing is there. */
     record Listed(List<VolumeEntry> entries) implements SessionListing {
@@ -55,7 +57,7 @@ public sealed interface SessionListing {
         }
 
         @Override
-        public boolean holdsFile(String name, BooleanSupplier otherwise) {
+        public boolean holdsFile(String name) {
             return entries.stream().anyMatch(entry -> entry.isFile() && entry.name().equals(name));
         }
     }
@@ -75,8 +77,8 @@ public sealed interface SessionListing {
         }
 
         @Override
-        public boolean holdsFile(String name, BooleanSupplier otherwise) {
-            return otherwise.getAsBoolean();
+        public boolean holdsFile(String name) {
+            return true;
         }
     }
 }

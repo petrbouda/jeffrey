@@ -72,8 +72,8 @@ final class VolumeInstancesClient implements InstancesClient {
                             VolumeResponses.instance(found.summary(), project),
                             found.sessions().stream()
                                     .map(session -> page.withFiles()
-                                            ? VolumeResponses.withFiles(session, project.files(session))
-                                            : VolumeResponses.header(session, project.files(session)))
+                                            ? VolumeResponses.withFiles(project, session)
+                                            : VolumeResponses.header(project, session))
                                     .toList(),
                             found.hasOlder()));
         });

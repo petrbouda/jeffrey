@@ -53,8 +53,21 @@ public final class RecordedSpan {
         for (int i = 1; i < oldestFirst.size(); i++) {
             spacings.add(Duration.between(oldestFirst.get(i - 1), oldestFirst.get(i)).toMillis());
         }
-        spacings.sort(Comparator.naturalOrder());
-        return Optional.of(Duration.ofMillis(spacings.get((spacings.size() - 1) / 2)));
+        return Optional.of(Duration.ofMillis(lowerMedian(spacings)));
+    }
+
+    /**
+     * The lower of the two middle values for an even count, so the answer is one that occurred.
+     * The one median every measured chunk figure uses.
+     *
+     * @throws IllegalArgumentException when there are no values
+     */
+    public static long lowerMedian(List<Long> values) {
+        if (values.isEmpty()) {
+            throw new IllegalArgumentException("A median needs at least one value");
+        }
+        List<Long> sorted = values.stream().sorted().toList();
+        return sorted.get((sorted.size() - 1) / 2);
     }
 
     /**

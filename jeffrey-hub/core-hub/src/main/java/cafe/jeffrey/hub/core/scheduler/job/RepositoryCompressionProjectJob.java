@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +27,7 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Scheduler job that compresses closed recording files using LZ4 compression.
@@ -55,9 +51,6 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
     /** The newest session and the one it ended: the only sessions a tick can find anything new in. */
     private static final int SESSIONS_PER_INSTANCE = 2;
 
-    private static final Comparator<RecordingSession> NEWEST_FIRST =
-            Comparator.comparing(RecordingSession::createdAt).reversed();
-
     private final Duration period;
 
     public RepositoryCompressionProjectJob(WorkspacesManager workspacesManager, JobConfig config) {
@@ -70,22 +63,13 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
         String projectName = manager.info().name();
         LOG.debug("Starting JFR compression check: project_name={}", projectName);
 
-        // Headers only: compressSession loads the one session it works on with files itself
-        List<RecordingSession> sessions = repositoryStorage.listSessions(SessionDetail.HEADERS);
+        // Only each instance's newest sessions are read, with their files
+        List<RecordingSession> sessions = repositoryStorage.newestSessions(SESSIONS_PER_INSTANCE);
         if (sessions.isEmpty()) {
             LOG.debug("No sessions found for compression: project_name={}", projectName);
             return;
         }
-
-        Collection<List<RecordingSession>> byInstance = sessions.stream()
-                .collect(Collectors.groupingBy(RecordingSession::instanceId))
-                .values();
-        for (List<RecordingSession> instanceSessions : byInstance) {
-            instanceSessions.stream()
-                    .sorted(NEWEST_FIRST)
-                    .limit(SESSIONS_PER_INSTANCE)
-                    .forEach(session -> repositoryStorage.compressSession(session.id()));
-        }
+        sessions.forEach(repositoryStorage::compressSession);
     }
 
     @Override

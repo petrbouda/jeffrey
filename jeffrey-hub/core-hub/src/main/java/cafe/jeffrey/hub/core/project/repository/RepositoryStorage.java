@@ -66,11 +66,18 @@ public interface RepositoryStorage {
     // ========== Session Compression ==========
 
     /**
-     * Compresses the session's closed JFR chunks to LZ4 and deletes the originals; for a live
-     * session the chunk the profiler is still writing is left alone. Used by the compression job.
+     * The newest {@code perInstance} sessions of every instance, with their files: only those
+     * sessions are read. What the compression job works on.
+     */
+    List<RecordingSession> newestSessions(int perInstance);
+
+    /**
+     * Compresses the session's JFR chunks to LZ4 and deletes the originals; the newest recording
+     * of an instance's newest session is left alone ({@link RecordingSession#openRecording()}).
+     * Used by the compression job.
      *
-     * @param sessionId the session ID to compress
+     * @param session the session, loaded with its files
      * @return number of files compressed
      */
-    int compressSession(String sessionId);
+    int compressSession(RecordingSession session);
 }

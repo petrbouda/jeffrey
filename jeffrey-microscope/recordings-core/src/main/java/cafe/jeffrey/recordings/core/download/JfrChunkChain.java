@@ -34,6 +34,10 @@ import java.util.Arrays;
  * the last to the end of the file. async-profiler writes a chunk's header with a placeholder size
  * of 1 GiB and no duration, patching both in only when it finishes the chunk; a header still
  * holding them belongs to a chunk the file does not hold the end of.
+ *
+ * <p>What the chain cannot see is a copy cut exactly at a chunk boundary — the JDK's chunks in
+ * place and async-profiler's not appended yet: that prefix is whole JFR. Microscope therefore
+ * never hands such a file back from an earlier download ({@code DownloadKey.mayHaveChanged}).
  */
 public final class JfrChunkChain {
 
