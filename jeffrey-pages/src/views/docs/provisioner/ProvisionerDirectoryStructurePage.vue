@@ -52,7 +52,7 @@ onMounted(() => {
           <pre><code>&lt;jeffrey-home&gt;/
 └── workspaces/
     └── &lt;workspace-id&gt;/
-        ├── .workspace-info.json             # Workspace marker, written by Microscope or the Hub
+        ├── .workspace-info.json             # Workspace marker, written by the Hub
         └── &lt;project-name&gt;/
             ├── .project-info.json           # Project metadata
             └── &lt;instance-name&gt;/
@@ -83,7 +83,7 @@ onMounted(() => {
 ├── jfr.jvm-log                  # JVM log (if enabled)
 ├── perf-counters.hsperfdata     # Performance counters (if enabled)
 ├── hs-jvm-err.log               # HotSpot error log (written on JVM crash)
-├── .retained                    # Written by Microscope while the session is pinned against retention
+├── .retained                    # Written by the Hub while the session is pinned against retention
 └── .session-info.json           # Session metadata</code></pre>
         </div>
 

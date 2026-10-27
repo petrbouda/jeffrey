@@ -211,7 +211,7 @@ volumes:
 
       <h2 id="project-block">Project Block</h2>
       <p>
-        Controls how the workload appears on the shared volume, and so in Microscope. The
+        Controls how the workload appears in Jeffrey Hub. The
         <code>name</code> is the logical identifier (the project's directory on the shared
         volume) and the name shown for the project everywhere.
       </p>
@@ -227,7 +227,7 @@ volumes:
         environment. With <code>JEFFREY_TESTAPP_MODE=direct</code> the project becomes
         <code>direct-jeffrey-testapp-server</code>; with <code>JEFFREY_TESTAPP_MODE=dom</code>
         it becomes <code>dom-jeffrey-testapp-server</code>. One chart, two distinct
-        projects on the shared volume, side by side for differential analysis.
+        projects in Jeffrey Hub, side by side for differential analysis.
       </p>
 
       <h2 id="capture-blocks">Capture Blocks</h2>

@@ -27,7 +27,7 @@ public enum DownloadTaskStatus {
     PENDING,
 
     /**
-     * Files are currently being downloaded from the remote.
+     * Files are currently being downloaded from the hub.
      */
     DOWNLOADING,
 

@@ -171,7 +171,7 @@ class RecordingsCoreManagerImplTest {
 
             String recordingId = manager.createDownloadedBundle(
                     "checkout_2026-03-01T12-00-00Z", List.of(first, second), List.of(heapDump, gcLog),
-                    Map.of("origin.remote", "production"));
+                    Map.of("origin.hubId", "hub-1"));
 
             ArgumentCaptor<Bundle> bundle = ArgumentCaptor.forClass(Bundle.class);
             ArgumentCaptor<List<Recording>> members = ArgumentCaptor.captor();
@@ -195,7 +195,7 @@ class RecordingsCoreManagerImplTest {
                     assertTrue(Files.exists(recordingsDir.resolve(member.id() + "-" + file.filename())),
                             "every member row must resolve to a stored file: " + file.filename());
                 }
-                verify(recordingTagsRepository).insert(member.id(), Map.of("origin.remote", "production"));
+                verify(recordingTagsRepository).insert(member.id(), Map.of("origin.hubId", "hub-1"));
             }
             assertTrue(Files.exists(recordingsDir.resolve(bundle.getValue().id() + "-gc.jvm-log")));
         }

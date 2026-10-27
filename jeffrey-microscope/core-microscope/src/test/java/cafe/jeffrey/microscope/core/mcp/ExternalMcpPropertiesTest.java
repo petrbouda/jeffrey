@@ -120,7 +120,7 @@ class ExternalMcpPropertiesTest {
     class OperationsRule {
 
         @ParameterizedTest
-        @ValueSource(strings = {"recordings", "heap", "remote", "ide", "jvm"})
+        @ValueSource(strings = {"recordings", "heap", "hubs", "ide", "jvm"})
         void refusesAWriterFamilyWithoutOperations(String writer) {
             IllegalArgumentException failure =
                     assertThrows(IllegalArgumentException.class, () -> withFamilies(Set.of(writer)));
@@ -146,26 +146,26 @@ class ExternalMcpPropertiesTest {
     }
 
     /**
-     * A remote download is a recording nobody can analyse unless recordings_analyzeRecording is served
-     * too, so an explicit list with remote has to keep recordings.
+     * A hub download is a recording nobody can analyse unless recordings_analyzeRecording is served
+     * too, so an explicit list with hubs has to keep recordings.
      */
     @Nested
     class RecordingsBesideHubsRule {
 
         @Test
-        void refusesRemoteWithoutRecordings() {
+        void refusesHubsWithoutRecordings() {
             IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> withFamilies(Set.of("remote", "operations")));
+                    () -> withFamilies(Set.of("hubs", "operations")));
 
             assertTrue(failure.getMessage().contains("recordings"), failure.getMessage());
-            assertTrue(failure.getMessage().contains("remote"), failure.getMessage());
+            assertTrue(failure.getMessage().contains("hubs"), failure.getMessage());
         }
 
         @Test
-        void acceptsRemoteWithRecordings() {
-            ExternalMcpProperties properties = withFamilies(Set.of("remote", "recordings", "operations"));
+        void acceptsHubsWithRecordings() {
+            ExternalMcpProperties properties = withFamilies(Set.of("hubs", "recordings", "operations"));
 
-            assertTrue(properties.advertises("remote"));
+            assertTrue(properties.advertises("hubs"));
             assertTrue(properties.advertises("recordings"));
         }
     }
@@ -184,7 +184,7 @@ class ExternalMcpPropertiesTest {
             assertTrue(jfr.advertises(family), family);
         }
         assertFalse(jfr.advertises(HEAP));
-        assertFalse(jfr.advertises("remote"));
+        assertFalse(jfr.advertises("hubs"));
         assertFalse(jfr.advertises("ide"));
     }
 

@@ -52,7 +52,7 @@ onMounted(() => {
       <p>Jeffrey analyzes Java heap dump snapshots (<code>.hprof</code> files, plain or gzipped) to show what is on the heap, which objects retain the most memory, where leaks hide, and how much memory is wasted on duplicates and over-allocated collections. A heap dump is a <strong>recording of its own</strong> and becomes a <strong>profile of its own</strong>: initialize it from its row on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page and its profile opens on the Heap Dump Overview, with <strong>Heap Dump</strong> as its only mode.</p>
 
       <DocsCallout type="info">
-        <strong>Where a heap dump comes from:</strong> a <code>.hprof</code> or <code>.hprof.gz</code> uploaded on the Recordings page, or one taken by a JVM whose recordings the remote holds &mdash; a downloaded session lands as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> in which every heap dump is an item beside the session&rsquo;s JFR recording, initialized separately. A heap dump is never part of a JFR profile. Everything below is available once the dump has been initialized.
+        <strong>Where a heap dump comes from:</strong> a <code>.hprof</code> or <code>.hprof.gz</code> uploaded on the Recordings page, or one taken by a JVM a Jeffrey Hub collects &mdash; a downloaded session lands as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> in which every heap dump is an item beside the session&rsquo;s JFR recording, initialized separately. A heap dump is never part of a JFR profile. Everything below is available once the dump has been initialized.
       </DocsCallout>
 
       <h2 id="initialization">Initialization</h2>
@@ -193,7 +193,7 @@ onMounted(() => {
       <h2 id="from-an-agent">From a Coding Agent</h2>
       <p>Every view above is also a tool of the <strong>Microscope MCP</strong> server, called with the heap-dump profile&rsquo;s id, so a coding-agent session in your repository that speaks MCP <code>2026-07-28</code> (Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> flag on) can ask about retained sizes, suspected leaks, dominator chains, string duplication and class-loader unloadability in natural language and drive the same analysis — with the <code>analyze-heap</code> skill as its method and <code>heap_oql</code> for the questions the reports do not answer.</p>
 
-      <p>A dump downloaded from a remote session is the bundle&rsquo;s heap-dump item: <code>remote_download</code> lists it under <code>items</code>, <code>recordings_analyzeRecording</code> on its <code>recordingId</code> builds the profile, and the <code>heap_</code> tools take that profile. Called on a JFR profile, they are refused with exactly that pointer.</p>
+      <p>A dump downloaded from a hub session is the bundle&rsquo;s heap-dump item: <code>hubs_download</code> lists it under <code>items</code>, <code>recordings_analyzeRecording</code> on its <code>recordingId</code> builds the profile, and the <code>heap_</code> tools take that profile. Called on a JFR profile, they are refused with exactly that pointer.</p>
 
       <p class="docs-read-more">
         <router-link to="/docs/microscope-mcp/tools#heap">Read the heap tool reference &rarr;</router-link>

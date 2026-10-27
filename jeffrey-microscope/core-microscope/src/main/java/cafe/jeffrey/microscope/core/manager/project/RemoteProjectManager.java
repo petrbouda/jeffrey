@@ -17,16 +17,15 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.microscope.remote.client.environment.SessionEnvironmentParser;
-import cafe.jeffrey.microscope.remote.client.environment.SessionEnvironmentReader;
-import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
-import cafe.jeffrey.microscope.remote.client.manager.RemoteRepositoryManager;
-import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
+import cafe.jeffrey.hub.client.environment.SessionEnvironmentParser;
+import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
+import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
+import cafe.jeffrey.hub.client.manager.RemoteRepositoryManager;
+import cafe.jeffrey.hub.client.manager.RepositoryManager;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.RemoteMappers;
-import cafe.jeffrey.microscope.remote.client.RemoteClients;
-import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.hub.client.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
@@ -38,9 +37,9 @@ import cafe.jeffrey.microscope.model.ProjectInfo;
 public class RemoteProjectManager implements ProjectManager {
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final ProjectInfo projectInfo;
+    private final DetailedProjectInfo detailedProjectInfo;
     private final RepositoryStatistics repositoryStatistics;
-    private final RemoteClients remoteClients;
+    private final HubClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
@@ -48,40 +47,36 @@ public class RemoteProjectManager implements ProjectManager {
 
     public RemoteProjectManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            ProjectInfo projectInfo,
+            DetailedProjectInfo detailedProjectInfo,
             RepositoryStatistics repositoryStatistics,
-            RemoteClients remoteClients,
+            HubClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager,
             OriginContext originContext) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.projectInfo = projectInfo;
+        this.detailedProjectInfo = detailedProjectInfo;
         this.repositoryStatistics = repositoryStatistics;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
-        this.scope = ProjectScope.of(projectInfo);
+        this.scope = ProjectScope.of(detailedProjectInfo.projectInfo());
     }
 
     @Override
     public ProjectInfo info() {
-        return projectInfo;
+        return detailedProjectInfo.projectInfo();
     }
 
-    /**
-     * Reads what the project's instances say of it, every time it is asked: finding the project
-     * reads only its marker, so the requests that never show its status never pay for it.
-     */
     @Override
     public DetailedProjectInfo detailedInfo() {
-        return RemoteMappers.toDetailedProjectInfo(projectInfo, remoteClients.instances().activity(scope));
+        return detailedProjectInfo;
     }
 
     @Override
     public ProfilesManager profilesManager() {
-        return profilesManagerFactory.apply(projectInfo);
+        return profilesManagerFactory.apply(detailedProjectInfo.projectInfo());
     }
 
     @Override

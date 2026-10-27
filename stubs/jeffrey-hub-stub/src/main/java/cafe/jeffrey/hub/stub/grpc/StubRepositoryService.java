@@ -1,0 +1,64 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.hub.stub.grpc;
+
+import cafe.jeffrey.hub.api.v1.GetSessionRequest;
+import cafe.jeffrey.hub.api.v1.GetSessionResponse;
+import cafe.jeffrey.hub.api.v1.ListSessionsRequest;
+import cafe.jeffrey.hub.api.v1.ListSessionsResponse;
+import cafe.jeffrey.hub.api.v1.RepositoryServiceGrpc;
+import cafe.jeffrey.hub.stub.data.StubDataset;
+import io.grpc.stub.StreamObserver;
+
+/**
+ * Stub {@code RepositoryService} backed by the in-memory dataset. Recording sessions
+ * are flattened from the project's instances. Deletion RPCs fall through to
+ * {@code UNIMPLEMENTED}.
+ */
+public class StubRepositoryService extends RepositoryServiceGrpc.RepositoryServiceImplBase {
+
+    private final StubDataset dataset;
+
+    public StubRepositoryService(StubDataset dataset) {
+        this.dataset = dataset;
+    }
+
+    @Override
+    public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
+        ListSessionsResponse.Builder builder = ListSessionsResponse.newBuilder();
+        for (StubDataset.Session session : dataset.sessionsForProject(request.getWorkspaceId(), request.getProjectId())) {
+            builder.addSessions(StubProtoMappers.sessionHeader(session));
+        }
+        responseObserver.onNext(builder.build());
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    public void getSession(GetSessionRequest request, StreamObserver<GetSessionResponse> responseObserver) {
+        dataset.session(request.getWorkspaceId(), request.getProjectId(), request.getSessionId())
+                .ifPresentOrElse(
+                        session -> {
+                            responseObserver.onNext(GetSessionResponse.newBuilder()
+                                    .setSession(StubProtoMappers.recordingSession(session))
+                                    .build());
+                            responseObserver.onCompleted();
+                        },
+                        () -> responseObserver.onError(
+                                StubGrpcExceptions.notFound("Session not found: " + request.getSessionId())));
+    }
+}

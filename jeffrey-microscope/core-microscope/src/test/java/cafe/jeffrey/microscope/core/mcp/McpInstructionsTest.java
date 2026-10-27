@@ -30,7 +30,7 @@ class McpInstructionsTest {
 
     private static final List<String> WRITERS = List.of(
             "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete", "heap_prepare",
-            "heap_oql", "remote_download", "remote_fetchFile", "jvm_autoAnalysis", "operations_cancel",
+            "heap_oql", "hubs_download", "hubs_fetchFile", "jvm_autoAnalysis", "operations_cancel",
             "ide_link", "ide_open");
 
     private static String text(Set<String> families) {
@@ -86,7 +86,7 @@ class McpInstructionsTest {
         void letsARunningImportOrTransferBeFollowedAsATask() {
             assertTrue(text.contains("answered with a running operationId or a task is followed, not "
                     + "called again"), text);
-            assertTrue(text.contains("joined by calling remote_download with the arguments its followUp names, "
+            assertTrue(text.contains("joined by calling hubs_download with the arguments its followUp names, "
                     + "or by following its task"), text);
             assertTrue(text.contains("a window named by its window argument"), text);
             assertFalse(text.contains("startTime"), text);
@@ -102,7 +102,7 @@ class McpInstructionsTest {
                     "jvm_sections comes before the other jvm_ tools",
                     "jfr_describeEventType the fields inside one",
                     "heap_status is polled after it",
-                    "starts at remote_sessions",
+                    "starts at hubs_sessions",
                     "ide_resolve comes before a finding names a file",
                     "http_overview, jdbc_overview, grpc_overview, methodtracing_overview, io_overview")) {
                 assertTrue(text.contains(rule), rule + " is missing: " + text);
@@ -163,7 +163,7 @@ class McpInstructionsTest {
 
         @Test
         void pointsAtTheArtifactsAndTheHeapIndex() {
-            assertTrue(text.contains("remote_fetchFile on the file"), text);
+            assertTrue(text.contains("hubs_fetchFile on the file"), text);
             assertTrue(text.contains("heap_prepare builds it"), text);
         }
     }
@@ -176,7 +176,7 @@ class McpInstructionsTest {
         void namesNoFamilyThatIsNotAdvertised() {
             String text = text(Set.of("profiles", "jfr", "flamegraph"));
 
-            for (String hidden : List.of("timeline_", "traces_", "heap_", "remote_", "recordings_", "jvm_",
+            for (String hidden : List.of("timeline_", "traces_", "heap_", "hubs_", "recordings_", "jvm_",
                     "compare_", "ide_", "operations_", "memory_")) {
                 assertFalse(text.contains(hidden), hidden + " is named although not advertised: " + text);
             }
@@ -195,7 +195,7 @@ class McpInstructionsTest {
             assertTrue(text.contains("jeffrey/cost is CHEAP, MODERATE or EXPENSIVE."), text);
             assertFalse(text.contains("SLOW"), text);
             assertFalse(text.contains("jeffrey/requires"), text);
-            for (String requirement : List.of("TRACES", "HEAP_DUMP_INDEXED", "AUTO_ANALYSIS", "REMOTE", "IDE_LINKED")) {
+            for (String requirement : List.of("TRACES", "HEAP_DUMP_INDEXED", "AUTO_ANALYSIS", "HUB", "IDE_LINKED")) {
                 assertFalse(text.contains(requirement), requirement + " named although not advertised: " + text);
             }
         }
@@ -229,7 +229,7 @@ class McpInstructionsTest {
                     "recordings_delete", "heap_prepare", "heap_oql", "operations_cancel")) {
                 assertTrue(text.contains(writer), writer + " is missing: " + text);
             }
-            for (String absent : List.of("remote_download", "remote_fetchFile", "jvm_autoAnalysis", "ide_link")) {
+            for (String absent : List.of("hubs_download", "hubs_fetchFile", "jvm_autoAnalysis", "ide_link")) {
                 assertFalse(text.contains(absent), absent + " is named although not advertised: " + text);
             }
             assertTrue(text.contains("The four that can take a while"), text);

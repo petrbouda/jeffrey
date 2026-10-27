@@ -52,7 +52,7 @@ onMounted(() => {
 
         <div class="docs-feature-list">
           <DocsFeatureItem icon="bi bi-grid" title="Instances">
-            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the remote. Only the Jeffrey Hub&rsquo;s retention pass measures that figure, and Microscope does not connect to the hub, so on the Azure file share the size reads as not measured; the hub&rsquo;s own <router-link to="/docs/hub/architecture#web-ui">Storage page</router-link> shows it.
+            All instances registered in the project, grouped by status, with the project's storage size — the bytes every session of the project occupies on the hub, as its last retention pass measured them.
           </DocsFeatureItem>
           <DocsFeatureItem icon="bi bi-bar-chart-steps" title="Timeline">
             A swimlane view of when each instance and its sessions were active. Pick a time range (1H, 6H, 24H, 7D, 30D) to focus on the period you care about.
@@ -60,7 +60,7 @@ onMounted(() => {
         </div>
 
         <DocsCallout type="info">
-          <strong>Remote workspaces only:</strong> Instances appear only for projects inside the workspaces of the configured remote. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
+          <strong>Remote workspaces only:</strong> Instances appear only for projects inside remote workspaces connected to a Jeffrey Hub. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
         </DocsCallout>
 
         <h2 id="instance-lifecycle">Instance Lifecycle</h2>
@@ -89,18 +89,15 @@ onMounted(() => {
           </tbody>
         </table>
 
-        <p>The status is derived from the instance's sessions each time it is listed. When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
+        <p>The status is derived by the hub from the instance's sessions each time it is listed. When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
 
         <h2 id="instances-tab">Instances Tab</h2>
         <p>On the Instances tab, the right end of the tab row carries a one-line summary of the project: active and finished instances (pending too, when there are any), sessions and storage size. Click it to open the full breakdown:</p>
         <ul>
           <li><strong>Instances</strong> — counts by status (pending, active, finished), total instances, total sessions, and uptime range.</li>
-          <li><strong>Storage</strong> — the bytes the project occupies on the remote. Opening the tab never walks the project's files for it, and only the Jeffrey Hub's retention pass measures it, so on the Azure file share the breakdown says the project is not measured; see the hub's Storage page for the figure.</li>
+          <li><strong>Storage</strong> — the bytes the project occupies on the hub, as the hub's last retention pass measured them. Opening the tab never walks the project's files for it; until the first pass has run the breakdown says the project is not measured yet.</li>
         </ul>
-        <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, an instance's page reads that instance and a page of its sessions with their files, and the timeline fetches a session's files only when its drawer is opened.</p>
-        <p>Nothing reloads on its own. On the Azure file share every read is a round-trip to the share, so an instance's page reads the instance once when it opens, every session starts collapsed, and a recording session's sizes stay as they were read until <strong>Refresh</strong> in the page header reads them again.</p>
-        <p>An instance's page shows its ten newest sessions; <strong>Load more</strong> under the list reads the next ten. Each session arrives with its files, so expanding one asks the share for nothing more. The session count is the instance's session folders, so a session whose folder exists but whose description is not written yet is counted with them.</p>
-        <p>Microscope remembers the description files the provisioner writes once (for each project, instance and session) and a session's clean-exit marker, so a page opened again asks the share only for what can have changed: folder listings, sizes and the live session's heartbeat. It forgets a remembered file as soon as a listing no longer shows its folder, when Microscope itself deletes or pins there, and after ten minutes in any case. The reads of one page go out up to eight at a time.</p>
+        <p>Every view here loads one level of the hub's tree: the instance list carries no sessions, an instance's page reads that instance and its sessions, and a session's files are fetched only when the session is expanded or its drawer is opened.</p>
 
         <p>Below the tab row, instances are listed as cards with colour-coded left borders for their status. Use the search box to filter by name, or the status buttons to show only one state at a time.</p>
 

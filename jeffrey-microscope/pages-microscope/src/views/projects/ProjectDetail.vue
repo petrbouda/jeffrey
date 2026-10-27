@@ -21,11 +21,11 @@
       <div class="container-fluid">
         <!-- Slim breadcrumb row above the tabs -->
         <div class="project-breadcrumb" aria-label="breadcrumb">
-          <router-link to="/remote" class="crumb">Remote</router-link>
+          <router-link to="/hubs" class="crumb">Hubs</router-link>
           <i class="bi bi-chevron-right crumb-sep"></i>
           <router-link
             v-if="workspaceInfo"
-            :to="{ path: '/remote', query: { workspaceId: workspaceInfo.id } }"
+            :to="{ path: '/hubs', query: { hubId: hubId, workspaceId: workspaceInfo.id } }"
             class="crumb"
           >
             {{ workspaceInfo.name ?? workspaceInfo.id }}
@@ -80,16 +80,16 @@
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ToastService from '@shared/services/ToastService';
-import ProjectClient from '@remote/services/api/ProjectClient.ts';
-import Project from '@remote/services/api/model/Project.ts';
-import WorkspaceClient from '@remote/services/api/WorkspaceClient.ts';
-import Workspace from '@remote/services/api/model/Workspace.ts';
+import ProjectClient from '@hubs/services/api/ProjectClient.ts';
+import Project from '@hubs/services/api/model/Project.ts';
+import WorkspaceClient from '@hubs/services/api/WorkspaceClient.ts';
+import Workspace from '@hubs/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
 import { PROJECT_NAV_ACTIONS_ID } from './projectNav';
 
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId, generateProjectUrl } = useNavigation();
+const { hubId, workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
@@ -102,13 +102,13 @@ const isInstancesActive = computed(() => {
 });
 
 async function initializeProject() {
-  if (!projectId.value || !workspaceId.value) {
+  if (!projectId.value || !workspaceId.value || !hubId.value) {
     return;
   }
 
   try {
-    const projectClient = new ProjectClient(workspaceId.value, projectId.value);
-    const workspaceClient = new WorkspaceClient();
+    const projectClient = new ProjectClient(hubId.value, workspaceId.value, projectId.value);
+    const workspaceClient = new WorkspaceClient(hubId.value);
 
     const [project, workspace] = await Promise.all([
       projectClient.fetch(),
@@ -123,7 +123,7 @@ async function initializeProject() {
   } catch (error) {
     console.error('Failed to load project:', error);
     ToastService.error('Failed to load project', 'Cannot load project from the server.');
-    await router.push('/remote');
+    await router.push('/hubs');
   }
 }
 

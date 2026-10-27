@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.core.manager.workspace;
 
-import cafe.jeffrey.microscope.remote.client.RemoteClients;
-import cafe.jeffrey.microscope.model.remote.RemoteInfo;
+import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 @FunctionalInterface
 public interface WorkspaceManagerFactory {
 
-    WorkspaceManager create(RemoteInfo remote, WorkspaceInfo workspaceInfo, RemoteClients clients);
+    WorkspaceManager create(HubInfo hubInfo, WorkspaceInfo workspaceInfo, HubClients hubClients);
 }

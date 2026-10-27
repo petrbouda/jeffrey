@@ -1,0 +1,102 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package jeffrey.hub.api.v1;
+
+option java_package = "cafe.jeffrey.hub.api.v1";
+option java_multiple_files = true;
+
+// Manages workspace discovery and lifecycle.
+// Workspaces are top-level containers that group projects: one directory each under the hub's
+// workspaces root, named by the reference id the CLI's project.workspace-id binds to. A directory
+// counts as a workspace once CreateWorkspace gave it the hub's marker (or always, with
+// jeffrey.hub.workspaces.auto-create).
+service WorkspaceService {
+  // Returns the Jeffrey server version.
+  rpc GetApiInfo(GetApiInfoRequest) returns (GetApiInfoResponse);
+
+  // Lists all workspaces registered on this server.
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+
+  // Creates a workspace with a user-supplied reference_id (used by the CLI to route
+  // recordings via project.workspace-id), which becomes its id. The reference_id and the
+  // name must be unique on this server.
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (CreateWorkspaceResponse);
+
+  // Deletes a workspace's directory with all its data.
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (DeleteWorkspaceResponse);
+}
+
+message GetApiInfoRequest {}
+
+message GetApiInfoResponse {
+  // The Jeffrey server version (e.g., "1.0.0").
+  string version = 1;
+}
+
+message ListWorkspacesRequest {}
+
+message ListWorkspacesResponse {
+  repeated WorkspaceInfo workspaces = 1;
+}
+
+message DeleteWorkspaceRequest {
+  // The workspace to delete.
+  string workspace_id = 1;
+}
+
+message DeleteWorkspaceResponse {}
+
+message CreateWorkspaceRequest {
+  // The reference ID — used by jeffrey-provisioner's `project.workspace-id` to route
+  // recordings to this workspace. It becomes the workspace's id and directory name, so it must
+  // be unique on this server. An existing directory of that name is adopted with its projects.
+  string reference_id = 1;
+  // Display name (required).
+  string name = 2;
+}
+
+message CreateWorkspaceResponse {
+  WorkspaceInfo workspace = 1;
+}
+
+// Represents a workspace — a top-level container for projects, one directory on the volume.
+message WorkspaceInfo {
+  // The workspace's id: its directory name, which is also the reference id the CLI's
+  // project.workspace-id binds to.
+  string id = 1;
+  // Display name of the workspace.
+  string name = 2;
+  // Timestamp when the workspace was created (epoch millis).
+  int64 created_at = 3;
+  // Number of projects currently in this workspace.
+  int32 project_count = 4;
+  // Current availability status of the workspace.
+  WorkspaceStatus status = 5;
+}
+
+// Availability status of a workspace.
+enum WorkspaceStatus {
+  // Status has not been determined yet.
+  WORKSPACE_STATUS_UNSPECIFIED = 0;
+  // Workspace is available and operational.
+  WORKSPACE_STATUS_AVAILABLE = 1;
+  // Workspace is no longer available (may have been removed from the filesystem).
+  WORKSPACE_STATUS_UNAVAILABLE = 2;
+}

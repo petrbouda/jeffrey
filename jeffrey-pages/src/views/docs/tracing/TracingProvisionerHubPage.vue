@@ -82,7 +82,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
     />
 
     <div class="docs-content">
-      <p>Everything else in this guide assumes you can already open a recording. This page is about how a traced recording gets from a JVM in a cluster to a waterfall on your machine — what the <router-link to="/docs/provisioner">Provisioner</router-link> switches on, what lands on the shared volume, what the <router-link to="/docs/hub">Hub</router-link> does with it, and how Microscope pulls it down from the share. If you record locally and open the file yourself, none of this applies: see <router-link to="/docs/tracing/configuration">Configuration</router-link> instead.</p>
+      <p>Everything else in this guide assumes you can already open a recording. This page is about how a traced recording gets from a JVM in a cluster to a waterfall on your machine — what the <router-link to="/docs/provisioner">Provisioner</router-link> switches on, what lands on the shared volume, what the <router-link to="/docs/hub">Hub</router-link> does with it, and how Microscope pulls it down. If you record locally and open the file yourself, none of this applies: see <router-link to="/docs/tracing/configuration">Configuration</router-link> instead.</p>
 
       <h2 id="path">How a Traced Recording Travels</h2>
 
@@ -92,7 +92,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <ul>
         <li><strong>The Provisioner never talks to the Hub.</strong> It is a short-lived CLI that runs before <code>main()</code>, writes the session tree and an <code>@argfile</code>, and exits. Its only channel to the Hub is the shared volume — there is no event transport in between.</li>
-        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the marker files and <code>.heartbeat/</code> when it is made, so a session shows up on the next listing after the Provisioner writes it, and its status is decided at that moment. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
+        <li><strong>The Hub reads; nothing pushes to it.</strong> It keeps no database and no copy of the volume: every listing reads the marker files and <code>.heartbeat/</code> when it is asked, so a session shows up on the next listing after the Provisioner writes it, and its status is decided at that moment.</li>
       </ul>
 
       <h2 id="switch">Turning Tracing On</h2>
@@ -129,7 +129,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <p>The obvious approach would be to put these settings in the profiler's own recording. The Provisioner does not, because the profiler's configuration arrives from whichever source won — the CLI, the Hub, or the built-in default — so rewriting it would have to be done three times over.</p>
 
-      <p>A second recording sidesteps that entirely: <strong>JFR resolves every setting to the most verbose value across all active recordings</strong>, so this one lowers the thresholds for the profiler's recording as well, without either knowing about the other. The events land in the same repository chunks, which is what puts them in the dumped <code>.jfr</code> files Microscope reads.</p>
+      <p>A second recording sidesteps that entirely: <strong>JFR resolves every setting to the most verbose value across all active recordings</strong>, so this one lowers the thresholds for the profiler's recording as well, without either knowing about the other. The events land in the same repository chunks, which is what puts them in both places they are read from — the dumped <code>.jfr</code> files and the stream the Hub follows.</p>
 
       <p>Two details follow from that design. It names no <code>settings=</code> on purpose — that would leave it on the JVM's default configuration, the same one the profiler uses, changing nothing; naming <code>settings=none</code> to keep it bare is what a reader expects and is exactly wrong, because it drops the event settings spelled out beside it. And <code>maxage=30m</code> bounds how long the recording pins repository chunks.</p>
 
@@ -154,7 +154,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
         <tbody>
           <tr>
             <td>Listing (no job)</td>
-            <td>Every job run</td>
+            <td>Every request</td>
             <td>Reads the marker JSONs to list projects, instances and sessions, and <code>.heartbeat/</code> to decide each session's status: a <code>finished</code> marker ends the session deterministically; a newer session in the same instance or a stale heartbeat ends it at the last heartbeat. A crash log left in the directory is listed as a session file, not acted on.</td>
           </tr>
           <tr>
@@ -166,16 +166,16 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
       </table>
 
       <DocsCallout type="warning">
-        <strong>The Hub never analyses a recording.</strong> It lists, compresses and retains &mdash; it serves nothing. Every flamegraph, trace and heap-dump view is computed in Microscope — so the traces in this guide are derived on your machine, from bytes the Hub only ever compressed and retained.
+        <strong>The Hub never analyses a recording.</strong> It lists, compresses, retains and serves. Every flamegraph, trace and heap-dump view is computed in Microscope — so the traces in this guide are derived on your machine, from bytes the Hub only ever stored.
       </DocsCallout>
 
       <h2 id="download">Getting the Recording into Microscope</h2>
 
-      <p>Microscope reads the volume itself, from the <router-link to="/docs/microscope/workspaces#azure-files">Azure file share</router-link> that holds it, over the Azure Files REST API &mdash; that is the only network hop in the whole picture, and the Hub is not on it:</p>
+      <p>Microscope reaches the Hub over gRPC, and that is the only network hop in the whole picture:</p>
 
       <ul>
-        <li><strong>Catalog</strong> — Microscope lists sessions and their files straight off the share, so you can see what a project recorded without downloading anything.</li>
-        <li><strong>Bytes</strong> — one file per download &mdash; a JFR chunk or an artifact, the same way either way. A session's recording files are fetched separately and stay separate on your disk; a chunk the Hub has just compressed is fetched as its archive.</li>
+        <li><strong>Catalog</strong> — <code>RepositoryService</code> lists sessions and their files, so you can see what a project recorded without downloading anything.</li>
+        <li><strong>Bytes</strong> — <code>FileDownloadService</code> streams one file per call — a JFR chunk or an artifact, through the same RPC either way — back in 64&nbsp;KB chunks. A session's recording files are fetched separately, in parallel, and stay separate on your disk.</li>
       </ul>
 
       <p>Downloaded bytes land under <code>~/.jeffrey-microscope/recordings/</code>, and initializing a profile parses them once into a per-profile DuckDB at <code>~/.jeffrey-microscope/profiles/&lt;profile-id&gt;/profile-data.db</code>. The trace tables described in <router-link to="/docs/tracing/analysis">Analyzing Traces</router-link> are derived at that moment — which is why <router-link to="/docs/tracing/jdk-events">promoted blocking spans</router-link> and <router-link to="/docs/tracing/gc-safepoints">GC context</router-link> apply retroactively to recordings made before those features existed.</p>
@@ -207,9 +207,9 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
             <td><code>tracing.enabled=true</code>, and a <code>jfr-event-settings</code> value other than <code>none</code></td>
           </tr>
           <tr>
-            <td>The session never appears in Microscope</td>
-            <td>The application is not writing to the volume Microscope reads (a different share, root path or mount)</td>
-            <td>Microscope reads the share on every listing — if nothing arrives, the volume is the thing to check, not the app: compare the Provisioner's <code>jeffrey-home</code> with the share and <code>root-path</code> Microscope declares. Create the workspace with the reference id the Provisioner uses (it adopts the existing directory), or set <code>jeffrey.hub.workspaces.auto-create=true</code>, so the Hub's jobs cover it too</td>
+            <td>The session never appears in the Hub</td>
+            <td>The Hub is not mounting the same volume path, or the workspace was never created on the Hub (no <code>.workspace-info.json</code>)</td>
+            <td>The Hub reads the volume on every request — if nothing arrives, the volume is the thing to check, not the app. Create the workspace with the reference id the Provisioner uses (it adopts the existing directory), or set <code>jeffrey.hub.workspaces.auto-create=true</code></td>
           </tr>
           <tr>
             <td>The session never ends</td>

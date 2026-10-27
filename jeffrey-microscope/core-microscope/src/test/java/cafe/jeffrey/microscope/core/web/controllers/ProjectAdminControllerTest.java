@@ -46,7 +46,7 @@ class ProjectAdminControllerTest {
 
     @Test
     void deleteInvokesManager() {
-        when(resolver.resolve("ws-1", "p-1"))
+        when(resolver.resolve("srv-1", "ws-1", "p-1"))
                 .thenReturn(projectManager);
         when(projectManager.info()).thenReturn(new ProjectInfo(
                 "p-1", "p-1", "demo", "demo", "ws-1",
@@ -54,18 +54,18 @@ class ProjectAdminControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectAdminController(resolver));
 
-        assertThat(mvc.delete().uri("/api/internal/remote/workspaces/ws-1/projects/p-1"))
+        assertThat(mvc.delete().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/p-1"))
                 .hasStatusOk();
         verify(projectManager).delete();
     }
 
     @Test
     void projectNotFoundReturns404() {
-        when(resolver.resolve("ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
+        when(resolver.resolve("srv-1", "ws-1", "ghost")).thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectAdminController(resolver));
 
-        assertThat(mvc.delete().uri("/api/internal/remote/workspaces/ws-1/projects/ghost"))
+        assertThat(mvc.delete().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/ghost"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

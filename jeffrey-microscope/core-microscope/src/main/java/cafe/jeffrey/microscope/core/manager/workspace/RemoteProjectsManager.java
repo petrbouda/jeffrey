@@ -22,9 +22,9 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
-import cafe.jeffrey.microscope.remote.client.RemoteClients;
-import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
-import cafe.jeffrey.microscope.model.remote.RemoteInfo;
+import cafe.jeffrey.hub.client.HubClients;
+import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.microscope.model.hub.HubInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.List;
@@ -34,20 +34,20 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RemoteProjectsManager.class);
 
-    private final RemoteInfo remote;
+    private final HubInfo hubInfo;
     private final WorkspaceInfo workspaceInfo;
-    private final RemoteClients clients;
+    private final HubClients hubClients;
     private final RemoteProjectManagerFactory projectManagerFactory;
 
     public RemoteProjectsManager(
-            RemoteInfo remote,
+            HubInfo hubInfo,
             WorkspaceInfo workspaceInfo,
-            RemoteClients clients,
+            HubClients hubClients,
             RemoteProjectManagerFactory projectManagerFactory) {
 
-        this.remote = remote;
+        this.hubInfo = hubInfo;
         this.workspaceInfo = workspaceInfo;
-        this.clients = clients;
+        this.hubClients = hubClients;
         this.projectManagerFactory = projectManagerFactory;
     }
 
@@ -55,9 +55,9 @@ public class RemoteProjectsManager implements ProjectsManager {
     public List<ProjectManager> findAll() {
         List<RemoteProjectResponse> remoteProjects;
         try {
-            remoteProjects = clients.discovery().allProjects(workspaceInfo.id());
+            remoteProjects = hubClients.discovery().allProjects(workspaceInfo.id());
         } catch (Exception e) {
-            LOG.error("Failed to fetch projects from a remote workspace: workspaceId={}", workspaceInfo.id(), e);
+            LOG.error("Failed to fetch projects from remote workspace: {}", workspaceInfo, e);
             remoteProjects = List.of();
         }
 
@@ -68,16 +68,17 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public List<ProjectManager> findAllOrThrow() {
-        return clients.discovery().allProjects(workspaceInfo.id()).stream()
+        return hubClients.discovery().allProjects(workspaceInfo.id()).stream()
                 .map(this::toProjectManager)
                 .toList();
     }
 
     @Override
     public Optional<ProjectManager> project(String projectId) {
+        // In remote-only mode, we look up the single project from the hub.
         Optional<RemoteProjectResponse> remoteProject;
         try {
-            remoteProject = clients.discovery().project(workspaceInfo.id(), projectId);
+            remoteProject = hubClients.discovery().project(workspaceInfo.id(), projectId);
         } catch (Exception e) {
             LOG.error("Failed to fetch project from remote workspace: workspace={} project_id={}",
                     workspaceInfo, projectId, e);
@@ -89,12 +90,12 @@ public class RemoteProjectsManager implements ProjectsManager {
 
     @Override
     public Optional<ProjectManager> projectOrThrow(String projectId) {
-        return clients.discovery().project(workspaceInfo.id(), projectId)
+        return hubClients.discovery().project(workspaceInfo.id(), projectId)
                 .map(this::toProjectManager);
     }
 
     private ProjectManager toProjectManager(RemoteProjectResponse project) {
-        return projectManagerFactory.create(remote, clients, project);
+        return projectManagerFactory.create(hubInfo, hubClients, project);
     }
 
     @Override

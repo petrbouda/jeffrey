@@ -21,6 +21,30 @@
 --
 
 --
+-- HUB TABLES
+-- One row per connected jeffrey-hub. Workspaces are NOT stored locally —
+-- they are listed live from the server via gRPC ListWorkspaces.
+--
+
+CREATE TABLE IF NOT EXISTS hubs
+(
+    hub_id   VARCHAR PRIMARY KEY,
+    name        VARCHAR NOT NULL,
+    hostname    VARCHAR NOT NULL,
+    port        INTEGER NOT NULL DEFAULT 443,
+    -- gRPC client uses cleartext h2c when true, TLS when false. Default false
+    -- preserves the existing public-internet TLS workflow; flip to true for
+    -- in-cluster Service DNS or trusted-LAN setups.
+    plaintext   BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL,
+    -- 'CONFIG' for a hub declared under jeffrey.microscope.hubs.* — configuration owns the row,
+    -- it is reconciled on every startup and the UI cannot delete it. 'USER' for a hub added
+    -- through the UI, which the reconciliation never touches.
+    source      VARCHAR NOT NULL DEFAULT 'USER',
+    UNIQUE (hostname, port)
+);
+
+--
 -- RECORDING TABLES
 -- Used by both project recordings (project_id set) and quick analysis recordings (project_id NULL).
 --
@@ -53,7 +77,7 @@ CREATE TABLE IF NOT EXISTS recording_files
 
 --
 -- BUNDLES
--- Several files that arrived together (a remote session download). Each initializable item in it is a
+-- Several files that arrived together (a hub session download). Each initializable item in it is a
 -- recording of its own pointing back through recordings.bundle_id; what cannot be initialized (logs,
 -- crash files) is a bundle file, download-only. The bundle, not its members, sits in a group.
 --

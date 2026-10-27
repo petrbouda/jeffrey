@@ -45,7 +45,7 @@ import { useFlamegraphPanels } from '@/composables/useFlamegraphPanels';
 import PprofEventSummariesClient from '@/services/api/PprofEventSummariesClient';
 import OtelEventSummariesClient from '@/services/api/OtelEventSummariesClient';
 import type Profile from '@/services/api/model/Profile';
-import RecordingEventSource from '@remote/services/api/model/RecordingEventSource.ts';
+import RecordingEventSource from '@hubs/services/api/model/RecordingEventSource.ts';
 
 const props = defineProps<{
   profile?: Profile;

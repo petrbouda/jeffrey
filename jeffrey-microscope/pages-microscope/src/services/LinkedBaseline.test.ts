@@ -50,6 +50,7 @@ function profile(id: string): ProfileWithContext {
     id,
     projectId: 'project-1',
     workspaceId: 'workspace-1',
+    hubId: 'hub-1',
     name: `${id}.jfr`,
     createdAt: Date.UTC(2026, 0, 1),
     profilingStartedAt: Date.UTC(2026, 0, 1),

@@ -17,14 +17,14 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
+import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
+import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import java.util.function.Function;
 
 public interface ProjectManager {

@@ -275,11 +275,12 @@
                   <i class="bi bi-layers inline-drawer-icon"></i>
                   <span class="inline-drawer-label">Session</span>
                   <span class="inline-drawer-id mono">{{ session.id }}</span>
-                  <StatusDot
-                    :tone="sessionStatus(session).dotTone"
-                    :pulse="sessionStatus(session).pulse"
-                    :label="sessionStatus(session).label"
-                  />
+                  <span
+                    class="session-status-dot"
+                    :class="sessionStatus(session).dotClass"
+                    :title="sessionStatus(session).label"
+                    :aria-label="sessionStatus(session).label"
+                  ></span>
                   <div class="drawer-actions">
                     <button
                       v-if="downloadableSummary(session.id)"
@@ -592,23 +593,23 @@ import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import StatusDot from '@shared/components/StatusDot.vue';
-import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
-import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient';
-import { useSessionReads } from '@remote/composables/useSessionReads';
-import { downloadAssistantStore } from '@remote/stores/assistants/downloadAssistantStore';
+import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@hubs/services/api/ProjectRepositoryClient';
+import { useSessionReads } from '@hubs/composables/useSessionReads';
+import { downloadAssistantStore } from '@hubs/stores/assistants/downloadAssistantStore';
 import { ToastService } from '@shared/services/ToastService';
-import ProjectInstance, { type ProjectInstanceStatus } from '@remote/services/api/model/ProjectInstance';
-import ProjectInstanceDetail from '@remote/services/api/model/ProjectInstanceDetail';
-import ProjectInstanceSession from '@remote/services/api/model/ProjectInstanceSession';
-import ProjectInstanceSessionDetail from '@remote/services/api/model/ProjectInstanceSessionDetail';
+import ProjectInstance, { type ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
+import ProjectInstanceDetail from '@hubs/services/api/model/ProjectInstanceDetail';
+import ProjectInstanceSession from '@hubs/services/api/model/ProjectInstanceSession';
+import ProjectInstanceSessionDetail from '@hubs/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
-import type { StatusDotTone, Variant } from '@shared/types/ui';
+import type { Variant } from '@shared/types/ui';
 import { useNavigation } from '@/composables/useNavigation';
 import { splitTimelineSessions, type FailedSessionBlock } from './timelineFailedBlocks';
 import '@shared/styles/shared-components.css';
 
 const {
+  hubId,
   workspaceId,
   projectId,
   generateInstanceUrl
@@ -635,10 +636,12 @@ const instanceDetails = ref<Map<string, ProjectInstanceDetail>>(new Map());
 const activeSessionByInstance = ref<Map<string, string>>(new Map());
 const sessionDetails = ref<Map<string, ProjectInstanceSessionDetail>>(new Map());
 const instanceClient = new ProjectInstanceClient(
+  hubId.value,
   workspaceId.value!,
   projectId.value!
 );
 const repositoryClient = new ProjectRepositoryClient(
+  hubId.value,
   workspaceId.value!,
   projectId.value!
 );
@@ -672,11 +675,11 @@ function countSessions(predicate: (session: ProjectInstanceSession) => boolean):
 
 const totalFailedSessions = computed(() => countSessions(session => session.failed === true));
 
-// Sessions read as finished because no heartbeat ever arrived — drawn purple
+// Sessions the hub finished because no heartbeat ever arrived — drawn purple
 const totalNoHeartbeatSessions = computed(() => countSessions(session => session.heartbeatMissing));
 
 const NO_HEARTBEAT_CHIP_TITLE =
-  'The newest session sent no heartbeat within the startup grace, so it reads as finished: ' +
+  'The newest session sent no heartbeat within the startup grace, so the hub finished it: ' +
   'heartbeats are not configured or not emitted. The session list links to how to set them up.';
 
 function newestSession(instanceId: string): ProjectInstanceSession | undefined {
@@ -701,15 +704,17 @@ const noHeartbeatInstanceIds = computed(() => {
 interface SessionStatusStyle {
   label: string;
   variant: Variant;
-  dotTone: StatusDotTone;
-  /** A session still recording pulses, as its bar on the timeline does. */
-  pulse: boolean;
+  dotClass: string;
 }
 
 const SESSION_STATUS = {
-  noHeartbeat: { label: 'No heartbeat', variant: 'purple', dotTone: 'purple', pulse: false },
-  active: { label: 'Active', variant: 'orange', dotTone: 'amber', pulse: true },
-  finished: { label: 'Finished', variant: 'green', dotTone: 'success', pulse: false }
+  noHeartbeat: {
+    label: 'No heartbeat',
+    variant: 'purple',
+    dotClass: 'session-status-dot--no-heartbeat'
+  },
+  active: { label: 'Active', variant: 'orange', dotClass: 'session-status-dot--active' },
+  finished: { label: 'Finished', variant: 'green', dotClass: 'session-status-dot--finished' }
 } satisfies Record<string, SessionStatusStyle>;
 
 function sessionStatus(session: ProjectInstanceSession): SessionStatusStyle {
@@ -1314,6 +1319,7 @@ async function downloadSession(sessionId: string): Promise<void> {
   try {
     const fileIds = repositorySession.files.map(file => file.id);
     await downloadAssistantStore.startDownload(
+      hubId.value,
       workspaceId.value!,
       projectId.value!,
       sessionId,
@@ -1336,7 +1342,7 @@ function isSessionRetained(sessionId: string): boolean {
 
 /**
  * Toggles retention for a session — the same rule as the sessions list's pin: a
- * retained session is exempt from the hub's retention job, so releasing one
+ * retained session is exempt from every retention job on the hub, so releasing one
  * hands it back to normal expiry.
  */
 async function togglePinned(sessionId: string): Promise<void> {
@@ -2067,6 +2073,25 @@ onMounted(async () => {
   top: 10px;
   right: 12px;
   z-index: 2;
+}
+
+.session-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.session-status-dot--active {
+  background: var(--color-amber);
+  /* Reuses the session-pulse-active keyframe defined above for the amber session bars. */
+  animation: session-pulse-active 2s ease-in-out infinite;
+}
+.session-status-dot--finished {
+  background: var(--color-success);
+}
+.session-status-dot--no-heartbeat {
+  background: var(--color-purple-border);
 }
 
 .drawer-actions {

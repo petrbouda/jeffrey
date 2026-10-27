@@ -280,7 +280,7 @@ class HeapDiffMcpToolsTest {
 
             assertEquals("NO_HEAP_DUMP", out.get("status").asString());
             assertTrue(out.get("reason").asString().contains("is not a heap dump"), out.toString());
-            assertTrue(out.get("reason").asString().contains("remote_download"), out.toString());
+            assertTrue(out.get("reason").asString().contains("hubs_download"), out.toString());
             assertTrue(out.get("primaryDump").isNull());
             assertTrue(out.get("classes").isEmpty());
             assertTrue(out.get("omittedClasses").isNull(), "nothing was compared, so nothing was left out");

@@ -35,11 +35,11 @@ public enum NotificationCategory {
     /** Heap dump ingestion and indexing. */
     HEAP_DUMP,
 
-    /** Workspaces, local or held on the remote. */
+    /** Workspaces, local or held on a hub. */
     WORKSPACE,
 
-    /** The connection to the remote, and anything that crosses it. */
-    REMOTE,
+    /** The connection to a hub, and anything that crosses it. */
+    HUB,
 
     /** Everything about the process itself that fits nowhere above. */
     SYSTEM

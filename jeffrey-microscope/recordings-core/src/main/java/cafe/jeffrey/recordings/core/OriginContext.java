@@ -21,16 +21,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Captures the (remote, workspace, project) that a recording was downloaded from.
+ * Captures the (hub, workspace, project) that a recording was downloaded from.
  * Used to materialise {@code origin.*} system tags on the freshly imported QA recording.
- *
- * @param remoteAddress the remote's address identity — which remote the copy came from, so a copy
- *                      taken from a remote configured before is never matched to the current one
- * @param remoteName    what the UI shows for it
  */
 public record OriginContext(
-        String remoteAddress,
-        String remoteName,
+        String hubId,
+        String hubName,
         String workspaceId,
         String projectId,
         String projectName) {
@@ -50,7 +46,7 @@ public record OriginContext(
     public static final String TAG_COMPLETE = "origin.complete";
 
     /**
-     * When the remote session started (epoch millis). The recording's name shows it too, but a name is a
+     * When the hub session started (epoch millis). The recording's name shows it too, but a name is a
      * label nothing reads back: this is where the fact is kept.
      */
     public static final String TAG_SESSION_STARTED_AT = "origin.sessionStartedAt";
@@ -61,14 +57,14 @@ public record OriginContext(
      */
     public static final String TAG_INSTANCE_ID = "origin.instanceId";
 
-    /** The keys a downloaded recording is matched back to its remote session by. */
-    public static final String TAG_REMOTE_ADDRESS = "origin.remoteAddress";
+    /** The keys a downloaded recording is matched back to its hub session by. */
+    public static final String TAG_HUB_ID = "origin.hubId";
     public static final String TAG_WORKSPACE_ID = "origin.workspaceId";
     public static final String TAG_PROJECT_ID = "origin.projectId";
     public static final String TAG_RECORDING_ID = "origin.recordingId";
 
     /** The keys the UI shows where a recording came from. */
-    public static final String TAG_REMOTE = "origin.remote";
+    public static final String TAG_HUB = "origin.hub";
     public static final String TAG_WORKSPACE = "origin.workspace";
     public static final String TAG_PROJECT = "origin.project";
 
@@ -79,15 +75,15 @@ public record OriginContext(
      */
     public Map<String, String> toTagMap(String upstreamRecordingId) {
         Map<String, String> tags = new LinkedHashMap<>();
-        if (remoteAddress != null) {
-            tags.put(TAG_REMOTE_ADDRESS, remoteAddress);
+        if (hubId != null) {
+            tags.put(TAG_HUB_ID, hubId);
         }
-        if (remoteName != null) {
-            tags.put(TAG_REMOTE, remoteName);
+        if (hubName != null) {
+            tags.put(TAG_HUB, hubName);
         }
         if (workspaceId != null) {
             tags.put(TAG_WORKSPACE_ID, workspaceId);
-            // A remote workspace is named by its directory on the volume, so its id is also what the UI shows
+            // A hub workspace is named by its directory on the volume, so its id is also what the UI shows
             tags.put(TAG_WORKSPACE, workspaceId);
         }
         if (projectId != null) {

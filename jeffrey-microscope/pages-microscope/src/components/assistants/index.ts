@@ -21,5 +21,5 @@ export { default as AssistantMinimizedButton } from '@shared/components/assistan
 export { default as AssistantMinimizedContainer } from './AssistantMinimizedContainer.vue';
 
 // Global assistants
-export { default as DownloadAssistant } from '@remote/components/assistants/global/DownloadAssistant.vue';
+export { default as DownloadAssistant } from '@hubs/components/assistants/global/DownloadAssistant.vue';
 export { default as RecordingsAssistant } from './global/RecordingsAssistant.vue';

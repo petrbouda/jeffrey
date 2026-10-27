@@ -62,7 +62,7 @@ public class McpPromptRegistry implements McpPromptProvider {
     /**
      * What each skill takes, keyed by its {@code name}. A skill that reads one profile takes
      * {@code profileId}; a comparison takes it and a {@code baselineProfileId}; a skill that produces a
-     * profile, reaches the remote or is pure guidance takes neither. A skill missing from this table — the
+     * profile, reaches a hub or is pure guidance takes neither. A skill missing from this table — the
      * plugin grows one nobody has told the registry about yet — gets no arguments, which is the safer
      * default: a client cannot offer an id the prompt does not know what to do with.
      */
@@ -74,7 +74,7 @@ public class McpPromptRegistry implements McpPromptProvider {
             Map.entry("jfr-sql", PROFILE_ID_ONLY),
             Map.entry("heap-sql", PROFILE_ID_ONLY),
             Map.entry("compare-jfr", PROFILE_AND_BASELINE),
-            Map.entry("analyze-remote", NO_ARGUMENTS),
+            Map.entry("analyze-hub", NO_ARGUMENTS),
             Map.entry("profile-run", NO_ARGUMENTS),
             Map.entry("regression-check", NO_ARGUMENTS),
             Map.entry("report", NO_ARGUMENTS));
@@ -88,7 +88,7 @@ public class McpPromptRegistry implements McpPromptProvider {
     private static final Map<String, String> TITLES = Map.ofEntries(
             Map.entry("analyze-jfr", "Analyze a JFR Profile"),
             Map.entry("analyze-heap", "Analyze a Heap Dump"),
-            Map.entry("analyze-remote", "Analyze a Remote Session"),
+            Map.entry("analyze-hub", "Analyze a Hub Session"),
             Map.entry("advise-jfr", "Advise on a Profile"),
             Map.entry("analyze-exceptions", "Analyze Exceptions"),
             Map.entry("compare-jfr", "Compare Two Profiles"),

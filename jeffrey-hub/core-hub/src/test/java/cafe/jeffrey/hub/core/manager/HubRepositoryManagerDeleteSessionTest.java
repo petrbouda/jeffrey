@@ -17,10 +17,11 @@
 
 package cafe.jeffrey.hub.core.manager;
 
+import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
+import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -57,8 +58,8 @@ class HubRepositoryManagerDeleteSessionTest {
     void setUp() {
         Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.id(), PROJECT.name(), T0);
         instance = TestVolume.instance(project, "pod-a", T0);
-        manager = new HubRepositoryManager(PROJECT,
-                TestVolume.storage(PROJECT, workspacesDir, project, Clock.fixed(NOW, ZoneOffset.UTC)));
+        manager = new HubRepositoryManager(PROJECT, new FilesystemRepositoryStorage(
+                PROJECT, project, TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC))));
     }
 
     private Path finishedSession(String id, Instant createdAt) {
@@ -108,6 +109,7 @@ class HubRepositoryManagerDeleteSessionTest {
         Files.writeString(corrupt.resolve(JeffreyLayout.SESSION_INFO_FILE), "{not json");
 
         assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("s-1"));
+        assertFalse(manager.setSessionRetained("s-1", true), "pinning answers the same as deleting");
         assertTrue(Files.exists(corrupt));
     }
 

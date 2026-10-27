@@ -253,7 +253,7 @@
           >
             <span class="chip-num">{{ run.id }}</span>
             <span class="chip-q" v-html="highlightInline(run.query)"></span>
-            <StatusDot :tone="run.status === 'success' ? 'success' : 'danger'" size="xs" />
+            <span class="chip-dot" :class="run.status === 'success' ? 'ok' : 'err'"></span>
           </div>
         </div>
 
@@ -389,7 +389,6 @@ import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import OQLQueryResult from '@/services/api/model/OQLQueryResult';
 import FormattingService from '@shared/services/FormattingService';
-import StatusDot from '@shared/components/StatusDot.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -1547,6 +1546,18 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text);
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chip-dot.ok {
+  background: var(--color-success);
+}
+.chip-dot.err {
+  background: var(--color-danger);
 }
 
 .chip-popover {

@@ -47,13 +47,13 @@ class WorkspaceProjectProfilesControllerTest {
 
     @Test
     void listsNamespaces() {
-        when(resolver.resolveWorkspace("ws-1")).thenReturn(workspaceManager);
+        when(resolver.resolveWorkspace("srv-1", "ws-1")).thenReturn(workspaceManager);
         when(workspaceManager.projectsManager()).thenReturn(projectsManager);
         when(projectsManager.findAllNamespaces()).thenReturn(List.of("billing", "auth"));
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectProfilesController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/namespaces"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects/namespaces"))
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$[0]", v -> assertThat(v).asString().isEqualTo("billing"));
@@ -61,11 +61,11 @@ class WorkspaceProjectProfilesControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(resolver.resolveWorkspace("ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(resolver.resolveWorkspace("srv-1", "ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectProfilesController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ghost/projects/namespaces"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ghost/projects/namespaces"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");

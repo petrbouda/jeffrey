@@ -1009,11 +1009,11 @@ class ExternalMcpControllerTest {
         void refusesATaskOfAWithheldFamilyAsInvalidParams() {
             BoundedJobs<String, String> jobs = ToolFixtures.jobs(
                     BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, FIXED_CLOCK);
-            String taskId = registry.register(OperationKind.REMOTE_DOWNLOAD, jobs.rememberCompleted("s", "done"),
+            String taskId = registry.register(OperationKind.HUB_DOWNLOAD, jobs.rememberCompleted("s", "done"),
                     OperationResults.Value::new);
-            MockMvcTester withoutRemote = following(kind -> !kind.reachesRemote());
+            MockMvcTester withoutHubs = following(kind -> !kind.reachesHub());
 
-            assertThat(post(withoutRemote, tasks("tasks/get", taskId)))
+            assertThat(post(withoutHubs, tasks("tasks/get", taskId)))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.error.code").isEqualTo(-32602);

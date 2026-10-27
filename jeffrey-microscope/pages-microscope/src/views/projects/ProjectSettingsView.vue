@@ -59,8 +59,8 @@
           </div>
         </div>
 
-        <!-- Danger Zone Bar: a read-only remote cannot delete a project -->
-        <div v-if="!remoteReadOnly" class="danger-bar">
+        <!-- Danger Zone Bar -->
+        <div class="danger-bar">
           <div class="danger-bar-left">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <div>
@@ -157,8 +157,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
-import ProjectClient from '@remote/services/api/ProjectClient';
-import { useRemoteReadOnly } from '@remote/composables/useRemoteReadOnly';
+import ProjectClient from '@hubs/services/api/ProjectClient';
 import ToastService from '@shared/services/ToastService';
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -167,12 +166,11 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import '@shared/styles/shared-components.css';
 
 const router = useRouter();
-const { workspaceId, projectId } = useNavigation();
+const { hubId, workspaceId, projectId } = useNavigation();
 
 // Create clients
-const settingsClient = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
-const projectClient = new ProjectClient(workspaceId.value!, projectId.value!);
-const remoteReadOnly = useRemoteReadOnly();
+const settingsClient = new ProjectSettingsClient(hubId.value, workspaceId.value!, projectId.value!);
+const projectClient = new ProjectClient(hubId.value, workspaceId.value!, projectId.value!);
 
 // State variables
 const originalProjectName = ref('');

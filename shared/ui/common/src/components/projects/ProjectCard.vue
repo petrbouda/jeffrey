@@ -45,24 +45,25 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import type Project from '@remote/services/api/model/Project.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
+import type Project from '@hubs/services/api/model/Project.ts';
+import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
 import Badge from '@shared/components/Badge.vue';
 import type { Variant } from '@shared/types/ui';
 
 const props = defineProps<{
   project: Project;
+  hubId: string;
   workspaceId: string;
 }>();
 
 // Navigation is delegated to the host app (route shapes differ per deployment): clicking a
 // project emits `open` with the identifiers, and the parent decides how to navigate.
 const emit = defineEmits<{
-  open: [target: { projectId: string; workspaceId: string }];
+  open: [target: { hubId: string; projectId: string; workspaceId: string }];
 }>();
 
 const handleClick = () => {
-  emit('open', { projectId: props.project.id, workspaceId: props.workspaceId });
+  emit('open', { hubId: props.hubId, projectId: props.project.id, workspaceId: props.workspaceId });
 };
 
 // Status badge variant

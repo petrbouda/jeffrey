@@ -74,7 +74,7 @@
           <div class="card-desc">{{ tech.description }}</div>
           <div class="card-bottom">
             <div class="card-status" :class="tech.disabled ? 'inactive' : 'active'">
-              <StatusDot :tone="tech.disabled ? 'faint' : 'success'" size="s" />
+              <span class="card-status-dot"></span>
               {{ tech.disabled ? 'No data' : 'Available' }}
             </div>
             <span v-if="!tech.disabled" class="card-link">
@@ -91,7 +91,6 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import FeatureType from '@/services/api/model/FeatureType';
-import StatusDot from '@shared/components/StatusDot.vue';
 
 const props = defineProps<{
   disabledFeatures: FeatureType[];
@@ -374,6 +373,20 @@ const navigateTo = (tech: TechnologyCard) => {
 
 .card-status.inactive {
   color: var(--color-text-muted);
+}
+
+.card-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.card-status.active .card-status-dot {
+  background: var(--color-success);
+}
+
+.card-status.inactive .card-status-dot {
+  background: var(--color-border-input);
 }
 
 .card-link {

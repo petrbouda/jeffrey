@@ -504,7 +504,7 @@ class ProfilesMcpToolsTest {
         /** Another paged tool's cursor is bound to that tool, even where its filters look the same. */
         @Test
         void refusesACursorAnotherToolHandedOut() {
-            String foreign = JeffreyMcpServer.CURSOR.encode(McpCursor.Filters.of("remote_sessions", ""),
+            String foreign = JeffreyMcpServer.CURSOR.encode(McpCursor.Filters.of("hubs_sessions", ""),
                     new McpCursor.Keyset(List.of("p-1")));
 
             assertThrows(IllegalArgumentException.class, () -> page(null, 1, foreign));

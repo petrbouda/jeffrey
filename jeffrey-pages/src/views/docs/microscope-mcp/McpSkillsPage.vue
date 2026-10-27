@@ -29,7 +29,7 @@ const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-jfr', text: 'analyze-jfr', level: 2 },
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
-  { id: 'analyze-remote', text: 'analyze-remote', level: 2 },
+  { id: 'analyze-hub', text: 'analyze-hub', level: 2 },
   { id: 'compare-jfr', text: 'compare-jfr', level: 2 },
   { id: 'profile-run', text: 'profile-run', level: 2 },
   { id: 'regression-check', text: 'regression-check', level: 2 },
@@ -51,7 +51,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "why is the checkout endpoint slow?"                     -> analyze-jfr
 "analyze target/run.jfr and tell me where the time goes" -> analyze-jfr
 "what is holding memory in this heap dump?"              -> analyze-heap
-"analyse what production recorded in the last hour"      -> analyze-remote
+"analyse what production recorded in the last hour"      -> analyze-hub
 "did my change make it slower?"                          -> compare-jfr
 "profile this benchmark and tell me where it spends time" -> profile-run
 "did the last three commits regress performance?"        -> regression-check
@@ -64,7 +64,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 const invoke = `# Claude Code
 /microscope:analyze-jfr
 /microscope:analyze-heap
-/microscope:analyze-remote
+/microscope:analyze-hub
 /microscope:compare-jfr
 /microscope:profile-run
 /microscope:regression-check
@@ -77,7 +77,7 @@ const invoke = `# Claude Code
 # Codex
 $analyze-jfr
 $analyze-heap
-$analyze-remote
+$analyze-hub
 $compare-jfr
 $profile-run
 $regression-check
@@ -146,8 +146,8 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           </tr>
           <tr>
             <td>&ldquo;What did production record in the last hour?&rdquo; &middot; &ldquo;Why was staging slow this morning?&rdquo; &middot; &ldquo;Why did the pod&rsquo;s JVM die?&rdquo;</td>
-            <td><a href="#analyze-remote"><code>analyze-remote</code></a></td>
-            <td>The configured remote (the Azure file share holding the recording volume)</td>
+            <td><a href="#analyze-hub"><code>analyze-hub</code></a></td>
+            <td>A connected Jeffrey Hub</td>
           </tr>
           <tr>
             <td>&ldquo;Did my change make it slower?&rdquo; &middot; &ldquo;What got faster?&rdquo;</td>
@@ -287,7 +287,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         </aside>
       </div>
 
-      <h2 id="analyze-remote">analyze-remote</h2>
+      <h2 id="analyze-hub">analyze-hub</h2>
       <div class="skill-card">
         <div class="skill-head">
           <p class="skill-question">&ldquo;Analyse what production recorded in the last hour.&rdquo;</p>
@@ -297,28 +297,28 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <section class="skill-block">
           <h4>Entry sequence</h4>
           <ul>
-            <li><code>remote_sessions</code> with a window &mdash; one call, across every workspace and project of the remote &mdash; then <code>remote_download</code> on the row&rsquo;s <code>sessionRef</code> with the part that matters, then <code>recordings_analyzeRecording</code> for the <code>profileId</code>. Most answers have a name, passed as a <router-link to="/docs/microscope-mcp/tools#named-windows">named window</router-link> and measured by Jeffrey on the session itself: &ldquo;the last hour&rdquo; is <code>LAST_MINUTES</code>, &ldquo;since startup&rdquo; <code>STARTUP</code>, &ldquo;right now&rdquo; <code>LATEST</code>, &ldquo;the worst moment&rdquo; <code>PEAK</code>, &ldquo;before the heap dump&rdquo; or &ldquo;before the crash&rdquo; <code>BEFORE</code> with that file&rsquo;s <code>createdAtEpochMs</code>, &ldquo;around 10:42&rdquo; <code>AROUND</code>, and &ldquo;all of it&rdquo; <code>WHOLE</code>. Two times of your own are <code>startEpochMs</code>/<code>endEpochMs</code>. A named window is your answer, so Jeffrey does not <router-link to="/docs/microscope-mcp/tools#window-question">ask again</router-link> which part.</li>
-            <li>From there it hands off: <code>analyze-jfr</code> for a recording, <code>analyze-heap</code> for a dump. A session&rsquo;s heap dump arrives as its own item of the download&rsquo;s bundle &mdash; listed in <code>remote_download</code>&rsquo;s <code>items</code> with its own <code>recordingId</code> &mdash; so the skill analyses that item with <code>recordings_analyzeRecording</code> and hands its profile to <code>analyze-heap</code>; it is never inside the JFR profile. There is no remote-specific analysis, because each downloaded item is an ordinary profile.</li>
-            <li>When the question is about what the JVM <em>wrote</em> &mdash; the application log, the GC log, the crash file &mdash; it takes the other branch: <code>remote_files</code> to see what the session holds, <code>remote_fetchFile</code> on the one file that matters, and then the agent&rsquo;s own <code>grep</code> and file reader at the path it returns. Jeffrey hands the file over rather than parsing it.</li>
-            <li>No <code>remote_</code> tool advertised means remote access is off (<code>jeffrey.microscope.mcp.remote.enabled=false</code>) &mdash; a fact to report, not a path to guess at. A <code>remote_status</code> that answers <code>state: NOT_CONFIGURED</code> means the configuration declares no remote. Declaring one is your step, not the agent&rsquo;s, and it is done in configuration only: the answer gives a ready <code>jeffrey.microscope.remote.*</code> entry (name, hostname, port, plaintext) to declare and restart with &mdash; or, for recordings on an Azure file share with no hub, a <code>jeffrey.microscope.remote.azure-files.*</code> entry. The agent never invents an address.</li>
+            <li><code>hubs_sessions</code> with a window &mdash; one call, across every connected hub &mdash; then <code>hubs_download</code> on the row&rsquo;s <code>sessionRef</code> with the part that matters, then <code>recordings_analyzeRecording</code> for the <code>profileId</code>. Most answers have a name, passed as a <router-link to="/docs/microscope-mcp/tools#named-windows">named window</router-link> and measured by Jeffrey on the session itself: &ldquo;the last hour&rdquo; is <code>LAST_MINUTES</code>, &ldquo;since startup&rdquo; <code>STARTUP</code>, &ldquo;right now&rdquo; <code>LATEST</code>, &ldquo;the worst moment&rdquo; <code>PEAK</code>, &ldquo;before the heap dump&rdquo; or &ldquo;before the crash&rdquo; <code>BEFORE</code> with that file&rsquo;s <code>createdAtEpochMs</code>, &ldquo;around 10:42&rdquo; <code>AROUND</code>, and &ldquo;all of it&rdquo; <code>WHOLE</code>. Two times of your own are <code>startEpochMs</code>/<code>endEpochMs</code>. A named window is your answer, so Jeffrey does not <router-link to="/docs/microscope-mcp/tools#window-question">ask again</router-link> which part.</li>
+            <li>From there it hands off: <code>analyze-jfr</code> for a recording, <code>analyze-heap</code> for a dump. A session&rsquo;s heap dump arrives as its own item of the download&rsquo;s bundle &mdash; listed in <code>hubs_download</code>&rsquo;s <code>items</code> with its own <code>recordingId</code> &mdash; so the skill analyses that item with <code>recordings_analyzeRecording</code> and hands its profile to <code>analyze-heap</code>; it is never inside the JFR profile. There is no hub-specific analysis, because each downloaded item is an ordinary profile.</li>
+            <li>When the question is about what the JVM <em>wrote</em> &mdash; the application log, the GC log, the crash file &mdash; it takes the other branch: <code>hubs_files</code> to see what the session holds, <code>hubs_fetchFile</code> on the one file that matters, and then the agent&rsquo;s own <code>grep</code> and file reader at the path it returns. Jeffrey hands the file over rather than parsing it.</li>
+            <li>No <code>hubs_</code> tool advertised means hub access is off &mdash; a fact to report, not a path to guess at. A <code>hubs_list</code> that answers <code>EMPTY</code> means no hub is connected yet. Connecting one is your step, not the agent&rsquo;s: the answer gives the Hubs page link and a ready <code>jeffrey.microscope.hubs.&lt;key&gt;.*</code> entry (name, hostname, port, plaintext) to declare and restart with. The agent never invents an address.</li>
           </ul>
         </section>
 
         <section class="skill-block">
           <h4>What it decides for you</h4>
           <ul>
-            <li>That the workspace and project hierarchy is a set of filters and columns, never a sequence of questions. Asking &ldquo;which workspace?&rdquo;, then &ldquo;which project?&rdquo; costs two turns and asks for ids nobody knows by heart.</li>
+            <li>That the hub, workspace and project hierarchy is a set of filters and columns, never a sequence of questions. Asking &ldquo;which hub?&rdquo;, then &ldquo;which workspace?&rdquo;, then &ldquo;which project?&rdquo; costs three turns and asks for ids nobody knows by heart.</li>
             <li>When to involve you at all: not when one session obviously matches, and once &mdash; quoting project, duration and size &mdash; when several do or the download is large.</li>
             <li>To read the <code>local</code> column before downloading anything. A session already here needs no transfer, and one already analysed needs no work at all.</li>
             <li>That a session still recording is a normal thing to download, not an error to wait out: the transfer takes the chunks that have been rolled so far.</li>
-            <li>That <code>STARTUP_NOT_RETAINED</code> is a fact to put to you, not a gap to fill: the remote no longer holds the session&rsquo;s first chunk, nothing was downloaded or substituted, and you are asked whether the oldest chunk kept, <code>LATEST</code>, <code>PEAK</code> or a window will do.</li>
+            <li>That <code>STARTUP_NOT_RETAINED</code> is a fact to put to you, not a gap to fill: the hub has already removed the session&rsquo;s first chunk, nothing was downloaded or substituted, and you are asked whether the oldest chunk kept, <code>LATEST</code>, <code>PEAK</code> or a window will do.</li>
             <li>To follow the call a <code>RUNNING</code> answer&rsquo;s <code>followUp</code> names rather than repeat the window: it names the exact span or chunk the download resolved to, where <code>LATEST</code> asked again later could be a newer chunk and a second download.</li>
           </ul>
         </section>
 
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
-          <p>An empty result is not the same as no recordings. A remote, workspace or project that did not answer is reported under the table, and the managers underneath report a remote that is down and a remote that is empty identically &mdash; so the answer to &ldquo;nothing came back&rdquo; is to read the footer, or call <code>remote_status</code>, before telling anyone their recordings are missing.</p>
+          <p>An empty result is not the same as no recordings. A hub that did not answer is reported under the table, and the managers underneath report a hub that is down and a hub that is empty identically &mdash; so the answer to &ldquo;nothing came back&rdquo; is to read the footer, or call <code>hubs_list</code>, before telling anyone their recordings are missing.</p>
         </aside>
       </div>
 
@@ -398,7 +398,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
-          <p>The file has to land where <strong>Jeffrey</strong> can open it, not merely where you can: same machine, absolute path, a mounted directory if Jeffrey runs in a container. And an empty <code>jdk.ObjectAllocationSample</code> in the summary is a fact about the flags, not about the application &mdash; the settings did not take. The skill also declines two things: it will not attach a profiler to production, which is a <a href="#analyze-remote"><code>analyze-remote</code></a> question, and it will not pick the workload silently, because a benchmark that does not represent the problem answers the wrong question convincingly.</p>
+          <p>The file has to land where <strong>Jeffrey</strong> can open it, not merely where you can: same machine, absolute path, a mounted directory if Jeffrey runs in a container. And an empty <code>jdk.ObjectAllocationSample</code> in the summary is a fact about the flags, not about the application &mdash; the settings did not take. The skill also declines two things: it will not attach a profiler to production, which is a <a href="#analyze-hub"><code>analyze-hub</code></a> question, and it will not pick the workload silently, because a benchmark that does not represent the problem answers the wrong question convincingly.</p>
         </aside>
       </div>
 
@@ -511,7 +511,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <section class="skill-block">
           <h4>Entry sequence</h4>
           <ul>
-            <li>An application name is matched against the profiles in <code>profiles_list</code>; a deployed service with no local profile is handed to <code>analyze-remote</code>, a named file to <code>recordings_analyzeFile</code>. <code>profiles_get</code> then compares the recording&rsquo;s commit with <code>HEAD</code>, as <code>advise-jfr</code> does.</li>
+            <li>An application name is matched against the profiles in <code>profiles_list</code>; a deployed service with no local profile is handed to <code>analyze-hub</code>, a named file to <code>recordings_analyzeFile</code>. <code>profiles_get</code> then compares the recording&rsquo;s commit with <code>HEAD</code>, as <code>advise-jfr</code> does.</li>
             <li>The application&rsquo;s own packages are read off the checkout &mdash; the package roots under <code>src/main/java</code> and <code>src/main/kotlin</code>, else the build&rsquo;s group id &mdash; and named in one line so they can be corrected. Jeffrey stores no setting for them: the agent passes them on each call.</li>
             <li><code>jvm_exceptions</code> for the split &mdash; application throws, libraries included, against the JVM&rsquo;s own class-loading, reflection and linking noise &mdash; and the top application throw sites. With no throw events recorded it stops and names the recording setting that would capture them.</li>
             <li><code>jvm_exceptionSites</code> with those packages as <code>framePrefixes</code>: each site&rsquo;s stack and its <code>ownFrame</code>, the topmost frame of the application&rsquo;s own &mdash; the line to open even when a library threw.</li>
@@ -637,7 +637,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
       <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in; a third, <code>microscope:profile-lead</code>, triages an open-ended question and dispatches those two. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
-      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>remote_</code>, and no <code>recordings_</code> tool but the two that list and report status, so it cannot map a frame to a line, edit anything, or build a profile from a file or from the remote. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
+      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>hubs_</code>, and no <code>recordings_</code> tool but the two that list and report status, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
       <p>You do not normally have to. The agent loads the skill whose description matches the question, so plain English is enough:</p>

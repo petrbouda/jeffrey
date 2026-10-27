@@ -259,7 +259,7 @@ public final class McpOperationRegistry {
      * answer, and what the family tools carry beside their own answer as {@code operation}.
      *
      * @param result what the operation produced, once it completed: shaped by the kind that started it,
-     *               so an open object -- a recording import names its profile, a remote download its
+     *               so an open object -- a recording import names its profile, a hub download its
      *               recording
      */
     public record Snapshot(

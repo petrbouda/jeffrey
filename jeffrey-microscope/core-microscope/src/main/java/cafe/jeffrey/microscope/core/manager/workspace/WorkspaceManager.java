@@ -31,7 +31,7 @@ public interface WorkspaceManager {
     WorkspaceInfo localInfo();
 
     /**
-     * Returns a fresh workspace snapshot from the remote.
+     * Returns a fresh workspace snapshot from the hub.
      * May involve a network call; falls back to OFFLINE status on failure.
      */
     WorkspaceInfo resolveInfo();

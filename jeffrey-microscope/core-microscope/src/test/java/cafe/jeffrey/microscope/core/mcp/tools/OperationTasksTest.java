@@ -78,11 +78,11 @@ class OperationTasksTest {
     @Nested
     class Gated {
 
-        private final McpTaskProvider tasks = new OperationTasks(registry, kind -> !kind.reachesRemote());
+        private final McpTaskProvider tasks = new OperationTasks(registry, kind -> !kind.reachesHub());
 
         @Test
         void refusesATaskOfAFamilyThisEndpointDoesNotServe() {
-            registry.register(OperationKind.REMOTE_DOWNLOAD, operation, OperationResults.Value::new);
+            registry.register(OperationKind.HUB_DOWNLOAD, operation, OperationResults.Value::new);
 
             assertEquals(McpErrorCode.INVALID_PARAMS,
                     assertThrows(McpProtocolException.class, () -> tasks.get("op-1")).code());

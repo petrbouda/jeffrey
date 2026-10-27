@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
-import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
-import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
+import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
+import cafe.jeffrey.hub.client.manager.RepositoryManager;
+import cafe.jeffrey.shared.ui.hub.bridge.RemoteProjectAccess;
 
 /**
  * Microscope's {@link RemoteProjectAccess} bridge: resolves the per-project remote managers via the
@@ -36,21 +36,21 @@ public class MicroscopeRemoteProjectAccess implements RemoteProjectAccess {
     }
 
     @Override
-    public RemoteInstancesManager instancesManager(String workspaceId, String projectId) {
-        return projectManager(workspaceId, projectId).instancesManager();
+    public RemoteInstancesManager instancesManager(String hubId, String workspaceId, String projectId) {
+        return projectManager(hubId, workspaceId, projectId).instancesManager();
     }
 
     @Override
-    public RepositoryManager repositoryManager(String workspaceId, String projectId) {
-        return projectManager(workspaceId, projectId).repositoryManager();
+    public RepositoryManager repositoryManager(String hubId, String workspaceId, String projectId) {
+        return projectManager(hubId, workspaceId, projectId).repositoryManager();
     }
 
     @Override
-    public RecordingsDownloadManager recordingsDownloadManager(String workspaceId, String projectId) {
-        return projectManager(workspaceId, projectId).recordingsDownloadManager();
+    public RecordingsDownloadManager recordingsDownloadManager(String hubId, String workspaceId, String projectId) {
+        return projectManager(hubId, workspaceId, projectId).recordingsDownloadManager();
     }
 
-    private ProjectManager projectManager(String workspaceId, String projectId) {
-        return resolver.resolve(workspaceId, projectId);
+    private ProjectManager projectManager(String hubId, String workspaceId, String projectId) {
+        return resolver.resolve(hubId, workspaceId, projectId);
     }
 }

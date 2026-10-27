@@ -29,7 +29,7 @@ import cafe.jeffrey.microscope.core.web.dto.response.ProjectSettingsResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 @RestController
-@RequestMapping("/api/internal/remote/workspaces/{workspaceId}/projects/{projectId}/settings")
+@RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}/settings")
 public class ProjectSettingsController {
 
     private final ProjectManagerResolver resolver;
@@ -40,18 +40,20 @@ public class ProjectSettingsController {
 
     @GetMapping
     public ProjectSettingsResponse settings(
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId);
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         return ProjectSettingsResponse.create(pm.info());
     }
 
     @PostMapping
     public void update(
+            @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
             @PathVariable("projectId") String projectId,
             @RequestBody ProjectSettingsUpdateRequest request) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId);
+        ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId);
         if (request.name() != null) {
             pm.updateName(request.name());
         }

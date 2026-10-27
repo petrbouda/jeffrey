@@ -72,7 +72,7 @@ class ManagedFileTest {
         /**
          * The JVM's own default spelling ends in {@code .log} too, so without the matcher being
          * asked first the crash file was filed as an application log — listed under the wrong
-         * badge, and named as one by {@code remote_files} when an agent went looking for the crash.
+         * badge, and named as one by {@code hubs_files} when an agent went looking for the crash.
          */
         @Test
         void theJvmDefaultCrashLogIsNotAnApplicationLogEither() {

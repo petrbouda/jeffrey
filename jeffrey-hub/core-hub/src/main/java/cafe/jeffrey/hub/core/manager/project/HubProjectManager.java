@@ -17,23 +17,32 @@
 
 package cafe.jeffrey.hub.core.manager.project;
 
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.HubRepositoryManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.volume.ProjectDirectory;
+import cafe.jeffrey.hub.core.volume.SessionLiveness;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.hub.model.repository.RecordingStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class HubProjectManager implements ProjectManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HubProjectManager.class);
 
     private final ProjectInfo projectInfo;
     private final RepositoryStorage repositoryStorage;
 
-    public HubProjectManager(ProjectDirectory project, FilesystemVolume volume, SessionLiveness liveness) {
+    public HubProjectManager(ProjectDirectory project, SessionLiveness liveness) {
         this.projectInfo = project.info();
-        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.tree(), volume, liveness);
+        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.path(), liveness);
     }
 
     @Override
@@ -49,5 +58,34 @@ public class HubProjectManager implements ProjectManager {
     @Override
     public ProjectInfo info() {
         return projectInfo;
+    }
+
+    /**
+     * The project's status and session count, read off its instances — each from its newest
+     * session alone, so listing projects never reads an older session's liveness files.
+     */
+    @Override
+    public DetailedProjectInfo detailedInfo() {
+        List<ProjectInstanceInfo> instances = repositoryStorage.instances();
+        int sessionCount = instances.stream().mapToInt(ProjectInstanceInfo::sessionCount).sum();
+        return new DetailedProjectInfo(projectInfo, statusOf(instances, sessionCount), sessionCount);
+    }
+
+    /** {@code null} without a session; ACTIVE while any instance records; FINISHED otherwise. */
+    private static RecordingStatus statusOf(List<ProjectInstanceInfo> instances, int sessionCount) {
+        if (sessionCount == 0) {
+            return null;
+        }
+        if (instances.stream().anyMatch(instance -> instance.status() == ProjectInstanceStatus.ACTIVE)) {
+            return RecordingStatus.ACTIVE;
+        }
+        return RecordingStatus.FINISHED;
+    }
+
+    @Override
+    public void delete() {
+        repositoryStorage.deleteProjectDirectory();
+        LOG.info("Deleted project: project_id={}", projectInfo.id());
+        JfrNotificationEmitter.projectDeleted(projectInfo.id());
     }
 }

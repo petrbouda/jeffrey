@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.hub.HubsManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteArtifactsMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpToolsFixture;
@@ -48,7 +48,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_F
 import static org.mockito.Mockito.mock;
 
 /**
- * Every tool the endpoint can advertise, as {@code tools/list} would list it: every family, the remote
+ * Every tool the endpoint can advertise, as {@code tools/list} would list it: every family, the hub
  * and IDE switches on. The collaborators are mocks, because only the specs are read.
  */
 final class AdvertisedTools {
@@ -67,7 +67,7 @@ final class AdvertisedTools {
                 new ProfilesMcpTools(mock(MicroscopeCoreRepositories.class), EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordingsManager, new PipelineRunRegistry<>(
                         ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK), operations, CLOCK).build(),
-                RemoteMcpToolsFixture.of(mock(RemoteManager.class), resolver, recordingsManager, CLOCK)
+                HubsMcpToolsFixture.of(mock(HubsManager.class), resolver, recordingsManager, CLOCK)
                         .withOperations(operations).build(),
                 mock(McpProfileContextCache.class),
                 mock(JfrFlamegraphPanelProvider.class),
@@ -77,7 +77,7 @@ final class AdvertisedTools {
                 mock(IdeBridge.class),
                 properties,
                 AdvertisedFamilies.of(properties),
-                RemoteArtifactsMcpToolsFixture.of(resolver, recordingsManager, Path.of("artifacts"),
+                HubsArtifactsMcpToolsFixture.of(resolver, recordingsManager, Path.of("artifacts"),
                         Path.of("profiles"), operations, CLOCK, EVERY_FAMILY).build(),
                 operations, ToolFixtures.answers(), CLOCK);
         return assembler.toolset().specs();

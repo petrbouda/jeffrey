@@ -20,8 +20,6 @@ module cafe.jeffrey.shared.test {
     requires spring.core;
     requires spring.jdbc;
     requires flyway.core;
-    requires cafe.jeffrey.shared.common;
 
     exports cafe.jeffrey.test;
-    exports cafe.jeffrey.test.volume;
 }

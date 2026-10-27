@@ -19,11 +19,11 @@ package cafe.jeffrey.recordings.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
-import cafe.jeffrey.microscope.remote.client.manager.TempDirProvider;
-import cafe.jeffrey.microscope.remote.client.FileStreamClient;
-import cafe.jeffrey.microscope.remote.client.ProjectScope;
-import cafe.jeffrey.microscope.remote.client.RepositoryClient;
+import cafe.jeffrey.hub.client.RepositoryFiles;
+import cafe.jeffrey.hub.client.manager.TempDirProvider;
+import cafe.jeffrey.hub.client.FileStreamClient;
+import cafe.jeffrey.hub.client.ProjectScope;
+import cafe.jeffrey.hub.client.RepositoryClient;
 import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
@@ -161,7 +161,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     /**
-     * The session as the remote has it now, with its files. Everything below asks the session which
+     * The session as the hub has it now, with its files. Everything below asks the session which
      * of its files are closed rather than asking a file: a file carries no status, and the one
      * the profiler still holds open is the session's newest chunk.
      */
@@ -484,6 +484,8 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             throw new CancellationException("Download cancelled");
         }
     }
+
+
 
     private static void streamToFileWithProgress(
             InputStream source,

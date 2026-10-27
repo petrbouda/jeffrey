@@ -250,12 +250,12 @@ def check_agent_contracts(root: Path) -> None:
         if "Never call `heap_prepare`" not in rules:
             fail(str(path), "read-only analyst must explicitly forbid heap_prepare")
 
-    remote_source = root / "jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/RemoteMcpTools.java"
-    default = re.search(r"DEFAULT_LIMIT\s*=\s*(\d+)", remote_source.read_text())
-    skill = plugin / "skills/analyze-remote/SKILL.md"
-    documented = re.search(r"remote_sessions` defaults to (\d+) rows", skill.read_text())
+    hub_source = root / "jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/HubsMcpTools.java"
+    default = re.search(r"DEFAULT_LIMIT\s*=\s*(\d+)", hub_source.read_text())
+    skill = plugin / "skills/analyze-hub/SKILL.md"
+    documented = re.search(r"hubs_sessions` defaults to (\d+) rows", skill.read_text())
     if not default or not documented or default.group(1) != documented.group(1):
-        fail(str(skill), "remote_sessions documented default must match RemoteMcpTools.DEFAULT_LIMIT")
+        fail(str(skill), "hubs_sessions documented default must match HubsMcpTools.DEFAULT_LIMIT")
 
 
 GOOD_SKILL = """---

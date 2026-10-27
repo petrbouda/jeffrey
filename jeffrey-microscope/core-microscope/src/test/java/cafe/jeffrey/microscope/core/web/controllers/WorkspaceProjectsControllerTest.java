@@ -23,8 +23,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.ui.remote.bridge.RemoteBrowserAccess;
-import cafe.jeffrey.shared.ui.remote.controller.WorkspaceProjectsController;
+import cafe.jeffrey.shared.ui.hub.bridge.HubBrowserAccess;
+import cafe.jeffrey.shared.ui.hub.controller.WorkspaceProjectsController;
 
 import java.util.List;
 
@@ -36,15 +36,15 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 class WorkspaceProjectsControllerTest {
 
     @Mock
-    RemoteBrowserAccess access;
+    HubBrowserAccess access;
 
     @Test
     void listsEmptyProjects() {
-        when(access.projects("ws-1")).thenReturn(List.of());
+        when(access.projects("srv-1", "ws-1")).thenReturn(List.of());
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(access));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ws-1/projects"))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$").asArray().isEmpty();
@@ -52,11 +52,11 @@ class WorkspaceProjectsControllerTest {
 
     @Test
     void workspaceNotFoundReturns404() {
-        when(access.projects("ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
+        when(access.projects("srv-1", "ghost")).thenThrow(Exceptions.workspaceNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectsController(access));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ghost/projects"))
+        assertThat(mvc.get().uri("/api/internal/hubs/srv-1/workspaces/ghost/projects"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");

@@ -32,8 +32,8 @@ import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpProfiles;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteArtifactsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsArtifactsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
@@ -107,8 +107,8 @@ import java.util.function.Function;
  * work does, through one {@link BoundedOperation} each shared by every call, and say so per tool with
  * {@code @McpToolHints}: they fill a cache rather than only reading one.
  * <p>
- * {@link RemoteMcpTools} and {@link IdeMcpTools} are the two families gated by configuration, because
- * they are the two that reach outside this server: the remote family leaves the machine altogether, and
+ * {@link HubsMcpTools} and {@link IdeMcpTools} are the two families gated by configuration, because
+ * they are the two that reach outside this server: the hub family leaves the machine altogether, and
  * the IDE family reaches into another process on it and can put a file on the developer's screen.
  */
 public class McpToolsetAssembler {
@@ -130,7 +130,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_MEMORY = "memory";
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
-    private static final String PREFIX_REMOTE = "remote";
+    private static final String PREFIX_HUBS = "hubs";
     private static final String PREFIX_IDE = "ide";
 
     private final McpToolProvider toolset;
@@ -139,7 +139,7 @@ public class McpToolsetAssembler {
     public McpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
-            RemoteMcpTools remoteMcpTools,
+            HubsMcpTools hubsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
@@ -148,7 +148,7 @@ public class McpToolsetAssembler {
             IdeBridge ideBridge,
             ExternalMcpProperties properties,
             AdvertisedFamilies advertised,
-            RemoteArtifactsMcpTools remoteArtifactsMcpTools,
+            HubsArtifactsMcpTools hubsArtifactsMcpTools,
             McpOperationRegistry operations,
             OperationAnswers answers,
             Clock clock) {
@@ -259,13 +259,13 @@ public class McpToolsetAssembler {
                     McpToolAnnotations.READS_REMOTE));
         }
 
-        if (properties.remoteEnabled()) {
+        if (properties.hubsEnabled()) {
             families.add(new ReflectiveToolset(
-                    remoteMcpTools, PREFIX_REMOTE, McpToolAnnotations.READS_REMOTE));
-            // Read-only as a family: remote_files observes. remote_fetchFile puts a file on this disk and
-            // says so itself with @McpToolHints, the way remote_download does.
+                    hubsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
+            // Read-only as a family: hubs_files observes. hubs_fetchFile puts a file on this disk and
+            // says so itself with @McpToolHints, the way hubs_download does.
             families.add(new ReflectiveToolset(
-                    remoteArtifactsMcpTools, PREFIX_REMOTE, McpToolAnnotations.READS_REMOTE));
+                    hubsArtifactsMcpTools, PREFIX_HUBS, McpToolAnnotations.READS_REMOTE));
         }
 
         this.toolset = new CompositeToolset(retained(families, properties));
@@ -302,11 +302,11 @@ public class McpToolsetAssembler {
     /**
      * Whether {@code operations_status} and {@code operations_cancel} -- and the tasks extension, which
      * reads the same operations -- may reach an operation of this kind: only when the family that
-     * started it is served, and -- for the two remote kinds -- only when the remote switch is on, since the
+     * started it is served, and -- for the two hub kinds -- only when the hub switch is on, since the
      * family filter alone does not know about that switch.
      */
     public static boolean reachable(OperationKind kind, ExternalMcpProperties properties) {
-        if (kind.reachesRemote() && !properties.remoteEnabled()) {
+        if (kind.reachesHub() && !properties.hubsEnabled()) {
             return false;
         }
         return properties.advertises(kind.family());
@@ -318,7 +318,7 @@ public class McpToolsetAssembler {
      * Filtering happens here, on assembled families, rather than at each registration: the list above
      * reads as the whole surface, and what a particular installation withholds is one decision applied
      * once. Unknown family and preset names are rejected by the properties at startup; the independent
-     * remote and IDE switches may still withhold a known family selected by a preset or explicit list.
+     * hub and IDE switches may still withhold a known family selected by a preset or explicit list.
      */
     private static List<McpToolProvider> retained(
             List<McpToolProvider> families, ExternalMcpProperties properties) {
