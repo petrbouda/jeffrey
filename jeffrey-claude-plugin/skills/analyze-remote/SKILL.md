@@ -62,7 +62,7 @@ Narrow it with the arguments instead, all optional and all matched loosely:
 |---|---|
 | "what did production record in the last hour" | `remote_sessions(workspace="production", withinLastMinutes=60)` |
 | "the checkout service today" | `remote_sessions(project="checkout", withinLastMinutes=1440)` |
-| "what is recording right now" | `remote_sessions(status="ACTIVE")` |
+| "what is recording right now" | `remote_sessions(withinLastMinutes=15)`, then the rows with `newest: true` |
 | "anything at all" | `remote_sessions()` |
 
 `withinLastMinutes` is an **overlap**, not a start time. A JVM that began recording three hours ago
@@ -78,11 +78,11 @@ The fields to read before doing anything else — each row of `sessions` in the 
   (the answer's `followUp` already offers `recordings_analyzeRecording` for it). A `profileId`
   means it is already analysed, so skip to step 5 and use that `profileId` directly. **Always check
   this before downloading.**
-- **`startedAtEpochMs`** and **`durationMs`** (null while still recording) — the span there is to
-  choose an interval from, and how much data is behind it; with **`sizeBytes`**, what pulling all of
-  it would cost.
-- **`status`** — `ACTIVE` is still recording. That is fine to download; you get the chunks that
-  have been rolled so far, not a broken file.
+- **`startedAtEpochMs`** and **`durationMs`** (to the end of its recorded data; null while it has no
+  recording yet) — the span there is to choose an interval from, and how much data is behind it;
+  with **`sizeBytes`**, what pulling all of it would cost.
+- **`newest`** — it is its instance's newest session, so it may still grow. That is fine to
+  download; you get the chunks it holds so far, each a whole file.
 - **`sessionRef`** — what `remote_download` and `remote_files` take. Copy it exactly.
 
 `remote_sessions` never offers a download as a next call: which part of a session to bring is the
@@ -135,7 +135,7 @@ session's own end, its own chunks — rather than working out times yourself:
 |---|---|
 | the last hour, the last 20 minutes | `LAST_MINUTES` (`minutes`, 60 when omitted) |
 | since it started, the startup, the warm-up | `STARTUP` — the first chunk |
-| right now, what it is doing at the moment | `LATEST` — the newest finished chunk |
+| right now, what it is doing at the moment | `LATEST` — the newest chunk |
 | the worst moment, the busiest time | `PEAK` — the largest compressed chunk; the answer's `chosen.evidence` says by how much |
 | before the heap dump, before it crashed | `BEFORE` with `atEpochMs` = that file's `createdAtEpochMs` from `remote_files`, and `minutes` |
 | around 10:42 | `AROUND` with `atEpochMs` and `minutes` |
@@ -187,7 +187,7 @@ confirmed on the window that matters. A single chunk may equally go `remote_fetc
 Every download lands as one **bundle**. `remote_download(sessionRef, startEpochMs, endEpochMs)` brings
 the recording files covering the window, nothing else; `remote_download(sessionRef, fileIds=["…"])` brings
 the named files, the recording files and any artifact beside them; and `remote_download(sessionRef)`
-alone brings every finished file of the session. In the bundle all the recording files are **one**
+alone brings every file of the session. In the bundle all the recording files are **one**
 JFR recording — kept as the several files they are and fetched in parallel; nothing joins them, and
 the parser reads them as independent inputs. Each heap dump (`.hprof`, `.hprof.gz`) and the
 perf-counters file are **recordings of their own**, and the logs and crash file are download-only
@@ -198,8 +198,8 @@ with its `recordingId`, `eventSource` (`JDK` or `ASYNC_PROFILER` for the recordi
 guidance names them. A part of a session reports `coveredStartEpochMs` / `coveredEndEpochMs`, the span
 its files cover. A part is a bundle of its own: it is never answered from a whole-session copy that
 is already here, and the Recordings list marks it as a part (its span is in the `origin.window`
-tag), so it never reads as the whole session. A whole session is answered from the copy already here only when that copy was taken after the
-session finished; a copy taken while it was still recording is downloaded again as a new bundle.
+tag), so it never reads as the whole session. A whole session is answered from the copy already here only when that copy was taken after a
+newer session ended it; a copy of the instance's newest session is downloaded again as a new bundle.
 
 It does **not** build a profile; `recordings_analyzeRecording(recordingId)` does that, one item at a
 time, and returns the `profileId` every analysis tool takes. The `recordingId` at the top of the
@@ -227,7 +227,7 @@ if it was pointed at the session directory, and — when it died — `hs-jvm-err
 count; `remote_files(sessionRef)` shows what they are.
 
 When the question is "what exceptions did the service log", "why did the JVM crash", "what does
-the GC log say" — or the session has no finished recording at all — do not download the session:
+the GC log say" — or the session has no recording at all — do not download the session:
 
 1. `remote_files(sessionRef)` — read the `type` column: `APP_LOG`, `JVM_LOG`, `HS_JVM_ERROR_LOG`,
    `PERF_COUNTERS`, `HEAP_DUMP`, `HEAP_DUMP_GZ`. The `fetch` value decides the row: only one

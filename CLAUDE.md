@@ -32,7 +32,7 @@ jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs 
                                        hub-model, pages-hub (Storage and Scheduler pages)
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
-                                       projects/instances/sessions/files, markers, liveness; the hub's reader),
+                                       projects/instances/sessions/files, markers; the hub's reader),
                                        sql-builder, test (@DuckDBTest, VolumeWriter),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from

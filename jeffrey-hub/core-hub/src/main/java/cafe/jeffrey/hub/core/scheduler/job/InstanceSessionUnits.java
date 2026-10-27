@@ -26,14 +26,22 @@ import java.util.List;
 /**
  * Logical retention units of one instance's sessions: a consecutive run of failed-empty
  * sessions (a crash loop) collapses into a single unit, while every session that produced
- * data — including the still-active one — forms a unit of its own and splits failed runs.
+ * data — and the instance's newest, which is never failed — forms a unit of its own and splits
+ * failed runs.
  * This mirrors the collapsed crash-loop groups the UI renders (sessionGrouping.ts).
  *
- * <p>Units and the sessions inside them are ordered newest-first by {@code createdAt}.
+ * <p>Units and the sessions inside them are ordered newest-first by {@code createdAt}, ties broken
+ * by id the way the volume's layout orders sessions ({@code ProjectTree}), so the session the
+ * layout calls newest is always the first unit and never the one a cap cuts.
  * Failed-empty classification relies on {@link RecordingSession#isFailedEmpty()}, so the
  * sessions must have been loaded WITH files.</p>
  */
 final class InstanceSessionUnits {
+
+    private static final Comparator<RecordingSession> NEWEST_FIRST = Comparator
+            .comparing(RecordingSession::createdAt)
+            .thenComparing(RecordingSession::id)
+            .reversed();
 
     private final List<List<RecordingSession>> units;
 
@@ -43,7 +51,7 @@ final class InstanceSessionUnits {
 
     static InstanceSessionUnits of(List<RecordingSession> sessions) {
         List<RecordingSession> sorted = sessions.stream()
-                .sorted(Comparator.comparing(RecordingSession::createdAt).reversed())
+                .sorted(NEWEST_FIRST)
                 .toList();
 
         List<List<RecordingSession>> units = new ArrayList<>();
@@ -73,12 +81,5 @@ final class InstanceSessionUnits {
     /** Logical units, newest-first; each unit's sessions are also newest-first. */
     List<List<RecordingSession>> units() {
         return units;
-    }
-
-    /** All sessions flattened, newest-first — the order the protection scan expects. */
-    List<RecordingSession> sessionsNewestFirst() {
-        return units.stream()
-                .flatMap(List::stream)
-                .toList();
     }
 }

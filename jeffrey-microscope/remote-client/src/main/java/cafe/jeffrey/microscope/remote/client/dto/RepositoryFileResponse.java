@@ -19,28 +19,31 @@ package cafe.jeffrey.microscope.remote.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
+/**
+ * @param newestRecording whether it is the newest recording of its instance's newest session: the
+ *                        one the hub keeps uncompressed, which may still be on its way onto the volume
+ */
 public record RepositoryFileResponse(
         String id,
         String name,
         Long createdAt,
         Long size,
         ManagedFile fileType,
-        RecordingStatus status,
+        boolean newestRecording,
         boolean isRecording) {
 
     /**
-     * The file as this application's own API reports it, with the status resolved here.
+     * The file as this application's own API reports it, with its flag resolved here.
      *
-     * <p>A file has no status of its own and none comes with the listing: the volume says which files
-     * exist, and whether one is still being written is a fact about the session, which
-     * {@link RecordingSession#isOpen} answers. It is resolved at this boundary because a reader
-     * of this response holds one file at a time — a table row, a checkbox — and asking it to
-     * carry the session around to find out would put the rule in every such reader.
+     * <p>A file has no status of its own and none comes with the listing: the volume says which
+     * files exist, and whether one may still be on its way is a fact about the session, which
+     * {@link RecordingSession#isOpen} answers. It is resolved at this boundary because a reader of
+     * this response holds one file at a time — a table row, a checkbox — and asking it to carry
+     * the session around to find out would put the rule in every such reader.
      */
     public static RepositoryFileResponse from(RecordingSession session, RepositoryFile file) {
         return new RepositoryFileResponse(
@@ -49,7 +52,7 @@ public record RepositoryFileResponse(
                 InstantUtils.toEpochMilli(file.createdAt()),
                 file.size(),
                 RepositoryFiles.typeOf(file),
-                session.isOpen(file) ? session.status() : RecordingStatus.FINISHED,
+                session.isOpen(file),
                 file.isRecordingFile());
     }
 

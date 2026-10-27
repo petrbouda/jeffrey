@@ -24,21 +24,20 @@ import {
   isDownloadable,
   orderedChunks
 } from '@remote/services/chunkSelection.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 
 const T0 = 1_750_000_000_000;
 const MINUTE = 60_000;
 
-function chunk(id: string, startMinute: number, status = RecordingStatus.FINISHED): RepositoryFile {
+function chunk(id: string, startMinute: number, newestRecording = false): RepositoryFile {
   return new RepositoryFile(
     id,
     `profile-${id}.jfr`,
     T0 + startMinute * MINUTE,
-    status,
     1024,
     RecordingFileType.JFR,
+    newestRecording,
     true
   );
 }
@@ -48,9 +47,9 @@ function log(): RepositoryFile {
     'log',
     'app.log',
     T0,
-    RecordingStatus.FINISHED,
     1024,
     RecordingFileType.APP_LOG,
+    false,
     false
   );
 }
@@ -60,9 +59,9 @@ function asprofTemp(): RepositoryFile {
     'asprof',
     'profile-open.jfr.1~',
     T0,
-    RecordingStatus.ACTIVE,
     1024,
     RecordingFileType.ASPROF,
+    false,
     false
   );
 }
@@ -79,14 +78,14 @@ function ticked(...ids: string[]): { [fileId: string]: boolean } {
 }
 
 describe('orderedChunks', () => {
-  it('puts the finished recording files oldest first', () => {
+  it('puts the recording files oldest first', () => {
     expect(orderedChunks(FILES).map(f => f.id)).toEqual(['c0', 'c1', 'c2', 'c3']);
   });
 
-  it('leaves out artifacts and the chunk still being written', () => {
-    const withOpen = filesOf(chunk('c0', 0), log(), chunk('c1', 10, RecordingStatus.ACTIVE));
+  it('leaves out artifacts and keeps the newest recording', () => {
+    const withNewest = filesOf(chunk('c0', 0), log(), chunk('c1', 10, true));
 
-    expect(orderedChunks(withOpen).map(f => f.id)).toEqual(['c0']);
+    expect(orderedChunks(withNewest).map(f => f.id)).toEqual(['c0', 'c1']);
   });
 });
 
@@ -152,37 +151,31 @@ describe('chunkSelectionGapMessage', () => {
 });
 
 describe('isDownloadable', () => {
-  it('takes a finished chunk', () => {
+  it('takes a chunk', () => {
     expect(isDownloadable(chunk('c0', 0))).toBe(true);
   });
 
-  it('leaves out the chunk still being written', () => {
-    expect(isDownloadable(chunk('open', 5, RecordingStatus.ACTIVE))).toBe(false);
+  it('takes the newest recording of the newest session', () => {
+    expect(isDownloadable(chunk('newest', 5, true))).toBe(true);
   });
 
   it("leaves out async-profiler's scratch file", () => {
     expect(isDownloadable(asprofTemp())).toBe(false);
   });
 
-  it('takes a finished artifact', () => {
+  it('takes an artifact', () => {
     expect(isDownloadable(log())).toBe(true);
   });
 });
 
 describe('downloadableFiles', () => {
-  it('keeps every finished file of an active session, in listing order', () => {
-    const files = filesOf(
-      asprofTemp(),
-      chunk('open', 2, RecordingStatus.ACTIVE),
-      chunk('c1', 1),
-      chunk('c0', 0),
-      log()
-    );
+  it('keeps every file of the newest session but the scratch file, in listing order', () => {
+    const files = filesOf(asprofTemp(), chunk('newest', 2, true), chunk('c1', 1), chunk('c0', 0), log());
 
-    expect(downloadableFiles(files).map(f => f.id)).toEqual(['c1', 'c0', 'log']);
+    expect(downloadableFiles(files).map(f => f.id)).toEqual(['newest', 'c1', 'c0', 'log']);
   });
 
-  it('is empty when only the open chunk exists', () => {
-    expect(downloadableFiles(filesOf(chunk('open', 0, RecordingStatus.ACTIVE)))).toEqual([]);
+  it('is empty when only the scratch file exists', () => {
+    expect(downloadableFiles(filesOf(asprofTemp()))).toEqual([]);
   });
 });

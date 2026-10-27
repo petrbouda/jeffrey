@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.microscope.remote.client.environment.SessionEnvironmentParser;
-import cafe.jeffrey.microscope.remote.client.environment.SessionEnvironmentReader;
 import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.microscope.remote.client.manager.RemoteRepositoryManager;
 import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
@@ -107,13 +105,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RemoteInstancesManager instancesManager() {
-        return new RemoteInstancesManager(
-                scope,
-                remoteClients.instances(),
-                remoteClients.repository(),
-                new SessionEnvironmentReader(
-                        repositoryManager(),
-                        new SessionEnvironmentParser(jeffreyDirs)));
+        return new RemoteInstancesManager(scope, remoteClients.instances());
     }
 
     @Override

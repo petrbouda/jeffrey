@@ -27,8 +27,6 @@ import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
-import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -43,8 +41,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,16 +58,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class VolumeCallBudgetTest {
 
     private static final Instant T0 = Instant.parse("2026-10-26T06:00:00Z");
-    /** After the newest session started; sessions start two hours apart, clear of the directory-order margin. */
+    /** After the newest session started; sessions start two hours apart. */
     private static final Instant NOW = T0.plus(Duration.ofHours(24));
-    private static final SessionDeadlines DEADLINES =
-            new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1));
     private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
     private static final int SESSIONS = 12;
     private static final int CHUNKS_PER_SESSION = 20;
-    private static final String SESSION_PREFIX = "session-";
-    private static final String LIVE_SESSION = SESSION_PREFIX + (SESSIONS - 1);
-    private static final String FINISHED_SESSION = SESSION_PREFIX + 0;
+    /** Each session named as the provisioner names it, for its start: oldest first. */
+    private static final List<String> SESSION_IDS = IntStream.range(0, SESSIONS)
+            .mapToObj(session -> VolumeWriter.sessionIdAt(startOf(session)))
+            .toList();
+    private static final String LIVE_SESSION = SESSION_IDS.getLast();
+    private static final String FINISHED_SESSION = SESSION_IDS.getFirst();
 
     @TempDir
     Path root;
@@ -77,14 +78,15 @@ class VolumeCallBudgetTest {
 
     /**
      * Records every question asked of the volume it wraps, and lists each session directory with
-     * the time it was created the way the share says it: when the session started, as an SMB share
-     * lists it, or no time at all, as an NFS share does.
+     * the time it was created, as an SMB share lists it, or no time at all, as an NFS share does —
+     * neither of which a session's order depends on, its name carrying its start.
      */
     private static final class CountingVolume implements WritableVolume {
 
         private final FilesystemVolume delegate;
         private final boolean listsTimes;
-        private final List<String> calls = new ArrayList<>();
+        // synchronized: a share is read through a fan-out of eight readers at once
+        private final List<String> calls = Collections.synchronizedList(new ArrayList<>());
 
         private CountingVolume(FilesystemVolume delegate, boolean listsTimes) {
             this.delegate = delegate;
@@ -100,13 +102,10 @@ class VolumeCallBudgetTest {
         }
 
         private VolumeEntry asTheShareListsIt(VolumeEntry entry) {
-            if (!entry.isDirectory() || !entry.name().startsWith(SESSION_PREFIX)) {
+            if (listsTimes || !entry.isDirectory() || !SESSION_IDS.contains(entry.name())) {
                 return entry;
             }
-            Optional<Instant> createdAt = listsTimes
-                    ? Optional.of(startOf(Integer.parseInt(entry.name().substring(SESSION_PREFIX.length()))))
-                    : Optional.empty();
-            return new VolumeEntry(entry.path(), entry.kind(), entry.size(), createdAt);
+            return new VolumeEntry(entry.path(), entry.kind(), entry.size(), Optional.empty());
         }
 
         @Override
@@ -162,16 +161,11 @@ class VolumeCallBudgetTest {
         Path instance = VolumeWriter.instance(project, "pod-1", T0);
         for (int s = 0; s < SESSIONS; s++) {
             Instant start = startOf(s);
-            Path session = VolumeWriter.session(instance, SESSION_PREFIX + s, start, null);
+            Path session = VolumeWriter.session(instance, SESSION_IDS.get(s), start, null);
             for (int c = 0; c < CHUNKS_PER_SESSION; c++) {
                 VolumeWriter.file(session, "profile-%02d%02d.jfr.lz4".formatted(s, c), "x");
             }
             VolumeWriter.file(session, "jvm.log", "x");
-            if (s < SESSIONS - 1) {
-                VolumeWriter.finished(session, start.plus(Duration.ofMinutes(50)));
-            } else {
-                VolumeWriter.heartbeat(session, NOW);
-            }
         }
         clients = clientsOver(true);
     }
@@ -184,7 +178,7 @@ class VolumeCallBudgetTest {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         volume = new CountingVolume(new FilesystemVolume(root), listsTimes);
         return VolumeRemoteClients.of(new VolumeSource(
-                volume, new SessionLiveness(clock, volume, DEADLINES), clock, "budget", true));
+                volume, clock, "budget", true));
     }
 
     /** As Microscope reads a share: through the memo of what never changes, the reads several at a time. */
@@ -193,7 +187,7 @@ class VolumeCallBudgetTest {
         volume = new CountingVolume(new FilesystemVolume(root), true);
         RememberingVolume remembering = new RememberingVolume(volume, clock);
         return VolumeRemoteClients.of(new VolumeSource(
-                remembering, new SessionLiveness(clock, remembering, DEADLINES), clock, "budget", true,
+                remembering, clock, "budget", true,
                 new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
     }
 
@@ -204,55 +198,55 @@ class VolumeCallBudgetTest {
     }
 
     @Test
-    void anInstanceWithItsSessionsCostsThreeQuestionsASession() {
+    void anInstanceWithItsSessionsCostsTwoQuestionsASession() {
         clients.instances().instance(ORDERS, "pod-1", InstancePage.whole());
 
         // workspace listing + project marker, instance marker, instance listing; then per session its
-        // marker, its listing and its finished marker; the live one's heartbeat
-        assertEquals(4 + 3 * SESSIONS + 1, volume.countAndReset());
+        // marker and its listing
+        assertEquals(4 + 2 * SESSIONS, volume.countAndReset());
     }
 
     @Test
-    void theProjectsInstancesReadOnlyTheNewestSessionsLiveness() {
+    void theProjectsInstancesReadOnlyTheNewestSession() {
         clients.instances().projectInstances(ORDERS);
 
-        // workspace listing + project marker, project listing, instance marker, instance listing, the
-        // session markers; the newest session's listing, finished marker and heartbeat
-        assertEquals(5 + SESSIONS + 3, volume.countAndReset());
+        // workspace listing + project marker, project listing, instance marker, instance listing, whose
+        // names say which session is the newest and how many there are; its marker and its listing
+        assertEquals(5 + 2, volume.countAndReset());
     }
 
     @Test
-    void everySessionOfTheProjectCostsThreeQuestionsASession() {
+    void everySessionOfTheProjectCostsTwoQuestionsASession() {
         clients.repository().recordingSessions(ORDERS, RecordingSessionFilter.ALL);
 
         // as one instance, plus the project listing
-        assertEquals(5 + 3 * SESSIONS + 1, volume.countAndReset());
+        assertEquals(5 + 2 * SESSIONS, volume.countAndReset());
     }
 
     @Test
-    void aCleanlyFinishedSessionNeverReadsItsSiblings() {
+    void anOlderSessionReadsOnlyTheNextOneAlong() {
         clients.repository().recordingSession(ORDERS, FINISHED_SESSION);
 
-        // workspace listing + project marker, project listing, its marker, its instance's marker,
-        // its listing and its finished marker
-        assertEquals(7, volume.countAndReset());
+        // workspace listing + project marker, project listing, its marker, its instance's marker, the
+        // instance listing, the marker of the next session its names point to, and its own listing
+        assertEquals(8, volume.countAndReset());
     }
 
     @Test
     void theLiveSessionKnowsItIsTheNewestFromTheInstanceListing() {
         clients.repository().recordingSession(ORDERS, LIVE_SESSION);
 
-        // as a finished one, plus its heartbeat and the instance listing, whose times say no
-        // sibling started after it, so no sibling's marker is read
-        assertEquals(7 + 1 + 1, volume.countAndReset());
+        // as an older one, but the instance listing's names say no sibling started after it, so no
+        // sibling's marker is read
+        assertEquals(7, volume.countAndReset());
     }
 
     @Test
-    void withoutListedTimesTheLiveSessionReadsEverySibling() {
+    void withoutListedTimesTheLiveSessionStillReadsNoSibling() {
         clientsOver(false).repository().recordingSession(ORDERS, LIVE_SESSION);
 
-        // an NFS share lists no times, so every other session's marker is read for its start
-        assertEquals(7 + 1 + 1 + (SESSIONS - 1), volume.countAndReset());
+        // an NFS share lists no times; the names say the same as on any share
+        assertEquals(7, volume.countAndReset());
     }
 
     @Test
@@ -261,8 +255,8 @@ class VolumeCallBudgetTest {
                 .orElseThrow();
 
         // workspace listing + project marker, instance marker, instance listing; then per page
-        // session its marker, its listing and its finished marker; the live one's heartbeat
-        assertEquals(4 + 3 * InstancePage.PAGE_SIZE + 1, volume.countAndReset());
+        // session its marker and its listing
+        assertEquals(4 + 2 * InstancePage.PAGE_SIZE, volume.countAndReset());
         assertEquals(LIVE_SESSION, page.sessions().getFirst().id());
         assertEquals(InstancePage.PAGE_SIZE, page.sessions().size());
         assertTrue(page.hasOlder());
@@ -272,18 +266,31 @@ class VolumeCallBudgetTest {
     }
 
     @Test
+    void withoutListedTimesTheInstancePageStillReadsOnlyItsNewestSessions() {
+        InstanceRead page = clientsOver(false).instances()
+                .instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty()))
+                .orElseThrow();
+
+        // as on a share that lists times: the names order the page, so no other session's marker is read
+        assertEquals(4 + 2 * InstancePage.PAGE_SIZE, volume.countAndReset());
+        assertEquals(LIVE_SESSION, page.sessions().getFirst().id());
+        assertEquals(SESSIONS, page.instance().sessionCount());
+    }
+
+    @Test
     void theOlderPageStartsAfterTheCursor() {
-        String lastOnFirstPage = SESSION_PREFIX + (SESSIONS - InstancePage.PAGE_SIZE);
+        String lastOnFirstPage = SESSION_IDS.get(SESSIONS - InstancePage.PAGE_SIZE);
 
         InstanceRead older = clients.instances()
                 .instance(ORDERS, "pod-1", InstancePage.newest(Optional.of(lastOnFirstPage)))
                 .orElseThrow();
 
-        assertEquals(List.of(SESSION_PREFIX + 1, FINISHED_SESSION),
+        assertEquals(List.of(SESSION_IDS.get(1), FINISHED_SESSION),
                 older.sessions().stream().map(RecordingSessionResponse::id).toList());
         assertFalse(older.hasOlder());
-        // as the first page for its two sessions, plus the newest session read for the instance's state
-        assertEquals(4 + 3 * 2 + 4, volume.countAndReset());
+        // as the first page for its two sessions, plus the newest session's marker and listing for the
+        // instance's summary
+        assertEquals(4 + 2 * 2 + 2, volume.countAndReset());
     }
 
     @Test
@@ -303,7 +310,7 @@ class VolumeCallBudgetTest {
 
             // the project found (2), then the page as above, whose own look for the project
             // takes the project marker just remembered
-            assertEquals(2 + 3 + 3 * InstancePage.PAGE_SIZE + 1, volume.countAndReset());
+            assertEquals(2 + 3 + 2 * InstancePage.PAGE_SIZE, volume.countAndReset());
         }
 
         @Test
@@ -314,9 +321,9 @@ class VolumeCallBudgetTest {
 
             openTheInstancePage(over);
 
-            // two workspace listings, the instance listing, each page session's listing, and the
-            // live session's finished marker (not written yet) and heartbeat; every marker remembered
-            assertEquals(2 + 1 + InstancePage.PAGE_SIZE + 2, volume.countAndReset());
+            // two workspace listings, the instance listing and each page session's listing; every
+            // marker remembered
+            assertEquals(2 + 1 + InstancePage.PAGE_SIZE, volume.countAndReset());
         }
     }
 }

@@ -26,16 +26,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
- * The changes a user asks of the volume — creating a workspace, pinning a session, deleting a
- * session — with the rules each one keeps, in one place for every process that may write it:
+ * The changes a user asks of the volume — creating a workspace, deleting a session — with the
+ * rules each one keeps, in one place for every process that may write it:
  * the hub on its mount, Microscope on a share it reaches directly. Removing a workspace's or a
  * project's whole directory needs no rule and is {@link WritableVolume#delete} itself.
  *
  * <p>Upkeep (retention, compression) is not here: that stays with the hub that owns the volume.
  */
 public final class VolumeChanges {
-
-    private static final byte[] EMPTY_FLAG = new byte[0];
 
     private VolumeChanges() {
     }
@@ -73,25 +71,6 @@ public final class VolumeChanges {
     public static void describeWorkspace(WritableVolume volume, VolumePath directory, WorkspaceMarker marker) {
         volume.createDirectories(directory);
         volume.write(directory.resolve(WorkspaceMarker.FILE_NAME), Json.toString(marker).getBytes(StandardCharsets.UTF_8));
-    }
-
-    /**
-     * Pins a session against retention, or releases it: the {@code .retained} flag file.
-     *
-     * @return false when the project holds no such session
-     */
-    public static boolean setRetained(WritableVolume volume, ProjectTree project, String sessionId, boolean retained) {
-        Optional<SessionDirectory> session = project.session(sessionId);
-        if (session.isEmpty()) {
-            return false;
-        }
-        VolumePath flag = session.get().path().resolve(SessionDirectory.RETAINED_FLAG);
-        if (retained) {
-            volume.write(flag, EMPTY_FLAG);
-        } else {
-            volume.delete(flag);
-        }
-        return true;
     }
 
     /**

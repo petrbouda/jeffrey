@@ -30,13 +30,9 @@
       :aria-controls="POPOVER_ID"
       @click="open = !open"
     >
-      <StatusDot :tone="stats.active > 0 ? 'success' : 'muted'" />
       <span class="summary-text">
-        <template v-if="stats.pending > 0">
-          <strong>{{ stats.pending }}</strong> pending ·
-        </template>
-        <strong>{{ stats.active }}</strong> active · <strong>{{ stats.finished }}</strong> finished
-        · <strong>{{ stats.sessions }}</strong> {{ stats.sessions === 1 ? 'session' : 'sessions' }}
+        <strong>{{ stats.total }}</strong> {{ stats.total === 1 ? 'instance' : 'instances' }} ·
+        <strong>{{ stats.sessions }}</strong> {{ stats.sessions === 1 ? 'session' : 'sessions' }}
         <template v-if="storage.kind === 'measured'">
           · <strong>{{ storage.value }} {{ storage.unit }}</strong>
         </template>
@@ -82,7 +78,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import StatusDot from '@shared/components/StatusDot.vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { InstanceStats, StorageFigure } from './instanceStats';
 
@@ -103,21 +98,22 @@ const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
 
-// Pending only earns a row when there is one, as on the old stat card.
 const rows = computed<StatRow[]>(() => {
   const stats = props.stats;
-  const uptime =
+  const firstInstance =
     stats.oldestCreatedAt === null
       ? '—'
       : FormattingService.formatRelativeTime(stats.oldestCreatedAt);
+  const lastData =
+    stats.lastDataAt === null
+      ? 'No data yet'
+      : FormattingService.formatRelativeTime(stats.lastDataAt);
 
   return [
-    ...(stats.pending > 0 ? [{ label: 'Pending instances', value: stats.pending }] : []),
-    { label: 'Active instances', value: stats.active },
-    { label: 'Finished instances', value: stats.finished },
     { label: 'Total instances', value: stats.total },
     { label: 'Total sessions', value: stats.sessions },
-    { label: 'Uptime range', value: uptime }
+    { label: 'Last data', value: lastData },
+    { label: 'First instance', value: firstInstance }
   ];
 });
 

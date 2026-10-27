@@ -38,10 +38,6 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     return super.del<void>('/sessions/' + recordingSession.id);
   }
 
-  setSessionRetained(sessionId: string, retained: boolean): Promise<void> {
-    return super.post<void>('/sessions/' + sessionId + '/retained', { retained: retained });
-  }
-
   async downloadFile(sessionId: string, fileId: string): Promise<void> {
     const downloadUrl =
       this.baseUrl +

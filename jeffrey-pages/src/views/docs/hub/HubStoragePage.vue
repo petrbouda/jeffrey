@@ -98,15 +98,14 @@ onMounted(() => {
           <ul>
             <li><code>.workspace-info.json</code> — a workspace's name and creation time, written by the Hub's default-workspace initializer or by Microscope when a user creates the workspace</li>
             <li><code>.project-info.json</code>, <code>.instance-info.json</code>, <code>.session-info.json</code> — written by the Provisioner</li>
-            <li><code>.heartbeat/</code> — a session's liveness files, from which the Hub derives its status on every read</li>
-            <li><code>.retained</code> — an empty flag file pinning a session against retention</li>
+            <li><code>.heartbeat/</code> — written by the Jeffrey Agent; not read by the Hub or Microscope, which order sessions by their UUIDv7 directory names</li>
           </ul>
           <p>Ids come from the volume: a workspace's id is its directory name (the reference id the Provisioner names), a project's is the <code>projectId</code> in its marker, and an instance's and a session's are their directory names.</p>
         </div>
       </div>
 
       <DocsCallout type="info">
-        Server never builds per-profile databases and never serves a recording. Profiles are a Microscope concept — Server's job is to keep the volume within its retention limits and compress finished chunks; Microscope downloads the files straight off the share and parses them on demand.
+        Server never builds per-profile databases and never serves a recording. Profiles are a Microscope concept — Server's job is to keep the volume within its retention limits and compress its chunks; Microscope downloads the files straight off the share and parses them on demand.
       </DocsCallout>
 
       <h2 id="recording-storage">Recording Storage</h2>
@@ -147,14 +146,14 @@ onMounted(() => {
           <h5>Maintained by Jeffrey Hub:</h5>
           <ul>
             <li>Lists workspaces, projects, instances and sessions from the marker files on every job run</li>
-            <li>Derives each session's status from its heartbeat files when it reads it</li>
-            <li>Deletes what retention no longer allows and LZ4-compresses finished JFR chunks</li>
+            <li>Orders each instance's sessions by their UUIDv7 directory names; the newest one may still grow</li>
+            <li>Deletes what retention no longer allows and LZ4-compresses JFR chunks, never the newest recording of an instance's newest session</li>
           </ul>
         </div>
       </div>
 
       <DocsCallout type="tip">
-        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces finished chunks with their LZ4 archives, the retention job deletes sessions and instance directories, and the default-workspace initializer writes its <code>.workspace-info.json</code>. A read-only mount leaves every one of those failing quietly. The user's own changes — creating or deleting a workspace, deleting a project, deleting or pinning a session — are made by Microscope on the Azure file share, not by the Server.
+        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces chunks with their LZ4 archives, the retention job deletes sessions and instance directories, and the default-workspace initializer writes its <code>.workspace-info.json</code>. A read-only mount leaves every one of those failing quietly. The user's own changes — creating or deleting a workspace, deleting a project, deleting a session — are made by Microscope on the Azure file share, not by the Server.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
@@ -171,8 +170,7 @@ onMounted(() => {
                 ├── .instance-info.json
                 └── {session}/
                     ├── .session-info.json
-                    ├── .heartbeat/                      # heartbeat + clean-exit marker
-                    ├── .retained                        # only while pinned against retention
+                    ├── .heartbeat/                      # written by the agent; not read by the Hub or Microscope
                     ├── profile-20260220-120500.jfr      # a chunk (or .jfr.lz4 once compressed)
                     └── ...                              # heap dumps, JVM logs, perf-counters</code></pre>
       </div>

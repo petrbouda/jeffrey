@@ -28,9 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HubProjectsManagerTest {
 
     private static final Instant T0 = Instant.parse("2026-01-15T10:00:00Z");
-    private static final Instant NOW = T0.plusSeconds(3600);
 
     @TempDir
     Path root;
@@ -56,11 +53,10 @@ class HubProjectsManagerTest {
     @BeforeEach
     void setUp() {
         workspaceDir = TestVolume.workspace(root, "prod-ws", "Production", T0);
-        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         FilesystemVolume volume = new FilesystemVolume(root);
         projects = new HubProjectsManager(
                 new WorkspaceDirectory(volume, TestVolume.volumePath(root, workspaceDir), "Production", T0),
-                project -> new HubProjectManager(project, volume, TestVolume.liveness(clock, volume)));
+                project -> new HubProjectManager(project, volume));
     }
 
     @Test

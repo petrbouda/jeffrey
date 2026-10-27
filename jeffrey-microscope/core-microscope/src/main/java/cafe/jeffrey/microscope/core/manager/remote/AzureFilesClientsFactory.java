@@ -27,8 +27,6 @@ import cafe.jeffrey.microscope.volume.client.RememberingVolume;
 import cafe.jeffrey.microscope.volume.client.VolumeRemoteClients;
 import cafe.jeffrey.microscope.volume.client.VolumeSource;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,17 +47,14 @@ public final class AzureFilesClientsFactory {
     private static final String DESCRIPTION = "azure-files";
 
     private final Clock clock;
-    private final SessionDeadlines deadlines;
     private final Optional<String> sasToken;
     private final ConcurrentHashMap<AzureFilesAddress, RemoteClients> cache = new ConcurrentHashMap<>();
 
     /**
-     * @param deadlines how a session's heartbeat is read: the Jeffrey Hub's default deadlines
-     * @param sasToken  the configured remote's SAS token, when it signs in with one
+     * @param sasToken the configured remote's SAS token, when it signs in with one
      */
-    public AzureFilesClientsFactory(Clock clock, SessionDeadlines deadlines, Optional<String> sasToken) {
+    public AzureFilesClientsFactory(Clock clock, Optional<String> sasToken) {
         this.clock = clock;
-        this.deadlines = deadlines;
         this.sasToken = sasToken;
     }
 
@@ -74,10 +69,9 @@ public final class AzureFilesClientsFactory {
      */
     private RemoteClients open(AzureFilesAddress address) {
         RememberingVolume volume = new RememberingVolume(AzureFilesVolumes.open(address, credential(address)), clock);
-        SessionLiveness liveness = new SessionLiveness(clock, volume, deadlines);
         LOG.info("Opened an Azure Files recording volume: address={}", address);
         return VolumeRemoteClients.of(new VolumeSource(
-                volume, liveness, clock, DESCRIPTION, address.readOnly(),
+                volume, clock, DESCRIPTION, address.readOnly(),
                 new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
     }
 

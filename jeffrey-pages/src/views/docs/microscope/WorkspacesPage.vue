@@ -122,21 +122,21 @@ onMounted(() => {
         Microscope makes your changes on the share, exactly where the Jeffrey Hub's jobs expect them:
         <strong>Create Workspace</strong> writes the workspace's marker (adopting a directory the
         provisioner already wrote into), deleting a workspace or a project removes its directory,
-        deleting a session takes its instance with its last session, and pinning writes the
-        <code>.retained</code> flag the hub's retention honours. Whether a session is still
-        recording is decided from its heartbeat file, by the same rules the hub applies.
+        and deleting a session takes its instance with its last session. Which session of an
+        instance is the newest — the only one that may still grow — is read from the session
+        directories' UUIDv7 names, by the same rules the hub applies.
       </p>
       <p>
         Declared with <code>read-only=true</code>, the remote carries a <strong>Read-only</strong>
         badge and changes nothing: there is no <strong>Create Workspace</strong>, and no button to
-        delete a workspace or a project or to delete or pin a session (a request that reaches the
-        backend anyway is refused, saying the remote is read-only). Existing pins are still shown.
+        delete a workspace, a project or a session (a request that reaches the
+        backend anyway is refused, saying the remote is read-only).
         Use it with a credential that may only read.
       </p>
 
       <DocsCallout type="warning">
         <strong>Keep a hub on the share for upkeep.</strong> Retention, cleanup of stale instances
-        and LZ4 compression of finished recordings are the scheduled jobs of a
+        and LZ4 compression of recordings are the scheduled jobs of a
         <router-link to="/docs/hub">Jeffrey Hub</router-link>, because the hub maintains the
         volume. A share that only Microscope reads gets none of them and only grows. Run a Jeffrey
         Hub on the same volume — Microscope never connects to it — and let Microscope read the

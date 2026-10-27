@@ -25,7 +25,7 @@ import java.util.function.BooleanSupplier;
 
 /**
  * One listing of a session directory, which answers everything a reader asks of the directory
- * itself: its files, whether it is pinned, and whether anything ever wrote liveness files into it.
+ * itself: its files, and whether its marker is still there.
  * On a file share each question asked of the volume is a round-trip, so a session is listed once
  * and every answer is read off that one listing.
  *
@@ -44,9 +44,6 @@ public sealed interface SessionListing {
     /** Whether a file by this name was listed; {@code otherwise} asks the volume when the listing failed. */
     boolean holdsFile(String name, BooleanSupplier otherwise);
 
-    /** Whether a directory by this name was listed; {@code otherwise} answers when the listing failed. */
-    boolean holdsDirectory(String name, BooleanSupplier otherwise);
-
     /** The session directory as it was listed; empty when nothing is there. */
     record Listed(List<VolumeEntry> entries) implements SessionListing {
 
@@ -60,11 +57,6 @@ public sealed interface SessionListing {
         @Override
         public boolean holdsFile(String name, BooleanSupplier otherwise) {
             return entries.stream().anyMatch(entry -> entry.isFile() && entry.name().equals(name));
-        }
-
-        @Override
-        public boolean holdsDirectory(String name, BooleanSupplier otherwise) {
-            return entries.stream().anyMatch(entry -> entry.isDirectory() && entry.name().equals(name));
         }
     }
 
@@ -84,11 +76,6 @@ public sealed interface SessionListing {
 
         @Override
         public boolean holdsFile(String name, BooleanSupplier otherwise) {
-            return otherwise.getAsBoolean();
-        }
-
-        @Override
-        public boolean holdsDirectory(String name, BooleanSupplier otherwise) {
             return otherwise.getAsBoolean();
         }
     }

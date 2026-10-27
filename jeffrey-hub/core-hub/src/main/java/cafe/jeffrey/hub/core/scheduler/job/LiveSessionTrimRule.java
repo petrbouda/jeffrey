@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +27,11 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * The closed chunks of a session still recording that are older than {@code retention}, so a
- * session that runs for weeks stays bounded by age. The chunk the profiler holds open is never
- * among them ({@link RecordingSession#finishedRecordings()} leaves it out); retained sessions are
- * left whole.
+ * The closed chunks older than {@code retention} in each instance's newest session, so a session
+ * that records for weeks stays bounded by age. The recording that may still be on its way onto
+ * the volume is never among them ({@link RecordingSession#finishedRecordings()} leaves it out).
+ * A session a newer one has ended cannot grow; it goes whole once its last data is past the
+ * session window, and trimming it first would leave it empty and read as failed.
  */
 record LiveSessionTrimRule(Duration retention) implements RetentionRule {
 
@@ -41,7 +41,7 @@ record LiveSessionTrimRule(Duration retention) implements RetentionRule {
     public void apply(ProjectRetentionPass pass) {
         Instant cutoff = pass.now().minus(retention);
         for (RecordingSession session : pass.sessions()) {
-            if (session.retained() || session.status() != RecordingStatus.ACTIVE) {
+            if (!session.newest()) {
                 continue;
             }
             List<RepositoryFile> expired = session.finishedRecordings().stream()
@@ -49,7 +49,7 @@ record LiveSessionTrimRule(Duration retention) implements RetentionRule {
                     .toList();
             if (!expired.isEmpty()) {
                 pass.deleteFiles(session, expired);
-                LOG.info("Deleted expired recordings from live session: project_name={} session_id={} count={}",
+                LOG.info("Deleted expired recordings from a newest session: project_name={} session_id={} count={}",
                         pass.projectName(), session.id(), expired.size());
             }
         }

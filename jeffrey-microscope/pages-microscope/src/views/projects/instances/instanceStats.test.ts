@@ -18,48 +18,46 @@
 import { describe, expect, it } from 'vitest';
 import FormattingService from '@shared/services/FormattingService';
 import { storageFigure, summarizeInstances } from './instanceStats.ts';
-import ProjectInstance, {
-  type ProjectInstanceStatus
-} from '@remote/services/api/model/ProjectInstance.ts';
+import ProjectInstance from '@remote/services/api/model/ProjectInstance.ts';
 
 const BASE = 1_750_000_000_000;
 
 function instance(
   id: string,
-  status: ProjectInstanceStatus,
   createdAt: number,
+  lastDataAt: number | null,
   sessionCount: number
 ): ProjectInstance {
-  return new ProjectInstance(id, id, 'project-1', status, createdAt, 0, sessionCount);
+  return new ProjectInstance(id, id, createdAt, lastDataAt, sessionCount);
 }
 
 describe('summarizeInstances', () => {
-  it('counts every status, the sessions and the oldest creation time', () => {
+  it('counts the instances and sessions, the oldest creation and the newest data', () => {
     const stats = summarizeInstances([
-      instance('a', 'ACTIVE', BASE + 3_000, 2),
-      instance('b', 'ACTIVE', BASE + 1_000, 1),
-      instance('c', 'FINISHED', BASE, 4),
-      instance('d', 'PENDING', BASE + 5_000, 0)
+      instance('a', BASE + 3_000, BASE + 9_000, 2),
+      instance('b', BASE + 1_000, BASE + 4_000, 1),
+      instance('c', BASE, BASE + 12_000, 4),
+      instance('d', BASE + 5_000, null, 0)
     ]);
 
     expect(stats).toEqual({
-      pending: 1,
-      active: 2,
-      finished: 1,
       total: 4,
       sessions: 7,
-      oldestCreatedAt: BASE
+      oldestCreatedAt: BASE,
+      lastDataAt: BASE + 12_000
     });
+  });
+
+  it('has no last data while no instance has a recording', () => {
+    expect(summarizeInstances([instance('a', BASE, null, 1)]).lastDataAt).toBeNull();
   });
 
   it('has no oldest creation time without instances', () => {
     expect(summarizeInstances([])).toEqual({
-      pending: 0,
-      active: 0,
-      finished: 0,
       total: 0,
       sessions: 0,
-      oldestCreatedAt: null
+      oldestCreatedAt: null,
+      lastDataAt: null
     });
   });
 });

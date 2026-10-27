@@ -121,10 +121,7 @@
             <tbody>
             <tr v-for="row in sortedProjects" :key="row.projectId">
               <td>
-                <span class="project-cell">
-                  <StatusDot :tone="row.active ? 'success' : 'muted'" />
-                  <span class="project-name" :class="{ inactive: !row.active }">{{ row.name }}</span>
-                </span>
+                <span class="project-name">{{ row.name }}</span>
               </td>
               <td>
                 <span class="size-cell">
@@ -149,7 +146,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
-import StatusDot from '@shared/components/StatusDot.vue';
 import HubPageHeader from '@/components/HubPageHeader.vue';
 import StorageClient from '@/services/api/StorageClient';
 import type { ProjectStorage, StorageOverview } from '@/services/api/model/StorageOverview';
@@ -161,7 +157,6 @@ type SortDirection = 'asc' | 'desc';
 interface ProjectRow {
   projectId: string;
   name: string;
-  active: boolean;
   totalSizeBytes: number;
   totalFiles: number;
   lastActivityTimeMillis: number;
@@ -214,7 +209,6 @@ const storageComputedAgo = computed(() => {
 const toProjectRow = (storage: ProjectStorage): ProjectRow => ({
   projectId: storage.projectId,
   name: storage.projectName,
-  active: storage.active,
   totalSizeBytes: storage.totalSizeBytes,
   totalFiles: storage.totalFiles,
   lastActivityTimeMillis: storage.lastActivityTimeMillis,
@@ -623,19 +617,8 @@ onUnmounted(() => {
   background: var(--color-light);
 }
 
-.project-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .project-name {
   font-weight: 600;
-}
-
-.project-name.inactive {
-  color: var(--color-slate-muted);
-  font-weight: 400;
 }
 
 /* Size column: bar scaled to the workspace's largest project, the bytes, the share of the workspace */

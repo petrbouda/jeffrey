@@ -16,7 +16,6 @@
  */
 
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 
 /**
@@ -28,8 +27,8 @@ import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
  * off it is wrong by the size of the hole. So the chunks have to be an unbroken run.
  *
  * Said before the request is made, so the reader finds out while looking at the list rather than
- * afterwards. It mirrors `ChunkWindow` on the Java side field for field: finished recording files
- * only, ordered by `createdAt`. Deleting files has no such rule, which is why this constrains the
+ * afterwards. It mirrors `ChunkWindow` on the Java side field for field: recording files only,
+ * ordered by `createdAt`. Deleting files has no such rule, which is why this constrains the
  * Download button rather than the ticking.
  *
  * Every function takes the session's files as read on their own: a session from a listing
@@ -37,12 +36,12 @@ import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
  */
 
 /**
- * Whether a file may be asked for in a download: its bytes are final. The chunk the profiler is
- * still writing (`ACTIVE`) is not — the backend refuses it by name, since a recording made from it
- * would be cut short — and neither is async-profiler's own scratch file beside it.
+ * Whether a file may be asked for in a download. Every recording may — the newest one included,
+ * which the profiler writes whole and the download checks on arrival — but async-profiler's own
+ * scratch file beside it may not.
  */
 export function isDownloadable(file: RepositoryFile): boolean {
-  return file.status !== RecordingStatus.ACTIVE && file.fileType !== RecordingFileType.ASPROF;
+  return file.fileType !== RecordingFileType.ASPROF;
 }
 
 /** What a whole-session download asks for: every file of the session that may be downloaded. */
@@ -50,10 +49,10 @@ export function downloadableFiles(files: RepositoryFile[]): RepositoryFile[] {
   return files.filter(isDownloadable);
 }
 
-/** The session's finished recording chunks, oldest first — `ChunkWindow.finishedChunks`. */
+/** The session's recording chunks, oldest first — `RecordingSession.recordings`. */
 export function orderedChunks(files: RepositoryFile[]): RepositoryFile[] {
   return files
-    .filter(file => file.isRecording && file.status === RecordingStatus.FINISHED)
+    .filter(file => file.isRecording)
     .slice()
     .sort((a, b) => a.createdAt - b.createdAt);
 }

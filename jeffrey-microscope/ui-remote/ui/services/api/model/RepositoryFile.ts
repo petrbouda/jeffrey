@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 
 export default class RepositoryFile {
@@ -23,9 +22,13 @@ export default class RepositoryFile {
     public id: string,
     public name: string,
     public createdAt: number,
-    public status: RecordingStatus,
     public size: number,
     public fileType: RecordingFileType,
+    /**
+     * The newest recording of its instance's newest session: the remote keeps it uncompressed,
+     * and it may still be on its way onto the volume.
+     */
+    public newestRecording: boolean,
     public isRecording: boolean
   ) {}
 }

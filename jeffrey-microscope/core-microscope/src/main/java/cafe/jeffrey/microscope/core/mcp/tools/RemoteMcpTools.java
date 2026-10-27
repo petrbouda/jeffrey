@@ -59,7 +59,6 @@ import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
 import cafe.jeffrey.profile.common.operation.OperationState;
@@ -226,9 +225,9 @@ public class RemoteMcpTools {
             + "fileIds, not both.";
     private static final String NOT_RETAINED_GUIDANCE = "The session's first chunk is gone from the remote. Ask the "
             + "user whether the oldest chunk kept, LATEST, PEAK or a window will do instead.";
-    private static final String NO_FINISHED_CHUNK =
-            "No finished chunk covers the window from %s to %s: the session's recording there is missing or "
-                    + "still being written. Choose another window, or the whole session.";
+    private static final String NO_CHUNK =
+            "No chunk covers the window from %s to %s: the session's recording there is missing or "
+                    + "not on the remote yet. Choose another window, or the whole session.";
 
     private final RemoteManager remoteManager;
     private final ProjectManagerResolver resolver;
@@ -329,15 +328,12 @@ public class RemoteMcpTools {
             String workspace,
             @ToolParam(required = false, description = "Optional filter on part of a project name, e.g. checkout")
             String project,
-            @ToolParam(required = false, description = "Only sessions that were recording at some point within the last "
+            @ToolParam(required = false, description = "Only sessions whose recorded data reaches into the last "
                     + "N minutes - 60 for the last hour, 1440 for the last day. This is an overlap, "
-                    + "not a start time: a JVM that began recording three hours ago and is still "
-                    + "running does match a 60-minute window")
+                    + "not a start time: a JVM that began recording three hours ago and whose last "
+                    + "chunk landed ten minutes ago does match a 60-minute window")
             @ToolParamBounds(min = 1)
             Integer withinLastMinutes,
-            @ToolParam(required = false, description = "Only sessions in this status: ACTIVE for one still recording, "
-                    + "FINISHED for one that has stopped. Omit for both")
-            RecordingStatus status,
             @ToolParam(required = false, description = "Most rows to return across all projects. Default "
                     + DEFAULT_LIMIT + ", maximum " + MAX_LIMIT)
             @ToolParamBounds(defaultValue = DEFAULT_LIMIT, min = 1, max = MAX_LIMIT)
@@ -348,13 +344,13 @@ public class RemoteMcpTools {
 
         int rowLimit = ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT);
         RemoteScanFilter requested = new RemoteScanFilter(
-                workspace, project, sessionFilter(withinLastMinutes, status));
+                workspace, project, sessionFilter(withinLastMinutes));
         McpCursor.Filters filters = McpCursor.Filters.of(RemoteCalls.REMOTE_SESSIONS,
-                requested.workspace(), requested.project(), withinLastMinutes, requested.sessions().status());
+                requested.workspace(), requested.project(), withinLastMinutes);
         SessionPosition continuation = cursor == null ? null : JeffreyMcpServer.CURSOR.decodeKeyset(
                 cursor, filters, keyset -> SessionPosition.read(keyset, withinLastMinutes != null));
         RemoteScanFilter filter = continuation == null ? requested : requested.withSessions(
-                new RecordingSessionFilter(continuation.activeFrom(), null, status, RecordingSessionFilter.NO_LIMIT));
+                new RecordingSessionFilter(continuation.activeFrom(), null, RecordingSessionFilter.NO_LIMIT));
 
         RemoteSessionScan.Result scanned = scan.scan(filter);
         List<RemoteSessionScan.Row> remaining = scanned.rows().stream()
@@ -362,7 +358,7 @@ public class RemoteMcpTools {
                 .toList();
         SessionPage page = new SessionPage(filter, filters, withinLastMinutes, scanned.rows().size(),
                 remaining.size(), boundedFailures(scanned.failures()),
-                new SessionQuery(workspace, project, withinLastMinutes, status, rowLimit),
+                new SessionQuery(workspace, project, withinLastMinutes, rowLimit),
                 UiLinks.page(MicroscopePage.REMOTE));
         DownloadedSessionIndex local = DownloadedSessionIndex.build(recordingsManager, locator.currentAddress());
         int selected = Math.min(rowLimit, remaining.size());
@@ -405,8 +401,7 @@ public class RemoteMcpTools {
      * What one listing call asked for, as its arguments name it: the filters a next page repeats, and
      * the most rows a page holds.
      */
-    private record SessionQuery(String workspace, String project, Integer withinLastMinutes,
-                                RecordingStatus status, int limit) {
+    private record SessionQuery(String workspace, String project, Integer withinLastMinutes, int limit) {
 
         McpNextTool nextPage(String cursor) {
             McpNextTool.Call call = NextCalls.to(RemoteCalls.REMOTE_SESSIONS)
@@ -415,8 +410,7 @@ public class RemoteMcpTools {
             if (withinLastMinutes != null) {
                 call.with(RemoteCalls.WITHIN_LAST_MINUTES, withinLastMinutes.longValue());
             }
-            return call.with(RemoteCalls.STATUS, status)
-                    .with(RemoteCalls.LIMIT, limit)
+            return call.with(RemoteCalls.LIMIT, limit)
                     .with(RemoteCalls.CURSOR, cursor)
                     .why(NEXT_SESSIONS_WHY);
         }
@@ -488,7 +482,7 @@ public class RemoteMcpTools {
                 new SessionPosition(page.filter().sessions().activeFrom(), rows.getLast().key()).keyset()) : null;
         List<SessionRow> sessions = new ArrayList<>(rows.size());
         MarkdownTable table = MarkdownTable.withColumns(
-                "workspace", "project", "started", "duration", "status", "files", "size",
+                "workspace", "project", "started", "duration", "newest", "files", "size",
                 "local", "sessionRef");
         for (RemoteSessionScan.Row row : rows) {
             RecordingSession session = row.session();
@@ -497,11 +491,11 @@ public class RemoteMcpTools {
             Optional<DownloadedSessionIndex.LocalCopy> copy = local.find(row.ref());
             String ref = row.ref().encode();
             int files = session.fileCount();
-            table.row(workspace, project, session.createdAt(), duration(session), session.status(), files,
+            table.row(workspace, project, session.createdAt(), duration(session), session.newest() ? "yes" : "", files,
                     ByteSizes.format(session.totalSizeBytes()), localColumn(copy), ref);
             sessions.add(new SessionRow(workspace, project,
                     session.createdAt() == null ? null : session.createdAt().toEpochMilli(),
-                    durationMs(session), session.status(), files, session.totalSizeBytes(),
+                    durationMs(session), session.newest(), files, session.totalSizeBytes(),
                     copy.map(DownloadedSessionIndex.LocalCopy::recordingId).orElse(null),
                     copy.map(DownloadedSessionIndex.LocalCopy::profileId).orElse(null),
                     ref));
@@ -583,15 +577,15 @@ public class RemoteMcpTools {
     @McpToolHints(readOnly = false, openWorld = true)
     @Tool(description = "Downloads a recording session from the remote into this Jeffrey as one bundle, by "
             + "the sessionRef of a remote_sessions row, and returns the recordingId of its recording for "
-            + "recordings_analyzeRecording. With no selection it brings the session's finished recording "
+            + "recordings_analyzeRecording. With no selection it brings the session's recording "
             + "files as one recording, each heap dump and the perf counters as recordings of their own "
             + "(items lists them), and the JVM and application logs as files of the bundle. A part "
             + "instead: window names one - the last minutes, the startup, latest or peak chunk, the minutes before or around a moment, or a custom span; "
             + "startEpochMs and/or endEpochMs bring every chunk whose span touches them; or fileIds "
             + "bring named remote_files rows - an unbroken run of chunks and any artifacts beside them. "
             + "The answer reports the span actually covered, and what a window picked and why. A "
-            + "finished session already downloaded whole is returned as it is; a copy taken while it "
-            + "was still recording is downloaded again, and a part always makes a bundle of its "
+            + "session a newer one ended, already downloaded whole, is returned as it is; a copy of an "
+            + "instance's newest session is downloaded again, and a part always makes a bundle of its "
             + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the remote no longer holds the first "
             + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
             + "it. Every started transfer carries an operationId for operations_status and "
@@ -603,8 +597,8 @@ public class RemoteMcpTools {
             @ToolParam(required = true, description = "The sessionRef from a remote_sessions row, copied exactly")
             String sessionRef,
             @ToolParam(required = false, description = "A part chosen by name. WHOLE: all of it. LAST_MINUTES: "
-                    + "the last minutes up to the session end (now while recording). STARTUP: its first chunk. "
-                    + "LATEST: the newest finished chunk. PEAK: the largest compressed chunk. BEFORE/AROUND: "
+                    + "the last minutes up to the end of its recorded data. STARTUP: its first chunk. "
+                    + "LATEST: the newest chunk. PEAK: the largest compressed chunk. BEFORE/AROUND: "
                     + "minutes ending at, or centred on, atEpochMs. CUSTOM: startEpochMs/endEpochMs. Not "
                     + "combined with fileIds")
             DownloadWindow window,
@@ -715,7 +709,7 @@ public class RemoteMcpTools {
     }
 
     /**
-     * A part of the session, unless the user chose a window no finished chunk covers — then the
+     * A part of the session, unless the user chose a window no chunk covers — then the
      * question is put again, saying so, rather than the transfer failing on an empty selection. A
      * call's window that covers nothing is refused by the selection itself.
      */
@@ -724,7 +718,7 @@ public class RemoteMcpTools {
                                         Optional<WindowSubject> askAgain) {
         if (askAgain.isPresent() && key.coversNothing(askAgain.get().session())) {
             return windowQuestion.ask(askAgain.get(),
-                    NO_FINISHED_CHUNK.formatted(key.window().start(), key.window().end()));
+                    NO_CHUNK.formatted(key.window().start(), key.window().end()));
         }
         return downloadReportingRetained(key, chosen, retry, call, read, base);
     }
@@ -829,8 +823,8 @@ public class RemoteMcpTools {
         // reader may not need a second recording at all.
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager, locator.currentAddress()).find(ref);
-        // Only a copy taken once the session had finished is the session: one of a session still
-        // recording stops where it stood then, and is downloaded again rather than handed back.
+        // Only a copy of a session a newer one has ended is the session: one of an instance's newest
+        // session stops where it stood then, and is downloaded again rather than handed back.
         if (key.wholeSession() && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
             DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
             LOG.debug("Remote session was already downloaded: session_id={} recording_id={}",
@@ -857,12 +851,12 @@ public class RemoteMcpTools {
         ChunkWindow.Selection selection = key.select(session);
         Landing landing = new Landing(key, preflight, selection, alreadyHere);
 
-        // Handing back the recording an identical call already made, unless the answer has moved
-        // on since. A window with no end means "up to now" on a session that is still recording,
-        // and "now" is later than it was: the retained recording stops where the session stood an
-        // hour ago, so the same question asked twice would get a shorter answer the second time.
-        // Everything else is settled and is answered from what is here.
-        if (prior.isPresent() && !key.reachesPastTheEnd(session)) {
+        // Handing back the recording an identical call already made, unless the answer may have moved
+        // on since. A window with no end means "up to the last chunk" on an instance's newest
+        // session, which keeps adding chunks: the retained recording stops where the session stood
+        // an hour ago. A part holding that session's newest recording may have been copied during
+        // the profiler's dump. Everything else is settled and is answered from what is here.
+        if (prior.isPresent() && !key.mayHaveChanged(session)) {
             String recordingId = prior.get().value();
             if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
                 String operationId = registerDownload(key, chosen, downloads.current(key).orElseThrow(), landing::landed, base);
@@ -873,9 +867,9 @@ public class RemoteMcpTools {
         LOG.info("Downloading a remote session over MCP: project_id={} session_id={} window={} file_ids={}",
                 ref.projectId(), ref.sessionId(), key.window(), key.fileIds());
         // A recording an identical call already made is handed back instead of fetched again --
-        // unless what was asked for is still growing, in which case the retained one answers a
-        // shorter question than the one being put. A transfer still in flight is joined either way.
-        boolean stillGrowing = key.reachesPastTheEnd(session);
+        // unless what was asked for may have changed since, in which case the retained one may answer
+        // a shorter question than the one being put. A transfer still in flight is joined either way.
+        boolean stillGrowing = key.mayHaveChanged(session);
         long transferBytes = selection == null
                 ? session.totalSizeBytes()
                 : selection.files().stream().mapToLong(RepositoryFile::size).sum();
@@ -979,8 +973,7 @@ public class RemoteMcpTools {
         };
     }
 
-    private RecordingSessionFilter sessionFilter(
-            Integer withinLastMinutes, RecordingStatus status) {
+    private RecordingSessionFilter sessionFilter(Integer withinLastMinutes) {
         RecordingSessionFilter filter = RecordingSessionFilter.ALL;
         if (withinLastMinutes != null) {
             if (withinLastMinutes < 1) {
@@ -990,7 +983,7 @@ public class RemoteMcpTools {
             filter = RecordingSessionFilter.activeWithinLast(
                     Duration.ofMinutes(withinLastMinutes), clock.instant());
         }
-        return filter.withStatus(status);
+        return filter;
     }
 
     private static String emptyReason(Integer withinLastMinutes) {
@@ -1032,11 +1025,11 @@ public class RemoteMcpTools {
      */
     private RecordingSession preflight(ProjectManager project, RemoteSessionRef ref, RemoteInfo remote) {
         RecordingSession session = locator.session(project, ref, remote);
-        if (session.finishedFiles().stream().noneMatch(RepositoryFile::isRecordingFile)) {
+        if (session.recordings().isEmpty()) {
             throw new IllegalArgumentException(
-                    "Session " + ref.sessionId() + " has no finished recording file to download"
-                            + (session.status() == RecordingStatus.ACTIVE
-                            ? ", because it is still recording and its first chunk has not been rolled yet."
+                    "Session " + ref.sessionId() + " has no recording file to download"
+                            + (session.newest()
+                            ? ", because its profiler has not finished its first chunk yet."
                             : "."));
         }
         return session;
@@ -1061,28 +1054,28 @@ public class RemoteMcpTools {
     }
 
     /**
-     * The session's span in milliseconds, or null while it is still recording or never started — a
-     * running session has no duration yet, and zero would claim one.
+     * The session's span in milliseconds, from its start to the end of its recorded data, or null
+     * while it has no recording or never started — zero would claim a span it does not have.
      */
     private static Long durationMs(RecordingSession session) {
-        if (session.createdAt() == null || session.finishedAt() == null) {
+        if (session.createdAt() == null || session.lastDataAt() == null) {
             return null;
         }
-        return Duration.between(session.createdAt(), session.finishedAt()).toMillis();
+        return Duration.between(session.createdAt(), session.lastDataAt()).toMillis();
     }
 
     /**
-     * How long the JVM has been recording, for the table. A session with no finish time is still
-     * going, which is a fact about the row rather than a gap in it.
+     * How long the JVM recorded, for the table: to the end of its recorded data. A session with no
+     * recording yet has nothing to measure, which is a fact about the row rather than a gap in it.
      */
     private static String duration(RecordingSession session) {
         Instant start = session.createdAt();
         if (start == null) {
             return "";
         }
-        Instant end = session.finishedAt();
+        Instant end = session.lastDataAt();
         if (end == null) {
-            return "running";
+            return "no data yet";
         }
         Duration elapsed = Duration.between(start, end);
         if (elapsed.toHours() > 0) {
@@ -1213,11 +1206,11 @@ public class RemoteMcpTools {
 
         DownloadFacts landed(String recordingId) {
             RecordingSession session = preflight.session();
-            List<RepositoryFile> finished = session.finishedFiles();
+            List<RepositoryFile> files = session.files();
             String sessionName = session.name();
             String project = preflight.project().info().name();
             if (selection != null) {
-                List<RepositoryFile> others = key.others(finished);
+                List<RepositoryFile> others = key.others(files);
                 return new DownloadFacts(DownloadStatus.DOWNLOADED, null, sessionName, project, recordingId, null,
                         selection.files().size(),
                         others.size(),
@@ -1228,8 +1221,8 @@ public class RemoteMcpTools {
                         wholeCopyNote());
             }
             return new DownloadFacts(DownloadStatus.DOWNLOADED, null, sessionName, project, recordingId, null,
-                    (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
-                    (int) finished.stream().filter(RepositoryFiles::isArtifact).count(),
+                    (int) files.stream().filter(RepositoryFile::isRecordingFile).count(),
+                    (int) files.stream().filter(RepositoryFiles::isArtifact).count(),
                     session.totalSizeBytes(), null, null, "");
         }
 
@@ -1317,26 +1310,47 @@ public class RemoteMcpTools {
             return call.with(RemoteCalls.FILE_IDS, fileIds);
         }
 
-        /** Whether this is a window no finished chunk of the session covers. */
+        /** Whether this is a window no chunk of the session covers. */
         boolean coversNothing(RecordingSession session) {
             return window != null && window.select(session).isEmpty();
         }
 
         /**
-         * Whether what this asks for is still growing: an open-ended window on a session that is
-         * still recording covers more of it with every chunk that rolls, so an answer retained
-         * from an earlier call is already short of the question.
+         * Whether an answer retained from an earlier call may be short of this question. An open-ended
+         * window on an instance's newest session covers more of it with every chunk that lands; and a
+         * part holding that session's newest recording may have been taken while the profiler was
+         * still writing the file into place, which the arrival check cannot always tell from a whole
+         * one. Either is fetched again rather than handed back.
          */
-        boolean reachesPastTheEnd(RecordingSession session) {
-            return window != null && window.end() == null && session.status() == RecordingStatus.ACTIVE;
+        boolean mayHaveChanged(RecordingSession session) {
+            if (!session.newest()) {
+                return false;
+            }
+            if (window != null && window.end() == null) {
+                return true;
+            }
+            return session.openRecording()
+                    .filter(newestFile -> takes(session, newestFile))
+                    .isPresent();
+        }
+
+        /** Whether this part brings {@code file} of the session. */
+        private boolean takes(RecordingSession session, RepositoryFile file) {
+            if (window != null) {
+                return window.select(session).files().contains(file);
+            }
+            if (fileIds != null) {
+                return fileIds.contains(file.id());
+            }
+            return true;
         }
 
         /** The non-chunk files a part brings: those named by id; a window brings none. */
-        List<RepositoryFile> others(List<RepositoryFile> finished) {
+        List<RepositoryFile> others(List<RepositoryFile> files) {
             if (fileIds == null) {
                 return List.of();
             }
-            return finished.stream()
+            return files.stream()
                     .filter(file -> fileIds.contains(file.id()))
                     .filter(RepositoryFiles::isArtifact)
                     .toList();
@@ -1364,24 +1378,25 @@ public class RemoteMcpTools {
             if (wholeSession()) {
                 return null;
             }
-            List<RepositoryFile> finished = session.finishedFiles();
+            List<RepositoryFile> files = session.files();
             if (window != null) {
                 ChunkWindow.Selection selection = window.select(session);
                 if (selection.isEmpty()) {
-                    throw new IllegalArgumentException("No finished chunk of session " + ref.sessionId()
+                    throw new IllegalArgumentException("No chunk of session " + ref.sessionId()
                             + " covers the window: the session started at " + session.createdAt()
-                            + (session.finishedAt() == null ? " and is still recording" : " and finished at " + session.finishedAt())
+                            + (session.lastDataAt() == null ? " and has no recorded data yet"
+                                    : " and its recorded data ends at " + session.lastDataAt())
                             + ". Choose a window inside that span, as startEpochMs/endEpochMs in UTC epoch milliseconds.");
                 }
                 return selection;
             }
-            Set<String> known = finished.stream()
+            Set<String> known = files.stream()
                     .map(RepositoryFile::id)
                     .collect(Collectors.toSet());
             List<String> unknown = fileIds.stream().filter(id -> !known.contains(id)).toList();
             if (!unknown.isEmpty()) {
-                throw new IllegalArgumentException("Session " + ref.sessionId() + " has no finished file "
-                        + unknown + ". Take fileId values from remote_files; a file still being written is not one yet.");
+                throw new IllegalArgumentException("Session " + ref.sessionId() + " has no file "
+                        + unknown + ". Take fileId values from remote_files.");
             }
             ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, Set.copyOf(fileIds));
             if (selection.isEmpty()) {

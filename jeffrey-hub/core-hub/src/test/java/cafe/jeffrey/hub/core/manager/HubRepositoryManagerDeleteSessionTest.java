@@ -28,9 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,7 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HubRepositoryManagerDeleteSessionTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-    private static final Instant NOW = T0.plusSeconds(3600);
     private static final ProjectInfo PROJECT = new ProjectInfo("project-1", "project", "ws", T0, Map.of());
 
     @TempDir
@@ -58,19 +55,34 @@ class HubRepositoryManagerDeleteSessionTest {
         Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.id(), PROJECT.name(), T0);
         instance = TestVolume.instance(project, "pod-a", T0);
         manager = new HubRepositoryManager(PROJECT,
-                TestVolume.storage(PROJECT, workspacesDir, project, Clock.fixed(NOW, ZoneOffset.UTC)));
+                TestVolume.storage(PROJECT, workspacesDir, project));
     }
 
-    private Path finishedSession(String id, Instant createdAt) {
-        Path session = TestVolume.session(instance, id, createdAt);
-        TestVolume.finished(session, createdAt.plusSeconds(60));
-        return session;
+    private Path session(String id, Instant createdAt) {
+        return TestVolume.session(instance, id, createdAt);
+    }
+
+    /**
+     * Pins and liveness files from before they were dropped are hidden entries like any other: they
+     * protect nothing, and the session goes with them.
+     */
+    @Test
+    void aLeftoverPinOrLivenessFileDoesNotKeepTheSession() throws IOException {
+        Path older = session("s-1", T0);
+        session("s-2", T0.plusSeconds(600));
+        Files.createFile(older.resolve(".retained"));
+        Files.createDirectories(older.resolve(".heartbeat"));
+        Files.writeString(older.resolve(".heartbeat").resolve("finished"), "0");
+
+        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
+
+        assertFalse(Files.exists(older));
     }
 
     @Test
     void deletesTheSessionAndKeepsAnInstanceThatStillHasOne() {
-        Path older = finishedSession("s-1", T0);
-        Path newer = finishedSession("s-2", T0.plusSeconds(600));
+        Path older = session("s-1", T0);
+        Path newer = session("s-2", T0.plusSeconds(600));
 
         assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
 
@@ -81,7 +93,7 @@ class HubRepositoryManagerDeleteSessionTest {
 
     @Test
     void deletesTheInstanceWithItsLastSession() {
-        finishedSession("s-1", T0);
+        session("s-1", T0);
 
         assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, manager.deleteRecordingSession("s-1"));
 
@@ -94,7 +106,7 @@ class HubRepositoryManagerDeleteSessionTest {
      */
     @Test
     void keepsTheInstanceWhileADirectoryWithoutAMarkerIsInIt() throws IOException {
-        finishedSession("s-1", T0);
+        session("s-1", T0);
         Path starting = Files.createDirectories(instance.resolve("s-2"));
 
         assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
@@ -113,7 +125,7 @@ class HubRepositoryManagerDeleteSessionTest {
 
     @Test
     void aSessionThatIsNotThereFreesNothing() {
-        finishedSession("s-1", T0);
+        session("s-1", T0);
 
         assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("ghost"));
         assertTrue(Files.exists(instance));

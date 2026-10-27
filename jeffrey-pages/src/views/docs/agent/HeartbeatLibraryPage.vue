@@ -61,7 +61,7 @@ onMounted(() => {
         <pre class="doc-code"><code>jeffrey:
   heartbeat:
     enabled: false</code></pre>
-        <p>The Hub needs no word about either choice. It holds a session to the heartbeat deadline only once the session has written a liveness file; a session that writes none within the startup grace is finished at its start, marked as having sent no heartbeat. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
+        <p>The Hub needs no word about either choice: the Hub and Microscope no longer read heartbeats, since session order and file names decide everything. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.</p>
 
         <h3 id="with-the-agent">With the Jeffrey Agent</h3>
         <p>Once the agent is beating it sets the system property <code>jeffrey.heartbeat.agent=true</code>. The library — and so the Spring Boot starter — sees it, stays inert and logs that the agent already reports, so there is only ever one writer of the liveness files. An application that carries the library needs no change when the agent is on, and reports on its own the moment a deployment switches the agent off.</p>
@@ -72,7 +72,7 @@ onMounted(() => {
     &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
     &lt;artifactId&gt;jeffrey-heartbeat-spring-boot-starter&lt;/artifactId&gt;
 &lt;/dependency&gt;</code></pre>
-        <p>The auto-configuration starts the heartbeat from what the Provisioner exported and closes it when the application context shuts down — which is what writes the clean-exit marker, so the Hub finishes the session at once instead of waiting for the heartbeat to go stale.</p>
+        <p>The auto-configuration starts the heartbeat from what the Provisioner exported and closes it when the application context shuts down — which is what writes the clean-exit marker.</p>
         <p>Declare your own <code>JeffreyHeartbeat</code> bean and the auto-configuration backs off.</p>
         <p>The auto-configuration's only condition is <code>jeffrey.heartbeat.enabled</code>, which defaults to <code>true</code> when unset — it needs no other switch to be on. Setting it to <code>false</code> leaves the application without a heartbeat bean.</p>
         <p>Jeffrey Hub reports its own liveness with this library. Its image is built with <router-link to="/docs/hub/deployment/jeffrey-jib">jeffrey-jib</router-link>, so a pod that sets <code>JEFFREY_ENABLED=true</code> runs the Hub as a profiled JVM like any other application, and its session is reported the same way. The Hub declares the bean in its own configuration rather than through the starter, on the same terms: on unless <code>jeffrey.heartbeat.enabled=false</code>, and inert when the Hub is started without the Provisioner and so has no directory.</p>

@@ -84,7 +84,7 @@ public record DownloadWindowQuestion(Duration askOverDuration, long askOverBytes
 
     /**
      * Whether a session is large enough to ask about: longer than {@link #askOverDuration}, measured
-     * to its finish or, while it is still recording, to {@code now} — or bigger than
+     * to the end of its recorded data — or bigger than
      * {@link #askOverBytes}. A session with no start is judged by its size alone.
      */
     public boolean asks(RecordingSession session, Instant now) {

@@ -94,7 +94,7 @@ const router = createRouter({
                   path: '',
                   name: 'project-default',
                   redirect: to =>
-                    `/remote/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
+                    `/remote/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances`
                 },
                 {
                   path: 'settings',
@@ -106,12 +106,6 @@ const router = createRouter({
                   path: 'instances',
                   name: 'project-instances-overview',
                   component: () => import('@/views/projects/instances/InstancesOverview.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'instances/timeline',
-                  name: 'project-instances-timeline',
-                  component: () => import('@/views/projects/instances/InstancesTimeline.vue'),
                   meta: { layout: 'project' }
                 },
                 {

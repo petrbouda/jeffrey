@@ -30,7 +30,7 @@
     <artifactId>volume</artifactId>
     <description>
         The recording volume's layout contract, read through a storage port: workspaces, projects,
-        instances, sessions and their files, and a session's liveness. Shared by the hub and, through
+        instances, sessions in the order they started, and their files. Shared by the hub and, through
         other storage backends, by Microscope; each maps these types onto its own model.
     </description>
 

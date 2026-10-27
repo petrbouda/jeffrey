@@ -97,8 +97,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
                 ├── .instance-info.json
                 └── <session-id>/            # the JFR recordings land here
                     ├── .session-info.json
-                    ├── .heartbeat/          # liveness files the Hub derives the status from
-                    └── .retained            # only while the session is pinned against retention`;
+                    └── .heartbeat/          # written by the agent; not read by the Hub or Microscope`;
 </script>
 
 <template>
@@ -133,7 +132,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         Azure Files, or any other RWX-capable <code>StorageClass</code>. In dev: a
         <code>hostPath</code> PV (see below). File sizes are read off the directory listing,
         so on a mount that caches attributes — an SMB share such as Azure Files, NFS with a
-        long <code>actimeo</code> — a session that is still recording can list at the size the
+        long <code>actimeo</code> — a session that is still growing can list at the size the
         cache last saw; a low <code>actimeo</code> on the hub's mount keeps the figures current.
       </DocsCallout>
 

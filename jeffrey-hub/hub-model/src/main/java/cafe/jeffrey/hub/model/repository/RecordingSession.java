@@ -20,21 +20,22 @@ package cafe.jeffrey.hub.model.repository;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
- * @param heartbeatMissing the session ended because no heartbeat arrived within the startup grace
+ * A session as the volume says it is at the moment of reading.
+ *
+ * @param newest whether it is its instance's newest session: no newer one has started there, so
+ *               its newest recording may still be on its way onto the volume
  */
 public record RecordingSession(
         String id,
         String name,
         String instanceId,
         Instant createdAt,
-        Instant finishedAt,
-        RecordingStatus status,
-        List<RepositoryFile> files,
-        boolean retained,
-        boolean heartbeatMissing) {
+        boolean newest,
+        List<RepositoryFile> files) {
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -42,22 +43,6 @@ public record RecordingSession(
      */
     public RecordingSession {
         files = files == null ? List.of() : files;
-    }
-
-    /**
-     * A session that sent its heartbeat.
-     */
-    public RecordingSession(
-            String id,
-            String name,
-            String instanceId,
-            Instant createdAt,
-            Instant finishedAt,
-            RecordingStatus status,
-            List<RepositoryFile> files,
-            boolean retained) {
-
-        this(id, name, instanceId, createdAt, finishedAt, status, files, retained, false);
     }
 
     /**
@@ -71,12 +56,13 @@ public record RecordingSession(
     }
 
     /**
-     * The one chunk the profiler is still writing, or empty when there is none.
+     * The one recording that may still be on its way onto the volume, or empty when there is none.
      *
      * <p>This is the whole of what "a file's status" ever meant, and it is a fact about the
-     * session rather than about any file: a session that is still recording holds exactly one
-     * chunk open, and it is the newest one. A finished session holds none, and neither does a
-     * live session that has not opened a chunk yet.
+     * session's place in its instance rather than about any file: the profiler writes each
+     * recording whole when its loop ends, so a file can be caught mid-write only while it is the
+     * newest recording of the instance's newest session. A session with a newer one after it holds
+     * none, and neither does a newest session that has written no recording yet.
      *
      * <p>Newest by {@link RepositoryFile#createdAt()} — the timestamp the profiler put in the
      * file's own name — and emphatically not by position in a listing, which is sorted for
@@ -84,12 +70,11 @@ public record RecordingSession(
      * it yet. Every other reader of these files orders them by that timestamp, and a second
      * notion of "newest" in the same tree is what let the two disagree.
      *
-     * <p>Load-bearing: the compression job refuses to touch this file, both retention jobs
-     * refuse to delete it, no download may include it, and reading it is what produces a
-     * truncated answer. Only meaningful when the session was loaded WITH files.
+     * <p>Load-bearing: the compression job refuses to touch this file and both retention rules
+     * that trim files refuse to delete it. Only meaningful when the session was loaded WITH files.
      */
     public Optional<RepositoryFile> openRecording() {
-        if (status == RecordingStatus.FINISHED) {
+        if (!newest) {
             return Optional.empty();
         }
         return files.stream()
@@ -99,7 +84,7 @@ public record RecordingSession(
     }
 
     /**
-     * Whether this file is the chunk the profiler is still writing.
+     * Whether this file is the recording that may still be on its way onto the volume.
      */
     public boolean isOpen(RepositoryFile file) {
         return openRecording().filter(open -> open.equals(file)).isPresent();
@@ -121,13 +106,27 @@ public record RecordingSession(
     }
 
     /**
-     * A finished session that produced no data at all — typically a prematurely killed
-     * process (OOM kill, container healthcheck restart loop). Only meaningful when the
-     * session was loaded WITH files (listSessions(true)) — a session loaded without
-     * files always reports zero size and would be misclassified as failed.
+     * When the session last recorded data: its newest recording's timestamp, or its start while it
+     * has none. What retention measures a session's age by — a session still recording always has
+     * a recent one. Only meaningful when the session was loaded WITH files.
+     */
+    public Instant lastDataAt() {
+        return files.stream()
+                .filter(RepositoryFile::isRecordingFile)
+                .map(RepositoryFile::createdAt)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(createdAt);
+    }
+
+    /**
+     * A session that produced no data at all before a newer one replaced it — typically a
+     * prematurely killed process (OOM kill, container healthcheck restart loop). The newest session
+     * is never failed: it may simply not have written anything yet. Only meaningful when the
+     * session was loaded WITH files (listSessions(true)) — a session loaded without files always
+     * reports zero size and would be misclassified as failed.
      */
     public boolean isFailedEmpty() {
-        return finishedAt != null && totalSizeBytes() == 0L;
+        return !newest && totalSizeBytes() == 0L;
     }
 }
-

@@ -17,7 +17,6 @@
 package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -63,14 +62,14 @@ class SessionChunksTest {
             List<RepositoryFile> files = new ArrayList<>(whole.files());
             files.remove(2);
             RecordingSession gapped = new RecordingSession(whole.id(), whole.name(), whole.instanceId(),
-                    whole.createdAt(), whole.finishedAt(), whole.status(), null, files, false);
+                    whole.createdAt(), whole.lastDataAt(), whole.newest(), null, files, false);
 
             assertEquals(Optional.of(Duration.ofMinutes(minutes)), SessionChunks.of(gapped).chunkLength());
         }
 
         @ParameterizedTest
         @ValueSource(longs = {5, 15})
-        void countsTheChunkStillOpen(long minutes) {
+        void countsTheNewestRecordingOfTheNewestSession(long minutes) {
             SessionChunks chunks = SessionChunks.of(session(minutes).compressed(10).live().build());
 
             assertEquals(Optional.of(Duration.ofMinutes(minutes)), chunks.chunkLength());
@@ -78,10 +77,10 @@ class SessionChunksTest {
 
         @ParameterizedTest
         @ValueSource(longs = {5, 15})
-        void aSoleFinishedChunkIsMeasuredByItsOwnSpan(long minutes) {
+        void aSoleChunkGivesNoSpacingToMeasure(long minutes) {
             SessionChunks chunks = SessionChunks.of(session(minutes).compressed(10).build());
 
-            assertEquals(Optional.of(Duration.ofMinutes(minutes)), chunks.chunkLength());
+            assertEquals(Optional.empty(), chunks.chunkLength());
         }
     }
 
@@ -134,7 +133,7 @@ class SessionChunksTest {
         void cannotBeToldWithoutARecordedStart() {
             RecordingSession whole = session(15).compressed(10, 20).build();
             RecordingSession noStart = new RecordingSession(whole.id(), whole.name(), whole.instanceId(), null,
-                    whole.finishedAt(), RecordingStatus.FINISHED, null, whole.files(), false);
+                    whole.lastDataAt(), false, null, whole.files(), false);
 
             assertInstanceOf(SessionChunks.Startup.Unknown.class, SessionChunks.of(noStart).startup());
         }
@@ -145,10 +144,10 @@ class SessionChunksTest {
 
         @ParameterizedTest
         @ValueSource(longs = {5, 15})
-        void isTheNewestFinishedChunkNeverTheOpenOne(long minutes) {
+        void isTheNewestRecordingOfTheNewestSession(long minutes) {
             SessionChunks chunks = SessionChunks.of(session(minutes).compressed(10, 20, 30).live().build());
 
-            assertEquals(ChunkedSessions.fileId(2), chunks.latest().orElseThrow().file().id());
+            assertEquals(ChunkedSessions.fileId(3), chunks.latest().orElseThrow().file().id());
         }
 
         /** A chunk left empty by a killed JVM holds nothing to download. */

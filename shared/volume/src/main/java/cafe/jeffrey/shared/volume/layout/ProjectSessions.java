@@ -17,61 +17,51 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.volume.ReadFanOut;
 import cafe.jeffrey.shared.volume.VolumeEntry;
-import cafe.jeffrey.shared.volume.liveness.SessionLifecycle;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 /**
- * A project's sessions as they are at the moment of reading: each one's directory, whether it is
- * still recording, and whether it is pinned. The one place every reader of a volume — the hub, a
+ * A project's sessions as they are at the moment of reading: each one's directory, its listing,
+ * and whether it is its instance's newest. The one place every reader of a volume — the hub, a
  * Microscope reading the storage directly — derives that from, so they cannot come to different
  * answers.
  *
- * <p>A session's lifecycle depends on the start of the next one in its instance (a newer session
- * means this one ended), so an instance's sessions are always read together.
+ * <p>Nothing is tracked about a session beyond its order: a newer session in its instance means it
+ * has ended, and only the newest session's newest recording may still be on its way onto the volume.
  *
  * <p>On a file share every question asked of the volume is a round-trip, so a session costs its
- * marker, one listing of its directory, and its liveness files only when that listing shows them.
- * The files are described off the same listing ({@link ProjectTree#files(VolumeSession)}).
+ * marker and one listing of its directory; the files are described off that same listing
+ * ({@link ProjectTree#files(VolumeSession)}).
  */
 public final class ProjectSessions {
 
     private static final Comparator<VolumeSession> NEWEST_FIRST =
             Comparator.comparing(VolumeSession::createdAt).reversed();
 
-    /** A page's sessions newest first by their markers, a tie broken by name, as an instance lists them. */
+    /** A page's sessions newest first by their starts, a tie broken by name, as an instance lists them. */
     private static final Comparator<SessionDirectory> NEWEST_SESSION_FIRST =
             Comparator.comparing(SessionDirectory::createdAt).thenComparing(SessionDirectory::id).reversed();
 
-    /** Session directories newest first by when the share says each was created, a tie broken by name. */
-    private static final Comparator<VolumeEntry> NEWEST_LISTED_FIRST = Comparator
-            .comparing((VolumeEntry entry) -> entry.createdAt().orElseThrow())
-            .thenComparing(VolumeEntry::name)
-            .reversed();
+    /** Session directories newest first by the start their names carry, a tie broken by name. */
+    private static final Comparator<VolumeEntry> NEWEST_NAMED_FIRST = ProjectTree.OLDEST_NAMED_FIRST.reversed();
 
     private final ProjectTree tree;
-    private final SessionLiveness liveness;
     private final ReadFanOut fanOut;
 
     /** Reads one thing after another: the hub's, on its own mount. */
-    public ProjectSessions(ProjectTree tree, SessionLiveness liveness) {
-        this(tree, liveness, ReadFanOut.sequential());
+    public ProjectSessions(ProjectTree tree) {
+        this(tree, ReadFanOut.sequential());
     }
 
     /** @param fanOut how the independent reads of one call are run — several at a time on a share */
-    public ProjectSessions(ProjectTree tree, SessionLiveness liveness, ReadFanOut fanOut) {
+    public ProjectSessions(ProjectTree tree, ReadFanOut fanOut) {
         this.tree = tree;
-        this.liveness = liveness;
         this.fanOut = fanOut;
     }
 
@@ -79,12 +69,13 @@ public final class ProjectSessions {
     public List<VolumeSession> all() {
         List<List<SessionDirectory>> byInstance =
                 fanOut.map(tree.instances(fanOut), instance -> tree.sessionsOldestFirst(instance.path()));
-        record Placed(SessionDirectory session, List<SessionDirectory> siblingsOldestFirst) {
+        record Placed(SessionDirectory session, boolean newest) {
         }
         List<Placed> placed = byInstance.stream()
-                .flatMap(oldestFirst -> oldestFirst.stream().map(session -> new Placed(session, oldestFirst)))
+                .flatMap(oldestFirst -> oldestFirst.stream()
+                        .map(session -> new Placed(session, session.equals(oldestFirst.getLast()))))
                 .toList();
-        return fanOut.map(placed, one -> read(one.session(), one.siblingsOldestFirst())).stream()
+        return fanOut.map(placed, one -> read(one.session(), one.newest())).stream()
                 .sorted(NEWEST_FIRST)
                 .toList();
     }
@@ -92,18 +83,17 @@ public final class ProjectSessions {
     /** One instance's sessions, newest first. */
     public List<VolumeSession> of(InstanceDirectory instance) {
         List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(instance.path(), fanOut);
-        return fanOut.map(oldestFirst, session -> read(session, oldestFirst)).reversed();
+        return fanOut.map(oldestFirst, session -> read(session, session.equals(oldestFirst.getLast()))).reversed();
     }
 
     /**
-     * One session, or empty when the project holds none by that id. Only this session's liveness
-     * files are read; its siblings are needed for their start times alone, only when its liveness
-     * files do not settle it — a clean finish never reads them — and then only the ones that may
-     * have started after it ({@link ProjectTree#nextStart(SessionDirectory)}).
+     * One session, or empty when the project holds none by that id. Whether it is its instance's
+     * newest is read off the instance's listing, whose names say which siblings started after it
+     * ({@link ProjectTree#isNewest(SessionDirectory)}).
      */
     public Optional<VolumeSession> session(String sessionId) {
         return tree.session(sessionId)
-                .map(session -> read(session, () -> tree.nextStart(session)))
+                .map(session -> read(session, tree.isNewest(session)))
                 .filter(ProjectSessions::stillListed);
     }
 
@@ -117,16 +107,25 @@ public final class ProjectSessions {
     }
 
     /**
-     * Every instance with its count and its newest session. Only the newest session's liveness
-     * files are read; the others' markers give the count.
+     * Every instance with its count and its newest session, each off one listing of its directory:
+     * the names say which session is the newest, so only its marker is read — and the next one's
+     * while a directory's marker is not written yet — and the count is the instance's session
+     * directories, a directory whose marker is not written yet counted with them. A directory named
+     * otherwise has only its marker to say when it started, so every marker is then read.
      */
     public List<InstanceSummary> instances() {
         return fanOut.map(tree.instances(fanOut), instance -> {
-            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(instance.path());
-            Optional<VolumeSession> newest = oldestFirst.isEmpty()
-                    ? Optional.empty()
-                    : Optional.of(read(oldestFirst.getLast(), oldestFirst));
-            return new InstanceSummary(instance, oldestFirst.size(), newest);
+            List<VolumeEntry> listed = tree.sessionDirectoryEntries(instance.path());
+            if (!ProjectTree.namesCarryStarts(listed)) {
+                List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(listed, ReadFanOut.sequential());
+                Optional<VolumeSession> newest = oldestFirst.isEmpty()
+                        ? Optional.empty()
+                        : Optional.of(read(oldestFirst.getLast(), true));
+                return new InstanceSummary(instance, oldestFirst.size(), newest);
+            }
+            List<VolumeEntry> newestFirst = listed.stream().sorted(NEWEST_NAMED_FIRST).toList();
+            Optional<VolumeSession> newest = firstSessionOf(newestFirst).map(session -> read(session, true));
+            return new InstanceSummary(instance, newest.isPresent() ? newestFirst.size() : 0, newest);
         });
     }
 
@@ -137,40 +136,33 @@ public final class ProjectSessions {
 
     /**
      * One instance with a page of its sessions, newest first, or empty when the project holds no
-     * instance by that id. Its listing orders the page: on a share that lists when each directory
-     * was created, only the page's sessions are read — their markers, listings and liveness — and
-     * the count is the instance's session directories. One that lists no times (an NFS share)
-     * reads every session's marker for the order, as a read of all of them does.
+     * instance by that id. Its listing orders the page, each session directory being named for its
+     * start: only the page's sessions are read — their markers and listings — and the count is the
+     * instance's session directories, on any share, whatever times it lists. A directory named
+     * otherwise has only its marker to say when it started, so every session's marker is then read
+     * for the order, as a read of all of them does.
      */
     public Optional<InstanceSessionList> instance(String instanceId, SessionPage page) {
         return tree.instance(instanceId).flatMap(instance -> tree.instanceListing(instance)
-                .map(listed -> page.isAll() || !listsTimes(listed)
+                .map(listed -> page.isAll() || !ProjectTree.namesCarryStarts(listed)
                         ? pageOfEvery(instance, listed, page)
-                        : pageByListedTime(instance, listed, page)));
-    }
-
-    private static boolean listsTimes(List<VolumeEntry> listed) {
-        return ProjectTree.visibleDirectories(listed).stream().allMatch(entry -> entry.createdAt().isPresent());
+                        : pageByName(instance, listed, page)));
     }
 
     /** Every session's marker read and ordered, the page taken from that order. */
     private InstanceSessionList pageOfEvery(InstanceDirectory instance, List<VolumeEntry> listed, SessionPage page) {
-        List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(listed, fanOut);
-        List<SessionDirectory> newestFirst = oldestFirst.reversed();
+        List<SessionDirectory> newestFirst = tree.sessionsOldestFirst(listed, fanOut).reversed();
+        Optional<SessionDirectory> newestDirectory = newestFirst.stream().findFirst();
         int start = startOf(newestFirst.stream().map(SessionDirectory::id).toList(), page);
         int end = (int) Math.min((long) start + page.limit(), newestFirst.size());
-        List<VolumeSession> sessions = fanOut.map(newestFirst.subList(start, end), session -> read(session, oldestFirst));
-        Optional<VolumeSession> newest = start == 0 && !sessions.isEmpty()
-                ? Optional.of(sessions.getFirst())
-                : newestFirst.stream().findFirst().map(session -> read(session, oldestFirst));
-        return new InstanceSessionList(
-                new InstanceSummary(instance, oldestFirst.size(), newest), sessions, end < newestFirst.size());
+        return assemble(instance, newestFirst.subList(start, end), newestDirectory, newestFirst.size(),
+                end < newestFirst.size());
     }
 
-    /** The page read off the listing's order, newest directory first; only its sessions are read. */
-    private InstanceSessionList pageByListedTime(InstanceDirectory instance, List<VolumeEntry> listed, SessionPage page) {
+    /** The page read off the names' order, newest directory first; only its sessions are read. */
+    private InstanceSessionList pageByName(InstanceDirectory instance, List<VolumeEntry> listed, SessionPage page) {
         List<VolumeEntry> newestFirst = ProjectTree.visibleDirectories(listed).stream()
-                .sorted(NEWEST_LISTED_FIRST)
+                .sorted(NEWEST_NAMED_FIRST)
                 .toList();
         int next = startOf(newestFirst.stream().map(VolumeEntry::name).toList(), page);
         List<SessionDirectory> taken = new ArrayList<>();
@@ -181,27 +173,38 @@ public final class ProjectSessions {
             fanOut.map(candidates, entry -> tree.sessionAt(entry.path())).forEach(found -> found.ifPresent(taken::add));
             next += candidates.size();
         }
-        List<VolumeSession> sessions = fanOut.map(
-                taken.stream().sorted(NEWEST_SESSION_FIRST).toList(),
-                session -> read(session, () -> tree.nextStart(session, listed)));
-        Optional<VolumeSession> newest = page.before().isEmpty() && !sessions.isEmpty()
-                ? Optional.of(sessions.getFirst())
-                : newestOf(newestFirst, listed);
+        List<SessionDirectory> pageSessions = taken.stream().sorted(NEWEST_SESSION_FIRST).toList();
+        Optional<SessionDirectory> newestDirectory = page.before().isEmpty() && !pageSessions.isEmpty()
+                ? Optional.of(pageSessions.getFirst())
+                : firstSessionOf(newestFirst);
         // Its session directories, a directory whose marker is not written yet counted with them
-        int sessionCount = newest.isPresent() ? newestFirst.size() : 0;
-        return new InstanceSessionList(
-                new InstanceSummary(instance, sessionCount, newest),
-                sessions,
-                next < newestFirst.size());
+        int sessionCount = newestDirectory.isPresent() ? newestFirst.size() : 0;
+        return assemble(instance, pageSessions, newestDirectory, sessionCount, next < newestFirst.size());
     }
 
     /** The newest session among listed directories, newest directory first; empty while none is described. */
-    private Optional<VolumeSession> newestOf(List<VolumeEntry> newestFirst, List<VolumeEntry> listed) {
+    private Optional<SessionDirectory> firstSessionOf(List<VolumeEntry> newestFirst) {
         return newestFirst.stream()
                 .map(entry -> tree.sessionAt(entry.path()))
                 .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    /** The page read, and the instance's newest session with it — taken from the page when it is on it. */
+    private InstanceSessionList assemble(
+            InstanceDirectory instance,
+            List<SessionDirectory> pageSessions,
+            Optional<SessionDirectory> newestDirectory,
+            int sessionCount,
+            boolean hasOlder) {
+
+        List<VolumeSession> sessions = fanOut.map(pageSessions,
+                session -> read(session, newestDirectory.filter(session::equals).isPresent()));
+        Optional<VolumeSession> newest = newestDirectory.map(directory -> sessions.stream()
+                .filter(session -> session.directory().equals(directory))
                 .findFirst()
-                .map(session -> read(session, () -> tree.nextStart(session, listed)));
+                .orElseGet(() -> read(directory, true)));
+        return new InstanceSessionList(new InstanceSummary(instance, sessionCount, newest), sessions, hasOlder);
     }
 
     /** Where a page starts: after the session its cursor names, or past the end for one not there. */
@@ -214,23 +217,8 @@ public final class ProjectSessions {
                 .orElse(0);
     }
 
-    private VolumeSession read(SessionDirectory session, List<SessionDirectory> siblingsOldestFirst) {
-        return read(session, () -> ProjectTree.nextStart(siblingsOldestFirst, session));
-    }
-
-    /**
-     * A session off one listing of its directory: the listing says whether it is pinned and whether
-     * anything ever wrote its liveness directory, so neither is asked of the volume again — the
-     * liveness files are read only when that directory is there.
-     */
-    private VolumeSession read(SessionDirectory session, Supplier<Optional<Instant>> nextSessionStart) {
-        SessionListing listing = tree.listing(session);
-        // A failed listing cannot say the directory is missing, so the files are read as before
-        boolean livenessWritten = listing.holdsDirectory(HeartbeatConstants.HEARTBEAT_DIR, () -> true);
-        SessionLifecycle lifecycle = livenessWritten
-                ? liveness.assess(session.path(), session.createdAt(), nextSessionStart)
-                : liveness.assessUnwritten(session.path(), session.createdAt(), nextSessionStart);
-        boolean retained = listing.holdsFile(SessionDirectory.RETAINED_FLAG, () -> tree.isRetained(session));
-        return new VolumeSession(session, lifecycle, retained, listing);
+    /** A session off one listing of its directory. */
+    private VolumeSession read(SessionDirectory session, boolean newest) {
+        return new VolumeSession(session, newest, tree.listing(session));
     }
 }

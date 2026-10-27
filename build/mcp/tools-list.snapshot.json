@@ -24255,17 +24255,12 @@
                 "name": {
                   "type": "string"
                 },
+                "newestRecording": {
+                  "type": "boolean"
+                },
                 "sizeBytes": {
                   "minimum": 0,
                   "type": "integer"
-                },
-                "status": {
-                  "enum": [
-                    "UNKNOWN",
-                    "FINISHED",
-                    "ACTIVE"
-                  ],
-                  "type": "string"
                 },
                 "type": {
                   "enum": [
@@ -24292,8 +24287,8 @@
                 "fileId",
                 "localPath",
                 "name",
+                "newestRecording",
                 "sizeBytes",
-                "status",
                 "type"
               ],
               "type": "object"
@@ -24458,14 +24453,6 @@
           "project": {
             "type": "string"
           },
-          "status": {
-            "enum": [
-              "UNKNOWN",
-              "FINISHED",
-              "ACTIVE"
-            ],
-            "type": "string"
-          },
           "withinLastMinutes": {
             "minimum": 1,
             "type": "integer"
@@ -24598,6 +24585,9 @@
                   "minimum": 0,
                   "type": "integer"
                 },
+                "newest": {
+                  "type": "boolean"
+                },
                 "profileId": {
                   "type": [
                     "string",
@@ -24626,18 +24616,6 @@
                     "null"
                   ]
                 },
-                "status": {
-                  "enum": [
-                    "UNKNOWN",
-                    "FINISHED",
-                    "ACTIVE",
-                    null
-                  ],
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
                 "workspace": {
                   "type": "string"
                 }
@@ -24645,13 +24623,13 @@
               "required": [
                 "durationMs",
                 "files",
+                "newest",
                 "profileId",
                 "project",
                 "recordingId",
                 "sessionRef",
                 "sizeBytes",
                 "startedAtEpochMs",
-                "status",
                 "workspace"
               ],
               "type": "object"

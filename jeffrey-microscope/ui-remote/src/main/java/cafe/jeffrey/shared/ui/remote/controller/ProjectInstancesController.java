@@ -24,16 +24,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.microscope.remote.client.dto.InstanceDetailResponse;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
-import cafe.jeffrey.microscope.remote.client.dto.InstanceSessionDetailResponse;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,24 +45,20 @@ public class ProjectInstancesController {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectInstancesController.class);
 
     private final RemoteProjectAccess projectAccess;
-    private final Clock clock;
 
-    public ProjectInstancesController(RemoteProjectAccess projectAccess, Clock clock) {
+    public ProjectInstancesController(RemoteProjectAccess projectAccess) {
         this.projectAccess = projectAccess;
-        this.clock = clock;
     }
 
     @GetMapping
     public List<InstanceResponse> list(
             @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @RequestParam(value = "includeSessions", defaultValue = "false") boolean includeSessions) {
+            @PathVariable("projectId") String projectId) {
         RemoteInstancesManager mgr = projectAccess.instancesManager(workspaceId, projectId);
-        var result = mgr.findAll(includeSessions).stream()
-                .map(i -> InstanceResponse.from(i, clock))
+        var result = mgr.findAll().stream()
+                .map(InstanceResponse::from)
                 .toList();
-        LOG.debug("Listed project instances: projectId={} count={} include_sessions={}",
-                projectId, result.size(), includeSessions);
+        LOG.debug("Listed project instances: projectId={} count={}", projectId, result.size());
         return result;
     }
 
@@ -82,30 +75,8 @@ public class ProjectInstancesController {
             @RequestParam(value = "before", required = false) String before) {
         LOG.debug("Fetching project instance: instanceId={} before={}", instanceId, before);
         return projectAccess.instancesManager(workspaceId, projectId).find(instanceId, Optional.ofNullable(before))
-                .map(found -> InstanceWithSessionsResponse.from(found, clock))
+                .map(InstanceWithSessionsResponse::from)
                 .orElseThrow(() -> instanceNotFound(instanceId));
-    }
-
-    @GetMapping("/{instanceId}/detail")
-    public InstanceDetailResponse getDetail(
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @PathVariable("instanceId") String instanceId) {
-        LOG.debug("Fetching instance detail: instanceId={}", instanceId);
-        return projectAccess.instancesManager(workspaceId, projectId).detail(instanceId)
-                .orElseThrow(() -> instanceNotFound(instanceId));
-    }
-
-    @GetMapping("/{instanceId}/sessions/{sessionId}/detail")
-    public InstanceSessionDetailResponse getSessionDetail(
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @PathVariable("instanceId") String instanceId,
-            @PathVariable("sessionId") String sessionId) {
-        LOG.debug("Fetching instance session detail: instanceId={} sessionId={}", instanceId, sessionId);
-        return projectAccess.instancesManager(workspaceId, projectId).sessionDetail(instanceId, sessionId)
-                .orElseThrow(() -> Exceptions.resourceNotFound(
-                        "Session not found: instanceId=" + instanceId + " sessionId=" + sessionId));
     }
 
     private static JeffreyClientException instanceNotFound(String instanceId) {

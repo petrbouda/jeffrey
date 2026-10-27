@@ -29,7 +29,6 @@ import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 
 import java.io.UncheckedIOException;
 import java.time.Clock;
@@ -45,7 +44,6 @@ import java.util.function.Supplier;
  *
  * @param volume      the storage the volume lies on, its root holding the workspaces; a
  *                    {@link WritableVolume} unless the source is read-only
- * @param liveness    how a session's liveness files are read, with this machine's clock
  * @param clock       when a change happened, for the markers a change writes
  * @param description what the source says about itself, reported as its version
  * @param readOnly    whether every change is refused
@@ -53,7 +51,6 @@ import java.util.function.Supplier;
  */
 public record VolumeSource(
         VolumeAccess volume,
-        SessionLiveness liveness,
         Clock clock,
         String description,
         boolean readOnly,
@@ -65,10 +62,8 @@ public record VolumeSource(
                     + "Declare it writable to make changes through Microscope.";
 
     public VolumeSource {
-        if (volume == null || liveness == null || clock == null || fanOut == null
-                || description == null || description.isBlank()) {
-            throw new IllegalArgumentException(
-                    "A volume source needs its volume, its liveness, a clock and a description");
+        if (volume == null || clock == null || fanOut == null || description == null || description.isBlank()) {
+            throw new IllegalArgumentException("A volume source needs its volume, a clock and a description");
         }
         if (!readOnly && !(volume instanceof WritableVolume)) {
             throw new IllegalArgumentException("A volume source that may be changed needs a writable volume");
@@ -76,8 +71,8 @@ public record VolumeSource(
     }
 
     /** A source whose reads run one after another. */
-    public VolumeSource(VolumeAccess volume, SessionLiveness liveness, Clock clock, String description, boolean readOnly) {
-        this(volume, liveness, clock, description, readOnly, ReadFanOut.sequential());
+    public VolumeSource(VolumeAccess volume, Clock clock, String description, boolean readOnly) {
+        this(volume, clock, description, readOnly, ReadFanOut.sequential());
     }
 
     /**
@@ -118,7 +113,7 @@ public record VolumeSource(
     }
 
     ProjectSessions sessions(ProjectTree project) {
-        return new ProjectSessions(project, liveness, fanOut);
+        return new ProjectSessions(project, fanOut);
     }
 
     /**

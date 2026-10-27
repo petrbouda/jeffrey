@@ -43,14 +43,20 @@ final class VolumeInstancesClient implements InstancesClient {
 
     @Override
     public List<InstanceResponse> projectInstances(ProjectScope scope) {
-        return source.read(() -> source.sessions(source.requireProject(scope)).instances().stream()
-                .map(VolumeResponses::instance)
-                .toList());
+        return source.read(() -> {
+            ProjectTree project = source.requireProject(scope);
+            return source.sessions(project).instances().stream()
+                    .map(summary -> VolumeResponses.instance(summary, project))
+                    .toList();
+        });
     }
 
     @Override
     public ProjectActivity activity(ProjectScope scope) {
-        return source.read(() -> VolumeResponses.activity(source.sessions(source.requireProject(scope)).instances()));
+        return source.read(() -> {
+            ProjectTree project = source.requireProject(scope);
+            return VolumeResponses.activity(source.sessions(project).instances(), project);
+        });
     }
 
     /**
@@ -63,7 +69,7 @@ final class VolumeInstancesClient implements InstancesClient {
             ProjectTree project = source.requireProject(scope);
             return source.sessions(project).instance(instanceId, new SessionPage(page.limit(), page.before()))
                     .map(found -> new InstanceRead(
-                            VolumeResponses.instance(found.summary()),
+                            VolumeResponses.instance(found.summary(), project),
                             found.sessions().stream()
                                     .map(session -> page.withFiles()
                                             ? VolumeResponses.withFiles(session, project.files(session))

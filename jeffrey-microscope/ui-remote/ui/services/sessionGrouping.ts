@@ -16,7 +16,6 @@
  */
 
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 
 /**
  * How long a session must have been going before all-zero sizes are worth remarking on.
@@ -26,19 +25,13 @@ import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 const UNREPORTED_SIZES_GRACE_MS = 60_000;
 
 /**
- * A finished session that produced no data at all — typically a prematurely killed
- * process (OOM kill, container healthcheck restart loop). Mirrors the backend
- * predicate RecordingSession.isFailedEmpty().
- *
- * <p>A session the hub finished because no heartbeat ever arrived is FINISHED and usually
- * empty too, but it is not a crash: it is shown on its own with a note, never folded
- * into a failed group.
+ * A session a newer one ended before it produced any data — typically a prematurely killed
+ * process (OOM kill, container healthcheck restart loop). Mirrors the backend predicate
+ * RecordingSession.isFailedEmpty(). The newest session is never failed: it may simply not
+ * have written anything yet.
  */
 export function isFailedSession(session: RecordingSession): boolean {
-  if (session.status !== RecordingStatus.FINISHED) {
-    return false;
-  }
-  if (session.heartbeatMissing) {
+  if (session.newest) {
     return false;
   }
   return session.sizeBytes === 0;
@@ -54,9 +47,9 @@ export function isFailedSession(session: RecordingSession): boolean {
  * The files still hold their bytes and still download; only the figures are missing, and
  * the UI says so rather than printing a confident zero.
  *
- * <p>Deliberately narrower than "zero bytes". A finished session with nothing in it is a
+ * <p>Deliberately narrower than "zero bytes". An ended session with nothing in it is a
  * failed session and reads as one; what this catches is the case a crash cannot explain —
- * above all a session that is still recording.
+ * above all the instance's newest session.
  */
 export function hasUnreportedSizes(session: RecordingSession): boolean {
   if (isFailedSession(session)) {
@@ -65,7 +58,7 @@ export function hasUnreportedSizes(session: RecordingSession): boolean {
   return (
     session.fileCount > 0 &&
     session.sizeBytes === 0 &&
-    session.duration >= UNREPORTED_SIZES_GRACE_MS
+    (session.duration ?? 0) >= UNREPORTED_SIZES_GRACE_MS
   );
 }
 
@@ -88,7 +81,7 @@ export interface SingleSessionEntry {
 export type SessionDisplayEntry = SingleSessionEntry | FailedSessionGroup;
 
 /**
- * Folds consecutive failed (finished, zero-size) sessions of a createdAt-descending
+ * Folds consecutive failed (ended, zero-size) sessions of a createdAt-descending
  * list into collapsed group entries. A single isolated failed session also becomes
  * a group of one, so failed sessions always render through the same collapsed UI.
  */

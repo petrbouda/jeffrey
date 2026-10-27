@@ -22,21 +22,10 @@ import java.time.Instant;
 /**
  * An instance as its directory on the volume says at the moment of reading.
  *
- * @param id         the instance's directory name, typically the pod's hostname
- * @param startedAt  when the provisioner created it
- * @param finishedAt when its last session finished; {@code null} unless FINISHED
+ * @param id           the instance's directory name, typically the pod's hostname
+ * @param startedAt    when the provisioner created it
+ * @param sessionCount how many sessions it holds; none while the provisioner registered it and
+ *                     nothing has started yet
  */
-public record ProjectInstanceInfo(
-        String id,
-        ProjectInstanceStatus status,
-        Instant startedAt,
-        Instant finishedAt,
-        int sessionCount) {
-
-    /**
-     * PENDING has no session yet, ACTIVE has one still recording, FINISHED has only finished ones.
-     */
-    public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED
-    }
+public record ProjectInstanceInfo(String id, Instant startedAt, int sessionCount) {
 }

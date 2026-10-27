@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.mcp.tools.remote;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
@@ -45,22 +44,27 @@ class DownloadWindowQuestionTest {
     private static final long GIB = 1024L * 1024 * 1024;
     private static final Instant NOW = Instant.parse("2026-03-01T12:30:00Z");
     private static final Instant CREATED = Instant.parse("2026-03-01T09:00:00Z");
-    private static final Instant FINISHED = Instant.parse("2026-03-01T12:00:00Z");
+    private static final Instant DATA_END = Instant.parse("2026-03-01T12:00:00Z");
 
     private static final DownloadWindowQuestion QUESTION = new DownloadWindowQuestion(Duration.ofHours(1), GIB);
 
     private static final Set<String> PRIMITIVE_TYPES = Set.of("string", "integer", "number", "boolean");
     private static final Set<String> CHOICE_KEYS = Set.of("const", "title");
 
-    private static RecordingSession session(Instant createdAt, Instant finishedAt, long bytes) {
+    /** A session a newer one ended, its data ending at {@code dataEnd}. */
+    private static RecordingSession session(Instant createdAt, Instant dataEnd, long bytes) {
+        return session(createdAt, dataEnd, bytes, false);
+    }
+
+    private static RecordingSession session(Instant createdAt, Instant dataEnd, long bytes, boolean newest) {
         RepositoryFile chunk = new RepositoryFile("c0", "profile-0.jfr", createdAt, bytes, true, null);
-        return new RecordingSession("session-1", "checkout-api", "inst-1", createdAt, finishedAt,
-                finishedAt == null ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED, null, List.of(chunk), false);
+        return new RecordingSession("session-1", "checkout-api", "inst-1", createdAt, dataEnd,
+                newest, null, List.of(chunk), false);
     }
 
     /** Three hours and two gigabytes: over both thresholds. */
     private static RecordingSession large() {
-        return session(CREATED, FINISHED, 2 * GIB);
+        return session(CREATED, DATA_END, 2 * GIB);
     }
 
     private static WindowSubject subject(RecordingSession session) {
@@ -106,35 +110,41 @@ class DownloadWindowQuestionTest {
 
         @Test
         void notForASessionExactlyAsLongAsTheThreshold() {
-            assertFalse(question.asks(session(FINISHED.minus(Duration.ofHours(1)), FINISHED, 10), NOW));
+            assertFalse(question.asks(session(DATA_END.minus(Duration.ofHours(1)), DATA_END, 10), NOW));
         }
 
         @Test
         void forASessionOneMillisecondLongerThanTheThreshold() {
-            assertTrue(question.asks(session(FINISHED.minus(Duration.ofHours(1)).minusMillis(1), FINISHED, 10), NOW));
+            assertTrue(question.asks(session(DATA_END.minus(Duration.ofHours(1)).minusMillis(1), DATA_END, 10), NOW));
         }
 
         @Test
         void notForASessionExactlyAsBigAsTheThreshold() {
-            assertFalse(question.asks(session(FINISHED.minusSeconds(60), FINISHED, GIB), NOW));
+            assertFalse(question.asks(session(DATA_END.minusSeconds(60), DATA_END, GIB), NOW));
         }
 
         @Test
         void forASessionOneByteBiggerThanTheThreshold() {
-            assertTrue(question.asks(session(FINISHED.minusSeconds(60), FINISHED, GIB + 1), NOW));
+            assertTrue(question.asks(session(DATA_END.minusSeconds(60), DATA_END, GIB + 1), NOW));
         }
 
-        /** A session still recording has lasted until now, not until a finish it has not reached. */
+        /** The newest session has lasted until the end of its data so far, not until now. */
         @Test
-        void measuresASessionStillRecordingUpToNow() {
-            assertTrue(question.asks(session(NOW.minus(Duration.ofMinutes(61)), null, 10), NOW));
-            assertFalse(question.asks(session(NOW.minus(Duration.ofMinutes(59)), null, 10), NOW));
+        void measuresTheNewestSessionToTheEndOfItsData() {
+            assertTrue(question.asks(session(DATA_END.minus(Duration.ofMinutes(61)), DATA_END, 10, true), NOW));
+            assertFalse(question.asks(session(DATA_END.minus(Duration.ofMinutes(59)), DATA_END, 10, true), NOW));
+        }
+
+        /** With no data yet there is nothing past its start to measure. */
+        @Test
+        void aSessionWithNoDataYetIsJudgedBySizeAlone() {
+            assertFalse(question.asks(session(NOW.minus(Duration.ofHours(5)), null, 10, true), NOW));
         }
 
         @Test
         void aSessionWithNoStartIsJudgedBySizeAlone() {
-            assertFalse(question.asks(session(null, FINISHED, 10), NOW));
-            assertTrue(question.asks(session(null, FINISHED, GIB + 1), NOW));
+            assertFalse(question.asks(session(null, DATA_END, 10), NOW));
+            assertTrue(question.asks(session(null, DATA_END, GIB + 1), NOW));
         }
 
     }
@@ -156,7 +166,7 @@ class DownloadWindowQuestionTest {
             String message = request(QUESTION.ask(subject(large()))).path("params").path("message").asString();
 
             for (String expected : List.of("checkout-api", "session-1", "production", "checkout",
-                    CREATED.toString(), FINISHED.toString(), "3h0m", "2.0GB")) {
+                    CREATED.toString(), DATA_END.toString(), "3h0m", "2.0GB")) {
                 assertTrue(message.contains(expected), expected + " missing from: " + message);
             }
         }
@@ -170,12 +180,12 @@ class DownloadWindowQuestionTest {
         }
 
         @Test
-        void theMessageSaysASessionIsStillRecording() {
-            String message = request(QUESTION.ask(subject(session(CREATED, null, 2 * GIB))))
+        void theMessageSaysASessionIsItsInstancesNewestAndWhereItsDataEndsSoFar() {
+            String message = request(QUESTION.ask(subject(session(CREATED, DATA_END, 2 * GIB, true))))
                     .path("params").path("message").asString();
 
-            assertTrue(message.contains("still recording"), message);
-            assertTrue(message.contains(NOW.toString()), message);
+            assertTrue(message.contains("instance's newest session"), message);
+            assertTrue(message.contains(DATA_END + ", the end of its recorded data so far"), message);
         }
 
         /** The specification allows a flat object of primitive properties and nothing else. */
@@ -213,7 +223,7 @@ class DownloadWindowQuestionTest {
             assertTrue(titles.contains("The last N minutes (set Minutes; 60 is 11:00–12:00 UTC)"), titles.toString());
             assertTrue(titles.contains("Startup (09:00–09:15 UTC, 10B)"), titles.toString());
             assertTrue(titles.contains("Peak (09:30–09:45 UTC, 90B, 4.5× median)"), titles.toString());
-            assertTrue(titles.contains("Latest finished chunk (11:45–12:00 UTC, 30B)"), titles.toString());
+            assertTrue(titles.contains("Latest chunk (11:45–12:00 UTC, 30B)"), titles.toString());
         }
 
         /** No compressed chunk, no peak; a first chunk the cleaner removed, no startup. */
@@ -243,16 +253,16 @@ class DownloadWindowQuestionTest {
             JsonNode properties = schema(QUESTION.ask(subject(large()))).path("properties");
 
             assertEquals("date-time", properties.path("at").path("format").asString());
-            assertEquals(FINISHED.toString(), properties.path("at").path("default").asString());
+            assertEquals(DATA_END.toString(), properties.path("at").path("default").asString());
             assertEquals(CREATED.toString(), properties.path("start").path("default").asString());
-            assertEquals(FINISHED.toString(), properties.path("end").path("default").asString());
+            assertEquals(DATA_END.toString(), properties.path("end").path("default").asString());
         }
 
         @Test
-        void theEndOfASessionStillRecordingDefaultsToNow() {
-            JsonNode properties = schema(QUESTION.ask(subject(session(CREATED, null, 2 * GIB)))).path("properties");
+        void theEndOfASessionWithNoDataYetDefaultsToItsStart() {
+            JsonNode properties = schema(QUESTION.ask(subject(session(CREATED, null, 2 * GIB, true)))).path("properties");
 
-            assertEquals(NOW.toString(), properties.path("end").path("default").asString());
+            assertEquals(CREATED.toString(), properties.path("end").path("default").asString());
         }
 
         @Test

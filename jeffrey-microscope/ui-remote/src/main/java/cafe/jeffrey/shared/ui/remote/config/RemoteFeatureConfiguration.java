@@ -33,7 +33,6 @@ import cafe.jeffrey.shared.ui.remote.controller.RecordingsController;
 import cafe.jeffrey.shared.ui.remote.controller.WorkspaceProjectsController;
 import cafe.jeffrey.shared.ui.remote.controller.WorkspacesController;
 
-import java.time.Clock;
 
 /**
  * Registers the shared remote-workspace controllers as {@code @Bean}s. The controllers are
@@ -45,23 +44,19 @@ import java.time.Clock;
  * explicit {@code @Bean} methods, with no component-scan pickup. Each deployment
  * {@code @Import}s this configuration and supplies the bridge
  * beans ({@link RemoteProjectAccess}, {@link RecordingProfileInfoProvider}) plus the shared
- * {@link RecordingsCoreManager} and a {@link Clock}.
+ * {@link RecordingsCoreManager}.
  */
 @Configuration
 public class RemoteFeatureConfiguration {
 
     @Bean
-    public ProjectInstancesController remoteFeatureProjectInstancesController(
-            RemoteProjectAccess projectAccess,
-            Clock clock) {
-        return new ProjectInstancesController(projectAccess, clock);
+    public ProjectInstancesController remoteFeatureProjectInstancesController(RemoteProjectAccess projectAccess) {
+        return new ProjectInstancesController(projectAccess);
     }
 
     @Bean
-    public ProjectRepositoryController remoteFeatureProjectRepositoryController(
-            RemoteProjectAccess projectAccess,
-            Clock clock) {
-        return new ProjectRepositoryController(projectAccess, clock);
+    public ProjectRepositoryController remoteFeatureProjectRepositoryController(RemoteProjectAccess projectAccess) {
+        return new ProjectRepositoryController(projectAccess);
     }
 
     @Bean

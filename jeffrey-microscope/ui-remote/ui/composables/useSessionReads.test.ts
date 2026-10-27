@@ -17,11 +17,10 @@
 import { describe, expect, it, vi } from "vitest";
 import ProjectRepositoryClient from "@remote/services/api/ProjectRepositoryClient";
 import RecordingSession from "@remote/services/api/model/RecordingSession";
-import RecordingStatus from "@remote/services/api/model/RecordingStatus";
 import { useSessionReads } from "@remote/composables/useSessionReads";
 
 function session(id: string): RecordingSession {
-  return new RecordingSession(id, id, "pod-1", 0, null, RecordingStatus.FINISHED, 0, []);
+  return new RecordingSession(id, id, "pod-1", 0, null, false, null, []);
 }
 
 describe("useSessionReads", () => {

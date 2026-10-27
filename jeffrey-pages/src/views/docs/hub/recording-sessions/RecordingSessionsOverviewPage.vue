@@ -54,7 +54,7 @@ onMounted(() => {
         <ul>
           <li><strong>JFR recording chunks</strong> - Profiling data split into time-based files</li>
           <li><strong>Artifacts</strong> - Additional diagnostic files (heap dumps, logs, perf counters)</li>
-          <li><strong>Metadata</strong> - Session timing, status, and file counts</li>
+          <li><strong>Metadata</strong> - Session timing and file counts</li>
         </ul>
 
         <figure class="docs-figure">
@@ -122,9 +122,10 @@ onMounted(() => {
         <ul>
           <li><strong>Session ID</strong> - Unique identifier for the session</li>
           <li><strong>Instance</strong> - The application instance that generated this session</li>
-          <li><strong>Start time</strong> - When profiling began</li>
-          <li><strong>Duration</strong> - How long the session has been running</li>
-          <li><strong>Status</strong> - Active (still recording) or Finished</li>
+          <li><strong>Start time</strong> - When profiling began, read from the session's UUIDv7 directory name</li>
+          <li><strong>Last data</strong> - Where its recorded data ends: the newest recording's start plus the measured chunk length</li>
+          <li><strong>Duration</strong> - From the start to the last data</li>
+          <li><strong>Newest</strong> - Whether it is its instance's newest session, the only one that may still grow; see <router-link to="/docs/hub/recording-sessions/lifecycle">Lifecycle</router-link></li>
           <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
         </ul>
 

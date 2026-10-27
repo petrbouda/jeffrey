@@ -16,8 +16,8 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
+import cafe.jeffrey.microscope.model.repository.RecordedSpan;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 
 import java.time.Duration;
@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Hub sessions of equal chunks for the window tests — any chunk length, finished or still
- * recording, compressed or not, with the oldest chunks removed by a cleaner — built one way so the
+ * Remote sessions of equal chunks for the window tests — any chunk length, ended by a newer
+ * session or the instance's newest, compressed or not, with the oldest chunks removed by a cleaner — built one way so the
  * tests say only what differs.
  */
 public final class ChunkedSessions {
@@ -86,7 +86,7 @@ public final class ChunkedSessions {
         return this;
     }
 
-    /** Still recording: one more chunk is open after the finished ones. */
+    /** The instance's newest session: its newest recording, one more chunk, follows the others. */
     public ChunkedSessions live() {
         this.live = true;
         return this;
@@ -96,9 +96,9 @@ public final class ChunkedSessions {
         return profilerStart.plus(chunkLength.multipliedBy(index));
     }
 
-    /** Where the last finished chunk ends: the session's finish, or the open chunk's start. */
+    /** Where the data ends: one chunk past the newest recording's start. */
     public Instant end() {
-        return chunkStart(sizes.size());
+        return chunkStart(sizes.size() + (live ? 1 : 0));
     }
 
     public static String fileId(int index) {
@@ -115,8 +115,8 @@ public final class ChunkedSessions {
             files.add(new RepositoryFile(fileId(sizes.size()), "profile-" + sizes.size() + RAW,
                     chunkStart(sizes.size()), 10L, true, null));
         }
-        return new RecordingSession(SESSION_ID, "checkout-api", "inst-1", start, live ? null : end(),
-                live ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED, null, files, false);
+        Instant lastDataAt = RecordedSpan.end(files.stream().map(RepositoryFile::createdAt).toList()).orElse(null);
+        return new RecordingSession(SESSION_ID, "checkout-api", "inst-1", start, lastDataAt, live, null, files, false);
     }
 
     public WindowSubject subject(Instant now) {

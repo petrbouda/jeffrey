@@ -26,7 +26,6 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
@@ -115,25 +114,23 @@ class ProjectRetentionJobQuotaTest {
     }
 
     /**
-     * A chunk. Whether it is the one the profiler still holds open is not said here: the session
-     * decides, and the answer is its newest chunk while it records.
+     * A chunk. Whether it may still be on its way onto the volume is not said here: the session
+     * decides, and the answer is its newest chunk while it is its instance's newest session.
      */
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
         return new RepositoryFile(id, id, createdAt, size, true, null);
     }
 
-    private static RecordingSession finishedSession(
-            String id, Instant createdAt, boolean retained, RepositoryFile... files) {
-
-        return new RecordingSession(
-                id, id, "inst-1", createdAt, createdAt.plusSeconds(60),
-                RecordingStatus.FINISHED, List.of(files), retained);
+    /** A session a newer one in its instance has ended. */
+    private static RecordingSession endedSession(String id, Instant createdAt, RepositoryFile... files) {
+        return new RecordingSession(id, id, "inst-1", createdAt, false, List.of(files));
     }
 
-    private static RecordingSession activeSession(String id, Instant createdAt, RepositoryFile... files) {
-        return new RecordingSession(
-                id, id, "inst-1", createdAt, null,
-                RecordingStatus.ACTIVE, List.of(files), false);
+    /** The newest session of {@code instanceId}. */
+    private static RecordingSession newestSession(
+            String id, String instanceId, Instant createdAt, RepositoryFile... files) {
+
+        return new RecordingSession(id, id, instanceId, createdAt, true, List.of(files));
     }
 
     @Nested
@@ -142,7 +139,7 @@ class ProjectRetentionJobQuotaTest {
         @Test
         void deletesNothing() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finishedSession("s1", NOW.minusSeconds(3600), false,
+                    endedSession("s1", NOW.minusSeconds(3600),
                             recording("f1", NOW.minusSeconds(3600), 10 * MB))));
 
             execute();
@@ -158,11 +155,11 @@ class ProjectRetentionJobQuotaTest {
         @Test
         void deletesOldestFinishedSessionsUntilUnderBudget() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finishedSession("oldest", NOW.minusSeconds(9000), false,
+                    endedSession("oldest", NOW.minusSeconds(9000),
                             recording("f1", NOW.minusSeconds(9000), 60 * MB)),
-                    finishedSession("middle", NOW.minusSeconds(6000), false,
+                    endedSession("middle", NOW.minusSeconds(6000),
                             recording("f2", NOW.minusSeconds(6000), 60 * MB)),
-                    finishedSession("newest", NOW.minusSeconds(3000), false,
+                    endedSession("newest", NOW.minusSeconds(3000),
                             recording("f3", NOW.minusSeconds(3000), 60 * MB))));
 
             execute();
@@ -178,9 +175,9 @@ class ProjectRetentionJobQuotaTest {
         @Test
         void stopsAsSoonAsItFitsTheBudget() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finishedSession("oldest", NOW.minusSeconds(9000), false,
+                    endedSession("oldest", NOW.minusSeconds(9000),
                             recording("f1", NOW.minusSeconds(9000), 80 * MB)),
-                    finishedSession("newest", NOW.minusSeconds(3000), false,
+                    endedSession("newest", NOW.minusSeconds(3000),
                             recording("f2", NOW.minusSeconds(3000), 40 * MB))));
 
             execute();
@@ -195,9 +192,9 @@ class ProjectRetentionJobQuotaTest {
          */
         @Test
         void doesNotCountASessionThatWasAlreadyGone() {
-            RecordingSession vanished = finishedSession("vanished", NOW.minusSeconds(4000), false,
+            RecordingSession vanished = endedSession("vanished", NOW.minusSeconds(4000),
                     recording("v", NOW.minusSeconds(4000), 80 * MB));
-            RecordingSession next = finishedSession("next", NOW.minusSeconds(3000), false,
+            RecordingSession next = endedSession("next", NOW.minusSeconds(3000),
                     recording("n", NOW.minusSeconds(3000), 80 * MB));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(vanished, next));
             when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(SessionDeletion.NOT_FOUND);
@@ -208,26 +205,12 @@ class ProjectRetentionJobQuotaTest {
         }
 
         @Test
-        void neverDeletesRetainedSessions() {
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finishedSession("pinned", NOW.minusSeconds(9000), true,
-                            recording("f1", NOW.minusSeconds(9000), 90 * MB)),
-                    finishedSession("normal", NOW.minusSeconds(3000), false,
-                            recording("f2", NOW.minusSeconds(3000), 90 * MB))));
-
-            execute();
-
-            verify(repositoryManager, never()).deleteRecordingSession("pinned");
-            verify(repositoryManager).deleteRecordingSession("normal");
-        }
-
-        @Test
-        void trimsActiveSessionOnlyAfterFinishedSessionsAreExhausted() {
+        void trimsTheNewestSessionOnlyAfterEndedSessionsAreExhausted() {
             RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 70 * MB);
             RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 60 * MB);
 
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    activeSession("live", NOW.minusSeconds(2500), oldChunk, liveChunk)));
+                    newestSession("live", "inst-1", NOW.minusSeconds(2500), oldChunk, liveChunk)));
 
             execute();
 
@@ -235,15 +218,15 @@ class ProjectRetentionJobQuotaTest {
             verify(storage).deleteRepositoryFiles(eq("live"), captor.capture());
 
             assertEquals(List.of("chunk-old"), captor.getValue(),
-                    "The chunk the profiler is still writing must never be a candidate");
+                    "The recording that may still be on its way must never be a candidate");
         }
 
         @Test
-        void leavesLiveChunkAloneEvenWhenStillOverBudget() {
+        void leavesTheNewestRecordingAloneEvenWhenStillOverBudget() {
             RepositoryFile liveChunk = recording("chunk-live", NOW.minusSeconds(100), 500 * MB);
 
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    activeSession("live", NOW.minusSeconds(2500), liveChunk)));
+                    newestSession("live", "inst-1", NOW.minusSeconds(2500), liveChunk)));
 
             execute();
 
@@ -251,19 +234,19 @@ class ProjectRetentionJobQuotaTest {
         }
 
         /**
-         * Two instances of one project record at once. Both sessions are live, so both are
-         * trimmed — the older one first — and neither loses the chunk its profiler holds open.
+         * Two instances of one project record at once. Both sessions are their instance's newest,
+         * so both are trimmed — the older one first — and neither loses its newest recording.
          */
         @Test
-        void trimsEveryLiveSessionOldestFirstAndKeepsEachOpenChunk() {
+        void trimsEveryNewestSessionOldestFirstAndKeepsEachNewestRecording() {
             RepositoryFile firstOld = recording("first-old", NOW.minusSeconds(3000), 60 * MB);
             RepositoryFile firstOpen = recording("first-open", NOW.minusSeconds(200), 60 * MB);
             RepositoryFile secondOld = recording("second-old", NOW.minusSeconds(1500), 60 * MB);
             RepositoryFile secondOpen = recording("second-open", NOW.minusSeconds(100), 60 * MB);
 
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    activeSession("second", NOW.minusSeconds(1600), secondOld, secondOpen),
-                    activeSession("first", NOW.minusSeconds(3100), firstOld, firstOpen)));
+                    newestSession("second", "inst-2", NOW.minusSeconds(1600), secondOld, secondOpen),
+                    newestSession("first", "inst-1", NOW.minusSeconds(3100), firstOld, firstOpen)));
 
             execute();
 
@@ -271,21 +254,6 @@ class ProjectRetentionJobQuotaTest {
             verify(storage).deleteRepositoryFiles("second", List.of("second-old"));
             verify(storage, never()).deleteRepositoryFiles(eq("first"), eq(List.of("first-open")));
             verify(storage, never()).deleteRepositoryFiles(eq("second"), eq(List.of("second-open")));
-        }
-
-        @Test
-        void doesNotTrimRetainedActiveSession() {
-            RepositoryFile oldChunk = recording("chunk-old", NOW.minusSeconds(2000), 200 * MB);
-
-            RecordingSession pinnedActive = new RecordingSession(
-                    "live", "live", "inst-1", NOW.minusSeconds(2500), null,
-                    RecordingStatus.ACTIVE, List.of(oldChunk), true);
-
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(pinnedActive));
-
-            execute();
-
-            verify(storage, never()).deleteRepositoryFiles(anyString(), any());
         }
     }
 

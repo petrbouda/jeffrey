@@ -51,15 +51,6 @@ public interface RepositoryManager {
     void deleteRecordingSession(String recordingSessionId);
 
     /**
-     * Marks a recording session as retained, exempting it from every retention job,
-     * or releases it again so normal retention resumes.
-     *
-     * @param recordingSessionId the session to update
-     * @param retained           true to exempt the session from retention, false to release it
-     */
-    void setSessionRetained(String recordingSessionId, boolean retained);
-
-    /**
      * Downloads one of the session's files by its id, whatever that file is.
      *
      * <p>The id is all the hub needs: it resolves the file itself, so no caller has to hold the

@@ -24,16 +24,15 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.volume.ProjectDirectory;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 
 public class HubProjectManager implements ProjectManager {
 
     private final ProjectInfo projectInfo;
     private final RepositoryStorage repositoryStorage;
 
-    public HubProjectManager(ProjectDirectory project, FilesystemVolume volume, SessionLiveness liveness) {
+    public HubProjectManager(ProjectDirectory project, FilesystemVolume volume) {
         this.projectInfo = project.info();
-        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.tree(), volume, liveness);
+        this.repositoryStorage = new FilesystemRepositoryStorage(project.info(), project.tree(), volume);
     }
 
     @Override

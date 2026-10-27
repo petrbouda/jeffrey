@@ -71,7 +71,7 @@ onMounted(() => {
         <div class="value-tile tile-broadcast">
           <div class="value-icon"><i class="bi bi-trash3"></i></div>
           <h3>Retention</h3>
-          <p>Sessions are dropped by age and by a per-project cap, a live session is trimmed, a storage quota is enforced, and stale <code>PENDING</code> instances are cleaned up.</p>
+          <p>Sessions are dropped by age and by a per-project cap, each instance's newest session is trimmed, a storage quota is enforced, and stale instances without sessions are cleaned up.</p>
         </div>
         <div class="value-tile tile-collection">
           <div class="value-icon"><i class="bi bi-file-zip"></i></div>
@@ -92,13 +92,13 @@ onMounted(() => {
           color="purple"
           icon="bi bi-calendar-check"
           title="Scheduler Jobs"
-          description="Retention (age, session cap, live-session trim, storage quota, stale PENDING instance cleanup) and LZ4 compression of finished JFR chunks run on a schedule against the shared volume."
+          description="Retention (age, session cap, newest-session trim, storage quota, stale instance cleanup) and LZ4 compression of JFR chunks run on a schedule against the shared volume."
         />
         <DocsFeatureCard
           color="orange"
           icon="bi bi-collection"
           title="Recording Sessions"
-          description="JFR chunks are grouped into sessions per JVM run, laid out on the volume by workspace, project, and instance; their status is read from heartbeat files."
+          description="JFR chunks are grouped into sessions per JVM run, laid out on the volume by workspace, project, and instance; their UUIDv7 directory names order them."
         />
         <DocsFeatureCard
           color="red"
@@ -110,7 +110,7 @@ onMounted(() => {
           color="green"
           icon="bi bi-hdd-stack"
           title="Storage Dashboard"
-          description="Size, file count and last activity per workspace and project, as the last retention pass measured them, plus whether a session is still recording."
+          description="Size, file count and last activity per workspace and project, as the last retention pass measured them."
         />
         <DocsFeatureCard
           color="neutral"

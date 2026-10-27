@@ -47,8 +47,7 @@ public record StorageOverviewResponse(
             String projectName,
             long totalSizeBytes,
             int totalFiles,
-            long lastActivityTimeMillis,
-            boolean active) {
+            long lastActivityTimeMillis) {
 
         public static ProjectStorageResponse from(StorageOverview.ProjectStorage project) {
             return new ProjectStorageResponse(
@@ -58,8 +57,7 @@ public record StorageOverviewResponse(
                     project.projectName(),
                     project.totalSizeBytes(),
                     project.totalFiles(),
-                    project.lastActivityTimeMillis(),
-                    project.active());
+                    project.lastActivityTimeMillis());
         }
     }
 }

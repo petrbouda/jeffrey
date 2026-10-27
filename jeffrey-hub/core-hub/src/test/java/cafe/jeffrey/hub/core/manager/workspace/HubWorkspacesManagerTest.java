@@ -57,7 +57,7 @@ class HubWorkspacesManagerTest {
         Clock clock = FIXED_CLOCK;
         FilesystemVolume volume = new FilesystemVolume(root);
         ProjectManager.Factory projectFactory =
-                project -> new HubProjectManager(project, volume, TestVolume.liveness(clock, volume));
+                project -> new HubProjectManager(project, volume);
         return new HubWorkspacesManager(volume, clock, autoCreate,
                 workspace -> new HubWorkspaceManager(workspace, ws -> new HubProjectsManager(ws, projectFactory)));
     }

@@ -33,6 +33,21 @@
         </MainCardHeader>
       </template>
 
+      <!-- Figures live in the project tab row; they leave with this page -->
+      <Teleport defer :to="PROJECT_NAV_ACTIONS_SELECTOR">
+        <span v-if="!loading && instance" class="instance-figures">
+          <strong>{{ instance.sessionCount }}</strong>
+          {{ instance.sessionCount === 1 ? 'session' : 'sessions' }} ·
+          <template v-if="instance.lastDataAt !== null">
+            Last data
+            <strong :title="FormattingService.formatTimestampUTC(instance.lastDataAt)">{{
+              FormattingService.formatTimestampUTCShort(instance.lastDataAt)
+            }}</strong>
+          </template>
+          <template v-else>No data yet</template>
+        </span>
+      </Teleport>
+
       <!-- Loading Indicator -->
       <LoadingState v-if="loading" message="Loading instance..." />
 
@@ -86,6 +101,7 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
 import { ToastService } from '@shared/services/ToastService';
+import FormattingService from '@shared/services/FormattingService';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
@@ -94,6 +110,7 @@ import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
 import ProjectInstance from '@remote/services/api/model/ProjectInstance';
 import RecordingSession from '@remote/services/api/model/RecordingSession';
 import { useNavigation } from '@/composables/useNavigation';
+import { PROJECT_NAV_ACTIONS_SELECTOR } from '../projectNav';
 import '@shared/styles/shared-components.css';
 
 const { workspaceId, projectId, instanceId } = useNavigation();
@@ -169,3 +186,16 @@ const loadOlder = async () => {
 
 onMounted(() => load());
 </script>
+
+<style scoped>
+.instance-figures {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.instance-figures strong {
+  color: var(--color-dark);
+  font-weight: var(--font-weight-semibold);
+}
+</style>

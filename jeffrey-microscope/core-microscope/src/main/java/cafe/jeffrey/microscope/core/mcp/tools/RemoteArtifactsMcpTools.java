@@ -41,7 +41,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
@@ -193,9 +192,9 @@ public class RemoteArtifactsMcpTools {
      * How a row is reached, said in the table rather than left to the reader to infer from the
      * category. A listing that invites a fetch the fetch tool refuses is worse than no column.
      *
-     * <p>There is deliberately no "still being written" case. Only one file of a session is ever
-     * open — the newest recording chunk — and a recording is never fetched one at a time anyway,
-     * so it already reads {@code remote_download}. Every artifact is fetchable, including one the
+     * <p>There is deliberately no "still being written" case. Only one file of a session can be on
+     * its way — the newest recording of an instance's newest session — and a recording is never
+     * fetched one at a time anyway, so it already reads {@code remote_download}. Every artifact is fetchable, including one the
      * application is still appending to: a log a reader wants to grep before deciding whether the
      * recording is worth the transfer is what this family exists for, and refusing it until the
      * session ends would refuse it for as long as it is interesting.
@@ -208,14 +207,6 @@ public class RemoteArtifactsMcpTools {
             return Fetchability.NEVER;
         }
         return Fetchability.FETCH;
-    }
-
-    /**
-     * What the row's {@code status} column says. A file carries none of its own: the session
-     * holds one chunk open while it records, and every other file of it is final.
-     */
-    private static RecordingStatus statusOf(RecordingSession session, RepositoryFile file) {
-        return session.isOpen(file) ? session.status() : RecordingStatus.FINISHED;
     }
 
     private static String zeroPointNote(LocalSession local) {
@@ -272,22 +263,21 @@ public class RemoteArtifactsMcpTools {
 
         List<FileRow> fileRows = new ArrayList<>(page.size());
         MarkdownTable table = MarkdownTable.withColumns(
-                "fileId", "name", "type", "category", "status", "size", "created", "local", "fetch");
+                "fileId", "name", "type", "category", "newest", "size", "created", "local", "fetch");
         for (RepositoryFile file : page) {
             ManagedFile type = RepositoryFiles.typeOf(file);
             String localPath = localPath(file, ref, local);
-            FileRow row = new FileRow(file.id(), file.name(), type, type.fileCategory(), statusOf(session, file),
+            FileRow row = new FileRow(file.id(), file.name(), type, type.fileCategory(), session.isOpen(file),
                     file.size(), file.createdAt() == null ? null : file.createdAt().toEpochMilli(), localPath,
                     fetchability(file));
             fileRows.add(row);
-            table.row(row.fileId(), row.name(), row.type(), row.category(), row.status(),
+            table.row(row.fileId(), row.name(), row.type(), row.category(), row.newestRecording() ? "yes" : "",
                     ByteSizes.format(file.size()), file.createdAt(), localColumn(file, local, localPath), row.fetch());
         }
 
         boolean empty = files.isEmpty();
         String reason = empty ? "Session " + session.name() + " on the remote " + remote.name() + " holds no files"
-                + (session.status() == RecordingStatus.ACTIVE
-                ? " yet - it is still recording and nothing has been rolled." : ".") : null;
+                + (session.newest() ? " yet - its profiler has not finished its first chunk." : ".") : null;
         String recordingId = local.recording() == null ? null : local.recording().id();
         McpFollowUp followUp = filesFollowUp(encodedRef, rows, next, fileRows, recordingId, local.profileId());
         SessionFiles answer = new SessionFiles(empty ? CatalogueStatus.EMPTY : CatalogueStatus.OK, reason, encodedRef,

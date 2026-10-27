@@ -60,7 +60,9 @@ final class VolumeRepositoryClient implements RepositoryClient {
             Map<String, VolumeSession> byId = sessions.stream()
                     .collect(Collectors.toMap(VolumeSession::id, Function.identity()));
 
-            List<RecordingSession> kept = filter.apply(sessions.stream().map(VolumeResponses::unlisted).toList());
+            List<RecordingSession> kept = filter.apply(sessions.stream()
+                    .map(session -> VolumeResponses.unlisted(session, project.recordingStarts(session)))
+                    .toList());
             return kept.stream()
                     .map(session -> byId.get(session.id()))
                     .map(session -> VolumeResponses.header(session, project.files(session)))
@@ -90,16 +92,6 @@ final class VolumeRepositoryClient implements RepositoryClient {
             }
             LOG.info("Deleted session on the recording volume: session_id={} instance_deleted={} source={}",
                     sessionId, deletion.instanceDeleted(), source.description());
-        });
-    }
-
-    @Override
-    public void setSessionRetained(ProjectScope scope, String sessionId, boolean retained) {
-        WritableVolume volume = source.writable("Cannot pin or unpin session " + sessionId);
-        source.read(() -> {
-            if (!VolumeChanges.setRetained(volume, source.requireProject(scope), sessionId, retained)) {
-                throw Exceptions.recordingSessionNotFound(sessionId);
-            }
         });
     }
 }

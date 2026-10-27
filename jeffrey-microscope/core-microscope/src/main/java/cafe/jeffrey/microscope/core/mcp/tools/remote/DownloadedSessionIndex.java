@@ -45,8 +45,8 @@ import java.util.Set;
  * every one carrying the same tags. Only the recording item is the session's local copy — a heap dump
  * analysed on its own must never be reported as the session's analysis.
  * <p>
- * A copy of a session that was still recording holds the chunks it had at the time. It is listed as
- * here, but only a {@link LocalCopy#complete() complete} one — taken once the session had finished —
+ * A copy of an instance's newest session holds the chunks it had at the time. It is listed as here,
+ * but only a {@link LocalCopy#complete() complete} one — taken once a newer session had ended it —
  * stands in for the session, so a download is declined only for that one.
  * <p>
  * Built forward and in bulk — one listing plus one tag query — because nothing looks recordings up
@@ -70,7 +70,7 @@ public final class DownloadedSessionIndex {
     /**
      * The local copy of a remote session: always a recording, and a profile once it has been analysed.
      *
-     * @param complete whether the copy was taken once the session had finished, and so holds all of it
+     * @param complete whether the copy was taken once a newer session had ended it, and so holds all of it
      */
     public record LocalCopy(String recordingId, String profileId, boolean complete) {
 
@@ -160,7 +160,7 @@ public final class DownloadedSessionIndex {
         }
     }
 
-    /** Whether a copy carries the tag a whole download of a finished session is given. */
+    /** Whether a copy carries the tag a whole download of an ended session is given. */
     private static boolean isComplete(List<RecordingTag> tags) {
         if (tags == null) {
             return false;

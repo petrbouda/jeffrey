@@ -24,6 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -134,7 +135,7 @@ class DownloadWindowTest {
             assertEquals(session.end().minus(Duration.ofMinutes(10)), span.window().start());
         }
 
-        /** Reaching back past the start of a finished session is all of it. */
+        /** Reaching back past the start of an ended session is all of it. */
         @Test
         void lastMinutesCoveringAFinishedSessionAreTheWholeSession() {
             ChunkedSessions session = twelveChunks(5);
@@ -164,12 +165,29 @@ class DownloadWindowTest {
             assertTrue(gone.reason().contains("profile-4"), gone.reason());
         }
 
+        /**
+         * The newest session's first chunk has no measured length yet: its data may reach up to
+         * now, so the last minutes end now and take that chunk rather than covering nothing.
+         */
         @Test
-        void latestIsTheNewestFinishedChunk() {
+        void theLastMinutesOfANewestSessionWithOneChunkTakeThatChunk() {
+            ChunkedSessions oneChunk = ChunkedSessions.startingAt(NOW.minus(Duration.ofMinutes(40)), Duration.ofMinutes(15))
+                    .live();
+
+            WindowResolution.Span span = assertInstanceOf(WindowResolution.Span.class,
+                    DownloadWindow.LAST_MINUTES.resolve(minutes(10), () -> oneChunk.subject(NOW)));
+
+            assertEquals(NOW, span.window().end());
+            assertEquals(List.of(ChunkedSessions.fileId(0)),
+                    span.window().select(oneChunk.build()).files().stream().map(file -> file.id()).toList());
+        }
+
+        @Test
+        void latestIsTheNewestChunkTheNewestSessionsNewestRecordingIncluded() {
             WindowResolution.OneChunk one = assertInstanceOf(WindowResolution.OneChunk.class,
                     DownloadWindow.LATEST.resolve(WindowArguments.NONE, () -> twelveChunks(15).live().subject(NOW)));
 
-            assertEquals(ChunkedSessions.fileId(11), one.fileId());
+            assertEquals(ChunkedSessions.fileId(12), one.fileId());
         }
 
         @Test

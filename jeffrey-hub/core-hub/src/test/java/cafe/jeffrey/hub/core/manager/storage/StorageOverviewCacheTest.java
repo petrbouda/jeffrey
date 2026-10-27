@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +70,7 @@ class StorageOverviewCacheTest {
 
         @Test
         void servesTheProjectsOfTheLastPassAndWhenItRan() {
-            ProjectStorage project = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 10L, 1, 0L, false);
+            ProjectStorage project = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 10L, 1, 0L);
 
             cache.publish(List.of(project));
 
@@ -82,8 +81,8 @@ class StorageOverviewCacheTest {
 
         @Test
         void aLaterPassReplacesTheEarlierOne() {
-            cache.publish(List.of(new ProjectStorage("ws-1", "production", "gone", "gone", 10L, 1, 0L, false)));
-            ProjectStorage remaining = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 5L, 1, 0L, false);
+            cache.publish(List.of(new ProjectStorage("ws-1", "production", "gone", "gone", 10L, 1, 0L)));
+            ProjectStorage remaining = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 5L, 1, 0L);
 
             cache.publish(List.of(remaining));
 
@@ -108,7 +107,7 @@ class StorageOverviewCacheTest {
             ProjectStorage project = ProjectStorage.measure(WORKSPACE, PROJECT, sessions);
 
             assertThat(project).isEqualTo(new ProjectStorage(
-                    "ws-1", "production", "prj-1", "order-service", 1730L, 5, LAST_ACTIVITY.toEpochMilli(), false));
+                    "ws-1", "production", "prj-1", "order-service", 1730L, 5, LAST_ACTIVITY.toEpochMilli()));
         }
 
         @Test
@@ -118,22 +117,10 @@ class StorageOverviewCacheTest {
             assertThat(project.totalSizeBytes()).isZero();
             assertThat(project.totalFiles()).isZero();
             assertThat(project.lastActivityTimeMillis()).isZero();
-            assertThat(project.active()).isFalse();
-        }
-
-        @Test
-        void isActiveWhileOneOfItsSessionsRecords() {
-            List<RecordingSession> sessions = List.of(
-                    session("s-1"),
-                    new RecordingSession("s-2", "s-2", "instance-1", CREATED_AT, null,
-                            RecordingStatus.ACTIVE, List.of(), false));
-
-            assertThat(ProjectStorage.measure(WORKSPACE, PROJECT, sessions).active()).isTrue();
         }
 
         private static RecordingSession session(String id, RepositoryFile... files) {
-            return new RecordingSession(id, id, "instance-1", CREATED_AT, null,
-                    RecordingStatus.FINISHED, List.of(files), false);
+            return new RecordingSession(id, id, "instance-1", CREATED_AT, false, List.of(files));
         }
 
         private static RepositoryFile file(String name, long size, Instant createdAt) {

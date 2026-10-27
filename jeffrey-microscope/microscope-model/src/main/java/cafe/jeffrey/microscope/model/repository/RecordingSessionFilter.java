@@ -22,34 +22,29 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Narrows a recording-session listing. Every field is optional: a {@code null} bound, a
- * {@code null} status or a zero limit does not restrict anything, so {@link #ALL} returns the
- * listing unchanged.
+ * Narrows a recording-session listing. Every field is optional: a {@code null} bound or a zero
+ * limit does not restrict anything, so {@link #ALL} returns the listing unchanged.
  *
  * <p>The time window uses <em>overlap</em> semantics rather than "created inside the window": a
- * session matches when it was recording at any point between {@code activeFrom} and
- * {@code activeTo}. A JVM that started three hours ago and is still running therefore matches
- * "the last hour", which is what a reader asking for recent recordings expects; a session that
- * finished before the window opened does not.
+ * session matches when its recorded span — from its start to the end of its data — touches the
+ * window between {@code activeFrom} and {@code activeTo}. A JVM that started three hours ago and
+ * recorded its last chunk ten minutes ago therefore matches "the last hour", which is what a
+ * reader asking for recent recordings expects; a session whose data ended before the window
+ * opened does not. A session with no data yet reaches only as far as its start.
  *
  * <p>The filter is applied where the sessions are read, so the listing handed back is already the
  * one the caller asked for. {@link #apply(List)} expects the sessions newest first, which is how
  * the volume's layout sorts them; the limit keeps the newest ones.
  *
- * @param activeFrom the session must not have finished before this instant, or {@code null}
+ * @param activeFrom the session's data must not end before this instant, or {@code null}
  * @param activeTo   the session must have started before this instant, or {@code null}
- * @param status     the session must be in this status, or {@code null} for any status
  * @param limit      keep at most this many sessions, or {@link #NO_LIMIT}
  */
-public record RecordingSessionFilter(
-        Instant activeFrom,
-        Instant activeTo,
-        RecordingStatus status,
-        int limit) {
+public record RecordingSessionFilter(Instant activeFrom, Instant activeTo, int limit) {
 
     public static final int NO_LIMIT = 0;
 
-    public static final RecordingSessionFilter ALL = new RecordingSessionFilter(null, null, null, NO_LIMIT);
+    public static final RecordingSessionFilter ALL = new RecordingSessionFilter(null, null, NO_LIMIT);
 
     public RecordingSessionFilter {
         if (limit < NO_LIMIT) {
@@ -63,44 +58,35 @@ public record RecordingSessionFilter(
     }
 
     /**
-     * Sessions that were recording at any point during the last {@code lookBack}, ending at
-     * {@code now}. The window is left open at the end so a session that starts between the
-     * hub's and the caller's clock readings is not lost.
+     * Sessions whose data reaches into the last {@code lookBack}, ending at {@code now}. The window
+     * is left open at the end so a session that starts between the volume's and the caller's
+     * clock readings is not lost.
      */
     public static RecordingSessionFilter activeWithinLast(Duration lookBack, Instant now) {
         if (lookBack.isNegative()) {
             throw new IllegalArgumentException("Look-back must not be negative: look_back=" + lookBack);
         }
-        return new RecordingSessionFilter(now.minus(lookBack), null, null, NO_LIMIT);
-    }
-
-    public RecordingSessionFilter withStatus(RecordingStatus newStatus) {
-        return new RecordingSessionFilter(activeFrom, activeTo, newStatus, limit);
+        return new RecordingSessionFilter(now.minus(lookBack), null, NO_LIMIT);
     }
 
     public RecordingSessionFilter withLimit(int newLimit) {
-        return new RecordingSessionFilter(activeFrom, activeTo, status, newLimit);
+        return new RecordingSessionFilter(activeFrom, activeTo, newLimit);
     }
 
     public boolean isUnrestricted() {
-        return activeFrom == null && activeTo == null && status == null && limit == NO_LIMIT;
+        return activeFrom == null && activeTo == null && limit == NO_LIMIT;
     }
 
     /**
-     * Whether a single session satisfies the window and status constraints. The limit is a
-     * property of the whole listing and is not consulted here.
+     * Whether a single session satisfies the window. The limit is a property of the whole listing
+     * and is not consulted here.
      */
     public boolean matches(RecordingSession session) {
-        if (status != null && session.status() != status) {
-            return false;
-        }
         if (activeTo != null && session.createdAt().isAfter(activeTo)) {
             return false;
         }
-        if (activeFrom != null && session.finishedAt() != null && session.finishedAt().isBefore(activeFrom)) {
-            return false;
-        }
-        return true;
+        Instant reaches = session.lastDataAt() != null ? session.lastDataAt() : session.createdAt();
+        return activeFrom == null || !reaches.isBefore(activeFrom);
     }
 
     /**

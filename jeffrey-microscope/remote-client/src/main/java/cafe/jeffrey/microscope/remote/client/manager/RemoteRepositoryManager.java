@@ -107,9 +107,4 @@ public class RemoteRepositoryManager implements RepositoryManager {
     public void deleteRecordingSession(String recordingSessionId) {
         repositoryClient.deleteSession(scope, recordingSessionId);
     }
-
-    @Override
-    public void setSessionRetained(String recordingSessionId, boolean retained) {
-        repositoryClient.setSessionRetained(scope, recordingSessionId, retained);
-    }
 }

@@ -60,8 +60,9 @@ onMounted(() => {
         Hub runs as a long-lived process next to the shared volume. Async-Profiler running
         inside your applications writes JFR chunks to the volume on every recording loop; the
         hub's scheduler jobs walk the volume — the marker files the provisioner wrote, and the
-        heartbeat files from which each session's status is derived — to drop what retention no
-        longer allows and to compress what has finished. The profiler gets its configuration
+        session directories, whose UUIDv7 names order each instance's sessions — to drop what
+        retention no longer allows and to compress every recording but the newest one of each
+        instance's newest session. The profiler gets its configuration
         (event toggles, sampling intervals, output paths) from the provisioner that started the
         JVM — its <code>profiler-command</code> setting or the
         <code>JEFFREY_PROFILER_COMMAND</code> environment variable.
@@ -104,8 +105,8 @@ onMounted(() => {
       <ul>
         <li>
           <strong>Project retention</strong> (<code>ProjectRetentionJob</code>) drops sessions by
-          age and by a per-project session cap, trims a live session, enforces the storage quota,
-          and cleans up stale <code>PENDING</code> instances whose JVM never started.
+          age and by a per-project session cap, trims each instance's newest session, enforces the storage quota,
+          and cleans up stale instances that never got a session.
         </li>
         <li>
           <strong>Repository compression</strong> (<code>RepositoryCompressionProjectJob</code>)
@@ -121,7 +122,7 @@ onMounted(() => {
       <ul>
         <li>
           <strong>Storage</strong> — what the last retention pass measured per workspace and
-          project: size, files, last activity, and whether a session is still recording
+          project: size, files and last activity
           (<code>GET /api/internal/storage</code>).
         </li>
         <li>

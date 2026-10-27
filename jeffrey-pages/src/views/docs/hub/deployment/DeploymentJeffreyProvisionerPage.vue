@@ -274,7 +274,8 @@ volumes:
         <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> like any other
         application's, with nothing to configure (the Hub also carries the
         <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, which stands
-        down while the agent reports and takes over if the agent is switched off):
+        down while the agent reports and takes over if the agent is switched off; neither the Hub
+        nor Microscope reads those heartbeats — session order and file names decide everything):
       </p>
 
       <DocsCodeBlock

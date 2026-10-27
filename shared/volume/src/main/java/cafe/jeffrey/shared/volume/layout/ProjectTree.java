@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
+import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
@@ -32,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.UncheckedIOException;
 import java.time.DateTimeException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -46,7 +46,8 @@ import java.util.Optional;
  * {@code .session-info.json}, and the files a profiler left behind. Nothing is cached; every call
  * reads the volume again.
  *
- * <p>Ids come from the volume: an instance's and a session's are their directory names. A file's
+ * <p>Ids come from the volume: an instance's and a session's are their directory names, and a
+ * session's name — a time-ordered id — says when it started. A file's
  * id, timestamp and whether it is a recording come from {@link RecordingFormat#of(String)}.
  */
 public final class ProjectTree {
@@ -60,17 +61,18 @@ public final class ProjectTree {
     private static final Comparator<VolumeEntry> NEWEST_BY_NAME =
             Comparator.comparing(VolumeEntry::name).reversed();
 
-    /** The order an instance's sessions started in: by their markers, a tie broken by name. */
+    /** The order an instance's sessions started in: by their starts, a tie broken by name. */
     private static final Comparator<SessionDirectory> OLDEST_FIRST =
             Comparator.comparing(SessionDirectory::createdAt).thenComparing(SessionDirectory::id);
 
     /**
-     * How much earlier than a session's directory a sibling's must have been created before it is
-     * not read as a possibly newer session. The two times come from the volume's own clock, but a
-     * filesystem that keeps no birth time answers its last change instead, so the order is trusted
-     * only well clear of a tie.
+     * Session directories in the order their names say they started, a tie broken by name — the
+     * same order as {@link #OLDEST_FIRST}, known from a listing alone. Only for directories whose
+     * names carry their start ({@link #startNamedBy}).
      */
-    private static final Duration DIRECTORY_ORDER_MARGIN = Duration.ofHours(1);
+    static final Comparator<VolumeEntry> OLDEST_NAMED_FIRST = Comparator
+            .comparing((VolumeEntry entry) -> startNamedBy(entry.name()).orElseThrow())
+            .thenComparing(VolumeEntry::name);
 
     private final VolumeAccess volume;
     private final VolumePath path;
@@ -168,10 +170,32 @@ public final class ProjectTree {
         return Optional.empty();
     }
 
-    /** The session in this directory, or empty when its marker does not read. */
+    /**
+     * The session in this directory, or empty when its marker does not read. It started when its
+     * name says ({@link #startNamedBy}); the marker's time stands in only for a name that says
+     * nothing, so every reader orders a session the same way whether it read the marker or not.
+     */
     public Optional<SessionDirectory> sessionAt(VolumePath dir) {
         return VolumeMarkers.read(volume, dir, JeffreyLayout.SESSION_INFO_FILE, RemoteProjectInstanceSession.class)
-                .map(marker -> new SessionDirectory(dir, Instant.ofEpochMilli(marker.createdAt()), zoneOf(marker, dir)));
+                .map(marker -> new SessionDirectory(
+                        dir,
+                        startNamedBy(dir.name()).orElseGet(() -> Instant.ofEpochMilli(marker.createdAt())),
+                        zoneOf(marker, dir)));
+    }
+
+    /**
+     * When the session a directory is named for started, from the name alone: the provisioner names
+     * each session with a time-ordered id ({@link IDGenerator#generate()}) that carries it. Empty for
+     * any other name, whose start only its marker knows.
+     */
+    static Optional<Instant> startNamedBy(String directoryName) {
+        return IDGenerator.timestampOf(directoryName);
+    }
+
+    /** Whether every session directory among listed entries is named for its start. */
+    static boolean namesCarryStarts(List<VolumeEntry> instanceEntries) {
+        return visibleDirectories(instanceEntries).stream()
+                .allMatch(entry -> startNamedBy(entry.name()).isPresent());
     }
 
     /** An instance's sessions in the order they started — the order a session's end is read from. */
@@ -182,6 +206,11 @@ public final class ProjectTree {
     /** The same, the session markers read through {@code fanOut}. */
     List<SessionDirectory> sessionsOldestFirst(VolumePath instanceDir, ReadFanOut fanOut) {
         return sessionsOldestFirst(VolumeMarkers.childDirectoryEntries(volume, instanceDir), fanOut);
+    }
+
+    /** An instance directory's visible child directories as one listing shows them; none when unlistable. */
+    List<VolumeEntry> sessionDirectoryEntries(VolumePath instanceDir) {
+        return VolumeMarkers.childDirectoryEntries(volume, instanceDir);
     }
 
     /** The sessions among an instance directory's listed entries, in the order they started. */
@@ -223,55 +252,49 @@ public final class ProjectTree {
     }
 
     /**
-     * When the session after this one in its instance started, or empty for the newest — what
-     * {@link #nextStart(List, SessionDirectory)} answers off every sibling, for one session alone.
-     * The instance's listing carries when each directory was created, so only the siblings that may
-     * have started after this one have their markers read: for the newest session, usually none.
-     * A sibling whose listing carries no time (an NFS share lists none) is always read.
+     * Whether no newer session has started in this one's instance — a newer session is what ends
+     * it. The siblings' names say when each started, so only those named after it are looked at,
+     * in order, until one turns out to be a session (usually the first); the newest session reads
+     * none. A sibling whose name carries no start has its marker read.
      */
-    Optional<Instant> nextStart(SessionDirectory session) {
-        return nextStart(session, VolumeMarkers.childDirectoryEntries(volume, session.path().parent()));
-    }
-
-    /** The same, off a listing of the session's instance already in hand. */
-    Optional<Instant> nextStart(SessionDirectory session, List<VolumeEntry> instanceEntries) {
-        List<VolumeEntry> siblings = visibleDirectories(instanceEntries);
-        Optional<Instant> ownCreated = siblings.stream()
-                .filter(entry -> entry.path().equals(session.path()))
-                .findFirst()
-                .flatMap(VolumeEntry::createdAt);
+    boolean isNewest(SessionDirectory session) {
+        List<VolumeEntry> siblings =
+                visibleDirectories(VolumeMarkers.childDirectoryEntries(volume, session.path().parent())).stream()
+                        .filter(entry -> !entry.path().equals(session.path()))
+                        .toList();
+        List<VolumeEntry> namedLater = siblings.stream()
+                .filter(entry -> startNamedBy(entry.name()).isPresent())
+                .filter(entry -> namedAfter(entry, session))
+                .sorted(OLDEST_NAMED_FIRST)
+                .toList();
+        if (anySessionAmong(namedLater)) {
+            return false;
+        }
         return siblings.stream()
-                .filter(entry -> !entry.path().equals(session.path()))
-                .filter(entry -> mayHaveStartedAfter(entry, ownCreated))
+                .filter(entry -> startNamedBy(entry.name()).isEmpty())
                 .map(entry -> sessionAt(entry.path()))
                 .flatMap(Optional::stream)
-                .filter(sibling -> OLDEST_FIRST.compare(sibling, session) > 0)
-                .min(OLDEST_FIRST)
-                .map(SessionDirectory::createdAt);
+                .noneMatch(sibling -> OLDEST_FIRST.compare(sibling, session) > 0);
     }
 
-    private static boolean mayHaveStartedAfter(VolumeEntry sibling, Optional<Instant> ownCreated) {
-        if (ownCreated.isEmpty() || sibling.createdAt().isEmpty()) {
-            return true;
-        }
-        return !sibling.createdAt().get().isBefore(ownCreated.get().minus(DIRECTORY_ORDER_MARGIN));
+    /** Whether a sibling's name puts it after the session, in {@link #OLDEST_FIRST}'s order. */
+    private static boolean namedAfter(VolumeEntry sibling, SessionDirectory session) {
+        Instant siblingStart = startNamedBy(sibling.name()).orElseThrow();
+        int byStart = siblingStart.compareTo(session.createdAt());
+        return byStart > 0 || (byStart == 0 && sibling.name().compareTo(session.id()) > 0);
     }
 
     /**
-     * When the session after this one in its instance started, or empty for the newest: a newer
-     * session in the same instance is what ended this one.
+     * Whether any of these directories is a session, read in order and only up to the first that
+     * is: a directory whose marker is not written yet is no session, so the next one is read.
      */
-    static Optional<Instant> nextStart(List<SessionDirectory> oldestFirst, SessionDirectory session) {
-        for (int i = 0; i < oldestFirst.size() - 1; i++) {
-            if (oldestFirst.get(i).path().equals(session.path())) {
-                return Optional.of(oldestFirst.get(i + 1).createdAt());
+    private boolean anySessionAmong(List<VolumeEntry> inOrder) {
+        for (VolumeEntry entry : inOrder) {
+            if (sessionAt(entry.path()).isPresent()) {
+                return true;
             }
         }
-        return Optional.empty();
-    }
-
-    boolean isRetained(SessionDirectory session) {
-        return VolumeMarkers.hasFlag(volume, session.path(), SessionDirectory.RETAINED_FLAG);
+        return false;
     }
 
     /**
@@ -315,6 +338,28 @@ public final class ProjectTree {
      */
     public List<SessionFile> files(VolumeSession session) {
         return files(session.listing().entries(), session.zone());
+    }
+
+    /**
+     * When each recording of a session just read started, oldest first, off the listing it was
+     * read from and by the timestamps in their names: no file is looked at, so it asks the volume
+     * nothing. Empty when the session's directory could not be listed.
+     */
+    public List<Instant> recordingStarts(VolumeSession session) {
+        List<VolumeEntry> entries;
+        try {
+            entries = session.listing().entries();
+        } catch (UncheckedIOException e) {
+            return List.of();
+        }
+        return entries.stream()
+                .filter(VolumeEntry::isFile)
+                .filter(entry -> !entry.path().isHidden())
+                .flatMap(entry -> RecordingFormat.of(entry.name())
+                        .flatMap(format -> format.timestampResolver().resolve(entry, session.zone()))
+                        .stream())
+                .sorted()
+                .toList();
     }
 
     /**

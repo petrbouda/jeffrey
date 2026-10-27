@@ -28,19 +28,19 @@
       <span class="tl-main">{{ FormattingService.formatRelativeTime(createdAt) }}</span>
     </div>
     <div class="tl-item">
-      <span class="tl-icon-badge tl-icon-badge--danger">
-        <i class="bi bi-stop-fill"></i>
+      <span class="tl-icon-badge tl-icon-badge--purple">
+        <i class="bi bi-clock-history"></i>
       </span>
       <div class="tl-info">
-        <span class="tl-label">Finished</span>
-        <span v-if="finishedAt" class="tl-sub">{{
-          FormattingService.formatTimestampUTC(finishedAt)
+        <span class="tl-label">Last data</span>
+        <span v-if="lastDataAt" class="tl-sub">{{
+          FormattingService.formatTimestampUTC(lastDataAt)
         }}</span>
       </div>
-      <template v-if="finishedAt">
-        <span class="tl-main">{{ FormattingService.formatRelativeTime(finishedAt) }}</span>
+      <template v-if="lastDataAt">
+        <span class="tl-main">{{ FormattingService.formatRelativeTime(lastDataAt) }}</span>
       </template>
-      <span v-else class="tl-main tl-running">Running...</span>
+      <span v-else class="tl-main tl-running">No data yet</span>
     </div>
     <div class="tl-item">
       <span class="tl-icon-badge tl-icon-badge--primary">
@@ -49,7 +49,10 @@
       <div class="tl-info">
         <span class="tl-label">Duration</span>
       </div>
-      <span class="tl-main">{{ FormattingService.formatDurationInMillis2Units(duration) }}</span>
+      <span v-if="duration != null" class="tl-main">{{
+        FormattingService.formatDurationInMillis2Units(duration)
+      }}</span>
+      <span v-else class="tl-main tl-running">—</span>
     </div>
     <div v-for="item in extraItems" :key="item.key" class="tl-item">
       <span class="tl-icon-badge" :class="`tl-icon-badge--${item.tone}`">
@@ -69,8 +72,10 @@ import type { TimelineBarItem } from '@shared/types/ui';
 
 interface Props {
   createdAt: number;
-  finishedAt?: number | null;
-  duration: number;
+  /** When the recorded data ends; absent while there is no recording. */
+  lastDataAt?: number | null;
+  /** Absent while there is no recording. */
+  duration?: number | null;
   /** Cells appended after Duration. */
   extraItems?: TimelineBarItem[];
 }

@@ -39,17 +39,9 @@
           <!-- Stacked icon-over-label tabs, matching MainNavigation -->
           <nav class="nav-container" aria-label="Project sections">
             <router-link
-              :to="generateProjectUrl('instances/timeline')"
-              class="nav-pill"
-              active-class="active"
-            >
-              <i class="bi bi-bar-chart-steps"></i>
-              <span>Timeline</span>
-            </router-link>
-            <router-link
               :to="generateProjectUrl('instances')"
               class="nav-pill"
-              :class="{ active: isInstancesActive }"
+              active-class="active"
             >
               <i class="bi bi-grid"></i>
               <span>Instances</span>
@@ -77,8 +69,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import ToastService from '@shared/services/ToastService';
 import ProjectClient from '@remote/services/api/ProjectClient.ts';
 import Project from '@remote/services/api/model/Project.ts';
@@ -87,19 +79,11 @@ import Workspace from '@remote/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
 import { PROJECT_NAV_ACTIONS_ID } from './projectNav';
 
-const route = useRoute();
 const router = useRouter();
 const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
-
-// Prefix-matching would mark Instances active on /instances/timeline (which has its own tab).
-// Custom predicate: active on /instances and /instances/{instanceId} but not on /timeline.
-const isInstancesActive = computed(() => {
-  const path = route.path;
-  return /\/instances(\/[^/]+)?$/.test(path) && !path.endsWith('/instances/timeline');
-});
 
 async function initializeProject() {
   if (!projectId.value || !workspaceId.value) {

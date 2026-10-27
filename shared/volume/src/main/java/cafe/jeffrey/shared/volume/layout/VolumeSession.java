@@ -18,26 +18,26 @@
 package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.volume.VolumePath;
-import cafe.jeffrey.shared.volume.liveness.SessionLifecycle;
 
 import java.time.Instant;
 import java.time.ZoneId;
 
 /**
- * A session as the volume says it is at the moment of reading: its directory, whether it is still
- * recording, whether it is pinned against retention, and the one listing of its directory all of
- * that was read off — {@link ProjectTree#files(VolumeSession)} describes its files from that
- * listing, without listing the directory again.
+ * A session as the volume says it is at the moment of reading: its directory, whether it is its
+ * instance's newest, and the one listing of its directory — {@link ProjectTree#files(VolumeSession)}
+ * describes its files from that listing, without listing the directory again.
+ *
+ * @param newest whether no newer session has started in its instance: only the newest session's
+ *               newest recording may still be on its way onto the volume, and only it can grow
  */
-public record VolumeSession(
-        SessionDirectory directory, SessionLifecycle lifecycle, boolean retained, SessionListing listing) {
+public record VolumeSession(SessionDirectory directory, boolean newest, SessionListing listing) {
 
     /** Joins a session's instance and its own directory into its name, relative to the project. */
     private static final String NAME_SEPARATOR = "/";
 
     public VolumeSession {
-        if (directory == null || lifecycle == null || listing == null) {
-            throw new IllegalArgumentException("A volume session needs its directory, its lifecycle and its listing");
+        if (directory == null || listing == null) {
+            throw new IllegalArgumentException("A volume session needs its directory and its listing");
         }
     }
 

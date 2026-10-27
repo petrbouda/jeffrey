@@ -83,8 +83,8 @@ export type SlowestRowTone = 'default' | 'danger';
 export type TimelineBarTone = Extract<Variant, 'purple'>;
 
 /**
- * An extra cell a caller appends to {@link TimelineBar}'s Started / Finished / Duration row, so a
- * page can add a fact of its own (e.g. a liveness signal) without the shared bar knowing its domain.
+ * An extra cell a caller appends to {@link TimelineBar}'s Started / Last data / Duration row, so a
+ * page can add a fact of its own without the shared bar knowing its domain.
  */
 export interface TimelineBarItem {
   /** Stable key for the v-for. */
@@ -92,7 +92,7 @@ export interface TimelineBarItem {
   /** Bootstrap icon class of the badge, e.g. `bi bi-activity`. */
   icon: string;
   tone: TimelineBarTone;
-  /** Small uppercase caption, e.g. "Heartbeat". */
+  /** Small uppercase caption, e.g. "Files". */
   label: string;
   /** The cell's main value, right-aligned and tinted with the tone. */
   value: string;

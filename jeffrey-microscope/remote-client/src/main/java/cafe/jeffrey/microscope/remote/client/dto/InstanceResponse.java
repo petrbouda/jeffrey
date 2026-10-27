@@ -19,62 +19,31 @@ package cafe.jeffrey.microscope.remote.client.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
-import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.util.List;
-
+/**
+ * An instance as this application's API reports it.
+ *
+ * @param createdAt  epoch millis when the provisioner registered it
+ * @param lastDataAt epoch millis when the data of its newest session ends; {@code null} while it has none
+ */
 public record InstanceResponse(
         String id,
         String instanceName,
-        String status,
         Long createdAt,
-        Long finishedAt,
-        int sessionCount,
-        String activeSessionId,
-        Long duration,
-        List<InstanceSessionResponse> sessions) {
+        Long lastDataAt,
+        int sessionCount) {
 
-    /**
-     * An instance as a remote lists it, without its sessions: named by its id,
-     * and lasting until it finished — no duration while it runs.
-     *
-     * @param createdAt  epoch millis
-     * @param finishedAt epoch millis; {@code null} while it runs
-     */
-    public static InstanceResponse summary(
-            String id, ProjectInstanceStatus status, long createdAt, Long finishedAt, int sessionCount) {
-
-        return new InstanceResponse(
-                id,
-                id,
-                status.name(),
-                createdAt,
-                finishedAt,
-                sessionCount,
-                null,
-                finishedAt != null ? finishedAt - createdAt : null,
-                List.of());
+    /** An instance as a remote lists it: named by its id. */
+    public static InstanceResponse summary(String id, long createdAt, Long lastDataAt, int sessionCount) {
+        return new InstanceResponse(id, id, createdAt, lastDataAt, sessionCount);
     }
 
-    public static InstanceResponse from(ProjectInstanceInfo info, Clock clock) {
-        Instant end = info.finishedAt() != null ? info.finishedAt() : clock.instant();
-        long duration = end.toEpochMilli() - info.startedAt().toEpochMilli();
-
-        List<InstanceSessionResponse> sessions = info.sessions().stream()
-                .map(s -> InstanceSessionResponse.from(s, clock))
-                .toList();
-
+    public static InstanceResponse from(ProjectInstanceInfo info) {
         return new InstanceResponse(
                 info.id(),
                 info.instanceName(),
-                info.status().name(),
                 InstantUtils.toEpochMilli(info.startedAt()),
-                InstantUtils.toEpochMilli(info.finishedAt()),
-                info.sessionCount(),
-                info.activeSessionId(),
-                duration,
-                sessions);
+                InstantUtils.toEpochMilli(info.lastDataAt()),
+                info.sessionCount());
     }
 }

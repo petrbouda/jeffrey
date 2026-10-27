@@ -76,21 +76,20 @@ onMounted(() => {
 ├── profile-1704067200.jfr       # JFR chunk (timestamp-based naming)
 ├── profile-1704067800.jfr       # Next chunk after loop interval
 ├── profile-1704068400.jfr       # ... more chunks
-├── .heartbeat/                  # Heartbeat liveness files
+├── .heartbeat/                  # Written by the agent; not read by the Hub or Microscope
 │   ├── heartbeat                # Epoch millis, rewritten every 5 seconds
 │   └── finished                 # Clean-exit marker (written on JVM shutdown)
 ├── heap-dump.hprof.gz           # Heap dump (if captured)
 ├── jfr.jvm-log                  # JVM log (if enabled)
 ├── perf-counters.hsperfdata     # Performance counters (if enabled)
 ├── hs-jvm-err.log               # HotSpot error log (written on JVM crash)
-├── .retained                    # Written by Microscope while the session is pinned against retention
 └── .session-info.json           # Session metadata</code></pre>
         </div>
 
         <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone; the session's <code>.session-info.json</code> records that zone so the Hub reads the timestamp back correctly.</p>
 
         <DocsCallout type="info">
-          <strong>Liveness files:</strong> the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> — loaded from <code>jeffrey-agent.path</code>, so nothing of it lands in the session — or, with the agent switched off, the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> on clean exit. The hub reads these files whenever it reads the session: it reports the session finished as soon as the <code>finished</code> marker appears, and falls back to heartbeat staleness for crashed JVMs. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
+          <strong>Liveness files:</strong> the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> — loaded from <code>jeffrey-agent.path</code>, so nothing of it lands in the session — or, with the agent switched off, the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library rewrites <code>.heartbeat/heartbeat</code> every 5 seconds and writes <code>.heartbeat/finished</code> on clean exit. The Hub and Microscope no longer read them: session order and file names decide everything. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
         </DocsCallout>
 
         <h2 id="recorded-events">Recorded Events</h2>

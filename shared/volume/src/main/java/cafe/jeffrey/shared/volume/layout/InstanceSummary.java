@@ -17,12 +17,10 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import java.time.Instant;
 import java.util.Optional;
 
 /**
- * An instance with how many sessions it holds and its newest one, which is all its state is read
- * from: an older session's liveness files are never read for it.
+ * An instance with how many sessions it holds and its newest one.
  *
  * @param sessionCount the instance's session markers
  * @param newest       its newest session, or empty while it has none
@@ -37,17 +35,5 @@ public record InstanceSummary(InstanceDirectory instance, int sessionCount, Opti
             throw new IllegalArgumentException(
                     "An instance has a newest session exactly when it has sessions: count=" + sessionCount);
         }
-    }
-
-    /** PENDING without a session; otherwise ACTIVE while the newest records, FINISHED once it ended. */
-    public InstanceState state() {
-        return newest
-                .map(session -> session.lifecycle().isRecording() ? InstanceState.ACTIVE : InstanceState.FINISHED)
-                .orElse(InstanceState.PENDING);
-    }
-
-    /** When its newest session ended; empty while it records or before it has one. */
-    public Optional<Instant> finishedAt() {
-        return newest.map(session -> session.lifecycle().finishedAt());
     }
 }

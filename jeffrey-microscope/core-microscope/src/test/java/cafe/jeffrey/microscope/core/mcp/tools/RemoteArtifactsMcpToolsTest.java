@@ -41,7 +41,6 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
 import cafe.jeffrey.shared.common.Json;
@@ -151,15 +150,13 @@ class RemoteArtifactsMcpToolsTest {
 
     private static RecordingSession session(RepositoryFile... files) {
         return new RecordingSession(SESSION_ID, "instance-1", "inst-1", NOW, NOW.plusSeconds(600),
-                RecordingStatus.FINISHED, null, List.of(files), false);
+                false, null, List.of(files), false);
     }
 
-    /**
-     * A session that is still recording, so its newest chunk is the one the profiler holds open.
-     */
+    /** Its instance's newest session, whose newest recording may still be on its way onto the volume. */
     private static RecordingSession liveSession(RepositoryFile... files) {
-        return new RecordingSession(SESSION_ID, "instance-1", "inst-1", NOW, null,
-                RecordingStatus.ACTIVE, null, List.of(files), false);
+        return new RecordingSession(SESSION_ID, "instance-1", "inst-1", NOW, NOW.plusSeconds(120),
+                true, null, List.of(files), false);
     }
 
     private void remoteHolds(RecordingSession session) {
@@ -291,20 +288,19 @@ class RemoteArtifactsMcpToolsTest {
 
             String text = tools.files(REF.encode(), null, null).text();
 
-            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | ARTIFACT | FINISHED |"), text);
+            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | ARTIFACT |  |"), text);
             assertTrue(text.contains("| f-crash | hs-jvm-err.log | HS_JVM_ERROR_LOG | ARTIFACT |"), text);
-            assertTrue(text.contains("| f-gc | gc.jvm-log | JVM_LOG | ARTIFACT | FINISHED |"), text);
+            assertTrue(text.contains("| f-gc | gc.jvm-log | JVM_LOG | ARTIFACT |  |"), text);
             assertTrue(text.contains("| f-jfr | profile-1.jfr | JFR | RECORDING |"), text);
             assertTrue(text.contains("remote_fetchFile"), text);
         }
 
         /**
-         * The status column is derived here rather than sent: no file carries one, so the row for
-         * the chunk the profiler still holds open is the session's status, and every other row —
-         * the earlier chunks and every artifact beside them — reads FINISHED.
+         * The newest column is derived here rather than sent: only the newest recording of the
+         * instance's newest session is marked, never an earlier chunk or an artifact beside it.
          */
         @Test
-        void theOpenChunkOfALiveSessionIsTheOnlyRowThatIsNotFinished() {
+        void theNewestRecordingOfTheNewestSessionIsTheOnlyRowMarkedNewest() {
             remoteHolds(liveSession(
                     file("f-c1", "profile-1.jfr", ManagedFile.JFR, NOW),
                     file("f-c2", "profile-2.jfr", ManagedFile.JFR, NOW.plusSeconds(60)),
@@ -312,9 +308,9 @@ class RemoteArtifactsMcpToolsTest {
 
             String text = tools.files(REF.encode(), null, null).text();
 
-            assertTrue(text.contains("| f-c2 | profile-2.jfr | JFR | RECORDING | ACTIVE |"), text);
-            assertTrue(text.contains("| f-c1 | profile-1.jfr | JFR | RECORDING | FINISHED |"), text);
-            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | ARTIFACT | FINISHED |"), text);
+            assertTrue(text.contains("| f-c2 | profile-2.jfr | JFR | RECORDING | yes |"), text);
+            assertTrue(text.contains("| f-c1 | profile-1.jfr | JFR | RECORDING |  |"), text);
+            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | ARTIFACT |  |"), text);
         }
 
         @Test
@@ -413,7 +409,7 @@ class RemoteArtifactsMcpToolsTest {
             McpToolResult result = tools.files(REF.encode(), null, null);
             String text = result.text();
 
-            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | ARTIFACT | FINISHED |"), text);
+            assertTrue(text.contains("| f-log | service-app.log | APP_LOG | ARTIFACT |  |"), text);
             // the last two cells of each row: an empty `local`, then `fetch`
             assertTrue(text.contains("|  | FETCH |"), text);
             assertTrue(text.contains("|  | DOWNLOAD |"), text);
@@ -660,12 +656,11 @@ class RemoteArtifactsMcpToolsTest {
         }
 
         /**
-         * An artifact of a session that is still recording is fetched like any other. Only the
-         * newest recording chunk is held open, and a log a reader wants to grep before deciding
-         * whether the recording is worth the transfer is the whole point of this family.
+         * An artifact of the newest session is fetched like any other: a log a reader wants to grep
+         * before deciding whether the recording is worth the transfer is the whole point of this family.
          */
         @Test
-        void anArtifactOfALiveSessionIsStillFetched() throws IOException {
+        void anArtifactOfTheNewestSessionIsFetched() throws IOException {
             remoteHolds(liveSession(
                     file("f-jfr", "profile-1.jfr", ManagedFile.JFR, NOW.plusSeconds(60)),
                     file("f-gc", "gc.jvm-log", ManagedFile.JVM_LOG, NOW.plusSeconds(120))));

@@ -124,27 +124,6 @@ class VolumeChangesTest {
     }
 
     @Nested
-    class Pinning {
-
-        @Test
-        void setsAndClearsTheRetainedFlag() {
-            Path session = VolumeWriter.session(VolumeWriter.instance(projectDir, "pod-a", T0), "s-1", T0, null);
-
-            assertTrue(VolumeChanges.setRetained(volume, project(), "s-1", true));
-            assertTrue(Files.exists(session.resolve(SessionDirectory.RETAINED_FLAG)));
-            assertTrue(VolumeChanges.setRetained(volume, project(), "s-1", true), "setting it twice is no error");
-
-            assertTrue(VolumeChanges.setRetained(volume, project(), "s-1", false));
-            assertFalse(Files.exists(session.resolve(SessionDirectory.RETAINED_FLAG)));
-        }
-
-        @Test
-        void isFalseForASessionTheProjectDoesNotHold() {
-            assertFalse(VolumeChanges.setRetained(volume, project(), "missing", true));
-        }
-    }
-
-    @Nested
     class DeletingASession {
 
         @Test

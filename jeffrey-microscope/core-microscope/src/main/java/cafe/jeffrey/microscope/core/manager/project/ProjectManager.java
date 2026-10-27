@@ -21,17 +21,20 @@ import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
 
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
+import java.time.Instant;
 import java.util.function.Function;
 
 public interface ProjectManager {
 
+    /**
+     * @param lastDataAt when the newest data of any of its instances ends; {@code null} without any
+     */
     record DetailedProjectInfo(
             ProjectInfo projectInfo,
-            RecordingStatus status,
+            Instant lastDataAt,
             int sessionCount,
             RecordingEventSource eventSource) {
     }

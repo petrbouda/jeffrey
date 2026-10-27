@@ -17,15 +17,17 @@
 package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
 import cafe.jeffrey.microscope.core.mcp.tools.ByteSizes;
+import cafe.jeffrey.microscope.model.repository.ChunkWindow.Selection.Chunk;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * The session a window is chosen in, as the remote described it when it was read: its span — up to now
- * while it still records — its size and its chunks.
+ * The session a window is chosen in, as the remote described it when it was read: its span — up to the
+ * end of its recorded data — its size and its chunks.
  *
  * @param session the session with its files
  * @param remote  the remote's name, for the question's wording; null on a call that is not asked
@@ -46,13 +48,33 @@ public record WindowSubject(RecordingSession session, String remote, String proj
         return session.createdAt();
     }
 
-    /** Where it ended, or now while it still records. */
+    /**
+     * Where its recorded data ends, or its start while it has none; now only without either. While
+     * the newest session's end is unmeasured — its data ends where its newest chunk starts, as with
+     * a single chunk — that chunk may reach up to now: ending at its start would leave every recent
+     * window covering nothing.
+     */
     public Instant end() {
-        return session.finishedAt() == null ? now : session.finishedAt();
+        if (mayGrow() && endIsUnmeasured() && now.isAfter(session.lastDataAt())) {
+            return now;
+        }
+        if (session.lastDataAt() != null) {
+            return session.lastDataAt();
+        }
+        return session.createdAt() != null ? session.createdAt() : now;
     }
 
-    public boolean stillRecording() {
-        return session.finishedAt() == null;
+    private boolean endIsUnmeasured() {
+        if (session.lastDataAt() == null) {
+            return false;
+        }
+        List<Chunk> chunks = chunks().chunks();
+        return !chunks.isEmpty() && !session.lastDataAt().isAfter(chunks.getLast().start());
+    }
+
+    /** Whether it may still grow: no newer session has started in its instance. */
+    public boolean mayGrow() {
+        return session.newest();
     }
 
     /** The session's chunks: their spans, their length, the first, the latest and the largest. */
@@ -86,9 +108,10 @@ public record WindowSubject(RecordingSession session, String remote, String proj
         String chunks = chunks().chunkLength()
                 .map(length -> ", in chunks of about " + length(length))
                 .orElse("");
-        if (stillRecording()) {
-            return "spans " + start() + " to now, " + end() + ", and is still recording ("
-                    + length(Duration.between(start(), end())) + " so far, " + size() + chunks + ").";
+        if (mayGrow()) {
+            return "spans " + start() + " to " + end() + ", the end of its recorded data so far, and is its "
+                    + "instance's newest session (" + length(Duration.between(start(), end())) + " so far, "
+                    + size() + chunks + ").";
         }
         return "spans " + start() + " to " + end() + " (" + length(Duration.between(start(), end())) + ", "
                 + size() + chunks + ").";

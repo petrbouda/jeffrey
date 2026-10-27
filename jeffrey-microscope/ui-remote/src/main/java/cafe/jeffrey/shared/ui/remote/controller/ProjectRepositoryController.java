@@ -25,8 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -37,11 +35,9 @@ import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.remote.request.SessionRetainedRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Clock;
 
 /**
  * Shared remote-project repository controller. Annotated @RestController and registered as a @Bean via RemoteFeatureConfiguration;
@@ -60,11 +56,9 @@ public class ProjectRepositoryController {
     private static final String SESSION_FILE_SEPARATOR = "-";
 
     private final RemoteProjectAccess projectAccess;
-    private final Clock clock;
 
-    public ProjectRepositoryController(RemoteProjectAccess projectAccess, Clock clock) {
+    public ProjectRepositoryController(RemoteProjectAccess projectAccess) {
         this.projectAccess = projectAccess;
-        this.clock = clock;
     }
 
     @GetMapping("/statistics")
@@ -89,7 +83,7 @@ public class ProjectRepositoryController {
         LOG.debug("Fetching repository session: projectId={} sessionId={}", projectId, sessionId);
         RecordingSession session = projectAccess.repositoryManager(workspaceId, projectId)
                 .recordingSession(sessionId);
-        return RecordingSessionResponse.from(session, clock);
+        return RecordingSessionResponse.from(session);
     }
 
     @DeleteMapping("/sessions/{sessionId}")
@@ -100,17 +94,6 @@ public class ProjectRepositoryController {
         LOG.debug("Deleting repository session: sessionId={}", sessionId);
         RepositoryManager mgr = projectAccess.repositoryManager(workspaceId, projectId);
         mgr.deleteRecordingSession(sessionId);
-    }
-
-    @PostMapping("/sessions/{sessionId}/retained")
-    public void setSessionRetained(
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId,
-            @PathVariable("sessionId") String sessionId,
-            @RequestBody SessionRetainedRequest request) {
-        LOG.debug("Updating repository session retention: sessionId={} retained={}", sessionId, request.retained());
-        RepositoryManager mgr = projectAccess.repositoryManager(workspaceId, projectId);
-        mgr.setSessionRetained(sessionId, request.retained());
     }
 
     @GetMapping(value = "/sessions/{sessionId}/files/{fileId}/download",

@@ -57,7 +57,7 @@ sealed interface WindowRule {
         }
     }
 
-    /** The last minutes up to the session's end — now while it still records. */
+    /** The last minutes up to the end of the session's recorded data. */
     record LastMinutes() implements WindowRule {
 
         private static final String NO_SPAN =
@@ -75,7 +75,7 @@ sealed interface WindowRule {
             Instant end = session.end();
             Instant reach = end.minus(Duration.ofMinutes(minutes.get()));
             boolean reachesTheStart = session.start() != null && !reach.isAfter(session.start());
-            if (reachesTheStart && !session.stillRecording()) {
+            if (reachesTheStart && !session.mayGrow()) {
                 return new WindowResolution.Whole(ChosenWindow.span(window, REACHES_THE_START.formatted(minutes.get())));
             }
             Instant from = reachesTheStart ? session.start() : reach;
@@ -134,12 +134,12 @@ sealed interface WindowRule {
         }
     }
 
-    /** The newest finished chunk; never the one still being written. */
+    /** The newest chunk with something in it. */
     record Latest() implements WindowRule {
 
-        private static final String NO_FINISHED_CHUNK =
-                "The session has no finished chunk yet, so there is no %s to take; choose a window.";
-        private static final String EVIDENCE = "the newest finished chunk, from %s";
+        private static final String NO_CHUNK =
+                "The session has no chunk yet, so there is no %s to take; choose a window.";
+        private static final String EVIDENCE = "the newest chunk, from %s";
         private static final String WHAT = "latest chunk";
 
         @Override
@@ -148,12 +148,12 @@ sealed interface WindowRule {
             return session.chunks().latest()
                     .<WindowResolution>map(chunk -> new WindowResolution.OneChunk(chunk.file().id(),
                             WindowTexts.chunkChosen(window, EVIDENCE.formatted(chunk.start()), chunk, null, session)))
-                    .orElseGet(() -> new WindowResolution.Refused(NO_FINISHED_CHUNK.formatted(WHAT)));
+                    .orElseGet(() -> new WindowResolution.Refused(NO_CHUNK.formatted(WHAT)));
         }
 
         @Override
         public Optional<String> title(WindowSubject subject) {
-            return subject.chunks().latest().map(chunk -> "Latest finished chunk (" + WindowTexts.chunkSpan(chunk, subject)
+            return subject.chunks().latest().map(chunk -> "Latest chunk (" + WindowTexts.chunkSpan(chunk, subject)
                     + ", " + ByteSizes.format(chunk.file().size()) + ")");
         }
     }

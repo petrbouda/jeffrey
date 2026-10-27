@@ -19,15 +19,12 @@ package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumePath;
-import cafe.jeffrey.shared.volume.layout.InstanceState;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
@@ -36,7 +33,6 @@ import cafe.jeffrey.shared.volume.layout.SessionDirectory;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.shared.volume.recording.RecordingFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +41,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -55,24 +50,19 @@ import java.util.stream.Stream;
 /**
  * A project's repository as it lies on the shared volume, which is all the hub knows of it. What
  * the volume holds is read through {@link ProjectTree}, the layout every reader of the volume
- * shares; the changes a user asks for — retention flags, session deletions — go through
+ * shares; the changes a user asks for — session deletions — go through
  * {@link VolumeChanges}, the same rules every writer keeps, and the hub's own upkeep — file
  * deletions, compression — is done here, on the filesystem the volume lies on. Nothing is cached;
  * every call reads the directories again.
  *
- * <p>A session's id is its directory name and its lifecycle is read from its liveness files by
- * {@link SessionLiveness} at that moment. A file's id, timestamp source and whether it is a
+ * <p>A session's id is its directory name, and whether it is its instance's newest comes from the
+ * order of its instance's sessions at that moment. A file's id, timestamp source and whether it is a
  * recording come from {@link RecordingFormat#of(String)}: a JFR and its archive are the only types
  * the hub knows. Everything else (logs, heap dumps) is listed and served as it lies.
  */
 public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilesystemRepositoryStorage.class);
-
-    private static final Map<InstanceState, ProjectInstanceStatus> INSTANCE_STATUSES = Map.of(
-            InstanceState.PENDING, ProjectInstanceStatus.PENDING,
-            InstanceState.ACTIVE, ProjectInstanceStatus.ACTIVE,
-            InstanceState.FINISHED, ProjectInstanceStatus.FINISHED);
 
     private final ProjectInfo projectInfo;
     private final ProjectTree tree;
@@ -84,11 +74,11 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      * @param volume the filesystem the tree lies on, where the hub's own changes are written
      */
     public FilesystemRepositoryStorage(
-            ProjectInfo projectInfo, ProjectTree tree, FilesystemVolume volume, SessionLiveness liveness) {
+            ProjectInfo projectInfo, ProjectTree tree, FilesystemVolume volume) {
 
         this.projectInfo = projectInfo;
         this.tree = tree;
-        this.sessions = new ProjectSessions(tree, liveness);
+        this.sessions = new ProjectSessions(tree);
         this.volume = volume;
     }
 
@@ -101,11 +91,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.name(),
                 session.instanceId(),
                 session.createdAt(),
-                session.lifecycle().finishedAt(),
-                session.lifecycle().isRecording() ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED,
-                List.of(),
-                session.retained(),
-                session.lifecycle().heartbeatMissing());
+                session.newest(),
+                List.of());
     }
 
     private Optional<RecordingSession> session(String sessionId) {
@@ -130,11 +117,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
                 session.name(),
                 session.instanceId(),
                 session.createdAt(),
-                session.finishedAt(),
-                session.status(),
-                files,
-                session.retained(),
-                session.heartbeatMissing());
+                session.newest(),
+                files);
     }
 
     private RepositoryFile toRepositoryFile(SessionFile file) {
@@ -152,9 +136,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private static ProjectInstanceInfo instanceInfo(InstanceSummary summary) {
         return new ProjectInstanceInfo(
                 summary.instance().id(),
-                INSTANCE_STATUSES.get(summary.state()),
                 summary.instance().createdAt(),
-                summary.finishedAt().orElse(null),
                 summary.sessionCount());
     }
 
@@ -232,7 +214,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     public int compressSession(String sessionId) {
         RecordingSession session = resolveSession(sessionId);
 
-        // Every closed chunk; for a live session, all but the one the profiler is still writing
+        // Every closed chunk; for an instance's newest session, all but its newest recording
         return (int) session.finishedRecordings().stream()
                 .map(file -> compress(sessionId, file))
                 .filter(Objects::nonNull)

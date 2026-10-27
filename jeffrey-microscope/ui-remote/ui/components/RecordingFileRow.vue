@@ -27,22 +27,12 @@ interface Props {
   sizeInBytes?: number;
   description?: string;
   timestamp?: number;
-  status?: string;
   compact?: boolean;
 }
 
 const props = defineProps<Props>();
 
-const getRowClasses = (): string[] => {
-  const classes: string[] = [];
-  // Status-active overrides file-type styling
-  if (props.status === 'ACTIVE') {
-    classes.push('status-active');
-  } else {
-    classes.push(getFileTypeClass(props.fileType));
-  }
-  return classes;
-};
+const getRowClasses = (): string[] => [getFileTypeClass(props.fileType)];
 
 const getFileTypeClass = (fileType: string): string => {
   switch (fileType) {
@@ -351,25 +341,6 @@ const getFileTypeIcon = (fileType: string): string => {
   color: var(--color-orange-accent);
 }
 
-/* ACTIVE status styling - orange theme, overrides file-type */
-.recording-file-row.status-active {
-  background-color: rgba(255, 142, 51, 0.08);
-  border-left: 3px solid var(--color-orange-accent);
-  border-top: 1px solid rgba(255, 142, 51, 0.25);
-  border-right: 1px solid rgba(255, 142, 51, 0.25);
-  border-bottom: 1px solid rgba(255, 142, 51, 0.25);
-  box-shadow: 0 1px 3px rgba(255, 142, 51, 0.15);
-}
-
-.recording-file-row.status-active:hover {
-  background-color: rgba(255, 142, 51, 0.12);
-  box-shadow: 0 2px 5px rgba(255, 142, 51, 0.2);
-}
-
-.recording-file-row.status-active .recording-file-icon-medium {
-  background-color: rgba(255, 142, 51, 0.15);
-  color: var(--color-orange-accent);
-}
 
 /* UNKNOWN file styling - gray theme */
 .recording-file-row.file-type-unknown {
@@ -452,11 +423,6 @@ const getFileTypeIcon = (fileType: string): string => {
 }
 
 .recording-file-row.file-type-asprof-temp .recording-file-icon-small {
-  background-color: rgba(255, 142, 51, 0.15);
-  color: var(--color-orange-accent);
-}
-
-.recording-file-row.status-active .recording-file-icon-small {
   background-color: rgba(255, 142, 51, 0.15);
   color: var(--color-orange-accent);
 }

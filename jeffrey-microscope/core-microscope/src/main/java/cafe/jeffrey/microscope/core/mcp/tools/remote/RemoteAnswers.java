@@ -23,7 +23,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
@@ -85,10 +84,12 @@ public final class RemoteAnswers {
             Long startedAtEpochMs,
             @McpNullable
             @McpMinimum(0)
-            @McpDescription("Span in milliseconds; null while the session is still recording")
+            @McpDescription("Span in milliseconds from its start to the end of its recorded data; null while it "
+                    + "has no recording")
             Long durationMs,
-            @McpNullable
-            RecordingStatus status,
+            @McpDescription("Whether it is its instance's newest session: no newer one has started, so it may "
+                    + "still grow")
+            boolean newest,
             @McpMinimum(0)
             int files,
             @McpMinimum(0)
@@ -146,8 +147,9 @@ public final class RemoteAnswers {
             String name,
             ManagedFile type,
             FileCategory category,
-            @McpDescription("ACTIVE for the chunk the session is still writing, FINISHED otherwise")
-            RecordingStatus status,
+            @McpDescription("Whether it is the newest recording of its instance's newest session, which the remote "
+                    + "keeps uncompressed and may still be writing into place")
+            boolean newestRecording,
             @McpMinimum(0)
             long sizeBytes,
             @McpNullable

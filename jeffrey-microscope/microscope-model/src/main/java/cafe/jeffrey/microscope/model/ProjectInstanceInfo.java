@@ -18,20 +18,19 @@
 package cafe.jeffrey.microscope.model;
 
 import java.time.Instant;
-import java.util.List;
 
+/**
+ * An instance as the volume describes it.
+ *
+ * @param startedAt    when the provisioner registered it
+ * @param lastDataAt   when the data of its newest session ends, or {@code null} while it has none
+ * @param sessionCount how many sessions it holds
+ */
 public record ProjectInstanceInfo(
         String id,
         String projectId,
         String instanceName,
-        ProjectInstanceStatus status,
         Instant startedAt,
-        Instant finishedAt,
-        int sessionCount,
-        String activeSessionId,
-        List<ProjectInstanceSessionInfo> sessions) {
-
-    public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED
-    }
+        Instant lastDataAt,
+        int sessionCount) {
 }

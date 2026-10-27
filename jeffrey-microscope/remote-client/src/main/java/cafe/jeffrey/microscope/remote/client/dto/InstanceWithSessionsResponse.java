@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.remote.client.dto;
 
 import cafe.jeffrey.microscope.remote.client.manager.InstanceWithSessions;
 
-import java.time.Clock;
 import java.util.List;
 
 /**
@@ -31,11 +30,11 @@ import java.util.List;
 public record InstanceWithSessionsResponse(
         InstanceResponse instance, List<RecordingSessionResponse> sessions, boolean hasOlder) {
 
-    public static InstanceWithSessionsResponse from(InstanceWithSessions found, Clock clock) {
+    public static InstanceWithSessionsResponse from(InstanceWithSessions found) {
         return new InstanceWithSessionsResponse(
-                InstanceResponse.from(found.instance(), clock),
+                InstanceResponse.from(found.instance()),
                 found.sessions().stream()
-                        .map(session -> RecordingSessionResponse.from(session, clock))
+                        .map(RecordingSessionResponse::from)
                         .toList(),
                 found.hasOlder());
     }

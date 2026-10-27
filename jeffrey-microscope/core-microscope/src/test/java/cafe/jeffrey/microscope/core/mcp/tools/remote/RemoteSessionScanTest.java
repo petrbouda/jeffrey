@@ -34,7 +34,6 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import org.junit.jupiter.api.Nested;
@@ -83,7 +82,7 @@ class RemoteSessionScanTest {
 
     private static RecordingSession session(String id, Instant createdAt) {
         return new RecordingSession(id, id, "inst-1", createdAt, null,
-                RecordingStatus.ACTIVE, null, List.of(), false);
+                true, null, List.of(), false);
     }
 
     private static RepositoryManager repositoryWith(RecordingSession... sessions) {

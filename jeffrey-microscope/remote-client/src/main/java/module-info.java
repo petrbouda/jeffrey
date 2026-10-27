@@ -18,12 +18,9 @@ module cafe.jeffrey.microscope.remote.client {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.shared.storage.recording.api;
-    requires jdk.jfr;
-    requires tools.jackson.databind;
     requires org.slf4j;
 
     exports cafe.jeffrey.microscope.remote.client;
     exports cafe.jeffrey.microscope.remote.client.dto;
-    exports cafe.jeffrey.microscope.remote.client.environment;
     exports cafe.jeffrey.microscope.remote.client.manager;
 }

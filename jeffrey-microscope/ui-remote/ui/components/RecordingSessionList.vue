@@ -20,10 +20,8 @@ import { computed, ref, watch } from 'vue';
 import { useNavigation } from '@/composables/useNavigation';
 import { downloadAssistantStore } from '@remote/stores/assistants/downloadAssistantStore';
 import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient.ts';
-import Utils from '@/services/Utils';
 import { ToastService } from '@shared/services/ToastService';
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
@@ -34,10 +32,9 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import { useSessionReads } from '@remote/composables/useSessionReads';
 import { useRemoteReadOnly } from '@remote/composables/useRemoteReadOnly';
-import type { TimelineBarItem, Variant } from '@shared/types/ui';
+import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
-import MissingHeartbeatNote from '@remote/components/MissingHeartbeatNote.vue';
 import {
   buildDisplayEntries,
   hasUnreportedSizes,
@@ -96,7 +93,7 @@ const repositoryService = computed(
   () => new ProjectRepositoryClient(props.workspaceId, props.projectId)
 );
 
-/** A read-only remote refuses pins and deletions, so they are not offered. */
+/** A read-only remote refuses deletions, so they are not offered. */
 const remoteReadOnly = useRemoteReadOnly();
 
 // --- Session UI state ---
@@ -143,18 +140,18 @@ const loadFilesInBackground = (sessionId: string): void => {
 
 /**
  * Whether a refresh of the list should read an open session again: only while it can still have
- * changed — it is recording, or its listing counts files the last read did not have.
+ * changed — it is its instance's newest session, or its listing counts files the last read did
+ * not have.
  */
 const isStale = (session: RecordingSession): boolean => {
   const read = readSessions.value[session.id];
-  return !read || session.status === RecordingStatus.ACTIVE || read.files.length !== session.fileCount;
+  return !read || session.newest || read.files.length !== session.fileCount;
 };
 
 // Delete dialog state
 const deleteSessionDialog = ref(false);
 const sessionToDelete = ref<RecordingSession | null>(null);
 const deletingSession = ref(false);
-const pinningSessions = ref<{ [sessionId: string]: boolean }>({});
 
 // --- Constants ---
 const DEFAULT_FILES_LIMIT = 15;
@@ -245,16 +242,11 @@ const sortedSessions = computed(() => {
   });
 });
 
-// Consecutive failed (finished, zero-size) sessions collapse into group entries
+// Consecutive failed (ended, zero-size) sessions collapse into group entries
 const displayEntries = computed(() => buildDisplayEntries(sortedSessions.value));
 
 const failedSessionsCount = computed(() => {
   return props.sessions.filter(isFailedSession).length;
-});
-
-// Finished by the hub for a missing heartbeat: shown purple with a setup note, never as failed
-const noHeartbeatSessionsCount = computed(() => {
-  return props.sessions.filter(session => session.heartbeatMissing).length;
 });
 
 const headerBarText = computed(() => {
@@ -262,24 +254,8 @@ const headerBarText = computed(() => {
   if (failedSessionsCount.value > 0) {
     text += ` · ${failedSessionsCount.value} failed`;
   }
-  if (noHeartbeatSessionsCount.value > 0) {
-    text += ` · ${noHeartbeatSessionsCount.value} no heartbeat`;
-  }
   return text;
 });
-
-// --- Timeline row (Started / Finished / Duration, plus Heartbeat when it never arrived) ---
-const NO_HEARTBEAT_ITEM: TimelineBarItem = {
-  key: 'heartbeat',
-  icon: 'bi bi-heartbreak',
-  tone: 'purple',
-  label: 'Heartbeat',
-  value: 'never received'
-};
-
-const getHeartbeatItems = (session: RecordingSession): TimelineBarItem[] => {
-  return session.heartbeatMissing ? [NO_HEARTBEAT_ITEM] : [];
-};
 
 const failedGroupSummary = (group: FailedSessionGroup): string => {
   const count = group.sessions.length;
@@ -340,7 +316,7 @@ const initializeExpandedState = () => {
     }
 
     // An open session is read again when the reader refreshes the list and it may have changed,
-    // so one that is still recording shows the chunks it wrote since
+    // so the instance's newest session shows the chunks it wrote since
     if (expandedSessions.value[session.id] && isStale(session)) {
       loadFilesInBackground(session.id);
     }
@@ -380,21 +356,15 @@ const toggleSession = (sessionId: string) => {
   }
 };
 
-// --- Status helpers ---
-/** Suffix of a session row's `session-*` and `session-icon-*` classes. */
-type SessionTone = 'no-heartbeat' | 'active' | 'finished' | 'unknown';
-
-const SESSION_TONE_BY_STATUS: Record<RecordingStatus, SessionTone> = {
-  [RecordingStatus.ACTIVE]: 'active',
-  [RecordingStatus.FINISHED]: 'finished',
-  [RecordingStatus.UNKNOWN]: 'unknown'
-};
+// --- Session tone ---
+/**
+ * Suffix of a session row's `session-*` and `session-icon-*` classes: the instance's newest
+ * session, which may still grow, or one a newer session has ended.
+ */
+type SessionTone = 'newest' | 'ended';
 
 const sessionTone = (session: RecordingSession): SessionTone => {
-  if (session.heartbeatMissing) {
-    return 'no-heartbeat';
-  }
-  return SESSION_TONE_BY_STATUS[session.status] ?? 'unknown';
+  return session.newest ? 'newest' : 'ended';
 };
 
 // --- Selection ---
@@ -492,13 +462,13 @@ const toggleGroupSelection = (sessionId: string, files: RepositoryFile[]) => {
   });
 };
 
-// Downloadability is decided by status and type only, never by a reported size. The size
+// Downloadability is decided by type only, never by a reported size. The size
 // comes from a stat of the hub's repository directory and can be stale — a mount that caches
 // file attributes reports every growing file as zero bytes — while the download reads the
 // file's actual content. Refusing on a zero would block exactly the files this goes wrong on,
 // and an empty download is the honest answer for a file that really is empty.
 const isCheckboxDisabled = (source: RepositoryFile): boolean => {
-  return source.status === RecordingStatus.ACTIVE || source.fileType === RecordingFileType.ASPROF;
+  return !isDownloadable(source);
 };
 
 const downloadFile = async (sessionId: string, fileId: string) => {
@@ -518,9 +488,9 @@ const downloadSession = async (sessionId: string) => {
       return;
     }
 
-    // Read now rather than trusting an earlier read: retention may have trimmed the session since
-    // The chunk the profiler is still writing is left out: the backend refuses it, as a recording
-    // made from it would be cut short
+    // Read now rather than trusting an earlier read: retention may have trimmed the session since.
+    // async-profiler's scratch file is left out; the newest recording goes too, and the download
+    // checks it arrived whole
     const files = downloadableFiles(await loadFiles(session.id));
     if (!files.some(f => f.isRecording)) {
       toast.warn(
@@ -586,36 +556,6 @@ const deleteAll = async (sessionId: string) => {
 
   sessionToDelete.value = session;
   deleteSessionDialog.value = true;
-};
-
-/**
- * Toggles retention for a session. A retained session is exempt from every retention
- * job on the hub, so releasing one hands it back to normal expiry.
- */
-const togglePinned = async (session: RecordingSession) => {
-  const next = !session.retained;
-  pinningSessions.value[session.id] = true;
-
-  try {
-    await repositoryService.value.setSessionRetained(session.id, next);
-    // Reflect immediately rather than waiting for the refresh round-trip
-    session.retained = next;
-    toast.success(
-      next ? 'Session pinned' : 'Session released',
-      next
-        ? 'This session is now exempt from retention and will not be cleaned up automatically.'
-        : 'This session will expire normally again.'
-    );
-    emit('refresh');
-  } catch (error: any) {
-    console.error('Error updating session retention:', error);
-    toast.error(
-      next ? 'Session pinned' : 'Session released',
-      error.message || 'Failed to update the retention state of the session'
-    );
-  } finally {
-    pinningSessions.value[session.id] = false;
-  }
 };
 
 const confirmDeleteSession = async () => {
@@ -706,15 +646,6 @@ const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] =
 
 const getRecordingTotalSize = (session: RecordingSession): number => {
   return getRecordingFiles(session).reduce((sum, f) => sum + f.size, 0);
-};
-
-/**
- * The chunk the profiler still holds open, called out on the panel header: collapsed, the panel is
- * all a reader sees of a running session, and "27 files" alone does not say that one of them is
- * still growing.
- */
-const getOpenRecordingCount = (session: RecordingSession): number => {
-  return getRecordingFiles(session).filter(f => f.status === RecordingStatus.ACTIVE).length;
 };
 
 /**
@@ -852,10 +783,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
     classes.push('source-selected');
   }
 
-  if (source.status === RecordingStatus.ACTIVE) {classes.push('source-active');}
-  else if (source.status === RecordingStatus.FINISHED) {classes.push('source-finished');}
-  else if (source.status === RecordingStatus.UNKNOWN) {classes.push('source-unknown');}
-
   return classes.join(' ');
 };
 </script>
@@ -872,7 +799,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
       v-for="entry in displayEntries"
       :key="entry.type === 'session' ? entry.session.id : entry.key"
     >
-      <!-- Collapsed failed sessions (finished with zero bytes — e.g. a crash-looped container) -->
+      <!-- Collapsed failed sessions (ended with zero bytes — e.g. a crash-looped container) -->
       <div v-if="entry.type === 'failedGroup'" class="mb-3">
         <div
           class="failed-band rounded"
@@ -897,34 +824,12 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             </div>
             <div class="failed-member-meta">
               <span>{{ FormattingService.formatTimestamp(failed.createdAt) }}</span>
-              <span>{{ FormattingService.formatDurationMillisCompact(failed.duration) }}</span>
               <span>0 B</span>
-              <button
-                v-if="!remoteReadOnly"
-                class="pin-toggle"
-                :class="{ on: failed.retained }"
-                type="button"
-                :disabled="pinningSessions[failed.id]"
-                :title="
-                  failed.retained
-                    ? 'Pinned — exempt from automatic cleanup. Click to release.'
-                    : 'Pin this session so retention never removes it'
-                "
-                :aria-pressed="failed.retained"
-                @click.stop="togglePinned(failed)"
-              >
-                <i class="bi" :class="failed.retained ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
-              </button>
               <button
                 v-if="!remoteReadOnly"
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                :disabled="failed.retained"
-                :title="
-                  failed.retained
-                    ? 'Pinned sessions cannot be deleted — release it first'
-                    : 'Delete Session'
-                "
+                title="Delete Session"
                 @click.stop="deleteAll(failed.id)"
               >
                 <i class="bi bi-trash"></i>
@@ -940,18 +845,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           <!-- Session header -->
       <div
         class="folder-row rounded"
-        :class="[`session-${sessionTone(session)}`, { 'session-retained': session.retained }]"
+        :class="`session-${sessionTone(session)}`"
         @click="toggleSession(session.id)"
       >
-        <!-- Retention flag: a pinned session is exempt from every retention job -->
-        <span
-          v-if="session.retained"
-          class="retained-flag"
-          :title="'Pinned — exempt from automatic cleanup'"
-          aria-hidden="true"
-        ></span>
-        <i v-if="session.retained" class="bi bi-pin-angle-fill retained-flag-icon" aria-hidden="true"></i>
-        <span v-if="session.retained" class="visually-hidden">Pinned, exempt from automatic cleanup</span>
 
         <!-- Identity section -->
         <div class="session-identity">
@@ -1001,22 +897,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
             </div>
             <div class="d-flex align-items-center gap-1">
               <button
-                v-if="!remoteReadOnly"
-                class="pin-toggle"
-                :class="{ on: session.retained }"
-                type="button"
-                :disabled="pinningSessions[session.id]"
-                :title="
-                  session.retained
-                    ? 'Pinned — exempt from automatic cleanup. Click to release.'
-                    : 'Pin this session so retention never removes it'
-                "
-                :aria-pressed="session.retained"
-                @click.stop="togglePinned(session)"
-              >
-                <i class="bi" :class="session.retained ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
-              </button>
-              <button
                 v-if="!isCollectorOnly"
                 class="btn btn-sm btn-outline-primary"
                 type="button"
@@ -1026,15 +906,10 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <i class="bi bi-folder-symlink me-1"></i>Download
               </button>
               <button
-                v-if="session.status === RecordingStatus.FINISHED && !remoteReadOnly"
+                v-if="!session.newest && !remoteReadOnly"
                 class="btn btn-sm btn-outline-danger"
                 type="button"
-                :disabled="session.retained"
-                :title="
-                  session.retained
-                    ? 'Pinned sessions cannot be deleted — release it first'
-                    : 'Delete Session'
-                "
+                title="Delete Session"
                 @click.stop="deleteAll(session.id)"
               >
                 <i class="bi bi-trash"></i>
@@ -1061,13 +936,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <!-- Timeline section -->
         <TimelineBar
           :createdAt="session.createdAt"
-          :finishedAt="session.finishedAt"
-          :duration="session.duration"
-          :extra-items="getHeartbeatItems(session)"
+          :last-data-at="session.lastDataAt ?? undefined"
+          :duration="session.duration ?? undefined"
         />
-
-        <!-- This session never reported a heartbeat: say so, and link to the setup docs -->
-        <MissingHeartbeatNote v-if="session.heartbeatMissing" />
       </div>
 
       <!-- Session recordings (shown when expanded) -->
@@ -1174,10 +1045,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 <span class="recording-file-size ms-2">
                   <i class="bi bi-files me-1"></i>{{ getRecordingFiles(session).length }} files
                 </span>
-                <span v-if="getOpenRecordingCount(session) > 0" class="recording-open-note ms-2">
-                  <i class="bi bi-record-circle me-1"></i>{{ getOpenRecordingCount(session) }} still
-                  being written
-                </span>
               </template>
             </RecordingFileRow>
           </div>
@@ -1195,7 +1062,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   :fileType="entry.primary.fileType"
                   :sizeInBytes="entry.primary.size"
                   :timestamp="entry.primary.createdAt"
-                  :status="entry.primary.status"
                 >
                   <template #before>
                     <button
@@ -1236,13 +1102,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   </template>
                   <template #extra-badges>
                     <Badge
-                      v-if="entry.primary.status === RecordingStatus.UNKNOWN"
-                      :value="Utils.capitalize(entry.primary.status.toLowerCase())"
-                      variant="purple"
-                      size="xxs"
-                      class="ms-1"
-                    />
-                    <Badge
                       v-if="entry.children.length > 0"
                       :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
                       variant="grey"
@@ -1281,7 +1140,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                     :fileType="child.fileType"
                     :sizeInBytes="child.size"
                     :timestamp="child.createdAt"
-                    :status="child.status"
                   >
                     <template #before>
                       <div
@@ -1302,13 +1160,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                       </div>
                     </template>
                     <template #extra-badges>
-                      <Badge
-                        v-if="child.status === RecordingStatus.UNKNOWN"
-                        :value="Utils.capitalize(child.status.toLowerCase())"
-                        variant="purple"
-                        size="xxs"
-                        class="ms-1"
-                      />
                     </template>
                     <template #actions>
                       <button
@@ -1396,7 +1247,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   :fileType="file.fileType"
                   :sizeInBytes="file.size"
                   :timestamp="file.createdAt"
-                  :status="file.status"
                 >
                   <template #before>
                     <div
@@ -1417,13 +1267,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                     </div>
                   </template>
                   <template #extra-badges>
-                    <Badge
-                      v-if="file.status === RecordingStatus.UNKNOWN"
-                      :value="Utils.capitalize(file.status.toLowerCase())"
-                      variant="purple"
-                      size="xxs"
-                      class="ms-1"
-                    />
                   </template>
                   <template #actions>
                     <button
@@ -1463,7 +1306,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               :fileType="file.fileType"
               :sizeInBytes="file.size"
               :timestamp="file.createdAt"
-              :status="file.status"
             >
               <template #before>
                 <div
@@ -1484,13 +1326,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                 </div>
               </template>
               <template #extra-badges>
-                <Badge
-                  v-if="file.status === RecordingStatus.UNKNOWN"
-                  :value="Utils.capitalize(file.status.toLowerCase())"
-                  variant="purple"
-                  size="xxs"
-                  class="ms-1"
-                />
               </template>
               <template #actions>
                 <button
@@ -1592,98 +1427,20 @@ code {
   border-color: rgba(94, 100, 255, 0.15);
 }
 
-/* Retention flag — a folded corner marking a session that retention will never reclaim.
-   It occupies the top-right of the card, which no other element uses, so it does not
-   compete with the left status rail (which encodes ACTIVE / FINISHED). */
-/* The base .folder-row establishes no positioning context, so the flag needs one here
-   or it would anchor to the nearest positioned ancestor further up the page. */
-.folder-row.session-retained {
-  position: relative;
-}
-
-.retained-flag {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 2.5rem 2.5rem 0;
-  border-color: transparent var(--color-amber) transparent transparent;
-  pointer-events: none;
-}
-
-.retained-flag-icon {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 0.7rem;
-  line-height: 1;
-  color: var(--color-white);
-  pointer-events: none;
-}
-
-/* Keep the action buttons clear of the flag. The triangle is non-interactive, but
-   without this it visually overlaps the rightmost button on a pinned row. */
-.folder-row.session-retained .session-identity {
-  padding-right: 2.75rem;
-}
-
-/* Pin toggle — resting state is quiet so it does not compete with Download */
-.pin-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background-color: transparent;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pin-toggle:hover:not(:disabled) {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.pin-toggle.on {
-  background-color: var(--color-amber-light);
-  color: var(--color-amber-text);
-}
-
-.pin-toggle:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .btn-outline-danger:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.folder-row.session-active {
+.folder-row.session-newest {
   border-left: 3px solid var(--color-amber);
 }
 
-.folder-row.session-finished {
+.folder-row.session-ended {
   border-left: 3px solid var(--color-success);
 }
 
-.folder-row.session-unknown {
-  border-left: 3px solid var(--color-purple);
-}
-
-/* Finished because no heartbeat ever arrived: purple, never grouped with the failed sessions */
-.folder-row.session-no-heartbeat {
-  border-left: 3px solid var(--color-purple-border);
-}
-
-/* Failed sessions — finished with zero bytes (prematurely killed process) */
+/* Failed sessions — ended with zero bytes (prematurely killed process) */
 .failed-band {
   display: flex;
   align-items: center;
@@ -1891,16 +1648,12 @@ code {
   padding: 12px 16px;
 }
 
-.folder-row.session-active .session-identity {
+.folder-row.session-newest .session-identity {
   background-color: rgba(255, 193, 7, 0.06);
 }
 
-.folder-row.session-finished .session-identity {
+.folder-row.session-ended .session-identity {
   background-color: rgba(40, 167, 69, 0.04);
-}
-
-.folder-row.session-unknown .session-identity {
-  background-color: rgba(111, 66, 193, 0.04);
 }
 
 .session-name-label {
@@ -1947,24 +1700,14 @@ code {
   font-size: 1rem;
 }
 
-.session-icon-active {
+.session-icon-newest {
   background-color: rgba(255, 193, 7, 0.12);
   color: var(--color-amber-highlight);
 }
 
-.session-icon-finished {
+.session-icon-ended {
   background-color: rgba(40, 167, 69, 0.12);
   color: var(--color-success-hover);
-}
-
-.session-icon-unknown {
-  background-color: rgba(111, 66, 193, 0.12);
-  color: var(--color-purple);
-}
-
-.session-icon-no-heartbeat {
-  background-color: var(--color-purple-bg);
-  color: var(--color-purple-text);
 }
 
 /* Session meta (matching instance-meta) */
@@ -1997,15 +1740,6 @@ code {
 }
 
 /* Artifact type panel styles */
-.recording-open-note {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-amber-darkest);
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-}
-
 .type-panel-header-wrapper {
   cursor: pointer;
   user-select: none;

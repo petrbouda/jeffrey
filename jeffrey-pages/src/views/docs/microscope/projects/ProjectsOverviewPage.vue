@@ -61,18 +61,13 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="project-page">The Project Page</h2>
-      <p>Open a project and the page is organised into three tabs. Each one is a focused view; pick the one that matches what you're doing right now.</p>
+      <p>Open a project and the page is organised into two tabs; it opens on Instances.</p>
 
       <div class="tab-grid">
         <router-link to="/docs/microscope/projects/instances" class="tab-card">
-          <div class="tab-icon"><i class="bi bi-bar-chart-steps"></i></div>
-          <h4>Timeline</h4>
-          <p>Swimlane view of every instance and session over time.</p>
-        </router-link>
-        <router-link to="/docs/microscope/projects/instances" class="tab-card">
           <div class="tab-icon"><i class="bi bi-grid"></i></div>
           <h4>Instances</h4>
-          <p>JVM processes connected to the project, with status, storage, and file-type breakdown.</p>
+          <p>JVM processes connected to the project, with their sessions, last data and the project's storage.</p>
         </router-link>
         <a href="#project-settings" class="tab-card">
           <div class="tab-icon"><i class="bi bi-sliders"></i></div>
@@ -115,7 +110,7 @@ onMounted(() => {
 
 .tab-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.85rem;
   margin: 1.25rem 0 1.5rem;
 }

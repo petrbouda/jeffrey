@@ -15,21 +15,13 @@
  * limitations under the License.
  */
 
-import type ProjectInstanceSession from '@remote/services/api/model/ProjectInstanceSession';
-
-export type ProjectInstanceStatus = 'PENDING' | 'ACTIVE' | 'FINISHED';
-
 export default class ProjectInstance {
   constructor(
     public id: string,
     public instanceName: string,
-    public projectId: string,
-    public status: ProjectInstanceStatus,
     public createdAt: number,
-    public duration: number,
-    public sessionCount: number,
-    public activeSessionId?: string,
-    public finishedAt?: number,
-    public sessions?: ProjectInstanceSession[]
+    /** When the data of its newest session ends; null while that session has no recording. */
+    public lastDataAt: number | null,
+    public sessionCount: number
   ) {}
 }

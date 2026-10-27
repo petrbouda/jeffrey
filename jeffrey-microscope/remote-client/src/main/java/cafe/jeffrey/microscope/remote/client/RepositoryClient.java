@@ -42,6 +42,4 @@ public interface RepositoryClient {
     RecordingSessionResponse recordingSession(ProjectScope scope, String sessionId);
 
     void deleteSession(ProjectScope scope, String sessionId);
-
-    void setSessionRetained(ProjectScope scope, String sessionId, boolean retained);
 }

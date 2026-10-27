@@ -92,7 +92,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <ul>
         <li><strong>The Provisioner never talks to the Hub.</strong> It is a short-lived CLI that runs before <code>main()</code>, writes the session tree and an <code>@argfile</code>, and exits. Its only channel to the Hub is the shared volume — there is no event transport in between.</li>
-        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the marker files and <code>.heartbeat/</code> when it is made, so a session shows up on the next listing after the Provisioner writes it, and its status is decided at that moment. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
+        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the marker files and directory listings when it is made, so a session shows up on the next listing after the Provisioner writes it. Neither reads <code>.heartbeat/</code> any more: session order and file names decide everything. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
       </ul>
 
       <h2 id="switch">Turning Tracing On</h2>
@@ -155,12 +155,12 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           <tr>
             <td>Listing (no job)</td>
             <td>Every job run</td>
-            <td>Reads the marker JSONs to list projects, instances and sessions, and <code>.heartbeat/</code> to decide each session's status: a <code>finished</code> marker ends the session deterministically; a newer session in the same instance or a stale heartbeat ends it at the last heartbeat. A crash log left in the directory is listed as a session file, not acted on.</td>
+            <td>Reads the marker JSONs to list projects, instances and sessions, ordered by their UUIDv7 directory names: a newer session in the same instance ends the one before it. <code>.heartbeat/</code> is not read. A crash log left in the directory is listed as a session file, not acted on.</td>
           </tr>
           <tr>
             <td>Compression &amp; retention</td>
             <td>1&nbsp;m and 5&nbsp;m</td>
-            <td>LZ4-compresses finished recordings, and enforces session, recording, quota and instance retention.</td>
+            <td>LZ4-compresses recordings, never the newest one of an instance's newest session, and enforces session, recording, quota and instance retention.</td>
           </tr>
         </tbody>
       </table>
@@ -210,11 +210,6 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
             <td>The session never appears in Microscope</td>
             <td>The application is not writing to the volume Microscope reads (a different share, root path or mount)</td>
             <td>Microscope reads the share on every listing — if nothing arrives, the volume is the thing to check, not the app: compare the Provisioner's <code>jeffrey-home</code> with the share and <code>root-path</code> Microscope declares. Create the workspace with the reference id the Provisioner uses (it adopts the existing directory), or set <code>jeffrey.hub.workspaces.auto-create=true</code>, so the Hub's jobs cover it too</td>
-          </tr>
-          <tr>
-            <td>The session never ends</td>
-            <td>No heartbeat file — the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> is switched off (<code>JEFFREY_AGENT_ENABLED=false</code>) and the application does not carry the <router-link to="/docs/agent/heartbeat-library">heartbeat library</router-link>, liveness is switched off with <code>jeffrey.heartbeat.enabled=false</code>, or <code>JEFFREY_HEARTBEAT_DIR</code> points elsewhere. Heartbeats are mandatory: past the Hub's <code>jeffrey.hub.liveness.startup-grace</code> such a session is finished at its start, marked as having sent no heartbeat</td>
-            <td>Check the Provisioner's verdict line for <code>jeffrey_agent=true</code>. The Provisioner sets <code>heartbeat.dir</code>; a hand-set <code>jeffrey.heartbeat.dir</code> has to match the session path</td>
           </tr>
         </tbody>
       </table>

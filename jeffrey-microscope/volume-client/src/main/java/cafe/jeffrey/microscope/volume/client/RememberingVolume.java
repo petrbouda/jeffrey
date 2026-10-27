@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.volume.client;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
@@ -36,9 +35,9 @@ import java.util.stream.Collectors;
 /**
  * A volume that remembers the files that never change once written, so a page read again does not
  * ask an Azure file share for them again: the provisioner's {@code .project-info.json},
- * {@code .instance-info.json} and {@code .session-info.json}, and a session's {@code finished}
- * marker. Each is written whole, once, and only ever removed with its directory. Nothing else is
- * remembered — not a heartbeat, a listing, a size or the workspace marker Microscope rewrites — and
+ * {@code .instance-info.json} and {@code .session-info.json}. Each is written whole, once, and only
+ * ever removed with its directory. Nothing else is remembered — not a listing, a size or the
+ * workspace marker Microscope rewrites — and
  * a file that was not there is asked for again next time.
  *
  * <p>What is remembered is forgotten:
@@ -84,17 +83,9 @@ public final class RememberingVolume implements WritableVolume {
         this.clock = clock;
     }
 
-    /** A provisioner marker, or a session's {@code finished} marker under its {@code .heartbeat/}. */
+    /** A provisioner marker. */
     static boolean isWriteOnce(VolumePath file) {
-        if (file.segments().isEmpty()) {
-            return false;
-        }
-        if (MARKERS.contains(file.name())) {
-            return true;
-        }
-        return HeartbeatConstants.FINISHED_FILE.equals(file.name())
-                && file.segments().size() > 1
-                && HeartbeatConstants.HEARTBEAT_DIR.equals(file.parent().name());
+        return !file.segments().isEmpty() && MARKERS.contains(file.name());
     }
 
     @Override

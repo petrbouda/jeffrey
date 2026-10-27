@@ -17,21 +17,21 @@
 
 package cafe.jeffrey.microscope.remote.client.dto;
 
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
+import java.time.Instant;
 
 /**
- * What a project's instances say of it: whether any still records and how many sessions they
- * hold. Read only where it is shown — finding a project never reads it, since that would read
- * every instance and every session of the project on every request.
+ * What a project's instances say of it: when its data last reached the volume and how many
+ * sessions they hold. Read only where it is shown — finding a project never reads it, since that
+ * would read every instance and every session of the project on every request.
  *
- * @param status       UNKNOWN without a session; ACTIVE while any instance records; FINISHED otherwise
+ * @param lastDataAt   when the newest data of any instance ends; {@code null} without any
  * @param sessionCount the sessions of all its instances
  */
-public record ProjectActivity(RecordingStatus status, int sessionCount) {
+public record ProjectActivity(Instant lastDataAt, int sessionCount) {
 
     public ProjectActivity {
-        if (status == null || sessionCount < 0) {
-            throw new IllegalArgumentException("A project's activity needs a status and a session count");
+        if (sessionCount < 0) {
+            throw new IllegalArgumentException("A project's activity needs a session count: count=" + sessionCount);
         }
     }
 }

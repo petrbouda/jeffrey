@@ -114,7 +114,7 @@ const moduleClient = `<plugin>
         <code>JEFFREY_HOME</code>, automatically runs <code>provisioner init</code> before
         the JVM starts and boots with the right async-profiler flags, the
         <code>-Djeffrey.heartbeat.dir</code> property and the
-        <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that reports liveness. There is no Dockerfile and no shell script to
+        <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that writes heartbeat files (which the Hub and Microscope no longer read). There is no Dockerfile and no shell script to
         maintain; the provisioner, async-profiler and the agent are installed by the extension under
         <code>/opt/jeffrey</code>.
       </p>

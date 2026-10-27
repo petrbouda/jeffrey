@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.Json;
@@ -40,8 +39,6 @@ import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
-import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -68,15 +65,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A recording volume reached straight on its storage answers the remote clients the way a hub would:
- * the same tree, the same session statuses, the same refusals, the same changes — or none at all
+ * the same tree, the same newest and failed sessions, the same refusals, the same changes — or none at all
  * when it is declared read-only.
  */
 class VolumeRemoteClientsTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant NOW = T0.plusSeconds(3600);
-    private static final SessionDeadlines DEADLINES =
-            new SessionDeadlines(Duration.ofSeconds(10), Duration.ofMinutes(1));
     private static final String DESCRIPTION = "test-volume";
     private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
 
@@ -101,21 +96,18 @@ class VolumeRemoteClientsTest {
 
     private static RemoteClients clients(VolumeAccess volume, boolean readOnly) {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        SessionLiveness liveness = new SessionLiveness(
-                clock, volume, DEADLINES);
-        return VolumeRemoteClients.of(new VolumeSource(volume, liveness, clock, DESCRIPTION, readOnly));
+        return VolumeRemoteClients.of(new VolumeSource(volume, clock, DESCRIPTION, readOnly));
     }
 
     private Path session(String instanceId, String sessionId, Instant createdAt) {
         return VolumeWriter.session(VolumeWriter.instance(project, instanceId, T0), sessionId, createdAt, null);
     }
 
-    /** A live session with a closed chunk and the one its profiler is still writing. */
+    /** The instance's newest session, with an older chunk and its newest recording five minutes later. */
     private Path liveSession() {
         Path dir = session("pod-a", "s-live", T0.plusSeconds(600));
-        VolumeWriter.heartbeat(dir, NOW);
-        VolumeWriter.file(dir, "profile-20260220-121000.jfr", "closed chunk");
-        VolumeWriter.file(dir, "profile-20260220-121500.jfr", "open");
+        VolumeWriter.file(dir, "profile-20260220-121000.jfr", "older chunk");
+        VolumeWriter.file(dir, "profile-20260220-121500.jfr", "newest");
         return dir;
     }
 
@@ -154,8 +146,9 @@ class VolumeRemoteClientsTest {
             liveSession();
             VolumeWriter.project(root.resolve("prod"), "p-idle", "idle", T0);
 
-            assertEquals(new ProjectActivity(RecordingStatus.ACTIVE, 1), clients.instances().activity(ORDERS));
-            assertEquals(new ProjectActivity(RecordingStatus.UNKNOWN, 0),
+            assertEquals(new ProjectActivity(Instant.parse("2026-02-20T12:20:00Z"), 1),
+                    clients.instances().activity(ORDERS));
+            assertEquals(new ProjectActivity(null, 0),
                     clients.instances().activity(new ProjectScope("prod", "p-idle")));
         }
 
@@ -184,44 +177,51 @@ class VolumeRemoteClientsTest {
 
             assertEquals("pod-a/s-live", listed.name());
             assertEquals(2, listed.fileCount());
-            assertEquals("closed chunk".length() + "open".length(), listed.sizeBytes());
+            assertEquals("older chunk".length() + "newest".length(), listed.sizeBytes());
             assertEquals(List.of(), listed.files());
         }
 
+        /**
+         * The window is judged by when each session's data ends, read off its chunk names: a session
+         * whose one chunk started at 12:00 is out of the last 45 minutes, the live one (to 12:20) is in.
+         */
         @Test
         void aFilterIsAppliedBeforeAnyFileIsRead() {
             liveSession();
-            VolumeWriter.finished(session("pod-b", "s-done", T0), T0.plusSeconds(60));
+            VolumeWriter.file(session("pod-b", "s-old", T0), "profile-20260220-120000.jfr", "chunk");
 
-            List<RecordingSessionResponse> live = clients.repository().recordingSessions(
-                    ORDERS, RecordingSessionFilter.ALL.withStatus(RecordingStatus.ACTIVE));
+            List<RecordingSessionResponse> recent = clients.repository().recordingSessions(
+                    ORDERS, RecordingSessionFilter.activeWithinLast(Duration.ofMinutes(45), NOW));
 
-            assertEquals(List.of("s-live"), live.stream().map(RecordingSessionResponse::id).toList());
+            assertEquals(List.of("s-live"), recent.stream().map(RecordingSessionResponse::id).toList());
         }
 
-        /** The open chunk is the live session's newest recording; every other file is finished. */
+        /** Its data ends one measured chunk (five minutes) after its newest recording started. */
         @Test
-        void oneSessionCarriesItsFilesWithTheOpenChunkMarked() {
+        void oneSessionCarriesItsFilesWithItsNewestRecordingMarked() {
             liveSession();
 
             RecordingSessionResponse session = clients.repository().recordingSession(ORDERS, "s-live");
 
-            assertEquals(RecordingStatus.ACTIVE, session.status());
-            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.FINISHED),
-                    session.files().stream().map(RepositoryFileResponse::status).toList());
+            assertTrue(session.newest());
+            assertEquals(List.of(true, false),
+                    session.files().stream().map(RepositoryFileResponse::newestRecording).toList());
             assertEquals("profile-20260220-121500", session.files().getFirst().id());
-            assertNull(session.finishedAt());
+            assertEquals(Instant.parse("2026-02-20T12:20:00Z").toEpochMilli(), session.lastDataAt());
         }
 
         @Test
-        void aSessionThatFinishedWithNoDataFailedButOneMissingItsHeartbeatDidNot() {
-            VolumeWriter.finished(session("pod-a", "s-crashed", T0), T0.plusSeconds(5));
-            session("pod-b", "s-silent", T0);
+        void anEmptySessionFailedOnceANewerOneStartedButTheNewestNever() {
+            session("pod-a", "s-crashed", T0);
+            session("pod-a", "s-next", T0.plusSeconds(60));
+            session("pod-b", "s-quiet", T0);
 
             assertTrue(clients.repository().recordingSession(ORDERS, "s-crashed").failed());
-            RecordingSessionResponse silent = clients.repository().recordingSession(ORDERS, "s-silent");
-            assertTrue(silent.heartbeatMissing());
-            assertFalse(silent.failed());
+            RecordingSessionResponse next = clients.repository().recordingSession(ORDERS, "s-next");
+            assertTrue(next.newest());
+            assertFalse(next.failed());
+            assertFalse(clients.repository().recordingSession(ORDERS, "s-quiet").failed());
+            assertNull(next.lastDataAt());
         }
 
         @Test
@@ -295,19 +295,6 @@ class VolumeRemoteClientsTest {
             assertFalse(Files.exists(second.getParent()));
             assertTrue(codeOf(() -> clients.repository().deleteSession(ORDERS, "s-2")).isNotFound());
         }
-
-        @Test
-        void pinsASessionAndReleasesIt() {
-            Path dir = liveSession();
-
-            clients.repository().setSessionRetained(ORDERS, "s-live", true);
-            assertTrue(Files.exists(dir.resolve(".retained")));
-            assertTrue(clients.repository().recordingSession(ORDERS, "s-live").retained());
-
-            clients.repository().setSessionRetained(ORDERS, "s-live", false);
-            assertFalse(Files.exists(dir.resolve(".retained")));
-            assertTrue(codeOf(() -> clients.repository().setSessionRetained(ORDERS, "missing", true)).isNotFound());
-        }
     }
 
     /** A source declared read-only refuses every change and leaves the volume as it was. */
@@ -322,12 +309,9 @@ class VolumeRemoteClientsTest {
             assertThrows(JeffreyClientException.class, () -> readOnly.discovery().createWorkspace("new-ws", "New"));
             assertThrows(JeffreyClientException.class, () -> readOnly.discovery().deleteWorkspace("prod"));
             assertThrows(JeffreyClientException.class, () -> readOnly.repository().deleteSession(ORDERS, "s-live"));
-            assertThrows(JeffreyClientException.class,
-                    () -> readOnly.repository().setSessionRetained(ORDERS, "s-live", true));
             assertThrows(JeffreyClientException.class, () -> readOnly.projects().deleteProject(ORDERS));
             assertTrue(Files.isDirectory(dir));
             assertFalse(Files.exists(root.resolve("new-ws")));
-            assertFalse(Files.exists(dir.resolve(".retained")));
         }
 
         @Test
@@ -346,7 +330,9 @@ class VolumeRemoteClientsTest {
 
             List<InstanceResponse> instances = clients.instances().projectInstances(ORDERS);
 
-            assertEquals(List.of("ACTIVE", "PENDING"), instances.stream().map(InstanceResponse::status).toList());
+            assertEquals(List.of(1, 0), instances.stream().map(InstanceResponse::sessionCount).toList());
+            assertEquals(Instant.parse("2026-02-20T12:20:00Z").toEpochMilli(), instances.getFirst().lastDataAt());
+            assertNull(instances.getLast().lastDataAt());
         }
 
         @Test
@@ -373,19 +359,21 @@ class VolumeRemoteClientsTest {
         }
 
         @Test
-        void aClosedChunkStreamsUnderItsName() {
+        void aChunkStreamsUnderItsName() {
             liveSession();
 
-            assertEquals("profile-20260220-121000.jfr=closed chunk", stream("s-live", "profile-20260220-121000"));
+            assertEquals("profile-20260220-121000.jfr=older chunk", stream("s-live", "profile-20260220-121000"));
         }
 
+        /**
+         * The newest recording is served like any other: the profiler writes a file whole, and the
+         * receiver checks its chunk headers before it keeps it.
+         */
         @Test
-        void theChunkStillBeingWrittenIsRefused() {
+        void theNewestRecordingIsServedToo() {
             liveSession();
 
-            JeffreyClientException refused = assertThrows(JeffreyClientException.class,
-                    () -> stream("s-live", "profile-20260220-121500"));
-            assertTrue(refused.getMessage().contains("still writing"));
+            assertEquals("profile-20260220-121500.jfr=newest", stream("s-live", "profile-20260220-121500"));
         }
 
         @Test
@@ -398,7 +386,6 @@ class VolumeRemoteClientsTest {
         @Test
         void anEmptyRecordingIsRefusedButAnEmptyLogIsServed() {
             Path dir = session("pod-a", "s-done", T0);
-            VolumeWriter.finished(dir, T0.plusSeconds(60));
             VolumeWriter.file(dir, "profile-20260220-120000.jfr", "");
             VolumeWriter.file(dir, "app.log", "");
 
@@ -410,7 +397,6 @@ class VolumeRemoteClientsTest {
         @Test
         void theArchiveIsServedWhenARecordingAndItsArchiveShareAnId() {
             Path dir = session("pod-a", "s-done", T0);
-            VolumeWriter.finished(dir, T0.plusSeconds(60));
             VolumeWriter.file(dir, "profile-20260220-120000.jfr", "raw");
             VolumeWriter.file(dir, "profile-20260220-120000.jfr.lz4", "archived");
 

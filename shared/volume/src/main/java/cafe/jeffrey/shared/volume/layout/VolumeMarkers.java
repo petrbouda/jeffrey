@@ -71,17 +71,6 @@ public final class VolumeMarkers {
         }
     }
 
-    /** Whether an empty flag file is set; one that cannot be looked at reads as not set. */
-    public static boolean hasFlag(VolumeAccess volume, VolumePath directory, String flagFileName) {
-        VolumePath flag = directory.resolve(flagFileName);
-        try {
-            return volume.stat(flag).isPresent();
-        } catch (UncheckedIOException e) {
-            LOG.debug("Cannot look at a flag file, reading it as not set: file={} reason={}", flag, e.getMessage());
-            return false;
-        }
-    }
-
     /** The visible child directories, sorted by name; dot-directories are the volume's own bookkeeping. */
     public static List<VolumePath> childDirectories(VolumeAccess volume, VolumePath parent) {
         return childDirectoryEntries(volume, parent).stream()

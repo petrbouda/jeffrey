@@ -20,8 +20,8 @@ package cafe.jeffrey.shared.volume.layout;
 import java.util.List;
 
 /**
- * One instance with a page of its sessions, newest first, read together so the instance's state
- * and the sessions it is read off can never disagree.
+ * One instance with a page of its sessions, newest first, read together so the instance's newest
+ * session and the page it is read with can never disagree.
  *
  * @param hasOlder whether sessions older than the page's are left to read
  */

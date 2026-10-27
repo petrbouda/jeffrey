@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -44,9 +43,8 @@ import java.time.Clock;
 public class HubWorkspaceConfiguration {
 
     @Bean
-    public ProjectManager.Factory projectManagerFactory(
-            FilesystemVolume workspacesVolume, SessionLiveness sessionLiveness) {
-        return project -> new HubProjectManager(project, workspacesVolume, sessionLiveness);
+    public ProjectManager.Factory projectManagerFactory(FilesystemVolume workspacesVolume) {
+        return project -> new HubProjectManager(project, workspacesVolume);
     }
 
     @Bean

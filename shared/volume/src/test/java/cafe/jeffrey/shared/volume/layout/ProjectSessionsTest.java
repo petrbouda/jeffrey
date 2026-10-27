@@ -20,9 +20,7 @@ package cafe.jeffrey.shared.volume.layout;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
-import cafe.jeffrey.shared.volume.VolumeFixture;
 import cafe.jeffrey.shared.volume.VolumePath;
-import cafe.jeffrey.shared.volume.liveness.SessionLifecycle;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -33,14 +31,10 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,12 +44,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A project's sessions as the volume says they are when read: the one answer the hub and a
- * Microscope reading the storage directly both take, so neither can call a live session finished.
+ * Microscope reading the storage directly both take, so neither can take a session for its
+ * instance's newest when a newer one has started.
  */
 class ProjectSessionsTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-    private static final Instant NOW = T0.plusSeconds(3600);
 
     @TempDir
     Path root;
@@ -67,9 +61,7 @@ class ProjectSessionsTest {
     void setUp() {
         project = VolumeWriter.project(root, "p-1", "project", T0);
         FilesystemVolume volume = new FilesystemVolume(root);
-        sessions = new ProjectSessions(
-                ProjectTree.at(volume, VolumePath.root().resolve("project")).orElseThrow(),
-                VolumeFixture.liveness(Clock.fixed(NOW, ZoneOffset.UTC), volume));
+        sessions = new ProjectSessions(ProjectTree.at(volume, VolumePath.root().resolve("project")).orElseThrow());
     }
 
     private Path session(String instanceId, String sessionId, Instant createdAt) {
@@ -81,45 +73,35 @@ class ProjectSessionsTest {
 
         @Test
         void everySessionNewestFirstAcrossInstances() {
-            VolumeWriter.finished(session("pod-a", "s-old", T0), T0.plusSeconds(60));
-            VolumeWriter.heartbeat(session("pod-b", "s-new", T0.plusSeconds(120)), NOW);
+            session("pod-a", "s-old", T0);
+            session("pod-b", "s-new", T0.plusSeconds(120));
 
             List<VolumeSession> all = sessions.all();
 
             assertEquals(List.of("s-new", "s-old"), all.stream().map(VolumeSession::id).toList());
-            assertTrue(all.getFirst().lifecycle().isRecording());
-            assertEquals(SessionLifecycle.finished(T0.plusSeconds(60)), all.getLast().lifecycle());
         }
 
         /**
-         * Each instance is read on its own: a live session in one instance is not finished by a
-         * newer session in another. The older live session once read as FINISHED and had the
-         * chunk its profiler was writing compressed.
+         * Each instance is read on its own: a newer session in one instance does not end a session
+         * in another. The older live session once read as FINISHED and had the chunk its profiler
+         * was writing compressed.
          */
         @Test
-        void aNewerSessionInAnotherInstanceFinishesNothing() {
-            VolumeWriter.heartbeat(session("pod-a", "s-a", T0), NOW);
-            VolumeWriter.heartbeat(session("pod-b", "s-b", T0.plusSeconds(60)), NOW);
+        void eachInstanceHasItsOwnNewestSession() {
+            session("pod-a", "s-a", T0);
+            session("pod-b", "s-b", T0.plusSeconds(60));
 
-            assertTrue(sessions.all().stream().allMatch(session -> session.lifecycle().isRecording()));
+            assertTrue(sessions.all().stream().allMatch(VolumeSession::newest));
         }
 
         @Test
-        void aNewerSessionInTheSameInstanceFinishesTheOneBefore() {
+        void aNewerSessionInTheSameInstanceEndsTheOneBefore() {
             session("pod-a", "s-1", T0);
-            VolumeWriter.heartbeat(session("pod-a", "s-2", T0.plusSeconds(300)), NOW);
+            session("pod-a", "s-2", T0.plusSeconds(300));
 
-            VolumeSession older = sessions.session("s-1").orElseThrow();
-
-            assertEquals(SessionLifecycle.finished(T0.plusSeconds(300)), older.lifecycle());
-        }
-
-        @Test
-        void carriesTheRetainedFlag() throws IOException {
-            Path dir = session("pod-a", "s-1", T0);
-            Files.createFile(dir.resolve(SessionDirectory.RETAINED_FLAG));
-
-            assertTrue(sessions.session("s-1").orElseThrow().retained());
+            assertFalse(sessions.session("s-1").orElseThrow().newest());
+            assertTrue(sessions.session("s-2").orElseThrow().newest());
+            assertEquals(List.of(true, false), sessions.all().stream().map(VolumeSession::newest).toList());
         }
 
         @Test
@@ -132,62 +114,71 @@ class ProjectSessionsTest {
     class Instances {
 
         @Test
-        void withoutASessionIsPending() {
+        void withoutASessionHasNoNewest() {
             VolumeWriter.instance(project, "pod-a", T0);
 
             InstanceSummary summary = sessions.instances().getFirst();
 
-            assertEquals(InstanceState.PENDING, summary.state());
             assertEquals(0, summary.sessionCount());
-            assertEquals(Optional.empty(), summary.finishedAt());
+            assertEquals(Optional.empty(), summary.newest());
         }
 
         @Test
-        void isActiveWhileItsNewestRecordsAndFinishedAtItsEndAfterwards() {
-            VolumeWriter.finished(session("pod-a", "s-1", T0), T0.plusSeconds(60));
-            Path live = session("pod-a", "s-2", T0.plusSeconds(120));
-            VolumeWriter.heartbeat(live, NOW);
-
-            assertEquals(InstanceState.ACTIVE, sessions.instances().getFirst().state());
-
-            VolumeWriter.finished(live, NOW.minusSeconds(5));
+        void isSummedUpByItsNewestSession() {
+            session("pod-a", "s-1", T0);
+            session("pod-a", "s-2", T0.plusSeconds(120));
 
             InstanceSummary summary = sessions.instances().getFirst();
-            assertEquals(InstanceState.FINISHED, summary.state());
-            assertEquals(Optional.of(NOW.minusSeconds(5)), summary.finishedAt());
+
+            assertEquals("s-2", summary.newest().orElseThrow().id());
+            assertTrue(summary.newest().orElseThrow().newest());
             assertEquals(2, summary.sessionCount());
         }
 
         @Test
         void oneInstanceWithItsSessionsAgreesWithItsSummary() {
-            VolumeWriter.finished(session("pod-a", "s-1", T0), T0.plusSeconds(60));
-            VolumeWriter.heartbeat(session("pod-a", "s-2", T0.plusSeconds(120)), NOW);
+            session("pod-a", "s-1", T0);
+            session("pod-a", "s-2", T0.plusSeconds(120));
 
             InstanceSessionList instance = sessions.instance("pod-a").orElseThrow();
 
             assertEquals(List.of("s-2", "s-1"), instance.sessions().stream().map(VolumeSession::id).toList());
-            assertEquals(InstanceState.ACTIVE, instance.summary().state());
+            assertEquals(List.of(true, false), instance.sessions().stream().map(VolumeSession::newest).toList());
+            assertEquals("s-2", instance.summary().newest().orElseThrow().id());
             assertEquals(2, instance.summary().sessionCount());
             assertFalse(sessions.instance("pod-b").isPresent());
+        }
+
+        @Test
+        void aPageAfterTheCursorStillKnowsTheInstancesNewest() {
+            String first = VolumeWriter.sessionIdAt(T0);
+            String second = VolumeWriter.sessionIdAt(T0.plusSeconds(60));
+            String third = VolumeWriter.sessionIdAt(T0.plusSeconds(120));
+            session("pod-a", first, T0);
+            session("pod-a", second, T0.plusSeconds(60));
+            session("pod-a", third, T0.plusSeconds(120));
+
+            InstanceSessionList page = sessions.instance("pod-a", new SessionPage(1, Optional.of(third))).orElseThrow();
+
+            assertEquals(List.of(second), page.sessions().stream().map(VolumeSession::id).toList());
+            assertFalse(page.sessions().getFirst().newest());
+            assertEquals(third, page.summary().newest().orElseThrow().id());
+            assertTrue(page.hasOlder());
         }
     }
 
     /**
      * A session is read off one listing of its directory, and one that cannot be listed is still
-     * read, each answer asked of the volume instead.
+     * read; its siblings are read only as far as their names say they may have started after it.
      */
     @Nested
     class OneListing {
 
-        /**
-         * Fails the listing of one directory, records every read, and lists the directories named
-         * in {@code listedTimes} with those creation times, the way an SMB share lists them.
-         */
+        /** Fails the listing of one directory, records every read, and lists no creation times, as an NFS share lists. */
         private static final class ProbedVolume implements VolumeAccess {
 
             private final VolumeAccess delegate;
             private final VolumePath unlistable;
-            private final Map<String, Instant> listedTimes = new HashMap<>();
             private final List<VolumePath> reads = new ArrayList<>();
 
             private ProbedVolume(VolumeAccess delegate, VolumePath unlistable) {
@@ -201,10 +192,7 @@ class ProjectSessionsTest {
                     throw new UncheckedIOException(new IOException("stale handle"));
                 }
                 return delegate.list(directory).stream()
-                        .map(entry -> listedTimes.containsKey(entry.name())
-                                ? new VolumeEntry(entry.path(), entry.kind(), entry.size(),
-                                Optional.of(listedTimes.get(entry.name())))
-                                : entry)
+                        .map(entry -> new VolumeEntry(entry.path(), entry.kind(), entry.size(), Optional.empty()))
                         .toList();
             }
 
@@ -233,60 +221,68 @@ class ProjectSessionsTest {
         private ProjectSessions probed(VolumePath unlistable) {
             volume = new ProbedVolume(new FilesystemVolume(root), unlistable);
             tree = ProjectTree.at(volume, VolumePath.root().resolve("project")).orElseThrow();
-            return new ProjectSessions(tree, VolumeFixture.liveness(Clock.fixed(NOW, ZoneOffset.UTC), volume));
+            return new ProjectSessions(tree);
         }
 
         @Test
-        void aSessionWithoutALivenessDirectoryReadsNoLivenessFile() {
+        void aSessionThatCannotBeListedIsStillRead() {
             session("pod-a", "s-1", T0);
-
-            VolumeSession read = probed(VolumePath.root()).session("s-1").orElseThrow();
-
-            assertTrue(read.lifecycle().heartbeatMissing());
-            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains(".heartbeat")));
-        }
-
-        @Test
-        void aSessionThatCannotBeListedIsStillReadFromItsFiles() throws IOException {
-            Path dir = session("pod-a", "s-1", T0);
-            VolumeWriter.heartbeat(dir, NOW);
-            Files.createFile(dir.resolve(SessionDirectory.RETAINED_FLAG));
 
             VolumeSession read = probed(S_1).session("s-1").orElseThrow();
 
-            assertTrue(read.lifecycle().isRecording(), "its heartbeat is read, not taken for absent");
-            assertTrue(read.retained(), "its pin is looked at, not taken for unset");
+            assertTrue(read.newest());
             assertThrows(UncheckedIOException.class, () -> tree.files(read));
         }
 
         @Test
-        void theNewestSessionDoesNotReadASiblingListedWellBeforeIt() {
-            Instant olderStart = T0.minus(Duration.ofHours(2));
-            session("pod-a", "s-1", olderStart);
-            VolumeWriter.heartbeat(session("pod-a", "s-2", T0), NOW);
-            ProjectSessions sessions = probed(VolumePath.root());
-            volume.listedTimes.put("s-1", olderStart);
-            volume.listedTimes.put("s-2", T0);
+        void theNewestSessionDoesNotReadASiblingNamedBeforeIt() {
+            String older = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(2)));
+            String newest = VolumeWriter.sessionIdAt(T0);
+            session("pod-a", older, T0.minus(Duration.ofHours(2)));
+            session("pod-a", newest, T0);
 
-            VolumeSession newest = sessions.session("s-2").orElseThrow();
+            VolumeSession read = probed(VolumePath.root()).session(newest).orElseThrow();
 
-            assertTrue(newest.lifecycle().isRecording());
-            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains("s-1")),
-                    "the listing says s-1 started well before, so its marker is not read");
+            assertTrue(read.newest());
+            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains(older)),
+                    "its name says the sibling started before, so its marker is not read");
         }
 
         @Test
-        void aNewerSiblingStillFinishesTheOlderSession() {
-            Instant olderStart = T0.minus(Duration.ofHours(2));
-            session("pod-a", "s-1", olderStart);
-            VolumeWriter.heartbeat(session("pod-a", "s-2", T0), NOW);
-            ProjectSessions sessions = probed(VolumePath.root());
-            volume.listedTimes.put("s-1", olderStart);
-            volume.listedTimes.put("s-2", T0);
+        void aSiblingNamedAfterItEndsTheOlderSession() {
+            String older = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(2)));
+            String newer = VolumeWriter.sessionIdAt(T0);
+            session("pod-a", older, T0.minus(Duration.ofHours(2)));
+            session("pod-a", newer, T0);
 
-            VolumeSession older = sessions.session("s-1").orElseThrow();
+            assertFalse(probed(VolumePath.root()).session(older).orElseThrow().newest());
+        }
 
-            assertEquals(SessionLifecycle.finished(T0), older.lifecycle());
+        @Test
+        void onlyTheNextSessionAlongIsRead() {
+            String first = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(4)));
+            String second = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(2)));
+            String third = VolumeWriter.sessionIdAt(T0);
+            session("pod-a", first, T0.minus(Duration.ofHours(4)));
+            session("pod-a", second, T0.minus(Duration.ofHours(2)));
+            session("pod-a", third, T0);
+
+            VolumeSession read = probed(VolumePath.root()).session(first).orElseThrow();
+
+            assertFalse(read.newest());
+            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains(third)),
+                    "the second session settles it, so the third's marker is not read");
+        }
+
+        @Test
+        void aSiblingWhoseMarkerIsNotWrittenYetIsNoNewerSession() throws IOException {
+            String first = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(4)));
+            String undescribed = VolumeWriter.sessionIdAt(T0);
+            session("pod-a", first, T0.minus(Duration.ofHours(4)));
+            Files.createDirectories(project.resolve("pod-a").resolve(undescribed));
+
+            assertTrue(probed(VolumePath.root()).session(first).orElseThrow().newest(),
+                    "a directory without its marker is no session yet");
         }
 
         @Test

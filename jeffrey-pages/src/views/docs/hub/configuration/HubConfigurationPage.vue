@@ -34,7 +34,7 @@ const headings = [
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
   { id: 'live-workspace', text: 'No Profile Analysis', level: 2 },
-  { id: 'session-liveness', text: 'Session Liveness', level: 2 },
+  { id: 'session-order', text: 'Session Order', level: 2 },
 ];
 
 onMounted(() => {
@@ -69,8 +69,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         Jeffrey Hub (<code>jeffrey-hub.jar</code>) is configured through a single
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
-        (port, directories) come first; advanced tuning (jobs, storage paths,
-        workspace defaults and session liveness) follows. The Hub has no database: the shared
+        (port, directories) come first; advanced tuning (jobs, storage paths and
+        workspace defaults) follows. The Hub has no database: the shared
         volume is its only state.
       </p>
 
@@ -297,24 +297,24 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             </td>
             <td>
               One pass per project over a single listing of its sessions, in this order: deletes
-              finished sessions older than <code>session-retention</code> (measured from the
-              session's start); caps each instance at <code>max-sessions</code> logical sessions —
-              a consecutive run of failed (0-byte) sessions counts as one, the live session occupies
-              a slot, retained sessions are exempt, and the oldest beyond the cap go even before the
-              window expires; trims closed chunks older than
-              <code>active-session-file-retention</code> out of sessions still recording (the chunk
-              the profiler is writing is never touched); holds the project under
-              <code>max-size</code>, reclaiming oldest-first; and deletes abandoned PENDING
-              instances (no sessions) older than <code>instance-retention</code>, with their
-              directories. An instance whose last session is deleted goes with it. What is left is
-              the project's figure on the storage dashboard. The first tick runs at startup.
+              sessions whose last data is older than <code>session-retention</code>; caps each
+              instance at <code>max-sessions</code> logical sessions — a consecutive run of failed
+              (0-byte) sessions counts as one, the instance's newest session is never taken, and the
+              oldest beyond the cap go even before the window expires; trims recordings older than
+              <code>active-session-file-retention</code> out of each instance's newest session;
+              holds the project under <code>max-size</code>, reclaiming ended sessions oldest-first
+              before trimming newest sessions; and deletes instances without sessions started
+              longer ago than <code>instance-retention</code>, with their directories. The newest
+              recording of an instance's newest session is never deleted. An instance whose last
+              session is deleted goes with it. What is left is the project's figure on the storage
+              dashboard. The first tick runs at startup.
             </td>
           </tr>
           <tr>
             <td><code>repository-jfr-compression</code></td>
             <td><code>1m</code></td>
             <td>—</td>
-            <td>LZ4-compresses finished JFR files and deletes the originals</td>
+            <td>LZ4-compresses the JFR files of each instance's two newest sessions and deletes the originals, never the newest recording of the newest session</td>
           </tr>
         </tbody>
       </table>
@@ -384,39 +384,13 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         reads the volume from the Azure file share that holds it.
       </p>
 
-      <h2 id="session-liveness">Session Liveness</h2>
+      <h2 id="session-order">Session Order</h2>
       <p>
-        No job finishes a session. The Hub decides whether a session is still recording each time it
-        reads it — for compression, retention or the storage dashboard alike — from the session's
-        <code>.heartbeat/</code> files; see
-        <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>
-        for the rules. Two thresholds tune it:
+        Nothing to configure: the Hub keeps no session state. An instance's sessions are ordered by
+        their UUIDv7 directory names, the newest one is the only one that may still grow, and its
+        newest recording is never compressed or deleted; see
+        <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.
       </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.liveness.heartbeat-threshold</code></td>
-            <td><code>10s</code></td>
-            <td>How long after its last heartbeat a session is taken as finished (at that heartbeat).</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.liveness.startup-grace</code></td>
-            <td><code>1m</code></td>
-            <td>
-              How long a session may go without any liveness file before it is taken as finished at
-              its start, marked as having sent no heartbeat.
-            </td>
-          </tr>
-        </tbody>
-      </table>
 
     </div>
 

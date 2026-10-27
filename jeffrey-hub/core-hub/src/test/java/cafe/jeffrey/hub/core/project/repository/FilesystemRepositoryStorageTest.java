@@ -20,9 +20,7 @@ package cafe.jeffrey.hub.core.project.repository;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,9 +32,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,7 +44,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FilesystemRepositoryStorageTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-    private static final Instant NOW = T0.plusSeconds(3600);
     private static final String SESSION_ID = "session-1";
     private static final ProjectInfo PROJECT_INFO = new ProjectInfo("project-1", "project", "ws", T0, Map.of());
 
@@ -61,18 +56,16 @@ class FilesystemRepositoryStorageTest {
     }
 
     /**
-     * The project with its one session, still recording (a heartbeat fresh at {@link #NOW}) when
-     * {@code finishedAt} is null, finished by its clean-exit marker otherwise.
+     * The project with its one session: its instance's newest unless {@code ended}, when a newer
+     * session in the same instance has started after it.
      */
-    private static FilesystemRepositoryStorage storage(Path workspacesDir, Instant finishedAt) {
-        Path session = sessionDir(workspacesDir);
-        if (finishedAt == null) {
-            TestVolume.heartbeat(session, NOW);
-        } else {
-            TestVolume.finished(session, finishedAt);
+    private static FilesystemRepositoryStorage storage(Path workspacesDir, boolean ended) {
+        sessionDir(workspacesDir);
+        if (ended) {
+            TestVolume.session(TestVolume.instance(projectDir(workspacesDir), "instance", T0),
+                    "session-2", T0.plusSeconds(1800));
         }
-        return TestVolume.storage(
-                PROJECT_INFO, workspacesDir, projectDir(workspacesDir), Clock.fixed(NOW, ZoneOffset.UTC));
+        return TestVolume.storage(PROJECT_INFO, workspacesDir, projectDir(workspacesDir));
     }
 
     /** One session as the retention pass and the compression job read it: from the listing, with its files. */
@@ -97,8 +90,7 @@ class FilesystemRepositoryStorageTest {
 
     /**
      * What the volume says about a project's sessions and instances, read at the moment of asking:
-     * markers name them, heartbeat files say whether they are still recording, and a
-     * {@code .retained} file pins one.
+     * markers name them, and their order says which session is each instance's newest.
      */
     @Nested
     class Listing {
@@ -114,7 +106,7 @@ class FilesystemRepositoryStorageTest {
         @BeforeEach
         void setUp() {
             project = projectDir(workspacesDir);
-            storage = TestVolume.storage(PROJECT_INFO, workspacesDir, project, Clock.fixed(NOW, ZoneOffset.UTC));
+            storage = TestVolume.storage(PROJECT_INFO, workspacesDir, project);
         }
 
         private Path session(String instanceId, String sessionId, Instant createdAt) {
@@ -123,14 +115,14 @@ class FilesystemRepositoryStorageTest {
 
         @Test
         void listsEverySessionNewestFirstByItsMarker() {
-            TestVolume.finished(session(INSTANCE, "s-old", T0), T0.plusSeconds(60));
-            TestVolume.heartbeat(session("pod-b", "s-new", T0.plusSeconds(120)), NOW);
+            session(INSTANCE, "s-old", T0);
+            session("pod-b", "s-new", T0.plusSeconds(120));
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.HEADERS);
 
             assertEquals(List.of("s-new", "s-old"), sessions.stream().map(RecordingSession::id).toList());
-            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.FINISHED),
-                    sessions.stream().map(RecordingSession::status).toList());
+            assertEquals(List.of(true, true), sessions.stream().map(RecordingSession::newest).toList(),
+                    "each is its own instance's newest");
             assertEquals("pod-b/s-new", sessions.getFirst().name());
         }
 
@@ -142,7 +134,6 @@ class FilesystemRepositoryStorageTest {
         void readsItsRecordingsNamesInTheZoneTheMarkerRecords() throws IOException {
             Path dir = TestVolume.session(TestVolume.instance(project, INSTANCE, T0), "s-1", T0, "Europe/Prague");
             Files.writeString(dir.resolve("profile-20260220-130500.jfr"), CHUNK_BODY);
-            TestVolume.finished(dir, T0.plusSeconds(600));
 
             RecordingSession session = listed(storage, "s-1").orElseThrow();
 
@@ -154,7 +145,6 @@ class FilesystemRepositoryStorageTest {
         void readsAMarkerWithoutAZoneInUtc() throws IOException {
             Path dir = session(INSTANCE, "s-1", T0);
             Files.writeString(dir.resolve("profile-20260220-120500.jfr"), CHUNK_BODY);
-            TestVolume.finished(dir, T0.plusSeconds(600));
 
             RecordingSession session = listed(storage, "s-1").orElseThrow();
 
@@ -164,7 +154,7 @@ class FilesystemRepositoryStorageTest {
         /** One test of "is this an instance": a marker that does not read names no instance anywhere. */
         @Test
         void anInstanceWithACorruptMarkerIsNoInstance() throws IOException {
-            TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
+            session(INSTANCE, "s-1", T0);
             Files.writeString(project.resolve(INSTANCE).resolve(JeffreyLayout.INSTANCE_INFO_FILE), "{not json");
 
             assertTrue(storage.instances().isEmpty());
@@ -173,17 +163,17 @@ class FilesystemRepositoryStorageTest {
         }
 
         @Test
-        void aSessionReadAloneFinishesAtItsSuccessorsStartLikeItDoesInTheListing() {
+        void aNewerSessionInTheSameInstanceIsTheNewest() {
             session(INSTANCE, "s-1", T0);
-            TestVolume.heartbeat(session(INSTANCE, "s-2", T0.plusSeconds(600)), NOW);
+            session(INSTANCE, "s-2", T0.plusSeconds(600));
 
-            assertEquals(T0.plusSeconds(600), listed(storage, "s-1").orElseThrow().finishedAt());
-            assertEquals(RecordingStatus.ACTIVE, listed(storage, "s-2").orElseThrow().status());
+            assertFalse(listed(storage, "s-1").orElseThrow().newest());
+            assertTrue(listed(storage, "s-2").orElseThrow().newest());
         }
 
         @Test
         void aDirectoryWithoutItsMarkerIsNoSession() throws IOException {
-            TestVolume.heartbeat(session(INSTANCE, "s-1", T0), NOW);
+            session(INSTANCE, "s-1", T0);
             Files.createDirectories(project.resolve(INSTANCE).resolve("half-written"));
 
             assertEquals(List.of("s-1"), storage.listSessions(SessionDetail.HEADERS).stream()
@@ -194,30 +184,18 @@ class FilesystemRepositoryStorageTest {
         class Instances {
 
             @Test
-            void withoutASessionIsPending() {
+            void withoutASessionHasNone() {
                 TestVolume.instance(project, INSTANCE, T0);
 
-                assertEquals(new ProjectInstanceInfo(
-                                INSTANCE, ProjectInstanceStatus.PENDING,
-                                T0, null, 0),
-                        storage.instances().getFirst());
+                assertEquals(new ProjectInstanceInfo(INSTANCE, T0, 0), storage.instances().getFirst());
             }
 
             @Test
-            void isActiveWhileASessionRecordsAndFinishedAtItsLastFinishAfterwards() {
-                TestVolume.finished(session(INSTANCE, "s-1", T0), T0.plusSeconds(60));
-                Path live = session(INSTANCE, "s-2", T0.plusSeconds(120));
-                TestVolume.heartbeat(live, NOW);
+            void countsItsSessions() {
+                session(INSTANCE, "s-1", T0);
+                session(INSTANCE, "s-2", T0.plusSeconds(120));
 
-                assertEquals(ProjectInstanceStatus.ACTIVE,
-                        storage.instances().getFirst().status());
-
-                TestVolume.finished(live, NOW.minusSeconds(5));
-
-                var instance = storage.instances().getFirst();
-                assertEquals(ProjectInstanceStatus.FINISHED, instance.status());
-                assertEquals(NOW.minusSeconds(5), instance.finishedAt());
-                assertEquals(2, instance.sessionCount());
+                assertEquals(new ProjectInstanceInfo(INSTANCE, T0, 2), storage.instances().getFirst());
             }
         }
     }
@@ -233,16 +211,14 @@ class FilesystemRepositoryStorageTest {
             return FilesystemRepositoryStorageTest.sessionDir(workspacesDir);
         }
 
-        private FilesystemRepositoryStorage storage(Instant finishedAt) {
-            return FilesystemRepositoryStorageTest.storage(workspacesDir, finishedAt);
+        /** The session a newer one has ended: every recording of it is complete. */
+        private FilesystemRepositoryStorage endedSession() {
+            return FilesystemRepositoryStorageTest.storage(workspacesDir, true);
         }
 
-        private FilesystemRepositoryStorage finishedSession() {
-            return storage(T0.plusSeconds(1800));
-        }
-
-        private FilesystemRepositoryStorage liveSession() {
-            return storage(null);
+        /** The instance's newest session, whose newest recording may still be on its way. */
+        private FilesystemRepositoryStorage newestSession() {
+            return FilesystemRepositoryStorageTest.storage(workspacesDir, false);
         }
 
         private static Path write(Path dir, String name) throws IOException {
@@ -255,7 +231,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr");
             write(session, "profile-20260220-121000.jfr");
 
-            assertEquals(2, finishedSession().compressSession(SESSION_ID));
+            assertEquals(2, endedSession().compressSession(SESSION_ID));
 
             assertEquals(
                     List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr.lz4"),
@@ -264,48 +240,46 @@ class FilesystemRepositoryStorageTest {
         }
 
         /**
-         * Compressing the file the profiler holds open would compress a prefix of it and then
-         * delete the file being written into. It is left out by {@code finishedRecordings()},
-         * which is the one definition of which chunk that is.
+         * Compressing a recording still being copied into place would compress a prefix of it and
+         * then delete the file being written into. It is left out by {@code finishedRecordings()},
+         * which is the one definition of which recording that may be.
          */
         @Test
-        void leavesTheChunkTheProfilerIsStillWriting() throws IOException {
+        void leavesTheNewestRecordingOfTheNewestSession() throws IOException {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr");
             write(session, "profile-20260220-121000.jfr");
 
-            assertEquals(1, liveSession().compressSession(SESSION_ID));
+            assertEquals(1, newestSession().compressSession(SESSION_ID));
 
             assertEquals(
                     List.of("profile-20260220-120000.jfr.lz4", "profile-20260220-121000.jfr"),
                     names(session),
-                    "the newest chunk of a live session is untouched");
+                    "the newest recording of the instance's newest session is untouched");
         }
 
         /**
-         * Two instances of one project record at once, so only one of the two live sessions is
-         * the project's newest — and that must change nothing. Whether a session still holds a
-         * chunk open is a fact of the session (its own heartbeat), not of its place in the
-         * project's listing.
+         * Two instances of one project record at once, so only one of the two recording sessions
+         * is the project's newest — and that must change nothing. Which session is the newest is a
+         * fact of its own instance, not of its place in the project's listing. The older live
+         * session once read as FINISHED and had the chunk its profiler was writing compressed.
          */
         @Test
-        void everyUnfinishedSessionIsLiveWhateverItsPosition() throws IOException {
+        void everyInstancesNewestSessionKeepsItsNewestRecordingWhateverItsPosition() throws IOException {
             Path older = sessionDir();
             write(older, "profile-20260220-120000.jfr");
             write(older, "profile-20260220-121000.jfr");
-            FilesystemRepositoryStorage storage = liveSession();
+            FilesystemRepositoryStorage storage = newestSession();
             Path newer = TestVolume.session(
                     TestVolume.instance(projectDir(workspacesDir), "instance-2", T0), "session-2", T0.plusSeconds(1800));
-            TestVolume.heartbeat(newer, NOW);
             write(newer, "profile-20260220-123000.jfr");
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);
 
-            assertEquals(List.of(RecordingStatus.ACTIVE, RecordingStatus.ACTIVE),
-                    sessions.stream().map(RecordingSession::status).toList());
+            assertEquals(List.of(true, true), sessions.stream().map(RecordingSession::newest).toList());
             assertEquals(List.of("profile-20260220-123000.jfr", "profile-20260220-121000.jfr"),
                     sessions.stream().map(session -> session.openRecording().orElseThrow().name()).toList(),
-                    "each live session holds its own newest chunk open");
+                    "each instance's newest session holds back its own newest recording");
         }
 
         /**
@@ -319,7 +293,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "app.pprof");
             write(session, "app.otlp");
 
-            finishedSession().compressSession(SESSION_ID);
+            endedSession().compressSession(SESSION_ID);
 
             assertEquals(List.of("app.otlp", "app.pprof"), names(session));
         }
@@ -334,7 +308,7 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             Files.createFile(session.resolve("profile-20260220-120000.jfr"));
 
-            assertEquals(0, finishedSession().compressSession(SESSION_ID));
+            assertEquals(0, endedSession().compressSession(SESSION_ID));
 
             assertEquals(List.of("profile-20260220-120000.jfr"), names(session));
         }
@@ -348,10 +322,10 @@ class FilesystemRepositoryStorageTest {
             Path session = sessionDir();
             write(session, "profile-20260220-120000.jfr");
 
-            assertEquals(1, finishedSession().compressSession(SESSION_ID));
+            assertEquals(1, endedSession().compressSession(SESSION_ID));
             long firstSize = Files.size(session.resolve("profile-20260220-120000.jfr.lz4"));
 
-            assertEquals(1, finishedSession().compressSession(SESSION_ID));
+            assertEquals(1, endedSession().compressSession(SESSION_ID));
 
             assertEquals(List.of("profile-20260220-120000.jfr.lz4"), names(session));
             assertEquals(firstSize, Files.size(session.resolve("profile-20260220-120000.jfr.lz4")));
@@ -369,7 +343,7 @@ class FilesystemRepositoryStorageTest {
             write(session, "profile-20260220-120000.jfr");
             write(session, "profile-20260220-120000.jfr.lz4");
 
-            finishedSession().compressSession(SESSION_ID);
+            endedSession().compressSession(SESSION_ID);
 
             assertEquals(List.of("profile-20260220-120000.jfr.lz4"), names(session));
         }
@@ -386,7 +360,7 @@ class FilesystemRepositoryStorageTest {
             Files.write(session.resolve(".profile-20260220-120000.jfr.lz4.0e57.tmp"),
                     "half an archive".getBytes(StandardCharsets.UTF_8));
 
-            List<RepositoryFile> files = listed(finishedSession(), SESSION_ID)
+            List<RepositoryFile> files = listed(endedSession(), SESSION_ID)
                     .orElseThrow()
                     .files();
 
@@ -411,7 +385,7 @@ class FilesystemRepositoryStorageTest {
         }
 
         private FilesystemRepositoryStorage storage() {
-            return FilesystemRepositoryStorageTest.storage(workspacesDir, null);
+            return FilesystemRepositoryStorageTest.storage(workspacesDir, false);
         }
 
         private static Path write(Path dir, String name) throws IOException {

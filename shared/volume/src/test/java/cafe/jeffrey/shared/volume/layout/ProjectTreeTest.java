@@ -149,8 +149,32 @@ class ProjectTreeTest {
             List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
 
             assertEquals(List.of("b-first", "a-second"), oldestFirst.stream().map(SessionDirectory::id).toList());
-            assertEquals(Optional.of(T0.plusSeconds(60)), ProjectTree.nextStart(oldestFirst, oldestFirst.getFirst()));
-            assertEquals(Optional.empty(), ProjectTree.nextStart(oldestFirst, oldestFirst.getLast()));
+            assertFalse(tree.isNewest(oldestFirst.getFirst()));
+            assertTrue(tree.isNewest(oldestFirst.getLast()));
+        }
+
+        @Test
+        void aSessionStartsWhenItsNameSaysWhateverItsMarkerSays() {
+            Path instance = VolumeWriter.instance(project, "pod-a", T0);
+            String id = VolumeWriter.sessionIdAt(T0);
+            VolumeWriter.session(instance, id, T0.plusSeconds(5), null);
+
+            assertEquals(T0, tree.session(id).orElseThrow().createdAt());
+        }
+
+        @Test
+        void sessionsNamedForTheirStartAreOrderedByTheirNames() {
+            Path instance = VolumeWriter.instance(project, "pod-a", T0);
+            String first = VolumeWriter.sessionIdAt(T0);
+            String second = VolumeWriter.sessionIdAt(T0.plusSeconds(60));
+            // markers that disagree with the names lose: the name is the one place the order is kept
+            VolumeWriter.session(instance, first, T0.plusSeconds(120), null);
+            VolumeWriter.session(instance, second, T0, null);
+
+            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
+
+            assertEquals(List.of(first, second), oldestFirst.stream().map(SessionDirectory::id).toList());
+            assertFalse(tree.isNewest(oldestFirst.getFirst()));
         }
 
         @Test
@@ -170,17 +194,6 @@ class ProjectTreeTest {
             assertTrue(tree.session("../pod-a/s-1").isEmpty());
             assertTrue(tree.instance("../project").isEmpty());
             assertTrue(tree.instanceDirectory("..").isEmpty());
-        }
-
-        @Test
-        void aSessionIsRetainedByItsFlagFile() throws IOException {
-            Path dir = VolumeWriter.session(VolumeWriter.instance(project, "pod-a", T0), "s-1", T0, null);
-            SessionDirectory session = tree.session("s-1").orElseThrow();
-            assertFalse(tree.isRetained(session));
-
-            Files.createFile(dir.resolve(SessionDirectory.RETAINED_FLAG));
-
-            assertTrue(tree.isRetained(session));
         }
     }
 
@@ -233,7 +246,7 @@ class ProjectTreeTest {
             List<String> names = tree.files(SESSION, ZoneOffset.UTC).stream().map(SessionFile::name).toList();
 
             assertEquals(List.of("profile-20260220-121500.jfr", "profile-20260220-120000.jfr"), names,
-                    "the marker, the heartbeat directory and a nested directory are no files of the session");
+                    "the marker and a nested directory are no files of the session");
         }
 
         /**

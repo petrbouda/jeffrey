@@ -20,6 +20,5 @@ module cafe.jeffrey.shared.volume {
 
     exports cafe.jeffrey.shared.volume;
     exports cafe.jeffrey.shared.volume.layout;
-    exports cafe.jeffrey.shared.volume.liveness;
     exports cafe.jeffrey.shared.volume.recording;
 }

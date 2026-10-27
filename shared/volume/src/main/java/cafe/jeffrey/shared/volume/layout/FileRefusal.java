@@ -27,10 +27,6 @@ public enum FileRefusal {
     /** The session holds no file with that id; arguments: session id, file id. */
     NOT_IN_SESSION("Session %s holds no file with id %s. Take the id from the session's file listing."),
 
-    /** The chunk the profiler is still writing; argument: file name. */
-    STILL_WRITING("File %s is the chunk the profiler is still writing, and reading it would give a truncated "
-            + "answer. It can be taken once the profiler has rolled the next one."),
-
     /** A recording the profiler stopped before writing an event into; argument: file name. */
     EMPTY_RECORDING("Recording %s is empty — the profiler stopped before it wrote an event into it."),
 

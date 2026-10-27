@@ -25,15 +25,12 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.remote.controller.ProjectRepositoryController;
 
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,11 +51,11 @@ class ProjectRepositoryControllerTest {
         Instant now = Instant.parse("2026-04-26T12:00:00Z");
         when(projectAccess.repositoryManager("ws-1", "p-1")).thenReturn(repositoryManager);
         when(repositoryManager.recordingSession("s-1")).thenReturn(
-                new RecordingSession("s-1", "s-1", "inst-1", now, now, RecordingStatus.FINISHED, null,
+                new RecordingSession("s-1", "s-1", "inst-1", now, now, false, null,
                         List.of(new RepositoryFile("f-1", "profile.jfr", now, 2048L, true, null)),
                         false));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.fixed(now, ZoneOffset.UTC)));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess));
 
         var body = assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/repository/sessions/s-1"))
                 .hasStatusOk()
@@ -72,7 +69,7 @@ class ProjectRepositoryControllerTest {
         when(projectAccess.repositoryManager("ws-1", "p-1")).thenReturn(repositoryManager);
         when(repositoryManager.repositoryStatistics()).thenReturn(RepositoryStatistics.NOT_YET_MEASURED);
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, Clock.systemUTC()));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess));
 
         assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/repository/statistics"))
                 .hasStatusOk()
@@ -85,8 +82,7 @@ class ProjectRepositoryControllerTest {
         when(projectAccess.repositoryManager("ws-1", "ghost"))
                 .thenThrow(Exceptions.projectNotFound("ghost"));
 
-        Clock clock = Clock.fixed(Instant.parse("2026-04-26T12:00:00Z"), ZoneOffset.UTC);
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess, clock));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess));
 
         assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/ghost/repository/statistics"))
                 .hasStatus(404)

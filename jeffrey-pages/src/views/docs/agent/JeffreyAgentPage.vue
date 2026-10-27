@@ -59,7 +59,7 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="on-by-default">On by Default</h2>
-        <p>Every provisioned session reports liveness through the agent unless the deployment switches it off. The Hub then holds the session to the heartbeat deadline, and the <code>finished</code> marker closes it the moment the JVM exits. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for what the Hub does in each case.</p>
+        <p>Every provisioned session reports liveness through the agent unless the deployment switches it off. The Hub and Microscope no longer read heartbeats: session order and file names decide everything, see <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.</p>
         <p>The Provisioner's INFO verdict line states the choice for every session as <code>jeffrey_agent=true</code> or <code>jeffrey_agent=false</code>.</p>
 
         <h2 id="where-it-lives">Where the Jar Lives</h2>
@@ -152,7 +152,7 @@ onMounted(() => {
         <h2 id="switching-off">Switching It Off</h2>
         <p>Set <code>jeffrey-agent.enabled = false</code> in the Provisioner configuration, or <code>JEFFREY_AGENT_ENABLED=false</code> in the deployment. No <code>-javaagent</code> is added, even in an image that carries the jar, and the Provisioner logs:</p>
         <pre class="doc-code"><code>Jeffrey agent DISABLED, liveness is reported only if the application carries jeffrey-heartbeat</code></pre>
-        <p>Liveness then comes only from the application itself, through <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> or <code>jeffrey-heartbeat-spring-boot-starter</code>. With neither, the session writes no liveness files, and heartbeats are mandatory: past the startup grace the Hub finishes it at its start, marked as having sent no heartbeat, and Microscope shows how to turn heartbeats on.</p>
+        <p>Liveness then comes only from the application itself, through <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> or <code>jeffrey-heartbeat-spring-boot-starter</code>. With neither, the session writes no liveness files, which changes nothing for the Hub or Microscope: neither reads heartbeats.</p>
 
         <h2 id="coexistence">Alongside the Heartbeat Library</h2>
         <p>An application that already carries the library is safe with the agent on. Once the agent is beating it sets the system property <code>jeffrey.heartbeat.agent=true</code>; the library — and so the Spring Boot starter — sees it, stays inert, and logs that the agent already reports. There is only ever one writer of the liveness files.</p>

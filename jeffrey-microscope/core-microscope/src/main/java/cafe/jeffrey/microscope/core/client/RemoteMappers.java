@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 public abstract class RemoteMappers {
 
     public static DetailedProjectInfo toDetailedProjectInfo(ProjectInfo info, ProjectActivity activity) {
-        return new DetailedProjectInfo(info, activity.status(), activity.sessionCount(), null);
+        return new DetailedProjectInfo(info, activity.lastDataAt(), activity.sessionCount(), null);
     }
 
     public static ProjectInfo toProjectInfo(RemoteProjectResponse response) {

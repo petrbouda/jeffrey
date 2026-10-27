@@ -48,7 +48,7 @@ class StorageControllerTest {
                 List.of(new ProjectStorage(
                         "ws-1", "production",
                         "prj-1", "order-service",
-                        27_100_000_000L, 342, 1_775_000_000_000L, true)));
+                        27_100_000_000L, 342, 1_775_000_000_000L)));
         when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 
         MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
@@ -63,7 +63,7 @@ class StorageControllerTest {
                 .hasPathSatisfying("$.projects[0].totalSizeBytes", v -> assertThat(v).asNumber().isEqualTo(27_100_000_000L))
                 .hasPathSatisfying("$.projects[0].totalFiles", v -> assertThat(v).asNumber().isEqualTo(342))
                 .hasPathSatisfying("$.projects[0].lastActivityTimeMillis", v -> assertThat(v).asNumber().isEqualTo(1_775_000_000_000L))
-                .hasPathSatisfying("$.projects[0].active", v -> assertThat(v).asBoolean().isTrue())
+                .doesNotHavePath("$.projects[0].active")
                 .doesNotHavePath("$.projects[0].fileTypes")
                 .doesNotHavePath("$.projects[0].largestFiles");
     }

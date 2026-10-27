@@ -18,14 +18,13 @@ package cafe.jeffrey.microscope.core.mcp.tools.remote;
 
 import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.repository.RecordedSpan;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow.Selection.Chunk;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * A session's finished chunks with their spans — each ends where the next begins — and what the
+ * A session's chunks with their spans — each ends where the next begins — and what the
  * predefined windows read from them.
  * <p>
  * The chunk length is the profiler's own configuration, which never reaches the remote, so it is
@@ -42,7 +41,7 @@ import java.util.stream.Collectors;
  * started a moment late.
  *
  * @param session the session
- * @param chunks  its finished chunks, oldest first
+ * @param chunks  its chunks, oldest first
  */
 public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
 
@@ -51,10 +50,10 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
     }
 
     static SessionChunks of(RecordingSession session) {
-        Set<String> finished = session.finishedRecordings().stream()
+        Set<String> recordings = session.recordings().stream()
                 .map(RepositoryFile::id)
                 .collect(Collectors.toSet());
-        return new SessionChunks(session, ChunkWindow.ofFiles(session, finished).chunks());
+        return new SessionChunks(session, ChunkWindow.ofFiles(session, recordings).chunks());
     }
 
     /** Whether the session's first chunk is still on the remote. */
@@ -68,7 +67,7 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
         record Gone(Chunk oldest, Duration chunkLength) implements Startup {
         }
 
-        /** It cannot be told: no recorded start, or no finished chunk. */
+        /** It cannot be told: no recorded start, or no chunk. */
         record Unknown(String why) implements Startup {
         }
     }
@@ -80,31 +79,18 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
      * @param medianSizeBytes    the median size of the compressed chunks it was compared with
      * @param compared           how many compressed chunks were compared
      * @param tied               whether another chunk is as large; the most recent of them is taken
-     * @param notCompressed      finished chunks left out because they are not compressed yet
+     * @param notCompressed      chunks left out because they are not compressed yet
      */
     public record Peak(Chunk chunk, long medianSizeBytes, int compared, boolean tied, int notCompressed) {
     }
 
     /** The median spacing of consecutive chunk starts; empty while there is nothing to measure. */
     public Optional<Duration> chunkLength() {
-        List<Instant> starts = new ArrayList<>(chunks.stream().map(Chunk::start).toList());
-        session.openRecording().map(RepositoryFile::createdAt).ifPresent(starts::add);
-        List<Long> spacings = new ArrayList<>();
-        for (int i = 1; i < starts.size(); i++) {
-            spacings.add(Duration.between(starts.get(i - 1), starts.get(i)).toMillis());
-        }
-        if (!spacings.isEmpty()) {
-            return Optional.of(Duration.ofMillis(lowerMedian(spacings)));
-        }
-        // One chunk and nothing after it: its own span, when the session's end gives it one.
-        return chunks.stream()
-                .filter(chunk -> chunk.end() != null)
-                .findFirst()
-                .map(chunk -> Duration.between(chunk.start(), chunk.end()));
+        return RecordedSpan.chunkLength(chunks.stream().map(Chunk::start).toList());
     }
 
     /**
-     * Whether the first chunk is kept: the oldest finished chunk starts no more than one chunk
+     * Whether the first chunk is kept: the oldest chunk starts no more than one chunk
      * length after the session did.
      */
     public Startup startup() {
@@ -112,7 +98,7 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
             return new Startup.Unknown("the session has no recorded start");
         }
         if (chunks.isEmpty()) {
-            return new Startup.Unknown("the session has no finished chunk yet");
+            return new Startup.Unknown("the session has no chunk yet");
         }
         Chunk first = chunks.getFirst();
         Optional<Duration> length = chunkLength();
@@ -125,7 +111,7 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
                 : new Startup.Gone(first, length.get());
     }
 
-    /** The newest finished chunk that holds anything; never the one still being written. */
+    /** The newest chunk that holds anything. */
     public Optional<Chunk> latest() {
         for (int i = chunks.size() - 1; i >= 0; i--) {
             Chunk chunk = chunks.get(i);
@@ -137,7 +123,7 @@ public record SessionChunks(RecordingSession session, List<Chunk> chunks) {
     }
 
     /**
-     * The largest finished chunk among the LZ4-compressed ones: a size on disk compares only with
+     * The largest chunk among the LZ4-compressed ones: a size on disk compares only with
      * another of the same format, and a chunk the remote has not compressed yet is left out until it is.
      */
     public Optional<Peak> peak() {

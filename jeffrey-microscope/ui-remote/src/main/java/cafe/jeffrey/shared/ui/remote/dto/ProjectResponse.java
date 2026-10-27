@@ -18,7 +18,6 @@
 package cafe.jeffrey.shared.ui.remote.dto;
 
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 
 public record ProjectResponse(
         String id,
@@ -27,7 +26,7 @@ public record ProjectResponse(
         String namespace,
         long createdAt,
         String workspaceId,
-        RecordingStatus status,
+        Long lastDataAt,
         int sessionCount,
         RecordingEventSource eventSource) {
 }

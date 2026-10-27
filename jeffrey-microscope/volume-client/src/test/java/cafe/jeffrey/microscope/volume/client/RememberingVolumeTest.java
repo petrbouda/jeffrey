@@ -43,8 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The write-once files read once: the provisioner's markers and a session's finished marker, and
- * nothing else; each forgotten when a listing stops showing it, when Microscope changes it, and
+ * The write-once files read once: the provisioner's markers, and nothing else; each forgotten when a listing stops showing it, when Microscope changes it, and
  * after its safety bound.
  */
 class RememberingVolumeTest {
@@ -53,8 +52,7 @@ class RememberingVolumeTest {
     private static final VolumePath INSTANCE = VolumePath.root().resolve("ws").resolve("project").resolve("pod-1");
     private static final VolumePath SESSION = INSTANCE.resolve("s-1");
     private static final VolumePath SESSION_MARKER = SESSION.resolve(".session-info.json");
-    private static final VolumePath FINISHED = SESSION.resolve(".heartbeat").resolve("finished");
-    private static final VolumePath HEARTBEAT = SESSION.resolve(".heartbeat").resolve("heartbeat");
+    private static final VolumePath LOG = SESSION.resolve("gc.log");
 
     @TempDir
     Path root;
@@ -151,8 +149,7 @@ class RememberingVolumeTest {
     void setUp() {
         Path project = VolumeWriter.project(root.resolve("ws"), "p-1", "project", T0);
         Path session = VolumeWriter.session(VolumeWriter.instance(project, "pod-1", T0), "s-1", T0, null);
-        VolumeWriter.finished(session, T0.plusSeconds(60));
-        VolumeWriter.heartbeat(session, T0.plusSeconds(30));
+        VolumeWriter.file(session, "gc.log", "line");
         clock = new MovableClock(T0);
         volume = new RememberingVolume(new RecordingReads(new FilesystemVolume(root)), clock);
     }
@@ -173,19 +170,11 @@ class RememberingVolumeTest {
         }
 
         @Test
-        void aWrittenFinishedMarkerIsReadOnce() {
-            volume.read(FINISHED);
-            volume.read(FINISHED);
+        void anyOtherFileIsReadEveryTime() {
+            volume.read(LOG);
+            volume.read(LOG);
 
-            assertEquals(1, readsOf(FINISHED));
-        }
-
-        @Test
-        void theHeartbeatIsReadEveryTime() {
-            volume.read(HEARTBEAT);
-            volume.read(HEARTBEAT);
-
-            assertEquals(2, readsOf(HEARTBEAT));
+            assertEquals(2, readsOf(LOG));
         }
 
         @Test
@@ -233,12 +222,12 @@ class RememberingVolumeTest {
         @Test
         void microscopesOwnDeleteForgetsEverythingUnderIt() {
             volume.read(SESSION_MARKER);
-            volume.read(FINISHED);
+            volume.read(INSTANCE.resolve(".instance-info.json"));
 
-            volume.delete(SESSION);
+            volume.delete(INSTANCE);
 
             assertFalse(volume.read(SESSION_MARKER).isPresent());
-            assertFalse(volume.read(FINISHED).isPresent());
+            assertFalse(volume.read(INSTANCE.resolve(".instance-info.json")).isPresent());
         }
 
         @Test

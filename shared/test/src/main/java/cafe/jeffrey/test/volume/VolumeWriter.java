@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.test.volume;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
@@ -31,13 +30,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Writes a recording volume the way the provisioner and the heartbeat library do — marker files,
- * liveness files and recordings — so every reader of a volume (the hub, the shared layout,
+ * Writes a recording volume the way the provisioner and the profiler do — marker files and
+ * recordings — so every reader of a volume (the hub, the shared layout,
  * Microscope reading storage directly) is tested against what production writes.
  */
 public final class VolumeWriter {
+
+    /** Where a time-ordered UUID keeps its epoch millis: above the version and counter bits. */
+    private static final int UUID_TIMESTAMP_SHIFT = 16;
+    private static final long UUID_VERSION_7 = 0x7000L;
+    private static final long UUID_STANDARD_VARIANT = 0x8000_0000_0000_0000L;
 
     private VolumeWriter() {
     }
@@ -66,20 +71,13 @@ public final class VolumeWriter {
         return dir;
     }
 
-    /** The heartbeat library's periodic beat. */
-    public static void heartbeat(Path sessionDir, Instant at) {
-        livenessFile(sessionDir, HeartbeatConstants.HEARTBEAT_FILE, Long.toString(at.toEpochMilli()));
-    }
-
-    /** The heartbeat library's clean-exit marker. */
-    public static void finished(Path sessionDir, Instant at) {
-        livenessFile(sessionDir, HeartbeatConstants.FINISHED_FILE, Long.toString(at.toEpochMilli()));
-    }
-
-    /** A liveness file with whatever content, readable or not. */
-    public static void livenessFile(Path sessionDir, String fileName, String content) {
-        Path dir = directories(sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR));
-        write(dir.resolve(fileName), content);
+    /**
+     * The name the provisioner gives a session started at {@code start}: a time-ordered UUID
+     * carrying it, which is what an instance's sessions are ordered by.
+     */
+    public static String sessionIdAt(Instant start) {
+        long mostSignificant = (start.toEpochMilli() << UUID_TIMESTAMP_SHIFT) | UUID_VERSION_7;
+        return new UUID(mostSignificant, UUID_STANDARD_VARIANT).toString();
     }
 
     public static Path file(Path dir, String name, String content) {

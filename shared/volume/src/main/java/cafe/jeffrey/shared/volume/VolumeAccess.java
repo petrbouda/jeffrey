@@ -31,12 +31,12 @@ import java.util.Optional;
  *
  * <p>Every method keeps "nothing is there" apart from "it could not be looked at": the first is an
  * empty answer, the second an {@link UncheckedIOException}. The layout acts on that
- * difference — an unreadable heartbeat must not finish a live session.
+ * difference — a marker that cannot be read is not taken for one that is missing.
  */
 public interface VolumeAccess {
 
     /**
-     * The most {@link #read} hands over. Markers and liveness files are a few hundred bytes, and
+     * The most {@link #read} hands over. Markers are a few hundred bytes, and
      * anything that can write to the volume — every profiled workload — could otherwise make a
      * reader hold a file of any size in memory just by listing.
      */
@@ -59,7 +59,7 @@ public interface VolumeAccess {
     Optional<VolumeEntry> stat(VolumePath path);
 
     /**
-     * The whole content of a small file — a marker, a liveness file — or empty when there is none.
+     * The whole content of a small file — a marker — or empty when there is none.
      * Never reads more than {@link #MAX_READ_BYTES} plus one byte of it.
      *
      * @throws UncheckedIOException when something is there and cannot be read: a directory in the

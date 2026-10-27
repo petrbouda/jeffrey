@@ -131,8 +131,7 @@ final class ProjectRetentionPass {
                 .filter(file -> !deletedIds.contains(file.id()))
                 .toList();
         sessions.set(sessions.indexOf(session), new RecordingSession(
-                session.id(), session.name(), session.instanceId(), session.createdAt(), session.finishedAt(),
-                session.status(), kept, session.retained(), session.heartbeatMissing()));
+                session.id(), session.name(), session.instanceId(), session.createdAt(), session.newest(), kept));
     }
 
     /** Deletes an instance's directory; a failure is logged and the next pass tries again. */

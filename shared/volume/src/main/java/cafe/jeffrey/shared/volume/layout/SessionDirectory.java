@@ -26,13 +26,11 @@ import java.time.ZoneId;
  * A session directory whose {@code .session-info.json} reads — likewise the one test of "is this
  * a session".
  *
- * @param createdAt when the session started, from its marker; its order within its instance
+ * @param createdAt when the session started — the time its name carries, else its marker's; its
+ *                  order within its instance
  * @param zone      the zone the session's machine runs in, which its recordings' names are local to
  */
 public record SessionDirectory(VolumePath path, Instant createdAt, ZoneId zone) {
-
-    /** The empty flag file that pins a session against every retention rule. */
-    public static final String RETAINED_FLAG = ".retained";
 
     public SessionDirectory {
         if (path == null || createdAt == null || zone == null) {

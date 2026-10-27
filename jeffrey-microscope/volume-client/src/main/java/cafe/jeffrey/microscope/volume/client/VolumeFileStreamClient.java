@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.remote.client.FileStreamClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.volume.VolumeAccess.OpenedFile;
 import cafe.jeffrey.shared.volume.layout.FileRefusal;
@@ -37,8 +36,7 @@ import java.util.Optional;
 
 /**
  * One file of a session off the volume, refused in {@code FileRefusal}'s words: a file the session
- * does not hold, the chunk the profiler is still writing, an empty recording, and one gone by the
- * time it is opened — looked up once more first, since the hub's compression job may have just
+ * does not hold, an empty recording, and one gone by the time it is opened — looked up once more first, since the hub's compression job may have just
  * replaced a recording with its archive under the same id.
  */
 final class VolumeFileStreamClient implements FileStreamClient {
@@ -80,10 +78,6 @@ final class VolumeFileStreamClient implements FileStreamClient {
                 .reduce(RecordingFormat.theOneThatStays(SessionFile::name))
                 .orElseThrow(() -> Exceptions.invalidRequest(FileRefusal.NOT_IN_SESSION.reason(sessionId, fileId)));
 
-        RecordingSession model = VolumeResponses.withModelFiles(session, files);
-        if (model.isOpen(VolumeResponses.modelFile(file))) {
-            throw Exceptions.invalidRequest(FileRefusal.STILL_WRITING.reason(file.name()));
-        }
         if (file.recording() && file.size() == 0) {
             throw Exceptions.invalidRequest(FileRefusal.EMPTY_RECORDING.reason(file.name()));
         }

@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
-
 export default class Project {
   constructor(
     public id: string,
     public name: string,
     public createdAt: number,
     public workspaceId: string,
-    public status: RecordingStatus,
+    /** When the newest data of any of its instances ends; null while none has a recording. */
+    public lastDataAt: number | null,
     public sessionCount: number
   ) {}
 }

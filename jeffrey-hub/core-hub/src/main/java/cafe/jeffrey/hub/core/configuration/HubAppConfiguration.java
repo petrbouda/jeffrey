@@ -19,12 +19,10 @@ package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.configuration.properties.LivenessProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.liveness.SessionLiveness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,8 +36,8 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans of the hub: its home directory, its clock, and how a session's liveness is
- * read. The volume under the home directory is the hub's only state.
+ * Configuration beans of the hub: its home directory, its clock and the volume under the home
+ * directory, which is the hub's only state.
  */
 @Configuration
 @Import({
@@ -50,8 +48,7 @@ import java.time.Clock;
 @EnableConfigurationProperties({
         SchedulerJobsProperties.class,
         DefaultWorkspaceProperties.class,
-        WorkspacesProperties.class,
-        LivenessProperties.class
+        WorkspacesProperties.class
 })
 @PropertySource("classpath:scheduler-defaults.properties")
 public class HubAppConfiguration {
@@ -75,12 +72,5 @@ public class HubAppConfiguration {
     @Bean
     public FilesystemVolume workspacesVolume(HubJeffreyDirs jeffreyDirs) {
         return new FilesystemVolume(jeffreyDirs.workspaces());
-    }
-
-    @Bean
-    public SessionLiveness sessionLiveness(
-            Clock applicationClock, FilesystemVolume workspacesVolume, LivenessProperties livenessProperties) {
-        return new SessionLiveness(
-                applicationClock, workspacesVolume, livenessProperties.deadlines());
     }
 }

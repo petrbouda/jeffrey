@@ -29,25 +29,17 @@ import cafe.jeffrey.microscope.core.manager.workspace.RemoteWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
-import cafe.jeffrey.shared.volume.liveness.SessionDeadlines;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 import java.time.Clock;
-import java.time.Duration;
 
 @Configuration
 @Import(AppConfiguration.class)
 @EnableConfigurationProperties(ConfiguredRemoteProperties.class)
 public class RemoteConfiguration {
-
-    /** The Jeffrey Hub's default {@code jeffrey.hub.liveness.heartbeat-threshold}. */
-    private static final Duration VOLUME_HEARTBEAT_THRESHOLD = Duration.ofSeconds(10);
-
-    /** The Jeffrey Hub's default {@code jeffrey.hub.liveness.startup-grace}. */
-    private static final Duration VOLUME_STARTUP_GRACE = Duration.ofMinutes(1);
 
     /** The declaration read once, so an unusable one is reported once rather than per bean. */
     @Bean
@@ -55,19 +47,12 @@ public class RemoteConfiguration {
         return configuredRemote.read();
     }
 
-    /**
-     * The share's clients. A session's heartbeat is read against the Jeffrey Hub's default
-     * deadlines ({@code jeffrey.hub.liveness.*}), so Microscope and the hub's jobs on the same
-     * volume agree on which sessions are still recording.
-     */
+    /** The share's clients. */
     @Bean
     public AzureFilesClientsFactory azureFilesClientsFactory(
             Clock clock, ConfiguredRemoteProperties.Declared declaredRemote) {
 
-        return new AzureFilesClientsFactory(
-                clock,
-                new SessionDeadlines(VOLUME_HEARTBEAT_THRESHOLD, VOLUME_STARTUP_GRACE),
-                declaredRemote.sasToken());
+        return new AzureFilesClientsFactory(clock, declaredRemote.sasToken());
     }
 
     @Bean

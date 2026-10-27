@@ -49,7 +49,6 @@ import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
@@ -63,7 +62,6 @@ import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
@@ -193,7 +191,7 @@ class RemoteMcpToolsTest {
 
     private static RecordingSession session(String id, Instant createdAt, RepositoryFile... files) {
         return new RecordingSession(id, id, "inst-1", createdAt, createdAt.plusSeconds(600),
-                RecordingStatus.FINISHED, null, List.of(files), false);
+                false, null, List.of(files), false);
     }
 
     private static RecordingSession jfrSession(String id, Instant createdAt) {
@@ -293,10 +291,9 @@ class RemoteMcpToolsTest {
 
         private JsonNode page(RemoteMcpTools target, String workspace, Integer minutes, int limit, String cursor) {
             var method = assertDoesNotThrow(() -> RemoteMcpTools.class.getMethod("sessions",
-                    String.class, String.class, Integer.class, RecordingStatus.class,
-                    Integer.class, String.class), "sessions must expose cursor pagination");
+                    String.class, String.class, Integer.class, Integer.class, String.class), "sessions must expose cursor pagination");
             McpToolResult result = (McpToolResult) assertDoesNotThrow(() -> method.invoke(target, workspace, null,
-                    minutes, null, limit, cursor));
+                    minutes, limit, cursor));
             StructuredAnswers.markdown(RemoteMcpTools.class, "sessions", result);
             return Json.toTree(result);
         }
@@ -356,7 +353,7 @@ class RemoteMcpToolsTest {
             assertEquals(NOW.toEpochMilli(), row.path("startedAtEpochMs").asLong());
             assertFalse(row.has("duration"), "the readable span stays in the table; the record has durationMs");
             assertFalse(row.has("size"), "the readable size stays in the table; the record has sizeBytes");
-            assertEquals("FINISHED", row.path("status").asString());
+            assertFalse(row.path("newest").asBoolean());
             assertFalse(row.has("started"), row.toString());
             assertFalse(row.has("startedAtMs"), row.toString());
         }
@@ -368,8 +365,7 @@ class RemoteMcpToolsTest {
         @Test
         void takesTheFiguresFromTheListedSizeNotTheFiles() {
             RepositoryManager repo = repositoryWith(new RecordingSession(SESSION_ID, SESSION_ID, "inst-1", NOW,
-                    NOW.plusSeconds(600), RecordingStatus.FINISHED, null, List.of(), false, false, false,
-                    new SessionSize(3, 4096L)));
+                    NOW.plusSeconds(600), false, null, List.of(), false, new SessionSize(3, 4096L)));
             RemoteConnection production = reachableRemote("production", "checkout", repo);
             configure(production);
             noLocalRecordings();
@@ -380,11 +376,11 @@ class RemoteMcpToolsTest {
             assertEquals(4096, row.path("sizeBytes").asLong());
         }
 
-        /** A session still recording has no duration yet, and says so with null rather than zero. */
+        /** A session with no recorded data yet has no duration, and says so with null rather than zero. */
         @Test
-        void aRunningSessionHasNoDuration() {
+        void aSessionWithNoDataYetHasNoDuration() {
             RecordingSession running = new RecordingSession(SESSION_ID, SESSION_ID, "inst-1", NOW, null,
-                    RecordingStatus.ACTIVE, null, List.of(file("f-1", "recording.jfr", ManagedFile.JFR)), false);
+                    true, null, List.of(), false);
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(running));
             configure(production);
             noLocalRecordings();
@@ -462,10 +458,9 @@ class RemoteMcpToolsTest {
         @Test
         void rejectsMalformedAndFilterMismatchedCursorsBeforeRemoteReads() {
             var method = assertDoesNotThrow(() -> RemoteMcpTools.class.getMethod("sessions",
-                    String.class, String.class, Integer.class, RecordingStatus.class,
-                    Integer.class, String.class));
+                    String.class, String.class, Integer.class, Integer.class, String.class));
             var malformed = assertThrows(InvocationTargetException.class,
-                    () -> method.invoke(tools, null, null, null, null, 1, "garbage"));
+                    () -> method.invoke(tools, null, null, null, 1, "garbage"));
             assertTrue(malformed.getCause() instanceof IllegalArgumentException);
             verifyNoInteractions(remoteManager);
             RepositoryManager repo = repositoryWith(jfrSession("a", NOW), jfrSession("b", NOW));
@@ -474,7 +469,7 @@ class RemoteMcpToolsTest {
             noLocalRecordings();
             String cursor = page(tools, "default", null, 1, null).path("structuredContent").path("nextCursor").asText();
             var mismatch = assertThrows(InvocationTargetException.class,
-                    () -> method.invoke(tools, "stage", null, null, null, 1, cursor));
+                    () -> method.invoke(tools, "stage", null, null, 1, cursor));
             assertTrue(mismatch.getCause() instanceof IllegalArgumentException);
             for (var refused : List.of(malformed, mismatch)) {
                 assertTrue(refused.getCause().getMessage().contains("omit cursor to start again"),
@@ -604,7 +599,7 @@ class RemoteMcpToolsTest {
             configure(production);
             noLocalRecordings();
 
-            String result = tools.sessions(null, null, null, null, null, null).text();
+            String result = tools.sessions(null, null, null, null, null).text();
 
             assertTrue(result.contains("default"), result);
             assertTrue(result.contains("checkout"), result);
@@ -617,7 +612,7 @@ class RemoteMcpToolsTest {
             configure(production);
             localRecording("rec-1", null, REF);
 
-            String result = tools.sessions(null, null, null, null, null, null).text();
+            String result = tools.sessions(null, null, null, null, null).text();
 
             assertTrue(result.contains("recording:rec-1"), result);
         }
@@ -628,7 +623,7 @@ class RemoteMcpToolsTest {
             configure(production);
             localRecording("rec-1", "profile-1", REF);
 
-            String result = tools.sessions(null, null, null, null, null, null).text();
+            String result = tools.sessions(null, null, null, null, null).text();
 
             assertTrue(result.contains("profile:profile-1"), result);
         }
@@ -638,7 +633,7 @@ class RemoteMcpToolsTest {
             configure(unreachableRemote("production"));
             noLocalRecordings();
 
-            String result = tools.sessions(null, null, null, null, null, null).text();
+            String result = tools.sessions(null, null, null, null, null).text();
 
             assertTrue(result.contains("Not listed: remote"), result);
             assertTrue(result.contains("remote_status"), result);
@@ -650,7 +645,7 @@ class RemoteMcpToolsTest {
             configure(unreachableRemote("production"));
             noLocalRecordings();
 
-            String result = tools.sessions(null, null, null, null, null, null).text();
+            String result = tools.sessions(null, null, null, null, null).text();
 
             assertTrue(result.contains("Not listed"), result);
             assertFalse(result.contains("No recording sessions matched"), result);
@@ -663,7 +658,7 @@ class RemoteMcpToolsTest {
             configure(production);
             noLocalRecordings();
 
-            tools.sessions(null, null, 60, null, null, null).text();
+            tools.sessions(null, null, 60, null, null).text();
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
@@ -672,39 +667,9 @@ class RemoteMcpToolsTest {
         }
 
         @Test
-        void pushesTheStatusDownToTheRemote() {
-            RepositoryManager repo = repositoryWith(jfrSession(SESSION_ID, NOW));
-            RemoteConnection production = reachableRemote("production", "checkout", repo);
-            configure(production);
-            noLocalRecordings();
-
-            tools.sessions(null, null, null, RecordingStatus.ACTIVE, null, null).text();
-
-            ArgumentCaptor<RecordingSessionFilter> captor =
-                    ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            verify(repo).listRecordingSessions(captor.capture());
-            assertEquals(RecordingStatus.ACTIVE, captor.getValue().status());
-        }
-
-        /**
-         * The status is a real {@code enum} argument now, so the schema carries the two constants and
-         * the binder refuses anything else. The mistake can only be made through a call, which is
-         * where the test now makes it.
-         */
-        @Test
-        void rejectsAStatusThatIsNotOne() {
-            ReflectiveToolset toolset = new ReflectiveToolset(tools, "remote");
-
-            ToolDispatchException e = assertThrows(ToolDispatchException.class,
-                    () -> toolset.call("remote_sessions", Json.createObject().put("status", "RUNNING")));
-
-            assertTrue(e.getMessage().contains("ACTIVE"), e.getMessage());
-        }
-
-        @Test
         void rejectsAWindowThatIsNotAWindow() {
             assertThrows(IllegalArgumentException.class,
-                    () -> tools.sessions(null, null, 0, null, null, null).text());
+                    () -> tools.sessions(null, null, 0, null, null).text());
         }
 
         @Test
@@ -714,7 +679,7 @@ class RemoteMcpToolsTest {
             configure(production);
             noLocalRecordings();
 
-            tools.sessions(null, null, null, null, 10_000, null).text();
+            tools.sessions(null, null, null, 10_000, null).text();
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
@@ -728,7 +693,7 @@ class RemoteMcpToolsTest {
             configure(production);
             noLocalRecordings();
 
-            assertTrue(tools.sessions(null, null, null, null, null, null).text().contains("check\\|out"));
+            assertTrue(tools.sessions(null, null, null, null, null).text().contains("check\\|out"));
         }
 
         @Test
@@ -736,7 +701,7 @@ class RemoteMcpToolsTest {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith());
             configure(production);
 
-            String result = tools.sessions(null, null, 60, null, null, null).text();
+            String result = tools.sessions(null, null, 60, null, null).text();
 
             assertTrue(result.contains("withinLastMinutes"), result);
             assertTrue(result.contains("60"), result);
@@ -747,7 +712,7 @@ class RemoteMcpToolsTest {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith());
             configure(production);
 
-            assertTrue(tools.sessions(null, null, null, null, null, null).text().contains("remote_status"));
+            assertTrue(tools.sessions(null, null, null, null, null).text().contains("remote_status"));
         }
     }
 
@@ -768,7 +733,7 @@ class RemoteMcpToolsTest {
             configure(production);
             noLocalRecordings();
 
-            JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
+            JsonNode answer = sessions(tools.sessions(null, null, null, null, null));
 
             assertEquals(REF.encode(), StructuredAnswers.call(answer, "remote_files").get("sessionRef").asString());
             assertFalse(StructuredAnswers.nextTools(answer).contains("remote_download"), answer.toString());
@@ -785,7 +750,7 @@ class RemoteMcpToolsTest {
             configure(production);
             localRecording("rec-1", null, REF);
 
-            JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
+            JsonNode answer = sessions(tools.sessions(null, null, null, null, null));
 
             assertEquals("rec-1", answer.get("sessions").get(0).get("recordingId").asString());
             assertEquals("rec-1", StructuredAnswers.call(answer, "recordings_analyzeRecording")
@@ -798,7 +763,7 @@ class RemoteMcpToolsTest {
             configure(production);
             localRecording("rec-1", "profile-1", REF);
 
-            JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
+            JsonNode answer = sessions(tools.sessions(null, null, null, null, null));
 
             assertEquals("profile-1", answer.get("sessions").get(0).get("profileId").asString());
             assertEquals("profile-1", StructuredAnswers.call(answer, "profiles_summary").get("profileId").asString());
@@ -812,13 +777,13 @@ class RemoteMcpToolsTest {
             configure(remote);
             noLocalRecordings();
 
-            McpToolResult result = tools.sessions("default", null, 60, RecordingStatus.FINISHED, 1, null);
+            McpToolResult result = tools.sessions("default", null, 60, 1, null);
             JsonNode answer = sessions(result);
 
             JsonNode next = StructuredAnswers.call(answer, "remote_sessions");
             assertEquals("default", next.get("workspace").asString());
             assertEquals(60, next.get("withinLastMinutes").asInt());
-            assertEquals("FINISHED", next.get("status").asString());
+            assertFalse(next.has("status"), next.toString());
             assertEquals(answer.get("nextCursor").asString(), next.get("cursor").asString());
             assertFalse(result.text().contains("nextCursor: `"), "the cursor is not repeated in prose");
         }
@@ -828,7 +793,7 @@ class RemoteMcpToolsTest {
             RemoteConnection production = reachableRemote("production", "checkout", repositoryWith());
             configure(production);
 
-            JsonNode answer = sessions(tools.sessions(null, null, 60, null, null, null));
+            JsonNode answer = sessions(tools.sessions(null, null, 60, null, null));
 
             assertEquals("EMPTY", answer.get("status").asString());
             assertTrue(answer.get("reason").asString().contains("withinLastMinutes"), answer.toString());
@@ -842,7 +807,7 @@ class RemoteMcpToolsTest {
             configure(down);
             noLocalRecordings();
 
-            JsonNode answer = sessions(tools.sessions(null, null, null, null, null, null));
+            JsonNode answer = sessions(tools.sessions(null, null, null, null, null));
 
             assertEquals("OK", answer.get("status").asString());
             assertTrue(answer.get("reason").isNull());
@@ -1009,11 +974,11 @@ class RemoteMcpToolsTest {
         }
 
         /**
-         * A copy taken while the session was still recording stops where the session stood then;
-         * handed back, it would answer for the session with the chunks of an hour ago.
+         * A copy taken while the session was its instance's newest stops where the session stood
+         * then; handed back, it would answer for the session with the chunks of an hour ago.
          */
         @Test
-        void downloadsAgainWhenTheCopyHereWasTakenWhileTheSessionWasRecording() {
+        void downloadsAgainWhenTheCopyHereWasTakenWhileTheSessionWasTheNewest() {
             localRecording("rec-partial", null, REF, false);
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
@@ -1075,7 +1040,7 @@ class RemoteMcpToolsTest {
         }
 
         @Test
-        void refusesASessionWithNothingFinishedToDownload() {
+        void refusesASessionWithNoRecordingToDownload() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             RecordingSession logsOnly = session(SESSION_ID, NOW,
                     file("f-1", "gc.log", ManagedFile.JVM_LOG));
@@ -1086,7 +1051,7 @@ class RemoteMcpToolsTest {
                     IllegalArgumentException.class,
                             () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
 
-            assertTrue(e.getMessage().contains("no finished recording file"), e.getMessage());
+            assertTrue(e.getMessage().contains("no recording file"), e.getMessage());
             verify(downloads, never()).downloadSession(any());
         }
 
@@ -1219,7 +1184,7 @@ class RemoteMcpToolsTest {
                                 START.plus(Duration.ofMinutes(45L * i)), 100L, true, null))
                         .toList();
                 return new RecordingSession(SESSION_ID, "checkout-api", "inst-1", START, NOW,
-                        RecordingStatus.FINISHED, null, chunks, false);
+                        false, null, chunks, false);
             }
 
             private RecordingsDownloadManager servingThreeHours() {
@@ -1433,12 +1398,12 @@ class RemoteMcpToolsTest {
                 verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
             }
 
-            /** A window no finished chunk covers is asked about again, not turned into an error. */
+            /** A window no chunk covers is asked about again, not turned into an error. */
             @Test
-            void aChosenWindowNoFinishedChunkCoversIsAskedAgain() {
+            void aChosenWindowNoChunkCoversIsAskedAgain() {
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
                 RecordingSession lateFirstChunk = new RecordingSession(SESSION_ID, "checkout-api", "inst-1", START, NOW,
-                        RecordingStatus.FINISHED, null, List.of(new RepositoryFile("c0", "profile-0.jfr",
+                        false, null, List.of(new RepositoryFile("c0", "profile-0.jfr",
                         START.plus(Duration.ofHours(2)), 100L, true, null)), false);
                 resolvesTo(projectWith(lateFirstChunk, downloads));
                 noLocalRecordings();
@@ -1446,45 +1411,46 @@ class RemoteMcpToolsTest {
                 String message = message(answered(McpInputResponse.Action.ACCEPT, "{\"window\":\"CUSTOM\",\"start\":\""
                         + START + "\",\"end\":\"" + START.plus(Duration.ofMinutes(30)) + "\"}"));
 
-                assertTrue(message.startsWith("No finished chunk"), message);
+                assertTrue(message.startsWith("No chunk"), message);
                 verifyNoInteractions(downloads);
             }
 
             /**
-             * A live session: three finished chunks and the newest, opened 45 minutes ago, still being
-             * written. A window inside that open chunk is covered by no finished one.
+             * The instance's newest session: four chunks, the newest started 45 minutes ago. Its data
+             * reaches one measured chunk past that start, which is where its windows are measured from.
              */
-            private RecordingSession liveThreeHours() {
-                RecordingSession finished = threeHours();
-                return new RecordingSession(finished.id(), finished.name(), finished.instanceId(),
-                        finished.createdAt(), null, RecordingStatus.ACTIVE, null, finished.files(), false);
+            private RecordingSession newestThreeHours() {
+                RecordingSession ended = threeHours();
+                return new RecordingSession(ended.id(), ended.name(), ended.instanceId(),
+                        ended.createdAt(), NOW, true, null, ended.files(), false);
+            }
+
+            /** The newest chunk is on the volume like any other: a window inside it downloads it. */
+            @Test
+            void aChosenWindowInsideTheNewestChunkOfTheNewestSessionDownloadsIt() {
+                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+                resolvesTo(projectWith(newestThreeHours(), downloads));
+                noLocalRecordings();
+
+                McpToolOutcome outcome = answered(McpInputResponse.Action.ACCEPT,
+                        "{\"window\":\"LAST_MINUTES\",\"minutes\":10}");
+
+                assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
+                verify(downloads).downloadWindow(eq(SESSION_ID), any());
             }
 
             @Test
-            void aChosenWindowInsideTheOpenChunkOfALiveSessionIsAskedAgain() {
+            void anExplicitWindowInsideTheNewestChunkOfTheNewestSessionDownloadsIt() {
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                resolvesTo(projectWith(liveThreeHours(), downloads));
+                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+                resolvesTo(projectWith(newestThreeHours(), downloads));
                 noLocalRecordings();
 
-                String message = message(answered(McpInputResponse.Action.ACCEPT,
-                        "{\"window\":\"LAST_MINUTES\",\"minutes\":10}"));
+                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null,
+                        NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, null, ELICITING);
 
-                assertTrue(message.startsWith("No finished chunk"), message);
-                verifyNoInteractions(downloads);
-            }
-
-            /** The same window named explicitly gets the refusal an uncovered window always got. */
-            @Test
-            void anExplicitWindowInsideTheOpenChunkOfALiveSessionIsRefused() {
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                resolvesTo(projectWith(liveThreeHours(), downloads));
-                noLocalRecordings();
-
-                IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> tools.download(
-                        REF.encode(), null, null, null, NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, null, ELICITING));
-
-                assertTrue(e.getMessage().startsWith("No finished chunk of session " + SESSION_ID), e.getMessage());
-                verifyNoInteractions(downloads);
+                assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
             }
 
             /** A client that never declared elicitation cannot steer the download with a forged answer. */
@@ -1584,12 +1550,12 @@ class RemoteMcpToolsTest {
                     file("log", "app.log", ManagedFile.APP_LOG));
         }
 
-        /** The same four chunks, but the session has not finished: its last chunk is open-ended. */
-        private RecordingSession activeFourChunks() {
-            RecordingSession finished = fourChunks();
-            return new RecordingSession(finished.id(), finished.name(), finished.instanceId(),
-                    finished.createdAt(), null, RecordingStatus.ACTIVE, finished.absolutePath(),
-                    finished.files(), finished.retained());
+        /** The same four chunks, but the session is its instance's newest: it may add more. */
+        private RecordingSession newestFourChunks() {
+            RecordingSession ended = fourChunks();
+            return new RecordingSession(ended.id(), ended.name(), ended.instanceId(),
+                    ended.createdAt(), ended.lastDataAt(), true, ended.absolutePath(),
+                    ended.files(), ended.failed());
         }
 
         @Test
@@ -1629,16 +1595,16 @@ class RemoteMcpToolsTest {
         }
 
         /**
-         * "Everything since 14:00" on a session that is still recording means something later
-         * every time it is asked. Handing back the recording made an hour ago would answer a
-         * shorter question than the one that was put.
+         * "Everything since 14:00" on the instance's newest session means something later every
+         * time it is asked. Handing back the recording made an hour ago would answer a shorter
+         * question than the one that was put.
          */
         @Test
-        void anOpenEndedWindowOnALiveSessionIsFetchedAgainRatherThanReplayed() {
+        void anOpenEndedWindowOnTheNewestSessionIsFetchedAgainRatherThanReplayed() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadWindow(eq(SESSION_ID), any()))
                     .thenReturn("rec-first", "rec-second");
-            resolvesTo(projectWith(activeFourChunks(), downloads));
+            resolvesTo(projectWith(newestFourChunks(), downloads));
             noLocalRecordings();
             Recording landed = landedRecording();
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
@@ -1670,6 +1636,62 @@ class RemoteMcpToolsTest {
             verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
         }
 
+        /**
+         * The newest recording of the instance's newest session may have been copied while the
+         * profiler was still writing it into place, so a part holding it is fetched again rather
+         * than handed back — however closed its window.
+         */
+        @Test
+        void aClosedWindowHoldingTheNewestRecordingOfTheNewestSessionIsFetchedAgain() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-first", "rec-second");
+            resolvesTo(projectWith(newestFourChunks(), downloads));
+            noLocalRecordings();
+            Recording landed = landedRecording();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
+
+            long start = NOW.plusSeconds(460).toEpochMilli();
+            long end = NOW.plusSeconds(500).toEpochMilli();
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            String second = complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+
+            assertTrue(second.contains("rec-second"), second);
+            verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
+        }
+
+        @Test
+        void namingTheNewestRecordingOfTheNewestSessionFetchesItAgain() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-first", "rec-second");
+            resolvesTo(projectWith(newestFourChunks(), downloads));
+            noLocalRecordings();
+            Recording landed = landedRecording();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
+
+            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, RESOURCE_READ));
+
+            verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
+        }
+
+        /** Only the newest recording is in doubt: a closed window before it is settled on the newest session too. */
+        @Test
+        void aClosedWindowBeforeTheNewestRecordingIsAnsweredFromTheRecordingItAlreadyMade() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+            resolvesTo(projectWith(newestFourChunks(), downloads));
+            noLocalRecordings();
+            Recording landed = landedRecording();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
+
+            long start = NOW.plusSeconds(200).toEpochMilli();
+            long end = NOW.plusSeconds(320).toEpochMilli();
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+
+            verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
+        }
+
         @Test
         void aWindowOutsideTheSessionIsRefusedWithTheSessionsSpan() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
@@ -1680,7 +1702,7 @@ class RemoteMcpToolsTest {
                     REF.encode(), null, null, null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("started at " + NOW), e.getMessage());
-            assertTrue(e.getMessage().contains("finished at " + NOW.plusSeconds(600)), e.getMessage());
+            assertTrue(e.getMessage().contains("its recorded data ends at " + NOW.plusSeconds(600)), e.getMessage());
             verifyNoInteractions(downloads);
         }
 

@@ -22,7 +22,7 @@
       <span class="project-name">{{ project.name }}</span>
     </div>
 
-    <!-- Footer Row: Date + Sessions on the left, Status/Alerts on the right -->
+    <!-- Footer Row: Date + Sessions on the left, when its data last arrived on the right -->
     <div class="footer-row">
       <div class="footer-meta">
         <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
@@ -31,24 +31,21 @@
           {{ project.sessionCount || 0 }} session{{ (project.sessionCount || 0) === 1 ? '' : 's' }}
         </span>
       </div>
-      <div class="badges">
-        <Badge
-          v-if="project.status"
-          :value="formatStatus(project.status)"
-          :variant="getStatusVariant"
-          size="xs"
-        />
-      </div>
+      <span
+        v-if="project.lastDataAt != null"
+        class="last-data"
+        :title="FormattingService.formatTimestampUTC(project.lastDataAt)"
+      >
+        Last data {{ FormattingService.formatRelativeTime(project.lastDataAt) }}
+      </span>
+      <span v-else class="last-data">No data yet</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import type Project from '@remote/services/api/model/Project.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
-import Badge from '@shared/components/Badge.vue';
-import type { Variant } from '@shared/types/ui';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   project: Project;
@@ -65,12 +62,6 @@ const handleClick = () => {
   emit('open', { projectId: props.project.id, workspaceId: props.workspaceId });
 };
 
-// Status badge variant
-const getStatusVariant = computed((): Variant => {
-  if (!props.project.status) {return 'status-unknown';}
-  return `status-${props.project.status.toLowerCase()}` as Variant;
-});
-
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp);
   return date.toLocaleDateString('en-US', {
@@ -78,18 +69,6 @@ const formatDate = (timestamp: number): string => {
     day: 'numeric',
     year: 'numeric'
   });
-};
-
-const formatStatus = (status: RecordingStatus): string => {
-  switch (status) {
-    case RecordingStatus.ACTIVE:
-      return 'Active';
-    case RecordingStatus.FINISHED:
-      return 'Finished';
-    case RecordingStatus.UNKNOWN:
-    default:
-      return 'Unknown';
-  }
 };
 </script>
 
@@ -171,9 +150,9 @@ const formatStatus = (status: RecordingStatus): string => {
   font-size: 0.7rem;
 }
 
-.footer-row .badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.footer-row .last-data {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 </style>

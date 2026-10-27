@@ -49,22 +49,18 @@ class ChunkWindowTest {
     }
 
     /**
-     * A session holding these files, finished at the given instant or still recording when it is
-     * {@code null} — in which case its newest chunk is the one the profiler still holds open, and
-     * no selection may take it.
+     * A session holding these files: its instance's newest when {@code newest}, which changes
+     * nothing about which chunks a window may take — its newest is selected like any other.
      */
-    private static RecordingSession session(List<RepositoryFile> files, Instant finishedAt) {
-        return new RecordingSession(
-                "session", "session", "instance", T0, finishedAt,
-                finishedAt == null ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED,
-                null, files, false);
+    private static RecordingSession session(List<RepositoryFile> files, boolean newest) {
+        return new RecordingSession("session", "session", "instance", T0, null, newest, null, files, false);
     }
 
-    /** Four chunks of ten minutes, the session finished at +40. */
+    /** Four chunks of ten minutes, so the last one ends one measured chunk past its start, at +40. */
     private static final List<RepositoryFile> CHUNKS = List.of(
             chunk("c3", 30), chunk("c1", 10), chunk("c0", 0), chunk("c2", 20), log(0));
 
-    private static final RecordingSession SESSION = session(CHUNKS, minutes(40));
+    private static final RecordingSession SESSION = session(CHUNKS, false);
 
     @Nested
     class Bounds {
@@ -129,60 +125,49 @@ class ChunkWindowTest {
             assertEquals(minutes(40), selection.coverageEnd());
         }
 
-        /**
-         * A running session's newest chunk is the one the profiler still holds open, so the last
-         * chunk a selection can reach is the one before it — and that one ends where the open one
-         * starts, like every chunk ends where the next begins. A window past it selects nothing
-         * rather than the older chunk, which holds none of the window.
-         */
         @Test
-        void aWindowPastTheLastClosedChunkOfARunningSessionSelectsNothing() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(session(CHUNKS, null));
+        void aWindowPastTheLastChunkSelectsNothing() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(session(CHUNKS, true));
 
             assertTrue(selection.isEmpty(), selection.fileIds().toString());
         }
 
-        /** c0, c1 and c2 finished, c3 opened at +30 and still being written. */
-        @Test
-        void aWindowInsideTheOpenChunkOfARunningSessionSelectsNothing() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(32), minutes(38)).select(session(CHUNKS, null));
-
-            assertTrue(selection.isEmpty(), selection.fileIds().toString());
-        }
-
-        @Test
-        void theLastClosedChunkOfARunningSessionEndsWhereTheOpenOneStarts() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(25), minutes(35)).select(session(CHUNKS, null));
-
-            assertEquals(List.of("c2"), selection.fileIds());
-            assertEquals(minutes(30), selection.coverageEnd());
-        }
-
-        @Test
-        void anOpenEndOnARunningSessionReachesTheStartOfTheOpenChunk() {
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(15), null).select(session(CHUNKS, null));
-
-            assertEquals(List.of("c1", "c2"), selection.fileIds());
-            assertEquals(minutes(30), selection.coverageEnd());
-        }
-
         /**
-         * With no finish time and no chunk held open — a session the hub reports finished without
-         * saying when — nothing bounds the last chunk, and its end stays unknown.
+         * The newest chunk of the instance's newest session is on the volume whole — the profiler
+         * writes each one when its loop ends — so a window inside it takes it. A download that
+         * catches it mid-copy is refused when it arrives, not here.
          */
         @Test
-        void theLastChunkKeepsAnUnknownEndWhenNeitherAFinishNorAnOpenChunkBoundsIt() {
-            RecordingSession finishedWithoutAnEnd = new RecordingSession(
-                    "session", "session", "instance", T0, null, RecordingStatus.FINISHED, null, CHUNKS, false);
-
-            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(finishedWithoutAnEnd);
+        void aWindowInsideTheNewestChunkOfTheNewestSessionTakesIt() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(32), minutes(38)).select(session(CHUNKS, true));
 
             assertEquals(List.of("c3"), selection.fileIds());
+        }
+
+        @Test
+        void theLastChunkEndsOneMeasuredChunkPastItsStart() {
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(25), minutes(35)).select(session(CHUNKS, true));
+
+            assertEquals(List.of("c2", "c3"), selection.fileIds());
+            assertEquals(minutes(40), selection.coverageEnd());
+        }
+
+        /**
+         * A session of one chunk has no spacing to measure a chunk's length from, so nothing bounds
+         * its last chunk, and its end stays unknown.
+         */
+        @Test
+        void theLastChunkKeepsAnUnknownEndWhenNoLengthCanBeMeasured() {
+            RecordingSession oneChunk = session(List.of(chunk("c0", 0)), false);
+
+            ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(oneChunk);
+
+            assertEquals(List.of("c0"), selection.fileIds());
             assertNull(selection.coverageEnd());
         }
 
         @Test
-        void aWindowOutsideAFinishedSessionSelectsNothing() {
+        void aWindowOutsideTheSessionSelectsNothing() {
             ChunkWindow.Selection selection = new ChunkWindow(minutes(100), minutes(200)).select(SESSION);
 
             assertTrue(selection.isEmpty());
@@ -237,7 +222,7 @@ class ChunkWindowTest {
         }
 
         /**
-         * A finished chunk with no timestamp is left out of the selection, so it must be left out
+         * A chunk with no timestamp is left out of the selection, so it must be left out
          * of the count too — otherwise a whole-session download reports itself as a part, is
          * tagged and renamed as a window, and stops being recognised as the session's local copy.
          */
@@ -245,7 +230,7 @@ class ChunkWindowTest {
         void aChunkWithNoTimestampIsIgnoredByBothTheSelectionAndTheCount() {
             RepositoryFile undated = new RepositoryFile("c4", "profile-c4.jfr", null, 10L,
                     true, null);
-            RecordingSession session = session(List.of(chunk("c0", 0), chunk("c1", 10), undated), minutes(20));
+            RecordingSession session = session(List.of(chunk("c0", 0), chunk("c1", 10), undated), false);
 
             ChunkWindow.Selection selection = ChunkWindow.ofFiles(session, Set.of("c0", "c1"));
 
@@ -254,21 +239,21 @@ class ChunkWindowTest {
         }
 
         @Test
-        void everyFinishedChunkIsTheWholeSession() {
+        void everyChunkIsTheWholeSession() {
             ChunkWindow.Selection selection = ChunkWindow.ofFiles(SESSION, Set.of("c0", "c1", "c2", "c3"));
 
             assertTrue(selection.isWholeSession(SESSION));
         }
 
         @Test
-        void ignoresFilesThatAreNotFinishedChunks() {
-            RepositoryFile open = new RepositoryFile("c4", "profile-c4.jfr", minutes(40), 10L,
+        void takesTheNewestRecordingTooButNoArtifact() {
+            RepositoryFile newest = new RepositoryFile("c4", "profile-c4.jfr", minutes(40), 10L,
                     true, null);
-            RecordingSession session = session(List.of(chunk("c0", 0), log(0), open), null);
+            RecordingSession session = session(List.of(chunk("c0", 0), log(0), newest), true);
 
             ChunkWindow.Selection selection = new ChunkWindow(minutes(0), minutes(60)).select(session);
 
-            assertEquals(List.of("c0"), selection.fileIds());
+            assertEquals(List.of("c0", "c4"), selection.fileIds());
         }
     }
 }

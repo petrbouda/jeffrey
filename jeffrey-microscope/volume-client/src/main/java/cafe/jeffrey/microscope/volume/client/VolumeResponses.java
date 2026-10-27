@@ -23,35 +23,29 @@ import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
-import cafe.jeffrey.microscope.model.ProjectInstanceInfo.ProjectInstanceStatus;
+import cafe.jeffrey.microscope.model.repository.RecordedSpan;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.shared.volume.layout.InstanceState;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
- * The volume's types onto Microscope's own. What the hub's jobs decide from the same volume (a
- * session's status, whether it failed, an instance's state) is decided here by the same rules, so
- * Microscope and the hub never disagree about a session.
+ * The volume's types onto Microscope's own. What the hub's jobs decide from the same volume
+ * (whether a session failed, which recording may still be on its way) is decided here by the same
+ * rules, so Microscope and the hub never disagree about a session.
  */
 final class VolumeResponses {
-
-    private static final Map<InstanceState, ProjectInstanceStatus> INSTANCE_STATUSES = Map.of(
-            InstanceState.PENDING, ProjectInstanceStatus.PENDING,
-            InstanceState.ACTIVE, ProjectInstanceStatus.ACTIVE,
-            InstanceState.FINISHED, ProjectInstanceStatus.FINISHED);
 
     private VolumeResponses() {
     }
@@ -66,48 +60,29 @@ final class VolumeResponses {
         return response(session, files, files.stream().map(VolumeResponses::file).toList());
     }
 
-    /** The session in Microscope's model without its files, enough for a filter to judge. */
-    static RecordingSession unlisted(VolumeSession session) {
+    /**
+     * The session in Microscope's model without its files, enough for a filter to judge: its span
+     * from the names its listing shows, no file looked at.
+     */
+    static RecordingSession unlisted(VolumeSession session, List<Instant> recordingStarts) {
         return new RecordingSession(
                 session.id(),
                 session.name(),
                 session.instanceId(),
                 session.createdAt(),
-                session.lifecycle().finishedAt(),
-                status(session),
+                RecordedSpan.end(recordingStarts).orElse(null),
+                session.newest(),
                 null,
                 List.of(),
-                session.retained(),
-                session.lifecycle().heartbeatMissing(),
                 false,
                 new SessionSize(0, 0));
     }
 
-    /** The session in Microscope's model with its files, for deciding which chunk is still open. */
-    static RecordingSession withModelFiles(VolumeSession session, List<SessionFile> files) {
-        return new RecordingSession(
-                session.id(),
-                session.name(),
-                session.instanceId(),
-                session.createdAt(),
-                session.lifecycle().finishedAt(),
-                status(session),
-                null,
-                files.stream().map(VolumeResponses::modelFile).toList(),
-                session.retained(),
-                session.lifecycle().heartbeatMissing());
-    }
-
-    static RepositoryFile modelFile(SessionFile file) {
-        return new RepositoryFile(file.id(), file.name(), file.createdAt(), file.size(), file.recording(), null);
-    }
-
-    static InstanceResponse instance(InstanceSummary summary) {
+    static InstanceResponse instance(InstanceSummary summary, ProjectTree project) {
         return InstanceResponse.summary(
                 summary.instance().id(),
-                INSTANCE_STATUSES.get(summary.state()),
                 summary.instance().createdAt().toEpochMilli(),
-                summary.finishedAt().map(Instant::toEpochMilli).orElse(null),
+                lastDataAt(summary, project).map(Instant::toEpochMilli).orElse(null),
                 summary.sessionCount());
     }
 
@@ -122,9 +97,14 @@ final class VolumeResponses {
     }
 
     /** What a project's instances say of it, each read off its newest session alone. */
-    static ProjectActivity activity(List<InstanceSummary> instances) {
+    static ProjectActivity activity(List<InstanceSummary> instances, ProjectTree project) {
         int sessionCount = instances.stream().mapToInt(InstanceSummary::sessionCount).sum();
-        return new ProjectActivity(projectStatus(instances, sessionCount), sessionCount);
+        Instant lastDataAt = instances.stream()
+                .map(instance -> lastDataAt(instance, project))
+                .flatMap(Optional::stream)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        return new ProjectActivity(lastDataAt, sessionCount);
     }
 
     /**
@@ -135,45 +115,47 @@ final class VolumeResponses {
         return new WorkspaceInfo(id, id, null, name, null, null, createdAt, WorkspaceStatus.AVAILABLE, projectCount);
     }
 
-    /** UNKNOWN without a session, which has no status; ACTIVE while any instance records. */
-    private static RecordingStatus projectStatus(List<InstanceSummary> instances, int sessionCount) {
-        if (sessionCount == 0) {
-            return RecordingStatus.UNKNOWN;
-        }
-        boolean recording = instances.stream().anyMatch(instance -> instance.state() == InstanceState.ACTIVE);
-        return recording ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED;
+    /** When the data of the instance's newest session ends, off that session's listing. */
+    private static Optional<Instant> lastDataAt(InstanceSummary summary, ProjectTree project) {
+        return summary.newest().flatMap(newest -> RecordedSpan.end(project.recordingStarts(newest)));
     }
 
     private static RecordingSessionResponse response(
             VolumeSession session, List<SessionFile> measured, List<RepositoryFileResponse> carried) {
 
         long createdAt = session.createdAt().toEpochMilli();
-        Long finishedAt = session.lifecycle().isRecording() ? null : session.lifecycle().finishedAt().toEpochMilli();
+        Long lastDataAt = RecordedSpan.end(recordingStarts(measured)).map(Instant::toEpochMilli).orElse(null);
         long bytes = measured.stream().mapToLong(SessionFile::size).sum();
         return new RecordingSessionResponse(
                 session.id(),
                 session.name(),
                 session.instanceId(),
                 createdAt,
-                finishedAt,
-                status(session),
-                finishedAt != null ? finishedAt - createdAt : null,
+                lastDataAt,
+                session.newest(),
+                lastDataAt != null ? lastDataAt - createdAt : null,
                 carried,
-                session.retained(),
-                session.lifecycle().heartbeatMissing(),
                 failed(session, bytes),
                 measured.size(),
                 bytes)
-                .withResolvedFileStatuses();
+                .withResolvedFiles();
+    }
+
+    private static List<Instant> recordingStarts(List<SessionFile> files) {
+        return files.stream()
+                .filter(SessionFile::recording)
+                .map(SessionFile::createdAt)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     /**
-     * A session that finished without producing any data — a crash before the first chunk. One
-     * finished because it never sent a heartbeat is empty too, but it did not crash: it is reported
-     * as missing its heartbeat instead, never as failed. The rule the hub's retention applies too.
+     * A session a newer one ended before it produced any data — a crash before the first chunk.
+     * The newest session is never failed: it may simply not have written anything yet. The rule
+     * the hub's retention applies too.
      */
     private static boolean failed(VolumeSession session, long bytes) {
-        return !session.lifecycle().isRecording() && bytes == 0 && !session.lifecycle().heartbeatMissing();
+        return !session.newest() && bytes == 0;
     }
 
     private static RepositoryFileResponse file(SessionFile file) {
@@ -183,11 +165,7 @@ final class VolumeResponses {
                 file.createdAt().toEpochMilli(),
                 file.size(),
                 RepositoryFiles.typeOf(file.name()),
-                RecordingStatus.FINISHED,
+                false,
                 file.recording());
-    }
-
-    private static RecordingStatus status(VolumeSession session) {
-        return session.lifecycle().isRecording() ? RecordingStatus.ACTIVE : RecordingStatus.FINISHED;
     }
 }

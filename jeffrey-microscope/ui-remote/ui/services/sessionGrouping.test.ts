@@ -22,7 +22,6 @@ import {
   isFailedSession
 } from '@remote/services/sessionGrouping.ts';
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
-import RecordingStatus from '@remote/services/api/model/RecordingStatus.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 
@@ -33,9 +32,9 @@ function file(size: number): RepositoryFile {
     'file-1',
     'file-1.jfr',
     BASE_CREATED_AT,
-    RecordingStatus.FINISHED,
     size,
     RecordingFileType.JFR,
+    false,
     true
   );
 }
@@ -45,14 +44,18 @@ const SHORT_DURATION = 5_000;
 /** A session going long enough that all-zero sizes are worth remarking on. */
 const LONG_DURATION = 600_000;
 
+/** Its instance's newest session, which may still grow. */
+const NEWEST = true;
+/** A session a newer one in its instance has ended. */
+const ENDED = false;
+
 function session(
   id: string,
-  status: RecordingStatus,
+  newest: boolean,
   files: RepositoryFile[],
   createdAt: number = BASE_CREATED_AT,
   duration: number = SHORT_DURATION
 ): RecordingSession {
-  const finishedAt = status === RecordingStatus.FINISHED ? createdAt + duration : null;
   // As a listing sends it: the files' count and size, never the files themselves
   const sizeBytes = files.reduce((sum, f) => sum + (f.size ?? 0), 0);
   return new RecordingSession(
@@ -60,89 +63,68 @@ function session(
     id,
     'inst-1',
     createdAt,
-    finishedAt,
-    status,
+    createdAt + duration,
+    newest,
     duration,
     [],
-    false,
     false,
     files.length,
     sizeBytes
   );
 }
 
-/** A session the hub finished at its start because no heartbeat arrived within the grace. */
-function missingHeartbeatSession(id: string, createdAt: number = BASE_CREATED_AT): RecordingSession {
-  return new RecordingSession(
-    id,
-    id,
-    'inst-1',
-    createdAt,
-    createdAt,
-    RecordingStatus.FINISHED,
-    0,
-    [],
-    false,
-    true
-  );
-}
-
 describe('isFailedSession', () => {
-  it('never marks a session finished for its missing heartbeat as failed', () => {
-    expect(isFailedSession(missingHeartbeatSession('s1'))).toBe(false);
+  it('marks an ended session without files as failed', () => {
+    expect(isFailedSession(session('s1', ENDED, []))).toBe(true);
   });
 
-  it('marks a finished session without files as failed', () => {
-    expect(isFailedSession(session('s1', RecordingStatus.FINISHED, []))).toBe(true);
+  it('marks an ended session with only zero-size files as failed', () => {
+    expect(isFailedSession(session('s1', ENDED, [file(0), file(0)]))).toBe(true);
   });
 
-  it('marks a finished session with only zero-size files as failed', () => {
-    expect(isFailedSession(session('s1', RecordingStatus.FINISHED, [file(0), file(0)]))).toBe(true);
+  it('does not mark an ended session with data as failed', () => {
+    expect(isFailedSession(session('s1', ENDED, [file(0), file(1)]))).toBe(false);
   });
 
-  it('does not mark a finished session with data as failed', () => {
-    expect(isFailedSession(session('s1', RecordingStatus.FINISHED, [file(0), file(1)]))).toBe(false);
-  });
-
-  it('does not mark an active zero-size session as failed', () => {
-    expect(isFailedSession(session('s1', RecordingStatus.ACTIVE, []))).toBe(false);
+  it('does not mark the newest zero-size session as failed', () => {
+    expect(isFailedSession(session('s1', NEWEST, []))).toBe(false);
   });
 
   it('treats unknown file sizes as zero bytes', () => {
     const unsized = file(0);
     (unsized as unknown as { size: number | null }).size = null;
-    expect(isFailedSession(session('s1', RecordingStatus.FINISHED, [unsized]))).toBe(true);
+    expect(isFailedSession(session('s1', ENDED, [unsized]))).toBe(true);
   });
 
-  it('marks a long finished session with no data as failed, however long it ran', () => {
-    const long = session('s1', RecordingStatus.FINISHED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
+  it('marks a long ended session with no data as failed, however long it ran', () => {
+    const long = session('s1', ENDED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
     expect(isFailedSession(long)).toBe(true);
   });
 });
 
 describe('hasUnreportedSizes', () => {
-  it('flags a running session whose files all measure zero', () => {
-    const running = session('s1', RecordingStatus.ACTIVE, [file(0)], BASE_CREATED_AT, LONG_DURATION);
+  it('flags the newest session whose files all measure zero', () => {
+    const running = session('s1', NEWEST, [file(0)], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(running)).toBe(true);
   });
 
   it('does not flag a session that just started', () => {
-    const fresh = session('s1', RecordingStatus.ACTIVE, [file(0)], BASE_CREATED_AT, SHORT_DURATION);
+    const fresh = session('s1', NEWEST, [file(0)], BASE_CREATED_AT, SHORT_DURATION);
     expect(hasUnreportedSizes(fresh)).toBe(false);
   });
 
   it('does not flag a failed session — a crash is the explanation there', () => {
-    const failed = session('s1', RecordingStatus.FINISHED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
+    const failed = session('s1', ENDED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(failed)).toBe(false);
   });
 
   it('does not flag a session that reported data', () => {
-    const real = session('s1', RecordingStatus.ACTIVE, [file(100)], BASE_CREATED_AT, LONG_DURATION);
+    const real = session('s1', NEWEST, [file(100)], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(real)).toBe(false);
   });
 
-  it('does not flag a running session with no files — there is nothing to report on', () => {
-    const empty = session('s1', RecordingStatus.ACTIVE, [], BASE_CREATED_AT, LONG_DURATION);
+  it('does not flag the newest session with no files — there is nothing to report on', () => {
+    const empty = session('s1', NEWEST, [], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(empty)).toBe(false);
   });
 });
@@ -150,8 +132,8 @@ describe('hasUnreportedSizes', () => {
 describe('buildDisplayEntries', () => {
   it('returns plain session entries when nothing failed', () => {
     const sessions = [
-      session('s1', RecordingStatus.ACTIVE, [], BASE_CREATED_AT + 2_000),
-      session('s2', RecordingStatus.FINISHED, [file(100)], BASE_CREATED_AT + 1_000)
+      session('s1', NEWEST, [], BASE_CREATED_AT + 2_000),
+      session('s2', ENDED, [file(100)], BASE_CREATED_AT + 1_000)
     ];
 
     const entries = buildDisplayEntries(sessions);
@@ -162,10 +144,10 @@ describe('buildDisplayEntries', () => {
 
   it('folds consecutive failed sessions into a single group', () => {
     const sessions = [
-      session('active', RecordingStatus.ACTIVE, [], BASE_CREATED_AT + 4_000),
-      session('failed-1', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 3_000),
-      session('failed-2', RecordingStatus.FINISHED, [file(0)], BASE_CREATED_AT + 2_000),
-      session('real', RecordingStatus.FINISHED, [file(100)], BASE_CREATED_AT + 1_000)
+      session('newest', NEWEST, [], BASE_CREATED_AT + 4_000),
+      session('failed-1', ENDED, [], BASE_CREATED_AT + 3_000),
+      session('failed-2', ENDED, [file(0)], BASE_CREATED_AT + 2_000),
+      session('real', ENDED, [file(100)], BASE_CREATED_AT + 1_000)
     ];
 
     const entries = buildDisplayEntries(sessions);
@@ -187,9 +169,9 @@ describe('buildDisplayEntries', () => {
 
   it('keeps non-consecutive failed sessions in separate groups', () => {
     const sessions = [
-      session('failed-1', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 4_000),
-      session('real-1', RecordingStatus.FINISHED, [file(100)], BASE_CREATED_AT + 3_000),
-      session('failed-2', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 2_000)
+      session('failed-1', ENDED, [], BASE_CREATED_AT + 4_000),
+      session('real-1', ENDED, [file(100)], BASE_CREATED_AT + 3_000),
+      session('failed-2', ENDED, [], BASE_CREATED_AT + 2_000)
     ];
 
     const entries = buildDisplayEntries(sessions);
@@ -198,22 +180,10 @@ describe('buildDisplayEntries', () => {
   });
 
   it('wraps a single isolated failed session into a group of one', () => {
-    const entries = buildDisplayEntries([session('failed-1', RecordingStatus.FINISHED, [])]);
+    const entries = buildDisplayEntries([session('failed-1', ENDED, [])]);
 
     expect(entries).toHaveLength(1);
     expect(entries[0].type).toBe('failedGroup');
-  });
-
-  it('keeps a missing-heartbeat session on its own between failed ones', () => {
-    const sessions = [
-      session('failed-1', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 3_000),
-      missingHeartbeatSession('silent', BASE_CREATED_AT + 2_000),
-      session('failed-2', RecordingStatus.FINISHED, [], BASE_CREATED_AT + 1_000)
-    ];
-
-    const entries = buildDisplayEntries(sessions);
-
-    expect(entries.map(entry => entry.type)).toEqual(['failedGroup', 'session', 'failedGroup']);
   });
 
   it('returns no entries for an empty list', () => {
