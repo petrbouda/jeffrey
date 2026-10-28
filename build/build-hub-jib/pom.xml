@@ -53,7 +53,7 @@
                 <dependencies>
                     <dependency>
                         <groupId>cafe.jeffrey-analyst</groupId>
-                        <artifactId>jeffrey-jib-maven-native</artifactId>
+                        <artifactId>jeffrey-jib-maven-jar</artifactId>
                         <version>${jeffrey-jib-maven.version}</version>
                     </dependency>
                 </dependencies>
