@@ -27,7 +27,7 @@ const microscopeHeroBullets: HeroBullet[] = [
   { icon: 'bi-fire', text: 'Interactive flamegraphs or specialized dashboards' },
   { icon: 'bi-arrows-collapse', text: 'Differential flamegraphs across profiles' },
   { icon: 'bi-droplet-half', text: 'JFR and heap dumps — one analyzer' },
-  { icon: 'bi-plug', text: 'Pull from a Hub, or analyze a JFR file standalone' }
+  { icon: 'bi-plug', text: 'Pull from the Azure file share holding your recordings, or analyze a JFR file standalone' }
 ];
 
 type AgentLineKind = 'prompt' | 'tool' | 'result';
@@ -52,7 +52,7 @@ const agentClients: string[] = ['Claude Code', 'Codex', 'Gemini CLI · soon', 'a
 type Tab = 'microscope' | 'mcp' | 'plugin' | 'server';
 
 interface TopologyNode {
-  kind: 'apps' | 'volume' | 'server' | 'grpc';
+  kind: 'apps' | 'volume' | 'server';
   icon: string;
   label: string;
   code?: string;
@@ -95,14 +95,14 @@ const productTabs: ProductTab[] = [
     name: 'Microscope',
     icon: 'bi-search-heart-fill',
     tagline: 'Deep analyzer for JFR recordings and heap dumps.',
-    oneLiner: 'Open a JFR file or connect to a Hub. Read flamegraphs that finally render fast.',
+    oneLiner: 'Open a JFR file or pull one from your remote. Read flamegraphs that finally render fast.',
     features: [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
       { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
       { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
       { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' },
       { icon: 'bi-diagram-3', title: 'Traces', desc: 'Span waterfalls correlated with I/O, locks and GC pauses — from the same JFR file.' },
-      { icon: 'bi-plug', title: 'Connect to Hub', desc: 'Pull recordings, artifacts & application\'s lifecycle directly via gRPC.' }
+      { icon: 'bi-plug', title: 'Read a Remote', desc: 'Pull recordings, artifacts & application\'s lifecycle straight off the Azure file share that holds the recording volume.' }
     ],
     deployment: {
       eyebrow: 'Deployment',
@@ -170,23 +170,23 @@ const productTabs: ProductTab[] = [
     id: 'server',
     name: 'Jeffrey Hub',
     icon: 'bi-cloud-fill',
-    tagline: 'Collector for application data and lifecycle events.',
-    oneLiner: 'Runs in Kubernetes. Captures recordings, artifacts and lifecycle events via shared volume. Streams over gRPC.',
+    tagline: 'Maintenance service for the shared recording volume.',
+    oneLiner: 'Runs in Kubernetes next to the shared volume your services record into. Keeps it within its limits with scheduled jobs.',
     features: [
-      { icon: 'bi-arrow-repeat', title: 'Application Lifecycle Events', desc: 'Tracks workspaces, instances and sessions across your application\'s lifecycle.' },
-      { icon: 'bi-cloud-arrow-down', title: 'Collecting Recordings and Artifacts', desc: 'Captures JFR recordings, heap dumps and logs from your running services.' },
-      { icon: 'bi-cloud-arrow-up', title: 'Serving Recordings and Artifacts', desc: 'Serves recording chunks and artifacts over gRPC — a whole session, or the hour that matters.' },
-      { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'Straightforward and cheap integration among the components.' },
-      { icon: 'bi-puzzle', title: 'Custom consumers', desc: 'Microscope is one client — build your own.' }
+      { icon: 'bi-trash3', title: 'Retention', desc: 'Drops sessions by age and per-project cap, trims each instance’s newest session, enforces a storage quota and cleans up stale instances.' },
+      { icon: 'bi-file-zip', title: 'Compression', desc: 'LZ4-compresses finished JFR chunks in place.' },
+      { icon: 'bi-speedometer2', title: 'Storage Dashboard', desc: 'Size, files and last activity per workspace and project.' },
+      { icon: 'bi-calendar-check', title: 'Scheduler', desc: 'Lists the jobs and runs one now, without waiting for its next tick.' },
+      { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'No API and no database — the volume is the only state; Microscope reads it from the Azure file share.' }
     ],
     deployment: {
       eyebrow: 'Deployment',
       title: 'Deploys to Kubernetes',
-      desc: 'Hub runs alongside your services with shared-volume integration and gRPC exposure.',
+      desc: 'Hub runs alongside your services on the shared volume they record into.',
       topology: [
         { kind: 'apps', icon: 'bi-app-indicator', label: 'Your services', em: '+ provisioner' },
         { kind: 'volume', icon: 'bi-hdd-stack', code: '/mnt/jeffrey-home', label: 'shared volume' },
-        { kind: 'server', icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'gRPC API' }
+        { kind: 'server', icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'Scheduler jobs' }
       ]
     },
     docsRoute: '/docs/hub/deployment',
@@ -206,15 +206,15 @@ interface EcoProduct {
 }
 
 // The rest of the Jeffrey ecosystem — companion products shown under the
-// Microscope + Microscope MCP hero. The Hub leads: it is where production recordings come from.
+// Microscope + Microscope MCP hero. The Hub leads: it maintains the volume production recordings come from.
 const ecosystem: EcoProduct[] = [
   {
     id: 'hub',
     name: 'Jeffrey Hub',
-    role: 'Kubernetes · Collector',
+    role: 'Kubernetes · Maintenance',
     icon: 'bi-cloud-fill',
-    desc: 'Collects JFR recordings, heap dumps and logs from running services via a shared volume, and serves them over gRPC — to Microscope, to your agent\'s analyze-hub skill, or to your own consumer.',
-    chips: ['Kubernetes', 'Shared volume', 'gRPC', 'Lifecycle events'],
+    desc: 'Maintains the shared volume your services write JFR recordings, heap dumps and logs into — retention, cleanup and LZ4 compression as scheduled jobs. Microscope, and your agent through it, reads that volume from the Azure file share.',
+    chips: ['Kubernetes', 'Shared volume', 'Retention', 'Compression'],
     to: '/docs/hub/overview',
     flag: 'Production'
   },
@@ -232,7 +232,7 @@ const ecosystem: EcoProduct[] = [
     name: 'Provisioner',
     role: 'Standalone · Session bootstrap',
     icon: 'bi-terminal',
-    desc: 'One HOCON file lays out your workspace, project and session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler.',
+    desc: 'One HOCON file lays out your workspace, project and session tree, registers sessions on the shared volume, and generates the JVM argfile that starts your app under the profiler.',
     chips: ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'],
     to: '/docs/provisioner'
   },
@@ -277,8 +277,8 @@ function copyCmd(): void {
           <span class="title-accent title-accent--microscope">on your desk.</span>
         </h1>
         <p class="product-subtitle">
-          A deep analyzer for JFR recordings and heap dumps. Upload a file, or connect
-          to a Jeffrey Hub and pull recordings directly.
+          A deep analyzer for JFR recordings and heap dumps. Upload a file, or declare
+          a remote — the Azure file share holding your recordings — and pull them directly.
         </p>
         <ul class="bullet-list">
           <li v-for="(b, i) in microscopeHeroBullets" :key="i">
@@ -504,8 +504,9 @@ function copyCmd(): void {
         <span class="connect-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
         <h2>One JFR pipeline. Every half works alone.</h2>
         <p>
-          Microscope can pull recordings from a Hub over gRPC — or work with a JFR file you
-          drop in. You read it in the browser; your coding agent reads it over MCP.
+          Your services write recordings to a shared volume that Jeffrey Hub keeps tidy. Microscope pulls
+          them from that volume on an Azure file share — or works with a JFR file you drop in. You read it
+          in the browser; your coding agent reads it over MCP.
         </p>
         <div class="connect-flow">
           <div class="cf-node cf-node-apps">
@@ -513,14 +514,15 @@ function copyCmd(): void {
             <span>Your services</span>
           </div>
           <div class="cf-arrow">
-            <span>collect</span>
+            <span>record</span>
           </div>
           <div class="cf-node cf-node-server">
-            <i class="bi bi-cloud-fill"></i>
-            <span>Jeffrey Hub</span>
+            <i class="bi bi-hdd-stack"></i>
+            <span>Shared volume</span>
+            <small class="cf-node-note">kept tidy by Jeffrey Hub</small>
           </div>
-          <div class="cf-arrow cf-arrow-grpc">
-            <span>gRPC</span>
+          <div class="cf-arrow cf-arrow-volume">
+            <span>Azure Files</span>
           </div>
           <div class="cf-node cf-node-microscope">
             <i class="bi bi-search-heart-fill"></i>
@@ -1340,7 +1342,6 @@ function copyCmd(): void {
 
 .topo-row--volume i { color: #f59e0b; }
 .topo-row--server i { color: #7c3aed; }
-.topo-row--grpc i { color: #0ea5e9; }
 
 .topo-arrow {
   display: flex;
@@ -1684,7 +1685,13 @@ function copyCmd(): void {
   border-radius: 999px;
 }
 
-.cf-arrow-grpc span {
+.cf-node-note {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.cf-arrow-volume span {
   color: #0284c7;
   background: #f0f9ff;
 }

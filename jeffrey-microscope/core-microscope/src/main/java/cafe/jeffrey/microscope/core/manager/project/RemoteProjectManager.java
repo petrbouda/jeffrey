@@ -17,15 +17,13 @@
 
 package cafe.jeffrey.microscope.core.manager.project;
 
-import cafe.jeffrey.hub.client.environment.SessionEnvironmentParser;
-import cafe.jeffrey.hub.client.environment.SessionEnvironmentReader;
-import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
-import cafe.jeffrey.hub.client.manager.RemoteRepositoryManager;
-import cafe.jeffrey.hub.client.manager.RepositoryManager;
+import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
+import cafe.jeffrey.microscope.remote.client.manager.RemoteRepositoryManager;
+import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.hub.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.RemoteClients;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
@@ -37,9 +35,9 @@ import cafe.jeffrey.microscope.model.ProjectInfo;
 public class RemoteProjectManager implements ProjectManager {
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final DetailedProjectInfo detailedProjectInfo;
+    private final ProjectInfo projectInfo;
     private final RepositoryStatistics repositoryStatistics;
-    private final HubClients remoteClients;
+    private final RemoteClients remoteClients;
     private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
@@ -47,36 +45,31 @@ public class RemoteProjectManager implements ProjectManager {
 
     public RemoteProjectManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            DetailedProjectInfo detailedProjectInfo,
+            ProjectInfo projectInfo,
             RepositoryStatistics repositoryStatistics,
-            HubClients remoteClients,
+            RemoteClients remoteClients,
             ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager,
             OriginContext originContext) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.detailedProjectInfo = detailedProjectInfo;
+        this.projectInfo = projectInfo;
         this.repositoryStatistics = repositoryStatistics;
         this.remoteClients = remoteClients;
         this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
-        this.scope = ProjectScope.of(detailedProjectInfo.projectInfo());
+        this.scope = ProjectScope.of(projectInfo);
     }
 
     @Override
     public ProjectInfo info() {
-        return detailedProjectInfo.projectInfo();
-    }
-
-    @Override
-    public DetailedProjectInfo detailedInfo() {
-        return detailedProjectInfo;
+        return projectInfo;
     }
 
     @Override
     public ProfilesManager profilesManager() {
-        return profilesManagerFactory.apply(detailedProjectInfo.projectInfo());
+        return profilesManagerFactory.apply(projectInfo);
     }
 
     @Override
@@ -102,18 +95,7 @@ public class RemoteProjectManager implements ProjectManager {
 
     @Override
     public RemoteInstancesManager instancesManager() {
-        return new RemoteInstancesManager(
-                scope,
-                remoteClients.instances(),
-                remoteClients.repository(),
-                new SessionEnvironmentReader(
-                        repositoryManager(),
-                        new SessionEnvironmentParser(jeffreyDirs)));
-    }
-
-    @Override
-    public void updateName(String name) {
-        throw new UnsupportedOperationException("Renaming remote projects is not supported");
+        return new RemoteInstancesManager(scope, remoteClients.instances());
     }
 
     @Override

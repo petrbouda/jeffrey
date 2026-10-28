@@ -39,8 +39,8 @@ Two phases with a stop between them — **recommend**, then **change**. Track pr
 `name` and project of the rows `profiles_list` returns, following `nextCursor` while `hasMore` before
 deciding it is not there. Several matches → take the newest and name the others in one line; the
 user can pick another. No local match, and the name sounds like a deployed service or an
-environment ("production", "staging") → switch to the **analyze-hub** skill, which finds its
-recording session across the connected hubs and comes back here with a `profileId`.
+environment ("production", "staging") → switch to the **analyze-remote** skill, which finds its
+recording session on the remote and comes back here with a `profileId`.
 
 **The user named a file** → `recordings_analyzeFile` with its absolute path (the `analyze-jfr` skill
 covers polling a large import).

@@ -20,7 +20,6 @@ package cafe.jeffrey.provisioner.feature;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.shared.common.CliConstants;
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -167,64 +166,6 @@ public sealed interface JvmFeature {
                 return Optional.empty();
             }
             return Optional.of(OPTIONS_PREFIX + eventSettings.trim());
-        }
-    }
-
-    /**
-     * Where this session's liveness files go, read alike by the Jeffrey agent ({@link JeffreyAgent})
-     * and by the {@code jeffrey-heartbeat} library, whichever of them the JVM runs with.
-     *
-     * <p>Only the directory, never whether to report: both writers are on unless the application
-     * itself switches them off. A JVM with neither ignores the property.
-     *
-     * <p>Carried as a JVM system property rather than left to the {@code .env} file, because the
-     * {@code .env} reaches almost nobody: it is written only when a deployment names an
-     * {@code env-file}, and the container entrypoint execs the JVM with the argfile without
-     * sourcing a shell file at all. The argfile is the one channel every deployment path
-     * delivers, and {@code HeartbeatSettings} already resolves a system property ahead of the
-     * matching environment variable.
-     *
-     * <p>The directory is quoted because a session path may carry a space; {@code JvmOptions}
-     * consumes the quotes when it splits and puts them back when it writes the argfile.
-     */
-    record Heartbeat() implements JvmFeature {
-
-        private static final String DIRECTORY_OPTION = "-D" + HeartbeatConstants.DIRECTORY_PROPERTY
-                + "=\"" + CURRENT_SESSION + "/" + HeartbeatConstants.HEARTBEAT_DIR + "\"";
-
-        @Override
-        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
-            return Optional.of(placeholders.resolve(DIRECTORY_OPTION));
-        }
-    }
-
-    /**
-     * The Jeffrey agent, which reports the JVM's liveness to the hub without the application
-     * carrying {@code jeffrey-heartbeat}. It takes no arguments: it reads the directory from the
-     * same {@code -Djeffrey.heartbeat.dir} that {@link Heartbeat} writes for the library.
-     *
-     * <p>A {@code null} jar means the agent is switched off ({@code jeffrey-agent.enabled = false})
-     * or the jar {@code jeffrey-agent.path} names is not there, and renders nothing. The path is
-     * quoted because it may carry a space, as a session path may in {@link Heartbeat}.
-     */
-    record JeffreyAgent(Path jar) implements JvmFeature {
-
-        public static final String JAVA_AGENT_OPTION = "-javaagent:";
-
-        public static JeffreyAgent disabled() {
-            return new JeffreyAgent(null);
-        }
-
-        public boolean enabled() {
-            return jar != null;
-        }
-
-        @Override
-        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
-            if (!enabled()) {
-                return Optional.empty();
-            }
-            return Optional.of(JAVA_AGENT_OPTION + "\"" + jar + "\"");
         }
     }
 

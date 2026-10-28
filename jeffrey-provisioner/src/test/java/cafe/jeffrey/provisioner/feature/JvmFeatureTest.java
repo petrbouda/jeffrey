@@ -21,7 +21,6 @@ import cafe.jeffrey.provisioner.JvmOptions;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -61,9 +60,9 @@ class JvmFeatureTest {
 
         @Test
         void resolvesTheSessionIntoTheOptions() {
-            assertEquals("-agentpath:/opt/lib.so=start,file=" + SESSION + "/profile-%t.jfr",
+            assertEquals("-agentpath:/opt/lib.so=start,file=" + SESSION + "/rec-%t.jfr",
                     render(new JvmFeature.AsyncProfiler(
-                            "/opt/lib.so", "start,file=" + JvmFeature.CURRENT_SESSION + "/profile-%t.jfr")));
+                            "/opt/lib.so", "start,file=" + JvmFeature.CURRENT_SESSION + "/rec-%t.jfr")));
         }
 
         @Test
@@ -234,75 +233,6 @@ class JvmFeatureTest {
                     new JvmFeature.TracingEventThresholds(true, "none").render(SESSION, PLACEHOLDERS));
             assertEquals(Optional.empty(),
                     new JvmFeature.TracingEventThresholds(true, " NONE ").render(SESSION, PLACEHOLDERS));
-        }
-    }
-
-    @Nested
-    class Heartbeat {
-
-        @Test
-        void namesTheHeartbeatDirectoryInsideTheSession() {
-            assertEquals(
-                    "-Djeffrey.heartbeat.dir=\"/tmp/sessions/session-123/.heartbeat\"",
-                    render(new JvmFeature.Heartbeat()));
-        }
-
-        /**
-         * The argfile is the only channel that reaches a JVM the container entrypoint execs: the
-         * generated {@code .env} is opt-in and nothing sources it there.
-         */
-        @Test
-        void carriesTheDirectoryAsASystemProperty() {
-            assertTrue(render(new JvmFeature.Heartbeat())
-                    .startsWith("-D" + HeartbeatConstants.DIRECTORY_PROPERTY + "="));
-        }
-
-        /**
-         * Whether to report is the application's decision alone, so nothing here may switch the
-         * library on or off.
-         */
-        @Test
-        void neverDecidesWhetherTheApplicationReports() {
-            assertFalse(render(new JvmFeature.Heartbeat()).contains("jeffrey.heartbeat.enabled"));
-        }
-
-        @Test
-        void quotesTheDirectorySoASessionPathMayCarryASpace() {
-            Path spaced = Path.of("/tmp/my sessions/session-123");
-            JvmFeature.Heartbeat feature = new JvmFeature.Heartbeat();
-
-            String rendered = feature
-                    .render(spaced, Placeholders.of(JeffreyPlaceholderSource.ofSession(spaced)))
-                    .orElseThrow();
-
-            assertEquals("-Djeffrey.heartbeat.dir=\"/tmp/my sessions/session-123/.heartbeat\"", rendered);
-            assertEquals(
-                    java.util.List.of("-Djeffrey.heartbeat.dir=/tmp/my sessions/session-123/.heartbeat"),
-                    JvmOptions.split(rendered),
-                    "the quotes must survive the split into individual argfile lines");
-        }
-    }
-
-    @Nested
-    class JeffreyAgent {
-
-        @Test
-        void attachesTheJarTheAgentPathNames() {
-            assertEquals("-javaagent:\"/opt/jeffrey/jeffrey-agent.jar\"",
-                    render(new JvmFeature.JeffreyAgent(Path.of("/opt/jeffrey/jeffrey-agent.jar"))));
-        }
-
-        /** The JVM reads the quoted option as one, however the agent path is spelled. */
-        @Test
-        void survivesASpaceInTheAgentPath() {
-            String option = render(new JvmFeature.JeffreyAgent(Path.of("/opt/my tools/jeffrey-agent.jar")));
-
-            assertEquals(List.of("-javaagent:/opt/my tools/jeffrey-agent.jar"), JvmOptions.split(option));
-        }
-
-        @Test
-        void rendersNothingWhenDisabled() {
-            assertEquals(Optional.empty(), JvmFeature.JeffreyAgent.disabled().render(SESSION, PLACEHOLDERS));
         }
     }
 

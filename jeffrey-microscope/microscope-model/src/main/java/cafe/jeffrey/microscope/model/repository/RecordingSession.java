@@ -25,26 +25,27 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * A recording session as the hub reports it. A listing carries the session's {@link SessionSize}
+ * A recording session as the volume reports it. A listing carries the session's {@link SessionSize}
  * but none of its files; only a single-session read carries the files, so every method below
  * that reads {@code files} answers only for a session read on its own.
  *
- * @param size             its file count and bytes, measured from {@code files} when not given
- * @param heartbeatMissing the session ended because it sent no heartbeat within the hub's startup grace
- * @param failed           the session finished without producing any data, as the hub judged it from the
- *                         files on its volume; never set together with {@code heartbeatMissing}
+ * @param lastDataAt when its recorded data ends ({@link RecordedSpan#end}), or {@code null} while it
+ *                   has no recording
+ * @param newest     whether it is its instance's newest session: no newer one has started there, so
+ *                   it may still grow and its newest recording may still be on its way onto the volume
+ * @param failed     a newer session ended it before it produced any data, as judged from the files on
+ *                   the volume
+ * @param size       its file count and bytes, measured from {@code files} when not given
  */
 public record RecordingSession(
         String id,
         String name,
         String instanceId,
         Instant createdAt,
-        Instant finishedAt,
-        RecordingStatus status,
+        Instant lastDataAt,
+        boolean newest,
         Path absolutePath,
         List<RepositoryFile> files,
-        boolean retained,
-        boolean heartbeatMissing,
         boolean failed,
         SessionSize size) {
 
@@ -65,52 +66,14 @@ public record RecordingSession(
             String name,
             String instanceId,
             Instant createdAt,
-            Instant finishedAt,
-            RecordingStatus status,
+            Instant lastDataAt,
+            boolean newest,
             Path absolutePath,
             List<RepositoryFile> files,
-            boolean retained,
-            boolean heartbeatMissing,
             boolean failed) {
 
-        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, heartbeatMissing,
-                failed, SessionSize.of(files == null ? List.of() : files));
-    }
-
-    /**
-     * A session the hub does not report as failed.
-     */
-    public RecordingSession(
-            String id,
-            String name,
-            String instanceId,
-            Instant createdAt,
-            Instant finishedAt,
-            RecordingStatus status,
-            Path absolutePath,
-            List<RepositoryFile> files,
-            boolean retained,
-            boolean heartbeatMissing) {
-
-        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, heartbeatMissing,
-                false);
-    }
-
-    /**
-     * A session that sent its heartbeat and is not failed.
-     */
-    public RecordingSession(
-            String id,
-            String name,
-            String instanceId,
-            Instant createdAt,
-            Instant finishedAt,
-            RecordingStatus status,
-            Path absolutePath,
-            List<RepositoryFile> files,
-            boolean retained) {
-
-        this(id, name, instanceId, createdAt, finishedAt, status, absolutePath, files, retained, false);
+        this(id, name, instanceId, createdAt, lastDataAt, newest, absolutePath, files, failed,
+                SessionSize.of(files == null ? List.of() : files));
     }
 
     /**
@@ -128,12 +91,13 @@ public record RecordingSession(
     }
 
     /**
-     * The one chunk the profiler is still writing, or empty when there is none.
+     * The one recording that may still be on its way onto the volume, or empty when there is none.
      *
      * <p>This is the whole of what "a file's status" ever meant, and it is a fact about the
-     * session rather than about any file: a session that is still recording holds exactly one
-     * chunk open, and it is the newest one. A finished session holds none, and neither does a
-     * live session that has not opened a chunk yet.
+     * session's place in its instance rather than about any file: the profiler writes each
+     * recording whole when its loop ends, so a file can be caught mid-write only while it is the
+     * newest recording of the instance's newest session. A session with a newer one after it holds
+     * none, and neither does a newest session that has written no recording yet.
      *
      * <p>Newest by {@link RepositoryFile#createdAt()} — the timestamp the profiler put in the
      * file's own name — and emphatically not by position in a listing, which is sorted for
@@ -141,12 +105,12 @@ public record RecordingSession(
      * it yet. Every other reader of these files orders them by that timestamp, and a second
      * notion of "newest" in the same tree is what let the two disagree.
      *
-     * <p>Load-bearing: the compression job refuses to touch this file, both retention jobs
-     * refuse to delete it, no download may include it, and reading it is what produces a
-     * truncated answer. Only meaningful when the session was loaded WITH files.
+     * <p>The hub never compresses or trims this file. Microscope lists it and hands it over; a
+     * download that arrives incomplete is refused by the chunk check on arrival instead. Only
+     * meaningful when the session was loaded WITH files.
      */
     public Optional<RepositoryFile> openRecording() {
-        if (status == RecordingStatus.FINISHED) {
+        if (!newest) {
             return Optional.empty();
         }
         return files.stream()
@@ -156,52 +120,19 @@ public record RecordingSession(
     }
 
     /**
-     * Whether this file is the chunk the profiler is still writing.
+     * The session's recording chunks, oldest first. One definition, because a reader that counted
+     * chunks differently from the way it picked them would call a whole session a part of itself.
      */
-    public boolean isOpen(RepositoryFile file) {
-        return openRecording().filter(open -> open.equals(file)).isPresent();
-    }
-
-    /**
-     * Every file of the session except the chunk still being written — the ones whose bytes are
-     * final and may therefore be compressed, deleted, downloaded or read.
-     */
-    public List<RepositoryFile> finishedFiles() {
-        Optional<RepositoryFile> open = openRecording();
-        return files.stream()
-                .filter(file -> open.filter(file::equals).isEmpty())
-                .toList();
-    }
-
-    /**
-     * The session's closed recording chunks, oldest first. One definition, because a reader that
-     * counted chunks differently from the way it picked them would call a whole session a part of
-     * itself.
-     */
-    public List<RepositoryFile> finishedRecordings() {
-        Optional<RepositoryFile> open = openRecording();
+    public List<RepositoryFile> recordings() {
         return files.stream()
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.createdAt() != null)
-                .filter(file -> open.filter(file::equals).isEmpty())
                 .sorted(Comparator.comparing(RepositoryFile::createdAt))
                 .toList();
     }
 
-    /**
-     * The newest recording chunk the profiler has closed with something in it, or empty when it
-     * has not closed one yet. This is the chunk that carries the session's one-shot configuration
-     * events, and — once the session is finished — its {@code jdk.Shutdown}.
-     *
-     * <p>An empty chunk is passed over, not returned: it is what a profiler stopped before its
-     * first event leaves behind — usually as the last chunk of a killed container — and the hub
-     * refuses to serve it. The chunk before it still carries the configuration events; the
-     * {@code jdk.Shutdown} a killed JVM never wrote is missing either way.
-     */
-    public Optional<RepositoryFile> latestFinishedRecording() {
-        return finishedRecordings().reversed().stream()
-                .filter(RepositoryFile::hasContent)
-                .findFirst();
+    /** When each recording started, oldest first — what its span is measured from. */
+    public List<Instant> recordingStarts() {
+        return recordings().stream().map(RepositoryFile::createdAt).toList();
     }
 }
-

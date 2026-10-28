@@ -33,8 +33,8 @@ public record StorageOverview(List<ProjectStorage> projects) {
 
     /**
      * Storage used by a single project's recording repository: the bytes and the file count over
-     * every session, and the newest file's timestamp. The hub does not read the files it stores,
-     * so there is deliberately no breakdown by kind.
+     * every session and the newest file's timestamp. The
+     * hub does not read the files it stores, so there is deliberately no breakdown by kind.
      */
     public record ProjectStorage(
             String workspaceId,
@@ -63,7 +63,7 @@ public record StorageOverview(List<ProjectStorage> projects) {
                     .orElse(0L);
 
             return new ProjectStorage(
-                    workspace.id(), workspace.name(), project.id(), project.name(),
+                    workspace.id(), workspace.id(), project.id(), project.id(),
                     totalSize, files.size(), lastActivity);
         }
     }

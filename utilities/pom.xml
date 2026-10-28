@@ -27,7 +27,7 @@
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Parent of the Jeffrey libraries applications add to be profiled well: events, heartbeat and tracing</description>
+    <description>Parent of the Jeffrey libraries applications add to be profiled well: events and tracing</description>
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <!--
@@ -37,7 +37,6 @@
       dependencyManagement, the release profile and the Maven Central metadata - and aggregates
       the libraries, which are independent of one another:
         jeffrey-events/            the JFR event types
-        jeffrey-heartbeat-parent/  jeffrey-heartbeat, jeffrey-heartbeat-spring-boot-starter
         jeffrey-tracing-parent/    jeffrey-tracing-api, its two span-context storages
                                    (jeffrey-tracing-scoped-value, jeffrey-tracing-thread-local) and the
                                    jeffrey-tracing-* instrumentation modules, plus the
@@ -56,7 +55,6 @@
     -->
     <modules>
         <module>jeffrey-events</module>
-        <module>jeffrey-heartbeat-parent</module>
         <module>jeffrey-tracing-parent</module>
     </modules>
 

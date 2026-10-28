@@ -22,75 +22,32 @@
       <span class="project-name">{{ project.name }}</span>
     </div>
 
-    <!-- Footer Row: Date + Sessions on the left, Status/Alerts on the right -->
+    <!-- Footer Row: when its directory was created, where the share lists it; nothing below the project is read -->
     <div class="footer-row">
-      <div class="footer-meta">
-        <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
-        <span class="sessions">
-          <i class="bi bi-broadcast"></i>
-          {{ project.sessionCount || 0 }} session{{ (project.sessionCount || 0) === 1 ? '' : 's' }}
-        </span>
-      </div>
-      <div class="badges">
-        <Badge
-          v-if="project.status"
-          :value="formatStatus(project.status)"
-          :variant="getStatusVariant"
-          size="xs"
-        />
-      </div>
+      <span v-if="project.createdAt" class="date"
+        ><i class="bi bi-clock"></i>{{ FormattingService.formatDateFromMillis(project.createdAt) }}</span
+      >
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import type Project from '@hubs/services/api/model/Project.ts';
-import RecordingStatus from '@hubs/services/api/model/RecordingStatus.ts';
-import Badge from '@shared/components/Badge.vue';
-import type { Variant } from '@shared/types/ui';
+import type Project from '@remote/services/api/model/Project.ts';
+import FormattingService from '@shared/services/FormattingService';
 
 const props = defineProps<{
   project: Project;
-  hubId: string;
   workspaceId: string;
 }>();
 
 // Navigation is delegated to the host app (route shapes differ per deployment): clicking a
 // project emits `open` with the identifiers, and the parent decides how to navigate.
 const emit = defineEmits<{
-  open: [target: { hubId: string; projectId: string; workspaceId: string }];
+  open: [target: { projectId: string; workspaceId: string }];
 }>();
 
 const handleClick = () => {
-  emit('open', { hubId: props.hubId, projectId: props.project.id, workspaceId: props.workspaceId });
-};
-
-// Status badge variant
-const getStatusVariant = computed((): Variant => {
-  if (!props.project.status) {return 'status-unknown';}
-  return `status-${props.project.status.toLowerCase()}` as Variant;
-});
-
-const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-};
-
-const formatStatus = (status: RecordingStatus): string => {
-  switch (status) {
-    case RecordingStatus.ACTIVE:
-      return 'Active';
-    case RecordingStatus.FINISHED:
-      return 'Finished';
-    case RecordingStatus.UNKNOWN:
-    default:
-      return 'Unknown';
-  }
+  emit('open', { projectId: props.project.id, workspaceId: props.workspaceId });
 };
 </script>
 
@@ -152,14 +109,7 @@ const formatStatus = (status: RecordingStatus): string => {
   margin-top: 2px;
 }
 
-.footer-row .footer-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.footer-row .date,
-.footer-row .sessions {
+.footer-row .date {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -167,14 +117,7 @@ const formatStatus = (status: RecordingStatus): string => {
   color: var(--color-text-muted);
 }
 
-.footer-row .date i,
-.footer-row .sessions i {
+.footer-row .date i {
   font-size: 0.7rem;
-}
-
-.footer-row .badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 </style>

@@ -29,7 +29,7 @@ public final class HeapDumpProfiles {
 
     private static final String NOT_A_HEAP_DUMP =
             "Profile %s is not a heap dump, and the heap_ tools read only heap dump profiles. A heap dump "
-                    + "downloaded with a recording is another item of its bundle: hubs_download lists the "
+                    + "downloaded with a recording is another item of its bundle: remote_download lists the "
                     + "items with their recordingIds, and recordings_analyzeRecording builds its profile. "
                     + "For a JFR recording use the jfr_, flamegraph_ and traces_ tools instead.";
 

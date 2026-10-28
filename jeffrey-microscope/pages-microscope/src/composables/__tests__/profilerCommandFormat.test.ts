@@ -18,7 +18,7 @@
 import { describe, expect, it } from 'vitest';
 import { commandSegments, formatCommand } from '@/composables/profilerCommandFormat';
 
-const OPTIONS = 'start,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr';
+const OPTIONS = 'start,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/rec-%t.jfr';
 
 describe('formatCommand', () => {
   it('quotes the environment variable, so a shell reads neither the heredoc nor the %t', () => {
@@ -57,7 +57,7 @@ describe('commandSegments', () => {
       { kind: 'key', text: 'JEFFREY_PROFILER_COMMAND' },
       { kind: 'text', text: "='start,loop=15m,file=" },
       { kind: 'placeholder', text: '<<JEFFREY:CURRENT_SESSION>>' },
-      { kind: 'text', text: "/profile-%t.jfr'" }
+      { kind: 'text', text: "/rec-%t.jfr'" }
     ]);
   });
 

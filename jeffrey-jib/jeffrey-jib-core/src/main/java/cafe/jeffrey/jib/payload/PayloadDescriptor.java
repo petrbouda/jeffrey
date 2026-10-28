@@ -35,8 +35,8 @@ import java.util.Properties;
  * declares and by nothing else.
  *
  * @param kind                  which provisioner build the payload carries
- * @param provisionerProvenance the Jeffrey release the provisioner and the agent were taken from,
- *                              for the build log
+ * @param provisionerProvenance the Jeffrey release the provisioner was taken from, for the build
+ *                              log
  * @param profilerProvenance    the async-profiler release, for the build log
  */
 public record PayloadDescriptor(ProvisionerSource kind, String provisionerProvenance, String profilerProvenance) {

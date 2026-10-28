@@ -58,7 +58,7 @@ final class DeleteConfirmation {
     }
 
     /**
-     * The question: what goes, by name, id and profile, and that a copy on a hub stays where it is.
+     * The question: what goes, by name, id and profile, and that a copy on the remote stays where it is.
      */
     static McpToolOutcome.InputRequired ask(Recording recording) {
         String profile = recording.hasProfile()
@@ -66,7 +66,7 @@ final class DeleteConfirmation {
                 : "its files (it has no profile yet)";
         String message = "Delete recording " + recording.recordingName() + " (" + recording.id() + ") and "
                 + profile + ", with everything analysed out of it? This cannot be undone here. A copy of "
-                + "the recording on a Jeffrey Hub is untouched, and hubs_download can pull it again.";
+                + "the recording on the remote is untouched, and remote_download can pull it again.";
         return new McpToolOutcome.InputRequired(Map.of(KEY, new McpFormElicitation(message, FORM)));
     }
 

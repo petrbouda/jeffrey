@@ -17,103 +17,72 @@
 
 package cafe.jeffrey.hub.core.volume;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
-import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.RemoteProject;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
+import cafe.jeffrey.hub.model.ProjectInfo;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.layout.ProjectTree;
+import cafe.jeffrey.test.volume.VolumeWriter;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 
 /**
- * Writes a volume the way the provisioner, the heartbeat library and the hub's own workspace
- * creation do, so tests read what production reads: marker files, heartbeat files and recordings.
+ * Writes a volume the way the provisioner, the profiler and the hub's own workspace creation do,
+ * so tests read what production reads: directories named for what they hold, and recordings.
  */
 public final class TestVolume {
-
-    public static final Duration HEARTBEAT_THRESHOLD = Duration.ofSeconds(10);
-    public static final Duration STARTUP_GRACE = Duration.ofMinutes(1);
 
     private TestVolume() {
     }
 
-    public static SessionLiveness liveness(Clock clock) {
-        return new SessionLiveness(clock, new FileHeartbeatReader(), new SessionDeadlines(HEARTBEAT_THRESHOLD, STARTUP_GRACE));
+    /** Where {@code path}, a directory under {@code root}, lies on the volume rooted there. */
+    public static VolumePath volumePath(Path root, Path path) {
+        VolumePath volumePath = VolumePath.root();
+        for (Path element : root.relativize(path)) {
+            volumePath = volumePath.resolve(element.toString());
+        }
+        return volumePath;
     }
 
-    public static Path workspace(Path workspacesRoot, String id, String name, Instant createdAt) {
-        Path dir = directories(workspacesRoot.resolve(id));
-        VolumeMarkers.write(dir, WorkspaceMarker.FILE_NAME, new WorkspaceMarker(name, createdAt.toEpochMilli()));
-        return dir;
+    /** The hub's storage of the project in {@code projectDir}, on the volume rooted at {@code workspacesRoot}. */
+    public static FilesystemRepositoryStorage storage(ProjectInfo info, Path workspacesRoot, Path projectDir) {
+        FilesystemVolume volume = new FilesystemVolume(workspacesRoot);
+        ProjectTree tree = ProjectTree.at(volume, volumePath(workspacesRoot, projectDir)).orElseThrow();
+        return new FilesystemRepositoryStorage(info, tree, volume);
     }
 
-    public static Path project(Path workspaceDir, String projectId, String name, Instant createdAt) {
-        Path dir = directories(workspaceDir.resolve(name));
-        RemoteProject marker = new RemoteProject(projectId, name, createdAt.toEpochMilli(), Map.of("env", "test"));
-        write(dir.resolve(JeffreyLayout.PROJECT_INFO_FILE), Json.toString(marker));
-        return dir;
+    /** A workspace: its directory, named by its id. */
+    public static Path workspace(Path workspacesRoot, String id) {
+        try {
+            return Files.createDirectories(workspacesRoot.resolve(id));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
-    public static Path instance(Path projectDir, String instanceId, Instant createdAt) {
-        Path dir = directories(projectDir.resolve(instanceId));
-        RemoteProjectInstance marker = new RemoteProjectInstance(instanceId, createdAt.toEpochMilli());
-        write(dir.resolve(JeffreyLayout.INSTANCE_INFO_FILE), Json.toString(marker));
-        return dir;
+    public static Path project(Path workspaceDir, String name) {
+        return VolumeWriter.project(workspaceDir, name);
     }
 
-    public static Path session(Path instanceDir, String sessionId, Instant createdAt) {
-        return session(instanceDir, sessionId, createdAt, null);
+    public static Path instance(Path projectDir, String instanceId) {
+        return VolumeWriter.instance(projectDir, instanceId);
     }
 
-    /** A session whose marker records the time zone its machine runs in; {@code null} for none. */
-    public static Path session(Path instanceDir, String sessionId, Instant createdAt, String zoneId) {
-        Path dir = directories(instanceDir.resolve(sessionId));
-        RemoteProjectInstanceSession marker =
-                new RemoteProjectInstanceSession(sessionId, createdAt.toEpochMilli(), zoneId);
-        write(dir.resolve(JeffreyLayout.SESSION_INFO_FILE), Json.toString(marker));
-        return dir;
+    /** A session started at {@code start}, named as the provisioner names it. */
+    public static Path session(Path instanceDir, Instant start) {
+        return VolumeWriter.session(instanceDir, start);
     }
 
-    /** The heartbeat library's periodic beat. */
-    public static void heartbeat(Path sessionDir, Instant at) {
-        Path dir = directories(sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR));
-        write(dir.resolve(HeartbeatConstants.HEARTBEAT_FILE), Long.toString(at.toEpochMilli()));
-    }
-
-    /** The heartbeat library's clean-exit marker. */
-    public static void finished(Path sessionDir, Instant at) {
-        Path dir = directories(sessionDir.resolve(HeartbeatConstants.HEARTBEAT_DIR));
-        write(dir.resolve(HeartbeatConstants.FINISHED_FILE), Long.toString(at.toEpochMilli()));
+    /** The id a session started at {@code start} goes by. */
+    public static String sessionId(Instant start) {
+        return VolumeWriter.sessionIdAt(start);
     }
 
     public static Path file(Path dir, String name, String content) {
-        Path file = dir.resolve(name);
-        write(file, content);
-        return file;
-    }
-
-    private static Path directories(Path dir) {
-        try {
-            return Files.createDirectories(dir);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private static void write(Path file, String content) {
-        try {
-            Files.writeString(file, content, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return VolumeWriter.file(dir, name, content);
     }
 }

@@ -18,6 +18,7 @@
 package cafe.jeffrey.provisioner;
 
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 
 /**
  * The directories a run shares with every other run of the same project — everything above the
@@ -35,7 +36,8 @@ public record ProjectLayout(
         }
     }
 
-    public SessionLayout withSession(Path session) {
-        return new SessionLayout(jeffreyHome, workspaces, workspace, project, session);
+    /** @param offset the profiled machine's UTC offset when the session starts, which its recordings' names are local to */
+    public SessionLayout withSession(Path session, ZoneOffset offset) {
+        return new SessionLayout(jeffreyHome, workspaces, workspace, project, session, offset);
     }
 }

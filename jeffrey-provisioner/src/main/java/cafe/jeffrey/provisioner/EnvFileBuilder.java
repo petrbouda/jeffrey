@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,18 +26,12 @@ import java.util.List;
  */
 public class EnvFileBuilder {
 
-    /**
-     * Also the source of {@code <<JEFFREY:FILE_PATTERN>>}, so the placeholder and the exported
-     * {@code JEFFREY_FILE_PATTERN} can never drift apart.
-     */
-    public static final String DEFAULT_FILE_TEMPLATE = "profile-%t.jfr";
     private static final String JEFFREY_HOME_PROP = "JEFFREY_HOME";
     private static final String JEFFREY_WORKSPACES_PROP = "JEFFREY_WORKSPACES";
     private static final String JEFFREY_WORKSPACE_PROP = "JEFFREY_CURRENT_WORKSPACE";
     private static final String JEFFREY_SESSION_PROP = "JEFFREY_CURRENT_SESSION";
     private static final String JEFFREY_PROJECT_PROP = "JEFFREY_CURRENT_PROJECT";
     private static final String JEFFREY_FILE_PATTERN_PROP = "JEFFREY_FILE_PATTERN";
-    private static final String JEFFREY_HEARTBEAT_DIR_PROP = "JEFFREY_HEARTBEAT_DIR";
     private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
 
     private static final String EXPORT_PREFIX = "export ";
@@ -71,13 +63,7 @@ public class EnvFileBuilder {
         exports.add(export(JEFFREY_WORKSPACE_PROP, layout.workspace()));
         exports.add(export(JEFFREY_PROJECT_PROP, layout.project()));
         exports.add(export(JEFFREY_SESSION_PROP, layout.session()));
-        exports.add(export(JEFFREY_FILE_PATTERN_PROP, layout.recordingFilePattern(DEFAULT_FILE_TEMPLATE)));
-
-        // Named outright rather than left to be derived from JEFFREY_CURRENT_SESSION, so the
-        // library needs no opinion about where inside a session directory the files belong. The
-        // library still falls back to deriving it, for a session provisioned before this export.
-        exports.add(export(JEFFREY_HEARTBEAT_DIR_PROP,
-                layout.session().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
+        exports.add(export(JEFFREY_FILE_PATTERN_PROP, layout.recordingFilePattern()));
 
         // The flags reach the JVM through the argfile, or through JDK_JAVA_OPTIONS when that is
         // asked for. The .env file carries the layout, not a second copy of the command.

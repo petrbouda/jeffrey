@@ -18,49 +18,36 @@
 import { describe, expect, it } from 'vitest';
 import FormattingService from '@shared/services/FormattingService';
 import { storageFigure, summarizeInstances } from './instanceStats.ts';
-import ProjectInstance, {
-  type ProjectInstanceStatus
-} from '@hubs/services/api/model/ProjectInstance.ts';
+import ProjectInstance from '@remote/services/api/model/ProjectInstance.ts';
 
 const BASE = 1_750_000_000_000;
 
-function instance(
-  id: string,
-  status: ProjectInstanceStatus,
-  createdAt: number,
-  sessionCount: number
-): ProjectInstance {
-  return new ProjectInstance(id, id, 'project-1', status, createdAt, 0, sessionCount);
+function instance(id: string, createdAt: number | null): ProjectInstance {
+  return new ProjectInstance(id, createdAt);
 }
 
 describe('summarizeInstances', () => {
-  it('counts every status, the sessions and the oldest creation time', () => {
+  it('counts the instances and finds the oldest creation', () => {
     const stats = summarizeInstances([
-      instance('a', 'ACTIVE', BASE + 3_000, 2),
-      instance('b', 'ACTIVE', BASE + 1_000, 1),
-      instance('c', 'FINISHED', BASE, 4),
-      instance('d', 'PENDING', BASE + 5_000, 0)
+      instance('a', BASE + 3_000),
+      instance('b', BASE + 1_000),
+      instance('c', BASE),
+      instance('d', BASE + 5_000)
     ]);
 
-    expect(stats).toEqual({
-      pending: 1,
-      active: 2,
-      finished: 1,
-      total: 4,
-      sessions: 7,
+    expect(stats).toEqual({ total: 4, oldestCreatedAt: BASE });
+  });
+
+  it('leaves out instances a share lists no time for', () => {
+    expect(summarizeInstances([instance('a', null), instance('b', BASE)])).toEqual({
+      total: 2,
       oldestCreatedAt: BASE
     });
+    expect(summarizeInstances([instance('a', null)]).oldestCreatedAt).toBeNull();
   });
 
   it('has no oldest creation time without instances', () => {
-    expect(summarizeInstances([])).toEqual({
-      pending: 0,
-      active: 0,
-      finished: 0,
-      total: 0,
-      sessions: 0,
-      oldestCreatedAt: null
-    });
+    expect(summarizeInstances([])).toEqual({ total: 0, oldestCreatedAt: null });
   });
 });
 
@@ -73,7 +60,7 @@ describe('storageFigure', () => {
     expect(storageFigure({ totalSize: 1024 }, true)).toEqual({ kind: 'error' });
   });
 
-  it('is unmeasured before the hub has run its first retention pass', () => {
+  it('is unmeasured when nothing has measured the project', () => {
     expect(storageFigure({ totalSize: null }, false)).toEqual({ kind: 'unmeasured' });
   });
 

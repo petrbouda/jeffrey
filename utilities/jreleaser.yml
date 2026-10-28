@@ -23,7 +23,7 @@
 # Invoked with `jreleaser deploy`, so no GitHub release/tag is created here.
 project:
   name: jeffrey-utilities
-  description: Jeffrey libraries for profiled applications - events, heartbeat and tracing
+  description: Jeffrey libraries for profiled applications - events and tracing
   authors:
     - Petr Bouda
   license: Apache-2.0

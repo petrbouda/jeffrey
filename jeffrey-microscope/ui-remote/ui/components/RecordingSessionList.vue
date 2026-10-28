@@ -1,0 +1,1565 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2026 Petr Bouda
+  -
+  - Licensed under the Apache License, Version 2.0 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -     https://www.apache.org/licenses/LICENSE-2.0
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+  -->
+
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue';
+import { downloadAssistantStore } from '@remote/stores/assistants/downloadAssistantStore';
+import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient.ts';
+import { ToastService } from '@shared/services/ToastService';
+import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
+import RecordingSessionHeader from '@remote/services/api/model/RecordingSessionHeader.ts';
+import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
+import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
+import Badge from '@shared/components/Badge.vue';
+import RecordingFileRow from '@remote/components/RecordingFileRow.vue';
+import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import { useSessionReads } from '@remote/composables/useSessionReads';
+import { useRemoteReadOnly } from '@remote/composables/useRemoteReadOnly';
+import type { Variant } from '@shared/types/ui';
+import FormattingService from '@shared/services/FormattingService.ts';
+import TimelineBar from '@shared/components/TimelineBar.vue';
+import { hasUnreportedSizes } from '@remote/services/sessionSizes.ts';
+import {
+  chunkSelectionGapMessage,
+  downloadableFiles,
+  isContiguousChunkSelection,
+  isDownloadable
+} from '@remote/services/chunkSelection.ts';
+
+interface Props {
+  sessions: RecordingSessionHeader[];
+  workspaceId: string;
+  projectId: string;
+  headerText?: string;
+  isCollectorOnly?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  headerText: 'Recording Sessions',
+  isCollectorOnly: false
+});
+
+const emit = defineEmits<{
+  (e: 'refresh'): void;
+}>();
+
+const toast = ToastService;
+
+/**
+ * What the "sizes unavailable" badge means, and — as importantly — what it does not: the
+ * recording is intact, only the figures are missing. Carried as a tooltip rather than a
+ * banner because the session is otherwise perfectly usable.
+ */
+const UNREPORTED_SIZES_HINT =
+  'Every file in this session reports zero bytes, after it recorded for long enough to have ' +
+  'produced data. Sizes are read from the remote\'s repository directory, so this usually means ' +
+  'that mount is serving stale file metadata (an object-storage FUSE, an NFS attribute cache, ' +
+  'or an SMB share listing a file another client still has open) rather than that the session ' +
+  'is empty. The files can still be downloaded.';
+
+const repositoryService = computed(
+  () => new ProjectRepositoryClient(props.workspaceId, props.projectId)
+);
+
+/** A read-only remote refuses deletions, so they are not offered. */
+const remoteReadOnly = useRemoteReadOnly();
+
+// --- Session UI state ---
+const expandedSessions = ref<{ [key: string]: boolean }>({});
+const showMultiSelectActions = ref<{ [sessionId: string]: boolean }>({});
+const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: boolean } }>({});
+const visibleFilesCount = ref<{ [key: string]: number }>({});
+const expandedTypePanels = ref<{ [key: string]: boolean }>({});
+const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
+
+// --- Files, read per session when it is opened ---
+const {
+  sessions: readSessions,
+  loading: readingSession,
+  failed: sessionReadFailed,
+  read: readSession,
+  retainOnly: retainReadSessions
+} = useSessionReads(() => repositoryService.value);
+
+/**
+ * The session as last read on its own, or undefined until it is opened: an instance's page names
+ * its sessions without reading them, so their figures come with the first read.
+ */
+const readOf = (session: RecordingSessionHeader): RecordingSession | undefined => {
+  return readSessions.value[session.id];
+};
+
+/** The session's files as last read on their own; a listed session carries none. */
+const filesOf = (session: RecordingSessionHeader): RepositoryFile[] => {
+  return readSessions.value[session.id]?.files ?? [];
+};
+
+/**
+ * Reads the session's files and rebuilds its selection from them: a file retention removed in
+ * the meantime drops out of the selection instead of being counted as still ticked.
+ */
+const loadFiles = async (sessionId: string): Promise<RepositoryFile[]> => {
+  const files = (await readSession(sessionId)).files;
+  const previous = selectedRepositoryFile.value[sessionId] ?? {};
+  selectedRepositoryFile.value[sessionId] = Object.fromEntries(
+    files.map(file => [file.id, previous[file.id] ?? false])
+  );
+  return files;
+};
+
+/** A read the body of the session reports itself — its error state carries the retry. */
+const loadFilesInBackground = (sessionId: string): void => {
+  loadFiles(sessionId).catch(() => {});
+};
+
+/**
+ * Whether a refresh of the list should read an open session again: only while it can still have
+ * changed — it is its instance's newest session — or it was never read. An ended session's files
+ * change only by retention or compression, which the next opening picks up.
+ */
+const isStale = (session: RecordingSessionHeader): boolean => {
+  return !readSessions.value[session.id] || session.newest;
+};
+
+// Delete dialog state
+const deleteSessionDialog = ref(false);
+const sessionToDelete = ref<RecordingSessionHeader | null>(null);
+const deletingSession = ref(false);
+
+// --- Constants ---
+const DEFAULT_FILES_LIMIT = 15;
+
+// --- Type definitions ---
+interface FileGroupEntry {
+  primary: RepositoryFile;
+  children: RepositoryFile[];
+  totalSize: number;
+}
+
+type ArtifactTypeGroup =
+  | 'JFR_RECORDING'
+  | 'HEAP_DUMP'
+  | 'PERF_COUNTERS'
+  | 'JVM_LOG'
+  | 'APP_LOG'
+  | 'HS_JVM_ERROR_LOG'
+  | 'UNKNOWN';
+
+const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
+  'JFR_RECORDING',
+  'HEAP_DUMP',
+  'PERF_COUNTERS',
+  'JVM_LOG',
+  'APP_LOG',
+  'HS_JVM_ERROR_LOG',
+  'UNKNOWN'
+];
+
+const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
+  [RecordingFileType.JFR]: 'JFR_RECORDING',
+  [RecordingFileType.JFR_LZ4]: 'JFR_RECORDING',
+  [RecordingFileType.ASPROF]: 'JFR_RECORDING',
+  [RecordingFileType.HEAP_DUMP]: 'HEAP_DUMP',
+  [RecordingFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
+  [RecordingFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
+  [RecordingFileType.JVM_LOG]: 'JVM_LOG',
+  [RecordingFileType.APP_LOG]: 'APP_LOG',
+  [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
+  [RecordingFileType.UNKNOWN]: 'UNKNOWN'
+};
+
+const TYPE_GROUP_DISPLAY: Record<
+  ArtifactTypeGroup,
+  { name: string; variant: Variant; fileType: string }
+> = {
+  JFR_RECORDING: { name: 'JFR Recordings', variant: 'primary', fileType: 'JFR' },
+  HEAP_DUMP: { name: 'Heap Dumps', variant: 'purple', fileType: 'HEAP_DUMP' },
+  PERF_COUNTERS: { name: 'Perf Counters', variant: 'blue', fileType: 'PERF_COUNTERS' },
+  JVM_LOG: { name: 'JVM Logs', variant: 'green', fileType: 'JVM_LOG' },
+  APP_LOG: { name: 'Application Logs', variant: 'brown', fileType: 'APP_LOG' },
+  HS_JVM_ERROR_LOG: { name: 'HotSpot Error Logs', variant: 'red', fileType: 'HS_JVM_ERROR_LOG' },
+  UNKNOWN: { name: 'Other Files', variant: 'grey', fileType: 'UNKNOWN' }
+};
+
+/**
+ * The recordings fold like every other type, but through a panel of their own rather than through
+ * getTypeGroupPanels: the body keeps the rotation grouping (a `.jfr.N~` sibling folded under the
+ * chunk it belongs to), which a flat type panel has no notion of. Everything else — the header row,
+ * the chevron, the group checkbox, the Show-more inside the body — is the shared machinery.
+ */
+const RECORDING_GROUP_KEY: ArtifactTypeGroup = 'JFR_RECORDING';
+const RECORDING_DISPLAY = TYPE_GROUP_DISPLAY[RECORDING_GROUP_KEY];
+
+interface TypeGroupPanel {
+  groupKey: ArtifactTypeGroup;
+  display: { name: string; variant: string; fileType: string };
+  files: RepositoryFile[];
+  fileCount: number;
+  totalSize: number;
+}
+
+// --- Computed ---
+const sortedSessions = computed(() => {
+  return [...props.sessions].sort((a, b) => {
+    return b.createdAt - a.createdAt;
+  });
+});
+
+const headerBarText = computed(() => `${props.headerText} (${props.sessions.length})`);
+
+// --- Sorting ---
+const getSortedRecordings = (session: RecordingSessionHeader) => {
+  const getSortPriority = (file: RepositoryFile): number => {
+    if (file.isRecording || file.fileType === RecordingFileType.ASPROF) {return 1;}
+    return 0;
+  };
+
+  return [...filesOf(session)].sort((a, b) => {
+    const priorityA = getSortPriority(a);
+    const priorityB = getSortPriority(b);
+
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+
+    if (priorityA === 1) {
+      return b.name.localeCompare(a.name);
+    }
+
+    return b.createdAt - a.createdAt;
+  });
+};
+
+// --- Session expand/collapse ---
+const initializeExpandedState = () => {
+  // Every session starts collapsed: an open session reads its files off the remote, and on an
+  // Azure file share that is a run of round-trips, so files are read only for a session the
+  // reader opens. One the reader opened or closed keeps that across refreshes.
+  retainReadSessions(new Set(props.sessions.map(session => session.id)));
+
+  props.sessions.forEach(session => {
+    if (expandedSessions.value[session.id] === undefined) {
+      expandedSessions.value[session.id] = false;
+    }
+
+    if (visibleFilesCount.value[session.id] === undefined) {
+      visibleFilesCount.value[session.id] = DEFAULT_FILES_LIMIT;
+    }
+
+    if (!selectedRepositoryFile.value[session.id]) {
+      selectedRepositoryFile.value[session.id] = {};
+    }
+
+    // An open session is read again when the reader refreshes the list and it may have changed,
+    // so the instance's newest session shows the chunks it wrote since
+    if (expandedSessions.value[session.id] && isStale(session)) {
+      loadFilesInBackground(session.id);
+    }
+
+    if (showMultiSelectActions.value[session.id] === undefined) {
+      showMultiSelectActions.value[session.id] = false;
+    }
+  });
+};
+
+watch(
+  () => props.sessions,
+  () => {
+    initializeExpandedState();
+  },
+  { immediate: true }
+);
+
+const toggleSession = (sessionId: string) => {
+  expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
+
+  if (expandedSessions.value[sessionId] && !readSessions.value[sessionId]) {
+    loadFilesInBackground(sessionId);
+  }
+
+  if (!expandedSessions.value[sessionId]) {
+    visibleFilesCount.value[sessionId] = DEFAULT_FILES_LIMIT;
+    for (const key of Object.keys(visibleFilesCount.value)) {
+      if (key.startsWith(sessionId + ':')) {
+        visibleFilesCount.value[key] = DEFAULT_FILES_LIMIT;
+      }
+    }
+  }
+};
+
+// --- Session tone ---
+/**
+ * Suffix of a session row's `session-*` and `session-icon-*` classes: the instance's newest
+ * session, which may still grow, or one a newer session has ended.
+ */
+type SessionTone = 'newest' | 'ended';
+
+const sessionTone = (session: RecordingSessionHeader): SessionTone => {
+  return session.newest ? 'newest' : 'ended';
+};
+
+// --- Selection ---
+const toggleSelectionMode = (sessionId: string) => {
+  showMultiSelectActions.value[sessionId] = !showMultiSelectActions.value[sessionId];
+
+  if (showMultiSelectActions.value[sessionId]) {
+    expandedSessions.value[sessionId] = true;
+    if (!readSessions.value[sessionId]) {
+      loadFilesInBackground(sessionId);
+    }
+  } else {
+    clearAllSelections(sessionId);
+  }
+};
+
+const clearAllSelections = (sessionId: string) => {
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
+  }
+
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (session) {
+    filesOf(session).forEach(source => {
+      selectedRepositoryFile.value[sessionId][source.id] = false;
+    });
+  }
+};
+
+/**
+ * Whether the ticked recordings may be downloaded together. They become one recording reporting one
+ * span, so a skipped chunk would leave a hole the result cannot show. Ticking itself stays free;
+ * only the download is refused.
+ */
+const isDownloadableSelection = (sessionId: string): boolean => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {
+    return true;
+  }
+  return isContiguousChunkSelection(filesOf(session), selectedRepositoryFile.value[sessionId]);
+};
+
+const selectionGapMessage = (sessionId: string): string => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {
+    return '';
+  }
+  return chunkSelectionGapMessage(filesOf(session), selectedRepositoryFile.value[sessionId]);
+};
+
+const getSelectedCount = (sessionId: string): number => {
+  if (!selectedRepositoryFile.value[sessionId]) {return 0;}
+  return Object.values(selectedRepositoryFile.value[sessionId]).filter(Boolean).length;
+};
+
+const toggleSourceSelection = (sessionId: string, sourceId: string) => {
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
+  }
+  selectedRepositoryFile.value[sessionId][sourceId] =
+    !selectedRepositoryFile.value[sessionId][sourceId];
+};
+
+const toggleSelectAllSources = (sessionId: string, selectAll: boolean) => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {return;}
+
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
+  }
+
+  filesOf(session).forEach(source => {
+    if (!isCheckboxDisabled(source)) {
+      selectedRepositoryFile.value[sessionId][source.id] = selectAll;
+    }
+  });
+};
+
+const isAllGroupFilesSelected = (sessionId: string, files: RepositoryFile[]): boolean => {
+  if (!selectedRepositoryFile.value[sessionId]) {return false;}
+  const selectableFiles = files.filter(f => !isCheckboxDisabled(f));
+  if (selectableFiles.length === 0) {return false;}
+  return selectableFiles.every(f => selectedRepositoryFile.value[sessionId][f.id]);
+};
+
+const toggleGroupSelection = (sessionId: string, files: RepositoryFile[]) => {
+  if (!selectedRepositoryFile.value[sessionId]) {
+    selectedRepositoryFile.value[sessionId] = {};
+  }
+  const allSelected = isAllGroupFilesSelected(sessionId, files);
+  files.forEach(file => {
+    if (!isCheckboxDisabled(file)) {
+      selectedRepositoryFile.value[sessionId][file.id] = !allSelected;
+    }
+  });
+};
+
+// Downloadability is decided by type only, never by a reported size. The size
+// comes from a stat of the hub's repository directory and can be stale — a mount that caches
+// file attributes reports every growing file as zero bytes — while the download reads the
+// file's actual content. Refusing on a zero would block exactly the files this goes wrong on,
+// and an empty download is the honest answer for a file that really is empty.
+const isCheckboxDisabled = (source: RepositoryFile): boolean => {
+  return !isDownloadable(source);
+};
+
+const downloadFile = async (sessionId: string, fileId: string) => {
+  try {
+    await repositoryService.value.downloadFile(sessionId, fileId);
+  } catch (error: any) {
+    toast.error('Download File', error.message || 'Failed to download file');
+  }
+};
+
+// --- Operations ---
+const downloadSession = async (sessionId: string) => {
+  try {
+    const session = props.sessions.find(s => s.id === sessionId);
+    if (!session) {
+      toast.error('Download', 'Session not found');
+      return;
+    }
+
+    // Read now rather than trusting an earlier read: retention may have trimmed the session since.
+    // async-profiler's scratch file is left out; the newest recording goes too, and the download
+    // checks it arrived whole
+    const files = downloadableFiles(await loadFiles(session.id));
+    if (!files.some(f => f.isRecording)) {
+      toast.warn(
+        'No recording data available',
+        'The session may have been terminated before any data was written.'
+      );
+      return;
+    }
+
+    const fileIds = files.map(f => f.id);
+    await downloadAssistantStore.startDownload(
+      props.workspaceId,
+      props.projectId,
+      sessionId,
+      fileIds,
+      async () => {
+        emit('refresh');
+      }
+    );
+  } catch (error: any) {
+    console.error('Error downloading session:', error);
+    toast.error('Download', error.message || 'Failed to download recording session');
+  }
+};
+
+const downloadSelectedSources = async (sessionId: string) => {
+  try {
+    const session = props.sessions.find(s => s.id === sessionId);
+    if (!session) {return;}
+
+    const selectedSources = filesOf(session).filter(
+      source => selectedRepositoryFile.value[sessionId][source.id]
+    );
+
+    if (selectedSources.length === 0) {
+      toast.info('Download', 'No recordings selected');
+      return;
+    }
+
+    const fileIds = selectedSources.map(f => f.id);
+    await downloadAssistantStore.startDownload(
+      props.workspaceId,
+      props.projectId,
+      sessionId,
+      fileIds,
+      async () => {
+        emit('refresh');
+        toggleSelectAllSources(sessionId, false);
+      }
+    );
+  } catch (error: any) {
+    console.error('Error downloading selected recordings:', error);
+    toast.error('Download', error.message || 'Failed to download selected recordings');
+  }
+};
+
+const deleteAll = async (sessionId: string) => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {
+    toast.error('Delete All', 'Session not found');
+    return;
+  }
+
+  sessionToDelete.value = session;
+  deleteSessionDialog.value = true;
+};
+
+const confirmDeleteSession = async () => {
+  if (!sessionToDelete.value) {return;}
+
+  deletingSession.value = true;
+
+  try {
+    await repositoryService.value.deleteRecordingSession(sessionToDelete.value.id);
+    toast.success('Delete All', 'Successfully deleted all recordings in the session');
+
+    emit('refresh');
+    deleteSessionDialog.value = false;
+  } catch (error: any) {
+    console.error('Error deleting recording session:', error);
+    toast.error('Delete All', error.message || 'Failed to delete recording session');
+  } finally {
+    deletingSession.value = false;
+    sessionToDelete.value = null;
+  }
+};
+
+// --- Rotation group logic ---
+const parseRotatedFilename = (filename: string): { baseName: string; suffix: number } | null => {
+  const match = filename.match(/^(.+)\.(\d+)$/);
+  if (!match) {return null;}
+  return { baseName: match[1], suffix: parseInt(match[2], 10) };
+};
+
+const groupRotatedFiles = (sortedFiles: RepositoryFile[]): FileGroupEntry[] => {
+  const nameSet = new Set(sortedFiles.map(f => f.name));
+  const grouped = new Map<string, FileGroupEntry>();
+  const assigned = new Set<string>();
+
+  for (const file of sortedFiles) {
+    const parsed = parseRotatedFilename(file.name);
+    if (parsed && nameSet.has(parsed.baseName)) {
+      if (!grouped.has(parsed.baseName)) {
+        const primary = sortedFiles.find(f => f.name === parsed.baseName);
+        if (primary) {
+          grouped.set(parsed.baseName, { primary, children: [], totalSize: primary.size });
+          assigned.add(primary.id);
+        }
+      }
+      const group = grouped.get(parsed.baseName);
+      if (group) {
+        group.children.push(file);
+        group.totalSize += file.size;
+        assigned.add(file.id);
+      }
+    }
+  }
+
+  for (const group of grouped.values()) {
+    group.children.sort((a, b) => {
+      const pa = parseRotatedFilename(a.name);
+      const pb = parseRotatedFilename(b.name);
+      return (pa?.suffix ?? 0) - (pb?.suffix ?? 0);
+    });
+  }
+
+  const result: FileGroupEntry[] = [];
+  for (const file of sortedFiles) {
+    if (assigned.has(file.id)) {
+      if (grouped.has(file.name)) {
+        result.push(grouped.get(file.name)!);
+        grouped.delete(file.name);
+      }
+    } else {
+      result.push({ primary: file, children: [], totalSize: file.size });
+    }
+  }
+
+  return result;
+};
+
+const isRecordingOrTempFile = (file: RepositoryFile): boolean => {
+  return file.isRecording || file.fileType === RecordingFileType.ASPROF;
+};
+
+const getRecordingFiles = (session: RecordingSessionHeader): RepositoryFile[] => {
+  return getSortedRecordings(session).filter(f => isRecordingOrTempFile(f));
+};
+
+const getRecordingGroupedFiles = (session: RecordingSessionHeader): FileGroupEntry[] => {
+  return groupRotatedFiles(getRecordingFiles(session));
+};
+
+const getRecordingTotalSize = (session: RecordingSessionHeader): number => {
+  return getRecordingFiles(session).reduce((sum, f) => sum + f.size, 0);
+};
+
+/**
+ * The recordings are what a session is for, so their panel starts open while the logs beside it
+ * start closed. Only a toggle writes the key, so an untouched panel keeps answering true.
+ */
+const isRecordingPanelExpanded = (sessionId: string): boolean => {
+  const expanded = expandedTypePanels.value[`${sessionId}:${RECORDING_GROUP_KEY}`];
+  return expanded === undefined ? true : expanded;
+};
+
+const toggleRecordingPanel = (sessionId: string) => {
+  expandedTypePanels.value[`${sessionId}:${RECORDING_GROUP_KEY}`] =
+    !isRecordingPanelExpanded(sessionId);
+};
+
+const getVisibleRecordingGroups = (session: RecordingSessionHeader): FileGroupEntry[] => {
+  const allGroups = getRecordingGroupedFiles(session);
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return allGroups.slice(0, limit);
+};
+
+const hasMoreRecordingGroups = (session: RecordingSessionHeader): boolean => {
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return getRecordingGroupedFiles(session).length > limit;
+};
+
+const showMoreRecordingGroups = (sessionId: string) => {
+  const session = props.sessions.find(s => s.id === sessionId);
+  if (!session) {return;}
+  visibleFilesCount.value[sessionId] = getRecordingGroupedFiles(session).length;
+};
+
+const getRemainingRecordingGroupCount = (session: RecordingSessionHeader): number => {
+  const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
+  return getRecordingGroupedFiles(session).length - limit;
+};
+
+const getArtifactGroupMap = (
+  session: RecordingSessionHeader
+): Map<ArtifactTypeGroup, RepositoryFile[]> => {
+  const sortedFiles = getSortedRecordings(session);
+  const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
+  for (const file of sortedFiles) {
+    if (isRecordingOrTempFile(file)) {continue;}
+    const groupKey = FILE_TYPE_TO_GROUP[file.fileType] || 'UNKNOWN';
+    if (!groupMap.has(groupKey)) {groupMap.set(groupKey, []);}
+    groupMap.get(groupKey)!.push(file);
+  }
+  return groupMap;
+};
+
+// Groups that always show as a panel, even with a single file
+const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
+
+const getTypeGroupPanels = (session: RecordingSessionHeader): TypeGroupPanel[] => {
+  const groupMap = getArtifactGroupMap(session);
+  const panels: TypeGroupPanel[] = [];
+  for (const groupKey of TYPE_GROUP_ORDER) {
+    if (groupKey === RECORDING_GROUP_KEY) {continue;}
+    const files = groupMap.get(groupKey);
+    if (!files) {continue;}
+    if (files.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) {continue;}
+    panels.push({
+      groupKey,
+      display: TYPE_GROUP_DISPLAY[groupKey],
+      files,
+      fileCount: files.length,
+      totalSize: files.reduce((sum, f) => sum + f.size, 0)
+    });
+  }
+  return panels;
+};
+
+const getStandaloneArtifactFiles = (session: RecordingSessionHeader): RepositoryFile[] => {
+  const groupMap = getArtifactGroupMap(session);
+  const standalone: RepositoryFile[] = [];
+  for (const groupKey of TYPE_GROUP_ORDER) {
+    if (groupKey === RECORDING_GROUP_KEY) {continue;}
+    const files = groupMap.get(groupKey);
+    if (files && files.length === 1 && !ALWAYS_GROUPED.has(groupKey)) {
+      standalone.push(files[0]);
+    }
+  }
+  return standalone;
+};
+
+const toggleTypePanel = (sessionId: string, groupKey: ArtifactTypeGroup) => {
+  const key = `${sessionId}:${groupKey}`;
+  expandedTypePanels.value[key] = !expandedTypePanels.value[key];
+};
+
+const isTypePanelExpanded = (sessionId: string, groupKey: ArtifactTypeGroup): boolean => {
+  return !!expandedTypePanels.value[`${sessionId}:${groupKey}`];
+};
+
+const getVisiblePanelFiles = (panel: TypeGroupPanel, sessionId: string): RepositoryFile[] => {
+  const key = `${sessionId}:${panel.groupKey}`;
+  const limit = visibleFilesCount.value[key] || DEFAULT_FILES_LIMIT;
+  return panel.files.slice(0, limit);
+};
+
+const hasMoreInPanel = (panel: TypeGroupPanel, sessionId: string): boolean => {
+  const key = `${sessionId}:${panel.groupKey}`;
+  const limit = visibleFilesCount.value[key] || DEFAULT_FILES_LIMIT;
+  return panel.files.length > limit;
+};
+
+const showMoreInPanel = (sessionId: string, groupKey: ArtifactTypeGroup, total: number) => {
+  visibleFilesCount.value[`${sessionId}:${groupKey}`] = total;
+};
+
+const getRemainingInPanel = (panel: TypeGroupPanel, sessionId: string): number => {
+  const key = `${sessionId}:${panel.groupKey}`;
+  const limit = visibleFilesCount.value[key] || DEFAULT_FILES_LIMIT;
+  return panel.files.length - limit;
+};
+
+const toggleRotatedGroup = (sessionId: string, primaryName: string) => {
+  const key = `${sessionId}:${primaryName}`;
+  expandedRotatedGroups.value[key] = !expandedRotatedGroups.value[key];
+};
+
+const isRotatedGroupExpanded = (sessionId: string, primaryName: string): boolean => {
+  return !!expandedRotatedGroups.value[`${sessionId}:${primaryName}`];
+};
+
+const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) => {
+  const classes = [];
+
+  if (
+    selectedRepositoryFile.value[sessionId] &&
+    selectedRepositoryFile.value[sessionId][source.id]
+  ) {
+    classes.push('source-selected');
+  }
+
+  return classes.join(' ');
+};
+</script>
+
+<template>
+  <!-- Recording Sessions Header Bar -->
+  <div class="col-12" v-if="sessions.length > 0">
+    <SectionHeaderBar :text="headerBarText" />
+  </div>
+
+  <!-- Recording Sessions List -->
+  <div class="col-12" v-if="sessions.length > 0">
+    <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
+          <!-- Session header -->
+      <div
+        class="folder-row rounded"
+        :class="`session-${sessionTone(session)}`"
+        @click="toggleSession(session.id)"
+      >
+
+        <!-- Identity section -->
+        <div class="session-identity">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              <div class="session-icon-square me-3" :class="`session-icon-${sessionTone(session)}`">
+                <i
+                  class="bi"
+                  :class="expandedSessions[session.id] ? 'bi-folder2-open' : 'bi-folder2'"
+                ></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="session-name-label">Session:</span>
+                  <span class="session-id-part">{{ session.id }}</span>
+                </div>
+                <div class="session-meta">
+                  <span v-if="readOf(session)"
+                    ><i class="bi bi-files me-1"></i>{{ readOf(session)!.fileCount }} source{{
+                      readOf(session)!.fileCount === 1 ? '' : 's'
+                    }}</span
+                  >
+                  <Badge
+                    v-if="hasUnreportedSizes(readOf(session))"
+                    value="sizes unavailable"
+                    variant="warning"
+                    size="xxs"
+                    icon="bi bi-exclamation-triangle"
+                    :uppercase="false"
+                    :title="UNREPORTED_SIZES_HINT"
+                    class="ms-2"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+              <button
+                v-if="!isCollectorOnly"
+                class="btn btn-sm btn-outline-primary"
+                type="button"
+                title="Download Recordings"
+                @click.stop="downloadSession(session.id)"
+              >
+                <i class="bi bi-folder-symlink me-1"></i>Download
+              </button>
+              <button
+                v-if="!session.newest && !remoteReadOnly"
+                class="btn btn-sm btn-outline-danger"
+                type="button"
+                title="Delete Session"
+                @click.stop="deleteAll(session.id)"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+              <button
+                class="action-btn action-menu-btn ms-1"
+                :class="{ active: showMultiSelectActions[session.id] }"
+                type="button"
+                title="Toggle multi-select mode"
+                @click.stop="toggleSelectionMode(session.id)"
+              >
+                <i
+                  class="bi"
+                  :class="{
+                    'bi-check2-square': showMultiSelectActions[session.id],
+                    'bi-square': !showMultiSelectActions[session.id]
+                  }"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline section -->
+        <TimelineBar
+          :createdAt="session.createdAt"
+          :last-data-at="readOf(session)?.lastDataAt ?? null"
+          :duration="readOf(session)?.duration ?? null"
+          :unread="!readOf(session)"
+        />
+      </div>
+
+      <!-- Session recordings (shown when expanded) -->
+      <div v-if="expandedSessions[session.id]" class="ps-4 pt-2">
+        <LoadingState
+          v-if="readingSession[session.id] && !readSessions[session.id]"
+          message="Loading the session's files..."
+        />
+        <ErrorState
+          v-else-if="sessionReadFailed[session.id] && !readSessions[session.id]"
+          message="The files of this session could not be loaded"
+          @retry="loadFilesInBackground(session.id)"
+        />
+        <template v-else>
+        <!-- Multi-select controls -->
+        <div
+          v-if="showMultiSelectActions[session.id]"
+          class="multi-select-controls d-flex justify-content-between align-items-center mb-2"
+        >
+          <div class="d-flex align-items-center">
+            <button
+              class="btn btn-sm select-all-btn me-2"
+              @click.stop="toggleSelectAllSources(session.id, true)"
+              title="Select all recordings"
+            >
+              <i class="bi bi-check2-square me-1"></i>Select All
+            </button>
+            <button
+              class="btn btn-sm clear-btn"
+              @click.stop="toggleSelectAllSources(session.id, false)"
+              :disabled="getSelectedCount(session.id) === 0"
+              title="Clear selection"
+            >
+              <i class="bi bi-x-lg me-1"></i>Clear
+            </button>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <Badge
+              v-if="getSelectedCount(session.id) > 0"
+              :value="`${getSelectedCount(session.id)} selected`"
+              variant="secondary"
+              size="xs"
+              class="me-2"
+            />
+            <button
+              v-if="!isCollectorOnly"
+              class="btn btn-sm btn-outline-primary"
+              @click.stop="downloadSelectedSources(session.id)"
+              :disabled="getSelectedCount(session.id) === 0 || !isDownloadableSelection(session.id)"
+              :title="
+                isDownloadableSelection(session.id)
+                  ? 'Download selected recordings'
+                  : selectionGapMessage(session.id)
+              "
+            >
+              <i class="bi bi-folder-symlink me-1"></i>Download
+            </button>
+          </div>
+        </div>
+
+        <!--
+          Why Download is greyed out. The checkboxes stay free; only the download of a gapped
+          selection is refused.
+        -->
+        <div
+          v-if="showMultiSelectActions[session.id] && !isDownloadableSelection(session.id)"
+          class="field-alert field-alert-warning mb-2"
+          role="alert"
+        >
+          <i class="bi bi-exclamation-triangle"></i>
+          <span>{{ selectionGapMessage(session.id) }}</span>
+        </div>
+
+        <!-- JFR Recordings panel: the session's own chunks, folded like every other type -->
+        <div v-if="getRecordingFiles(session).length > 0" class="type-panel mb-2">
+          <div class="type-panel-header-wrapper" @click="toggleRecordingPanel(session.id)">
+            <RecordingFileRow
+              :filename="RECORDING_DISPLAY.name"
+              :fileType="RECORDING_DISPLAY.fileType"
+              :sizeInBytes="getRecordingTotalSize(session)"
+            >
+              <template #before>
+                <i
+                  class="bi me-1 type-panel-chevron"
+                  :class="
+                    isRecordingPanelExpanded(session.id) ? 'bi-chevron-down' : 'bi-chevron-right'
+                  "
+                ></i>
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id]"
+                >
+                  <input
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :checked="isAllGroupFilesSelected(session.id, getRecordingFiles(session))"
+                    @change="toggleGroupSelection(session.id, getRecordingFiles(session))"
+                    @click.stop
+                  />
+                </div>
+              </template>
+              <template #extra-badges>
+                <span class="recording-file-size ms-2">
+                  <i class="bi bi-files me-1"></i>{{ getRecordingFiles(session).length }} file{{ getRecordingFiles(session).length === 1 ? '' : 's' }}
+                </span>
+              </template>
+            </RecordingFileRow>
+          </div>
+
+          <div v-if="isRecordingPanelExpanded(session.id)" class="type-panel-body">
+            <!-- Recording files (flat with rotation grouping) -->
+            <template v-for="entry in getVisibleRecordingGroups(session)" :key="entry.primary.id">
+              <!-- Primary row -->
+              <div
+                class="source-status-wrapper mb-2 rounded"
+                :class="getSourceStatusWrapperClass(entry.primary, session.id)"
+              >
+                <RecordingFileRow
+                  :filename="entry.primary.name"
+                  :fileType="entry.primary.fileType"
+                  :sizeInBytes="entry.primary.size"
+                  :timestamp="entry.primary.createdAt"
+                >
+                  <template #before>
+                    <button
+                      v-if="entry.children.length > 0"
+                      class="rotation-toggle-btn me-1"
+                      @click.stop="toggleRotatedGroup(session.id, entry.primary.name)"
+                      :title="
+                        isRotatedGroupExpanded(session.id, entry.primary.name)
+                          ? 'Collapse rotated files'
+                          : 'Expand rotated files'
+                      "
+                    >
+                      <i
+                        class="bi"
+                        :class="
+                          isRotatedGroupExpanded(session.id, entry.primary.name)
+                            ? 'bi-chevron-down'
+                            : 'bi-chevron-right'
+                        "
+                      ></i>
+                    </button>
+                    <div
+                      class="form-check file-form-check me-2"
+                      v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(entry.primary)"
+                    >
+                      <input
+                        class="form-check-input file-checkbox"
+                        type="checkbox"
+                        :id="'source-' + entry.primary.id"
+                        :checked="
+                          selectedRepositoryFile[session.id] &&
+                          selectedRepositoryFile[session.id][entry.primary.id]
+                        "
+                        @change="() => toggleSourceSelection(session.id, entry.primary.id)"
+                        @click.stop
+                      />
+                    </div>
+                  </template>
+                  <template #extra-badges>
+                    <Badge
+                      v-if="entry.children.length > 0"
+                      :value="`+${entry.children.length} rotated · ${FormattingService.formatBytes(entry.totalSize)}`"
+                      variant="grey"
+                      size="xxs"
+                      class="ms-1"
+                      :uppercase="false"
+                    />
+                  </template>
+                  <template #actions>
+                    <button
+                      v-if="isDownloadable(entry.primary)"
+                      class="btn btn-sm btn-outline-secondary download-file-btn"
+                      @click.stop="downloadFile(session.id, entry.primary.id)"
+                      title="Download file"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </template>
+                </RecordingFileRow>
+              </div>
+
+              <!-- Rotated children (when expanded) -->
+              <template
+                v-if="
+                  entry.children.length > 0 && isRotatedGroupExpanded(session.id, entry.primary.name)
+                "
+              >
+                <div
+                  v-for="child in entry.children"
+                  :key="child.id"
+                  class="rotated-child-row mb-2 rounded"
+                  :class="getSourceStatusWrapperClass(child, session.id)"
+                >
+                  <RecordingFileRow
+                    :filename="child.name"
+                    :fileType="child.fileType"
+                    :sizeInBytes="child.size"
+                    :timestamp="child.createdAt"
+                  >
+                    <template #before>
+                      <div
+                        class="form-check file-form-check me-2"
+                        v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(child)"
+                      >
+                        <input
+                          class="form-check-input file-checkbox"
+                          type="checkbox"
+                          :id="'source-' + child.id"
+                          :checked="
+                            selectedRepositoryFile[session.id] &&
+                            selectedRepositoryFile[session.id][child.id]
+                          "
+                          @change="() => toggleSourceSelection(session.id, child.id)"
+                          @click.stop
+                        />
+                      </div>
+                    </template>
+                    <template #extra-badges>
+                    </template>
+                    <template #actions>
+                      <button
+                        v-if="isDownloadable(child)"
+                        class="btn btn-sm btn-outline-secondary download-file-btn"
+                        @click.stop="downloadFile(session.id, child.id)"
+                        title="Download file"
+                      >
+                        <i class="bi bi-download"></i>
+                      </button>
+                    </template>
+                  </RecordingFileRow>
+                </div>
+              </template>
+            </template>
+
+            <!-- Show More for recordings -->
+            <div v-if="hasMoreRecordingGroups(session)" class="text-center mt-1 mb-2">
+              <button
+                class="btn btn-sm btn-outline-primary show-more-btn"
+                @click.stop="showMoreRecordingGroups(session.id)"
+              >
+                <i class="bi bi-chevron-down me-1"></i>Show
+                {{ getRemainingRecordingGroupCount(session) }} more files
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Artifact type panels (non-recording types with > 1 file) -->
+        <div
+          v-for="panel in getTypeGroupPanels(session)"
+          :key="panel.groupKey"
+          class="type-panel mb-2"
+        >
+          <!-- Type panel header -->
+          <div
+            class="type-panel-header-wrapper"
+            @click="toggleTypePanel(session.id, panel.groupKey)"
+          >
+            <RecordingFileRow
+              :filename="panel.display.name"
+              :fileType="panel.display.fileType"
+              :sizeInBytes="panel.totalSize"
+            >
+              <template #before>
+                <i
+                  class="bi me-1 type-panel-chevron"
+                  :class="
+                    isTypePanelExpanded(session.id, panel.groupKey)
+                      ? 'bi-chevron-down'
+                      : 'bi-chevron-right'
+                  "
+                ></i>
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id]"
+                >
+                  <input
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :checked="isAllGroupFilesSelected(session.id, panel.files)"
+                    @change="toggleGroupSelection(session.id, panel.files)"
+                    @click.stop
+                  />
+                </div>
+              </template>
+              <template #extra-badges>
+                <span class="recording-file-size ms-2">
+                  <i class="bi bi-files me-1"></i>{{ panel.fileCount }} file{{ panel.fileCount === 1 ? '' : 's' }}
+                </span>
+              </template>
+            </RecordingFileRow>
+          </div>
+
+          <!-- Type panel body (flat file list) -->
+          <div v-if="isTypePanelExpanded(session.id, panel.groupKey)" class="type-panel-body">
+            <template v-for="file in getVisiblePanelFiles(panel, session.id)" :key="file.id">
+              <div
+                class="source-status-wrapper mb-2 rounded"
+                :class="getSourceStatusWrapperClass(file, session.id)"
+              >
+                <RecordingFileRow
+                  :filename="file.name"
+                  :fileType="file.fileType"
+                  :sizeInBytes="file.size"
+                  :timestamp="file.createdAt"
+                >
+                  <template #before>
+                    <div
+                      class="form-check file-form-check me-2"
+                      v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)"
+                    >
+                      <input
+                        class="form-check-input file-checkbox"
+                        type="checkbox"
+                        :id="'source-' + file.id"
+                        :checked="
+                          selectedRepositoryFile[session.id] &&
+                          selectedRepositoryFile[session.id][file.id]
+                        "
+                        @change="() => toggleSourceSelection(session.id, file.id)"
+                        @click.stop
+                      />
+                    </div>
+                  </template>
+                  <template #extra-badges>
+                  </template>
+                  <template #actions>
+                    <button
+                      v-if="isDownloadable(file)"
+                      class="btn btn-sm btn-outline-secondary download-file-btn"
+                      @click.stop="downloadFile(session.id, file.id)"
+                      title="Download file"
+                    >
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </template>
+                </RecordingFileRow>
+              </div>
+            </template>
+
+            <!-- Show More per panel -->
+            <div v-if="hasMoreInPanel(panel, session.id)" class="text-center mt-1 mb-2">
+              <button
+                class="btn btn-sm btn-outline-primary show-more-btn"
+                @click.stop="showMoreInPanel(session.id, panel.groupKey, panel.fileCount)"
+              >
+                <i class="bi bi-chevron-down me-1"></i>Show
+                {{ getRemainingInPanel(panel, session.id) }} more
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Standalone artifact files (non-recording types with exactly 1 file) -->
+        <template v-for="file in getStandaloneArtifactFiles(session)" :key="file.id">
+          <div
+            class="source-status-wrapper mb-2 rounded"
+            :class="getSourceStatusWrapperClass(file, session.id)"
+          >
+            <RecordingFileRow
+              :filename="file.name"
+              :fileType="file.fileType"
+              :sizeInBytes="file.size"
+              :timestamp="file.createdAt"
+            >
+              <template #before>
+                <div
+                  class="form-check file-form-check me-2"
+                  v-if="showMultiSelectActions[session.id] && !isCheckboxDisabled(file)"
+                >
+                  <input
+                    class="form-check-input file-checkbox"
+                    type="checkbox"
+                    :id="'source-' + file.id"
+                    :checked="
+                      selectedRepositoryFile[session.id] &&
+                      selectedRepositoryFile[session.id][file.id]
+                    "
+                    @change="() => toggleSourceSelection(session.id, file.id)"
+                    @click.stop
+                  />
+                </div>
+              </template>
+              <template #extra-badges>
+              </template>
+              <template #actions>
+                <button
+                  v-if="isDownloadable(file)"
+                  class="btn btn-sm btn-outline-secondary download-file-btn"
+                  @click.stop="downloadFile(session.id, file.id)"
+                  title="Download file"
+                >
+                  <i class="bi bi-download"></i>
+                </button>
+              </template>
+            </RecordingFileRow>
+          </div>
+        </template>
+
+        </template>
+      </div>
+        </div>
+  </div>
+
+  <!-- Delete Session Confirmation Modal -->
+  <ConfirmationDialog
+    v-model:show="deleteSessionDialog"
+    title="Confirm Deletion"
+    message="Are you sure you want to delete this recording session?"
+    sub-message="This action cannot be undone."
+    confirm-label="Delete Session"
+    confirm-button-class="btn-danger"
+    confirm-button-id="deleteSessionButton"
+    modal-id="deleteSessionModal"
+    @confirm="confirmDeleteSession"
+  />
+</template>
+
+<style scoped>
+code {
+  background-color: var(--color-light);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.form-check-input:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* Larger checkbox for file selection */
+.file-checkbox {
+  width: 1.2em !important;
+  height: 1.2em !important;
+  margin-top: calc(0.15em - 2px);
+  cursor: pointer;
+  border-width: 1px;
+  transition: all 0.15s ease;
+}
+
+.file-checkbox:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 0.1rem rgba(94, 100, 255, 0.2);
+}
+
+.file-form-check {
+  min-height: auto;
+  margin-bottom: 0;
+  padding-left: 1.8em;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.folder-row {
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid rgba(94, 100, 255, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.folder-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  border-color: rgba(94, 100, 255, 0.15);
+}
+
+.btn-outline-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.folder-row.session-newest {
+  border-left: 3px solid var(--color-amber);
+}
+
+.folder-row.session-ended {
+  border-left: 3px solid var(--color-success);
+}
+
+/* Rotation group styles */
+.rotation-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.rotation-toggle-btn:hover {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: var(--color-primary);
+}
+
+.rotated-child-row {
+  margin-left: 28px;
+  border-left: 2px solid var(--color-border);
+  padding-left: 10px;
+  position: relative;
+}
+
+.rotated-child-row::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  width: 10px;
+  height: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.text-primary {
+  color: var(--color-primary) !important;
+}
+
+/* Action button styling */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  height: 28px;
+  width: 28px;
+  padding: 0;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.action-menu-btn {
+  color: var(--color-primary);
+  background-color: rgba(94, 100, 255, 0.1);
+  border-radius: 4px;
+  height: 30px;
+  width: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.action-menu-btn:hover {
+  background-color: rgba(94, 100, 255, 0.18);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.action-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.action-menu-btn.active {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.multi-select-controls {
+  background-color: var(--color-light);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.select-all-btn {
+  background-color: rgba(94, 100, 255, 0.1);
+  color: var(--color-primary);
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.select-all-btn:hover {
+  background-color: rgba(94, 100, 255, 0.2);
+  border-color: rgba(94, 100, 255, 0.3);
+}
+
+.clear-btn {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: var(--color-text-muted);
+  border: 1px solid rgba(108, 117, 125, 0.2);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover:not(:disabled) {
+  background-color: rgba(108, 117, 125, 0.2);
+  border-color: rgba(108, 117, 125, 0.3);
+}
+
+/* Session identity section */
+.session-identity {
+  padding: 12px 16px;
+}
+
+.folder-row.session-newest .session-identity {
+  background-color: rgba(255, 193, 7, 0.06);
+}
+
+.folder-row.session-ended .session-identity {
+  background-color: rgba(40, 167, 69, 0.04);
+}
+
+.session-name-label {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.session-id-part {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
+/* Session icon square (matching instance-icon-square) */
+.session-icon-square {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.session-icon-newest {
+  background-color: rgba(255, 193, 7, 0.12);
+  color: var(--color-amber-highlight);
+}
+
+.session-icon-ended {
+  background-color: rgba(40, 167, 69, 0.12);
+  color: var(--color-success-hover);
+}
+
+/* Session meta (matching instance-meta) */
+.session-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* Show More button styling */
+.show-more-btn {
+  background-color: rgba(94, 100, 255, 0.05);
+  color: var(--color-primary);
+  border: 1px solid rgba(94, 100, 255, 0.2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+}
+
+.show-more-btn:hover {
+  background-color: rgba(94, 100, 255, 0.1);
+  border-color: rgba(94, 100, 255, 0.3);
+  color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Artifact type panel styles */
+.type-panel-header-wrapper {
+  cursor: pointer;
+  user-select: none;
+}
+
+.type-panel-chevron {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  width: 16px;
+  text-align: center;
+}
+
+.type-panel-body {
+  border-left: 1px solid var(--color-border);
+  margin-left: 32px;
+  padding-left: 20px;
+  padding-top: 6px;
+}
+
+.download-file-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.download-file-btn:hover {
+  opacity: 1;
+}
+</style>

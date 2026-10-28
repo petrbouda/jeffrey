@@ -31,8 +31,6 @@ side of each finding.
    | `jeffrey-microscope/core-microscope` | `microscope/` (overview, quick start, workspaces, recordings, storage, profiler settings), `microscope/projects/`, `microscope/configuration/` |
    | `jeffrey-microscope/profiles/**` | `microscope/profiles/` — one page per analysis feature, plus the feature cards on `microscope/profiles/ProfilesPage.vue` |
    | `jeffrey-hub/core-hub` | `hub/`, `hub/recording-sessions/`, `hub/configuration/`, `hub/deployment/` |
-   | `shared/hub-api/` (proto changes) | `hub/HubGrpcApiPage.vue` |
-   | `jeffrey-agent/`, `utilities/jeffrey-heartbeat-parent/` | `agent/` |
    | tracing instrumentation (`utilities/`) | `tracing/`, `tracing/tracer-api/` |
    | `jeffrey-provisioner/` | `provisioner/` |
    | Jib build/deployment | `jib/` |

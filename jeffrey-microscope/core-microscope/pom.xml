@@ -108,26 +108,29 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- gRPC remote clients (brings in hub-api + grpc-netty transitively) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>grpc-client</artifactId>
-        </dependency>
-
         <!-- Shared remote-workspace clients/DTOs/managers (extracted from core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hub-client</artifactId>
+            <artifactId>remote-client</artifactId>
+        </dependency>
+        <!-- Recording volumes read straight from storage: the clients over a volume, and the Azure Files backend -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>azure-files-volume</artifactId>
         </dependency>
         <!-- Shared recording store + remote download machinery (extracted from core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>recordings-core</artifactId>
         </dependency>
-        <!-- Shared hub-browser controllers (hubs/workspaces/projects/instances/repository/download/recordings) -->
+        <!-- Shared remote-browser controllers (remote/workspaces/projects/instances/repository/download/recordings) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hubs</artifactId>
+            <artifactId>ui-remote</artifactId>
         </dependency>
         <!-- Shared version controller (GET /api/internal/version) -->
         <dependency>

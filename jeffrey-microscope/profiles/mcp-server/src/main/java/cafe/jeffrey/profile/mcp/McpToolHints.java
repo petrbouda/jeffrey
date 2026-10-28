@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  * <p>
  * Read-only-ness is a family-level property almost everywhere in Jeffrey, so a toolset declares it once
  * and this annotation exists for the handful of methods that differ from their neighbours — the one tool
- * in an otherwise read-only family that writes, or the one that reaches a hub.
+ * in an otherwise read-only family that writes, or the one that reaches the remote.
  * <p>
  * Spring AI's own {@code @Tool} carries no such attributes, which is why this is Jeffrey's own.
  */

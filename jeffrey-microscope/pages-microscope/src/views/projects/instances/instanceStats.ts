@@ -16,39 +16,36 @@
  */
 
 import FormattingService from '@shared/services/FormattingService';
-import type ProjectInstance from '@hubs/services/api/model/ProjectInstance';
-import type { ProjectInstanceStatus } from '@hubs/services/api/model/ProjectInstance';
-import type RepositoryStatistics from '@hubs/services/api/model/RepositoryStatistics';
+import type ProjectInstance from '@remote/services/api/model/ProjectInstance';
+import type RepositoryStatistics from '@remote/services/api/model/RepositoryStatistics';
 
-/** A project's instances reduced to the figures the tab-row summary shows. */
+/**
+ * A project's instances reduced to the figures the tab-row summary shows — only what one listing
+ * of the project gives: the instances themselves, never a count of what they hold.
+ */
 export interface InstanceStats {
-  pending: number;
-  active: number;
-  finished: number;
   total: number;
-  sessions: number;
-  /** Creation time of the oldest instance (UTC epoch millis), null when there is none. */
+  /**
+   * Creation time of the oldest instance (UTC epoch millis); null when there is none or the share
+   * lists no times.
+   */
   oldestCreatedAt: number | null;
 }
 
 export function summarizeInstances(instances: readonly ProjectInstance[]): InstanceStats {
-  const countOf = (status: ProjectInstanceStatus) =>
-    instances.filter(instance => instance.status === status).length;
+  const createdTimes = instances
+    .map(instance => instance.createdAt)
+    .filter((createdAt): createdAt is number => createdAt !== null);
 
   return {
-    pending: countOf('PENDING'),
-    active: countOf('ACTIVE'),
-    finished: countOf('FINISHED'),
     total: instances.length,
-    sessions: instances.reduce((sum, instance) => sum + instance.sessionCount, 0),
-    oldestCreatedAt:
-      instances.length === 0 ? null : Math.min(...instances.map(instance => instance.createdAt))
+    oldestCreatedAt: createdTimes.length === 0 ? null : Math.min(...createdTimes)
   };
 }
 
 /**
- * The project's storage size as the summary shows it. The hub measures it on its retention pass
- * only, so a project the pass has not reached yet is "unmeasured", not empty.
+ * The project's storage size as the summary shows it. Only the hub's retention pass measures it,
+ * so a project nothing has measured is "unmeasured", not empty.
  */
 export type StorageFigure =
   | { kind: 'loading' }

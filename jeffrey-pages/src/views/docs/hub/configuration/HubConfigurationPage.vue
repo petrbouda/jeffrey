@@ -29,13 +29,12 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'server', text: 'Server', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
-  { id: 'grpc', text: 'gRPC', level: 2 },
   { id: 'logging', text: 'Logging', level: 2 },
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
   { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
-  { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
-  { id: 'session-liveness', text: 'Session Liveness', level: 2 },
+  { id: 'live-workspace', text: 'No Profile Analysis', level: 2 },
+  { id: 'session-order', text: 'Session Order', level: 2 },
 ];
 
 onMounted(() => {
@@ -53,8 +52,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
     -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
     -Dlogging.logback.rollingpolicy.max-file-size=10MB
     -Dlogging.logback.rollingpolicy.total-size-cap=100MB
-    -Dlogging.logback.rollingpolicy.max-history=2
-    -Djeffrey.hub.workspaces.auto-create=true`;
+    -Dlogging.logback.rollingpolicy.max-history=2`;
 </script>
 
 <template>
@@ -70,8 +68,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         Jeffrey Hub (<code>jeffrey-hub.jar</code>) is configured through a single
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
-        (ports, directories, gRPC) come first; advanced tuning (jobs, storage paths,
-        workspace defaults and session liveness) follows. The Hub has no database: the shared
+        (port, directories) come first; advanced tuning (jobs, storage paths and
+        workspace defaults) follows. The Hub has no database: the shared
         volume is its only state.
       </p>
 
@@ -115,24 +113,6 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td>
               Base directory for all Jeffrey Hub data. Env var: <code>JEFFREY_HUB_HOME_DIR</code>
             </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2 id="grpc">gRPC</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>spring.grpc.server.port</code></td>
-            <td><code>9090</code></td>
-            <td>gRPC server port for Jeffrey Microscope connections</td>
           </tr>
         </tbody>
       </table>
@@ -248,8 +228,8 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
 
       <h3>Tuning a job's period</h3>
       <p>
-        No job governs discovery: the Hub reads the shared volume on every request, so a newly
-        provisioned project, instance or session shows up on the next listing. A period only says how
+        No job governs discovery: every job reads the shared volume afresh, so a newly provisioned
+        project, instance or session is picked up on the job's next run. A period only says how
         often retention or compression runs:
       </p>
       <pre><code>jeffrey.hub.scheduler.jobs.repository-jfr-compression.period=1m</code></pre>
@@ -278,7 +258,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>jeffrey.hub.scheduler.enabled</code></td>
             <td><code>true</code></td>
-            <td>Whether the scheduler starts at all. Off, no job runs — for a hub brought up only to serve what is already on the volume.</td>
+            <td>Whether the scheduler starts at all. Off, no job runs on its schedule — and nothing on the volume is retained, cleaned up or compressed.</td>
           </tr>
           <tr>
             <td><code>jeffrey.hub.scheduler.fan-out-pool-size</code></td>
@@ -316,24 +296,24 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             </td>
             <td>
               One pass per project over a single listing of its sessions, in this order: deletes
-              finished sessions older than <code>session-retention</code> (measured from the
-              session's start); caps each instance at <code>max-sessions</code> logical sessions —
-              a consecutive run of failed (0-byte) sessions counts as one, the live session occupies
-              a slot, retained sessions are exempt, and the oldest beyond the cap go even before the
-              window expires; trims closed chunks older than
-              <code>active-session-file-retention</code> out of sessions still recording (the chunk
-              the profiler is writing is never touched); holds the project under
-              <code>max-size</code>, reclaiming oldest-first; and deletes abandoned PENDING
-              instances (no sessions) older than <code>instance-retention</code>, with their
-              directories. An instance whose last session is deleted goes with it. What is left is
-              the project's figure on the storage dashboard. The first tick runs at startup.
+              sessions whose last data is older than <code>session-retention</code>; caps each
+              instance at <code>max-sessions</code> logical sessions — a consecutive run of failed
+              (0-byte) sessions counts as one, the instance's newest session is never taken, and the
+              oldest beyond the cap go even before the window expires; trims recordings older than
+              <code>active-session-file-retention</code> out of each instance's newest session;
+              holds the project under <code>max-size</code>, reclaiming ended sessions oldest-first
+              before trimming newest sessions; and deletes instances without sessions started
+              longer ago than <code>instance-retention</code>, with their directories. The newest
+              recording of an instance's newest session is never deleted. An instance whose last
+              session is deleted goes with it. What is left is the project's figure on the storage
+              dashboard. The first tick runs at startup.
             </td>
           </tr>
           <tr>
             <td><code>repository-jfr-compression</code></td>
             <td><code>1m</code></td>
             <td>—</td>
-            <td>LZ4-compresses finished JFR files and deletes the originals</td>
+            <td>LZ4-compresses the JFR files of each instance's two newest sessions and deletes the originals, never the newest recording of the newest session</td>
           </tr>
         </tbody>
       </table>
@@ -343,98 +323,48 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         There is no property for this. Recordings are not copied into a directory of the Hub's own:
         they stay where the provisioner and the application wrote them, under the workspace tree on
         the shared volume — <code>&lt;workspaces&gt;/&lt;workspace-ref-id&gt;/&lt;project&gt;/&lt;instance&gt;/&lt;session&gt;/</code>.
-        The Hub lists, compresses and serves those files in place, reading the marker files on every
-        request rather than keeping a copy of them; see
+        The Hub's scheduler jobs retain and compress those files in place, listing the directories on
+        every run rather than keeping a copy of them; see
         <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link> for the layout.
       </p>
 
       <h2 id="workspace-discovery">Workspace Discovery</h2>
       <p>
         How the server learns about projects, instances and sessions the provisioner wrote to the
-        shared volume. There is no discovery job and no index: every call lists the workspace
-        directories and reads their marker files when it is asked. A workspace's id is its
-        directory name (the reference id the provisioner's <code>project.workspace-id</code>
-        names); a project's id is the <code>projectId</code> in its
-        <code>.project-info.json</code>; instance and session ids are their directory names.
+        shared volume. There is no discovery job and no index: every scheduler run lists the workspace
+        directories afresh, and the folder names are the state. A workspace's id is its
+        directory name (the reference id the provisioner's <code>project.workspace-ref-id</code>
+        names); a project's id is its directory name (the provisioner's <code>project.name</code>);
+        an instance's id is its directory name (<code>instance-name</code>, <code>HOSTNAME</code> by
+        default); a session's id is its directory name, a UUIDv7 whose timestamp is the session's start.
+        There are no marker files anywhere on the volume: a project or an instance is any visible
+        (non-dot) child directory, a session a visible directory named with a UUIDv7, and anything
+        else under an instance is ignored.
       </p>
       <p>
-        A directory is a workspace once the Hub wrote its <code>.workspace-info.json</code> (name and
-        creation time) — when the workspace is created over gRPC or REST, or by the default-workspace
-        initializer. Creating a workspace whose directory already exists adopts it with its projects.
-        Directories starting with <code>.</code> are skipped.
+        Every root directory whose name is a valid reference id is a workspace, named by that id;
+        there is no separate display name. The Hub lists every validly named root folder and
+        creates none: a workspace appears when the provisioner writes it, the first time it
+        provisions a project into that workspace (its <code>project.workspace-ref-id</code>,
+        <code>$default</code> when unset). There is no property for this. Directories starting
+        with <code>.</code> are skipped, so old <code>.workspace-info.json</code> files left on a
+        volume are ignored.
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.default-workspace.reference-id</code></td>
-            <td><code>$default</code></td>
-            <td>Reference id of the workspace every Hub starts with; created at startup if missing.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.default-workspace.name</code></td>
-            <td><code>$default</code></td>
-            <td>Display name of that default workspace.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.workspaces.auto-create</code></td>
-            <td><code>false</code></td>
-            <td>
-              List every workspace directory on the volume, including one without the Hub's
-              <code>.workspace-info.json</code> — one the provisioner wrote into but nobody created.
-              Such a workspace is named after its directory. Off, that directory is not listed
-              until a workspace with its reference id is created.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2 id="live-workspace">Server Collection Mode</h2>
+      <h2 id="live-workspace">No Profile Analysis</h2>
       <p>
-        Jeffrey Hub is designed for recording collection and does not perform profile analysis —
-        every flamegraph and trace is computed in Jeffrey Microscope.
+        Jeffrey Hub maintains the recording volume and does not perform profile analysis — it serves
+        no recordings either. Every flamegraph and trace is computed in Jeffrey Microscope, which
+        reads the volume from the Azure file share that holds it.
       </p>
 
-      <h2 id="session-liveness">Session Liveness</h2>
+      <h2 id="session-order">Session Order</h2>
       <p>
-        No job finishes a session. The Hub decides whether a session is still recording each time it
-        reads it — for a listing, a download, compression or retention alike — from the session's
-        <code>.heartbeat/</code> files; see
-        <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>
-        for the rules. Two thresholds tune it:
+        Nothing to configure: the Hub keeps no session state. An instance's sessions are ordered by
+        their UUIDv7 directory names, the newest one is the only one that may still grow, and its
+        newest recording is never compressed or deleted; see
+        <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.
       </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.liveness.heartbeat-threshold</code></td>
-            <td><code>10s</code></td>
-            <td>How long after its last heartbeat a session is taken as finished (at that heartbeat).</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.liveness.startup-grace</code></td>
-            <td><code>1m</code></td>
-            <td>
-              How long a session may go without any liveness file before it is taken as finished at
-              its start, marked as having sent no heartbeat.
-            </td>
-          </tr>
-        </tbody>
-      </table>
 
     </div>
 

@@ -19,11 +19,11 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
+import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +72,7 @@ final class ProjectRetentionPass {
     }
 
     String projectName() {
-        return project.info().name();
+        return project.info().id();
     }
 
     Instant now() {
@@ -131,8 +131,7 @@ final class ProjectRetentionPass {
                 .filter(file -> !deletedIds.contains(file.id()))
                 .toList();
         sessions.set(sessions.indexOf(session), new RecordingSession(
-                session.id(), session.name(), session.instanceId(), session.createdAt(), session.finishedAt(),
-                session.status(), kept, session.retained(), session.heartbeatMissing()));
+                session.id(), session.name(), session.instanceId(), session.createdAt(), session.newest(), kept));
     }
 
     /** Deletes an instance's directory; a failure is logged and the next pass tries again. */

@@ -17,119 +17,44 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
-import cafe.jeffrey.hub.core.volume.VolumeMarkers;
+import cafe.jeffrey.hub.core.volume.MountTimes;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
-import cafe.jeffrey.hub.core.volume.WorkspaceMarker;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.layout.VolumeWorkspace;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * The workspaces under the hub's workspaces root. A workspace is a directory named by its id with
- * the hub's {@code .workspace-info.json} in it. A directory the provisioner wrote into without one
- * is a workspace too when {@code autoCreate} is on, named by its id; otherwise it is left out
- * until someone creates the workspace.
+ * The workspaces under the hub's workspaces root: each a directory named by a valid reference id,
+ * the one the provisioner writes into, and creates. Nothing in a directory is read to tell — the
+ * same rule Microscope reads the volume by — and the hub creates none.
  */
 public final class HubWorkspacesManager implements WorkspacesManager {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HubWorkspacesManager.class);
-
-    private final Path workspacesRoot;
-    private final Clock clock;
-    private final boolean autoCreate;
+    private final FilesystemVolume volume;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
-    public HubWorkspacesManager(
-            Path workspacesRoot,
-            Clock clock,
-            boolean autoCreate,
-            WorkspaceManager.Factory workspaceManagerFactory) {
-
-        this.workspacesRoot = workspacesRoot;
-        this.clock = clock;
-        this.autoCreate = autoCreate;
+    public HubWorkspacesManager(FilesystemVolume volume, WorkspaceManager.Factory workspaceManagerFactory) {
+        this.volume = volume;
         this.workspaceManagerFactory = workspaceManagerFactory;
     }
 
     @Override
-    public WorkspaceInfo create(CreateWorkspaceRequest request) {
-        if (request.name() == null || request.name().isBlank()) {
-            throw new IllegalArgumentException("Workspace Name cannot be null or empty");
-        }
-        String id = request.referenceId().trim();
-        String name = request.name().trim();
-
-        Path directory = workspacesRoot.resolve(id);
-        if (VolumeMarkers.read(directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class).isPresent()) {
-            throw new WorkspaceAlreadyExistsException("Workspace with reference ID '" + id + "' already exists");
-        }
-        // Another workspace's name; the one being adopted may already be listed under its id
-        boolean nameTaken = workspaceDirectories().stream()
-                .anyMatch(workspace -> !workspace.id().equals(id) && workspace.name().equals(name));
-        if (nameTaken) {
-            throw new WorkspaceAlreadyExistsException("Workspace with name '" + name + "' already exists");
-        }
-
-        FileSystemUtils.createDirectories(directory);
-        VolumeMarkers.write(directory, WorkspaceMarker.FILE_NAME, new WorkspaceMarker(name, clock.millis()));
-        LOG.info("Created workspace: workspace_id={} name={}", id, name);
-        return workspace(directory).orElseThrow().info();
-    }
-
-    @Override
     public List<WorkspaceManager> findAll() {
-        return workspaceDirectories().stream()
+        return VolumeWorkspace.all(volume).stream()
+                .map(this::workspace)
+                .flatMap(Optional::stream)
                 .map(workspaceManagerFactory)
                 .toList();
     }
 
-    private List<WorkspaceDirectory> workspaceDirectories() {
-        return VolumeMarkers.childDirectories(workspacesRoot).stream()
-                .map(this::workspace)
-                .flatMap(Optional::stream)
-                .toList();
-    }
-
-    @Override
-    public boolean isDescribed(String workspaceId) {
-        return WorkspaceReferenceId.isValid(workspaceId)
-                && VolumeMarkers.read(workspacesRoot.resolve(workspaceId), WorkspaceMarker.FILE_NAME, WorkspaceMarker.class)
-                        .isPresent();
-    }
-
-    @Override
-    public Optional<WorkspaceManager> findById(String workspaceId) {
-        if (!WorkspaceReferenceId.isValid(workspaceId)) {
+    private Optional<WorkspaceDirectory> workspace(VolumeWorkspace workspace) {
+        if (!WorkspaceReferenceId.isValid(workspace.id())) {
             return Optional.empty();
         }
-        Path directory = workspacesRoot.resolve(workspaceId);
-        if (!Files.isDirectory(directory)) {
-            return Optional.empty();
-        }
-        return workspace(directory).map(workspaceManagerFactory);
-    }
-
-    private Optional<WorkspaceDirectory> workspace(Path directory) {
-        String id = directory.getFileName().toString();
-        if (!WorkspaceReferenceId.isValid(id)) {
-            return Optional.empty();
-        }
-        Optional<WorkspaceMarker> marker = VolumeMarkers.read(directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class);
-        if (marker.isEmpty() && !autoCreate) {
-            return Optional.empty();
-        }
-        String name = marker.map(WorkspaceMarker::name).orElse(id);
-        Instant createdAt = marker.map(found -> Instant.ofEpochMilli(found.createdAt()))
-                .orElseGet(() -> FileSystemUtils.createdAt(directory));
-        return Optional.of(new WorkspaceDirectory(directory, name, createdAt));
+        return Optional.of(new WorkspaceDirectory(
+                volume, workspace.path(), MountTimes.createdAt(workspace.createdAt(), workspace.path())));
     }
 }

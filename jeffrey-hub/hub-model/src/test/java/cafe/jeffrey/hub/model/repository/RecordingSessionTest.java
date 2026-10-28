@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RecordingSessionTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-02-20T12:00:00Z");
-    private static final Instant FINISHED_AT = CREATED_AT.plusSeconds(60);
 
     private static RepositoryFile file(long size) {
         return new RepositoryFile(
@@ -50,11 +49,14 @@ class RecordingSessionTest {
         return files.stream().map(RepositoryFile::name).toList();
     }
 
-    private static RecordingSession session(Instant finishedAt, RepositoryFile... files) {
-        RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
-        return new RecordingSession(
-                "session-1", "session-1", "inst-1", CREATED_AT, finishedAt,
-                status, List.of(files), false);
+    /** The instance's newest session: no newer one has started. */
+    private static RecordingSession newest(RepositoryFile... files) {
+        return new RecordingSession("session-1", "session-1", "inst-1", CREATED_AT, true, List.of(files));
+    }
+
+    /** A session a newer one in its instance has ended. */
+    private static RecordingSession ended(RepositoryFile... files) {
+        return new RecordingSession("session-1", "session-1", "inst-1", CREATED_AT, false, List.of(files));
     }
 
     @Nested
@@ -62,7 +64,7 @@ class RecordingSessionTest {
 
         @Test
         void sumsFileSizes() {
-            RecordingSession recordingSession = session(FINISHED_AT, file(100L), file(50L));
+            RecordingSession recordingSession = ended(file(100L), file(50L));
 
             assertEquals(150L, recordingSession.totalSizeBytes());
         }
@@ -72,44 +74,43 @@ class RecordingSessionTest {
     class IsFailedEmpty {
 
         @Test
-        void finishedSessionWithoutFilesIsFailed() {
-            assertTrue(session(FINISHED_AT).isFailedEmpty());
+        void anEndedSessionWithoutFilesIsFailed() {
+            assertTrue(ended().isFailedEmpty());
         }
 
         @Test
-        void finishedSessionWithOnlyZeroSizeFilesIsFailed() {
-            assertTrue(session(FINISHED_AT, file(0L), file(0L)).isFailedEmpty());
+        void anEndedSessionWithOnlyZeroSizeFilesIsFailed() {
+            assertTrue(ended(file(0L), file(0L)).isFailedEmpty());
         }
 
         @Test
-        void finishedSessionWithDataIsNotFailed() {
-            assertFalse(session(FINISHED_AT, file(1L)).isFailedEmpty());
+        void anEndedSessionWithDataIsNotFailed() {
+            assertFalse(ended(file(1L)).isFailedEmpty());
         }
 
         @Test
-        void activeSessionWithZeroBytesIsNotFailed() {
-            assertFalse(session(null).isFailedEmpty());
+        void theNewestSessionWithZeroBytesIsNotFailed() {
+            assertFalse(newest().isFailedEmpty());
         }
     }
 
     /**
-     * The one rule the hub and Microscope must agree on: which chunk the profiler still holds
-     * open. Each side has its own copy of {@code RecordingSession}; these three cases are the
-     * same in both tests, so a change to one side's answer fails here before it disagrees in
-     * production.
+     * The one rule the hub and Microscope must agree on: which recording may still be on its way
+     * onto the volume. Each side has its own copy of {@code RecordingSession}; these three cases
+     * are the same in both tests, so a change to one side's answer fails here before it disagrees
+     * in production.
      */
     @Nested
     class OpenRecording {
 
         @Test
-        void isTheNewestRecordingOfASessionStillRecording() {
+        void isTheNewestRecordingOfTheInstancesNewestSession() {
             RepositoryFile older = recording("profile-1.jfr", CREATED_AT);
             RepositoryFile newer = recording("profile-2.jfr", CREATED_AT.plusSeconds(60));
-            RecordingSession recordingSession = session(null, older, newer);
+            RecordingSession recordingSession = newest(older, newer);
 
             assertEquals(Optional.of(newer), recordingSession.openRecording());
-            assertTrue(recordingSession.isOpen(newer));
-            assertFalse(recordingSession.isOpen(older));
+            assertEquals(List.of(older), recordingSession.trimmableRecordings());
         }
 
         /**
@@ -119,8 +120,7 @@ class RecordingSessionTest {
          */
         @Test
         void isPickedByTimestampRatherThanByPositionInTheListing() {
-            RecordingSession recordingSession = session(
-                    null,
+            RecordingSession recordingSession = newest(
                     recording("zzz-oldest", CREATED_AT),
                     recording("aaa-newest", CREATED_AT.plusSeconds(60)));
 
@@ -136,8 +136,8 @@ class RecordingSessionTest {
         void isNotTheArchiveWrittenBesideAnEarlierChunk() {
             RepositoryFile archive = new RepositoryFile(
                     "c1", "c1.jfr.lz4", CREATED_AT, 1L, true, null);
-            RecordingSession recordingSession = session(
-                    null, archive, recording("c2", CREATED_AT.plusSeconds(60)));
+            RecordingSession recordingSession = newest(
+                    archive, recording("c2", CREATED_AT.plusSeconds(60)));
 
             assertEquals("c2", recordingSession.openRecording().orElseThrow().name());
         }
@@ -146,28 +146,28 @@ class RecordingSessionTest {
         void isNeverAnArtifactHoweverNewItIs() {
             RepositoryFile chunk = recording("profile-1.jfr", CREATED_AT);
             RepositoryFile log = artifact("gc.jvm-log", CREATED_AT.plusSeconds(600));
-            RecordingSession recordingSession = session(null, chunk, log);
+            RecordingSession recordingSession = newest(chunk, log);
 
             assertEquals(Optional.of(chunk), recordingSession.openRecording());
         }
 
         @Test
-        void isAbsentOnceTheSessionHasFinished() {
+        void isAbsentOnceANewerSessionHasStarted() {
             RepositoryFile chunk = recording("profile-1.jfr", CREATED_AT);
-            RecordingSession recordingSession = session(FINISHED_AT, chunk);
+            RecordingSession recordingSession = ended(chunk);
 
             assertEquals(Optional.empty(), recordingSession.openRecording());
-            assertFalse(recordingSession.isOpen(chunk));
+            assertEquals(List.of(chunk), recordingSession.trimmableRecordings());
         }
 
         @Test
-        void isEmptyForALiveSessionThatHasNoRecordingYet() {
-            assertTrue(session(null, artifact("app.log", CREATED_AT)).openRecording().isEmpty());
+        void isEmptyForANewestSessionThatHasNoRecordingYet() {
+            assertTrue(newest(artifact("app.log", CREATED_AT)).openRecording().isEmpty());
         }
 
         @Test
         void isEmptyForASessionLoadedWithoutFiles() {
-            assertTrue(session(null).openRecording().isEmpty());
+            assertTrue(newest().openRecording().isEmpty());
         }
     }
 
@@ -176,14 +176,32 @@ class RecordingSessionTest {
 
         @Test
         void areOrderedOldestFirstWhenNarrowedToRecordings() {
-            RecordingSession recordingSession = session(
-                    FINISHED_AT,
+            RecordingSession recordingSession = ended(
                     recording("c3", CREATED_AT.plusSeconds(120)),
                     artifact("app.log", CREATED_AT),
                     recording("c1", CREATED_AT),
                     recording("c2", CREATED_AT.plusSeconds(60)));
 
-            assertEquals(List.of("c1", "c2", "c3"), namesOf(recordingSession.finishedRecordings()));
+            assertEquals(List.of("c1", "c2", "c3"), namesOf(recordingSession.trimmableRecordings()));
+        }
+    }
+
+    @Nested
+    class LastDataAt {
+
+        @Test
+        void isTheNewestRecordingsTimestamp() {
+            RecordingSession recordingSession = newest(
+                    recording("c1", CREATED_AT.plusSeconds(60)),
+                    recording("c2", CREATED_AT.plusSeconds(960)),
+                    artifact("app.log", CREATED_AT.plusSeconds(1200)));
+
+            assertEquals(CREATED_AT.plusSeconds(960), recordingSession.lastRecordingStart());
+        }
+
+        @Test
+        void isTheStartWhileThereIsNoRecording() {
+            assertEquals(CREATED_AT, newest(artifact("app.log", CREATED_AT.plusSeconds(30))).lastRecordingStart());
         }
     }
 }

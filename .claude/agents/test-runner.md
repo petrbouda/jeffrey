@@ -27,13 +27,13 @@ Analyze changed files to determine affected modules and run only the relevant te
    - `shared/common/` -> `-pl shared/common`
    - `shared/persistence/` -> `-pl shared/persistence`
    - `shared/sql-builder/` -> `-pl shared/sql-builder`
-   - `shared/hub-api/` -> `-pl shared/hub-api`
+   - `shared/volume/` -> `-pl shared/volume`
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
    - `shared/common/` -> also test `jeffrey-hub/core-hub`, `jeffrey-microscope/profiles/profile-management`
    - `shared/persistence/` -> also test all `*-sql-persistence` modules
-   - `shared/hub-api/` -> also test `jeffrey-hub/core-hub`
+   - `shared/volume/` -> also test `jeffrey-hub/core-hub`, `jeffrey-microscope/volume-client`, `jeffrey-microscope/azure-files-volume`
 
 4. **Run targeted tests**:
    ```bash
@@ -54,6 +54,6 @@ Analyze changed files to determine affected modules and run only the relevant te
 Run this agent after making Java changes, especially:
 - Modifying business logic in managers or services
 - Changing persistence layer (repositories, SQL)
-- Modifying gRPC service implementations
+- Modifying the hub's scheduler jobs or the volume layout
 - Changing shared utilities or models
 - Before committing to catch regressions early

@@ -38,7 +38,7 @@ import java.util.List;
  *
  * <p>Each project's sessions are listed once, with their files — a stat per file over the volume,
  * which is the expensive part — and the rules run over that one listing in order: the session age
- * window and per-instance cap, the trim of live sessions, the disk quota, then stale instances.
+ * window and per-instance cap, the trim of newest sessions, the disk quota, then stale instances.
  * What remains is measured into {@link StorageOverviewCache}, so the dashboard needs no walk of
  * its own.</p>
  */
@@ -90,7 +90,7 @@ public class ProjectRetentionJob extends FanOutJob implements ManuallyTriggerabl
         this.rules = List.of(
                 new SessionRetentionRule(
                         config.durationParam(PARAM_SESSION_RETENTION), config.intParam(PARAM_MAX_SESSIONS)),
-                new LiveSessionTrimRule(config.durationParam(PARAM_ACTIVE_SESSION_FILE_RETENTION)),
+                new NewestSessionTrimRule(config.durationParam(PARAM_ACTIVE_SESSION_FILE_RETENTION)),
                 new StorageQuotaRule(config.bytesParam(PARAM_MAX_SIZE)),
                 new StaleInstanceRule(config.durationParam(PARAM_INSTANCE_RETENTION)));
         this.storageOverview = storageOverview;

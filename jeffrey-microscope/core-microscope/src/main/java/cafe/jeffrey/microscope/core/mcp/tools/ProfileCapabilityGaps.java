@@ -102,7 +102,7 @@ final class ProfileCapabilityGaps {
             "A recording holds no heap dump, so the heap_ family does not apply to this profile: what is "
                     + "retained, the dominators and the GC-root paths are read from a heap dump profile.";
     private static final String NO_HEAP_DUMP_REMEDY =
-            "A heap dump downloaded with this recording is another item of its bundle: hubs_download lists "
+            "A heap dump downloaded with this recording is another item of its bundle: remote_download lists "
                     + "the items with their recordingIds, and recordings_analyzeRecording builds its profile. Otherwise "
                     + "capture one (jcmd <pid> GC.heap_dump) and analyse it with recordings_analyzeFile.";
     private static final String HEAP_DUMP_MISSING_GAP =

@@ -69,8 +69,8 @@ public class MicroscopeJeffreyDirs implements TempDirFactory {
     }
 
     /**
-     * Where artifacts fetched one at a time from a hub land — the logs and crash files a reader asks
-     * for without pulling the whole session — as {@code <hub>/<project>/<session>/<name>}. Plain files
+     * Where artifacts fetched one at a time from the remote land — the logs and crash files a reader asks
+     * for without pulling the whole session — as {@code <workspace>/<project>/<session>/<name>}. Plain files
      * at a deterministic path, catalogued nowhere: whether one was fetched is whether it is there.
      */
     public Path artifacts() {

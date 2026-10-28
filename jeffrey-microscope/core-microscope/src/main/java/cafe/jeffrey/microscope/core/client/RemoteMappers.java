@@ -18,20 +18,11 @@
 package cafe.jeffrey.microscope.core.client;
 
 import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
-import cafe.jeffrey.hub.client.dto.RemoteProjectResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 
 public abstract class RemoteMappers {
 
-    public static DetailedProjectInfo toDetailedProjectInfo(RemoteProjectResponse response) {
-        return new DetailedProjectInfo(
-                toProjectInfo(response),
-                response.status(),
-                response.sessionCount(),
-                null);
-    }
-
-    private static ProjectInfo toProjectInfo(RemoteProjectResponse response) {
+    public static ProjectInfo toProjectInfo(RemoteProjectResponse response) {
         return new ProjectInfo(
                 response.id(),
                 response.id(),

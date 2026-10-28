@@ -28,19 +28,19 @@
       <span class="tl-main">{{ FormattingService.formatRelativeTime(createdAt) }}</span>
     </div>
     <div class="tl-item">
-      <span class="tl-icon-badge tl-icon-badge--danger">
-        <i class="bi bi-stop-fill"></i>
+      <span class="tl-icon-badge tl-icon-badge--purple">
+        <i class="bi bi-clock-history"></i>
       </span>
       <div class="tl-info">
-        <span class="tl-label">Finished</span>
-        <span v-if="finishedAt" class="tl-sub">{{
-          FormattingService.formatTimestampUTC(finishedAt)
+        <span class="tl-label">Last data</span>
+        <span v-if="lastDataAt" class="tl-sub">{{
+          FormattingService.formatTimestampUTC(lastDataAt)
         }}</span>
       </div>
-      <template v-if="finishedAt">
-        <span class="tl-main">{{ FormattingService.formatRelativeTime(finishedAt) }}</span>
+      <template v-if="lastDataAt">
+        <span class="tl-main">{{ FormattingService.formatRelativeTime(lastDataAt) }}</span>
       </template>
-      <span v-else class="tl-main tl-running">Running...</span>
+      <span v-else class="tl-main tl-empty">{{ unread ? UNREAD : 'No data yet' }}</span>
     </div>
     <div class="tl-item">
       <span class="tl-icon-badge tl-icon-badge--primary">
@@ -49,35 +49,30 @@
       <div class="tl-info">
         <span class="tl-label">Duration</span>
       </div>
-      <span class="tl-main">{{ FormattingService.formatDurationInMillis2Units(duration) }}</span>
-    </div>
-    <div v-for="item in extraItems" :key="item.key" class="tl-item">
-      <span class="tl-icon-badge" :class="`tl-icon-badge--${item.tone}`">
-        <i :class="item.icon"></i>
-      </span>
-      <div class="tl-info">
-        <span class="tl-label">{{ item.label }}</span>
-      </div>
-      <span class="tl-main" :class="`tl-main--${item.tone}`">{{ item.value }}</span>
+      <span v-if="duration != null" class="tl-main">{{
+        FormattingService.formatDurationInMillis2Units(duration)
+      }}</span>
+      <span v-else class="tl-main tl-empty">{{ unread ? UNREAD : '—' }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import FormattingService from '@shared/services/FormattingService';
-import type { TimelineBarItem } from '@shared/types/ui';
 
 interface Props {
   createdAt: number;
-  finishedAt?: number | null;
-  duration: number;
-  /** Cells appended after Duration. */
-  extraItems?: TimelineBarItem[];
+  /** When the recorded data ends; absent while there is no recording. */
+  lastDataAt?: number | null;
+  /** Absent while there is no recording. */
+  duration?: number | null;
+  /** What it holds is not read yet: Last data and Duration come when it is opened. */
+  unread?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
-  extraItems: () => []
-});
+const UNREAD = 'When opened';
+
+defineProps<Props>();
 </script>
 
 <style scoped>
@@ -123,11 +118,6 @@ withDefaults(defineProps<Props>(), {
   color: var(--color-success-hover);
 }
 
-.tl-icon-badge--danger {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger-hover);
-}
-
 .tl-icon-badge--primary {
   background: rgba(59, 130, 246, 0.1);
   color: var(--color-accent-blue-dark);
@@ -135,10 +125,6 @@ withDefaults(defineProps<Props>(), {
 
 .tl-icon-badge--purple {
   background: var(--color-purple-bg);
-  color: var(--color-purple-text);
-}
-
-.tl-main--purple {
   color: var(--color-purple-text);
 }
 
@@ -158,7 +144,7 @@ withDefaults(defineProps<Props>(), {
   white-space: nowrap;
 }
 
-.tl-running {
+.tl-empty {
   color: var(--color-text-light);
   font-weight: 500;
   font-style: italic;

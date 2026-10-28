@@ -18,24 +18,19 @@
 package cafe.jeffrey.hub.model;
 
 import java.time.Instant;
-import java.util.Map;
 
 /**
- * A project as its {@code .project-info.json} on the volume declares it.
+ * A project as its directory on the volume names it.
  *
- * @param id          the provisioner's project id
+ * @param id          its directory name — the project name the provisioner was configured with
  * @param workspaceId the workspace directory the project lies in
- * @param createdAt   when the provisioner created it
- * @param attributes  the labels the provisioner was given
+ * @param createdAt   when its directory was created
  */
-public record ProjectInfo(
-        String id,
-        String name,
-        String workspaceId,
-        Instant createdAt,
-        Map<String, String> attributes) {
+public record ProjectInfo(String id, String workspaceId, Instant createdAt) {
 
     public ProjectInfo {
-        attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
+        if (id == null || workspaceId == null || createdAt == null) {
+            throw new IllegalArgumentException("A project needs its id, workspace and creation time");
+        }
     }
 }

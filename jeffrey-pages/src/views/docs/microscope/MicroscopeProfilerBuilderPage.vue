@@ -52,7 +52,7 @@ onMounted(() => {
         <strong>Profiler Builder</strong> assembles an
         <a href="https://github.com/async-profiler/async-profiler" target="_blank" rel="noopener">Async-Profiler</a>
         agent command: which events to capture, sampling rates, output layout and the JFR-specific options. It is a
-        top-level page in Microscope, next to Recordings and Hubs, and it does one thing — you build a command and
+        top-level page in Microscope, next to Recordings and Remote, and it does one thing — you build a command and
         copy it. Nothing is saved. Links in the page header lead to the async-profiler documentation on profiling
         modes, profiler options and method tracing.
       </p>
@@ -78,7 +78,7 @@ onMounted(() => {
 
       <DocsCallout type="info">
         <strong>The page stores nothing.</strong> Profiler Builder only assembles a command for you to copy — it does
-        not apply it to anything, and needs no hub, workspace or project. The profiler path and output file are
+        not apply it to anything, and needs no remote, workspace or project. The profiler path and output file are
         literal values that go straight into the command you copy.
       </DocsCallout>
 
@@ -232,9 +232,12 @@ onMounted(() => {
           JVM arguments of an application you start yourself.</li>
       </ul>
       <p>
-        With Jeffrey JIB the output defaults to <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>,
-        which the provisioner points at the session directory. With a custom profiler it defaults to
-        <code>/tmp/profile-%t.jfr</code>, and an empty profiler path falls back to
+        With Jeffrey JIB the output defaults to <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code>,
+        which the provisioner expands to the session directory plus a file name carrying the machine's UTC offset
+        (<code>rec-%t+0100.jfr</code>). Keep it: an output of your own without the offset, such as
+        <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/rec-%t.jfr</code>, is read as UTC, which gives wrong times
+        on a non-UTC machine. With a custom profiler it defaults to
+        <code>/tmp/rec-%t.jfr</code>, and an empty profiler path falls back to
         <code>/path/to/libasyncProfiler.so</code>; both are placeholders meant to be replaced. Switching between the two
         keeps an output path you typed yourself.
       </p>

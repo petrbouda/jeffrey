@@ -15,8 +15,8 @@ without forcing operators to override the container `command:` in Kubernetes YAM
 | `jeffrey-jib-maven` | `cafe.jeffrey-analyst:jeffrey-jib-maven` | `JibMavenPluginExtension` implementation (pulled transitively). Fails the build if declared alone. |
 | `jeffrey-jib-gradle` | `cafe.jeffrey-analyst:jeffrey-jib-gradle` | `JibGradlePluginExtension` implementation (pulled transitively). Fails the build if declared alone. |
 | `jeffrey-jib-core` | `cafe.jeffrey-analyst:jeffrey-jib-core` | Shared `ContainerBuildPlan` transformation (pulled transitively). |
-| `jeffrey-jib-payload-jar` | `cafe.jeffrey-analyst:jeffrey-jib-payload-jar` | The architecture-neutral `provisioner.jar` and `jeffrey-agent.jar`, and async-profiler for both Linux architectures, under `jeffrey-payload/` (pulled transitively). |
-| `jeffrey-jib-payload-native` | `cafe.jeffrey-analyst:jeffrey-jib-payload-native` | The GraalVM provisioner and async-profiler, each for both Linux architectures, and the architecture-neutral `jeffrey-agent.jar` (pulled transitively). |
+| `jeffrey-jib-payload-jar` | `cafe.jeffrey-analyst:jeffrey-jib-payload-jar` | The architecture-neutral `provisioner.jar`, and async-profiler for both Linux architectures, under `jeffrey-payload/` (pulled transitively). |
+| `jeffrey-jib-payload-native` | `cafe.jeffrey-analyst:jeffrey-jib-payload-native` | The GraalVM provisioner and async-profiler, each for both Linux architectures (pulled transitively). |
 
 The four bold *flavours* are the only coordinates a consumer ever writes. Each is the extension for
 one build tool plus one payload jar, so declaring it is what chooses the provisioner build; there is
@@ -26,7 +26,7 @@ and async-profiler they bundle.
 
 The extension installs `/usr/local/bin/jeffrey-entrypoint` into a new image layer, makes it
 the `ENTRYPOINT`, and moves JIB's auto-derived `java -cp … <MainClass>` into `CMD`. It also
-takes the binaries that run needs — the provisioner, async-profiler and the Jeffrey agent — out of the payload jar
+takes the binaries that run needs — the provisioner and async-profiler — out of the payload jar
 on its own class path and installs them under `/opt/jeffrey` in a second layer; the image gets
 only the architectures it targets. Nothing is downloaded by the extension itself: the payload
 arrives like any other plugin dependency. At container start the wrapper runs `provisioner init`
@@ -169,7 +169,6 @@ comparisons. No rebuild required.
 | `baseConfig` | `JEFFREY_BASE_CONFIG` | `/jeffrey/jeffrey-base.conf` (optional file) |
 | `overrideConfig` | `JEFFREY_OVERRIDE_CONFIG` | `/jeffrey/jeffrey-overrides.conf` (optional) |
 | `profilerPath` | `JEFFREY_PROFILER_PATH` | baked: `/opt/jeffrey/libasyncProfiler.so` |
-| `agentPath` | `JEFFREY_AGENT_PATH` | baked: `/opt/jeffrey/jeffrey-agent.jar` |
 | `argFile` | `JEFFREY_ARG_FILE` | `/tmp/jvm.args` |
 | `projectName` | `JEFFREY_PROJECT_NAME` | Maven artifactId / Gradle project name |
 
@@ -181,20 +180,18 @@ from what the flavour installed and are not configurable.
 On a multi-platform build the baked paths carry an `{arch}` placeholder
 (`/opt/jeffrey/libasyncProfiler-{arch}.so`) that the wrapper expands from `uname -m` at container
 start, because JIB layers are not per-platform and each architecture's file needs a distinct name.
-The agent jar is one file for every architecture, so its path never carries the placeholder.
 
 ### Which Jeffrey release an image carries
 
 The version of the flavour you declare is a **jeffrey-jib release**, *not* a Jeffrey release
-number: jeffrey-jib releases on its own cadence, and which Jeffrey release's provisioner and agent
+number: jeffrey-jib releases on its own cadence, and which Jeffrey release's provisioner
 (and which async-profiler) a given jeffrey-jib release bundles was decided when it was cut. That choice is
 recorded in the payload jar's `jeffrey-payload/payload.properties` and the extension prints it
 during the build:
 
 ```
-jeffrey-jib: baking 3 payload file(s) into the image layer 'jeffrey-payload' (45 MB):
-  [/opt/jeffrey/provisioner (jeffrey v0.13.22), /opt/jeffrey/libasyncProfiler.so (async-profiler 4.1),
-   /opt/jeffrey/jeffrey-agent.jar (jeffrey v0.13.22)]
+jeffrey-jib: baking 2 payload file(s) into the image layer 'jeffrey-payload' (45 MB):
+  [/opt/jeffrey/provisioner (jeffrey v0.13.22), /opt/jeffrey/libasyncProfiler.so (async-profiler 4.1)]
 ```
 
 ### Bringing your own async-profiler
@@ -207,20 +204,13 @@ with the provisioner's `profiler-command` — options alone are passed to the li
 names. If that file does not exist at container start, the provisioner logs a warning and the
 application starts unprofiled.
 
-### Bringing your own Jeffrey agent
-
-`agentPath` works the same way for `jeffrey-agent.jar`: setting it means *this image already has
-the agent*, so that payload is not baked and the provisioner attaches the jar you named with
-`-javaagent`. Nothing is copied into the session. If that file does not exist at container start,
-the provisioner logs a warning and the session runs without the agent.
-
 **There is no `provisionerPath`.** The provisioner is not a third-party component you can
 substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are
 the protocol Jeffrey Hub reads. Neither side version-checks that protocol, so an image carrying
 someone else's copy would drift from it silently, with nothing recording which copy it had. The
 extension therefore always bakes the provisioner, and the flavour chooses only which build of it.
-A build still setting `provisionerPath`, `provisionerSource` or `payloadVersion` through the
-string `properties` DSL is warned and the value ignored.
+A build still setting `provisionerPath`, `provisionerSource`, `payloadVersion` or `agentPath`
+through the string `properties` DSL is warned and the value ignored.
 
 ### Where the files go during the build
 

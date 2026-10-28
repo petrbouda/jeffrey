@@ -31,22 +31,24 @@ const headings = [
   { id: 'uploads', text: 'File Uploads', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
-  { id: 'hubs', text: 'Declared Hubs', level: 2 },
+  { id: 'remote', text: 'Remote', level: 2 },
+  { id: 'remote-azure-files', text: 'Azure File Share', level: 3 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
   { id: 'ide-integration', text: 'IDE Integration', level: 2 }
 ];
 
-const hubsPropertiesExample = `jeffrey.microscope.hubs.production.name=Production
-jeffrey.microscope.hubs.production.hostname=hub.example.com
-jeffrey.microscope.hubs.production.port=443
+const azureFilesPropertiesExample = `jeffrey.microscope.remote.name=Production share
+jeffrey.microscope.remote.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
+jeffrey.microscope.remote.azure-files.share=recordings
+jeffrey.microscope.remote.azure-files.protocol=smb
+jeffrey.microscope.remote.azure-files.auth=sas
+jeffrey.microscope.remote.azure-files.sas-token=\${AZURE_FILES_SAS}
+jeffrey.microscope.remote.azure-files.read-only=false`;
 
-jeffrey.microscope.hubs.staging.hostname=staging.internal
-jeffrey.microscope.hubs.staging.port=9090
-jeffrey.microscope.hubs.staging.plaintext=true`;
-
-const hubsEnvExample = `JEFFREY_MICROSCOPE_HUBS_PRODUCTION_NAME=Production
-JEFFREY_MICROSCOPE_HUBS_PRODUCTION_HOSTNAME=hub.example.com
-JEFFREY_MICROSCOPE_HUBS_PRODUCTION_PORT=443`;
+const remoteEnvExample = `JEFFREY_MICROSCOPE_REMOTE_NAME="Production share"
+JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_ENDPOINT=https://jeffreyprod.file.core.windows.net
+JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SHARE=recordings
+JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SASTOKEN=<sas-token>`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -167,16 +169,30 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <h2 id="hubs">Declared Hubs</h2>
+      <h2 id="remote">Remote</h2>
       <p>
-        Connections to <router-link to="/docs/hub">Jeffrey Hub</router-link> can be declared
-        up front, so a container or a pod starts already connected instead of waiting for someone to
-        add a hub through the UI. Each hub is declared under a key of your choosing
-        (<code>production</code>, <code>staging</code>, …), which names the hub and is what its stored
-        id is derived from — keep it stable.
+        The <strong>remote</strong> is the one place Microscope reads recordings from beyond its own
+        disk: the recording volume itself on an <strong>Azure file share</strong> &mdash; the share the
+        provisioner writes into, mounted in AKS through the <code>azurefile-csi</code> storage class.
+        Microscope reads exactly one remote, declared here and read at startup; nothing in the UI or
+        the MCP server connects, changes or removes it. Without a declaration the
+        <strong>Remote</strong> page says so and the MCP <code>remote_</code> tools answer that none
+        is configured.
       </p>
 
-      <DocsCodeBlock language="properties" :code="hubsPropertiesExample" />
+      <h3 id="remote-azure-files">Azure File Share</h3>
+      <p>
+        Microscope works with the share over the Azure Files REST API, so it needs no mount of its
+        own. It lists workspaces, projects, instances and sessions straight off the share, downloads
+        what you open, and makes your changes there &mdash; unless it is declared
+        <code>read-only</code>; see
+        <router-link to="/docs/microscope/workspaces#azure-files">Workspaces</router-link> for what
+        that means in the UI. Retention, cleanup and compression are not Microscope's: they are the
+        scheduled jobs of a <router-link to="/docs/hub">Jeffrey Hub</router-link> running on the same
+        volume.
+      </p>
+
+      <DocsCodeBlock language="properties" :code="azureFilesPropertiesExample" />
 
       <table>
         <thead>
@@ -188,56 +204,109 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.hostname</code></td>
+            <td><code>jeffrey.microscope.remote.name</code></td>
+            <td>the share's name</td>
+            <td>Display name shown on the Remote page.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.remote.azure-files.endpoint</code></td>
             <td>—</td>
-            <td><strong>Required.</strong> Host name of the hub's gRPC endpoint.</td>
+            <td>
+              <strong>Required.</strong> The storage account's file endpoint, e.g.
+              <code>https://&lt;account&gt;.file.core.windows.net</code>: <code>https</code>, a host
+              and nothing more. A URL with a path, a query or credentials — such as the portal's
+              <em>File service SAS URL</em> — is refused, so a SAS never ends up stored, listed or
+              logged as part of the address; put it in <code>sas-token</code>.
+            </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.port</code></td>
-            <td><code>9090</code></td>
-            <td>gRPC port. Note this is the gRPC port, not the hub's HTTP port.</td>
+            <td><code>jeffrey.microscope.remote.azure-files.share</code></td>
+            <td>—</td>
+            <td>
+              <strong>Required.</strong> Name of the file share; also the remote's display name when
+              <code>jeffrey.microscope.remote.name</code> is not set.
+            </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.name</code></td>
-            <td>the key</td>
-            <td>Display name shown in the server switcher.</td>
+            <td><code>jeffrey.microscope.remote.azure-files.root-path</code></td>
+            <td>the share's root</td>
+            <td>
+              Directory on the share that holds the workspaces — the same directory the Jeffrey Hub
+              uses as its volume. Every directory under it is shown as a workspace.
+            </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.plaintext</code></td>
+            <td><code>jeffrey.microscope.remote.azure-files.protocol</code></td>
+            <td><code>smb</code></td>
+            <td>
+              <code>smb</code> or <code>nfs</code> — the share's protocol. An NFS share's listings
+              carry no file times, so Microscope reads them one file at a time; expect larger
+              projects to load more slowly.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.remote.azure-files.auth</code></td>
+            <td><code>sas</code></td>
+            <td>
+              <code>sas</code> signs in with <code>sas-token</code>. <code>entra</code> signs in with
+              Microsoft Entra ID through <code>DefaultAzureCredential</code> (managed identity,
+              workload identity, environment variables, the Azure CLI, …, which it may run); that
+              identity needs the <strong>Storage File Data Privileged Contributor</strong> role on
+              the share, or <strong>Storage File Data Privileged Reader</strong> with
+              <code>read-only=true</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.remote.azure-files.sas-token</code></td>
+            <td>—</td>
+            <td>
+              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read, list
+              and delete on the share (<code>sp=rld</code>) — read and list alone with
+              <code>read-only=true</code>. Microscope warns at startup, naming only the rights, when
+              a writable token lacks one of them, or a read-only one grants create, write or delete. It stays in the configuration:
+              Microscope never stores it in its database and never logs it, so pass it from a secret
+              (an environment variable or a mounted secret file).
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.remote.azure-files.read-only</code></td>
             <td><code>false</code></td>
             <td>
-              Connect in cleartext h2c instead of TLS. Enable for in-cluster Service DNS or
-              trusted-LAN setups.
+              Refuse every change to the share — nothing is deleted: no workspace, project or
+              session deletion — and hide those actions in the UI. The credential then needs only
+              read and list rights.
             </td>
           </tr>
         </tbody>
       </table>
 
-      <p>Every property has the usual environment-variable form:</p>
-
-      <DocsCodeBlock language="bash" :code="hubsEnvExample" />
-
-      <DocsCallout type="info">
-        <strong>Configuration owns these hubs.</strong> On every startup the declared hubs are added,
-        updated and removed so the registry matches this configuration, and they appear in the UI with
-        a <strong>Config</strong> badge and a disabled remove button — deleting one there would only
-        last until the next restart. Hubs added through the UI are never touched by this. To remove a
-        declared hub, drop it from the configuration and restart.
-      </DocsCallout>
+      <p>
+        A declaration that cannot be used &mdash; an <code>azure-files</code> block missing its
+        endpoint or share, say &mdash; is logged as a warning and ignored, rather than failing
+        startup: Microscope then runs as if no remote were declared.
+      </p>
 
       <DocsCallout type="warning">
-        <strong>Environment-variable keys must be a single alphanumeric token.</strong> A dashed key
-        does not survive the translation — <code>JEFFREY_MICROSCOPE_HUBS_PROD_EU_HOSTNAME</code> is
-        read as the key <code>prod</code> with an unrecognised <code>eu.hostname</code> underneath it.
-        Use <code>JEFFREY_MICROSCOPE_HUBS_PRODEU_HOSTNAME</code> instead. A hub written
-        <code>prod-eu</code> in a properties file and <code>prodeu</code> in an environment variable
-        resolves to the same hub, so a configuration can move between the two forms.
+        <strong>Give recordings a storage account of their own.</strong> Both privileged roles, which
+        the Entra sign-in needs, ignore file-level permissions and reach every share in the storage
+        account, not just this one. A SAS can be scoped to one share; a role cannot.
+      </DocsCallout>
+
+      <p>Every property has the usual environment-variable form:</p>
+
+      <DocsCodeBlock language="bash" :code="remoteEnvExample" />
+
+      <DocsCallout type="info">
+        <strong>Configuration is the only place the remote is declared.</strong> It is read at
+        startup and never stored; the Remote page shows it but cannot connect, change or disconnect
+        one, and neither can an MCP tool. To change or remove it, edit the configuration and restart.
+        Microscope reaches exactly one remote.
       </DocsCallout>
 
       <DocsCallout type="tip">
-        <strong>No connection is attempted at startup.</strong> A declared hub is registered whether
-        or not it answers, so a hub that boots after Microscope — the normal case in a compose file or
-        a pod — starts working as soon as it comes up.
+        <strong>No connection is attempted at startup.</strong> A declared remote is taken as it is
+        whether or not it answers, so a share that is unreachable when Microscope boots starts
+        working as soon as it can be reached.
       </DocsCallout>
 
       <h2 id="mcp-server">MCP Server</h2>
@@ -302,32 +371,31 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.hubs.enabled</code></td>
+            <td><code>jeffrey.microscope.mcp.remote.enabled</code></td>
             <td><code>true</code></td>
             <td>
-              Advertises the <code>hubs_</code> tools, which list the recording sessions on the
-              connected <router-link to="/docs/hub">Jeffrey Hubs</router-link> and pull one in to be
-              analysed. Its own switch because it is the one family that reaches <em>off</em> this
+              Advertises the <code>remote_</code> tools, which list the recording sessions on the
+              configured <a href="#remote">remote</a> and pull one in to be analysed. Its own switch because it is the one family that reaches <em>off</em> this
               machine: everything else reads what is already here. Set to <code>false</code> to keep
               the agent to this machine. Read at startup.
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.hubs.scan-timeout</code></td>
+            <td><code>jeffrey.microscope.mcp.remote.scan-timeout</code></td>
             <td><code>PT20S</code></td>
             <td>
-              How long the <code>hubs_</code> tools spend discovering what a hub holds before they
+              How long the <code>remote_</code> tools spend discovering what the remote holds before they
               answer with what did arrive. One deadline shared by every remote call a scan makes, and a
-              cancelling one: a hub that stops answering is abandoned rather than waited out, and the
-              sessions other hubs already returned are still reported, each unreachable scope named
+              cancelling one: a project that stops answering is abandoned rather than waited out, and the
+              sessions other projects already returned are still reported, each unreachable scope named
               beside them. A positive ISO-8601 duration. Read at startup.
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.hubs.download-response-timeout</code></td>
+            <td><code>jeffrey.microscope.mcp.remote.download-response-timeout</code></td>
             <td><code>PT45S</code></td>
             <td>
-              How long <code>hubs_download</code> &mdash; and <code>hubs_fetchFile</code>, which shares
+              How long <code>remote_download</code> &mdash; and <code>remote_fetchFile</code>, which shares
               this setting &mdash; waits before it answers that the transfer is still running, session
               lookup included. It bounds the <em>answer</em>, not the work: a transfer that outlasts it
               carries on, and calling the tool again with the same arguments reports the finished copy. Sized under the shortest client timeout worth designing for, so raising it
@@ -336,22 +404,10 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.hubs.download-timeout</code></td>
+            <td><code>jeffrey.microscope.mcp.remote.ask-window-over-duration</code></td>
             <td><code>PT1H</code></td>
             <td>
-              How long a transfer itself may take, once it is running in the background &mdash; a whole
-              session under <code>hubs_download</code> or one artifact under <code>hubs_fetchFile</code>,
-              which is the same bytes off the same link. Its own setting because it measures something
-              else entirely from the response deadline above: gigabytes over whatever link the hub is on.
-              This is the one to raise for large recordings on a slow connection. A positive ISO-8601 duration. Read at startup. See
-              <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.mcp.hubs.ask-window-over-duration</code></td>
-            <td><code>PT1H</code></td>
-            <td>
-              When a client that declared MCP form elicitation asks <code>hubs_download</code> for a
+              When a client that declared MCP form elicitation asks <code>remote_download</code> for a
               whole session running longer than this &mdash; to its finish, or to now while it is still
               recording &mdash; the user is first asked which part to bring: the last N minutes, its
               startup, its latest or busiest chunk, the minutes before or around a moment, a window of
@@ -363,7 +419,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.hubs.ask-window-over-size</code></td>
+            <td><code>jeffrey.microscope.mcp.remote.ask-window-over-size</code></td>
             <td><code>1GB</code></td>
             <td>
               The size half of the rule above: a session holding more than this is asked about
@@ -386,9 +442,9 @@ onMounted(() => {
             <td><code>jeffrey.microscope.mcp.diagnostics.probe-timeout</code></td>
             <td><code>PT2S</code></td>
             <td>
-              How long the <code>jeffrey://diagnostics</code> resource waits for each configured hub
-              when it probes reachability. A short budget is the point: the resource answers whether a
-              hub responds, not what it holds. A positive ISO-8601 duration. Read at startup.
+              How long the <code>jeffrey://diagnostics</code> resource asks the configured remote for
+              its version before counting it as unreachable. A short budget is the point: the resource
+              answers whether the remote responds, not what it holds. A positive ISO-8601 duration. Read at startup.
             </td>
           </tr>
           <tr>
@@ -397,7 +453,7 @@ onMounted(() => {
             <td>
               Advertises the <code>ide_</code> tools, which ask the developer's running IntelliJ where
               a frame lives, read a class through it, and open a file in it. Its own switch for the
-              same reason as <code>hubs_</code>, one step closer to home: everything else reads a
+              same reason as <code>remote_</code>, one step closer to home: everything else reads a
               recording Jeffrey already holds, while this reaches into another process on this machine
               and can put a file on somebody's screen. It needs the
               <router-link to="/docs/intellij-plugin">IntelliJ plugin</router-link>, and answers
@@ -409,7 +465,7 @@ onMounted(() => {
             <td><code>all</code></td>
             <td>
               A named selection of tool families: <code>all</code>, <code>jfr</code>, <code>heap</code> or
-              <code>hub</code>. Each focused preset keeps <code>profiles</code>, <code>recordings</code>
+              <code>remote</code>. Each focused preset keeps <code>profiles</code>, <code>recordings</code>
               and <code>operations</code> beside the families it is named for, so a profile can still be
               found, created and followed. A non-empty <code>families</code> list wins over it; an unknown
               preset name rejects startup. Read at startup.
@@ -425,16 +481,16 @@ onMounted(() => {
               <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
-              <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Keep
+              <code>heap</code>, <code>recordings</code>, <code>remote</code>, <code>ide</code>. Keep
               <code>operations</code> in any list that keeps <code>recordings</code>, <code>heap</code>,
-              <code>hubs</code>, <code>ide</code> or <code>jvm</code> &mdash; startup fails otherwise &mdash;
+              <code>remote</code>, <code>ide</code> or <code>jvm</code> &mdash; startup fails otherwise &mdash;
               since it is how a client follows and cancels the work those start; and keep
-              <code>recordings</code> in any list that keeps <code>hubs</code>, since a downloaded
+              <code>recordings</code> in any list that keeps <code>remote</code>, since a downloaded
               session is analysed with <code>recordings_analyzeRecording</code>. Worth setting
               only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built
-              (<code>hubs</code> with hub access off) is simply absent rather than a startup failure.
+              (<code>remote</code> with remote access off) is simply absent rather than a startup failure.
               Read at startup.
             </td>
           </tr>

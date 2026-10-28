@@ -46,7 +46,6 @@ public final class PayloadInstaller {
     private static final String ENV_PROVISIONER_PATH = "JEFFREY_PROVISIONER_PATH";
     private static final String ENV_PROVISIONER_KIND = "JEFFREY_PROVISIONER_KIND";
     private static final String ENV_PROFILER_PATH = "JEFFREY_PROFILER_PATH";
-    private static final String ENV_AGENT_PATH = "JEFFREY_AGENT_PATH";
     private static final String PROVENANCE_OPEN = " (";
     private static final String PROVENANCE_CLOSE = ")";
     private static final long BYTES_PER_MEGABYTE = 1024L * 1024L;
@@ -85,15 +84,8 @@ public final class PayloadInstaller {
             environment.put(ENV_PROFILER_PATH, Payloads.PROFILER.envPath(architectures));
         }
 
-        // Built from the same Jeffrey release as the provisioner, so it shares that provenance.
-        if (plan.bakeAgent()) {
-            totalBytes += bake(
-                    layer, Payloads.AGENT, architectures, descriptor.provisionerProvenance(), installed);
-            environment.put(ENV_AGENT_PATH, Payloads.AGENT.envPath(architectures));
-        }
-
         // The provenance in parentheses is the only place a build log says which Jeffrey release
-        // (provisioner and agent) and async-profiler an image actually carries: the payload jar's
+        // (the provisioner) and async-profiler an image actually carries: the payload jar's
         // version is a jeffrey-jib release, and the mapping to the binaries inside it lives in the
         // payload descriptor.
         logger.log(LogLevel.LIFECYCLE,

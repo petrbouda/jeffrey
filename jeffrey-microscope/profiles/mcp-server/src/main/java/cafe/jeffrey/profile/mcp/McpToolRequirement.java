@@ -27,8 +27,8 @@ package cafe.jeffrey.profile.mcp;
  * probably holds. What a recording captured at all — the event types behind a dashboard — is a
  * different question, answered by {@code profiles_summary}'s capability gaps.
  * <p>
- * A probe does not declare the requirement it probes. {@code traces_overview}, {@code hubs_list} and
- * {@code ide_windows} exist to find out whether traces, a hub or an IDE window are there, and answer
+ * A probe does not declare the requirement it probes. {@code traces_overview}, {@code remote_status} and
+ * {@code ide_windows} exist to find out whether traces, a configured remote or an IDE window are there, and answer
  * either way; declaring the requirement on them would tell an agent not to ask the question they answer.
  */
 public enum McpToolRequirement {
@@ -76,7 +76,8 @@ public enum McpToolRequirement {
     IDE_LINKED,
 
     /**
-     * This installation is connected to at least one Jeffrey Hub. Without one the answer says so.
+     * This installation's configuration declares a remote — a Jeffrey Hub or an Azure file share.
+     * Without one the answer says so.
      */
-    HUB
+    REMOTE
 }

@@ -31,9 +31,9 @@ import java.util.stream.Collectors;
  * <p>A hub session can run for days and roll a chunk every few minutes, and the question is almost
  * never about all of it. A chunk's {@link RepositoryFile#createdAt()} is the moment the profiler
  * opened it — the timestamp in the file's own name — so chunk <em>n</em> covers everything from its
- * own start to the start of chunk <em>n+1</em>. The last finished one runs to the session's end, or,
- * while the session records, to the start of the chunk the profiler still holds open — that one is
- * never selected. A chunk is selected when that span touches the window.
+ * own start to the start of chunk <em>n+1</em>. The last one runs one chunk length past its start,
+ * the length measured from the others ({@link RecordedSpan#chunkLength}); with nothing to measure
+ * it from, nothing bounds it. A chunk is selected when that span touches the window.
  *
  * <p>Both bounds are optional: a window with no start reaches back to the first chunk, one with no
  * end reaches forward to the last. A window with neither is not a window, and the whole-session
@@ -60,7 +60,7 @@ public record ChunkWindow(Instant start, Instant end) {
     }
 
     /**
-     * The finished chunks of the session that cover this window, oldest first, with the span
+     * The chunks of the session that cover this window, oldest first, with the span
      * they actually cover — which is what a profile built from them is about, and is wider than
      * the window whenever a chunk straddles a bound.
      *
@@ -88,8 +88,8 @@ public record ChunkWindow(Instant start, Instant end) {
 
     /**
      * Whether a chunk spanning {@code [chunkStart, chunkEnd)} touches the window. A chunk with no
-     * end is one nothing bounds — the session reports neither when it finished nor a newer chunk
-     * held open — and it reaches as far forward as the window does.
+     * end is one nothing bounds — the session's only chunk, with no other to measure a length
+     * from — and it reaches as far forward as the window does.
      */
     private boolean covers(Instant chunkStart, Instant chunkEnd) {
         boolean startsBeforeWindowEnds = end == null || chunkStart.isBefore(end);
@@ -116,25 +116,23 @@ public record ChunkWindow(Instant start, Instant end) {
          * One chunk and the stretch it holds: from when the profiler opened it to when it opened
          * the next one.
          *
-         * @param end the start of the following finished chunk; for the last finished one, the
-         *            session's end, or while the session records the start of the chunk it still
-         *            holds open; {@code null} only when the session reports neither
+         * @param end the start of the following chunk; for the last one, its start plus the
+         *            measured chunk length; {@code null} only when there is none to measure
          */
         public record Chunk(RepositoryFile file, Instant start, Instant end) {
         }
 
         /**
-         * Walks the session's finished chunks oldest first, handing each with its end to the
-         * predicate, and keeps the ones it accepts.
+         * Walks the session's chunks oldest first, handing each with its end to the predicate, and
+         * keeps the ones it accepts.
          */
         private static Selection of(
                 RecordingSession session, BiPredicate<RepositoryFile, Instant> keep) {
-            List<RepositoryFile> chunks = session.finishedRecordings();
-            // The last finished chunk ends where the session ended, or, while it still records, where
-            // the chunk the profiler holds open began: file n covers up to the start of n+1.
-            Instant lastEnd = session.finishedAt() != null
-                    ? session.finishedAt()
-                    : session.openRecording().map(RepositoryFile::createdAt).orElse(null);
+            List<RepositoryFile> chunks = session.recordings();
+            // File n covers up to the start of n+1; the last one, one measured chunk past its start
+            Instant lastEnd = chunks.isEmpty() ? null : RecordedSpan.chunkLength(session.recordingStarts())
+                    .map(chunks.getLast().createdAt()::plus)
+                    .orElse(null);
 
             List<Chunk> selected = new ArrayList<>();
             for (int i = 0; i < chunks.size(); i++) {
@@ -197,7 +195,7 @@ public record ChunkWindow(Instant start, Instant end) {
                 return List.of();
             }
             Set<String> selected = chunks.stream().map(chunk -> chunk.file().id()).collect(Collectors.toSet());
-            return session.finishedRecordings().stream()
+            return session.recordings().stream()
                     .filter(chunk -> !selected.contains(chunk.id()))
                     .filter(chunk -> !chunk.createdAt().isBefore(coverageStart()))
                     .filter(chunk -> coverageEnd() == null || chunk.createdAt().isBefore(coverageEnd()))
@@ -214,11 +212,11 @@ public record ChunkWindow(Instant start, Instant end) {
         }
 
         /**
-         * Whether these are every finished chunk of the session: a recording holding them is the
-         * session itself, anything less is a part of it.
+         * Whether these are every chunk of the session: a recording holding them is the session
+         * itself, anything less is a part of it.
          */
         public boolean isWholeSession(RecordingSession session) {
-            return chunks.size() == session.finishedRecordings().size();
+            return chunks.size() == session.recordings().size();
         }
 
         public List<String> fileIds() {

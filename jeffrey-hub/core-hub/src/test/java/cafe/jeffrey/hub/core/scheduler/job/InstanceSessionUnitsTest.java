@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +38,19 @@ class InstanceSessionUnitsTest {
         InstanceSessionUnits units = InstanceSessionUnits.of(List.of());
 
         assertTrue(units.units().isEmpty());
-        assertTrue(units.sessionsNewestFirst().isEmpty());
+    }
+
+    /**
+     * Two sessions started in the same millisecond are ordered by id, as the volume's layout
+     * orders them, so the one it calls newest comes first and a cap of one keeps it.
+     */
+    @Test
+    void sessionsStartedTogetherAreOrderedByIdLikeTheLayout() {
+        InstanceSessionUnits units = InstanceSessionUnits.of(List.of(
+                newest("session-b", 1),
+                real("session-a", 1)));
+
+        assertEquals(List.of(List.of("session-b"), List.of("session-a")), unitIds(units));
     }
 
     @Test
@@ -82,17 +93,16 @@ class InstanceSessionUnitsTest {
     }
 
     @Test
-    void activeSessionSplitsFailedRuns() {
-        // An active session has no finishedAt, so it never counts as failed-empty
+    void theNewestSessionIsNeverFailed() {
+        // No newer session has ended it, so having written nothing yet is no failure
         InstanceSessionUnits units = InstanceSessionUnits.of(List.of(
-                failed("failed-1", 1),
-                active("live", 2),
+                newest("live", 1),
+                failed("failed-1", 2),
                 failed("failed-2", 3)));
 
         assertEquals(List.of(
-                        List.of("failed-1"),
                         List.of("live"),
-                        List.of("failed-2")),
+                        List.of("failed-1", "failed-2")),
                 unitIds(units));
     }
 
@@ -103,7 +113,7 @@ class InstanceSessionUnitsTest {
                 real("real-1", 2),
                 failed("failed-1", 1)));
 
-        assertEquals(List.of("failed-1", "real-1", "failed-2"), sessionIds(units.sessionsNewestFirst()));
+        assertEquals(List.of(List.of("failed-1"), List.of("real-1"), List.of("failed-2")), unitIds(units));
     }
 
     private static List<List<String>> unitIds(InstanceSessionUnits units) {
@@ -123,23 +133,21 @@ class InstanceSessionUnitsTest {
         RepositoryFile file = new RepositoryFile(
                 id + "-file", id + "-file", createdAt, 10 * MB,
                 true, null);
-        return session(id, createdAt, createdAt.plusSeconds(60), file);
+        return session(id, createdAt, false, file);
     }
 
     private static RecordingSession failed(String id, int hoursOld) {
         Instant createdAt = NOW.minus(Duration.ofHours(hoursOld));
-        return session(id, createdAt, createdAt.plusSeconds(5));
+        return session(id, createdAt, false);
     }
 
-    private static RecordingSession active(String id, int hoursOld) {
-        return session(id, NOW.minus(Duration.ofHours(hoursOld)), null);
+    private static RecordingSession newest(String id, int hoursOld) {
+        return session(id, NOW.minus(Duration.ofHours(hoursOld)), true);
     }
 
     private static RecordingSession session(
-            String id, Instant createdAt, Instant finishedAt, RepositoryFile... files) {
+            String id, Instant createdAt, boolean newest, RepositoryFile... files) {
 
-        RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
-        return new RecordingSession(
-                id, id, "inst-1", createdAt, finishedAt, status, List.of(files), false);
+        return new RecordingSession(id, id, "inst-1", createdAt, newest, List.of(files));
     }
 }

@@ -120,8 +120,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>Creates workspace/project/session directory structure</li>
           <li>Generates JVM flags for async-profiler and enabled features</li>
           <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
-          <li>Stores session metadata for Jeffrey to detect</li>
-          <li>Attaches the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> with <code>-javaagent</code> for liveness reporting, from the jar <code>jeffrey-agent.path</code> names (on by default; <code>JEFFREY_AGENT_ENABLED=false</code> leaves it to the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library)</li>
+          <li>Names the session directory with a UUIDv7 &mdash; the folder names are all Jeffrey reads, no metadata file is written anywhere</li>
         </ul>
 
         <h3>When to Use Jeffrey Provisioner</h3>
@@ -152,8 +151,8 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
               <h4>JFR Files</h4>
             </div>
             <div class="docs-card-body">
-              <code>profile-*.jfr</code>
-              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions.</p>
+              <code>rec-*.jfr</code>
+              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions, each named with its start time and the machine's UTC offset (<code>rec-20261027-085500+0100.jfr</code>).</p>
             </div>
           </div>
           <div class="docs-card session-card heap">
@@ -199,19 +198,19 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <div class="docs-card session-card metadata">
             <div class="docs-card-header">
               <i class="bi bi-info-circle"></i>
-              <h4>Session Metadata</h4>
+              <h4>Session Directory</h4>
             </div>
             <div class="docs-card-body">
-              <code>.session-info.json</code>
-              <p>The session's ID, start time and the machine's time zone &mdash; all the Hub reads from it; the zone is what the timestamps in the recordings' names are local to. Its instance, project and workspace are the directories it sits in, and its place among the instance's sessions is its start time.</p>
+              <code>&lt;session-id&gt;/</code>
+              <p>The session's id is its folder name, a UUIDv7 whose timestamp is the session's start, so the names alone order an instance's sessions. Its instance, project and workspace are the directories it sits in; no marker file is written, and the UTC offset travels in each chunk's name.</p>
             </div>
           </div>
         </div>
 
         <h2 id="installation">Installation</h2>
         <p>For a container image built with JIB, you install nothing: the
-          <router-link to="/docs/jib/setup">Jeffrey JIB extension</router-link> puts the provisioner,
-          async-profiler and the Jeffrey Agent into the image under <code>/opt/jeffrey</code> at build time. Pick the build
+          <router-link to="/docs/jib/setup">Jeffrey JIB extension</router-link> puts the provisioner
+          and async-profiler into the image under <code>/opt/jeffrey</code> at build time. Pick the build
           by the flavour you declare (<code>jeffrey-jib-maven-native</code> or
           <code>-jar</code>, and the Gradle equivalents); its version is the jeffrey-jib release
           whose payload the image carries.</p>
@@ -225,8 +224,6 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>For async-profiler support, also include <code>libasyncProfiler.so</code> and point
             <code>profiler-path</code> (or <code>JEFFREY_PROFILER_PATH</code>) at it &mdash; nothing is
             discovered on disk</li>
-          <li>For liveness reporting, also include <code>jeffrey-agent.jar</code> from the same release and
-            point <code>jeffrey-agent.path</code> (or <code>JEFFREY_AGENT_PATH</code>) at it, the same way</li>
         </ol>
 
         <h3>Basic Usage</h3>

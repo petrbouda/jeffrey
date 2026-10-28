@@ -19,12 +19,13 @@ package cafe.jeffrey.recordings.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.client.RepositoryFiles;
-import cafe.jeffrey.hub.client.manager.TempDirProvider;
-import cafe.jeffrey.hub.client.FileStreamClient;
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.RepositoryClient;
+import cafe.jeffrey.microscope.remote.client.RepositoryFiles;
+import cafe.jeffrey.microscope.remote.client.manager.TempDirProvider;
+import cafe.jeffrey.microscope.remote.client.FileStreamClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.RepositoryClient;
 import cafe.jeffrey.recordings.core.download.FileProgress;
+import cafe.jeffrey.recordings.core.download.JfrChunkChain;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
@@ -33,12 +34,12 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -80,6 +81,12 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      */
     private static final int COPY_BUFFER_BYTES = 8192;
 
+    /** An uncompressed recording, the only kind that can arrive cut short. */
+    private static final String JFR_SUFFIX = ".jfr";
+
+    private static final String INCOMPLETE_RECORDING = "Recording %s arrived incomplete: the profiler is still "
+            + "writing it into place. Ask for it again in a moment.";
+
     /**
      * Path elements that name a directory rather than a file in it, and so are not a name a
      * session's file may be written under.
@@ -113,7 +120,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     public String downloadSession(String recordingSessionId) {
         RecordingSession recordingSession = session(recordingSessionId);
 
-        return download(recordingSession, recordingSession.finishedFiles(), ProgressCallback.noop());
+        return download(recordingSession, recordingSession.files(), ProgressCallback.noop());
     }
 
     @Override
@@ -124,7 +131,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     /**
-     * The session's finished files the caller named, refusing an id the session does not hold.
+     * The session's files the caller named, refusing an id the session does not hold.
      *
      * <p>Filtering alone would drop such an id without a word and return a recording made of the
      * rest — a download that looks like the one that was asked for and is not. The hub used to
@@ -132,19 +139,18 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * together; it serves one file per call now, so the refusal belongs here with the other one.
      */
     private static List<RepositoryFile> chosenFiles(RecordingSession session, List<String> fileIds) {
-        List<RepositoryFile> finished = session.finishedFiles();
+        List<RepositoryFile> files = session.files();
 
-        Set<String> known = finished.stream().map(RepositoryFile::id).collect(Collectors.toSet());
+        Set<String> known = files.stream().map(RepositoryFile::id).collect(Collectors.toSet());
         List<String> unknown = fileIds.stream().filter(id -> !known.contains(id)).toList();
         if (!unknown.isEmpty()) {
-            throw new IllegalArgumentException("Session " + session.id() + " has no finished file " + unknown
+            throw new IllegalArgumentException("Session " + session.id() + " has no file " + unknown
                     + ". Downloading the rest would have returned a recording made of whatever was left, "
-                    + "with nothing saying a file was missing. Take the ids from the session's file listing; "
-                    + "a file still being written is not one yet.");
+                    + "with nothing saying a file was missing. Take the ids from the session's file listing.");
         }
 
         Set<String> requestedFileIds = Set.copyOf(fileIds);
-        return finished.stream()
+        return files.stream()
                 .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
     }
@@ -155,22 +161,21 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         ChunkWindow.Selection selection = window.select(recordingSession);
         if (selection.isEmpty()) {
             throw new IllegalArgumentException(
-                    "No finished recording file of session " + recordingSessionId + " covers the window");
+                    "No recording file of session " + recordingSessionId + " covers the window");
         }
         return download(recordingSession, selection.files(), ProgressCallback.noop());
     }
 
     /**
-     * The session as the hub has it now, with its files. Everything below asks the session which
-     * of its files are closed rather than asking a file: a file carries no status, and the one
-     * the profiler still holds open is the session's newest chunk.
+     * The session as the remote has it now, with its files. A file carries no status: its newest
+     * recording is downloaded like any other, and checked whole on arrival ({@link JfrChunkChain}).
      */
     private RecordingSession session(String recordingSessionId) {
         return repositoryClient.recordingSession(scope, recordingSessionId).toSession();
     }
 
     /**
-     * A recording that holds every finished recording file of its session is the session; one that
+     * A recording that holds every recording file of its session is the session; one that
      * holds fewer — a window, or files picked from the listing — is a part of it, and is named and
      * tagged with the span its files cover so it is never mistaken for the whole.
      *
@@ -248,7 +253,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         // nothing — usually the last one, which is exactly what a killed container leaves behind.
         Map<Boolean, List<RepositoryFile>> chunksByContent = files.stream()
                 .filter(RepositoryFile::isRecordingFile)
-                .filter(file -> !recordingSession.isOpen(file))
                 .collect(Collectors.partitioningBy(RepositoryFile::hasContent));
 
         List<RepositoryFile> recordingFiles = chunksByContent.get(true);
@@ -408,12 +412,33 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     landed.set(target);
                 });
 
+                if (file.isRecordingFile()) {
+                    requireWhole(landed.get());
+                }
                 progressCallback.onFileComplete(file.name());
                 return landed.get();
             } finally {
                 downloadSemaphore.release();
             }
         }, Schedulers.sharedVirtual());
+    }
+
+    /**
+     * Refuses an uncompressed recording that arrived cut short — taken while the profiler was still
+     * writing it into place. An archive is whole by construction: the hub compresses only
+     * recordings that are complete, and publishes the archive by a rename.
+     */
+    private static void requireWhole(Path recording) {
+        if (!recording.getFileName().toString().endsWith(JFR_SUFFIX)) {
+            return;
+        }
+        try {
+            if (!JfrChunkChain.isComplete(recording)) {
+                throw Exceptions.invalidRequest(INCOMPLETE_RECORDING.formatted(recording.getFileName()));
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read a downloaded recording: file=" + recording, e);
+        }
     }
 
     /**
@@ -484,8 +509,6 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             throw new CancellationException("Download cancelled");
         }
     }
-
-
 
     private static void streamToFileWithProgress(
             InputStream source,
@@ -583,9 +606,9 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         }
         if (window != null) {
             originTags.put(OriginContext.TAG_WINDOW, windowTag(window));
-        } else if (session.status() == RecordingStatus.FINISHED) {
-            // Only a finished session's whole copy is the session for good: a running one keeps
-            // writing chunks, and a copy of it answers for the session as it stood at the download.
+        } else if (!session.newest()) {
+            // Only the whole copy of a session a newer one has ended is the session for good: the
+            // newest may keep adding chunks, and a copy of it answers for it as it stood then.
             originTags.put(OriginContext.TAG_COMPLETE, Boolean.TRUE.toString());
         }
         return recordingsManager.createDownloadedBundle(

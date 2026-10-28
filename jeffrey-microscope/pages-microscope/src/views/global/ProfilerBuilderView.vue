@@ -18,7 +18,7 @@
 <!--
   Top-level Profiler Builder. It assembles an async-profiler agent command and nothing
   else: the command is copied out and pasted into someone else's JVM arguments, so the
-  page stores nothing and has no notion of a hub, workspace or project.
+  page stores nothing and has no notion of a remote, workspace or project.
 -->
 
 <template>

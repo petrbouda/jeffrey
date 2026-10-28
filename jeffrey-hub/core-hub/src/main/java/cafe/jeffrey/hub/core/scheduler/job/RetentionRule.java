@@ -22,7 +22,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
  * each sees what the ones before it deleted.
  */
 sealed interface RetentionRule
-        permits SessionRetentionRule, LiveSessionTrimRule, StorageQuotaRule, StaleInstanceRule {
+        permits SessionRetentionRule, NewestSessionTrimRule, StorageQuotaRule, StaleInstanceRule {
 
     void apply(ProjectRetentionPass pass);
 }

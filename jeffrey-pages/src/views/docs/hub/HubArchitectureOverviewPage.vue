@@ -28,8 +28,9 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'role', text: 'Role of the Hub', level: 2 },
   { id: 'components', text: 'Components', level: 2 },
-  { id: 'grpc-surface', text: 'gRPC Service Surface', level: 2 },
-  { id: 'microscope-connection', text: 'How Microscope Connects', level: 2 },
+  { id: 'scheduler-jobs', text: 'Scheduler Jobs', level: 2 },
+  { id: 'web-ui', text: 'Web UI', level: 2 },
+  { id: 'microscope', text: 'Microscope and the Hub', level: 2 },
   { id: 'storage', text: 'Storage', level: 2 }
 ];
 
@@ -47,35 +48,38 @@ onMounted(() => {
 
     <div class="docs-content">
       <p>
-        Jeffrey Hub is a headless, multi-workspace recording-collection backend. It has no
-        database: what's running (workspaces, projects, instances, recording sessions) and the
-        JFR recordings themselves live on a shared filesystem, which the hub reads whenever it
-        is asked. Analysis happens in
-        Microscope; the hub's job is to collect, organize, and serve.
+        Jeffrey Hub is the maintenance service of the shared recording volume. It has no
+        database and no API for Microscope: what's running (workspaces, projects, instances,
+        recording sessions) and the JFR recordings themselves live on a shared filesystem, and
+        the hub's job is to keep that filesystem within its limits by running scheduler jobs on
+        it. Analysis happens in Microscope, which reads the same volume itself.
       </p>
 
       <h2 id="role">Role of the Hub</h2>
       <p>
-        Hub runs as a long-lived process next to your Java fleet. Async-Profiler running
-        inside your applications writes JFR chunks to the shared volume on every recording loop;
-        the hub reads them there on every request — the marker files the provisioner wrote, and the
-        heartbeat files from which it derives each session's status — and serves them over gRPC. The
-        profiler gets its configuration (event toggles, sampling intervals, output paths) from the
-        provisioner that started the JVM — its <code>profiler-command</code> setting or the
+        Hub runs as a long-lived process next to the shared volume. Async-Profiler running
+        inside your applications writes JFR chunks to the volume on every recording loop; the
+        hub's scheduler jobs walk the volume — the project, instance and session directories the
+        provisioner created, whose names are their ids and whose UUIDv7 session names order each
+        instance's sessions — to drop what
+        retention no longer allows and to compress every recording but the newest one of each
+        instance's newest session. The profiler gets its configuration
+        (event toggles, sampling intervals, output paths) from the provisioner that started the
+        JVM — its <code>profiler-command</code> setting or the
         <code>JEFFREY_PROFILER_COMMAND</code> environment variable.
       </p>
 
       <DocsCallout type="info">
         <strong>Full profile analysis stays in Microscope.</strong> Flame graphs and heap dump
-        forensics and the MCP endpoint run in Microscope. Hub never reads a recording itself — it
-        serves the files, and <router-link to="/docs/microscope-mcp/tools#hubs">Microscope’s Hub tools</router-link>
-        pull them in for analysis.
+        forensics and the MCP endpoint run in Microscope. Hub never reads a recording's
+        contents and serves no files — <router-link to="/docs/microscope-mcp/tools#remote">Microscope’s <code>remote_</code> tools</router-link>
+        pull them straight off the volume for analysis.
       </DocsCallout>
 
       <h2 id="components">Components</h2>
       <p>
-        The hub's domain breaks into four layers: domain entities, collection features, gRPC
-        services, and storage.
+        The hub's domain breaks into three layers: domain entities, the scheduler with its jobs,
+        and storage.
       </p>
 
       <DocsArchDiagram variant="hub" />
@@ -83,38 +87,60 @@ onMounted(() => {
       <p>
         Around the hub, the <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link>
         prepares the Async-Profiler agent's JVM arguments before the application starts, and the
-        profiled application writes JFR recordings to the shared filesystem the hub reads from. The
+        profiled application writes JFR recordings to the shared filesystem the hub maintains. The
         <router-link to="/docs/jib">Jeffrey JIB</router-link> module packages the provisioner
         and async-profiler into your application image.
       </p>
 
-      <h2 id="grpc-surface">gRPC Service Surface</h2>
+      <h2 id="scheduler-jobs">Scheduler Jobs</h2>
       <p>
-        Microscope clients and other server-side tools talk to the hub over gRPC. Five services
-        cover the surface:
+        Two jobs run per project on a schedule, each configured under
+        <router-link to="/docs/hub/configuration"><code>jeffrey.hub.scheduler.jobs.*</code></router-link>:
       </p>
 
       <div class="service-chips">
-        <div class="service-chip"><i class="bi bi-collection"></i> Workspaces</div>
-        <div class="service-chip"><i class="bi bi-folder"></i> Projects</div>
-        <div class="service-chip"><i class="bi bi-hdd-network"></i> Instances</div>
-        <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
-        <div class="service-chip"><i class="bi bi-archive"></i> Repository</div>
+        <div class="service-chip"><i class="bi bi-trash3"></i> Project Retention</div>
+        <div class="service-chip"><i class="bi bi-file-zip"></i> Repository Compression</div>
       </div>
 
-      <p>
-        A session's files stream on demand from the Hub when a client asks for them — every chunk,
-        or only the ones covering a window — and the client assembles the recording. See the
-        <router-link to="/docs/hub/grpc-api">gRPC API reference</router-link> for the full
-        service surface.
-      </p>
+      <ul>
+        <li>
+          <strong>Project retention</strong> (<code>ProjectRetentionJob</code>) drops sessions by
+          age and by a per-project session cap, trims each instance's newest session, enforces the storage quota,
+          and cleans up stale instances that never got a session.
+        </li>
+        <li>
+          <strong>Repository compression</strong> (<code>RepositoryCompressionProjectJob</code>)
+          LZ4-compresses JFR chunks once they are finished. Compression happens only here, never
+          on a read path.
+        </li>
+      </ul>
 
-      <h2 id="microscope-connection">How Microscope Connects</h2>
+      <h2 id="web-ui">Web UI</h2>
       <p>
-        Microscope adds a hub with a single gRPC endpoint and an optional auth token, and
-        Microscope handles the rest. From the user's point of view, the connected hub looks
-        identical to a local one — same workspaces, projects, instances, sessions — except
-        recordings are pulled on demand from the hub when the user opens them. See the
+        The hub keeps a small web UI with two pages:
+      </p>
+      <ul>
+        <li>
+          <strong>Storage</strong> — what the last retention pass measured per workspace and
+          project: size, files and last activity
+          (<code>GET /api/internal/storage</code>).
+        </li>
+        <li>
+          <strong>Scheduler</strong> — lists the jobs (<code>GET /api/internal/scheduler/jobs</code>)
+          and runs one now (<code>POST /api/internal/scheduler/jobs/{jobType}/run</code>).
+        </li>
+      </ul>
+
+      <h2 id="microscope">Microscope and the Hub</h2>
+      <p>
+        Microscope never connects to a hub. Its one <strong>remote</strong> is the recording volume
+        on an Azure file share, declared in its configuration with
+        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.azure-files.*</code></router-link>.
+        Microscope lists workspaces, projects, instances and sessions straight off the share, pulls
+        recordings on demand, and makes the user's changes there unless the share is declared
+        read-only. Retention, cleanup and compression stay with the hub's scheduled jobs on that
+        same volume — keep a Jeffrey Hub running on it, or the share only grows. See the
         <router-link to="/docs/microscope/workspaces">Microscope Workspaces</router-link> page
         for the client-side flow.
       </p>
@@ -122,7 +148,7 @@ onMounted(() => {
       <h2 id="storage">Storage</h2>
       <p>
         The shared volume is the hub's only state: workspaces, projects, instances and sessions are
-        its directories and marker files, and the JFR recordings sit inside them, laid out by
+        its directories (no marker files: a workspace is a root folder named by its reference id), and the JFR recordings sit inside them, laid out by
         workspace and project. There is no database, no cache, no object store, and no
         per-profile databases. See the
         <router-link to="/docs/hub/storage">Storage</router-link> page for the directory
@@ -137,7 +163,7 @@ onMounted(() => {
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-/* ===== gRPC service chips ===== */
+/* ===== Job chips ===== */
 .service-chips {
   display: flex;
   flex-wrap: wrap;

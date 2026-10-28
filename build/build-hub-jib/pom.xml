@@ -32,6 +32,8 @@
         <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
         <finalName>jeffrey-hub</finalName>
         <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
+        <!-- A published jeffrey-jib release, for building the image locally. release-hub.yml
+             overrides it with the jar flavour it builds from this release's own provisioner. -->
         <jeffrey-jib-maven.version>0.5.0</jeffrey-jib-maven.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/jeffrey-hub:${project.version}</image.to>
@@ -53,7 +55,7 @@
                 <dependencies>
                     <dependency>
                         <groupId>cafe.jeffrey-analyst</groupId>
-                        <artifactId>jeffrey-jib-maven-native</artifactId>
+                        <artifactId>jeffrey-jib-maven-jar</artifactId>
                         <version>${jeffrey-jib-maven.version}</version>
                     </dependency>
                 </dependencies>
@@ -81,7 +83,6 @@
                         <mainClass>${mainClass}</mainClass>
                         <ports>
                             <port>8080</port>
-                            <port>9090</port>
                         </ports>
                         <environment>
                             <JEFFREY_ENABLED>false</JEFFREY_ENABLED>

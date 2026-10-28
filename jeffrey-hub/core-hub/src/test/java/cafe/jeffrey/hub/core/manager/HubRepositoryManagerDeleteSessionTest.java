@@ -17,11 +17,9 @@
 
 package cafe.jeffrey.hub.core.manager;
 
-import cafe.jeffrey.hub.core.project.repository.FilesystemRepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,10 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,8 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HubRepositoryManagerDeleteSessionTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-    private static final Instant NOW = T0.plusSeconds(3600);
-    private static final ProjectInfo PROJECT = new ProjectInfo("project-1", "project", "ws", T0, Map.of());
+    private static final ProjectInfo PROJECT = new ProjectInfo("project", "ws", T0);
 
     @TempDir
     Path workspacesDir;
@@ -56,24 +50,41 @@ class HubRepositoryManagerDeleteSessionTest {
 
     @BeforeEach
     void setUp() {
-        Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.id(), PROJECT.name(), T0);
-        instance = TestVolume.instance(project, "pod-a", T0);
-        manager = new HubRepositoryManager(PROJECT, new FilesystemRepositoryStorage(
-                PROJECT, project, TestVolume.liveness(Clock.fixed(NOW, ZoneOffset.UTC))));
+        Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.id());
+        instance = TestVolume.instance(project, "pod-a");
+        manager = new HubRepositoryManager(PROJECT,
+                TestVolume.storage(PROJECT, workspacesDir, project));
     }
 
-    private Path finishedSession(String id, Instant createdAt) {
-        Path session = TestVolume.session(instance, id, createdAt);
-        TestVolume.finished(session, createdAt.plusSeconds(60));
-        return session;
+    private static final String FIRST = TestVolume.sessionId(T0);
+
+    private Path session(Instant start) {
+        return TestVolume.session(instance, start);
+    }
+
+    /**
+     * Pins and liveness files from before they were dropped are hidden entries like any other: they
+     * protect nothing, and the session goes with them.
+     */
+    @Test
+    void aLeftoverPinOrLivenessFileDoesNotKeepTheSession() throws IOException {
+        Path older = session(T0);
+        session(T0.plusSeconds(600));
+        Files.createFile(older.resolve(".retained"));
+        Files.createDirectories(older.resolve(".heartbeat"));
+        Files.writeString(older.resolve(".heartbeat").resolve("finished"), "0");
+
+        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession(FIRST));
+
+        assertFalse(Files.exists(older));
     }
 
     @Test
     void deletesTheSessionAndKeepsAnInstanceThatStillHasOne() {
-        Path older = finishedSession("s-1", T0);
-        Path newer = finishedSession("s-2", T0.plusSeconds(600));
+        Path older = session(T0);
+        Path newer = session(T0.plusSeconds(600));
 
-        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
+        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession(FIRST));
 
         assertFalse(Files.exists(older));
         assertTrue(Files.exists(newer));
@@ -82,40 +93,35 @@ class HubRepositoryManagerDeleteSessionTest {
 
     @Test
     void deletesTheInstanceWithItsLastSession() {
-        finishedSession("s-1", T0);
+        session(T0);
 
-        assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, manager.deleteRecordingSession("s-1"));
+        assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, manager.deleteRecordingSession(FIRST));
 
         assertFalse(Files.exists(instance));
     }
 
-    /**
-     * A directory the provisioner created but has not described yet is a session about to start,
-     * and its profiler may already be writing into it: the instance stays.
-     */
+    /** Any directory left in the instance keeps it: the instance goes only when it is empty. */
     @Test
-    void keepsTheInstanceWhileADirectoryWithoutAMarkerIsInIt() throws IOException {
-        finishedSession("s-1", T0);
-        Path starting = Files.createDirectories(instance.resolve("s-2"));
+    void keepsTheInstanceWhileAnyDirectoryIsInIt() throws IOException {
+        session(T0);
+        Path starting = Files.createDirectories(instance.resolve("about-to-start"));
 
-        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession("s-1"));
+        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession(FIRST));
 
         assertTrue(Files.exists(starting));
     }
 
     @Test
-    void aSessionWithACorruptMarkerIsNoSession() throws IOException {
-        Path corrupt = Files.createDirectories(instance.resolve("s-1"));
-        Files.writeString(corrupt.resolve(JeffreyLayout.SESSION_INFO_FILE), "{not json");
+    void aDirectoryNotNamedForItsStartIsNoSession() throws IOException {
+        Path other = Files.createDirectories(instance.resolve("not-a-session"));
 
-        assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("s-1"));
-        assertFalse(manager.setSessionRetained("s-1", true), "pinning answers the same as deleting");
-        assertTrue(Files.exists(corrupt));
+        assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("not-a-session"));
+        assertTrue(Files.exists(other));
     }
 
     @Test
     void aSessionThatIsNotThereFreesNothing() {
-        finishedSession("s-1", T0);
+        session(T0);
 
         assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("ghost"));
         assertTrue(Files.exists(instance));

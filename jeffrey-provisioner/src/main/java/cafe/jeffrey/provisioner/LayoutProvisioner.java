@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.HeartbeatConstants;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 
 /**
  * Creates the directory tree a run needs, up to and including its session directory. The
@@ -45,17 +45,12 @@ public class LayoutProvisioner {
         return new ProjectLayout(jeffreyHome, workspaces, workspace, project);
     }
 
-    /**
-     * Creates the session directory and the heartbeat directory, which is laid down whether or not
-     * the session declared liveness: the library creates it too, and a directory that is already
-     * there is one fewer thing to fail on a read-only or slow mount.
-     */
-    public SessionLayout provisionSession(ProjectLayout layout, Path sessionPath) throws IOException {
+    /** Creates the session directory. */
+    public SessionLayout provisionSession(ProjectLayout layout, Path sessionPath, ZoneOffset offset) throws IOException {
         Path session = createDirectories(sessionPath);
-        createDirectories(session.resolve(HeartbeatConstants.HEARTBEAT_DIR));
 
         LOG.debug("Session directory created: sessionPath={}", session);
-        return layout.withSession(session);
+        return layout.withSession(session, offset);
     }
 
     public static Path createDirectories(Path path) throws IOException {

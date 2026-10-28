@@ -19,12 +19,8 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import SettingsResponse from '@/services/api/model/SettingsResponse';
 
 export default class ProjectSettingsClient extends BasePlatformClient {
-  constructor(hubId: string, workspaceId: string, projectId: string) {
-    super(`/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}/settings`);
-  }
-
-  updateName(name: string): Promise<void> {
-    return super.post<void>('', { name });
+  constructor(workspaceId: string, projectId: string) {
+    super(`/remote/workspaces/${workspaceId}/projects/${projectId}/settings`);
   }
 
   fetch(): Promise<SettingsResponse> {

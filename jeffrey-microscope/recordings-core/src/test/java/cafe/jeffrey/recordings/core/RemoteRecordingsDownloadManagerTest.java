@@ -17,18 +17,18 @@
 
 package cafe.jeffrey.recordings.core;
 
-import cafe.jeffrey.hub.client.FileStreamClient;
-import cafe.jeffrey.hub.client.ProjectScope;
-import cafe.jeffrey.hub.client.RepositoryClient;
-import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
-import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
-import cafe.jeffrey.hub.client.manager.TempDirProvider;
+import cafe.jeffrey.microscope.remote.client.FileStreamClient;
+import cafe.jeffrey.microscope.remote.client.ProjectScope;
+import cafe.jeffrey.microscope.remote.client.RepositoryClient;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
+import cafe.jeffrey.microscope.remote.client.manager.TempDirProvider;
 import cafe.jeffrey.recordings.core.download.FileProgress;
+import cafe.jeffrey.recordings.core.download.JfrChunks;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
-import cafe.jeffrey.microscope.model.repository.RecordingStatus;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -205,12 +205,19 @@ class RemoteRecordingsDownloadManagerTest {
 
     /**
      * Serves the file under a name of the hub's choosing, the way the hub does once the
-     * compression job has replaced a chunk with its archive.
+     * compression job has replaced a chunk with its archive. A {@code .jfr} arrives as one whole
+     * chunk, which is what the receiver checks before it keeps one.
      */
     private static Object feedAs(
             String fileId, String sentAs, FileStreamClient.InputStreamConsumer consumer) throws Exception {
 
-        byte[] bytes = ("bytes-of-" + fileId).getBytes(StandardCharsets.UTF_8);
+        byte[] content = ("bytes-of-" + fileId).getBytes(StandardCharsets.UTF_8);
+        return feed(sentAs.endsWith(".jfr") ? JfrChunks.whole(content) : content, sentAs, consumer);
+    }
+
+    private static Object feed(byte[] bytes, String sentAs, FileStreamClient.InputStreamConsumer consumer)
+            throws Exception {
+
         try (InputStream in = new ByteArrayInputStream(bytes)) {
             consumer.accept(in, new FileStreamClient.TransferredFile(sentAs, bytes.length));
         }
@@ -222,39 +229,33 @@ class RemoteRecordingsDownloadManagerTest {
         return file(id, name, type, CREATED_AT);
     }
 
-    /**
-     * The status column is the one the hub does not send: a file carries none, and the reader
-     * fills it in from the session. It is FINISHED here because these sessions have finished.
-     */
+    /** A file as the remote lists it; the download decides from the session, never from its newest flag. */
     private static RepositoryFileResponse file(
             String id, String name, ManagedFile type, Instant createdAt) {
         return new RepositoryFileResponse(
-                id, name, createdAt.toEpochMilli(), 1024L, type, RecordingStatus.FINISHED,
-                type == ManagedFile.JFR);
+                id, name, createdAt.toEpochMilli(), 1024L, type, false, type == ManagedFile.JFR);
     }
 
     /** A chunk a profiler was stopped before it wrote anything into. */
     private static RepositoryFileResponse emptyFile(String id, String name, Instant createdAt) {
-        return new RepositoryFileResponse(
-                id, name, createdAt.toEpochMilli(), 0L, ManagedFile.JFR, RecordingStatus.FINISHED, true);
+        return new RepositoryFileResponse(id, name, createdAt.toEpochMilli(), 0L, ManagedFile.JFR, false, true);
     }
 
+    /** A session a newer one in its instance has ended: it holds all it ever will. */
     private static RecordingSessionResponse session(RepositoryFileResponse... files) {
+        return session(false, files);
+    }
+
+    /** The instance's newest session, which may still add chunks. */
+    private static RecordingSessionResponse newestSession(RepositoryFileResponse... files) {
+        return session(true, files);
+    }
+
+    private static RecordingSessionResponse session(boolean newest, RepositoryFileResponse... files) {
         return new RecordingSessionResponse(
                 SESSION_ID, "session-name", "inst-1",
                 CREATED_AT.toEpochMilli(), CREATED_AT.plusSeconds(60).toEpochMilli(),
-                RecordingStatus.FINISHED, 60_000L, List.of(files), false, false, false, files.length, sizeOf(files));
-    }
-
-    /**
-     * A session that is still recording, so the newest of these files is the chunk the profiler
-     * holds open and nothing may download it.
-     */
-    private static RecordingSessionResponse liveSession(RepositoryFileResponse... files) {
-        return new RecordingSessionResponse(
-                SESSION_ID, "session-name", "inst-1",
-                CREATED_AT.toEpochMilli(), null,
-                RecordingStatus.ACTIVE, null, List.of(files), false, false, false, files.length, sizeOf(files));
+                newest, 60_000L, List.of(files), false, files.length, sizeOf(files));
     }
 
     /** What the hub reports alongside the files, measured from them. */
@@ -292,7 +293,7 @@ class RemoteRecordingsDownloadManagerTest {
             assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
         }
 
-        /** A finished session's whole copy is the session for good, and is tagged as complete. */
+        /** The whole copy of a session a newer one ended is the session for good, and is tagged complete. */
         @Test
         void tagsTheRecordingWithTheUpstreamSessionId() {
             when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
@@ -306,12 +307,12 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         /**
-         * A copy of a session still recording holds the chunks it had then: it must never be
-         * handed back as the session, so it carries no complete tag.
+         * A copy of the newest session holds the chunks it had then: it must never be handed back
+         * as the session, so it carries no complete tag.
          */
         @Test
-        void aRunningSessionsCopyIsNotTaggedComplete() {
-            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(liveSession(
+        void theNewestSessionsCopyIsNotTaggedComplete() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(newestSession(
                     file("f-1", "profile-1.jfr", ManagedFile.JFR),
                     file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
             servesEveryFile();
@@ -468,6 +469,26 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         /**
+         * A recording taken while the profiler was still writing it into place arrives as a prefix
+         * of itself. Kept, it would parse as a recording that stops early; it fails the download
+         * instead, saying to ask again.
+         */
+        @Test
+        void aRecordingThatArrivedCutShortFailsTheDownload() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(newestSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
+            servesEveryFile();
+            doAnswer(invocation -> feed(JfrChunks.cutShort(), "profile-2.jfr", invocation.getArgument(3)))
+                    .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+
+            CompletionException e = assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
+
+            assertTrue(e.getCause().getMessage().contains("incomplete"), e.getCause().getMessage());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        /**
          * A recording file that did not arrive fails the download. Dropping it the way a missing
          * artifact is dropped would leave a profile with a hole in it that reads as a quiet stretch
          * — the same defect the contiguity rule exists to prevent, reached by a different route.
@@ -578,38 +599,24 @@ class RemoteRecordingsDownloadManagerTest {
         }
 
         /**
-         * On a live session the newest chunk is held open; a window inside it is covered by no
-         * finished chunk, and is refused rather than answered with the older chunk before it.
+         * The newest chunk of the newest session is a chunk like any other: it is on the volume
+         * whole, and a window inside it fetches it, tagged to one measured chunk past its start.
          */
         @Test
-        void aWindowInsideTheOpenChunkOfALiveSessionIsRefused() {
-            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(liveSession(
-                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
-                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
-                    file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40))));
-
-            assertThrows(IllegalArgumentException.class, () -> manager.downloadWindow(SESSION_ID,
-                    new ChunkWindow(CREATED_AT.plusSeconds(45), CREATED_AT.plusSeconds(55))));
-            verify(streamClient, never()).streamFile(any(), any(), any(), any());
-            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
-        }
-
-        /** The last finished chunk of a live session ends where the open one starts, and is tagged so. */
-        @Test
-        void aWindowOnALiveSessionIsTaggedUpToTheOpenChunk() {
-            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(liveSession(
+        void aWindowInsideTheNewestChunkOfTheNewestSessionFetchesIt() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(newestSession(
                     file("f-1", "profile-1.jfr", ManagedFile.JFR),
                     file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
                     file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40))));
             servesEveryFile();
 
-            manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), CREATED_AT.plusSeconds(45)));
+            manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(45), CREATED_AT.plusSeconds(55)));
 
             Map<String, String> expectedTags = sessionTags();
             expectedTags.put(OriginContext.TAG_WINDOW,
-                    CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli());
+                    CREATED_AT.plusSeconds(40).toEpochMilli() + "-" + SESSION_END.toEpochMilli());
             verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
-            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-3"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
         }
 
         /**
@@ -665,22 +672,6 @@ class RemoteRecordingsDownloadManagerTest {
             verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
-        /**
-         * An unfinished file is one the session does not hold yet, and reads the same way: named
-         * rather than quietly left out of the recording that comes back.
-         */
-        @Test
-        void anUnfinishedFileIsRefusedRatherThanDropped() {
-            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(liveSession(
-                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
-                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
-
-            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
-
-            assertTrue(e.getMessage().contains("f-2"), e.getMessage());
-            verify(streamClient, never()).streamFile(any(), any(), any(), any());
-        }
 
         /**
          * A gapped pick still yields a recording claiming a span half of which it does not hold:

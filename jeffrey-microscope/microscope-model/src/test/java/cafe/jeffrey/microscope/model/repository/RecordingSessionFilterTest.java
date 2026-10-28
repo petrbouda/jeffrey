@@ -35,9 +35,9 @@ class RecordingSessionFilterTest {
     private static final Instant NOW = Instant.parse("2026-03-01T12:00:00Z");
     private static final Instant ONE_HOUR_AGO = NOW.minus(Duration.ofHours(1));
 
-    private static RecordingSession session(String id, Instant createdAt, Instant finishedAt) {
-        RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
-        return new RecordingSession(id, id, "inst-1", createdAt, finishedAt, status, null, List.of(), false);
+    /** A session that started at {@code createdAt} and whose recorded data ends at {@code lastDataAt}. */
+    private static RecordingSession session(String id, Instant createdAt, Instant lastDataAt) {
+        return new RecordingSession(id, id, "inst-1", createdAt, lastDataAt, false, null, List.of(), false);
     }
 
     private static List<String> ids(List<RecordingSession> sessions) {
@@ -47,17 +47,23 @@ class RecordingSessionFilterTest {
     @Nested
     class Window {
 
-        private final RecordingSessionFilter lastHour = new RecordingSessionFilter(ONE_HOUR_AGO, NOW, null, 0);
+        private final RecordingSessionFilter lastHour = new RecordingSessionFilter(ONE_HOUR_AGO, NOW, 0);
 
         @Test
-        void stillRunningSessionStartedLongAgoOverlapsTheWindow() {
-            RecordingSession running = session("running", NOW.minus(Duration.ofHours(3)), null);
+        void sessionStartedLongAgoWhoseDataIsRecentOverlapsTheWindow() {
+            RecordingSession running = session("running", NOW.minus(Duration.ofHours(3)), NOW.minus(Duration.ofMinutes(10)));
 
             assertTrue(lastHour.matches(running));
         }
 
         @Test
-        void sessionFinishedInsideTheWindowMatches() {
+        void sessionWithNoDataYetReachesOnlyAsFarAsItsStart() {
+            assertTrue(lastHour.matches(session("just-started", NOW.minus(Duration.ofMinutes(5)), null)));
+            assertFalse(lastHour.matches(session("never-recorded", NOW.minus(Duration.ofHours(3)), null)));
+        }
+
+        @Test
+        void sessionWhoseDataEndsInsideTheWindowMatches() {
             RecordingSession finished = session("finished", NOW.minus(Duration.ofHours(3)), NOW.minus(Duration.ofMinutes(30)));
 
             assertTrue(lastHour.matches(finished));
@@ -71,7 +77,7 @@ class RecordingSessionFilterTest {
         }
 
         @Test
-        void sessionFinishedBeforeTheWindowOpenedDoesNotMatch() {
+        void sessionWhoseDataEndedBeforeTheWindowOpenedDoesNotMatch() {
             RecordingSession old = session("old", NOW.minus(Duration.ofHours(5)), NOW.minus(Duration.ofHours(2)));
 
             assertFalse(lastHour.matches(old));
@@ -95,9 +101,9 @@ class RecordingSessionFilterTest {
 
         @Test
         void openEndedWindowOnlyChecksTheSetBound() {
-            RecordingSessionFilter since = new RecordingSessionFilter(ONE_HOUR_AGO, null, null, 0);
-            RecordingSessionFilter until = new RecordingSessionFilter(null, ONE_HOUR_AGO, null, 0);
-            RecordingSession recent = session("recent", NOW.minus(Duration.ofMinutes(5)), null);
+            RecordingSessionFilter since = new RecordingSessionFilter(ONE_HOUR_AGO, null, 0);
+            RecordingSessionFilter until = new RecordingSessionFilter(null, ONE_HOUR_AGO, 0);
+            RecordingSession recent = session("recent", NOW.minus(Duration.ofMinutes(5)), NOW.minus(Duration.ofMinutes(1)));
             RecordingSession old = session("old", NOW.minus(Duration.ofHours(5)), NOW.minus(Duration.ofHours(2)));
 
             assertTrue(since.matches(recent));
@@ -118,30 +124,10 @@ class RecordingSessionFilterTest {
     }
 
     @Nested
-    class Status {
-
-        @Test
-        void nullStatusMatchesEveryStatus() {
-            RecordingSessionFilter any = new RecordingSessionFilter(null, null, null, 0);
-
-            assertTrue(any.matches(session("active", NOW, null)));
-            assertTrue(any.matches(session("finished", NOW, NOW)));
-        }
-
-        @Test
-        void statusRestrictsToThatStatusOnly() {
-            RecordingSessionFilter activeOnly = RecordingSessionFilter.ALL.withStatus(RecordingStatus.ACTIVE);
-
-            assertTrue(activeOnly.matches(session("active", NOW, null)));
-            assertFalse(activeOnly.matches(session("finished", NOW, NOW)));
-        }
-    }
-
-    @Nested
     class Apply {
 
         private final List<RecordingSession> newestFirst = List.of(
-                session("s4-running", NOW.minus(Duration.ofMinutes(10)), null),
+                session("s4-running", NOW.minus(Duration.ofMinutes(10)), NOW.minus(Duration.ofMinutes(1))),
                 session("s3-recent", NOW.minus(Duration.ofMinutes(50)), NOW.minus(Duration.ofMinutes(20))),
                 session("s2-old", NOW.minus(Duration.ofHours(4)), NOW.minus(Duration.ofHours(3))),
                 session("s1-older", NOW.minus(Duration.ofHours(8)), NOW.minus(Duration.ofHours(7))));
@@ -154,7 +140,7 @@ class RecordingSessionFilterTest {
 
         @Test
         void windowKeepsOrderAndDropsNonMatching() {
-            RecordingSessionFilter lastHour = new RecordingSessionFilter(ONE_HOUR_AGO, NOW, null, 0);
+            RecordingSessionFilter lastHour = new RecordingSessionFilter(ONE_HOUR_AGO, NOW, 0);
 
             assertEquals(List.of("s4-running", "s3-recent"), ids(lastHour.apply(newestFirst)));
         }
@@ -169,11 +155,9 @@ class RecordingSessionFilterTest {
 
         @Test
         void limitAppliesAfterTheOtherConstraints() {
-            RecordingSessionFilter oneFinished = RecordingSessionFilter.ALL
-                    .withStatus(RecordingStatus.FINISHED)
-                    .withLimit(1);
+            RecordingSessionFilter oneOlder = new RecordingSessionFilter(null, ONE_HOUR_AGO, 0).withLimit(1);
 
-            assertEquals(List.of("s3-recent"), ids(oneFinished.apply(newestFirst)));
+            assertEquals(List.of("s2-old"), ids(oneOlder.apply(newestFirst)));
         }
     }
 
@@ -183,13 +167,13 @@ class RecordingSessionFilterTest {
         @Test
         void rejectsNegativeLimit() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new RecordingSessionFilter(null, null, null, -1));
+                    () -> new RecordingSessionFilter(null, null, -1));
         }
 
         @Test
         void rejectsWindowWhoseStartIsAfterItsEnd() {
             assertThrows(IllegalArgumentException.class,
-                    () -> new RecordingSessionFilter(NOW, ONE_HOUR_AGO, null, 0));
+                    () -> new RecordingSessionFilter(NOW, ONE_HOUR_AGO, 0));
         }
 
         @Test
@@ -200,9 +184,9 @@ class RecordingSessionFilterTest {
 
         @Test
         void acceptsAnInstantWindow() {
-            RecordingSessionFilter atInstant = new RecordingSessionFilter(NOW, NOW, null, 0);
+            RecordingSessionFilter atInstant = new RecordingSessionFilter(NOW, NOW, 0);
 
-            assertTrue(atInstant.matches(session("running", ONE_HOUR_AGO, null)));
+            assertTrue(atInstant.matches(session("running", ONE_HOUR_AGO, NOW)));
         }
     }
 }

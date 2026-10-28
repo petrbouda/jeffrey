@@ -2,9 +2,9 @@
 
 Self-hosted performance analyst for the JVM: ingests JFR recordings and heap dumps (pprof/OTLP too) and turns them into flamegraphs, timeseries, heap analysis and JVM dashboards, plus an MCP server so a coding agent can read the same profiles.
 
-Two deployments, one release: **jeffrey-microscope** (single-user analysis app) and **jeffrey-hub** (multi-workspace server that collects recordings; talks to Microscope over gRPC). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
+Two deployments, one release: **jeffrey-microscope** (single-user analysis app) and **jeffrey-hub** (the maintenance service of the shared recording volume: retention, cleanup and compression jobs; no API to Microscope). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
 
-Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `grpc-proto`, `test-patterns`, `hub-repository`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
+Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `test-patterns`, `hub-repository`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
 
 ## Repository map
 
@@ -12,12 +12,14 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope)
   core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
-  microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles, hubs)
-  grpc-client/ + hub-client/           gRPC clients, aggregated by the HubClients record
+  microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles)
+  remote-client/                       the remote's client interfaces, DTOs and managers, aggregated by the RemoteClients record
+  volume-client/ + azure-files-volume/ the remote clients over the recording volume (writable or read-only), and the
+                                       Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra; AzureFilesAddress)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   recordings-core/ recording-storage-api/ notifications/
-  ui-hubs/                             hub browser: REST controllers + Vue module (@hubs)
+  ui-remote/                           remote browser: REST controllers + Vue module (@remote)
   profiles/                            analysis modules: profile-management (features + REST), recording-parser/
                                        (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser),
                                        profile-{persistence-api,sql-persistence}, flamegraph, timeseries, subsecond,
@@ -25,29 +27,26 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
                                        mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
                                        scoping, hints, findings)
-jeffrey-hub/                           HubApplication (core-hub: gRPC services, scheduler/jobs, web/, volume/ —
-                                       no database: the shared volume is its only state), hub-model,
-                                       pages-hub (minimal Vue UI)
+jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs over the shared volume, web/ (storage
+                                       overview + scheduler), volume/ — no database: the volume is its only state),
+                                       hub-model, pages-hub (Storage and Scheduler pages)
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
-                                       sql-builder, test (@DuckDBTest), hub-api (protos only),
+                                       volume (the recording volume's layout read through a storage port:
+                                       folder names are the state: projects/instances/sessions/files; the hub's reader),
+                                       sql-builder, test (@DuckDBTest, VolumeWriter),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
-jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM; attaches jeffrey-agent from
-                                       jeffrey-agent.path (like profiler-path) unless jeffrey-agent.enabled=false
-jeffrey-agent/                         heartbeat-only Java agent (Java 21), a release asset baked by jeffrey-jib; runs
-                                       jeffrey-heartbeat-core shaded+relocated. Off → liveness only from the
-                                       jeffrey-heartbeat library, which stands down while the agent reports
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
+                                       the argfile that starts it under async-profiler (profiler-path)
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
-utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of three
-                                       independent parts: jeffrey-events, jeffrey-heartbeat-parent
-                                       (dependency-free core shared with jeffrey-agent, library + starter), jeffrey-tracing-parent:
+utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of two
+                                       independent parts: jeffrey-events and jeffrey-tracing-parent:
                                        tracing API on Java 21 + two span storages picked by ServiceLoader —
                                        jeffrey-tracing-scoped-value (ScopedValue, 25, opt-in) and
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
-jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler, agent (release-jib.yml)
-build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native), build-agent-tests
-stubs/                                 jeffrey-hub-stub, outside the reactor (run-hub-stub.sh)
+jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler (release-jib.yml)
+build/                                 build-microscope, build-hub, *-jib, build-provisioner(-native)
 ```
 
 ## Build, run, verify
@@ -63,10 +62,9 @@ npm run dev | build | test | typecheck | format    # build = vue-tsc + vite; `np
 npm run proto:generate                             # after editing flamegraph.proto (also update ProtobufConverter)
 
 ./run-microscope.sh [--clean]                      # Microscope under async-profiler, data in ~/.jeffrey-microscope
-./run-hub-stub.sh                                  # local hub stub (needs hub-api installed in ~/.m2)
 ```
 
-Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design-token-compliance`, `api-contract-reviewer`, `security-reviewer` (MCP, uploads, SQL, gRPC boundaries), `docs-sync-checker`.
+Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design-token-compliance`, `api-contract-reviewer`, `security-reviewer` (MCP, uploads, SQL, volume paths), `docs-sync-checker`.
 
 ### Inspecting DuckDB files
 - Per-profile DB `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (`events`, `threads`, `event_types`, …); core DB `~/.jeffrey-microscope/jeffrey-data.db`.
@@ -81,23 +79,24 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Time:** inject `java.time.Clock`, never `Instant.now()`; elapsed time via `Measuring`. Frontend timestamps are UTC epoch millis, formatted only by `FormattingService`.
 - **Literals:** anything matched, compared, put in SQL or used as config is a named `private static final`; set membership is `Set.of(...).contains`, not an `equals` ladder.
 - **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; Apache-2.0 header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
-- **Frontend shared-first:** check `@shared`, then `@hubs`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
-- **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring/gRPC types — map at the boundary.
+- **Frontend shared-first:** check `@shared`, then `@remote`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
+- **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring types — map at the boundary.
 
 ## Architecture invariants (never)
 
-- **Hub and Microscope share no domain type.** Each maps `shared/hub-api` protos onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
-- **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks and reads them itself.
+- **Microscope reaches exactly one remote** — the recording volume on an Azure file share — declared in configuration only (`jeffrey.microscope.remote.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
+- **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own Storage and Scheduler pages; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
+- **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
+- **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
-- **A recording's files are never joined**; a download is an unbroken run of chunks; the hub serves one file per call and reports only `is_recording`; compression happens in the compression job, never on a read path.
-- **Protos carry no `reserved`**: hub and Microscope ship together, so removed numbers are reused and survivors renumbered.
+- **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the hub's compression job, never on a read path.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
 - Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 112 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 
-JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `shared/test`, `Clock.fixed`, Awaitility for anything async, an in-process test per gRPC service (`FileDownloadGrpcServiceTest` is the pattern). Frontend: Vitest.
+JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `shared/test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
 
 ## Git
 

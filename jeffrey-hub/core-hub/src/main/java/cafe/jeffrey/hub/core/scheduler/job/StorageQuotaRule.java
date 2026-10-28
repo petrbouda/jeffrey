@@ -18,7 +18,6 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +30,10 @@ import java.util.List;
  * Bounds the disk one project occupies to {@code budgetBytes}, which the age rules cannot do: a
  * service writing gigabytes an hour fills the volume long before anything ages out.
  *
- * <p>Reclaims oldest-first in two stages: whole finished sessions, then closed chunks of the live
- * sessions. Retained sessions and open chunks are never touched, so a project pinned entirely to
- * retention may stay over budget; that is logged rather than forced.</p>
+ * <p>Reclaims oldest-first in two stages: whole sessions that a newer one has ended, then closed
+ * chunks of each instance's newest session. The recording that may still be on its way onto the
+ * volume is never touched, so a project may stay a little over budget; that is logged rather than
+ * forced.</p>
  */
 record StorageQuotaRule(long budgetBytes) implements RetentionRule {
 
@@ -56,22 +56,21 @@ record StorageQuotaRule(long budgetBytes) implements RetentionRule {
         LOG.info("Project storage over budget, reclaiming oldest data: project_name={} total_bytes={} budget_bytes={}",
                 pass.projectName(), totalSize, budgetBytes);
 
-        reclaimFinishedSessions(pass);
+        reclaimEndedSessions(pass);
         if (pass.totalSizeBytes() > budgetBytes) {
-            trimLiveSessions(pass);
+            trimNewestSessions(pass);
         }
 
         long remaining = pass.totalSizeBytes();
         if (remaining > budgetBytes) {
-            LOG.warn("Project still over storage budget after reclamation, remaining data is retained or in-flight: "
+            LOG.warn("Project still over storage budget after reclamation, remaining data is still being written: "
                     + "project_name={} total_bytes={} budget_bytes={}", pass.projectName(), remaining, budgetBytes);
         }
     }
 
-    private void reclaimFinishedSessions(ProjectRetentionPass pass) {
+    private void reclaimEndedSessions(ProjectRetentionPass pass) {
         List<RecordingSession> deletable = pass.sessions().stream()
-                .filter(session -> session.finishedAt() != null)
-                .filter(session -> !session.retained())
+                .filter(session -> !session.newest())
                 .sorted(OLDEST_FIRST)
                 .toList();
 
@@ -86,20 +85,19 @@ record StorageQuotaRule(long budgetBytes) implements RetentionRule {
         }
     }
 
-    private void trimLiveSessions(ProjectRetentionPass pass) {
-        List<RecordingSession> live = pass.sessions().stream()
-                .filter(session -> session.status() == RecordingStatus.ACTIVE)
-                .filter(session -> !session.retained())
+    private void trimNewestSessions(ProjectRetentionPass pass) {
+        List<RecordingSession> newest = pass.sessions().stream()
+                .filter(RecordingSession::newest)
                 .sorted(OLDEST_FIRST)
                 .toList();
 
-        for (RecordingSession session : live) {
+        for (RecordingSession session : newest) {
             long projected = pass.totalSizeBytes();
             if (projected <= budgetBytes) {
                 return;
             }
             List<RepositoryFile> toDelete = new ArrayList<>();
-            for (RepositoryFile file : session.finishedRecordings()) {
+            for (RepositoryFile file : session.trimmableRecordings()) {
                 if (projected <= budgetBytes) {
                     break;
                 }
@@ -108,7 +106,7 @@ record StorageQuotaRule(long budgetBytes) implements RetentionRule {
             }
             if (!toDelete.isEmpty()) {
                 pass.deleteFiles(session, toDelete);
-                LOG.info("Trimmed recordings from live session to reclaim storage: project_name={} session_id={} count={}",
+                LOG.info("Trimmed recordings from a newest session to reclaim storage: project_name={} session_id={} count={}",
                         pass.projectName(), session.id(), toDelete.size());
             }
         }

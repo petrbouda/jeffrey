@@ -34,7 +34,7 @@ import java.util.Optional;
 public interface RecordingMetadataParser {
 
     /**
-     * Reads one recording's metadata. A recording downloaded from a hub is several files, and the
+     * Reads one recording's metadata. A recording downloaded from the remote is several files, and the
      * answer is one recording's worth across all of them — the earliest start and the latest end —
      * because that window anchors the relative timeline every event is written against.
      */

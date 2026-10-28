@@ -18,20 +18,12 @@
 package cafe.jeffrey.microscope.model;
 
 import java.time.Instant;
-import java.util.List;
 
-public record ProjectInstanceInfo(
-        String id,
-        String projectId,
-        String instanceName,
-        ProjectInstanceStatus status,
-        Instant startedAt,
-        Instant finishedAt,
-        int sessionCount,
-        String activeSessionId,
-        List<ProjectInstanceSessionInfo> sessions) {
-
-    public enum ProjectInstanceStatus {
-        PENDING, ACTIVE, FINISHED
-    }
+/**
+ * An instance as the volume names it: its directory, whose name is its id.
+ *
+ * @param startedAt when its directory was created, as the volume lists it; {@code null} on a share
+ *                  that lists no times
+ */
+public record ProjectInstanceInfo(String id, Instant startedAt) {
 }

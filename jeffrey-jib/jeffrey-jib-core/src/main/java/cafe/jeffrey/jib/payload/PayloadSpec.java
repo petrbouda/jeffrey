@@ -90,8 +90,8 @@ public sealed interface PayloadSpec permits PayloadSpec.ArchScoped, PayloadSpec.
     }
 
     /**
-     * A payload that is the same file on every architecture: the provisioner jar and the Jeffrey
-     * agent jar. Stored in the payload jar as {@code <baseName><extension>}.
+     * A payload that is the same file on every architecture: the provisioner jar. Stored in the
+     * payload jar as {@code <baseName><extension>}.
      */
     record Neutral(String baseName, String extension, FilePermissions permissions) implements PayloadSpec {
 

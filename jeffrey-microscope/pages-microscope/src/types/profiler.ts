@@ -94,13 +94,15 @@ export interface ConfigCardDefinition {
 export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
 
 /** Where a custom-profiler command writes its recordings when the output field is left blank. */
-export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
+export const DEFAULT_OUTPUT_FILE = '/tmp/rec-%t.jfr';
 
 /**
  * Where a Jeffrey JIB command writes its recordings when the output field is left blank: the
- * provisioned session's directory, which Jeffrey Provisioner substitutes before the JVM starts.
+ * provisioned session's recording pattern, which Jeffrey Provisioner substitutes before the JVM
+ * starts — the session's directory and a name carrying the machine's UTC offset, because
+ * async-profiler writes `%t` in local time and a name without an offset is read as UTC.
  */
-export const JEFFREY_SESSION_OUTPUT_FILE = '<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr';
+export const JEFFREY_SESSION_OUTPUT_FILE = '<<JEFFREY:FILE_PATTERN>>';
 
 /** The output file a command falls back to, per profiler source. */
 export const DEFAULT_OUTPUT_FILES: Record<ProfilerSource, string> = {

@@ -45,9 +45,9 @@ const customProfilerRuntime = `env:
     value: /opt/async-profiler/libasyncProfiler.so`;
 
 const defaultAgentCommand = `-agentpath:<profiler-path>=start,alloc,lock,event=ctimer,jfrsync=default,\
-loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
+loop=15m,chunksize=5m,file=<session>/rec-%t<offset>.jfr`;
 
-const customProfilerCommand = `profiler-command = "start,event=itimer,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"`;
+const customProfilerCommand = `profiler-command = "start,event=itimer,file=<<JEFFREY:FILE_PATTERN>>"`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -106,16 +106,10 @@ onMounted(() => {
                 <td>Explicit async-profiler path. Setting it declares that the image already provides the library, so the extension does not bake its own copy &mdash; see <a href="#custom-async-profiler">Using Your Own async-profiler</a>.</td>
               </tr>
               <tr>
-                <td><code>agentPath</code></td>
-                <td><code>JEFFREY_AGENT_PATH</code></td>
-                <td>baked: <code>/opt/jeffrey/jeffrey-agent.jar</code>, one file for every architecture</td>
-                <td>Explicit <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> path. Works exactly like <code>profilerPath</code>: setting it declares that the image already provides <code>jeffrey-agent.jar</code>, so the extension does not bake its own copy. The provisioner attaches the jar from this path with <code>-javaagent</code>; nothing is copied into the session.</td>
-              </tr>
-              <tr>
                 <td><code>projectName</code></td>
                 <td><code>JEFFREY_PROJECT_NAME</code></td>
                 <td>the Maven artifactId or Gradle project name</td>
-                <td>The Jeffrey project name. It is a stable identity: it keys the project directory on the shared volume and links every session to the same project on Jeffrey Hub, so pin it here if you ever rename the module. Only the label is safe to change freely.</td>
+                <td>The Jeffrey project name. It is a stable identity: it keys the project directory on the shared volume and links every session to the same project on the volume, so pin it here if you ever rename the module. Only the label is safe to change freely.</td>
               </tr>
               <tr>
                 <td><code>argFile</code></td>
@@ -142,7 +136,7 @@ onMounted(() => {
           extension records its choice in the image as <code>JEFFREY_PROVISIONER_KIND</code>. This is
           the only choice you have over the provisioner: its path is not configurable, because the
           layout it writes is the protocol Jeffrey Hub reads. The flavour's version is a jeffrey-jib
-          release, not a Jeffrey one; which Jeffrey release's provisioner and agent and which
+          release, not a Jeffrey one; which Jeffrey release's provisioner and which
           async-profiler it bundles is recorded in the payload and printed in the build log.
         </DocsCallout>
 
@@ -151,8 +145,8 @@ onMounted(() => {
           &mdash; a version you have qualified, a build with custom patches, or one your base image
           already ships. Point <code>profilerPath</code> at it. That declares <em>this image already
           has that library</em>, so the extension does not bake its own copy and the
-          second one costs you nothing in image size. async-profiler and the Jeffrey Agent
-          (<code>agentPath</code>) are the binaries you can substitute this way: the provisioner has no
+          second one costs you nothing in image size. async-profiler is the only binary you can
+          substitute this way: the provisioner has no
           such property, because the session layout and
           workspace events it writes are the protocol Jeffrey Hub reads, and neither side
           version-checks it.</p>
@@ -202,7 +196,11 @@ onMounted(() => {
           is the safe choice. If yours needs different options, replace the whole command with
           <code>profiler-command</code> rather than fighting the default. Give it the options
           alone and the provisioner passes them to the library <code>profilerPath</code> names;
-          the <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> placeholder keeps it portable:</p>
+          the <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> placeholder keeps it portable &mdash; it
+          expands to the session directory plus <code>rec-%t&lt;offset&gt;.jfr</code>, the
+          machine's UTC offset written into each chunk's name. A <code>file=</code> of your own, such as
+          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/rec-%t.jfr</code>, gets names without an
+          offset, which are read as UTC &mdash; wrong times on a non-UTC machine:</p>
 
         <DocsCodeBlock
           language="hocon"

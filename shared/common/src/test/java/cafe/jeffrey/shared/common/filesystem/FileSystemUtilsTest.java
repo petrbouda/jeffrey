@@ -47,7 +47,7 @@ class FileSystemUtilsTest {
 
         @Test
         void emptyFileReportsZero() throws IOException {
-            Path file = Files.createFile(dir.resolve("profile-20260912-055901.jfr"));
+            Path file = Files.createFile(dir.resolve("rec-20260912-055901.jfr"));
 
             assertEquals(0L, FileSystemUtils.size(file));
         }

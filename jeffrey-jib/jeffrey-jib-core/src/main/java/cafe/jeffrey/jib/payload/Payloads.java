@@ -22,8 +22,6 @@ public abstract class Payloads {
 
     private static final String PROFILER_BASE_NAME = "libasyncProfiler";
     private static final String PROFILER_EXTENSION = ".so";
-    private static final String AGENT_BASE_NAME = "jeffrey-agent";
-    private static final String AGENT_EXTENSION = ".jar";
 
     /**
      * async-profiler, carried by both payload flavours. It is the one payload that is genuinely
@@ -32,12 +30,4 @@ public abstract class Payloads {
      */
     public static final PayloadSpec PROFILER = new PayloadSpec.ArchScoped(
             PROFILER_BASE_NAME, PROFILER_EXTENSION, PayloadPermissions.READABLE);
-
-    /**
-     * The Jeffrey agent, carried by both payload flavours and attached with {@code -javaagent}.
-     * Pure Java on the Java 21 floor, so one file serves every architecture, and it comes from the
-     * same Jeffrey release as the provisioner beside it.
-     */
-    public static final PayloadSpec AGENT = new PayloadSpec.Neutral(
-            AGENT_BASE_NAME, AGENT_EXTENSION, PayloadPermissions.READABLE);
 }

@@ -20,12 +20,13 @@ package cafe.jeffrey.microscope.core.manager.workspace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.hub.client.HubClients;
-import cafe.jeffrey.hub.client.DiscoveryClient;
+import cafe.jeffrey.microscope.remote.client.RemoteClients;
+import cafe.jeffrey.microscope.remote.client.DiscoveryClient;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.RemoteProjectManagerFactory;
-import cafe.jeffrey.microscope.model.hub.HubInfo;
+import cafe.jeffrey.microscope.model.remote.RemoteInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
@@ -39,25 +40,25 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     private static final Logger LOG = LoggerFactory.getLogger(RemoteWorkspaceManager.class);
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final HubInfo hubInfo;
+    private final RemoteInfo remote;
     private final WorkspaceInfo workspaceInfo;
     private final WorkspaceRepository workspaceRepository;
-    private final HubClients hubClients;
+    private final RemoteClients clients;
     private final RemoteProjectManagerFactory projectManagerFactory;
 
     public RemoteWorkspaceManager(
             MicroscopeJeffreyDirs jeffreyDirs,
-            HubInfo hubInfo,
+            RemoteInfo remote,
             WorkspaceInfo workspaceInfo,
             WorkspaceRepository workspaceRepository,
-            HubClients hubClients,
+            RemoteClients clients,
             RemoteProjectManagerFactory projectManagerFactory) {
 
         this.jeffreyDirs = jeffreyDirs;
-        this.hubInfo = hubInfo;
+        this.remote = remote;
         this.workspaceInfo = workspaceInfo;
         this.workspaceRepository = workspaceRepository;
-        this.hubClients = hubClients;
+        this.clients = clients;
         this.projectManagerFactory = projectManagerFactory;
     }
 
@@ -69,7 +70,7 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
     @Override
     public WorkspaceInfo resolveInfo() {
         try {
-            DiscoveryClient.WorkspaceResult result = hubClients.discovery().workspace(workspaceInfo.id());
+            DiscoveryClient.WorkspaceResult result = clients.discovery().workspace(workspaceInfo.id());
             return switch (result.status()) {
                 case AVAILABLE -> result.info();
                 case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
@@ -77,27 +78,34 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 case UNKNOWN -> throw new IllegalStateException("Unknown remote workspace status");
             };
         } catch (Exception e) {
-            LOG.warn("Cannot reach hub, marking as offline: workspaceId={}", workspaceInfo.id());
+            LOG.warn("Cannot reach the remote, marking as offline: workspaceId={}", workspaceInfo.id());
             return workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
         }
     }
 
     @Override
     public ProjectsManager projectsManager() {
-        return new RemoteProjectsManager(hubInfo, workspaceInfo, hubClients, projectManagerFactory);
+        return new RemoteProjectsManager(remote, workspaceInfo, clients, projectManagerFactory);
     }
 
     @Override
     public void delete() {
-        // Best-effort: drop the workspace on the hub via gRPC.
+        // Refused before anything local goes: the remote delete below is best-effort, so a
+        // refusal there would still wipe this workspace's profiles and answer success
+        if (remote.address().readOnly()) {
+            throw Exceptions.invalidRequest("Cannot delete workspace " + workspaceInfo.id()
+                    + ": the remote is declared read-only");
+        }
+
+        // Best-effort: drop the workspace on the remote.
         try {
-            hubClients.discovery().deleteWorkspace(workspaceInfo.id());
+            clients.discovery().deleteWorkspace(workspaceInfo.id());
         } catch (Exception e) {
             LOG.warn("Remote DeleteWorkspace failed; continuing with local cleanup: workspaceId={}",
                     workspaceInfo.id(), e);
 
             // The caller gets 204 either way, so from the outside this delete looks complete while
-            // the hub still holds the workspace. Reconnecting later brings it straight back.
+            // the remote still holds the workspace. The next listing shows it again.
             Notifications.of(NotificationType.WORKSPACE_DELETE_PARTIAL)
                     .attribute("workspaceId", workspaceInfo.id())
                     .errorType(e)

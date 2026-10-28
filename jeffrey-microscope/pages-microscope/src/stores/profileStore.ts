@@ -29,7 +29,6 @@ export interface RecordingWindow {
 }
 
 export interface ProfileWithContext extends Profile {
-  hubId: string;
   workspaceId: string;
   projectId: string;
 }
@@ -49,7 +48,6 @@ const error = ref<string | null>(null);
 const profileId = computed(() => currentProfile.value?.id ?? '');
 const projectId = computed(() => currentProfile.value?.projectId ?? '');
 const workspaceId = computed(() => currentProfile.value?.workspaceId ?? '');
-const hubId = computed(() => currentProfile.value?.hubId ?? '');
 const profileName = computed(() => currentProfile.value?.name ?? '');
 const isLoaded = computed(() => currentProfile.value !== null);
 
@@ -115,7 +113,6 @@ export const profileStore = {
   profileId,
   projectId,
   workspaceId,
-  hubId,
   profileName,
   isLoaded,
   recordingWindow,

@@ -17,38 +17,39 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Scheduler job that compresses closed recording files using LZ4 compression.
  * <p>
- * Each tick compresses every session that is still recording — one per live instance of
- * the project, and a project may have several — and the newest finished one. Older finished
- * sessions were reached by an earlier tick and are skipped.
+ * Each tick compresses, per instance of the project — and a project may have several — its two
+ * newest sessions: the newest, which keeps recording, and the one before it, whose last recording
+ * became complete when the newest started. Older sessions were reached by an earlier tick and are
+ * skipped.
  * <p>
- * Within a session there is nothing further to decide: every closed chunk is compressed, and a
- * session that is still recording keeps the one chunk its profiler holds open out of it. Whether
- * a session is still recording is a fact of the session (its heartbeat files, read by
- * {@code SessionLiveness} when it is listed), never of its position in the project's listing. Compressing the open chunk would
- * compress a prefix of it and then delete the file the profiler is writing into.
+ * Within a session there is nothing further to decide: every closed chunk is compressed, and the
+ * instance's newest session keeps its newest recording out of it — the profiler writes each
+ * recording whole when its loop ends, so that one may still be on its way onto the volume. Which
+ * session is the newest is a fact of the instance (its sessions' order), never of the session's
+ * position in the project's listing. Compressing a recording still being written would compress a
+ * prefix of it and then delete the file the profiler is writing into.
  */
 public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCompressionProjectJob.class);
+
+    /** The newest session and the one it ended: the only sessions a tick can find anything new in. */
+    private static final int SESSIONS_PER_INSTANCE = 2;
 
     private final Duration period;
 
@@ -59,27 +60,16 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
 
     @Override
     protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
-        String projectName = manager.info().name();
+        String projectName = manager.info().id();
         LOG.debug("Starting JFR compression check: project_name={}", projectName);
 
-        // Headers only: compressSession loads the one session it works on with files itself
-        List<RecordingSession> sessions = repositoryStorage.listSessions(SessionDetail.HEADERS);
+        // Only each instance's newest sessions are read, with their files
+        List<RecordingSession> sessions = repositoryStorage.newestSessions(SESSIONS_PER_INSTANCE);
         if (sessions.isEmpty()) {
             LOG.debug("No sessions found for compression: project_name={}", projectName);
             return;
         }
-
-        List<RecordingSession> live = sessions.stream()
-                .filter(session -> session.status() == RecordingStatus.ACTIVE)
-                .toList();
-        Optional<RecordingSession> newestFinished = sessions.stream()
-                .filter(session -> session.status() == RecordingStatus.FINISHED)
-                .max(Comparator.comparing(RecordingSession::createdAt));
-
-        for (RecordingSession session : live) {
-            repositoryStorage.compressSession(session.id());
-        }
-        newestFinished.ifPresent(session -> repositoryStorage.compressSession(session.id()));
+        sessions.forEach(repositoryStorage::compressSession);
     }
 
     @Override

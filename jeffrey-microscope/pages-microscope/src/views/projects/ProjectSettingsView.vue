@@ -26,41 +26,24 @@
       <LoadingState v-if="isLoading" message="Loading project settings..." />
 
       <template v-else>
-        <!-- Top Row: General + Blocking -->
+        <!-- General: the project's name, read-only — it is its folder -->
         <div class="settings-grid">
           <div class="settings-card">
             <div class="settings-card-header">
-              <i class="bi bi-pencil-square"></i>
+              <i class="bi bi-folder"></i>
               <h6>General</h6>
             </div>
-            <form @submit.prevent="saveChanges">
-              <label class="field-label">Project Name</label>
-              <input
-                v-model="projectName"
-                type="text"
-                class="field-input"
-                @input="checkForChanges"
-              />
-              <button
-                type="submit"
-                class="settings-btn settings-btn-primary"
-                :disabled="!hasChanges || isSaving"
-              >
-                <span
-                  v-if="isSaving"
-                  class="spinner-border spinner-border-sm"
-                  role="status"
-                  aria-hidden="true"
-                ></span>
-                <i v-else class="bi bi-check-lg"></i>
-                {{ isSaving ? 'Saving...' : 'Save Changes' }}
-              </button>
-            </form>
+            <span class="field-label">Project Name</span>
+            <span class="project-name-value">{{ projectName }}</span>
+            <p class="field-hint">
+              The name of the project's folder on the share, given by the provisioner. It is also
+              the project's id, so it cannot be changed here.
+            </p>
           </div>
         </div>
 
-        <!-- Danger Zone Bar -->
-        <div class="danger-bar">
+        <!-- Danger Zone Bar: a read-only remote cannot delete a project -->
+        <div v-if="!remoteReadOnly" class="danger-bar">
           <div class="danger-bar-left">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <div>
@@ -157,7 +140,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNavigation } from '@/composables/useNavigation';
 import ProjectSettingsClient from '@/services/api/ProjectSettingsClient';
-import ProjectClient from '@hubs/services/api/ProjectClient';
+import ProjectClient from '@remote/services/api/ProjectClient';
+import { useRemoteReadOnly } from '@remote/composables/useRemoteReadOnly';
 import ToastService from '@shared/services/ToastService';
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -166,18 +150,16 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import '@shared/styles/shared-components.css';
 
 const router = useRouter();
-const { hubId, workspaceId, projectId } = useNavigation();
+const { workspaceId, projectId } = useNavigation();
 
 // Create clients
-const settingsClient = new ProjectSettingsClient(hubId.value, workspaceId.value!, projectId.value!);
-const projectClient = new ProjectClient(hubId.value, workspaceId.value!, projectId.value!);
+const settingsClient = new ProjectSettingsClient(workspaceId.value!, projectId.value!);
+const projectClient = new ProjectClient(workspaceId.value!, projectId.value!);
+const remoteReadOnly = useRemoteReadOnly();
 
 // State variables
-const originalProjectName = ref('');
 const projectName = ref('');
 const isLoading = ref(true);
-const isSaving = ref(false);
-const hasChanges = ref(false);
 
 // Delete project state
 const isDeleting = ref(false);
@@ -189,7 +171,6 @@ onMounted(async () => {
   try {
     isLoading.value = true;
     const settings = await settingsClient.fetch();
-    originalProjectName.value = settings.name;
     projectName.value = settings.name;
     isLoading.value = false;
   } catch (error) {
@@ -198,32 +179,6 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
-
-// Check if the project name has changed
-function checkForChanges() {
-  hasChanges.value = projectName.value !== originalProjectName.value;
-}
-
-// Save changes
-async function saveChanges() {
-  if (!hasChanges.value) {
-    return;
-  }
-
-  try {
-    isSaving.value = true;
-    await settingsClient.updateName(projectName.value);
-    originalProjectName.value = projectName.value;
-    hasChanges.value = false;
-
-    ToastService.success('Success', 'Project name has been updated');
-  } catch (error) {
-    console.error('Failed to update project name:', error);
-    ToastService.error('Error', 'Failed to update project name');
-  } finally {
-    isSaving.value = false;
-  }
-}
 
 // Open delete confirmation modal
 function openDeleteConfirmation() {
@@ -303,32 +258,22 @@ async function deleteProject() {
 }
 
 /* Form */
+.project-name-value {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-base);
+  color: var(--color-dark);
+}
+
+.field-hint {
+  margin: 0.25rem 0 0;
+}
+
 .field-label {
   display: block;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   margin-bottom: 6px;
-}
-
-.field-input {
-  width: 100%;
-  padding: var(--spacing-2) var(--spacing-3);
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-base);
-  background: var(--color-white);
-  color: var(--color-text);
-  outline: none;
-  transition:
-    border-color var(--transition-fast),
-    box-shadow var(--transition-fast);
-  margin-bottom: 12px;
-}
-
-.field-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: var(--focus-ring);
 }
 
 /* Buttons */
@@ -348,26 +293,6 @@ async function deleteProject() {
 .settings-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.settings-btn-primary {
-  background: var(--color-primary);
-  color: var(--color-white);
-}
-
-.settings-btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.settings-btn-outline {
-  background: var(--color-white);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.settings-btn-outline:hover:not(:disabled) {
-  background: var(--color-bg-hover);
-  border-color: var(--color-border-input);
 }
 
 .settings-btn-danger {

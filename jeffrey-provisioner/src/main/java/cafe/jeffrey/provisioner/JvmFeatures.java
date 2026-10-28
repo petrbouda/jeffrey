@@ -39,16 +39,13 @@ public record JvmFeatures(List<JvmFeature> features) {
     /**
      * @param profiler the async-profiler agent, already resolved against the {@code profiler-path} library
      *                 since that decision needs the filesystem and logs its outcome
-     * @param agent    the Jeffrey agent, already resolved against the {@code jeffrey-agent.path} jar
      */
-    public static JvmFeatures of(InitConfig config, JvmFeature.AsyncProfiler profiler, JvmFeature.JeffreyAgent agent) {
+    public static JvmFeatures of(InitConfig config, JvmFeature.AsyncProfiler profiler) {
         return new JvmFeatures(List.of(
                 profiler,
                 new JvmFeature.DebugNonSafepoints(config.isDebugNonSafepointsEnabled()),
                 new JvmFeature.PerfCounters(config.isPerfCountersEnabled()),
                 new JvmFeature.HeapDump(config.resolveHeapDumpType()),
-                new JvmFeature.Heartbeat(),
-                agent,
                 new JvmFeature.TracingEventThresholds(
                         config.isSpanTracingEnabled(), config.getTracingJfrEventSettings()),
                 new JvmFeature.AdditionalOptions(config.getAdditionalJvmOptions())));

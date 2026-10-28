@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -36,29 +37,8 @@ class EnvFileBuilderTest {
     private final EnvFileBuilder builder = new EnvFileBuilder();
 
     private static SessionLayout layout() {
-        return new SessionLayout(JEFFREY_HOME, WORKSPACES_PATH, WORKSPACE_PATH, PROJECT_PATH, SESSION_PATH);
-    }
-
-    @Nested
-    class Heartbeat {
-
-        @Test
-        void namesTheDirectoryInsideTheSession() {
-            // Named outright so the jeffrey-heartbeat library needs no opinion about where inside
-            // a session directory the liveness files belong
-            String result = builder.build(new EnvFileBuilder.Context(layout(), null, false));
-
-            assertTrue(result.contains("export JEFFREY_HEARTBEAT_DIR=" + SESSION_PATH.resolve(".heartbeat")),
-                    result);
-        }
-
-        @Test
-        void neverDecidesWhetherTheApplicationReports() {
-            // Switching the library off is the application's decision alone
-            String result = builder.build(new EnvFileBuilder.Context(layout(), null, false));
-
-            assertFalse(result.contains("JEFFREY_HEARTBEAT_ENABLED"), result);
-        }
+        return new SessionLayout(JEFFREY_HOME, WORKSPACES_PATH, WORKSPACE_PATH, PROJECT_PATH, SESSION_PATH,
+                ZoneOffset.ofHours(1));
     }
 
     @Nested
@@ -106,7 +86,8 @@ class EnvFileBuilderTest {
 
             String result = builder.build(context);
 
-            assertTrue(result.contains("export JEFFREY_FILE_PATTERN=" + SESSION_PATH + "/profile-%t.jfr"));
+            assertTrue(result.contains("export JEFFREY_FILE_PATTERN=" + SESSION_PATH + "/rec-%t+0100.jfr"),
+                    "async-profiler writes %t in local time, so the zone travels in the name");
         }
     }
 
@@ -212,9 +193,8 @@ class EnvFileBuilderTest {
             String result = builder.build(context);
             String[] lines = result.split("\n");
 
-            // JEFFREY_HOME, WORKSPACES, WORKSPACE, PROJECT, SESSION, FILE_PATTERN,
-            // HEARTBEAT_DIR = 7 exports
-            assertEquals(7, lines.length);
+            // JEFFREY_HOME, WORKSPACES, WORKSPACE, PROJECT, SESSION, FILE_PATTERN = 6 exports
+            assertEquals(6, lines.length);
             for (String line : lines) {
                 assertTrue(line.startsWith("export "));
             }

@@ -66,19 +66,19 @@ const router = createRouter({
         }
       ]
     },
-    // Workspace-based routes (nested under hubs)
+    // Workspace-based routes of the configured remote; a workspace itself is a selection in the
+    // remote browser, so its bare paths open the browser with that workspace preselected
     {
-      path: '/hubs/:hubId/workspaces/:workspaceId',
+      path: '/remote/workspaces/:workspaceId',
       component: () => import('@/layout/WorkspaceLayout.vue'),
       children: [
         {
           path: '',
-          redirect: to => `/hubs/${to.params.hubId}/workspaces/${to.params.workspaceId}/projects`
+          redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
         },
         {
           path: 'projects',
-          name: 'workspace-projects',
-          component: () => import('@/views/hubs/HubsView.vue')
+          redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
         },
         {
           path: 'projects/:projectId',
@@ -94,7 +94,7 @@ const router = createRouter({
                   path: '',
                   name: 'project-default',
                   redirect: to =>
-                    `/hubs/${to.params.hubId}/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances/timeline`
+                    `/remote/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances`
                 },
                 {
                   path: 'settings',
@@ -106,12 +106,6 @@ const router = createRouter({
                   path: 'instances',
                   name: 'project-instances-overview',
                   component: () => import('@/views/projects/instances/InstancesOverview.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'instances/timeline',
-                  name: 'project-instances-timeline',
-                  component: () => import('@/views/projects/instances/InstancesTimeline.vue'),
                   meta: { layout: 'project' }
                 },
                 {

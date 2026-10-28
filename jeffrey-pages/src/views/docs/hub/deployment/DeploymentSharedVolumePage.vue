@@ -89,16 +89,11 @@ spec:
 const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME (from sharedVolume.mountPath)
 ├── temp/
 └── workspaces/                              # the Hub's only state — it has no database
-    └── <workspace-ref-id>/
-        ├── .workspace-info.json             # written by the Hub when the workspace is created
-        └── <project-name>/
-            ├── .project-info.json
+    └── <workspace-ref-id>/                  # the workspace is its folder, no marker
+        └── <project-name>/                  # folder names are the ids — no markers anywhere
             └── <instance-id>/
-                ├── .instance-info.json
-                └── <session-id>/            # the JFR recordings land here
-                    ├── .session-info.json
-                    ├── .heartbeat/          # liveness files the Hub derives the status from
-                    └── .retained            # only while the session is pinned against retention`;
+                └── <session-id>/            # a UUIDv7; the JFR recordings land here
+                    └── rec-20261027-085500+0100.jfr`;
 </script>
 
 <template>
@@ -113,13 +108,14 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         Jeffrey Hub and the monitored applications coordinate through a single
         <strong>ReadWriteMany</strong> PersistentVolumeClaim. Every monitored pod writes its
         recordings into <code>${JEFFREY_HOME}/workspaces/</code>; Jeffrey Hub mounts the same PVC
-        and reads what it finds there whenever it is asked — the volume is its only state.
+        and maintains what it finds there with its scheduler jobs — the volume is its only state.
+        Microscope reads the same volume from the Azure file share that backs it.
       </p>
 
       <h2 id="why-shared">Why a Shared Volume?</h2>
       <p>
         It is the recording handoff, and nothing else. The provisioner never talks to Jeffrey Hub
-        directly — it writes files, and the Hub reads them. Binaries do not travel this way: each
+        directly — it writes files, and the Hub retains and compresses them. Binaries do not travel this way: each
         application image carries its own provisioner and async-profiler, baked in at build time by
         the <router-link to="/docs/hub/deployment/jeffrey-jib">JIB extension</router-link>, so a pod
         that starts before Jeffrey Hub still profiles from its first second.
@@ -132,7 +128,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         Azure Files, or any other RWX-capable <code>StorageClass</code>. In dev: a
         <code>hostPath</code> PV (see below). File sizes are read off the directory listing,
         so on a mount that caches attributes — an SMB share such as Azure Files, NFS with a
-        long <code>actimeo</code> — a session that is still recording can list at the size the
+        long <code>actimeo</code> — a session that is still growing can list at the size the
         cache last saw; a low <code>actimeo</code> on the hub's mount keeps the figures current.
       </DocsCallout>
 
@@ -273,10 +269,10 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
       />
 
       <p>
-        The layout is a contract between the provisioner that writes it and the Hub that reads it;
-        both resolve every name from a single shared class, so neither side can drift. See
+        The layout is a contract between the provisioner that writes it and the Hub and Microscope that read it;
+        all resolve every name from a single shared class, so no side can drift. See
         <router-link to="/docs/provisioner/directory-structure">Directory Structure</router-link>
-        for what each marker file carries.
+        for what each folder name means and how the chunk names carry the UTC offset.
       </p>
     </div>
 

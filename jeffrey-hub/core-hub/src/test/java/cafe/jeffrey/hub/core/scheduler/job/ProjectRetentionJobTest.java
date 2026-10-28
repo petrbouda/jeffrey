@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -30,13 +29,11 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.hub.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -77,7 +74,7 @@ class ProjectRetentionJobTest {
     private static final long MB = 1024L * 1024L;
 
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "production", NOW, WorkspaceStatus.AVAILABLE, 1);
+            new WorkspaceInfo("ws-1", NOW, 1);
 
     @Mock
     WorkspacesManager workspacesManager;
@@ -120,16 +117,16 @@ class ProjectRetentionJobTest {
     }
 
     private void stubProject(ProjectManager project, String projectId, RepositoryStorage repositoryStorage) {
-        when(project.info()).thenReturn(new ProjectInfo(projectId, projectId, "ws-1", NOW, Map.of()));
+        when(project.info()).thenReturn(new ProjectInfo(projectId, "ws-1", NOW));
         when(project.repositoryManager()).thenReturn(repositoryManager);
         when(project.repositoryStorage()).thenReturn(repositoryStorage);
     }
 
-    private static RecordingSession finished(String id, Duration age, long size) {
+    /** A session a newer one in its instance has ended, with one recording from its start. */
+    private static RecordingSession ended(String id, Duration age, long size) {
         Instant createdAt = NOW.minus(age);
-        return new RecordingSession(id, id, "inst-1", createdAt, createdAt.plusSeconds(60),
-                RecordingStatus.FINISHED, List.of(new RepositoryFile(id + "-chunk", id + ".jfr", createdAt, size, true, null)),
-                false);
+        return new RecordingSession(id, id, "inst-1", createdAt, false,
+                List.of(new RepositoryFile(id + "-chunk", id + ".jfr", createdAt, size, true, null)));
     }
 
     @Nested
@@ -138,7 +135,7 @@ class ProjectRetentionJobTest {
         @Test
         void listsEachProjectsSessionsOnceWithTheirFiles() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finished("s-1", Duration.ofDays(1), 10 * MB)));
+                    ended("s-1", Duration.ofDays(1), 10 * MB)));
 
             job.execute();
 
@@ -154,9 +151,9 @@ class ProjectRetentionJobTest {
         @Test
         void theQuotaCountsWhatTheAgeWindowAlreadyFreed() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finished("newest", Duration.ofDays(1), 30 * MB),
-                    finished("newer", Duration.ofDays(2), 60 * MB),
-                    finished("aged-out", Duration.ofDays(8), 80 * MB)));
+                    ended("newest", Duration.ofDays(1), 30 * MB),
+                    ended("newer", Duration.ofDays(2), 60 * MB),
+                    ended("aged-out", Duration.ofDays(8), 80 * MB)));
 
             job.execute();
 
@@ -172,15 +169,15 @@ class ProjectRetentionJobTest {
         @Test
         void publishesWhatRemainsOnceTheRulesRan() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finished("newest", Duration.ofDays(1), 30 * MB),
-                    finished("aged-out", Duration.ofDays(8), 80 * MB)));
+                    ended("newest", Duration.ofDays(1), 30 * MB),
+                    ended("aged-out", Duration.ofDays(8), 80 * MB)));
 
             job.execute();
 
             var cached = storageOverview.get();
             assertEquals(NOW, cached.computedAt());
             ProjectStorage project = cached.overview().projects().getFirst();
-            assertEquals("production", project.workspaceName());
+            assertEquals("ws-1", project.workspaceName());
             assertEquals("prj-1", project.projectId());
             assertEquals(30 * MB, project.totalSizeBytes());
             assertEquals(1, project.totalFiles());
@@ -194,7 +191,7 @@ class ProjectRetentionJobTest {
             when(brokenStorage.listSessions(SessionDetail.WITH_FILES)).thenThrow(new IllegalStateException("volume"));
             when(projectsManager.findAll()).thenReturn(List.of(broken, projectManager));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finished("s-1", Duration.ofDays(1), 10 * MB)));
+                    ended("s-1", Duration.ofDays(1), 10 * MB)));
 
             job.execute();
 
@@ -208,8 +205,8 @@ class ProjectRetentionJobTest {
 
         private static final Instant LONG_AGO = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
 
-        private static ProjectInstanceInfo instance(String id, ProjectInstanceStatus status, Instant startedAt, int sessions) {
-            return new ProjectInstanceInfo(id, status, startedAt, null, sessions);
+        private static ProjectInstanceInfo instance(String id, Instant startedAt, int sessions) {
+            return new ProjectInstanceInfo(id, startedAt, sessions);
         }
 
         @BeforeEach
@@ -218,24 +215,24 @@ class ProjectRetentionJobTest {
         }
 
         @Test
-        void deletesAPendingInstanceThatNeverStreamedASession() {
+        void deletesAnInstanceThatNeverStreamedASession() {
             when(storage.instances()).thenReturn(List.of(
-                    instance("abandoned", ProjectInstanceStatus.PENDING, LONG_AGO, 0),
-                    instance("young", ProjectInstanceStatus.PENDING, NOW.minusSeconds(60), 0),
-                    instance("finished", ProjectInstanceStatus.FINISHED, LONG_AGO, 2)));
+                    instance("abandoned", LONG_AGO, 0),
+                    instance("young", NOW.minusSeconds(60), 0),
+                    instance("with-sessions", LONG_AGO, 2)));
 
             job.execute();
 
             verify(storage).deleteInstanceDirectory("abandoned");
             verify(storage, never()).deleteInstanceDirectory("young");
-            verify(storage, never()).deleteInstanceDirectory("finished");
+            verify(storage, never()).deleteInstanceDirectory("with-sessions");
         }
 
         @Test
         void aDirectoryThatCannotBeDeletedDoesNotStopTheNextInstance() {
             when(storage.instances()).thenReturn(List.of(
-                    instance("first", ProjectInstanceStatus.PENDING, LONG_AGO, 0),
-                    instance("second", ProjectInstanceStatus.PENDING, LONG_AGO, 0)));
+                    instance("first", LONG_AGO, 0),
+                    instance("second", LONG_AGO, 0)));
             doThrow(new IllegalStateException("busy")).when(storage).deleteInstanceDirectory("first");
 
             job.execute();
@@ -250,8 +247,8 @@ class ProjectRetentionJobTest {
         @Test
         void describesWhatThePassDeletedAndWhatIsLeft() {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    finished("newest", Duration.ofDays(1), 30 * MB),
-                    finished("aged-out", Duration.ofDays(8), 80 * MB)));
+                    ended("newest", Duration.ofDays(1), 30 * MB),
+                    ended("aged-out", Duration.ofDays(8), 80 * MB)));
 
             String summary = job.runManually();
 

@@ -29,8 +29,8 @@ export default defineConfig({
     // disturbing subpath imports.
     alias: [
       {
-        find: '@hubs',
-        replacement: fileURLToPath(new URL('../ui-hubs/ui', import.meta.url))
+        find: '@remote',
+        replacement: fileURLToPath(new URL('../ui-remote/ui', import.meta.url))
       },
       {
         find: '@shared',

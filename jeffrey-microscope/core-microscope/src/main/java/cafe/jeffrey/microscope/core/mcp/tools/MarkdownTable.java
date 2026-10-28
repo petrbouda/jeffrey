@@ -25,7 +25,7 @@ import java.util.List;
  * A catalogue answer written as a Markdown table, with a note under it saying how to read the columns
  * that need it.
  * <p>
- * The three catalogue tools — the profiles, the recordings, the hub sessions — answer with a table
+ * The three catalogue tools — the profiles, the recordings, the remote sessions — answer with a table
  * rather than with JSON, because a reader scans these and a model picks one id out of them. Each of
  * the three had built its own by appending pipes to a {@link StringBuilder}, and each carried its own
  * copy of the one rule that actually matters: a value containing a pipe splits the cell it is in, so a

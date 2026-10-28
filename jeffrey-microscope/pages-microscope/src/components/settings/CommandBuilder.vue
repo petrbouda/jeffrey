@@ -86,7 +86,7 @@
                       v-model="config.file"
                       type="text"
                       class="form-control"
-                      placeholder="<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"
+                      placeholder="<<JEFFREY:FILE_PATTERN>>"
                       required
                     />
                     <div class="form-help">
@@ -1292,7 +1292,7 @@ generateConfig();
   font-size: 0.8rem;
 }
 
-/* Step Header Styling - Matching HubsView */
+/* Step Header Styling */
 .step-header {
   background: var(--color-white);
   border-radius: 12px;

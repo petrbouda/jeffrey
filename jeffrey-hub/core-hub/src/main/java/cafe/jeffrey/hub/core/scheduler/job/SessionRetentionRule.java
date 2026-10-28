@@ -18,8 +18,6 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.time.Duration;
@@ -27,17 +25,17 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Whole finished sessions, per instance, by two independent rules: older than {@code retention}
- * (measured from the session's start), or beyond the newest {@code maxSessions} logical sessions,
- * where a consecutive run of failed-empty sessions counts as one ({@link InstanceSessionUnits}).
+ * Whole sessions, per instance, by two independent rules: whose last recorded data is older than
+ * {@code retention}, or beyond the newest {@code maxSessions} logical sessions, where a consecutive
+ * run of failed-empty sessions counts as one ({@link InstanceSessionUnits}).
  *
- * <p>Retained sessions never expire and occupy no slot. The live session occupies a slot but is
- * never deleted. An instance that is not FINISHED keeps its newest finished session that produced
- * data, whatever its age or position.</p>
+ * <p>Age is measured from the last data, not the start, so a running JVM's session — its profiler
+ * loops, so its newest chunk is recent — is never aged out, while an instance that stopped goes with
+ * its last session once the window has passed. The cap never takes an instance's newest session:
+ * it is the first unit.</p>
  */
 record SessionRetentionRule(Duration retention, int maxSessions) implements RetentionRule {
 
@@ -49,18 +47,12 @@ record SessionRetentionRule(Duration retention, int maxSessions) implements Rete
 
     @Override
     public void apply(ProjectRetentionPass pass) {
-        Map<String, ProjectInstanceInfo> instancesById = pass.instances().stream()
-                .collect(Collectors.toMap(ProjectInstanceInfo::id, Function.identity()));
-
         Map<String, List<RecordingSession>> sessionsByInstance = pass.sessions().stream()
-                .filter(session -> !session.retained())
                 .collect(Collectors.groupingBy(RecordingSession::instanceId));
 
         List<RecordingSession> expired = new ArrayList<>();
-        for (var entry : sessionsByInstance.entrySet()) {
-            ProjectInstanceInfo instance = instancesById.get(entry.getKey());
-            boolean instanceFinished = instance != null && instance.status() == ProjectInstanceStatus.FINISHED;
-            expired.addAll(expiredOf(InstanceSessionUnits.of(entry.getValue()), instanceFinished, pass.now()));
+        for (List<RecordingSession> sessions : sessionsByInstance.values()) {
+            expired.addAll(expiredOf(InstanceSessionUnits.of(sessions), pass.now()));
         }
 
         int deleted = 0;
@@ -74,29 +66,15 @@ record SessionRetentionRule(Duration retention, int maxSessions) implements Rete
         }
     }
 
-    private List<RecordingSession> expiredOf(InstanceSessionUnits units, boolean instanceFinished, Instant now) {
-        // Neither a failed-empty session nor the live one may take the keep-newest slot: the live
-        // one is safe anyway, and either would leave the newest real session unprotected
-        String protectedSessionId = units.sessionsNewestFirst().stream()
-                .filter(session -> session.finishedAt() != null)
-                .filter(session -> !session.isFailedEmpty())
-                .map(RecordingSession::id)
-                .findFirst()
-                .orElse(null);
-
+    private List<RecordingSession> expiredOf(InstanceSessionUnits units, Instant now) {
+        Instant cutoff = now.minus(retention);
         List<RecordingSession> expired = new ArrayList<>();
         List<List<RecordingSession>> unitList = units.units();
         for (int unitIndex = 0; unitIndex < unitList.size(); unitIndex++) {
             boolean overCap = unitIndex >= maxSessions;
             for (RecordingSession session : unitList.get(unitIndex)) {
-                if (session.finishedAt() == null) {
-                    continue;
-                }
-                if (!instanceFinished && session.id().equals(protectedSessionId)) {
-                    continue;
-                }
-                boolean ageExpired = now.isAfter(session.createdAt().plus(retention));
-                if (ageExpired || overCap) {
+                boolean aged = session.lastRecordingStart().isBefore(cutoff);
+                if (aged || overCap) {
                     expired.add(session);
                 }
             }

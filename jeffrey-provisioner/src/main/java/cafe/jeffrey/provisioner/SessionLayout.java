@@ -17,7 +17,10 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.shared.common.JeffreyLayout;
+
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 
 /**
  * Where a provisioner run put things. Everything downstream — the placeholder source, the
@@ -29,16 +32,22 @@ public record SessionLayout(
         Path workspaces,
         Path workspace,
         Path project,
-        Path session) {
+        Path session,
+        ZoneOffset offset) {
 
     public SessionLayout {
-        if (jeffreyHome == null || workspaces == null || workspace == null || project == null || session == null) {
-            throw new IllegalArgumentException("A session layout needs every directory down to the session");
+        if (jeffreyHome == null || workspaces == null || workspace == null || project == null || session == null
+                || offset == null) {
+            throw new IllegalArgumentException("A session layout needs every directory down to the session and its UTC offset");
         }
     }
 
-    /** The file the profiler writes recordings to, by the session's own naming template. */
-    public Path recordingFilePattern(String template) {
-        return session.resolve(template);
+    /**
+     * The file the profiler writes recordings to, by Jeffrey's naming template with the
+     * machine's UTC offset in it: async-profiler writes {@code %t} in local time, and the offset
+     * after it is what lets every reader turn the name back into an instant.
+     */
+    public Path recordingFilePattern() {
+        return session.resolve(JeffreyLayout.recordingTemplate(offset));
     }
 }

@@ -21,11 +21,11 @@
       <div class="container-fluid">
         <!-- Slim breadcrumb row above the tabs -->
         <div class="project-breadcrumb" aria-label="breadcrumb">
-          <router-link to="/hubs" class="crumb">Hubs</router-link>
+          <router-link to="/remote" class="crumb">Remote</router-link>
           <i class="bi bi-chevron-right crumb-sep"></i>
           <router-link
             v-if="workspaceInfo"
-            :to="{ path: '/hubs', query: { hubId: hubId, workspaceId: workspaceInfo.id } }"
+            :to="{ path: '/remote', query: { workspaceId: workspaceInfo.id } }"
             class="crumb"
           >
             {{ workspaceInfo.name ?? workspaceInfo.id }}
@@ -39,17 +39,9 @@
           <!-- Stacked icon-over-label tabs, matching MainNavigation -->
           <nav class="nav-container" aria-label="Project sections">
             <router-link
-              :to="generateProjectUrl('instances/timeline')"
-              class="nav-pill"
-              active-class="active"
-            >
-              <i class="bi bi-bar-chart-steps"></i>
-              <span>Timeline</span>
-            </router-link>
-            <router-link
               :to="generateProjectUrl('instances')"
               class="nav-pill"
-              :class="{ active: isInstancesActive }"
+              active-class="active"
             >
               <i class="bi bi-grid"></i>
               <span>Instances</span>
@@ -77,38 +69,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import ToastService from '@shared/services/ToastService';
-import ProjectClient from '@hubs/services/api/ProjectClient.ts';
-import Project from '@hubs/services/api/model/Project.ts';
-import WorkspaceClient from '@hubs/services/api/WorkspaceClient.ts';
-import Workspace from '@hubs/services/api/model/Workspace.ts';
+import ProjectClient from '@remote/services/api/ProjectClient.ts';
+import Project from '@remote/services/api/model/Project.ts';
+import WorkspaceClient from '@remote/services/api/WorkspaceClient.ts';
+import Workspace from '@remote/services/api/model/Workspace.ts';
 import { useNavigation } from '@/composables/useNavigation';
 import { PROJECT_NAV_ACTIONS_ID } from './projectNav';
 
-const route = useRoute();
 const router = useRouter();
-const { hubId, workspaceId, projectId, generateProjectUrl } = useNavigation();
+const { workspaceId, projectId, generateProjectUrl } = useNavigation();
 
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
 
-// Prefix-matching would mark Instances active on /instances/timeline (which has its own tab).
-// Custom predicate: active on /instances and /instances/{instanceId} but not on /timeline.
-const isInstancesActive = computed(() => {
-  const path = route.path;
-  return /\/instances(\/[^/]+)?$/.test(path) && !path.endsWith('/instances/timeline');
-});
-
 async function initializeProject() {
-  if (!projectId.value || !workspaceId.value || !hubId.value) {
+  if (!projectId.value || !workspaceId.value) {
     return;
   }
 
   try {
-    const projectClient = new ProjectClient(hubId.value, workspaceId.value, projectId.value);
-    const workspaceClient = new WorkspaceClient(hubId.value);
+    const projectClient = new ProjectClient(workspaceId.value, projectId.value);
+    const workspaceClient = new WorkspaceClient();
 
     const [project, workspace] = await Promise.all([
       projectClient.fetch(),
@@ -123,7 +107,7 @@ async function initializeProject() {
   } catch (error) {
     console.error('Failed to load project:', error);
     ToastService.error('Failed to load project', 'Cannot load project from the server.');
-    await router.push('/hubs');
+    await router.push('/remote');
   }
 }
 

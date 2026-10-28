@@ -18,13 +18,9 @@
 package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.configuration.properties.LivenessProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
-import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
-import cafe.jeffrey.hub.core.volume.FileHeartbeatReader;
-import cafe.jeffrey.hub.core.volume.SessionLiveness;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
+import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,21 +34,15 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * Configuration beans of the hub: its home directory, its clock, and how a session's liveness is
- * read. The volume under the home directory is the hub's only state.
+ * Configuration beans of the hub: its home directory, its clock and the volume under the home
+ * directory, which is the hub's only state.
  */
 @Configuration
 @Import({
         SchedulerConfiguration.class,
-        HeartbeatConfiguration.class,
         VersionFeatureConfiguration.class
 })
-@EnableConfigurationProperties({
-        SchedulerJobsProperties.class,
-        DefaultWorkspaceProperties.class,
-        WorkspacesProperties.class,
-        LivenessProperties.class
-})
+@EnableConfigurationProperties(SchedulerJobsProperties.class)
 @PropertySource("classpath:scheduler-defaults.properties")
 public class HubAppConfiguration {
 
@@ -71,8 +61,9 @@ public class HubAppConfiguration {
         return jeffreyDirs;
     }
 
+    /** The shared volume the hub reads and maintains: its workspaces directory. */
     @Bean
-    public SessionLiveness sessionLiveness(Clock applicationClock, LivenessProperties livenessProperties) {
-        return new SessionLiveness(applicationClock, new FileHeartbeatReader(), livenessProperties.deadlines());
+    public FilesystemVolume workspacesVolume(HubJeffreyDirs jeffreyDirs) {
+        return new FilesystemVolume(jeffreyDirs.workspaces());
     }
 }

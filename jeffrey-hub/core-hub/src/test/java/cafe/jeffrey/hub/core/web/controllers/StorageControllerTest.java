@@ -63,6 +63,7 @@ class StorageControllerTest {
                 .hasPathSatisfying("$.projects[0].totalSizeBytes", v -> assertThat(v).asNumber().isEqualTo(27_100_000_000L))
                 .hasPathSatisfying("$.projects[0].totalFiles", v -> assertThat(v).asNumber().isEqualTo(342))
                 .hasPathSatisfying("$.projects[0].lastActivityTimeMillis", v -> assertThat(v).asNumber().isEqualTo(1_775_000_000_000L))
+                .doesNotHavePath("$.projects[0].active")
                 .doesNotHavePath("$.projects[0].fileTypes")
                 .doesNotHavePath("$.projects[0].largestFiles");
     }

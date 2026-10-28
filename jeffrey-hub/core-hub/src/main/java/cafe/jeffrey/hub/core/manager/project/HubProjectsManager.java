@@ -21,11 +21,10 @@ import cafe.jeffrey.hub.core.volume.ProjectDirectory;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
- * The projects of one workspace: its child directories with a {@code .project-info.json}, each
- * known by the provisioner's project id from that marker.
+ * The projects of one workspace: its visible child directories, each known by its directory name
+ * — the project name the provisioner was configured with.
  */
 public class HubProjectsManager implements ProjectsManager {
 
@@ -42,14 +41,6 @@ public class HubProjectsManager implements ProjectsManager {
         return projectDirectories().stream()
                 .map(projectManagerFactory)
                 .toList();
-    }
-
-    @Override
-    public Optional<ProjectManager> project(String projectId) {
-        return projectDirectories().stream()
-                .filter(project -> project.info().id().equals(projectId))
-                .findFirst()
-                .map(projectManagerFactory);
     }
 
     private List<ProjectDirectory> projectDirectories() {

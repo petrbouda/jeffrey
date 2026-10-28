@@ -25,7 +25,6 @@ export function useNavigation() {
   const router = useRouter();
 
   // Route params (with profileStore fallback for the simplified profile URL pattern)
-  const hubId = computed(() => (route.params.hubId as string) || profileStore.hubId.value);
   const workspaceId = computed(
     () => (route.params.workspaceId as string) || profileStore.workspaceId.value
   );
@@ -42,20 +41,11 @@ export function useNavigation() {
     () => route.path.startsWith('/profiles/') && !route.params.workspaceId
   );
 
-  const projectRoot = (hId: string, wId: string, pId: string) =>
-    `/hubs/${hId}/workspaces/${wId}/projects/${pId}`;
+  const projectRoot = (wId: string, pId: string) => `/remote/workspaces/${wId}/projects/${pId}`;
 
-  const navigateToWorkspace = (hId: string, wId: string) => {
-    router.push(`/hubs/${hId}/workspaces/${wId}`);
-  };
-
-  const navigateToWorkspaceProjects = (hId: string, wId: string) => {
-    router.push(`/hubs/${hId}/workspaces/${wId}/projects`);
-  };
-
-  const navigateToProject = (hId: string, pId: string, wId?: string) => {
+  const navigateToProject = (pId: string, wId?: string) => {
     const targetWorkspaceId = wId || workspaceId.value;
-    router.push(projectRoot(hId, targetWorkspaceId, pId));
+    router.push(projectRoot(targetWorkspaceId, pId));
   };
 
   /**
@@ -67,20 +57,18 @@ export function useNavigation() {
 
   /**
    * Navigate back to the project's recordings list.
-   * Uses hubId/workspaceId/projectId from profileStore when using simplified URLs.
+   * Uses workspaceId/projectId from profileStore when using simplified URLs.
    */
-  const navigateToProjectRecordings = (hId?: string, wId?: string, pId?: string) => {
-    const targetHubId = hId || hubId.value;
+  const navigateToProjectRecordings = (wId?: string, pId?: string) => {
     const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    router.push(`${projectRoot(targetHubId, targetWorkspaceId, targetProjectId)}/recordings`);
+    router.push(`${projectRoot(targetWorkspaceId, targetProjectId)}/recordings`);
   };
 
-  const generateProjectUrl = (path: string, hId?: string, pId?: string, wId?: string) => {
-    const targetHubId = hId || hubId.value;
+  const generateProjectUrl = (path: string, pId?: string, wId?: string) => {
     const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    return `${projectRoot(targetHubId, targetWorkspaceId, targetProjectId)}/${path}`;
+    return `${projectRoot(targetWorkspaceId, targetProjectId)}/${path}`;
   };
 
   /**
@@ -94,30 +82,22 @@ export function useNavigation() {
   /**
    * Generate an instance URL within a project.
    */
-  const generateInstanceUrl = (
-    instId: string,
-    path?: string,
-    hId?: string,
-    pId?: string,
-    wId?: string
-  ) => {
-    const targetHubId = hId || hubId.value;
+  const generateInstanceUrl = (instId: string, path?: string, pId?: string, wId?: string) => {
     const targetWorkspaceId = wId || workspaceId.value;
     const targetProjectId = pId || projectId.value;
-    const basePath = `${projectRoot(targetHubId, targetWorkspaceId, targetProjectId)}/instances/${instId}`;
+    const basePath = `${projectRoot(targetWorkspaceId, targetProjectId)}/instances/${instId}`;
     return path ? `${basePath}/${path}` : basePath;
   };
 
   /**
    * Navigate to an instance detail page.
    */
-  const navigateToInstance = (instId: string, hId?: string, pId?: string, wId?: string) => {
-    router.push(generateInstanceUrl(instId, undefined, hId, pId, wId));
+  const navigateToInstance = (instId: string, pId?: string, wId?: string) => {
+    router.push(generateInstanceUrl(instId, undefined, pId, wId));
   };
 
   return {
     // Route params (with profileStore fallback)
-    hubId,
     workspaceId,
     projectId,
     profileId,
@@ -127,8 +107,6 @@ export function useNavigation() {
     isSimplifiedProfileUrl,
 
     // Navigation functions
-    navigateToWorkspace,
-    navigateToWorkspaceProjects,
     navigateToProject,
     navigateToProfile,
     navigateToProjectRecordings,

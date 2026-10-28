@@ -19,10 +19,11 @@
 /**
  * The high-level architecture picture, shared by every page that shows it.
  *
- * `full` is the canonical one — Microscope and the Hub side by side over the shared
- * filesystem the container writes into. `hub` drops the Microscope column for pages
- * written from the Hub's side. `tracing` is `full` with the gRPC link spelling out
- * what Microscope pulls across it, which is the subject of the Provisioner & Hub page.
+ * `full` is the canonical one — Microscope and the Hub side by side, with no link between
+ * them: both work on the shared recording volume the container writes into. `hub` drops the
+ * Microscope column for pages written from the Hub's side. `tracing` is `full` with
+ * Microscope's arrow spelling out what it pulls off the volume, which is the subject of the
+ * Provisioner & Hub page.
  */
 withDefaults(defineProps<{
   variant?: 'full' | 'hub' | 'tracing';
@@ -72,15 +73,9 @@ withDefaults(defineProps<{
         </div>
       </div>
 
-      <!-- gRPC connection -->
-      <div v-if="variant !== 'hub'" class="arch-grpc-link">
-        <div class="grpc-line"></div>
-        <div class="grpc-label" :class="{ 'grpc-detailed': variant === 'tracing' }">
-          <i class="bi bi-arrow-left-right"></i>
-          <span>gRPC</span>
-          <small v-if="variant === 'tracing'" class="grpc-detail">catalog + streamed download</small>
-        </div>
-        <div class="grpc-line"></div>
+      <!-- No direct link: the two only meet on the shared volume -->
+      <div v-if="variant !== 'hub'" class="arch-no-link">
+        <small>no direct link</small>
       </div>
 
       <!-- Jeffrey Hub -->
@@ -119,20 +114,29 @@ withDefaults(defineProps<{
       </div>
     </div>
 
-    <!-- Shared filesystem + the container that writes into it, aligned under the Hub -->
-    <div class="arch-bottom-row">
-      <div v-if="variant !== 'hub'" class="arch-bottom-spacer"></div>
-      <div v-if="variant !== 'hub'" class="arch-bottom-connector-spacer"></div>
+    <!-- Shared filesystem: Microscope reads it from the Azure file share, the Hub maintains it -->
+    <div class="arch-bottom" :class="{ 'server-only': variant === 'hub' }">
+      <div class="arch-arrows-row">
+        <div v-if="variant !== 'hub'" class="arch-arrow-col">
+          <div class="arch-reads-arrow microscope-arrow">
+            <small>{{ variant === 'tracing' ? 'lists + downloads chunks' : 'reads &amp; downloads' }}</small>
+            <i class="bi bi-arrow-down"></i>
+          </div>
+        </div>
+        <div v-if="variant !== 'hub'" class="arch-bottom-connector-spacer"></div>
+        <div class="arch-arrow-col">
+          <div class="arch-reads-arrow">
+            <small>retention &amp; compression</small>
+            <i class="bi bi-arrow-down"></i>
+          </div>
+        </div>
+      </div>
+      <div class="arch-shared-fs">
+        <i class="bi bi-hdd-stack"></i>
+        <span>Shared Filesystem</span>
+        <small>{{ variant === 'hub' ? 'NFS / PVC' : 'NFS / PVC · Azure file share' }}</small>
+      </div>
       <div class="arch-bottom-server-col">
-        <div class="arch-reads-arrow">
-          <small>{{ variant === 'tracing' ? 'reads on every request' : 'reads' }}</small>
-          <i class="bi bi-arrow-down"></i>
-        </div>
-        <div class="arch-shared-fs">
-          <i class="bi bi-hdd-stack"></i>
-          <span>Shared Filesystem</span>
-          <small>NFS / PVC</small>
-        </div>
         <div class="arch-write-labels-row">
           <div class="arch-write-label cli-write">
             <i class="bi bi-arrow-up"></i>
@@ -160,10 +164,6 @@ withDefaults(defineProps<{
               <div class="arch-java-app">
                 <i class="bi bi-cpu"></i>
                 <span>Java Application</span>
-                <div class="arch-agent-badge">
-                  <i class="bi bi-heart-pulse"></i>
-                  <span>jeffrey-agent</span>
-                </div>
               </div>
             </div>
           </div>
@@ -280,8 +280,6 @@ withDefaults(defineProps<{
 
 .arch-chip.vue { background: #d1fae5; color: #065f46; }
 .arch-chip.rest { background: #dbeafe; color: #1e40af; }
-.arch-chip.grpc-c { background: #ede9fe; color: #6d28d9; }
-.arch-chip.grpc-s { background: #ede9fe; color: #6d28d9; }
 .arch-chip.analysis { background: #fef3c7; color: #92400e; }
 .arch-chip.mcp { background: #cffafe; color: #155e75; }
 .arch-chip.scheduler { background: #e0e7ff; color: #3730a3; }
@@ -350,45 +348,44 @@ withDefaults(defineProps<{
   color: #92400e;
 }
 
-/* gRPC link between apps */
-.arch-grpc-link {
+/* Gap between apps: they share no link, only the volume below */
+.arch-no-link {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 0 0.5rem;
   min-width: 80px;
 }
 
-.grpc-line {
-  width: 2px;
-  height: 24px;
-  background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 100%);
+.arch-no-link small {
+  font-size: 0.6rem;
+  font-style: italic;
+  color: #94a3b8;
+  text-align: center;
 }
 
-.grpc-label {
+/* Bottom: arrows from both apps, the shared filesystem, and the container writing into it */
+.arch-bottom {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.3rem 0.6rem;
-  background: #ede9fe;
-  border-radius: 6px;
-  border: 1px solid #c4b5fd;
+  gap: 0.4rem;
+  width: 100%;
 }
 
-.grpc-label i { color: #7c3aed; font-size: 0.9rem; }
-.grpc-label span { font-size: 0.6rem; color: #6d28d9; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.arch-bottom.server-only {
+  max-width: 560px;
+}
 
-/* Bottom: Shared Filesystem + Java Apps aligned under Server */
-.arch-bottom-row {
+.arch-arrows-row {
   display: flex;
   width: 100%;
-  gap: 0;
 }
 
-.arch-bottom-spacer {
+.arch-arrow-col {
   flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .arch-bottom-connector-spacer {
@@ -397,7 +394,6 @@ withDefaults(defineProps<{
 }
 
 .arch-bottom-server-col {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -413,6 +409,8 @@ withDefaults(defineProps<{
 }
 
 .arch-reads-arrow i { font-size: 0.9rem; }
+
+.arch-reads-arrow.microscope-arrow { color: #4338ca; }
 
 .arch-reads-arrow small {
   font-size: 0.6rem;
@@ -573,20 +571,6 @@ withDefaults(defineProps<{
 .arch-java-app i { color: #ef4444; font-size: 1rem; }
 .arch-java-app span { font-size: 0.65rem; font-weight: 600; color: #991b1b; }
 
-.arch-agent-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  margin-top: 0.25rem;
-  padding: 0.15rem 0.4rem;
-  background: #fef3c7;
-  border: 1px solid #fbbf24;
-  border-radius: 4px;
-}
-
-.arch-agent-badge i { color: #d97706; font-size: 0.65rem; }
-.arch-agent-badge span { font-size: 0.55rem; font-weight: 600; color: #92400e; }
-
 /* Responsive */
 @media (max-width: 768px) {
   .arch-apps {
@@ -594,22 +578,11 @@ withDefaults(defineProps<{
     gap: 0.75rem;
   }
 
-  .arch-grpc-link {
-    flex-direction: row;
-    padding: 0.5rem 0;
+  .arch-no-link {
+    padding: 0.25rem 0;
     min-width: auto;
   }
 
-  .grpc-line {
-    width: 24px;
-    height: 2px;
-  }
-
-  .arch-bottom-row {
-    flex-direction: column;
-  }
-
-  .arch-bottom-spacer,
   .arch-bottom-connector-spacer {
     display: none;
   }
@@ -623,18 +596,5 @@ withDefaults(defineProps<{
 .arch-apps.server-only .arch-app {
   flex: 0 1 520px;
   max-width: 560px;
-}
-
-/* Tracing variant: the gRPC link states what Microscope actually pulls. */
-.grpc-label.grpc-detailed {
-  gap: 0.15rem;
-}
-
-.grpc-label .grpc-detail {
-  font-size: 0.6rem;
-  color: #94a3b8;
-  text-align: center;
-  line-height: 1.3;
-  max-width: 96px;
 }
 </style>

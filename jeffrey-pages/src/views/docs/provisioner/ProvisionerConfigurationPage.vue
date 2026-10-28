@@ -42,20 +42,20 @@ onMounted(() => {
 
 const profilerJibDefault = `# Nothing to set: Jeffrey JIB baked JEFFREY_PROFILER_PATH=/opt/jeffrey/libasyncProfiler.so
 # argfile:
--agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=<session>/rec-%t+0100.jfr`;
 
-const profilerJibOptions = `JEFFREY_PROFILER_COMMAND='start,event=cpu,interval=10ms,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+const profilerJibOptions = `JEFFREY_PROFILER_COMMAND='start,event=cpu,interval=10ms,loop=15m,file=<<JEFFREY:FILE_PATTERN>>'
 # argfile:
--agentpath:/opt/jeffrey/libasyncProfiler.so=start,event=cpu,interval=10ms,loop=15m,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/jeffrey/libasyncProfiler.so=start,event=cpu,interval=10ms,loop=15m,file=<session>/rec-%t+0100.jfr`;
 
 const profilerOwnLibrary = `JEFFREY_PROFILER_PATH=/opt/async-profiler/lib/libasyncProfiler.so
-JEFFREY_PROFILER_COMMAND='start,event=wall,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+JEFFREY_PROFILER_COMMAND='start,event=wall,loop=15m,file=<<JEFFREY:FILE_PATTERN>>'
 # argfile:
--agentpath:/opt/async-profiler/lib/libasyncProfiler.so=start,event=wall,loop=15m,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/async-profiler/lib/libasyncProfiler.so=start,event=wall,loop=15m,file=<session>/rec-%t+0100.jfr`;
 
-const profilerFullCommand = `JEFFREY_PROFILER_COMMAND='-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+const profilerFullCommand = `JEFFREY_PROFILER_COMMAND='-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<<JEFFREY:FILE_PATTERN>>'
 # argfile (JEFFREY_PROFILER_PATH is ignored, /opt/ap/libasyncProfiler.so is not checked):
--agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<session>/rec-%t+0100.jfr`;
 
 const profilerMissing = `WARN  async-profiler library not found, profiling is switched off: profiler_path=/opt/jeffrey/libasyncProfiler.so
 WARN  Jeffrey profiling DISABLED, async-profiler is not available: project=... session=... arg_file=/tmp/jvm.args
@@ -64,15 +64,13 @@ WARN  Jeffrey profiling DISABLED, async-profiler is not available: project=... s
 const envOnlySetup = `# The complete environment-only setup - no config file needed:
 JEFFREY_HOME=/mnt/jeffrey             # shared volume root (baked by jeffrey-jib)
 JEFFREY_PROJECT_NAME=my-service       # baked by jeffrey-jib from the artifactId
-JEFFREY_WORKSPACE_REF_ID=production   # optional (default: the hub's default workspace)
+JEFFREY_WORKSPACE_REF_ID=production   # optional (default: $default)
 
 # Optional extras:
 JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUID
 JEFFREY_ATTRIBUTES="cluster=blue,namespace=production"
 JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
-JEFFREY_AGENT_ENABLED=true           # default; false leaves liveness to jeffrey-heartbeat
-JEFFREY_AGENT_PATH=/opt/jeffrey/jeffrey-agent.jar   # baked by jeffrey-jib; set it yourself elsewhere
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
 const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
@@ -87,8 +85,7 @@ const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned l
     -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
     -Dlogging.logback.rollingpolicy.max-file-size=10MB
     -Dlogging.logback.rollingpolicy.total-size-cap=100MB
-    -Dlogging.logback.rollingpolicy.max-history=2
-    -Djeffrey.hub.workspaces.auto-create=true`;
+    -Dlogging.logback.rollingpolicy.max-history=2`;
 
 const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
   jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
@@ -113,7 +110,6 @@ attributes { cluster = "blue", namespace = "production" }
 
 debug-non-safepoints { enabled = true }
 perf-counters { enabled = true }
-jeffrey-agent { enabled = true, path = "/opt/jeffrey-agent/jeffrey-agent.jar" }
 tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jdk-java-options { enabled = true }
@@ -178,7 +174,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <DocsCallout type="warning">
           <strong>The project name is a stable identity — keep it the same across deployments.</strong>
           It keys the project directory on the shared volume (<code>workspaces/&lt;workspace&gt;/&lt;project-name&gt;/</code>),
-          and the project id stored there links all sessions to the same project on Jeffrey Hub.
+          and that folder name is the project's id, which links all sessions to the same project on the volume.
           Changing the name creates a <em>new</em> project; the old one stops receiving sessions and
           keeps its history separately. If you rely on the jeffrey-jib default (the Maven artifactId /
           Gradle project name), renaming the module changes the project too — pin
@@ -210,6 +206,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
 
         <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>environment variable &rarr; HOCON value &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. The environment sits on top because of when each source is written: a config file is baked into the image at build time, while environment variables are set at deploy time on the pod — so an operator can change one setting without rebuilding the image. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key without shadowing the defaults.</p>
 
+        <p>A configuration written for an older release may still carry a <code>jeffrey-agent { … }</code> block or set <code>JEFFREY_AGENT_ENABLED</code> / <code>JEFFREY_AGENT_PATH</code>. The agent is gone: the block is logged as an unknown key and ignored, the variables are not read, and nothing else changes — delete them at your convenience.</p>
+
         <p>Flags read <code>true</code> and <code>false</code> only, case-insensitive. Any other value is reported in the log and ignored, leaving the configured value in place — reading an unrecognized value as <code>false</code> would let a typo silently disable a feature. The one exception is <code>JEFFREY_HEAP_DUMP</code>, which takes <code>exit</code>, <code>crash</code> or <code>off</code> rather than a boolean.</p>
 
         <table>
@@ -233,16 +231,13 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_WORKSPACE_REF_ID</code></td>
               <td>
-                Reference ID of the workspace on the target Jeffrey Hub — the name of the
-                workspace directory the provisioner writes into, and the workspace's id on the
-                Hub. Optional — when omitted (or blank), recordings go to the server's default
-                workspace (<code>$default</code> unless reconfigured via
-                <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
-                If set, it should name a workspace created on the Hub — a directory without the
-                Hub's <code>.workspace-info.json</code> is not listed, unless the hub enables
-                <code>jeffrey.hub.workspaces.auto-create=true</code>, in which case every
-                workspace directory is listed. Creating the workspace later adopts what was
-                already written.
+                Reference ID of the workspace on the shared volume — the name of the
+                workspace directory the provisioner writes into, and the workspace's id. Optional — when omitted (or blank), recordings go to the workspace
+                <code>$default</code>.
+                The workspace does not have to exist: the provisioner creates its folder when it is
+                missing (along with the project, instance and session directories), and that folder
+                is the workspace &mdash; its recordings show up in Microscope and on the Hub's
+                Storage page without any create step. Nothing else creates a workspace.
               </td>
             </tr>
             <tr>
@@ -285,7 +280,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-command</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_COMMAND</code></td>
-              <td>The async-profiler agent the session runs with, in one of two forms. Options alone (<code>start,event=cpu,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>) run on the async-profiler library <code>profiler-path</code> names &mdash; the one jeffrey-jib bakes into the image, or your own. A full <code>-agentpath:&lt;library&gt;=&lt;options&gt;</code> loads that library instead, ignoring <code>profiler-path</code>, and the provisioner does not check it. Leave it unset to run the <code>profiler-path</code> library with the built-in default options. Whenever the <code>profiler-path</code> library is needed but missing, the provisioner logs a warning and switches profiling off. Build the options with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>. The environment variable takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
+              <td>The async-profiler agent the session runs with, in one of two forms. Options alone (<code>start,event=cpu,file=&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code>) run on the async-profiler library <code>profiler-path</code> names &mdash; the one jeffrey-jib bakes into the image, or your own. A full <code>-agentpath:&lt;library&gt;=&lt;options&gt;</code> loads that library instead, ignoring <code>profiler-path</code>, and the provisioner does not check it. Leave it unset to run the <code>profiler-path</code> library with the built-in default options. Whenever the <code>profiler-path</code> library is needed but missing, the provisioner logs a warning and switches profiling off. Use <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> for <code>file=</code>: it carries the machine's UTC offset into each chunk's name, and a name without one (<code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/rec-%t.jfr</code>) is read as UTC &mdash; wrong times on a non-UTC machine. Build the options with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>. The environment variable takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>additional-jvm-options</code></td>
@@ -310,18 +305,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td>No</td>
               <td><code>JEFFREY_PERF_COUNTERS</code></td>
               <td>Save JVM performance counters into the session directory</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-agent.enabled</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_AGENT_ENABLED</code></td>
-              <td><strong>On by default.</strong> Attach the <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> that <code>jeffrey-agent.path</code> names with <code>-javaagent</code>, so the JVM reports liveness to the Hub with no change to the application. Set <code>false</code> to leave liveness to the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library, if the application carries it</td>
-            </tr>
-            <tr>
-              <td><code>jeffrey-agent.path</code></td>
-              <td>No</td>
-              <td><code>JEFFREY_AGENT_PATH</code></td>
-              <td>Path to <code>jeffrey-agent.jar</code>, located exactly like <code>profiler-path</code>. Normally baked into the image as <code>JEFFREY_AGENT_PATH</code> by the jeffrey-jib build extension, which installs it under <code>/opt/jeffrey</code>. Outside jeffrey-jib, download <code>jeffrey-agent.jar</code> from the Jeffrey release and set this to where you put it. Nothing is copied into the session and nothing is discovered on disk: when no path resolves, or the file it names does not exist, the provisioner logs a warning and the session runs without the agent.</td>
             </tr>
             <tr>
               <td><code>tracing.enabled</code></td>
@@ -407,7 +390,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         </table>
 
         <h3 id="profiler-examples">Examples</h3>
-        <p>Each example shows what is set on the pod and the <code>-agentpath</code> the provisioner writes into the argfile. <code>&lt;session&gt;</code> stands for the session directory it substitutes for <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>.</p>
+        <p>Each example shows what is set on the pod and the <code>-agentpath</code> the provisioner writes into the argfile. <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> expands to the session directory (<code>&lt;session&gt;</code>) plus the file name <code>rec-%t&lt;offset&gt;.jfr</code>, here on a machine in <code>Europe/Prague</code> in winter (<code>+0100</code>).</p>
 
         <p><strong>Jeffrey JIB, default options</strong> &mdash; nothing to set:</p>
         <DocsCodeBlock language="bash" :code="profilerJibDefault" />
@@ -458,13 +441,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
             <h4>Heap Dump</h4>
             <p>Automatic heap dumps on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
             <code>heap-dump { enabled = true; type = "crash" }</code>
-          </div>
-          <div class="feature-card heartbeat">
-            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
-            <h4>Jeffrey Agent: Heartbeat &amp; Clean-Exit Marker</h4>
-            <p>The <router-link to="/docs/agent/jeffrey-agent">Jeffrey Agent</router-link> writes <code>.heartbeat/heartbeat</code> (epoch millis) into the session directory every 5 seconds, and a <code>.heartbeat/finished</code> marker on clean shutdown, so the hub detects clean exits on its next check and falls back to heartbeat staleness only after crashes. On by default: at <code>init</code> the Provisioner adds <code>-javaagent</code> for the jar <code>jeffrey-agent.path</code> names &mdash; <code>/opt/jeffrey/jeffrey-agent.jar</code> in a jeffrey-jib image &mdash; to the argfile. It always creates the session's <code>.heartbeat</code> folder, passes it to the JVM as <code>-Djeffrey.heartbeat.dir</code> and exports it as <code>JEFFREY_HEARTBEAT_DIR</code>. Switched off, liveness is reported only if the application carries the <router-link to="/docs/agent/heartbeat-library">jeffrey-heartbeat</router-link> library; an application carrying the library is safe with the agent on, as the library stands down while the agent reports. If no agent path is configured, or the jar is not there, the session is provisioned without it and a warning is logged.</p>
-            <code>jeffrey-agent { enabled = true }</code>
-            <code>JEFFREY_AGENT_ENABLED=false</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>
@@ -676,10 +652,6 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
 
 .feature-card.debug-safepoints .feature-icon {
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-}
-
-.feature-card.heartbeat .feature-icon {
-  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
 }
 
 .feature-card.jdk-options .feature-icon {

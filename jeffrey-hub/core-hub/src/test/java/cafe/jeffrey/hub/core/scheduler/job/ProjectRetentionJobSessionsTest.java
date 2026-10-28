@@ -17,20 +17,18 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.SessionDeletion;
+import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
-import cafe.jeffrey.hub.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.model.repository.RecordingStatus;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
+import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,16 +51,18 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * The session rules of a retention pass: the age window measured from a session's last data, the
+ * per-instance cap and the trim of each instance's newest session. The disk budget is far above
+ * anything here, so the quota never acts.
+ */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-/**
- * The session rules of a retention pass: the age windows, the per-instance cap and the trim of
- * live sessions. The disk budget is far above anything here, so the quota never acts.
- */
 class ProjectRetentionJobSessionsTest {
 
     private static final Instant NOW = Instant.parse("2026-02-20T12:00:00Z");
@@ -91,13 +91,13 @@ class ProjectRetentionJobSessionsTest {
 
     @BeforeEach
     void setUp() {
-        ProjectInfo projectInfo = new ProjectInfo("proj-1", "my-project", "ws-1", NOW, Map.of());
+        ProjectInfo projectInfo = new ProjectInfo("proj-1", "ws-1", NOW);
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
         when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
         when(projectManager.repositoryStorage()).thenReturn(storage);
-        when(storage.instances()).thenReturn(List.of(instance(ProjectInstanceStatus.ACTIVE)));
+        when(storage.instances()).thenReturn(List.of(instance(INSTANCE_ID)));
 
         job = job(MAX_SESSIONS);
     }
@@ -126,71 +126,55 @@ class ProjectRetentionJobSessionsTest {
         job(maxSessions).retain(projectManager);
     }
 
-    private static ProjectInstanceInfo instance(ProjectInstanceStatus status) {
-        return instance(INSTANCE_ID, status);
-    }
-
-    private static ProjectInstanceInfo instance(String instanceId, ProjectInstanceStatus status) {
-        return new ProjectInstanceInfo(instanceId, status, NOW.minus(Duration.ofDays(30)), null, 3);
+    private static ProjectInstanceInfo instance(String instanceId) {
+        return new ProjectInstanceInfo(instanceId, NOW.minus(Duration.ofDays(30)), 3);
     }
 
     private static RepositoryFile recording(String id, Instant createdAt, long size) {
-        return new RepositoryFile(
-                id, id, createdAt, size, true, null);
+        return new RepositoryFile(id, id, createdAt, size, true, null);
     }
 
-    /** A finished session that produced real data. */
+    /** A session a newer one has ended, with one recording from its start. */
     private static RecordingSession realSession(String id, Instant createdAt) {
-        return session(id, createdAt, createdAt.plusSeconds(60), false,
-                recording(id + "-file", createdAt, 10 * MB));
+        return session(id, INSTANCE_ID, createdAt, false, recording(id + "-file", createdAt, 10 * MB));
     }
 
-    /** A finished session with zero bytes — a prematurely killed process. */
+    /** A session a newer one ended before it wrote anything — a prematurely killed process. */
     private static RecordingSession emptySession(String id, Instant createdAt) {
-        return session(id, createdAt, createdAt.plusSeconds(5), false);
+        return session(id, INSTANCE_ID, createdAt, false);
     }
 
-    /** A still-running session — zero bytes so far, no finish timestamp. */
-    private static RecordingSession activeSession(String id, Instant createdAt) {
-        return session(id, createdAt, null, false);
-    }
-
-    private static RecordingSession session(
-            String id, Instant createdAt, Instant finishedAt, boolean retained, RepositoryFile... files) {
-
-        return session(id, INSTANCE_ID, createdAt, finishedAt, retained, files);
+    /** The instance's newest session, holding these files. */
+    private static RecordingSession newestSession(String id, Instant createdAt, RepositoryFile... files) {
+        return session(id, INSTANCE_ID, createdAt, true, files);
     }
 
     private static RecordingSession session(
-            String id, String instanceId, Instant createdAt, Instant finishedAt, boolean retained,
-            RepositoryFile... files) {
+            String id, String instanceId, Instant createdAt, boolean newest, RepositoryFile... files) {
 
-        RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
-        return new RecordingSession(
-                id, id, instanceId, createdAt, finishedAt, status, List.of(files), retained);
+        return new RecordingSession(id, id, instanceId, createdAt, newest, List.of(files));
     }
 
     private List<String> deletedSessionIds() {
         ArgumentCaptor<String> deleted = ArgumentCaptor.forClass(String.class);
-        verify(repositoryManager, org.mockito.Mockito.atLeast(0))
-                .deleteRecordingSession(deleted.capture());
+        verify(repositoryManager, atLeast(0)).deleteRecordingSession(deleted.capture());
         return deleted.getAllValues();
     }
 
     @Nested
-    class LiveSessionTrim {
+    class NewestSessionTrim {
 
         /**
-         * The same window at the finer granularity: a session still recording keeps every
-         * chunk younger than it and the one the profiler holds open, whatever its age.
+         * The same window at the finer granularity: an instance's newest session keeps every
+         * chunk younger than it and its newest recording, whatever its age.
          */
         @Test
-        void trimsClosedChunksOlderThanTheWindowOutOfALiveSession() {
+        void trimsClosedChunksOlderThanTheWindowOutOfTheNewestSession() {
             RepositoryFile old = recording("old", NOW.minus(PAST_RETENTION), 10 * MB);
             RepositoryFile recent = recording("recent", NOW.minusSeconds(600), 10 * MB);
             RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    session("live", NOW.minus(PAST_RETENTION.plusDays(1)), null, false, old, recent, open)));
+                    newestSession("live", NOW.minus(PAST_RETENTION.plusDays(1)), old, recent, open)));
 
             execute();
 
@@ -199,26 +183,89 @@ class ProjectRetentionJobSessionsTest {
         }
 
         @Test
-        void leavesTheOpenChunkAloneEvenWhenItIsOlderThanTheWindow() {
-            RepositoryFile onlyChunk = recording("only", NOW.minus(PAST_RETENTION), 10 * MB);
+        void leavesTheNewestRecordingAloneEvenWhenItIsOlderThanTheFileWindow() {
+            RepositoryFile onlyChunk = recording("only", NOW.minus(Duration.ofDays(3)), 10 * MB);
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    session("live", NOW.minus(PAST_RETENTION.plusDays(1)), null, false, onlyChunk)));
+                    newestSession("live", NOW.minus(Duration.ofDays(4)), onlyChunk)));
 
-            execute();
+            job(Duration.ofDays(30), Duration.ofDays(1), MAX_SESSIONS).retain(projectManager);
+
+            verify(storage, never()).deleteRepositoryFiles(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+        }
+
+        /** An ended session cannot grow: it goes whole by the session window, never trimmed empty. */
+        @Test
+        void leavesASessionANewerOneHasEndedToTheSessionWindow() {
+            RepositoryFile old = recording("old", NOW.minus(Duration.ofDays(3)), 10 * MB);
+            RepositoryFile last = recording("last", NOW.minus(Duration.ofDays(2)), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    newestSession("live", NOW.minusSeconds(600)),
+                    session("ended", INSTANCE_ID, NOW.minus(Duration.ofDays(3)), false, old, last)));
+
+            job(Duration.ofDays(30), Duration.ofDays(1), MAX_SESSIONS).retain(projectManager);
 
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
         }
+    }
+
+    @Nested
+    class AgeOfTheLastData {
 
         @Test
-        void leavesARetainedLiveSessionAlone() {
-            RepositoryFile old = recording("old", NOW.minus(PAST_RETENTION), 10 * MB);
+        void aSessionStillRecordingIsKeptHoweverLongAgoItStarted() {
             RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    session("pinned", NOW.minus(PAST_RETENTION.plusDays(1)), null, true, old, open)));
+                    newestSession("live", NOW.minus(PAST_RETENTION.plusDays(30)), open)));
 
             execute();
 
-            verify(storage, never()).deleteRepositoryFiles(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+        }
+
+        /** An instance that stopped has no newer session to end its last one; the window does. */
+        @Test
+        void theLastSessionOfAStoppedInstanceGoesOnceItsLastDataIsPastTheWindow() {
+            RepositoryFile last = recording("last", NOW.minus(PAST_RETENTION), 10 * MB);
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    newestSession("stopped", NOW.minus(PAST_RETENTION.plusDays(1)), last),
+                    realSession("older", NOW.minus(PAST_RETENTION.plusDays(2)))));
+
+            execute();
+
+            assertEquals(List.of("stopped", "older"), deletedSessionIds());
+        }
+
+        @Test
+        void aNewestSessionThatNeverRecordedGoesOnceItsStartIsPastTheWindow() {
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    newestSession("silent", NOW.minus(PAST_RETENTION))));
+
+            execute();
+
+            assertEquals(List.of("silent"), deletedSessionIds());
+        }
+
+        @Test
+        void sessionsInsideTheWindowStayWhateverTheyHold() {
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
+                    newestSession("live", NOW.minusSeconds(600)),
+                    emptySession("young-empty", NOW.minus(Duration.ofDays(1))),
+                    realSession("real", NOW.minus(Duration.ofDays(2)))));
+
+            execute();
+
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+        }
+
+        @Test
+        void loadsSessionsWithFilesSoTheirLastDataIsVisible() {
+            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
+
+            execute();
+
+            verify(storage).listSessions(SessionDetail.WITH_FILES);
+            verify(storage, never()).listSessions(SessionDetail.HEADERS);
         }
     }
 
@@ -230,13 +277,13 @@ class ProjectRetentionJobSessionsTest {
         private static final Duration AGE = Duration.ofDays(3);
 
         @Test
-        void shortFileWindowTrimsTheLiveSessionWhileFinishedSessionsOfTheSameAgeStay() {
+        void shortFileWindowTrimsTheNewestSessionWhileEndedSessionsOfTheSameAgeStay() {
             RepositoryFile old = recording("old", NOW.minus(AGE), 10 * MB);
             RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    session("live", NOW.minus(AGE), null, false, old, open),
-                    realSession("newer-finished", NOW.minus(AGE.plusDays(1))),
-                    realSession("older-finished", NOW.minus(AGE.plusDays(2)))));
+                    newestSession("live", NOW.minus(AGE), old, open),
+                    realSession("newer-ended", NOW.minus(AGE.plusDays(1))),
+                    realSession("older-ended", NOW.minus(AGE.plusDays(2)))));
 
             job(LONG, SHORT, MAX_SESSIONS).retain(projectManager);
 
@@ -245,148 +292,18 @@ class ProjectRetentionJobSessionsTest {
         }
 
         @Test
-        void shortSessionWindowDeletesFinishedSessionsWhileTheLiveSessionKeepsItsChunks() {
+        void shortSessionWindowDeletesEndedSessionsWhileTheNewestKeepsItsChunks() {
             RepositoryFile old = recording("old", NOW.minus(AGE), 10 * MB);
             RepositoryFile open = recording("open", NOW.minusSeconds(60), 10 * MB);
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    session("live", NOW.minus(AGE), null, false, old, open),
-                    realSession("newer-finished", NOW.minus(AGE.plusDays(1))),
-                    realSession("older-finished", NOW.minus(AGE.plusDays(2)))));
+                    newestSession("live", NOW.minus(AGE), old, open),
+                    realSession("newer-ended", NOW.minus(AGE.plusDays(1))),
+                    realSession("older-ended", NOW.minus(AGE.plusDays(2)))));
 
             job(SHORT, LONG, MAX_SESSIONS).retain(projectManager);
 
-            // newer-finished is the keep-newest slot of the live instance; only the older one goes
-            assertEquals(List.of("older-finished"), deletedSessionIds());
+            assertEquals(List.of("newer-ended", "older-ended"), deletedSessionIds());
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
-        }
-    }
-
-    @Nested
-    class KeepNewestProtection {
-
-        @Test
-        void keepsNewestRealSessionOfLiveInstanceAndDeletesOlderOnes() {
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    realSession("newest", NOW.minus(PAST_RETENTION)),
-                    realSession("older", NOW.minus(PAST_RETENTION.plusDays(1)))));
-
-            execute();
-
-            assertEquals(List.of("older"), deletedSessionIds());
-        }
-
-        @Test
-        void loadsSessionsWithFilesSoSizesAreVisible() {
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
-
-            execute();
-
-            verify(storage).listSessions(SessionDetail.WITH_FILES);
-            verify(storage, never()).listSessions(SessionDetail.HEADERS);
-        }
-    }
-
-    @Nested
-    class EmptySessionsSkipProtection {
-
-        @Test
-        void emptySessionsNeverConsumeTheKeepNewestSlot() {
-            // A crash-looped instance: the newest sessions are all failed empties.
-            // The newest REAL session must survive even though it is not at index 0.
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    emptySession("empty-1", NOW.minus(PAST_RETENTION)),
-                    emptySession("empty-2", NOW.minus(PAST_RETENTION.plusDays(1))),
-                    emptySession("empty-3", NOW.minus(PAST_RETENTION.plusDays(2))),
-                    realSession("interesting", NOW.minus(PAST_RETENTION.plusDays(3)))));
-
-            execute();
-
-            assertEquals(List.of("empty-1", "empty-2", "empty-3"), deletedSessionIds());
-        }
-
-        @Test
-        void olderRealSessionIsStillDeletedWhenANewerRealSessionExists() {
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    emptySession("empty-1", NOW.minus(PAST_RETENTION)),
-                    realSession("newest-real", NOW.minus(PAST_RETENTION.plusDays(1))),
-                    realSession("older-real", NOW.minus(PAST_RETENTION.plusDays(2)))));
-
-            execute();
-
-            assertEquals(List.of("empty-1", "older-real"), deletedSessionIds());
-        }
-    }
-
-    @Nested
-    class AllSessionsEmpty {
-
-        @Test
-        void deletesEveryPastAgeEmptySessionOfLiveInstance() {
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    emptySession("empty-1", NOW.minus(PAST_RETENTION)),
-                    emptySession("empty-2", NOW.minus(PAST_RETENTION.plusDays(1)))));
-
-            execute();
-
-            assertEquals(List.of("empty-1", "empty-2"), deletedSessionIds());
-        }
-    }
-
-    @Nested
-    class FinishedInstance {
-
-        @Test
-        void noProtectionForFinishedInstances() {
-            when(storage.instances()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    realSession("newest", NOW.minus(PAST_RETENTION)),
-                    realSession("older", NOW.minus(PAST_RETENTION.plusDays(1)))));
-
-            execute();
-
-            assertEquals(List.of("newest", "older"), deletedSessionIds());
-        }
-    }
-
-    @Nested
-    class AgeRule {
-
-        @Test
-        void youngEmptySessionSurvivesUntilRetentionExpires() {
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
-                    emptySession("young-empty", NOW.minus(Duration.ofDays(1))),
-                    realSession("real", NOW.minus(Duration.ofDays(2)))));
-
-            execute();
-
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
-        }
-    }
-
-    @Nested
-    class RetainedAndActiveSessions {
-
-        @Test
-        void retainedEmptySessionIsNeverDeleted() {
-            RecordingSession pinnedEmpty = session(
-                    "pinned-empty", NOW.minus(PAST_RETENTION), NOW.minus(PAST_RETENTION).plusSeconds(5), true);
-
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(pinnedEmpty));
-
-            execute();
-
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
-        }
-
-        @Test
-        void activeSessionIsNeverDeletedEvenWithZeroBytes() {
-            RecordingSession activeEmpty = session("active-empty", NOW.minus(PAST_RETENTION), null, false);
-
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(activeEmpty));
-
-            execute();
-
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
     }
 
@@ -404,6 +321,11 @@ class ProjectRetentionJobSessionsTest {
         /** Appends a failed-empty session one hour older than the previous one. */
         private void empty(String id) {
             sessions.add(emptySession(id, NOW.minus(Duration.ofHours(++ageHours))));
+        }
+
+        /** The instance's newest session, recording since half an hour ago. */
+        private void live(String id) {
+            sessions.add(newestSession(id, NOW.minus(Duration.ofMinutes(30))));
         }
 
         @Test
@@ -483,8 +405,8 @@ class ProjectRetentionJobSessionsTest {
         }
 
         @Test
-        void activeSessionOccupiesASlotButIsNeverDeleted() {
-            sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
+        void theNewestSessionTakesTheFirstSlotAndIsNeverOverTheCap() {
+            live("live");
             real("real-1");
             real("real-2");
             real("real-3");
@@ -493,44 +415,13 @@ class ProjectRetentionJobSessionsTest {
 
             execute(3);
 
-            // The live session takes unit 0, pushing the oldest real session over the cap
+            // The newest session takes unit 0, pushing the oldest real session over the cap
             assertEquals(List.of("real-3"), deletedSessionIds());
         }
 
         @Test
-        void overCapActiveSessionIsNeverDeleted() {
-            real("real-1");
-            sessions.add(activeSession("stale-live", NOW.minus(Duration.ofHours(5))));
-
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
-
-            execute(1);
-
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
-        }
-
-        @Test
-        void retainedSessionsAreInvisibleToTheCap() {
-            empty("empty-1");
-            Instant pinnedAt = NOW.minus(Duration.ofHours(++ageHours));
-            sessions.add(session("pinned", pinnedAt, pinnedAt.plusSeconds(60), true,
-                    recording("pinned-file", pinnedAt, 10 * MB)));
-            empty("empty-2");
-            real("real-1");
-            real("real-2");
-
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
-
-            execute(2);
-
-            // The pinned session consumes no slot and no longer splits the crash-loop run:
-            // units are [empty-1, empty-2], [real-1], [real-2] — only real-2 is over the cap
-            assertEquals(List.of("real-2"), deletedSessionIds());
-        }
-
-        @Test
-        void keepNewestProtectionBeatsTheCapForLiveInstances() {
-            sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
+        void everySessionBeyondTheCapGoesWhateverItHolds() {
+            live("live");
             empty("empty-1");
             real("real-1");
             empty("empty-2");
@@ -539,37 +430,20 @@ class ProjectRetentionJobSessionsTest {
 
             execute(2);
 
-            // real-1 is over the cap but is the newest finished session with data — protected
-            assertEquals(List.of("empty-2"), deletedSessionIds());
-        }
-
-        @Test
-        void noProtectionFromTheCapForFinishedInstances() {
-            when(storage.instances()).thenReturn(List.of(instance(ProjectInstanceStatus.FINISHED)));
-
-            sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
-            empty("empty-1");
-            real("real-1");
-            empty("empty-2");
-
-            when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(sessions);
-
-            execute(2);
-
+            // Units: [live], [empty-1], [real-1], [empty-2]
             assertEquals(List.of("real-1", "empty-2"), deletedSessionIds());
         }
 
         @Test
         void capAppliesPerInstanceIndependently() {
-            when(storage.instances()).thenReturn(List.of(
-                    instance(ProjectInstanceStatus.ACTIVE), instance("inst-2", ProjectInstanceStatus.ACTIVE)));
+            when(storage.instances()).thenReturn(List.of(instance(INSTANCE_ID), instance("inst-2")));
 
             real("real-1");
             real("real-2");
             real("real-3");
             for (int i = 1; i <= 3; i++) {
                 Instant createdAt = NOW.minus(Duration.ofHours(++ageHours));
-                sessions.add(session("other-real-" + i, "inst-2", createdAt, createdAt.plusSeconds(60), false,
+                sessions.add(session("other-real-" + i, "inst-2", createdAt, i == 1,
                         recording("other-file-" + i, createdAt, 10 * MB)));
             }
 

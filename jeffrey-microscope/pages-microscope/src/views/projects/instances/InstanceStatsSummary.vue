@@ -30,13 +30,8 @@
       :aria-controls="POPOVER_ID"
       @click="open = !open"
     >
-      <span class="status-dot" :class="{ live: stats.active > 0 }"></span>
       <span class="summary-text">
-        <template v-if="stats.pending > 0">
-          <strong>{{ stats.pending }}</strong> pending ·
-        </template>
-        <strong>{{ stats.active }}</strong> active · <strong>{{ stats.finished }}</strong> finished
-        · <strong>{{ stats.sessions }}</strong> {{ stats.sessions === 1 ? 'session' : 'sessions' }}
+        <strong>{{ stats.total }}</strong> {{ stats.total === 1 ? 'instance' : 'instances' }}
         <template v-if="storage.kind === 'measured'">
           · <strong>{{ storage.value }} {{ storage.unit }}</strong>
         </template>
@@ -63,7 +58,7 @@
         <div class="popover-title storage-title"><i class="bi bi-hdd"></i>Storage</div>
         <ErrorState v-if="storage.kind === 'error'" message="Repository size could not be loaded" />
         <p v-else-if="storage.kind === 'unmeasured'" class="storage-caption">
-          Not measured yet — the hub measures each project on its next retention pass
+          Not measured here — the Jeffrey Hub's Storage page shows what each project occupies
         </p>
         <template v-else>
           <div class="storage-figure">
@@ -102,21 +97,16 @@ const open = ref(false);
 const root = ref<HTMLElement | null>(null);
 const trigger = ref<HTMLButtonElement | null>(null);
 
-// Pending only earns a row when there is one, as on the old stat card.
 const rows = computed<StatRow[]>(() => {
   const stats = props.stats;
-  const uptime =
+  const firstInstance =
     stats.oldestCreatedAt === null
       ? '—'
       : FormattingService.formatRelativeTime(stats.oldestCreatedAt);
 
   return [
-    ...(stats.pending > 0 ? [{ label: 'Pending instances', value: stats.pending }] : []),
-    { label: 'Active instances', value: stats.active },
-    { label: 'Finished instances', value: stats.finished },
     { label: 'Total instances', value: stats.total },
-    { label: 'Total sessions', value: stats.sessions },
-    { label: 'Uptime range', value: uptime }
+    { label: 'First instance', value: firstInstance }
   ];
 });
 
@@ -182,18 +172,6 @@ onBeforeUnmount(removeListeners);
 .summary-text strong {
   color: var(--color-dark);
   font-weight: var(--font-weight-semibold);
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-circle);
-  background: var(--color-text-light);
-  flex-shrink: 0;
-}
-
-.status-dot.live {
-  background: var(--color-success);
 }
 
 .summary-chevron {

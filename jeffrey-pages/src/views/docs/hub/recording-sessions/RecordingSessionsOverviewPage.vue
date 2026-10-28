@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing JFR recordings and associated artifacts collected during application execution.</p>
 
         <DocsCallout type="info">
-          <strong>Remote Workspaces:</strong> In Microscope, recording sessions show up under each project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab — that's where you browse the JVM instances and their sessions collected by the connected Jeffrey Hub.
+          <strong>Remote Workspaces:</strong> In Microscope, recording sessions show up under each project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab — that's where you browse the JVM instances and their sessions on the recording volume, read from the Azure file share that holds it.
         </DocsCallout>
 
         <h2 id="what-are-recording-sessions">What are Recording Sessions?</h2>
@@ -54,7 +54,7 @@ onMounted(() => {
         <ul>
           <li><strong>JFR recording chunks</strong> - Profiling data split into time-based files</li>
           <li><strong>Artifacts</strong> - Additional diagnostic files (heap dumps, logs, perf counters)</li>
-          <li><strong>Metadata</strong> - Session timing, status, and file counts</li>
+          <li><strong>Metadata</strong> - Session timing and file counts</li>
         </ul>
 
         <figure class="docs-figure">
@@ -120,13 +120,15 @@ onMounted(() => {
         <h3>Session Metadata</h3>
         <p>For each session, Jeffrey tracks:</p>
         <ul>
-          <li><strong>Session ID</strong> - Unique identifier for the session</li>
+          <li><strong>Session ID</strong> - The session's directory name, a UUIDv7</li>
           <li><strong>Instance</strong> - The application instance that generated this session</li>
-          <li><strong>Start time</strong> - When profiling began</li>
-          <li><strong>Duration</strong> - How long the session has been running</li>
-          <li><strong>Status</strong> - Active (still recording) or Finished</li>
+          <li><strong>Start time</strong> - When profiling began, read from the session's UUIDv7 directory name</li>
+          <li><strong>Last data</strong> - Where its recorded data ends: the newest recording's start plus the measured chunk length</li>
+          <li><strong>Duration</strong> - From the start to the last data</li>
+          <li><strong>Newest</strong> - Whether it is its instance's newest session, the only one that may still grow; see <router-link to="/docs/hub/recording-sessions/lifecycle">Lifecycle</router-link></li>
           <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
         </ul>
+        <p>Microscope's instance page lists sessions by name only: a session card shows its id, its start and whether it is the newest, and its files, size, last data and duration load when the card is expanded.</p>
 
         <figure class="docs-figure">
           <img src="/images/docs/recording-sessions/recording-session-files.png" alt="Single recording session with files" />
@@ -134,7 +136,7 @@ onMounted(() => {
         </figure>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Recording Sessions are available in <strong>Remote workspaces</strong> through the Repository feature. Sessions are synced from the connected jeffrey-hub, where they are automatically detected on the server's filesystem.</p>
+        <p>Recording Sessions are available in <strong>Remote workspaces</strong> through the Repository feature. Microscope lists them straight off the recording volume on the Azure file share, where the provisioner and the profiled application wrote them; the Jeffrey Hub's scheduler jobs keep that volume within its retention limits.</p>
       </div>
 
       <DocsNavFooter />

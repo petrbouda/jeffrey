@@ -251,7 +251,7 @@ class BoundedJobsTest {
 
     /**
      * Retention bounds the map only where keys repeat, and several callers key on something new
-     * every call -- an import on a fresh UUID, a hub download on the session plus the window asked
+     * every call -- an import on a fresh UUID, a remote download on the session plus the window asked
      * for. Without a cap those entries sit there for the whole retention window.
      */
     @Nested
@@ -605,7 +605,7 @@ class BoundedJobsTest {
             BoundedJobs<String, String> jobs = ToolFixtures.jobs(GENEROUS);
 
             assertThrows(IllegalStateException.class, () -> runWithin(jobs, "r-1", () -> {
-                throw new IllegalStateException("hub stopped answering");
+                throw new IllegalStateException("remote stopped answering");
             }));
 
             await().atMost(5, SECONDS).untilAsserted(() -> assertFalse(jobs.isRunning("r-1")));

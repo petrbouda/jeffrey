@@ -23,9 +23,9 @@ import java.time.Instant;
 /**
  * One file of a recording session, as a repository reports it.
  *
- * <p>A file on its own carries no status. Whether it is still being written is a fact about its
- * session — the profiler holds one chunk open, and only while the session records — so the
- * question is asked of {@link RecordingSession}, which knows both. Carrying the answer here
+ * <p>A file on its own carries no status. Whether it may still be on its way onto the volume is a
+ * fact about its session — only the newest recording of an instance's newest session can be — so
+ * the question is asked of {@link RecordingSession#openRecording()}, which knows both. Carrying the answer here
  * instead meant every producer of a listing had to work it out and every consumer had to trust
  * that it had.
  *

@@ -1,0 +1,39 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.remote.client.dto;
+
+import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
+
+import java.time.Instant;
+
+/**
+ * A project as its directory names it: its id and its name are the directory's name, and finding
+ * one reads nothing below it.
+ *
+ * @param createdAt   when the project's directory was created, or {@code null} on a share that lists no times
+ * @param workspaceId the project's workspace, which is also its reference id: the volume names a
+ *                    workspace by its directory on the volume
+ * @param statistics  what was measured for the project; never measured by Microscope
+ */
+public record RemoteProjectResponse(
+        String id,
+        String name,
+        Instant createdAt,
+        String workspaceId,
+        RepositoryStatistics statistics) {
+}

@@ -19,7 +19,18 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-box" :title="instance?.instanceName ?? 'Instance'" />
+        <MainCardHeader icon="bi bi-box" :title="instance?.id ?? 'Instance'">
+          <template #actions>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              title="Read the instance and its sessions again"
+              :disabled="loading || refreshing"
+              @click="load(true)"
+            >
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+          </template>
+        </MainCardHeader>
       </template>
 
       <!-- Loading Indicator -->
@@ -39,13 +50,20 @@
       <div v-else class="col-12">
         <RecordingSessionList
           :sessions="sessions"
-          :hubId="hubId!"
           :workspaceId="workspaceId!"
           :projectId="projectId!"
           :isCollectorOnly="isCollectorOnly"
-          :showInstanceLink="false"
           headerText="Sessions"
           @refresh="() => load(true)"
+        />
+
+        <LoadMoreFooter
+          v-if="sessions.length > 0 && hasOlder"
+          :shown="sessions.length"
+          :has-more="hasOlder"
+          noun="sessions"
+          :loading="loadingOlder"
+          @loadMore="loadOlder"
         />
 
         <!-- No Sessions Message -->
@@ -64,21 +82,22 @@
 import { computed, onMounted, ref } from 'vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
+import { ToastService } from '@shared/services/ToastService';
 import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
-import RecordingSessionList from '@hubs/components/RecordingSessionList.vue';
-import ProjectInstanceClient from '@hubs/services/api/ProjectInstanceClient';
-import RecordingStatus from '@hubs/services/api/model/RecordingStatus';
-import { usePolling } from '@shared/composables/usePolling';
-import ProjectInstance from '@hubs/services/api/model/ProjectInstance';
-import RecordingSession from '@hubs/services/api/model/RecordingSession';
+import RecordingSessionList from '@remote/components/RecordingSessionList.vue';
+import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
+import ProjectInstance from '@remote/services/api/model/ProjectInstance';
+import RecordingSessionHeader from '@remote/services/api/model/RecordingSessionHeader';
 import { useNavigation } from '@/composables/useNavigation';
 import '@shared/styles/shared-components.css';
 
-const { hubId, workspaceId, projectId, instanceId } = useNavigation();
+const { workspaceId, projectId, instanceId } = useNavigation();
+const toast = ToastService;
 
-const instanceClient = new ProjectInstanceClient(hubId.value, workspaceId.value!, projectId.value!);
+const instanceClient = new ProjectInstanceClient(workspaceId.value!, projectId.value!);
 
 // Collector-only mode is never active in local mode
 const isCollectorOnly = computed(() => {
@@ -86,34 +105,24 @@ const isCollectorOnly = computed(() => {
 });
 
 const loading = ref(true);
+const refreshing = ref(false);
+const loadingOlder = ref(false);
+const hasOlder = ref(false);
 const failed = ref(false);
 const instance = ref<ProjectInstance | null>(null);
-const sessions = ref<RecordingSession[]>([]);
+const sessions = ref<RecordingSessionHeader[]>([]);
 
 /**
- * How often an instance with a session still recording is re-read. A session's figures — file
- * sizes above all — come from a listing of the hub's repository directory taken at request time,
- * so without this the page shows whatever the files measured at the moment it was opened, for
- * as long as it stays open.
- */
-const ACTIVE_SESSION_REFRESH_MS = 10_000;
-
-const hasActiveSession = (): boolean => {
-  return sessions.value.some(session => session.status === RecordingStatus.ACTIVE);
-};
-
-// Declared ahead of load because that is what arms and disarms it; the callback reaches the
-// function below only when a tick fires, long after setup has run.
-const sessionPolling = usePolling(() => load(true), ACTIVE_SESSION_REFRESH_MS);
-
-/**
- * Reads the instance and its sessions (each without its files: the list fetches a session's
- * files when it is expanded) in one call. Background reloads — the poll above and a refresh
- * from the list — leave the loading flag alone so the view on screen never flickers, and keep
- * it when a read fails.
+ * Reads the instance and a page of its sessions, named but not read: one listing of the instance
+ * on the remote, whatever it holds. A session's files, sizes and data end come when it is opened.
+ * The page reads them when it opens and again only when asked — the Refresh button, or the list
+ * after a change — never on a timer: on an Azure file share every read is a round-trip. A refresh
+ * leaves the loading flag alone so the view on screen never flickers, and keeps it when a read fails.
  */
 const load = async (background: boolean = false) => {
-  if (!background) {
+  if (background) {
+    refreshing.value = true;
+  } else {
     loading.value = true;
     failed.value = false;
   }
@@ -121,19 +130,37 @@ const load = async (background: boolean = false) => {
     const found = await instanceClient.find(instanceId.value!);
     instance.value = found?.instance ?? null;
     sessions.value = found?.sessions ?? [];
+    hasOlder.value = found?.hasOlder ?? false;
   } catch {
     if (!background) {
       failed.value = true;
     }
   } finally {
     loading.value = false;
-    // Decided after every load rather than once: a session that finishes while the page is
-    // open ends the polling, one that starts begins it, and a removed instance ends it.
-    if (hasActiveSession()) {
-      sessionPolling.start();
-    } else {
-      sessionPolling.stop();
+    refreshing.value = false;
+  }
+};
+
+/**
+ * Reads the next page of older sessions, after the oldest on screen, and adds it below. A refresh
+ * reads the newest page again and starts over from there.
+ */
+const loadOlder = async () => {
+  const oldest = sessions.value[sessions.value.length - 1];
+  if (!oldest || loadingOlder.value) {
+    return;
+  }
+  loadingOlder.value = true;
+  try {
+    const older = await instanceClient.find(instanceId.value!, oldest.id);
+    if (older) {
+      sessions.value = [...sessions.value, ...older.sessions];
+      hasOlder.value = older.hasOlder;
     }
+  } catch {
+    toast.error('Older sessions', 'They could not be read from the remote.');
+  } finally {
+    loadingOlder.value = false;
   }
 };
 
