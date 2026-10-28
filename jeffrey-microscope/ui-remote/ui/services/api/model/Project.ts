@@ -20,9 +20,6 @@ export default class Project {
     public id: string,
     public name: string,
     public createdAt: number,
-    public workspaceId: string,
-    /** When the newest data of any of its instances ends; null while none has a recording. */
-    public lastDataAt: number | null,
-    public sessionCount: number
+    public workspaceId: string
   ) {}
 }

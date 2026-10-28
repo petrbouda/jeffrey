@@ -18,10 +18,6 @@
 package cafe.jeffrey.test.volume;
 
 import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.RemoteProject;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -29,13 +25,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
- * Writes a recording volume the way the provisioner and the profiler do — marker files and
- * recordings — so every reader of a volume (the hub, the shared layout,
- * Microscope reading storage directly) is tested against what production writes.
+ * Writes a recording volume the way the provisioner and the profiler do — directories named for
+ * what they hold, and recordings named for when they were opened and in which zone — so every
+ * reader of a volume (the hub, the shared layout, Microscope reading storage directly) is tested
+ * against what production writes. Nothing below a workspace has a marker file.
  */
 public final class VolumeWriter {
 
@@ -44,31 +43,26 @@ public final class VolumeWriter {
     private static final long UUID_VERSION_7 = 0x7000L;
     private static final long UUID_STANDARD_VARIANT = 0x8000_0000_0000_0000L;
 
+    /** async-profiler's {@code %t}: the machine's local time. */
+    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    private static final String RECORDING_TEMPLATE = "profile-%t.jfr";
+
     private VolumeWriter() {
     }
 
-    /** A project directory named {@code name} under {@code parent}, with its marker. */
-    public static Path project(Path parent, String projectId, String name, Instant createdAt) {
-        Path dir = directories(parent.resolve(name));
-        RemoteProject marker = new RemoteProject(projectId, name, createdAt.toEpochMilli(), Map.of("env", "test"));
-        write(dir.resolve(JeffreyLayout.PROJECT_INFO_FILE), Json.toString(marker));
-        return dir;
+    /** A project's directory, named {@code name} — its id — under a workspace's directory. */
+    public static Path project(Path workspaceDir, String name) {
+        return directories(workspaceDir.resolve(name));
     }
 
-    public static Path instance(Path projectDir, String instanceId, Instant createdAt) {
-        Path dir = directories(projectDir.resolve(instanceId));
-        RemoteProjectInstance marker = new RemoteProjectInstance(instanceId, createdAt.toEpochMilli());
-        write(dir.resolve(JeffreyLayout.INSTANCE_INFO_FILE), Json.toString(marker));
-        return dir;
+    /** An instance's directory, named {@code instanceId}, in a project's directory. */
+    public static Path instance(Path projectDir, String instanceId) {
+        return directories(projectDir.resolve(instanceId));
     }
 
-    /** A session whose marker records the time zone its machine runs in; {@code null} for none. */
-    public static Path session(Path instanceDir, String sessionId, Instant createdAt, String zoneId) {
-        Path dir = directories(instanceDir.resolve(sessionId));
-        RemoteProjectInstanceSession marker =
-                new RemoteProjectInstanceSession(sessionId, createdAt.toEpochMilli(), zoneId);
-        write(dir.resolve(JeffreyLayout.SESSION_INFO_FILE), Json.toString(marker));
-        return dir;
+    /** A session's directory, named as the provisioner names a session started at {@code start}. */
+    public static Path session(Path instanceDir, Instant start) {
+        return directories(instanceDir.resolve(sessionIdAt(start)));
     }
 
     /**
@@ -78,6 +72,21 @@ public final class VolumeWriter {
     public static String sessionIdAt(Instant start) {
         long mostSignificant = (start.toEpochMilli() << UUID_TIMESTAMP_SHIFT) | UUID_VERSION_7;
         return new UUID(mostSignificant, UUID_STANDARD_VARIANT).toString();
+    }
+
+    /**
+     * The name async-profiler gives a recording opened at {@code openedAt} on a machine in
+     * {@code zone}, through the provisioner's template: {@code profile-20260220-120500.UTC.jfr}.
+     */
+    public static String recordingName(Instant openedAt, ZoneId zone) {
+        String template = JeffreyLayout.recordingTemplate(RECORDING_TEMPLATE, zone);
+        String local = LocalDateTime.ofInstant(openedAt, zone).format(TIMESTAMP);
+        return template.replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, local);
+    }
+
+    /** A recording opened at {@code openedAt} on a machine in {@code zone}. */
+    public static Path recording(Path sessionDir, Instant openedAt, ZoneId zone, String content) {
+        return file(sessionDir, recordingName(openedAt, zone), content);
     }
 
     public static Path file(Path dir, String name, String content) {

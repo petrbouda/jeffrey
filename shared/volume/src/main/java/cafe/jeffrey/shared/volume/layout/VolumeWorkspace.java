@@ -22,6 +22,7 @@ import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,7 +33,7 @@ import java.util.Optional;
  *
  * @param path      the directory, named by the workspace's id
  * @param createdAt the marker's time, or the directory's own; empty when neither can be read
- * @param described whether the hub's marker describes it
+ * @param described whether the hub's marker describes it; false for a workspace only listed
  */
 public record VolumeWorkspace(VolumePath path, String name, Optional<Instant> createdAt, boolean described) {
 
@@ -56,10 +57,25 @@ public record VolumeWorkspace(VolumePath path, String name, Optional<Instant> cr
         return new VolumeWorkspace(directory, name, createdAt, marker.isPresent());
     }
 
-    /** Every visible directory at the volume's root, read as a workspace. */
+    /**
+     * Every visible directory at the volume's root, read as a workspace: each marker read, which is
+     * what telling a workspace's name from its id takes. For the rare change that must know every
+     * name; a list shows {@link #listedAt} instead.
+     */
     public static List<VolumeWorkspace> all(VolumeAccess volume) {
         return VolumeMarkers.childDirectories(volume, VolumePath.root()).stream()
                 .map(directory -> at(volume, directory))
+                .toList();
+    }
+
+    /**
+     * Every visible directory at the volume's root as one listing names it: by its id, created
+     * when the listing says, no marker read.
+     */
+    public static List<VolumeWorkspace> listedAt(VolumeAccess volume) {
+        return VolumeMarkers.childDirectoryEntries(volume, VolumePath.root()).stream()
+                .sorted(Comparator.comparing(VolumeEntry::name))
+                .map(entry -> new VolumeWorkspace(entry.path(), entry.name(), entry.createdAt(), false))
                 .toList();
     }
 }

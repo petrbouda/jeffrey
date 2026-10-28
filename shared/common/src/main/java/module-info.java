@@ -27,5 +27,4 @@ module cafe.jeffrey.shared.common {
     exports cafe.jeffrey.shared.common.filesystem;
     exports cafe.jeffrey.shared.common.measure;
     exports cafe.jeffrey.shared.common.model;
-    exports cafe.jeffrey.shared.common.model.repository;
 }

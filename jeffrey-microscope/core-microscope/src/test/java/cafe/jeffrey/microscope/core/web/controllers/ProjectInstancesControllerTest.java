@@ -25,8 +25,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.remote.client.manager.InstanceWithSessions;
 import cafe.jeffrey.microscope.remote.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.SessionSize;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.remote.controller.ProjectInstancesController;
@@ -64,10 +63,9 @@ class ProjectInstancesControllerTest {
     @Test
     void oneInstanceComesWithAPageOfItsSessions() {
         Instant now = Instant.parse("2026-04-26T12:00:00Z");
-        ProjectInstanceInfo instance = new ProjectInstanceInfo(
-                "inst-1", "p-1", "inst-1", now.minusSeconds(60), now, 1);
-        RecordingSession session = new RecordingSession("s-1", "inst-1/s-1", "inst-1", now.minusSeconds(60), now,
-                false, null, List.of(), false, new SessionSize(2, 4096L));
+        ProjectInstanceInfo instance = new ProjectInstanceInfo("inst-1", "p-1", "inst-1", now.minusSeconds(60));
+        RecordingSessionHeader session = new RecordingSessionHeader(
+                "s-1", "inst-1/s-1", "inst-1", now.minusSeconds(60), false);
         when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
         when(instancesManager.find("inst-1", Optional.empty()))
                 .thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(session), true)));
@@ -78,15 +76,15 @@ class ProjectInstancesControllerTest {
                 .hasStatusOk()
                 .bodyJson();
         body.extractingPath("$.instance.id").asString().isEqualTo("inst-1");
-        body.extractingPath("$.sessions[0].sizeBytes").asNumber().isEqualTo(4096);
+        body.extractingPath("$.sessions[0].createdAt").asNumber().isEqualTo(now.minusSeconds(60).toEpochMilli());
+        body.extractingPath("$.sessions[0].newest").asBoolean().isFalse();
         body.extractingPath("$.hasOlder").asBoolean().isTrue();
     }
 
     @Test
     void theOlderPageStartsAfterTheCursor() {
         Instant now = Instant.parse("2026-04-26T12:00:00Z");
-        ProjectInstanceInfo instance = new ProjectInstanceInfo(
-                "inst-1", "p-1", "inst-1", now.minusSeconds(60), now, 1);
+        ProjectInstanceInfo instance = new ProjectInstanceInfo("inst-1", "p-1", "inst-1", now.minusSeconds(60));
         when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
         when(instancesManager.find("inst-1", Optional.of("s-10")))
                 .thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(), false)));

@@ -31,13 +31,13 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A workspace's projects are its directories with a {@code .project-info.json}, known by the
- * provisioner's project id from that marker.
+ * A workspace's projects are its visible child directories, each known by its directory name.
  */
 class HubProjectsManagerTest {
 
@@ -60,18 +60,20 @@ class HubProjectsManagerTest {
     }
 
     @Test
-    void readsEachProjectFromItsMarker() {
-        TestVolume.project(workspaceDir, "p-1", "orders", T0);
+    void readsEachProjectFromItsDirectory() {
+        TestVolume.project(workspaceDir, "orders");
 
-        assertEquals(List.of(new ProjectInfo("p-1", "orders", "prod-ws", T0, Map.of("env", "test"))),
-                projects.findAll().stream().map(ProjectManager::info).toList());
+        ProjectInfo info = projects.findAll().getFirst().info();
+        assertEquals("orders", info.id());
+        assertEquals("orders", info.name());
+        assertEquals("prod-ws", info.workspaceId());
+        assertTrue(info.createdAt().isPresent(), "its directory's time, as the mount gives it");
     }
 
     @Test
-    void aDirectoryWithoutAReadableMarkerIsNoProject() throws IOException {
-        Files.createDirectories(workspaceDir.resolve("empty"));
-        Path broken = Files.createDirectories(workspaceDir.resolve("broken"));
-        Files.writeString(broken.resolve(".project-info.json"), "{ not json");
+    void aFileOrAHiddenDirectoryIsNoProject() throws IOException {
+        Files.createDirectories(workspaceDir.resolve(".scratch"));
+        Files.writeString(workspaceDir.resolve("notes.txt"), "x");
 
         assertTrue(projects.findAll().isEmpty());
     }

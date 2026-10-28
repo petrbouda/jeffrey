@@ -18,9 +18,7 @@
 package cafe.jeffrey.microscope.core.web.dto.workspace;
 
 import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.microscope.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.shared.ui.remote.dto.ProjectResponse;
 import cafe.jeffrey.shared.ui.remote.dto.WorkspaceResponse;
 
@@ -32,21 +30,16 @@ public abstract class Mappers {
                 info.name(),
                 info.referenceId(),
                 info.createdAt() != null ? info.createdAt().toEpochMilli() : 0L,
-                info.projectCount(),
                 info.status());
     }
 
-    public static ProjectResponse toProjectResponse(DetailedProjectInfo detail) {
-        ProjectInfo projectInfo = detail.projectInfo();
+    public static ProjectResponse toProjectResponse(ProjectInfo projectInfo) {
         return new ProjectResponse(
                 projectInfo.id(),
                 projectInfo.id(),
                 projectInfo.name(),
                 projectInfo.namespace(),
                 projectInfo.createdAt() != null ? projectInfo.createdAt().toEpochMilli() : 0L,
-                projectInfo.workspaceId(),
-                InstantUtils.toEpochMilli(detail.lastDataAt()),
-                detail.sessionCount(),
-                detail.eventSource());
+                projectInfo.workspaceId());
     }
 }

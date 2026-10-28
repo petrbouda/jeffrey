@@ -23,10 +23,6 @@ export default class ProjectSettingsClient extends BasePlatformClient {
     super(`/remote/workspaces/${workspaceId}/projects/${projectId}/settings`);
   }
 
-  updateName(name: string): Promise<void> {
-    return super.post<void>('', { name });
-  }
-
   fetch(): Promise<SettingsResponse> {
     return super.get<SettingsResponse>();
   }

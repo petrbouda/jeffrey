@@ -324,7 +324,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         There is no property for this. Recordings are not copied into a directory of the Hub's own:
         they stay where the provisioner and the application wrote them, under the workspace tree on
         the shared volume — <code>&lt;workspaces&gt;/&lt;workspace-ref-id&gt;/&lt;project&gt;/&lt;instance&gt;/&lt;session&gt;/</code>.
-        The Hub's scheduler jobs retain and compress those files in place, reading the marker files on
+        The Hub's scheduler jobs retain and compress those files in place, listing the directories on
         every run rather than keeping a copy of them; see
         <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link> for the layout.
       </p>
@@ -333,10 +333,14 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
       <p>
         How the server learns about projects, instances and sessions the provisioner wrote to the
         shared volume. There is no discovery job and no index: every scheduler run lists the workspace
-        directories and reads their marker files afresh. A workspace's id is its
-        directory name (the reference id the provisioner's <code>project.workspace-id</code>
-        names); a project's id is the <code>projectId</code> in its
-        <code>.project-info.json</code>; instance and session ids are their directory names.
+        directories afresh, and the folder names are the state. A workspace's id is its
+        directory name (the reference id the provisioner's <code>project.workspace-ref-id</code>
+        names); a project's id is its directory name (the provisioner's <code>project.name</code>);
+        an instance's id is its directory name (<code>instance-name</code>, <code>HOSTNAME</code> by
+        default); a session's id is its directory name, a UUIDv7 whose timestamp is the session's start.
+        There are no marker files below the workspace: a project or an instance is any visible
+        (non-dot) child directory, a session a visible directory named with a UUIDv7, and anything
+        else under an instance is ignored.
       </p>
       <p>
         A directory is a workspace once the Hub wrote its <code>.workspace-info.json</code> (name and

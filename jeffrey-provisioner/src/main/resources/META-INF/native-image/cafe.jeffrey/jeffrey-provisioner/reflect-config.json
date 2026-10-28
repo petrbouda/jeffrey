@@ -28,27 +28,6 @@
   },
   {
     "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
-    "name": "cafe.jeffrey.shared.common.model.repository.RemoteProject",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
-    "name": "cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
-    "name": "cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
     "name": "cafe.jeffrey.shared.common.model.Type",
     "allDeclaredConstructors": true,
     "allDeclaredMethods": true,

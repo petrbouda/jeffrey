@@ -44,7 +44,7 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p><strong>Instances</strong> represent individual JVM processes connected to a project. When an application starts with the Jeffrey profiler agent it registers as an instance and starts producing recording sessions.</p>
+        <p><strong>Instances</strong> represent individual JVM processes connected to a project. When an application starts through the Jeffrey Provisioner it gets an instance folder in the project &mdash; named by <code>instance-name</code>, <code>HOSTNAME</code> by default, and that folder name is the instance's id &mdash; and starts producing recording sessions.</p>
 
         <h2 id="overview">Overview</h2>
         <p>The project page opens on its <strong>Instances</strong> tab:</p>
@@ -60,21 +60,21 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="instance-sessions">Instances and Sessions</h2>
-        <p>An instance has no status. Its sessions are ordered by their UUIDv7 directory names, whose timestamp is each session's start; the <strong>newest</strong> session is the only one that may still grow, and every older one was ended by a newer one. An instance's <strong>last data</strong> is where its newest session's recorded data ends — the newest recording's start plus the measured chunk length. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for the details.</p>
+        <p>An instance has no status. Its sessions are ordered by their UUIDv7 directory names, whose timestamp is each session's start; the <strong>newest</strong> session is the only one that may still grow, and every older one was ended by a newer one. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for the details.</p>
 
         <p>When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
 
         <h2 id="instances-tab">Instances Tab</h2>
-        <p>Instances are listed in a table, newest recorded data first, with each instance's name, session count, start and last data (<em>No data yet</em> before its first recording). Use the search box to filter by name; click a row to open the instance's page with its sessions.</p>
-        <p>The right end of the tab row carries a one-line summary of the project: instances, sessions and storage size. Click it to open the full breakdown:</p>
+        <p>Instances are listed in a table with two columns, <strong>Instance</strong> (its name, the instance's folder) and <strong>Started</strong> (when the instance's folder was created, as the share lists it — blank on an NFS share, which lists no times), newest first. Microscope shows no counts or aggregates here: no session count and no last data. Use the search box to filter by name; click a row to open the instance's page with its sessions.</p>
+        <p>The right end of the tab row carries a one-line summary of the project: its instances and, when measured, its storage size. Click it to open the full breakdown:</p>
         <ul>
-          <li><strong>Instances</strong> — total instances, total sessions, the project's last data and its first instance.</li>
+          <li><strong>Instances</strong> — total instances and the first instance.</li>
           <li><strong>Storage</strong> — the bytes the project occupies on the remote. Opening the tab never walks the project's files for it, and only the Jeffrey Hub's retention pass measures it, so on the Azure file share the breakdown says the project is not measured; see the hub's Storage page for the figure.</li>
         </ul>
-        <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, and an instance's page reads that instance and a page of its sessions with their files.</p>
+        <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, and an instance's page reads that instance and a page of its sessions by name only.</p>
         <p>Nothing reloads on its own. On the Azure file share every read is a round-trip to the share, so an instance's page reads the instance once when it opens, every session starts collapsed, and a recording session's sizes stay as they were read until <strong>Refresh</strong> in the page header reads them again.</p>
-        <p>An instance's page shows its ten newest sessions; <strong>Load more</strong> under the list reads the next ten. Each session arrives with its files, so expanding one asks the share for nothing more. The session count is the instance's session folders, so a session whose folder exists but whose description is not written yet is counted with them.</p>
-        <p>Microscope remembers the description files the provisioner writes once (for each project, instance and session), so a page opened again asks the share only for what can have changed: folder listings and sizes. It forgets a remembered file as soon as a listing no longer shows its folder, when Microscope itself deletes there, and after ten minutes in any case. The reads of one page go out up to eight at a time.</p>
+        <p>An instance's page lists its sessions by name only, ten at a time: its ten newest sessions, and <strong>Load more</strong> under the list reads the next ten older ones. Each session card shows the session's id and start, both from its UUIDv7 folder name, and whether it is the instance's newest session; its files, size, last data and duration load when the card is expanded. A session is a visible folder named with a UUIDv7 &mdash; anything else under the instance is ignored. There is no failed-session band on the page.</p>
+        <p>There are no description files to read: the provisioner writes no marker below the workspace, so every id Microscope shows is a folder name and a page asks the share only for folder listings and sizes. The reads of one page go out up to eight at a time.</p>
       </div>
 
       <DocsNavFooter />

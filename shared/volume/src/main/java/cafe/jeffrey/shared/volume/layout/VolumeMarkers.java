@@ -31,10 +31,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Reading the marker files that make the volume its own state: the provisioner's
- * {@code .project-info.json}, {@code .instance-info.json} and {@code .session-info.json}, the
- * hub's {@code .workspace-info.json}, and the flag files beside them. Writing them is the writer's
- * business, never a reader's.
+ * Reading the volume's directories and its one marker file, the {@code .workspace-info.json} that
+ * names a workspace. Nothing below a workspace has a marker: a level is the listing of its parent.
+ * Writing is the writer's business, never a reader's.
  */
 public final class VolumeMarkers {
 

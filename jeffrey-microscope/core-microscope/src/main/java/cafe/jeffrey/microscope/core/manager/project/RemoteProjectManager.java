@@ -22,7 +22,6 @@ import cafe.jeffrey.microscope.remote.client.manager.RemoteRepositoryManager;
 import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.RemoteMappers;
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
@@ -68,14 +67,6 @@ public class RemoteProjectManager implements ProjectManager {
         return projectInfo;
     }
 
-    /**
-     * Reads what the project's instances say of it, every time it is asked: finding the project
-     * reads only its marker, so the requests that never show its status never pay for it.
-     */
-    @Override
-    public DetailedProjectInfo detailedInfo() {
-        return RemoteMappers.toDetailedProjectInfo(projectInfo, remoteClients.instances().activity(scope));
-    }
 
     @Override
     public ProfilesManager profilesManager() {
@@ -106,11 +97,6 @@ public class RemoteProjectManager implements ProjectManager {
     @Override
     public RemoteInstancesManager instancesManager() {
         return new RemoteInstancesManager(scope, remoteClients.instances());
-    }
-
-    @Override
-    public void updateName(String name) {
-        throw new UnsupportedOperationException("Renaming remote projects is not supported");
     }
 
     @Override

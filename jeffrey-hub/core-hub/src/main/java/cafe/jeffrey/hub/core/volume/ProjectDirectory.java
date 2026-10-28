@@ -20,10 +20,9 @@ package cafe.jeffrey.hub.core.volume;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 
-import java.time.Instant;
 
 /**
- * A project directory on the volume and the hub's project it declares.
+ * A project directory on the volume and the hub's project it names.
  *
  * @param tree the directory as the volume's layout reads it; where the project's instances and
  *             sessions lie
@@ -36,13 +35,8 @@ public record ProjectDirectory(ProjectTree tree, ProjectInfo info) {
         }
     }
 
-    /** The hub's project the directory's marker declares, in workspace {@code workspaceId}. */
+    /** The hub's project the directory names, in workspace {@code workspaceId}. */
     public static ProjectDirectory of(ProjectTree tree, String workspaceId) {
-        return new ProjectDirectory(tree, new ProjectInfo(
-                tree.marker().projectId(),
-                tree.marker().projectName(),
-                workspaceId,
-                Instant.ofEpochMilli(tree.marker().createdAt()),
-                tree.marker().attributes()));
+        return new ProjectDirectory(tree, new ProjectInfo(tree.id(), tree.id(), workspaceId, tree.createdAt()));
     }
 }

@@ -31,8 +31,7 @@
       @click="open = !open"
     >
       <span class="summary-text">
-        <strong>{{ stats.total }}</strong> {{ stats.total === 1 ? 'instance' : 'instances' }} ·
-        <strong>{{ stats.sessions }}</strong> {{ stats.sessions === 1 ? 'session' : 'sessions' }}
+        <strong>{{ stats.total }}</strong> {{ stats.total === 1 ? 'instance' : 'instances' }}
         <template v-if="storage.kind === 'measured'">
           · <strong>{{ storage.value }} {{ storage.unit }}</strong>
         </template>
@@ -104,15 +103,9 @@ const rows = computed<StatRow[]>(() => {
     stats.oldestCreatedAt === null
       ? '—'
       : FormattingService.formatRelativeTime(stats.oldestCreatedAt);
-  const lastData =
-    stats.lastDataAt === null
-      ? 'No data yet'
-      : FormattingService.formatRelativeTime(stats.lastDataAt);
 
   return [
     { label: 'Total instances', value: stats.total },
-    { label: 'Total sessions', value: stats.sessions },
-    { label: 'Last data', value: lastData },
     { label: 'First instance', value: firstInstance }
   ];
 });

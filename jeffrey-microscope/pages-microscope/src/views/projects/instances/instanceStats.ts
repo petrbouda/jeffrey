@@ -19,27 +19,27 @@ import FormattingService from '@shared/services/FormattingService';
 import type ProjectInstance from '@remote/services/api/model/ProjectInstance';
 import type RepositoryStatistics from '@remote/services/api/model/RepositoryStatistics';
 
-/** A project's instances reduced to the figures the tab-row summary shows. */
+/**
+ * A project's instances reduced to the figures the tab-row summary shows — only what one listing
+ * of the project gives: the instances themselves, never a count of what they hold.
+ */
 export interface InstanceStats {
   total: number;
-  sessions: number;
-  /** Creation time of the oldest instance (UTC epoch millis), null when there is none. */
+  /**
+   * Creation time of the oldest instance (UTC epoch millis); null when there is none or the share
+   * lists no times.
+   */
   oldestCreatedAt: number | null;
-  /** When the newest data of any instance ends (UTC epoch millis), null while none has any. */
-  lastDataAt: number | null;
 }
 
 export function summarizeInstances(instances: readonly ProjectInstance[]): InstanceStats {
-  const lastDataTimes = instances
-    .map(instance => instance.lastDataAt)
-    .filter((lastDataAt): lastDataAt is number => lastDataAt !== null);
+  const createdTimes = instances
+    .map(instance => instance.createdAt)
+    .filter((createdAt): createdAt is number => createdAt !== null);
 
   return {
     total: instances.length,
-    sessions: instances.reduce((sum, instance) => sum + instance.sessionCount, 0),
-    oldestCreatedAt:
-      instances.length === 0 ? null : Math.min(...instances.map(instance => instance.createdAt)),
-    lastDataAt: lastDataTimes.length === 0 ? null : Math.max(...lastDataTimes)
+    oldestCreatedAt: createdTimes.length === 0 ? null : Math.min(...createdTimes)
   };
 }
 

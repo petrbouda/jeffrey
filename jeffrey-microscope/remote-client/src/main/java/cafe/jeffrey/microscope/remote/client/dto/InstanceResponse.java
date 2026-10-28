@@ -21,29 +21,18 @@ import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 
 /**
- * An instance as this application's API reports it.
+ * An instance as this application's API reports it: its directory.
  *
- * @param createdAt  epoch millis when the provisioner registered it
- * @param lastDataAt epoch millis when the data of its newest session ends; {@code null} while it has none
+ * @param createdAt epoch millis when its directory was created; {@code null} on a share that lists no times
  */
-public record InstanceResponse(
-        String id,
-        String instanceName,
-        Long createdAt,
-        Long lastDataAt,
-        int sessionCount) {
+public record InstanceResponse(String id, String instanceName, Long createdAt) {
 
     /** An instance as a remote lists it: named by its id. */
-    public static InstanceResponse summary(String id, long createdAt, Long lastDataAt, int sessionCount) {
-        return new InstanceResponse(id, id, createdAt, lastDataAt, sessionCount);
+    public static InstanceResponse summary(String id, Long createdAt) {
+        return new InstanceResponse(id, id, createdAt);
     }
 
     public static InstanceResponse from(ProjectInstanceInfo info) {
-        return new InstanceResponse(
-                info.id(),
-                info.instanceName(),
-                InstantUtils.toEpochMilli(info.startedAt()),
-                InstantUtils.toEpochMilli(info.lastDataAt()),
-                info.sessionCount());
+        return new InstanceResponse(info.id(), info.instanceName(), InstantUtils.toEpochMilli(info.startedAt()));
     }
 }

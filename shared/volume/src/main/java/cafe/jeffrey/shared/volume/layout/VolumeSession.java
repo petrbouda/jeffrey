@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.volume.layout;
 import cafe.jeffrey.shared.volume.VolumePath;
 
 import java.time.Instant;
-import java.time.ZoneId;
 
 /**
  * A session as the volume says it is at the moment of reading: its directory, whether it is its
@@ -31,9 +30,6 @@ import java.time.ZoneId;
  *               newest recording may still be on its way onto the volume, and only it can grow
  */
 public record VolumeSession(SessionDirectory directory, boolean newest, SessionListing listing) {
-
-    /** Joins a session's instance and its own directory into its name, relative to the project. */
-    private static final String NAME_SEPARATOR = "/";
 
     public VolumeSession {
         if (directory == null || listing == null) {
@@ -51,16 +47,13 @@ public record VolumeSession(SessionDirectory directory, boolean newest, SessionL
 
     /** Its name relative to the project — {@code pod-a/s-1} — as every reader of the volume lists it. */
     public String name() {
-        return instanceId() + NAME_SEPARATOR + id();
+        return new SessionHeader(directory, newest).name();
     }
 
     public Instant createdAt() {
         return directory.createdAt();
     }
 
-    public ZoneId zone() {
-        return directory.zone();
-    }
 
     public VolumePath path() {
         return directory.path();

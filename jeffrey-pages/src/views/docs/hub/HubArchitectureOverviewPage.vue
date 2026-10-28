@@ -59,8 +59,9 @@ onMounted(() => {
       <p>
         Hub runs as a long-lived process next to the shared volume. Async-Profiler running
         inside your applications writes JFR chunks to the volume on every recording loop; the
-        hub's scheduler jobs walk the volume — the marker files the provisioner wrote, and the
-        session directories, whose UUIDv7 names order each instance's sessions — to drop what
+        hub's scheduler jobs walk the volume — the project, instance and session directories the
+        provisioner created, whose names are their ids and whose UUIDv7 session names order each
+        instance's sessions — to drop what
         retention no longer allows and to compress every recording but the newest one of each
         instance's newest session. The profiler gets its configuration
         (event toggles, sampling intervals, output paths) from the provisioner that started the
@@ -147,7 +148,7 @@ onMounted(() => {
       <h2 id="storage">Storage</h2>
       <p>
         The shared volume is the hub's only state: workspaces, projects, instances and sessions are
-        its directories and marker files, and the JFR recordings sit inside them, laid out by
+        its directories (the only marker is a workspace's <code>.workspace-info.json</code>), and the JFR recordings sit inside them, laid out by
         workspace and project. There is no database, no cache, no object store, and no
         per-profile databases. See the
         <router-link to="/docs/hub/storage">Storage</router-link> page for the directory

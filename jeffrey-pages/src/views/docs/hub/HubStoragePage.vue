@@ -83,12 +83,12 @@ onMounted(() => {
       </div>
 
       <h2 id="volume-state">The Volume Is the State</h2>
-      <p>The workspaces directory is the single source of truth for what exists in this deployment. Every job — and Microscope, from its side — reads the marker files there when it runs; nothing is copied into a store of the Hub's own, so nothing can drift from the files. Scheduler jobs are <em>not</em> stored anywhere either — they are resolved from configuration at startup, so changing a job requires editing properties and restarting.</p>
+      <p>The workspaces directory is the single source of truth for what exists in this deployment. Every job — and Microscope, from its side — reads its directories when it runs, and the folder names are the state; nothing is copied into a store of the Hub's own, so nothing can drift from the files. Scheduler jobs are <em>not</em> stored anywhere either — they are resolved from configuration at startup, so changing a job requires editing properties and restarting.</p>
 
       <div class="db-card platform">
         <div class="card-header">
           <i class="bi bi-folder2-open"></i>
-          <h4>Marker Files</h4>
+          <h4>Folders and the Workspace Marker</h4>
           <span class="badge">Filesystem</span>
         </div>
         <div class="card-body">
@@ -97,9 +97,9 @@ onMounted(() => {
           <h5>Contains:</h5>
           <ul>
             <li><code>.workspace-info.json</code> — a workspace's name and creation time, written by the Hub's default-workspace initializer or by Microscope when a user creates the workspace</li>
-            <li><code>.project-info.json</code>, <code>.instance-info.json</code>, <code>.session-info.json</code> — written by the Provisioner</li>
+            <li>No marker below the workspace — a project or an instance is any visible (non-dot) child directory, a session is a visible directory named with a UUIDv7; anything else under an instance is ignored</li>
           </ul>
-          <p>Ids come from the volume: a workspace's id is its directory name (the reference id the Provisioner names), a project's is the <code>projectId</code> in its marker, and an instance's and a session's are their directory names.</p>
+          <p>Ids are folder names: a workspace's id is its directory name (the reference id the Provisioner names), a project's is its directory name (the project <code>name</code> the Provisioner was configured with), an instance's is its directory name (<code>instance-name</code>, <code>HOSTNAME</code> by default), and a session's is its directory name, a UUIDv7 whose timestamp is the session's start.</p>
         </div>
       </div>
 
@@ -116,9 +116,11 @@ onMounted(() => {
     └── {project}/
         └── {instance-id}/
             └── {session-id}/
-                ├── profile-20260220-120500.jfr   # a chunk (or .jfr.lz4 once compressed)
-                └── ...                           # heap dumps, JVM logs, perf-counters</code></pre>
+                ├── profile-20260220-120500.UTC.jfr   # a chunk (or .jfr.lz4 once compressed)
+                └── ...                               # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
+
+      <p>A chunk's name carries the time zone of the machine that wrote it (<code>profile-%t.&lt;Zone~Id&gt;.jfr</code> &mdash; <code>.UTC</code> here, <code>.Europe~Prague</code> on a machine in Prague), and its timestamp is read in that zone, DST-correct per chunk. A name without a zone segment is read as UTC.</p>
 
       <p>Each session ends up with its rotated JFR chunks and any optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, instance or session.</p>
 
@@ -135,7 +137,6 @@ onMounted(() => {
           <h5>Written by Jeffrey Provisioner:</h5>
           <ul>
             <li>Project, instance and session directory structure</li>
-            <li>Project, instance and session marker files</li>
           </ul>
           <h5>Written by the profiled application:</h5>
           <ul>
@@ -144,7 +145,7 @@ onMounted(() => {
           </ul>
           <h5>Maintained by Jeffrey Hub:</h5>
           <ul>
-            <li>Lists workspaces, projects, instances and sessions from the marker files on every job run</li>
+            <li>Lists workspaces, projects, instances and sessions from their directories on every job run</li>
             <li>Orders each instance's sessions by their UUIDv7 directory names; the newest one may still grow</li>
             <li>Deletes what retention no longer allows and LZ4-compresses JFR chunks, never the newest recording of an instance's newest session</li>
           </ul>
@@ -163,13 +164,10 @@ onMounted(() => {
 └── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
     └── {workspace-ref-id}/
         ├── .workspace-info.json      # written when the workspace is created
-        └── {project}/
-            ├── .project-info.json
+        └── {project}/                    # the folder names are the ids, no markers below the workspace
             └── {instance}/
-                ├── .instance-info.json
-                └── {session}/
-                    ├── .session-info.json
-                    ├── profile-20260220-120500.jfr      # a chunk (or .jfr.lz4 once compressed)
+                └── {session}/            # a UUIDv7
+                    ├── profile-20260220-120500.UTC.jfr  # a chunk (or .jfr.lz4 once compressed)
                     └── ...                              # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
 
@@ -182,6 +180,7 @@ onMounted(() => {
       <ul>
         <li><strong>The old database is ignored.</strong> An existing <code>$JEFFREY_HOME/jeffrey-data.db</code> (and its <code>.wal</code>) is never opened and can be deleted.</li>
         <li><strong>Workspaces need their marker.</strong> A workspace created before the upgrade has no <code>.workspace-info.json</code>, so it is not listed. Create it again with the same reference id from Microscope — creating adopts the existing directory with its projects — or set <code>jeffrey.hub.workspaces.auto-create=true</code> to list every workspace directory.</li>
+        <li><strong>Volumes with project, instance and session markers need re-provisioning.</strong> A project's id is now its folder name, not the random <code>projectId</code> of its old <code>.project-info.json</code>, so links, downloads, MCP references and profiles that carried the old id are orphaned. Old marker files left in folders are ignored as hidden entries and go with their directory; see <router-link to="/docs/provisioner/directory-structure">Directory Structure</router-link>.</li>
         <li><strong>Microscope loses its links to older downloads.</strong> Recordings and profiles Microscope downloaded before the upgrade carry the old hub UUIDs, so they no longer link to their hub project: they are not recognised as already downloaded and do not appear in that project's profile list. Download them again to restore the link.</li>
       </ul>
     </div>

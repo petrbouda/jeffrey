@@ -20,19 +20,20 @@ package cafe.jeffrey.shared.volume.layout;
 import cafe.jeffrey.shared.volume.VolumePath;
 
 import java.time.Instant;
+import java.util.Optional;
 
 /**
- * An instance directory whose {@code .instance-info.json} reads — the one test of "is this an
- * instance", shared by every lookup and listing, so none of them disagrees about a directory with
- * a broken marker.
+ * An instance directory: a visible directory in a project — the one test of "is this an
+ * instance", shared by every lookup and listing.
  *
- * @param createdAt when the provisioner registered the instance, from its marker
+ * @param createdAt when the directory was created, as the volume lists it; empty on a share that
+ *                  lists no times (Azure NFS)
  */
-public record InstanceDirectory(VolumePath path, Instant createdAt) {
+public record InstanceDirectory(VolumePath path, Optional<Instant> createdAt) {
 
     public InstanceDirectory {
         if (path == null || createdAt == null) {
-            throw new IllegalArgumentException("An instance directory needs a path and a creation time");
+            throw new IllegalArgumentException("An instance directory needs a path and its creation time");
         }
     }
 

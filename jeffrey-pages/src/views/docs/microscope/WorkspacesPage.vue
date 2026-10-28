@@ -115,8 +115,13 @@ onMounted(() => {
         writes into — and Microscope works with it over the Azure Files REST API, signing in with a
         SAS token or with Microsoft Entra ID. Its workspaces, projects, instances and recording
         sessions are browsed and downloaded straight off the share. Each directory at the share's
-        root (or under its configured root path) is a workspace, named by its workspace marker when
-        one is there.
+        root (or under its configured root path) is a workspace. The folder names are the state: the
+        workspace list shows each workspace's folder name, its id (reference id); the display name in its
+        <code>.workspace-info.json</code> marker &mdash; the only marker on the volume &mdash; is read only
+        when that workspace is opened. A project is any visible (non-dot) folder in a workspace, its
+        name being its id, and a project card shows that name and the folder's creation date when the
+        share lists one. Microscope shows no counts or aggregates: no project count on a workspace and
+        no session count or last data on a project.
       </p>
       <p>
         Microscope makes your changes on the share, exactly where the Jeffrey Hub's jobs expect them:
@@ -219,6 +224,7 @@ onMounted(() => {
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
       <ul>
         <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
+        <li><strong>Renaming a project</strong> — a project's name is its folder on the share and its id, so the project's Settings show it read-only.</li>
         <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>
         <li><strong>More than one remote</strong> — Microscope reaches exactly one.</li>
         <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (the SAS token or Entra identity of the Azure file share); there's no separate workspace-level token.</li>

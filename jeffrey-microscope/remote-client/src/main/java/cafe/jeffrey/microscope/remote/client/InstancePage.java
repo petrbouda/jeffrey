@@ -20,16 +20,13 @@ package cafe.jeffrey.microscope.remote.client;
 import java.util.Optional;
 
 /**
- * Which of an instance's sessions one read asks for, newest first, and whether each comes with its
- * files. The instance's page asks for {@link #newest} pages with their files: the remote lists each
- * session's directory to count its files anyway, so sending them costs no further call, and opening
- * a session on the page then asks for nothing.
+ * Which of an instance's sessions one read names, newest first: one listing of the instance names
+ * them all, so a page costs that listing whatever its size, and no session on it is read.
  *
- * @param limit     how many sessions at most; {@link Integer#MAX_VALUE} for all of them
- * @param before    the session the page starts after, or empty for the newest
- * @param withFiles whether each session carries its files, not only their count and size
+ * @param limit  how many sessions at most; {@link Integer#MAX_VALUE} for all of them
+ * @param before the session the page starts after, or empty for the newest
  */
-public record InstancePage(int limit, Optional<String> before, boolean withFiles) {
+public record InstancePage(int limit, Optional<String> before) {
 
     /** How many sessions the instance's page shows before "Show older sessions". */
     public static final int PAGE_SIZE = 10;
@@ -40,13 +37,13 @@ public record InstancePage(int limit, Optional<String> before, boolean withFiles
         }
     }
 
-    /** Every session, each with its count and size but not its files. */
+    /** Every session. */
     public static InstancePage whole() {
-        return new InstancePage(Integer.MAX_VALUE, Optional.empty(), false);
+        return new InstancePage(Integer.MAX_VALUE, Optional.empty());
     }
 
-    /** The newest {@link #PAGE_SIZE} sessions after {@code before}, each with its files. */
+    /** The newest {@link #PAGE_SIZE} sessions after {@code before}. */
     public static InstancePage newest(Optional<String> before) {
-        return new InstancePage(PAGE_SIZE, before, true);
+        return new InstancePage(PAGE_SIZE, before);
     }
 }

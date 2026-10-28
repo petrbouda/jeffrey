@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
@@ -44,22 +45,26 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The remote managers Microscope builds its pages from, read off a recording volume: an instance
- * with when its data ends, its sessions with the sizes they arrived with, and a session's failed
- * flag.
+ * as its directory, a page of its sessions named but not read, the sessions with the sizes they
+ * arrived with, and a session's failed flag.
  */
 class RemoteManagersOverVolumeTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant NOW = T0.plusSeconds(3600);
-    private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
+    private static final ProjectScope ORDERS = new ProjectScope("prod", "orders");
     private static final String BUSY_INSTANCE = "pod-busy";
     private static final String QUIET_INSTANCE = "pod-quiet";
     private static final String CHUNK_OF_1000_BYTES = "x".repeat(1000);
+
+    private static final String OLDER = VolumeWriter.sessionIdAt(T0.plusSeconds(60));
+    private static final String FAILED = VolumeWriter.sessionIdAt(T0.plusSeconds(900));
+    private static final String NEWEST = VolumeWriter.sessionIdAt(T0.plusSeconds(1200));
+    private static final String QUIET = VolumeWriter.sessionIdAt(T0);
 
     @TempDir
     Path root;
@@ -72,18 +77,18 @@ class RemoteManagersOverVolumeTest {
      */
     @BeforeEach
     void setUp() throws IOException {
-        Path project = VolumeWriter.project(Files.createDirectories(root.resolve("prod")), "p-orders", "orders", T0);
+        Path project = VolumeWriter.project(Files.createDirectories(root.resolve("prod")), "orders");
 
-        Path busy = VolumeWriter.instance(project, BUSY_INSTANCE, T0);
-        Path older = VolumeWriter.session(busy, "session-older", T0.plusSeconds(60), null);
+        Path busy = VolumeWriter.instance(project, BUSY_INSTANCE);
+        Path older = VolumeWriter.session(busy, T0.plusSeconds(60));
         VolumeWriter.file(older, "profile-20260220-120100.jfr", CHUNK_OF_1000_BYTES);
-        VolumeWriter.session(busy, "session-failed", T0.plusSeconds(900), null);
-        Path newest = VolumeWriter.session(busy, "session-newest", T0.plusSeconds(1200), null);
+        VolumeWriter.session(busy, T0.plusSeconds(900));
+        Path newest = VolumeWriter.session(busy, T0.plusSeconds(1200));
         VolumeWriter.file(newest, "profile-20260220-122000.jfr", CHUNK_OF_1000_BYTES);
         VolumeWriter.file(newest, "profile-20260220-122100.jfr", CHUNK_OF_1000_BYTES);
 
-        Path quiet = VolumeWriter.instance(project, QUIET_INSTANCE, T0);
-        VolumeWriter.session(quiet, "session-quiet", T0, null);
+        Path quiet = VolumeWriter.instance(project, QUIET_INSTANCE);
+        VolumeWriter.session(quiet, T0);
 
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         clients = VolumeRemoteClients.of(new VolumeSource(new FilesystemVolume(root), clock, "test-volume", false));
@@ -93,8 +98,9 @@ class RemoteManagersOverVolumeTest {
         return new RemoteInstancesManager(ORDERS, clients.instances());
     }
 
-    private static ProjectInstanceInfo byId(List<ProjectInstanceInfo> instances, String id) {
-        return instances.stream().filter(instance -> instance.id().equals(id)).findFirst().orElseThrow();
+    private RemoteRepositoryManager repository() {
+        return new RemoteRepositoryManager(
+                null, ORDERS, new RepositoryStatistics(21_300L), clients.repository(), clients.files());
     }
 
     private static RecordingSession sessionById(List<RecordingSession> sessions, String id) {
@@ -104,23 +110,13 @@ class RemoteManagersOverVolumeTest {
     @Nested
     class FindAll {
 
-        /** The newest session's last chunk started at 12:21 and chunks are a minute long. */
+        /** Each instance is its directory, as one listing of the project names it. */
         @Test
-        void anInstanceDataEndsWithItsNewestSessionsLastChunk() {
+        void eachInstanceIsItsDirectory() {
             List<ProjectInstanceInfo> instances = instances().findAll();
 
-            assertEquals(2, instances.size());
-            ProjectInstanceInfo busy = byId(instances, BUSY_INSTANCE);
-            assertEquals(Instant.parse("2026-02-20T12:22:00Z"), busy.lastDataAt());
-            assertEquals(3, busy.sessionCount());
-        }
-
-        @Test
-        void anInstanceWhoseNewestSessionHoldsNoRecordingHasNoDataYet() {
-            ProjectInstanceInfo quiet = byId(instances().findAll(), QUIET_INSTANCE);
-
-            assertNull(quiet.lastDataAt());
-            assertEquals(1, quiet.sessionCount());
+            assertEquals(List.of(BUSY_INSTANCE, QUIET_INSTANCE), instances.stream().map(ProjectInstanceInfo::id).toList());
+            assertEquals("orders", instances.getFirst().projectId());
         }
     }
 
@@ -128,20 +124,31 @@ class RemoteManagersOverVolumeTest {
     class Find {
 
         @Test
-        void readsTheInstanceWithItsSessionsNewestFirst() {
+        void namesTheInstancesSessionsNewestFirst() {
             InstanceWithSessions found = instances().find(BUSY_INSTANCE, Optional.empty()).orElseThrow();
 
             assertEquals(BUSY_INSTANCE, found.instance().id());
-            assertEquals(List.of("session-newest", "session-failed", "session-older"),
-                    found.sessions().stream().map(RecordingSession::id).toList());
-            assertTrue(found.sessions().getFirst().newest());
-            assertFalse(found.sessions().get(1).newest());
+            assertEquals(List.of(NEWEST, FAILED, OLDER),
+                    found.sessions().stream().map(RecordingSessionHeader::id).toList());
+            assertEquals(List.of(true, false, false),
+                    found.sessions().stream().map(RecordingSessionHeader::newest).toList());
+            assertEquals(T0.plusSeconds(1200), found.sessions().getFirst().createdAt());
+            assertFalse(found.hasOlder());
         }
 
         @Test
-        void sessionsCarryTheirFilesSoOpeningOneAsksForNothing() {
-            RecordingSession older = sessionById(
-                    instances().find(BUSY_INSTANCE, Optional.empty()).orElseThrow().sessions(), "session-older");
+        void anUnknownInstanceIsEmpty() {
+            assertTrue(instances().find("ghost", Optional.empty()).isEmpty());
+        }
+    }
+
+    /** A session opened on its own: its files, its size and whether it failed. */
+    @Nested
+    class OneSession {
+
+        @Test
+        void carriesItsFiles() {
+            RecordingSession older = repository().recordingSession(OLDER);
 
             assertEquals(1000L, older.totalSizeBytes());
             assertEquals(1, older.fileCount());
@@ -151,35 +158,27 @@ class RemoteManagersOverVolumeTest {
 
         @Test
         void anEmptySessionANewerOneEndedFailed() {
-            List<RecordingSession> sessions =
-                    instances().find(BUSY_INSTANCE, Optional.empty()).orElseThrow().sessions();
-
-            assertTrue(sessionById(sessions, "session-failed").failed());
-            assertFalse(sessionById(sessions, "session-older").failed());
+            assertTrue(repository().recordingSession(FAILED).failed());
+            assertFalse(repository().recordingSession(OLDER).failed());
         }
 
         @Test
         void theNewestSessionIsNeverFailedEvenWhileEmpty() {
-            RecordingSession quiet = instances().find(QUIET_INSTANCE, Optional.empty()).orElseThrow()
-                    .sessions().getFirst();
+            RecordingSession quiet = repository().recordingSession(QUIET);
 
             assertFalse(quiet.failed());
             assertTrue(quiet.newest());
         }
 
+        /** The newest session's last chunk started at 12:21 and chunks are a minute long. */
         @Test
-        void anUnknownInstanceIsEmpty() {
-            assertTrue(instances().find("ghost", Optional.empty()).isEmpty());
+        void itsDataEndsOneChunkAfterItsLastChunkStarted() {
+            assertEquals(Instant.parse("2026-02-20T12:22:00Z"), repository().recordingSession(NEWEST).lastDataAt());
         }
     }
 
     @Nested
     class Repository {
-
-        private RemoteRepositoryManager repository() {
-            return new RemoteRepositoryManager(
-                    null, ORDERS, new RepositoryStatistics(21_300L), clients.repository(), clients.files());
-        }
 
         @Test
         void reportsTheSizeTheProjectArrivedWith() {
@@ -188,8 +187,7 @@ class RemoteManagersOverVolumeTest {
 
         @Test
         void listedSessionsCarryTheirSizeButNoFiles() {
-            RecordingSession older = sessionById(
-                    repository().listRecordingSessions(RecordingSessionFilter.ALL), "session-older");
+            RecordingSession older = sessionById(repository().listRecordingSessions(RecordingSessionFilter.ALL), OLDER);
 
             assertEquals(1, older.fileCount());
             assertEquals(1000L, older.totalSizeBytes());

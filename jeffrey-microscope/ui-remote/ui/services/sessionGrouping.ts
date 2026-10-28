@@ -56,62 +56,8 @@ export function hasUnreportedSizes(session: RecordingSession): boolean {
     return false;
   }
   return (
-    session.fileCount > 0 &&
+    (session.fileCount ?? 0) > 0 &&
     session.sizeBytes === 0 &&
     (session.duration ?? 0) >= UNREPORTED_SIZES_GRACE_MS
   );
-}
-
-export interface FailedSessionGroup {
-  type: 'failedGroup';
-  /** Stable key derived from the first (newest) grouped session id. */
-  key: string;
-  sessions: RecordingSession[];
-  /** createdAt of the oldest session in the group (epoch millis). */
-  firstCreatedAt: number;
-  /** createdAt of the newest session in the group (epoch millis). */
-  lastCreatedAt: number;
-}
-
-export interface SingleSessionEntry {
-  type: 'session';
-  session: RecordingSession;
-}
-
-export type SessionDisplayEntry = SingleSessionEntry | FailedSessionGroup;
-
-/**
- * Folds consecutive failed (ended, zero-size) sessions of a createdAt-descending
- * list into collapsed group entries. A single isolated failed session also becomes
- * a group of one, so failed sessions always render through the same collapsed UI.
- */
-export function buildDisplayEntries(sortedSessions: RecordingSession[]): SessionDisplayEntry[] {
-  const entries: SessionDisplayEntry[] = [];
-  let currentGroup: RecordingSession[] = [];
-
-  const flushGroup = () => {
-    if (currentGroup.length === 0) {
-      return;
-    }
-    entries.push({
-      type: 'failedGroup',
-      key: currentGroup[0].id,
-      sessions: currentGroup,
-      firstCreatedAt: currentGroup[currentGroup.length - 1].createdAt,
-      lastCreatedAt: currentGroup[0].createdAt
-    });
-    currentGroup = [];
-  };
-
-  for (const session of sortedSessions) {
-    if (isFailedSession(session)) {
-      currentGroup.push(session);
-    } else {
-      flushGroup();
-      entries.push({ type: 'session', session });
-    }
-  }
-  flushGroup();
-
-  return entries;
 }

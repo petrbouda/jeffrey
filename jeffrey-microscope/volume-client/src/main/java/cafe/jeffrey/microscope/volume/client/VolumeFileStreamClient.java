@@ -68,7 +68,7 @@ final class VolumeFileStreamClient implements FileStreamClient {
 
     /** The file opened, refused with its reason, or empty when it is gone by the time it is opened. */
     private Optional<OpenedFile> open(ProjectScope scope, String sessionId, String fileId) {
-        ProjectTree project = source.requireProject(scope);
+        ProjectTree project = source.resolvedProject(scope);
         VolumeSession session = source.sessions(project).session(sessionId)
                 .orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));
         List<SessionFile> files = project.files(session);

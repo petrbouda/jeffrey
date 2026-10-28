@@ -86,7 +86,7 @@
                       v-model="config.file"
                       type="text"
                       class="form-control"
-                      placeholder="<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr"
+                      placeholder="<<JEFFREY:FILE_PATTERN>>"
                       required
                     />
                     <div class="form-help">

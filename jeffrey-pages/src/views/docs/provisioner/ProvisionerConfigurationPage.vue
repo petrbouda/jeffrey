@@ -42,20 +42,20 @@ onMounted(() => {
 
 const profilerJibDefault = `# Nothing to set: Jeffrey JIB baked JEFFREY_PROFILER_PATH=/opt/jeffrey/libasyncProfiler.so
 # argfile:
--agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/jeffrey/libasyncProfiler.so=start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=<session>/profile-%t.Europe~Prague.jfr`;
 
-const profilerJibOptions = `JEFFREY_PROFILER_COMMAND='start,event=cpu,interval=10ms,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+const profilerJibOptions = `JEFFREY_PROFILER_COMMAND='start,event=cpu,interval=10ms,loop=15m,file=<<JEFFREY:FILE_PATTERN>>'
 # argfile:
--agentpath:/opt/jeffrey/libasyncProfiler.so=start,event=cpu,interval=10ms,loop=15m,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/jeffrey/libasyncProfiler.so=start,event=cpu,interval=10ms,loop=15m,file=<session>/profile-%t.Europe~Prague.jfr`;
 
 const profilerOwnLibrary = `JEFFREY_PROFILER_PATH=/opt/async-profiler/lib/libasyncProfiler.so
-JEFFREY_PROFILER_COMMAND='start,event=wall,loop=15m,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+JEFFREY_PROFILER_COMMAND='start,event=wall,loop=15m,file=<<JEFFREY:FILE_PATTERN>>'
 # argfile:
--agentpath:/opt/async-profiler/lib/libasyncProfiler.so=start,event=wall,loop=15m,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/async-profiler/lib/libasyncProfiler.so=start,event=wall,loop=15m,file=<session>/profile-%t.Europe~Prague.jfr`;
 
-const profilerFullCommand = `JEFFREY_PROFILER_COMMAND='-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<<JEFFREY:CURRENT_SESSION>>/profile-%t.jfr'
+const profilerFullCommand = `JEFFREY_PROFILER_COMMAND='-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<<JEFFREY:FILE_PATTERN>>'
 # argfile (JEFFREY_PROFILER_PATH is ignored, /opt/ap/libasyncProfiler.so is not checked):
--agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<session>/profile-%t.jfr`;
+-agentpath:/opt/ap/libasyncProfiler.so=start,event=cpu,file=<session>/profile-%t.Europe~Prague.jfr`;
 
 const profilerMissing = `WARN  async-profiler library not found, profiling is switched off: profiler_path=/opt/jeffrey/libasyncProfiler.so
 WARN  Jeffrey profiling DISABLED, async-profiler is not available: project=... session=... arg_file=/tmp/jvm.args
@@ -175,7 +175,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <DocsCallout type="warning">
           <strong>The project name is a stable identity — keep it the same across deployments.</strong>
           It keys the project directory on the shared volume (<code>workspaces/&lt;workspace&gt;/&lt;project-name&gt;/</code>),
-          and the project id stored there links all sessions to the same project on the volume.
+          and that folder name is the project's id, which links all sessions to the same project on the volume.
           Changing the name creates a <em>new</em> project; the old one stops receiving sessions and
           keeps its history separately. If you rely on the jeffrey-jib default (the Maven artifactId /
           Gradle project name), renaming the module changes the project too — pin
@@ -283,7 +283,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>profiler-command</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROFILER_COMMAND</code></td>
-              <td>The async-profiler agent the session runs with, in one of two forms. Options alone (<code>start,event=cpu,file=&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>) run on the async-profiler library <code>profiler-path</code> names &mdash; the one jeffrey-jib bakes into the image, or your own. A full <code>-agentpath:&lt;library&gt;=&lt;options&gt;</code> loads that library instead, ignoring <code>profiler-path</code>, and the provisioner does not check it. Leave it unset to run the <code>profiler-path</code> library with the built-in default options. Whenever the <code>profiler-path</code> library is needed but missing, the provisioner logs a warning and switches profiling off. Build the options with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>. The environment variable takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
+              <td>The async-profiler agent the session runs with, in one of two forms. Options alone (<code>start,event=cpu,file=&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code>) run on the async-profiler library <code>profiler-path</code> names &mdash; the one jeffrey-jib bakes into the image, or your own. A full <code>-agentpath:&lt;library&gt;=&lt;options&gt;</code> loads that library instead, ignoring <code>profiler-path</code>, and the provisioner does not check it. Leave it unset to run the <code>profiler-path</code> library with the built-in default options. Whenever the <code>profiler-path</code> library is needed but missing, the provisioner logs a warning and switches profiling off. Use <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> for <code>file=</code>: it carries the machine's time zone into each chunk's name, and a name without one (<code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>) is read as UTC &mdash; wrong times on a non-UTC machine. Build the options with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>. The environment variable takes precedence over the configuration file. Supports <a href="#placeholders">placeholders</a>.</td>
             </tr>
             <tr>
               <td><code>additional-jvm-options</code></td>
@@ -393,7 +393,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         </table>
 
         <h3 id="profiler-examples">Examples</h3>
-        <p>Each example shows what is set on the pod and the <code>-agentpath</code> the provisioner writes into the argfile. <code>&lt;session&gt;</code> stands for the session directory it substitutes for <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code>.</p>
+        <p>Each example shows what is set on the pod and the <code>-agentpath</code> the provisioner writes into the argfile. <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> expands to the session directory (<code>&lt;session&gt;</code>) plus the zoned file name <code>profile-%t.&lt;Zone~Id&gt;.jfr</code>, here on a machine whose zone is <code>Europe/Prague</code>.</p>
 
         <p><strong>Jeffrey JIB, default options</strong> &mdash; nothing to set:</p>
         <DocsCodeBlock language="bash" :code="profilerJibDefault" />

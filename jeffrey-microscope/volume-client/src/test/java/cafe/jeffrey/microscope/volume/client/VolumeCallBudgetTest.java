@@ -22,7 +22,8 @@ import cafe.jeffrey.microscope.remote.client.InstancePage;
 import cafe.jeffrey.microscope.remote.client.InstanceRead;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
-import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionHeaderResponse;
+import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
@@ -48,27 +49,32 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * How many questions each read asks of the volume. On an Azure file share every one is an HTTPS
  * round-trip made while a page waits, so the counts are pinned: a change that asks again for what
- * a listing already answered fails here, not on a slow page.
+ * a listing already answered fails here, not on a slow page. Nothing below a workspace is a file to
+ * read: a level is one listing of its parent, whatever it holds.
  */
 class VolumeCallBudgetTest {
 
     private static final Instant T0 = Instant.parse("2026-10-26T06:00:00Z");
     /** After the newest session started; sessions start two hours apart. */
     private static final Instant NOW = T0.plus(Duration.ofHours(24));
-    private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
+    private static final ProjectScope ORDERS = new ProjectScope("prod", "orders");
     private static final int SESSIONS = 12;
     private static final int CHUNKS_PER_SESSION = 20;
+    /** Projects beside {@code orders}, and instances beside {@code pod-1}: a list costs the same whatever it holds. */
+    private static final int OTHER_PROJECTS = 9;
+    private static final int OTHER_INSTANCES = 4;
     /** Each session named as the provisioner names it, for its start: oldest first. */
     private static final List<String> SESSION_IDS = IntStream.range(0, SESSIONS)
             .mapToObj(session -> VolumeWriter.sessionIdAt(startOf(session)))
             .toList();
-    private static final String LIVE_SESSION = SESSION_IDS.getLast();
-    private static final String FINISHED_SESSION = SESSION_IDS.getFirst();
+    private static final String NEWEST_SESSION = SESSION_IDS.getLast();
+    private static final String OLDER_SESSION = SESSION_IDS.getFirst();
 
     @TempDir
     Path root;
@@ -152,16 +158,23 @@ class VolumeCallBudgetTest {
     }
 
     /**
-     * One instance with twelve sessions two hours apart of twenty chunks and a log each: eleven finished
-     * cleanly, the newest still beating.
+     * A workspace of ten projects. {@code orders} has five instances; {@code pod-1} holds twelve
+     * sessions two hours apart of twenty chunks and a log each, the newest last; the others one
+     * session each.
      */
     @BeforeEach
     void setUp() throws IOException {
-        Path project = VolumeWriter.project(Files.createDirectories(root.resolve("prod")), "p-orders", "orders", T0);
-        Path instance = VolumeWriter.instance(project, "pod-1", T0);
+        Path workspace = Files.createDirectories(root.resolve("prod"));
+        Path project = VolumeWriter.project(workspace, "orders");
+        for (int p = 0; p < OTHER_PROJECTS; p++) {
+            VolumeWriter.session(VolumeWriter.instance(VolumeWriter.project(workspace, "app-" + p), "pod-1"), T0);
+        }
+        for (int i = 0; i < OTHER_INSTANCES; i++) {
+            VolumeWriter.session(VolumeWriter.instance(project, "pod-other-" + i), T0.plusSeconds(i + 1));
+        }
+        Path instance = VolumeWriter.instance(project, "pod-1");
         for (int s = 0; s < SESSIONS; s++) {
-            Instant start = startOf(s);
-            Path session = VolumeWriter.session(instance, SESSION_IDS.get(s), start, null);
+            Path session = VolumeWriter.session(instance, startOf(s));
             for (int c = 0; c < CHUNKS_PER_SESSION; c++) {
                 VolumeWriter.file(session, "profile-%02d%02d.jfr.lz4".formatted(s, c), "x");
             }
@@ -177,153 +190,172 @@ class VolumeCallBudgetTest {
     private RemoteClients clientsOver(boolean listsTimes) {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         volume = new CountingVolume(new FilesystemVolume(root), listsTimes);
-        return VolumeRemoteClients.of(new VolumeSource(
-                volume, clock, "budget", true));
+        return VolumeRemoteClients.of(new VolumeSource(volume, clock, "budget", true));
     }
 
-    /** As Microscope reads a share: through the memo of what never changes, the reads several at a time. */
+    /** As Microscope reads a share: the independent reads of a call several at a time. */
     private RemoteClients asMicroscopeReadsAShare() {
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         volume = new CountingVolume(new FilesystemVolume(root), true);
-        RememberingVolume remembering = new RememberingVolume(volume, clock);
-        return VolumeRemoteClients.of(new VolumeSource(
-                remembering, clock, "budget", true,
+        return VolumeRemoteClients.of(new VolumeSource(volume, clock, "budget", true,
                 new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
     }
 
     /** What the instance page asks for: its project found, as every project-scoped request does, then its page. */
-    private void openTheInstancePage(RemoteClients over) {
+    private static InstanceRead openTheInstancePage(RemoteClients over) {
         over.discovery().project(ORDERS.workspaceId(), ORDERS.projectId()).orElseThrow();
-        over.instances().instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty())).orElseThrow();
+        return over.instances().instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty())).orElseThrow();
     }
 
-    @Test
-    void anInstanceWithItsSessionsCostsTwoQuestionsASession() {
-        clients.instances().instance(ORDERS, "pod-1", InstancePage.whole());
+    @Nested
+    class EachListIsOneListing {
 
-        // workspace listing + project marker, instance marker, instance listing; then per session its
-        // marker and its listing
-        assertEquals(4 + 2 * SESSIONS, volume.countAndReset());
+        @Test
+        void theWorkspaces() {
+            clients.discovery().allWorkspaces();
+
+            assertEquals(1, volume.countAndReset());
+        }
+
+        @Test
+        void aWorkspacesProjectsWhateverItHolds() {
+            assertEquals(1 + OTHER_PROJECTS, clients.discovery().allProjects("prod").size());
+
+            assertEquals(1, volume.countAndReset());
+        }
+
+        @Test
+        void aProjectsInstancesWhateverTheyHold() {
+            assertEquals(1 + OTHER_INSTANCES, clients.instances().projectInstances(ORDERS).size());
+
+            assertEquals(1, volume.countAndReset());
+        }
+
+        /** A look at the instance, so an unknown one is not found, and one listing of it; no session read. */
+        @Test
+        void anInstancesSessionsWhateverTheirNumber() {
+            InstanceRead page = clients.instances().instance(ORDERS, "pod-1", InstancePage.whole()).orElseThrow();
+
+            assertEquals(2, volume.countAndReset());
+            assertEquals(SESSIONS, page.sessions().size());
+            assertEquals(NEWEST_SESSION, page.sessions().getFirst().id());
+            assertTrue(page.sessions().getFirst().newest());
+        }
+
+        @Test
+        void withoutListedTimesStillOneListing() {
+            clientsOver(false).instances().instance(ORDERS, "pod-1", InstancePage.whole()).orElseThrow();
+
+            assertEquals(2, volume.countAndReset());
+        }
     }
 
-    @Test
-    void theProjectsInstancesReadOnlyTheNewestSession() {
-        clients.instances().projectInstances(ORDERS);
+    @Nested
+    class LookingUp {
 
-        // workspace listing + project marker, project listing, instance marker, instance listing, whose
-        // names say which session is the newest and how many there are; its marker and its listing
-        assertEquals(5 + 2, volume.countAndReset());
+        /** One look at the project's directory, named by its id; nothing below it. */
+        @Test
+        void aProjectIsOneLook() {
+            clients.discovery().project(ORDERS.workspaceId(), ORDERS.projectId()).orElseThrow();
+
+            assertEquals(1, volume.countAndReset());
+        }
+
+        /** A look at the directory and its marker, for the name it may go by. */
+        @Test
+        void aWorkspaceIsOneLookAndItsMarker() {
+            clients.discovery().workspaceOrThrow("prod").orElseThrow();
+
+            assertEquals(3, volume.countAndReset(), "the look, the marker, and the directory's time when no marker is there");
+        }
+
+        @Test
+        void theInstancePageAfterItsProject() {
+            InstanceRead page = openTheInstancePage(clients);
+
+            assertEquals(1 + 2, volume.countAndReset());
+            assertEquals(InstancePage.PAGE_SIZE, page.sessions().size());
+            assertTrue(page.hasOlder());
+        }
+
+        @Test
+        void theOlderPageStartsAfterTheCursor() {
+            String lastOnFirstPage = SESSION_IDS.get(SESSIONS - InstancePage.PAGE_SIZE);
+
+            InstanceRead older = clients.instances()
+                    .instance(ORDERS, "pod-1", InstancePage.newest(Optional.of(lastOnFirstPage)))
+                    .orElseThrow();
+
+            assertEquals(List.of(SESSION_IDS.get(1), OLDER_SESSION),
+                    older.sessions().stream().map(RecordingSessionHeaderResponse::id).toList());
+            assertFalse(older.hasOlder());
+            assertEquals(2, volume.countAndReset());
+        }
     }
 
+    @Nested
+    class OpeningASession {
+
+        /**
+         * The project's listing, a look into each instance by name until one holds the session —
+         * {@code pod-1}, the first — its own listing, and its instance's listing to say whether it
+         * is the newest.
+         */
+        @Test
+        void theNewestReadsItsListingAndItsInstances() {
+            clients.repository().recordingSession(ORDERS, NEWEST_SESSION);
+
+            assertEquals(1 + 1 + 1 + 1, volume.countAndReset());
+        }
+
+        @Test
+        void anOlderOneTheSame() {
+            clients.repository().recordingSession(ORDERS, OLDER_SESSION);
+
+            assertEquals(1 + 1 + 1 + 1, volume.countAndReset());
+        }
+
+        /** Held by the last instance by name: a look into each before it. */
+        @Test
+        void inTheLastInstanceAfterALookIntoEach() {
+            String last = VolumeWriter.sessionIdAt(T0.plusSeconds(OTHER_INSTANCES));
+
+            clients.repository().recordingSession(ORDERS, last);
+
+            assertEquals(1 + (1 + OTHER_INSTANCES) + 1 + 1, volume.countAndReset());
+        }
+
+        @Test
+        void anIdThatIsNoSessionsNameAsksNothing() {
+            assertThrows(JeffreyException.class, () -> clients.repository().recordingSession(ORDERS, "not-a-session"));
+
+            assertEquals(0, volume.countAndReset());
+        }
+    }
+
+    /** Every session of the project, as MCP's session search reads them: each instance's listing, each session's. */
     @Test
-    void everySessionOfTheProjectCostsTwoQuestionsASession() {
+    void everySessionOfTheProjectCostsOneListingASession() {
         clients.repository().recordingSessions(ORDERS, RecordingSessionFilter.ALL);
 
-        // as one instance, plus the project listing
-        assertEquals(5 + 2 * SESSIONS, volume.countAndReset());
-    }
-
-    @Test
-    void anOlderSessionReadsOnlyTheNextOneAlong() {
-        clients.repository().recordingSession(ORDERS, FINISHED_SESSION);
-
-        // workspace listing + project marker, project listing, its marker, its instance's marker, the
-        // instance listing, the marker of the next session its names point to, and its own listing
-        assertEquals(8, volume.countAndReset());
-    }
-
-    @Test
-    void theLiveSessionKnowsItIsTheNewestFromTheInstanceListing() {
-        clients.repository().recordingSession(ORDERS, LIVE_SESSION);
-
-        // as an older one, but the instance listing's names say no sibling started after it, so no
-        // sibling's marker is read
-        assertEquals(7, volume.countAndReset());
-    }
-
-    @Test
-    void withoutListedTimesTheLiveSessionStillReadsNoSibling() {
-        clientsOver(false).repository().recordingSession(ORDERS, LIVE_SESSION);
-
-        // an NFS share lists no times; the names say the same as on any share
-        assertEquals(7, volume.countAndReset());
-    }
-
-    @Test
-    void theInstancePageReadsOnlyItsNewestSessions() {
-        InstanceRead page = clients.instances().instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty()))
-                .orElseThrow();
-
-        // workspace listing + project marker, instance marker, instance listing; then per page
-        // session its marker and its listing
-        assertEquals(4 + 2 * InstancePage.PAGE_SIZE, volume.countAndReset());
-        assertEquals(LIVE_SESSION, page.sessions().getFirst().id());
-        assertEquals(InstancePage.PAGE_SIZE, page.sessions().size());
-        assertTrue(page.hasOlder());
-        assertEquals(SESSIONS, page.instance().sessionCount());
-        assertEquals(CHUNKS_PER_SESSION + 1, page.sessions().getFirst().files().size(),
-                "each session carries its files, so opening one asks for nothing");
-    }
-
-    @Test
-    void withoutListedTimesTheInstancePageStillReadsOnlyItsNewestSessions() {
-        InstanceRead page = clientsOver(false).instances()
-                .instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty()))
-                .orElseThrow();
-
-        // as on a share that lists times: the names order the page, so no other session's marker is read
-        assertEquals(4 + 2 * InstancePage.PAGE_SIZE, volume.countAndReset());
-        assertEquals(LIVE_SESSION, page.sessions().getFirst().id());
-        assertEquals(SESSIONS, page.instance().sessionCount());
-    }
-
-    @Test
-    void theOlderPageStartsAfterTheCursor() {
-        String lastOnFirstPage = SESSION_IDS.get(SESSIONS - InstancePage.PAGE_SIZE);
-
-        InstanceRead older = clients.instances()
-                .instance(ORDERS, "pod-1", InstancePage.newest(Optional.of(lastOnFirstPage)))
-                .orElseThrow();
-
-        assertEquals(List.of(SESSION_IDS.get(1), FINISHED_SESSION),
-                older.sessions().stream().map(RecordingSessionResponse::id).toList());
-        assertFalse(older.hasOlder());
-        // as the first page for its two sessions, plus the newest session's marker and listing for the
-        // instance's summary
-        assertEquals(4 + 2 * 2 + 2, volume.countAndReset());
-    }
-
-    @Test
-    void findingTheProjectReadsOnlyItsMarker() {
-        clients.discovery().project(ORDERS.workspaceId(), ORDERS.projectId()).orElseThrow();
-
-        // the workspace listing and the project marker; nothing below the project
-        assertEquals(2, volume.countAndReset());
+        int instances = 1 + OTHER_INSTANCES;
+        assertEquals(1 + instances + SESSIONS + OTHER_INSTANCES, volume.countAndReset());
     }
 
     @Nested
     class AsMicroscopeReadsAShare {
 
+        /** Nothing is remembered between calls: opening the page again asks the same again, and no more. */
         @Test
-        void theFirstOpeningOfTheInstancePage() {
-            openTheInstancePage(asMicroscopeReadsAShare());
-
-            // the project found (2), then the page as above, whose own look for the project
-            // takes the project marker just remembered
-            assertEquals(2 + 3 + 2 * InstancePage.PAGE_SIZE, volume.countAndReset());
-        }
-
-        @Test
-        void openingItAgainAsksOnlyWhatCanHaveChanged() {
+        void openingTheInstancePageAgainAsksTheSame() {
             RemoteClients over = asMicroscopeReadsAShare();
             openTheInstancePage(over);
-            volume.countAndReset();
+            int first = volume.countAndReset();
 
             openTheInstancePage(over);
 
-            // two workspace listings, the instance listing and each page session's listing; every
-            // marker remembered
-            assertEquals(2 + 1 + InstancePage.PAGE_SIZE, volume.countAndReset());
+            assertEquals(1 + 2, first);
+            assertEquals(1 + 2, volume.countAndReset());
         }
     }
 }

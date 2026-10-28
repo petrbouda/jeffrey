@@ -52,17 +52,20 @@ onMounted(() => {
           <pre><code>&lt;jeffrey-home&gt;/
 └── workspaces/
     └── &lt;workspace-id&gt;/
-        ├── .workspace-info.json             # Workspace marker, written by Microscope or the Hub
-        └── &lt;project-name&gt;/
-            ├── .project-info.json           # Project metadata
-            └── &lt;instance-name&gt;/
-                ├── .instance-info.json      # Instance metadata
-                └── &lt;session-id&gt;/
-                    ├── .session-info.json   # Session metadata
-                    ├── profile-1704067200.jfr # Async-Profiler output
-                    ├── profile-1704067800.jfr
+        ├── .workspace-info.json             # Workspace marker (display name), written by Microscope or the Hub
+        └── &lt;project-name&gt;/                  # Project id = folder name (the configured project name)
+            └── &lt;instance-name&gt;/             # Instance id = folder name (instance-name, HOSTNAME by default)
+                └── &lt;session-id&gt;/            # Session id = folder name, a UUIDv7 (its timestamp is the start)
+                    ├── profile-20261027-085500.Europe~Prague.jfr # Async-Profiler output
+                    ├── profile-20261027-091000.Europe~Prague.jfr
                     └── ...</code></pre>
         </div>
+
+        <p>The folder names are the state. A workspace's id is its folder (its reference id), a project's id is its folder (the project <code>name</code> the Provisioner was configured with), an instance's id is its folder, and a session's id is its folder &mdash; a UUIDv7 whose timestamp is the session's start. There are no marker files below the workspace: the Provisioner decides whether a project or an instance is new by whether its folder exists. A project or instance is any visible (non-dot) child directory; a session is a visible directory named with a UUIDv7, and anything else under an instance is ignored. The workspace's <code>.workspace-info.json</code> is the only marker left; it carries the display name and is read only when that workspace is opened &mdash; the workspace list shows folder names.</p>
+
+        <DocsCallout type="warning">
+          <strong>Upgrading from a release with marker files:</strong> there is no compatibility with older volumes &mdash; re-provision. Links, downloads, MCP references and profiles that carried the old random project id are orphaned, since a project's id is now its folder name. Project rename is gone: the name in Settings is read-only. Old <code>.project-info.json</code>, <code>.instance-info.json</code> and <code>.session-info.json</code> files left in folders are ignored as hidden entries and go with their directory.
+        </DocsCallout>
 
         <DocsCallout type="info">
           <strong>Workspace isolation:</strong> Each workspace has its own directory, making it easy to manage separate environments (production, staging, development).
@@ -73,24 +76,23 @@ onMounted(() => {
 
         <div class="directory-structure">
           <pre><code>&lt;session-id&gt;/
-├── profile-1704067200.jfr       # JFR chunk (timestamp-based naming)
-├── profile-1704067800.jfr       # Next chunk after loop interval
-├── profile-1704068400.jfr       # ... more chunks
+├── profile-20261027-085500.Europe~Prague.jfr  # JFR chunk (timestamp + zone naming)
+├── profile-20261027-091000.Europe~Prague.jfr  # Next chunk after loop interval
+├── profile-20261027-092500.Europe~Prague.jfr  # ... more chunks
 ├── heap-dump.hprof.gz           # Heap dump (if captured)
 ├── jfr.jvm-log                  # JVM log (if enabled)
 ├── perf-counters.hsperfdata     # Performance counters (if enabled)
-├── hs-jvm-err.log               # HotSpot error log (written on JVM crash)
-└── .session-info.json           # Session metadata</code></pre>
+└── hs-jvm-err.log               # HotSpot error log (written on JVM crash)</code></pre>
         </div>
 
-        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone; the session's <code>.session-info.json</code> records that zone so the Hub reads the timestamp back correctly.</p>
+        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone, so the Provisioner writes its own zone (<code>ZoneId.systemDefault()</code>, i.e. <code>TZ</code> or <code>/etc/localtime</code>) into the file template as literal text: <code>profile-%t.&lt;Zone~Id&gt;.jfr</code>. The <code>/</code> of a zone id becomes <code>~</code> (<code>Europe~Prague</code>), an offset loses its colon (<code>+02:00</code> becomes <code>+0200</code>), and a UTC machine writes <code>.UTC</code> (<code>profile-20260220-120500.UTC.jfr</code>). The Hub and Microscope read each chunk's timestamp in the zone its own name carries, DST-correct per chunk; a name without a zone segment is read as UTC.</p>
 
         <DocsCallout type="info">
           <strong>Session order and crashes:</strong> nothing in the session reports liveness &mdash; the Hub and Microscope order sessions by their UUIDv7 directory names and read the file names. A <code>.heartbeat/</code> folder left by an older release is ignored and goes with its session. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.
         </DocsCallout>
 
         <h2 id="recorded-events">Recorded Events</h2>
-        <p>Async-Profiler writes CPU, allocation, and lock samples to <code>profile-*.jfr</code> files. Its <code>jfrsync</code> setting captures JVM and Jeffrey instrumentation events in those recordings. The Hub serves the dumped files to Microscope one at a time, and the chunks it downloads stay as they were written — the several files one recording is made of, never joined into a single one.</p>
+        <p>Async-Profiler writes CPU, allocation, and lock samples to <code>profile-*.jfr</code> files. Its <code>jfrsync</code> setting captures JVM and Jeffrey instrumentation events in those recordings. Microscope pulls the dumped files off the volume one at a time, and the chunks it downloads stay as they were written — the several files one recording is made of, never joined into a single one.</p>
 
         <DocsCallout type="info">
           <strong>Where the JVM keeps its own JFR chunks:</strong> <code>jfrsync</code> runs a JDK recording alongside Async-Profiler, and the JVM buffers that recording in its own JFR repository. Jeffrey no longer points that repository at the session directory, so it goes wherever the JVM puts it by default &mdash; a timestamped folder under <code>java.io.tmpdir</code>. Nothing Jeffrey reads lives there, and the working set is transient, but it is disk the session volume used to absorb. On a container with a small <code>/tmp</code> or a tight ephemeral-storage limit, set <code>-XX:FlightRecorderOptions=repository=&lt;path&gt;</code> yourself to put it somewhere sized for it.

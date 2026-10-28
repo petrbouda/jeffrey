@@ -20,16 +20,16 @@ package cafe.jeffrey.shared.volume.layout;
 import java.util.List;
 
 /**
- * One instance with a page of its sessions, newest first, read together so the instance's newest
- * session and the page it is read with can never disagree.
+ * One instance with a page of its sessions, newest first, as one listing of its directory names
+ * them: no session is read.
  *
  * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceSessionList(InstanceSummary summary, List<VolumeSession> sessions, boolean hasOlder) {
+public record InstanceSessionList(InstanceDirectory instance, List<SessionHeader> sessions, boolean hasOlder) {
 
     public InstanceSessionList {
-        if (summary == null || sessions == null) {
-            throw new IllegalArgumentException("An instance's session list needs its summary and its sessions");
+        if (instance == null || sessions == null) {
+            throw new IllegalArgumentException("An instance's session list needs its instance and its sessions");
         }
         sessions = List.copyOf(sessions);
     }

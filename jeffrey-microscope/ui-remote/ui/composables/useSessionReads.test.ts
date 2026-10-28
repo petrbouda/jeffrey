@@ -24,22 +24,24 @@ function session(id: string): RecordingSession {
 }
 
 describe("useSessionReads", () => {
-  it("takes a seeded session as read, so opening it asks the remote for nothing", () => {
+  it("shares a read already in flight rather than asking twice", async () => {
     const client = new ProjectRepositoryClient("ws", "project");
-    const read = vi.spyOn(client, "getRecordingSession");
+    const read = vi.spyOn(client, "getRecordingSession").mockResolvedValue(session("s-1"));
     const reads = useSessionReads(() => client);
 
-    reads.seed(session("s-1"));
+    await Promise.all([reads.read("s-1"), reads.read("s-1")]);
 
+    expect(read).toHaveBeenCalledTimes(1);
     expect(reads.sessions.value["s-1"]?.id).toBe("s-1");
     expect(reads.failed.value["s-1"]).toBe(false);
-    expect(read).not.toHaveBeenCalled();
   });
 
-  it("forgets a seeded session the refreshed listing no longer holds", () => {
-    const reads = useSessionReads(() => new ProjectRepositoryClient("ws", "project"));
-    reads.seed(session("s-1"));
-    reads.seed(session("s-2"));
+  it("forgets a read session the refreshed listing no longer holds", async () => {
+    const client = new ProjectRepositoryClient("ws", "project");
+    vi.spyOn(client, "getRecordingSession").mockImplementation((id) => Promise.resolve(session(id)));
+    const reads = useSessionReads(() => client);
+    await reads.read("s-1");
+    await reads.read("s-2");
 
     reads.retainOnly(new Set(["s-2"]));
 

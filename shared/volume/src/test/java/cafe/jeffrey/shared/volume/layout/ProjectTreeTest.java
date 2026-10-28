@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
@@ -34,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -44,8 +42,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * What a project's directory holds as the layout reads it: each level is what its marker says it
- * is, and a session's files carry their id, timestamp and whether they are recordings.
+ * What a project's directory holds as the layout reads it: each level is a directory named for
+ * what it holds — no marker file says so — and a session's files carry their id, timestamp and
+ * whether they are recordings.
  */
 class ProjectTreeTest {
 
@@ -92,29 +91,34 @@ class ProjectTreeTest {
     class WhatIsAProject {
 
         @Test
-        void aDirectoryWithItsMarker() {
-            VolumeWriter.project(root, "p-1", "project", T0);
+        void aDirectoryIdentifiedByItsName() {
+            VolumeWriter.project(root, "project");
 
             ProjectTree tree = ProjectTree.at(volume, PROJECT).orElseThrow();
 
-            assertEquals("p-1", tree.marker().projectId());
+            assertEquals("project", tree.id());
             assertEquals(PROJECT, tree.path());
+            assertTrue(tree.createdAt().isPresent(), "the directory's own time, as the volume gives it");
         }
 
         @Test
-        void notADirectoryWithoutOne() throws IOException {
-            Files.createDirectories(root.resolve("project"));
+        void notAFileNorAnythingAbsent() throws IOException {
+            Files.writeString(root.resolve("project"), "not a directory");
 
             assertTrue(ProjectTree.at(volume, PROJECT).isEmpty());
+            assertTrue(ProjectTree.at(volume, VolumePath.root().resolve("gone")).isEmpty());
         }
 
         @Test
-        void notOneWhoseMarkerNamesNoProject() throws IOException {
-            Path dir = Files.createDirectories(root.resolve("project"));
-            Files.writeString(dir.resolve(JeffreyLayout.PROJECT_INFO_FILE),
-                    "{\"projectId\":\" \",\"projectName\":\"project\",\"createdAt\":0}");
+        void aWorkspaceListsItsVisibleDirectories() throws IOException {
+            VolumeWriter.project(root, "orders");
+            VolumeWriter.project(root, "billing");
+            Files.createDirectories(root.resolve(".hidden"));
+            Files.writeString(root.resolve("notes.txt"), "x");
 
-            assertTrue(ProjectTree.at(volume, PROJECT).isEmpty());
+            List<String> ids = ProjectTree.allIn(volume, VolumePath.root()).stream().map(ProjectTree::id).toList();
+
+            assertEquals(List.of("billing", "orders"), ids);
         }
     }
 
@@ -126,74 +130,66 @@ class ProjectTreeTest {
 
         @BeforeEach
         void setUp() {
-            project = VolumeWriter.project(root, "p-1", "project", T0);
+            project = VolumeWriter.project(root, "project");
             tree = ProjectTree.at(volume, PROJECT).orElseThrow();
         }
 
         @Test
-        void aDirectoryWithoutItsMarkerIsNoInstance() throws IOException {
-            VolumeWriter.instance(project, "pod-a", T0);
-            Files.createDirectories(project.resolve("pod-b"));
+        void everyVisibleDirectoryIsAnInstance() throws IOException {
+            VolumeWriter.instance(project, "pod-b");
+            VolumeWriter.instance(project, "pod-a");
+            Files.createDirectories(project.resolve(".scratch"));
 
-            assertEquals(List.of("pod-a"), tree.instances().stream().map(InstanceDirectory::id).toList());
-            assertTrue(tree.instance("pod-b").isEmpty());
-            assertTrue(tree.instanceDirectory("pod-b").isPresent(), "its directory is still there to remove");
+            assertEquals(List.of("pod-a", "pod-b"), tree.instances().stream().map(InstanceDirectory::id).toList());
+            assertTrue(tree.instance("pod-b").isPresent());
+            assertTrue(tree.instance("pod-c").isEmpty());
         }
 
         @Test
-        void sessionsAreOrderedByTheirStartNotTheirName() {
-            Path instance = VolumeWriter.instance(project, "pod-a", T0);
-            VolumeWriter.session(instance, "b-first", T0, null);
-            VolumeWriter.session(instance, "a-second", T0.plusSeconds(60), null);
+        void onlyADirectoryNamedForItsStartIsASession() throws IOException {
+            Path instance = VolumeWriter.instance(project, "pod-a");
+            Path session = VolumeWriter.session(instance, T0);
+            Files.createDirectories(instance.resolve("not-a-session"));
 
             List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
 
-            assertEquals(List.of("b-first", "a-second"), oldestFirst.stream().map(SessionDirectory::id).toList());
+            assertEquals(List.of(session.getFileName().toString()),
+                    oldestFirst.stream().map(SessionDirectory::id).toList());
+            assertTrue(tree.session("not-a-session").isEmpty());
+        }
+
+        @Test
+        void sessionsAreOrderedByTheStartTheirNamesCarry() {
+            Path instance = VolumeWriter.instance(project, "pod-a");
+            String first = VolumeWriter.session(instance, T0).getFileName().toString();
+            String second = VolumeWriter.session(instance, T0.plusSeconds(60)).getFileName().toString();
+
+            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
+
+            assertEquals(List.of(first, second), oldestFirst.stream().map(SessionDirectory::id).toList());
+            assertEquals(T0, oldestFirst.getFirst().createdAt());
             assertFalse(tree.isNewest(oldestFirst.getFirst()));
             assertTrue(tree.isNewest(oldestFirst.getLast()));
         }
 
         @Test
-        void aSessionStartsWhenItsNameSaysWhateverItsMarkerSays() {
-            Path instance = VolumeWriter.instance(project, "pod-a", T0);
-            String id = VolumeWriter.sessionIdAt(T0);
-            VolumeWriter.session(instance, id, T0.plusSeconds(5), null);
-
-            assertEquals(T0, tree.session(id).orElseThrow().createdAt());
-        }
-
-        @Test
-        void sessionsNamedForTheirStartAreOrderedByTheirNames() {
-            Path instance = VolumeWriter.instance(project, "pod-a", T0);
-            String first = VolumeWriter.sessionIdAt(T0);
-            String second = VolumeWriter.sessionIdAt(T0.plusSeconds(60));
-            // markers that disagree with the names lose: the name is the one place the order is kept
-            VolumeWriter.session(instance, first, T0.plusSeconds(120), null);
-            VolumeWriter.session(instance, second, T0, null);
-
-            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
-
-            assertEquals(List.of(first, second), oldestFirst.stream().map(SessionDirectory::id).toList());
-            assertFalse(tree.isNewest(oldestFirst.getFirst()));
-        }
-
-        @Test
         void aSessionIsFoundInWhicheverInstanceHoldsIt() {
-            VolumeWriter.session(VolumeWriter.instance(project, "pod-b", T0), "s-1", T0, "Europe/Prague");
+            VolumeWriter.instance(project, "pod-a");
+            String id = VolumeWriter.session(VolumeWriter.instance(project, "pod-b"), T0).getFileName().toString();
 
-            SessionDirectory session = tree.session("s-1").orElseThrow();
+            SessionDirectory session = tree.session(id).orElseThrow();
 
             assertEquals("pod-b", session.instanceId());
-            assertEquals(ZoneId.of("Europe/Prague"), session.zone());
+            assertEquals(T0, session.createdAt());
         }
 
         @Test
         void anIdThatIsNotOneDirectoryNamesNothing() {
-            VolumeWriter.session(VolumeWriter.instance(project, "pod-a", T0), "s-1", T0, null);
+            String id = VolumeWriter.session(VolumeWriter.instance(project, "pod-a"), T0).getFileName().toString();
 
-            assertTrue(tree.session("../pod-a/s-1").isEmpty());
+            assertTrue(tree.session("../pod-a/" + id).isEmpty());
             assertTrue(tree.instance("../project").isEmpty());
-            assertTrue(tree.instanceDirectory("..").isEmpty());
+            assertTrue(tree.instance("..").isEmpty());
         }
     }
 
@@ -201,15 +197,16 @@ class ProjectTreeTest {
     class SessionFiles {
 
         private static final byte[] CONTENT = "gc log line\n".repeat(100).getBytes(StandardCharsets.UTF_8);
-        private static final VolumePath SESSION = PROJECT.resolve("pod-a").resolve("s-1");
 
         private ProjectTree tree;
         private Path session;
+        private VolumePath sessionPath;
 
         @BeforeEach
         void setUp() {
-            Path project = VolumeWriter.project(root, "p-1", "project", T0);
-            session = VolumeWriter.session(VolumeWriter.instance(project, "pod-a", T0), "s-1", T0, null);
+            Path project = VolumeWriter.project(root, "project");
+            session = VolumeWriter.session(VolumeWriter.instance(project, "pod-a"), T0);
+            sessionPath = PROJECT.resolve("pod-a").resolve(session.getFileName().toString());
             tree = ProjectTree.at(volume, PROJECT).orElseThrow();
         }
 
@@ -217,36 +214,36 @@ class ProjectTreeTest {
         void reportsAFileThatIsThere() throws IOException {
             Files.write(session.resolve("gc.jvm-log"), CONTENT);
 
-            SessionFile file = tree.files(SESSION, ZoneOffset.UTC).getFirst();
+            SessionFile file = tree.files(sessionPath).getFirst();
 
             assertEquals("gc.jvm-log", file.id());
             assertEquals("gc.jvm-log", file.name());
             assertEquals(CONTENT.length, file.size());
             assertFalse(file.recording());
-            assertEquals(SESSION.resolve("gc.jvm-log"), file.path());
+            assertEquals(sessionPath.resolve("gc.jvm-log"), file.path());
         }
 
         @Test
         void aRecordingIsKnownByItsNameWithoutTheExtensionAndTimedByIt() {
-            VolumeWriter.file(session, "profile-20260220-130500.jfr.lz4", "chunk");
+            VolumeWriter.file(session, "profile-20260220-130500.Europe~Prague.jfr.lz4", "chunk");
 
-            SessionFile file = tree.files(SESSION, ZoneId.of("Europe/Prague")).getFirst();
+            SessionFile file = tree.files(sessionPath).getFirst();
 
-            assertEquals("profile-20260220-130500", file.id());
+            assertEquals("profile-20260220-130500.Europe~Prague", file.id());
             assertTrue(file.recording());
             assertEquals(Instant.parse("2026-02-20T12:05:00Z"), file.createdAt());
         }
 
         @Test
         void listsVisibleFilesNewestFirstByName() throws IOException {
-            VolumeWriter.file(session, "profile-20260220-120000.jfr", "chunk");
-            VolumeWriter.file(session, "profile-20260220-121500.jfr", "chunk");
+            VolumeWriter.recording(session, T0, ZoneOffset.UTC, "chunk");
+            VolumeWriter.recording(session, T0.plusSeconds(900), ZoneOffset.UTC, "chunk");
             Files.createDirectories(session.resolve("nested"));
 
-            List<String> names = tree.files(SESSION, ZoneOffset.UTC).stream().map(SessionFile::name).toList();
+            List<String> names = tree.files(sessionPath).stream().map(SessionFile::name).toList();
 
-            assertEquals(List.of("profile-20260220-121500.jfr", "profile-20260220-120000.jfr"), names,
-                    "the marker and a nested directory are no files of the session");
+            assertEquals(List.of("profile-20260220-121500.UTC.jfr", "profile-20260220-120000.UTC.jfr"), names,
+                    "a nested directory is no file of the session");
         }
 
         /**
@@ -256,12 +253,12 @@ class ProjectTreeTest {
          */
         @Test
         void leavesOutAFileThatWentAwayWhileTheSessionWasListed() throws IOException {
-            VolumeWriter.file(session, "profile-20260912-121559.jfr", "chunk");
-            Files.createSymbolicLink(session.resolve("profile-20260912-121559.jfr.1~"), session.resolve("flushed"));
+            VolumeWriter.file(session, "profile-20260912-121559.UTC.jfr", "chunk");
+            Files.createSymbolicLink(session.resolve("profile-20260912-121559.UTC.jfr.1~"), session.resolve("flushed"));
 
-            List<String> names = tree.files(SESSION, ZoneOffset.UTC).stream().map(SessionFile::name).toList();
+            List<String> names = tree.files(sessionPath).stream().map(SessionFile::name).toList();
 
-            assertEquals(List.of("profile-20260912-121559.jfr"), names);
+            assertEquals(List.of("profile-20260912-121559.UTC.jfr"), names);
         }
 
         /**
@@ -271,13 +268,14 @@ class ProjectTreeTest {
          */
         @Test
         void onAVolumeListingNoTimesAFileIsTimedByOneLookAtIt() throws IOException {
-            VolumeWriter.file(session, "profile-20260220-130500.jfr", "chunk");
+            VolumeWriter.file(session, "profile-20260220-130500.UTC.jfr", "chunk");
             Path log = VolumeWriter.file(session, "gc.log", "line");
             ProjectTree untimed = ProjectTree.at(new UntimedListings(volume), PROJECT).orElseThrow();
 
-            List<SessionFile> files = untimed.files(SESSION, ZoneOffset.UTC);
+            List<SessionFile> files = untimed.files(sessionPath);
 
-            assertEquals(List.of("profile-20260220-130500.jfr", "gc.log"), files.stream().map(SessionFile::name).toList());
+            assertEquals(List.of("profile-20260220-130500.UTC.jfr", "gc.log"),
+                    files.stream().map(SessionFile::name).toList());
             assertEquals(Instant.parse("2026-02-20T13:05:00Z"), files.getFirst().createdAt());
             assertEquals(Files.readAttributes(log, BasicFileAttributes.class).creationTime().toInstant(),
                     files.getLast().createdAt());
@@ -285,7 +283,7 @@ class ProjectTreeTest {
 
         @Test
         void aSessionDirectoryThatIsGoneHasNoFiles() {
-            assertEquals(List.of(), tree.files(PROJECT.resolve("pod-a").resolve("gone"), ZoneOffset.UTC));
+            assertEquals(List.of(), tree.files(PROJECT.resolve("pod-a").resolve("gone")));
         }
     }
 }

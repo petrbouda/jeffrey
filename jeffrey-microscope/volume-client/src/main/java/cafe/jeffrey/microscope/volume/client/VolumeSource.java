@@ -39,8 +39,8 @@ import java.util.function.Supplier;
 /**
  * The recording volume reached on its storage, as its clients see it: where its workspaces and
  * projects lie, whether it may be changed, and the one place a volume that cannot be read or
- * written becomes the remote-unavailable error. Nothing is kept here; a volume that remembers what
- * never changes ({@link RememberingVolume}) is the volume's own business.
+ * written becomes the remote-unavailable error. Nothing is kept here: every level is the listing of
+ * its parent, and every id a directory name.
  *
  * @param volume      the storage the volume lies on, its root holding the workspaces; a
  *                    {@link WritableVolume} unless the source is read-only
@@ -87,29 +87,38 @@ public record VolumeSource(
         return (WritableVolume) volume;
     }
 
-    /** The visible directories at the volume's root: every one is a workspace, named by its marker or its id. */
-    List<VolumePath> workspaceDirectories() {
-        return VolumeMarkers.childDirectories(volume, ROOT);
-    }
-
     Optional<VolumePath> workspaceDirectory(String workspaceId) {
         return ROOT.visibleChild(workspaceId).filter(directory -> VolumeMarkers.isDirectory(volume, directory));
     }
 
-    /** The workspace's projects, each a directory whose project marker reads. */
+    /** The workspace's projects, each a visible directory in it: one listing. */
     List<ProjectTree> projects(VolumePath workspaceDirectory) {
         return ProjectTree.allIn(volume, workspaceDirectory);
     }
 
-    /** Off the workspace's listing alone: one that is not there lists no project, so it is not looked at first. */
-    Optional<ProjectTree> project(ProjectScope scope) {
-        return ROOT.visibleChild(scope.workspaceId()).flatMap(workspace -> projects(workspace).stream()
-                .filter(project -> project.marker().projectId().equals(scope.projectId()))
-                .findFirst());
+    /** A project's directory, named by its id; empty for an id that is not one plain path element. */
+    private static Optional<VolumePath> projectDirectory(ProjectScope scope) {
+        return ROOT.visibleChild(scope.workspaceId()).flatMap(workspace -> workspace.visibleChild(scope.projectId()));
     }
 
+    /** The project, or empty when no directory is there: one look at it. */
+    Optional<ProjectTree> project(ProjectScope scope) {
+        return projectDirectory(scope).flatMap(directory -> ProjectTree.at(volume, directory));
+    }
+
+    /** The project, looked at: for a change, which must not act on a project that is not there. */
     ProjectTree requireProject(ProjectScope scope) {
         return project(scope).orElseThrow(() -> Exceptions.projectNotFound(scope.projectId()));
+    }
+
+    /**
+     * The project, not looked at: for the reads of a request that resolved it already
+     * ({@link #project}), which lists it anyway. A project that has gone since reads as empty.
+     */
+    ProjectTree resolvedProject(ProjectScope scope) {
+        return projectDirectory(scope)
+                .map(directory -> ProjectTree.of(volume, directory))
+                .orElseThrow(() -> Exceptions.projectNotFound(scope.projectId()));
     }
 
     ProjectSessions sessions(ProjectTree project) {

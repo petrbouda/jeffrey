@@ -50,7 +50,7 @@ class VolumeChangesTest {
     @BeforeEach
     void setUp() throws IOException {
         volume = new FilesystemVolume(root);
-        projectDir = VolumeWriter.project(Files.createDirectories(root.resolve("prod")), "p-orders", "orders", T0);
+        projectDir = VolumeWriter.project(Files.createDirectories(root.resolve("prod")), "orders");
     }
 
     private ProjectTree project() {
@@ -128,23 +128,23 @@ class VolumeChangesTest {
 
         @Test
         void takesTheInstanceWithItsLastSession() {
-            Path instance = VolumeWriter.instance(projectDir, "pod-a", T0);
-            VolumeWriter.session(instance, "s-1", T0, null);
+            Path instance = VolumeWriter.instance(projectDir, "pod-a");
+            String id = VolumeWriter.session(instance, T0).getFileName().toString();
 
-            assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, VolumeChanges.deleteSession(volume, project(), "s-1"));
+            assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, VolumeChanges.deleteSession(volume, project(), id));
             assertFalse(Files.exists(instance));
         }
 
-        /** A directory the provisioner has not described yet is a session about to start. */
+        /** Any directory left in the instance keeps it, whatever it is named. */
         @Test
         void keepsTheInstanceWhileAnyDirectoryIsLeftInIt() throws IOException {
-            Path instance = VolumeWriter.instance(projectDir, "pod-a", T0);
-            VolumeWriter.session(instance, "s-1", T0, null);
-            Files.createDirectories(instance.resolve("s-2"));
+            Path instance = VolumeWriter.instance(projectDir, "pod-a");
+            String id = VolumeWriter.session(instance, T0).getFileName().toString();
+            Files.createDirectories(instance.resolve("about-to-start"));
 
-            assertEquals(SessionDeletion.SESSION_DELETED, VolumeChanges.deleteSession(volume, project(), "s-1"));
-            assertFalse(Files.exists(instance.resolve("s-1")));
-            assertTrue(Files.isDirectory(instance.resolve("s-2")));
+            assertEquals(SessionDeletion.SESSION_DELETED, VolumeChanges.deleteSession(volume, project(), id));
+            assertFalse(Files.exists(instance.resolve(id)));
+            assertTrue(Files.isDirectory(instance.resolve("about-to-start")));
         }
 
         @Test

@@ -49,6 +49,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -117,7 +118,7 @@ class ProjectRetentionJobTest {
     }
 
     private void stubProject(ProjectManager project, String projectId, RepositoryStorage repositoryStorage) {
-        when(project.info()).thenReturn(new ProjectInfo(projectId, projectId, "ws-1", NOW, Map.of()));
+        when(project.info()).thenReturn(new ProjectInfo(projectId, projectId, "ws-1", Optional.of(NOW)));
         when(project.repositoryManager()).thenReturn(repositoryManager);
         when(project.repositoryStorage()).thenReturn(repositoryStorage);
     }
@@ -206,7 +207,7 @@ class ProjectRetentionJobTest {
         private static final Instant LONG_AGO = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
 
         private static ProjectInstanceInfo instance(String id, Instant startedAt, int sessions) {
-            return new ProjectInstanceInfo(id, startedAt, sessions);
+            return new ProjectInstanceInfo(id, Optional.of(startedAt), sessions);
         }
 
         @BeforeEach

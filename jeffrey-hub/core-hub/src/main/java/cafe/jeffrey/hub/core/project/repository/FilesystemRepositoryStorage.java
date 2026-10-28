@@ -24,6 +24,7 @@ import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
@@ -195,7 +196,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
     @Override
     public void deleteInstanceDirectory(String instanceId) {
-        Optional<VolumePath> instanceDir = tree.instanceDirectory(instanceId);
+        Optional<VolumePath> instanceDir = tree.instance(instanceId).map(InstanceDirectory::path);
         if (instanceDir.isEmpty()) {
             return;
         }

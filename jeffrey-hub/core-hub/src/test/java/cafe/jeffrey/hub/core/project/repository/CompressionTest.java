@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -93,8 +92,8 @@ class CompressionTest {
             assertEquals(RecordingFormat.JFR_LZ4, archived);
             assertTrue(archived.isArchive());
             assertEquals(
-                    RecordingFormat.JFR.timestampResolver().resolve(entry(source), ZoneOffset.UTC),
-                    archived.timestampResolver().resolve(entry(target), ZoneOffset.UTC),
+                    RecordingFormat.JFR.timestampResolver().resolve(entry(source)),
+                    archived.timestampResolver().resolve(entry(target)),
                     "the archive answers with the instant the profiler opened the chunk");
             assertEquals(
                     RecordingFormat.JFR.idOf(source.getFileName().toString()),

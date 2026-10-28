@@ -22,6 +22,5 @@ export default interface Workspace {
   name: string;
   referenceId: string;
   createdAt: number;
-  projectCount: number;
   status: WorkspaceStatus;
 }

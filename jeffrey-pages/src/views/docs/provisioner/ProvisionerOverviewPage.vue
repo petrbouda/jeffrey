@@ -120,7 +120,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>Creates workspace/project/session directory structure</li>
           <li>Generates JVM flags for async-profiler and enabled features</li>
           <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
-          <li>Stores session metadata for Jeffrey to detect</li>
+          <li>Names the session directory with a UUIDv7 &mdash; the folder names are all Jeffrey reads, no metadata file is written below the workspace</li>
         </ul>
 
         <h3>When to Use Jeffrey Provisioner</h3>
@@ -152,7 +152,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>profile-*.jfr</code>
-              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions.</p>
+              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions, each named with its start time and the machine's time zone (<code>profile-20261027-085500.Europe~Prague.jfr</code>).</p>
             </div>
           </div>
           <div class="docs-card session-card heap">
@@ -198,11 +198,11 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <div class="docs-card session-card metadata">
             <div class="docs-card-header">
               <i class="bi bi-info-circle"></i>
-              <h4>Session Metadata</h4>
+              <h4>Session Directory</h4>
             </div>
             <div class="docs-card-body">
-              <code>.session-info.json</code>
-              <p>The session's ID, start time and the machine's time zone &mdash; all the Hub reads from it; the zone is what the timestamps in the recordings' names are local to. Its instance, project and workspace are the directories it sits in, and its place among the instance's sessions is its start time.</p>
+              <code>&lt;session-id&gt;/</code>
+              <p>The session's id is its folder name, a UUIDv7 whose timestamp is the session's start, so the names alone order an instance's sessions. Its instance, project and workspace are the directories it sits in; no marker file is written, and the time zone travels in each chunk's name.</p>
             </div>
           </div>
         </div>

@@ -24,6 +24,5 @@ public record WorkspaceResponse(
         String name,
         String referenceId,
         long createdAt,
-        int projectCount,
         WorkspaceStatus status) {
 }

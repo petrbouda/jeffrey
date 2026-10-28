@@ -62,10 +62,11 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
         return new PublicApiInfo(source.description());
     }
 
+    /** One listing of the volume's root: each workspace by its id, no marker read. */
     @Override
     public List<WorkspaceInfo> allWorkspaces() {
-        return source.read(() -> source.workspaceDirectories().stream()
-                .map(this::workspace)
+        return source.read(() -> VolumeWorkspace.listedAt(source.volume()).stream()
+                .map(VolumeDiscoveryClient::workspace)
                 .toList());
     }
 
@@ -126,9 +127,10 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
         });
     }
 
+    /** One listing of the workspace: each project by its directory, nothing below it read. */
     @Override
     public List<RemoteProjectResponse> allProjects(String workspaceId) {
-        return source.read(() -> source.workspaceDirectory(workspaceId)
+        return source.read(() -> VolumePath.root().visibleChild(workspaceId)
                 .map(workspace -> source.projects(workspace).stream()
                         .map(project -> project(project, workspaceId))
                         .toList())
@@ -141,14 +143,17 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
                 .map(project -> project(project, workspaceId)));
     }
 
-    /** Off its marker alone: what its instances say of it is read only where shown ({@code activity}). */
+    /** Off its directory alone: nothing below it is read. */
     private RemoteProjectResponse project(ProjectTree project, String workspaceId) {
         return VolumeResponses.project(project, workspaceId);
     }
 
+    /** One workspace, read: its marker, for the name it may go by. */
     private WorkspaceInfo workspace(VolumePath directory) {
-        VolumeWorkspace workspace = VolumeWorkspace.at(source.volume(), directory);
-        return VolumeResponses.workspace(workspace.id(), workspace.name(), workspace.createdAt().orElse(null),
-                source.projects(directory).size());
+        return workspace(VolumeWorkspace.at(source.volume(), directory));
+    }
+
+    private static WorkspaceInfo workspace(VolumeWorkspace workspace) {
+        return VolumeResponses.workspace(workspace.id(), workspace.name(), workspace.createdAt().orElse(null));
     }
 }

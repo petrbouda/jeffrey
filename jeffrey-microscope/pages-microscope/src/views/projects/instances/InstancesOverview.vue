@@ -49,7 +49,7 @@
       <DataTable v-else>
         <template #toolbar>
           <TableToolbar v-model="searchQuery" search-placeholder="Filter instances...">
-            <span class="toolbar-info">Newest recorded data first</span>
+            <span class="toolbar-info">Newest first</span>
             <template #filters>
               <Badge
                 key-label="Instances"
@@ -64,15 +64,13 @@
         <thead>
           <tr>
             <th>Instance</th>
-            <th class="text-end">Sessions</th>
             <th>Started</th>
-            <th>Last data</th>
             <th class="chevron-col"></th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="filteredInstances.length === 0" class="empty-row">
-            <td colspan="5">No instances match this filter.</td>
+            <td colspan="3">No instances match this filter.</td>
           </tr>
           <tr
             v-for="instance in filteredInstances"
@@ -85,20 +83,16 @@
                 {{ instance.instanceName }}
               </router-link>
             </td>
-            <td class="text-end">{{ instance.sessionCount }}</td>
-            <td :title="FormattingService.formatTimestampUTC(instance.createdAt)">
-              {{ FormattingService.formatTimestampUTCShort(instance.createdAt) }}
-            </td>
             <td
-              v-if="instance.lastDataAt !== null"
-              :title="FormattingService.formatTimestampUTC(instance.lastDataAt)"
+              v-if="instance.createdAt !== null"
+              :title="FormattingService.formatTimestampUTC(instance.createdAt)"
             >
-              {{ FormattingService.formatTimestampUTCShort(instance.lastDataAt) }}
-              <span class="last-data-relative">
-                · {{ FormattingService.formatRelativeTime(instance.lastDataAt) }}
+              {{ FormattingService.formatTimestampUTCShort(instance.createdAt) }}
+              <span class="started-relative">
+                · {{ FormattingService.formatRelativeTime(instance.createdAt) }}
               </span>
             </td>
-            <td v-else class="no-data">No data yet</td>
+            <td v-else class="no-time">Not listed by the share</td>
             <td class="chevron-col"><i class="bi bi-chevron-right"></i></td>
           </tr>
         </tbody>
@@ -141,12 +135,12 @@ const storage = computed(() => storageFigure(repositoryStatistics.value, statist
 
 const stats = computed(() => summarizeInstances(instances.value));
 
-// Newest recorded data first; instances with no data yet go last, newest-started first.
-function compareByLastData(a: ProjectInstance, b: ProjectInstance): number {
-  if (a.lastDataAt !== b.lastDataAt) {
-    return (b.lastDataAt ?? Number.NEGATIVE_INFINITY) - (a.lastDataAt ?? Number.NEGATIVE_INFINITY);
+// Newest started first; on a share that lists no times, by name.
+function compareByStart(a: ProjectInstance, b: ProjectInstance): number {
+  if (a.createdAt !== b.createdAt) {
+    return (b.createdAt ?? Number.NEGATIVE_INFINITY) - (a.createdAt ?? Number.NEGATIVE_INFINITY);
   }
-  return b.createdAt - a.createdAt;
+  return a.instanceName.localeCompare(b.instanceName);
 }
 
 const filteredInstances = computed(() => {
@@ -157,7 +151,7 @@ const filteredInstances = computed(() => {
     result = result.filter(instance => instance.instanceName.toLowerCase().includes(query));
   }
 
-  return [...result].sort(compareByLastData);
+  return [...result].sort(compareByStart);
 });
 
 async function loadInstances() {
@@ -215,8 +209,8 @@ onMounted(async () => {
   text-decoration: underline;
 }
 
-.last-data-relative,
-.no-data {
+.started-relative,
+.no-time {
   color: var(--color-text-muted);
 }
 

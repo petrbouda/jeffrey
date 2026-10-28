@@ -19,9 +19,7 @@ export default class ProjectInstance {
   constructor(
     public id: string,
     public instanceName: string,
-    public createdAt: number,
-    /** When the data of its newest session ends; null while that session has no recording. */
-    public lastDataAt: number | null,
-    public sessionCount: number
+    /** When its directory was created; null on a share that lists no times. */
+    public createdAt: number | null
   ) {}
 }

@@ -22,8 +22,7 @@ import java.util.Optional;
 /**
  * An instance with how many sessions it holds and its newest one.
  *
- * @param sessionCount the instance's session directories — a directory whose marker is not written
- *                     yet counted with them — or, when their names carry no start, its session markers
+ * @param sessionCount the instance's session directories, as one listing of it names them
  * @param newest       its newest session, or empty while it has none
  */
 public record InstanceSummary(InstanceDirectory instance, int sessionCount, Optional<VolumeSession> newest) {

@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.remote.client.InstancePage;
 import cafe.jeffrey.microscope.remote.client.InstancesClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
-import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionHeaderResponse;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.InstantUtils;
 
@@ -50,8 +50,8 @@ public class RemoteInstancesManager {
     }
 
     /**
-     * One instance with a page of its sessions, newest first and each with its files, from one read
-     * of the remote; empty when the project holds no instance by that id.
+     * One instance with a page of its sessions, newest first, each named but not read, from one
+     * read of the remote; empty when the project holds no instance by that id.
      *
      * @param before the session the page starts after, or empty for the newest
      */
@@ -60,7 +60,7 @@ public class RemoteInstancesManager {
                 .map(found -> new InstanceWithSessions(
                         toProjectInstanceInfo(found.instance()),
                         found.sessions().stream()
-                                .map(RecordingSessionResponse::toSession)
+                                .map(RecordingSessionHeaderResponse::toHeader)
                                 .toList(),
                         found.hasOlder()));
     }
@@ -70,8 +70,6 @@ public class RemoteInstancesManager {
                 response.id(),
                 scope.projectId(),
                 response.instanceName(),
-                InstantUtils.fromEpochMilli(response.createdAt()),
-                InstantUtils.fromEpochMilli(response.lastDataAt()),
-                response.sessionCount());
+                InstantUtils.fromEpochMilli(response.createdAt()));
     }
 }

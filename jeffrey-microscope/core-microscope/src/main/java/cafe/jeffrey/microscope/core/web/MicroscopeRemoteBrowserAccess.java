@@ -65,7 +65,7 @@ public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {
     @Override
     public List<ProjectResponse> projects(String workspaceId) {
         return resolver.resolveWorkspace(workspaceId).projectsManager().findAll().stream()
-                .map(ProjectManager::detailedInfo)
+                .map(ProjectManager::info)
                 .map(Mappers::toProjectResponse)
                 .toList();
     }
@@ -73,6 +73,6 @@ public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {
     @Override
     public ProjectResponse project(String workspaceId, String projectId) {
         ProjectManager pm = resolver.resolve(workspaceId, projectId);
-        return Mappers.toProjectResponse(pm.detailedInfo());
+        return Mappers.toProjectResponse(pm.info());
     }
 }

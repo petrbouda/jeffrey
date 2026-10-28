@@ -32,10 +32,10 @@ jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs 
                                        hub-model, pages-hub (Storage and Scheduler pages)
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
-                                       projects/instances/sessions/files, markers; the hub's reader),
+                                       folder names are the state: projects/instances/sessions/files; the hub's reader),
                                        sql-builder, test (@DuckDBTest, VolumeWriter),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
-jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session layout, markers and
+jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles

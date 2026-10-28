@@ -22,19 +22,19 @@ import cafe.jeffrey.microscope.remote.client.manager.InstanceWithSessions;
 import java.util.List;
 
 /**
- * One instance with a page of its sessions, newest first, each with its files — everything an
- * instance's page asks for, in one response.
+ * One instance with a page of its sessions, newest first, each named but not read — what an
+ * instance's page shows, in one response; a session's files come when it is opened.
  *
  * @param hasOlder whether sessions older than the page's are left to read
  */
 public record InstanceWithSessionsResponse(
-        InstanceResponse instance, List<RecordingSessionResponse> sessions, boolean hasOlder) {
+        InstanceResponse instance, List<RecordingSessionHeaderResponse> sessions, boolean hasOlder) {
 
     public static InstanceWithSessionsResponse from(InstanceWithSessions found) {
         return new InstanceWithSessionsResponse(
                 InstanceResponse.from(found.instance()),
                 found.sessions().stream()
-                        .map(RecordingSessionResponse::from)
+                        .map(RecordingSessionHeaderResponse::from)
                         .toList(),
                 found.hasOlder());
     }

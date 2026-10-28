@@ -91,12 +91,10 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
 └── workspaces/                              # the Hub's only state — it has no database
     └── <workspace-ref-id>/
         ├── .workspace-info.json             # written when the workspace is created
-        └── <project-name>/
-            ├── .project-info.json
+        └── <project-name>/                  # folder names are the ids — no markers below the workspace
             └── <instance-id>/
-                ├── .instance-info.json
-                └── <session-id>/            # the JFR recordings land here
-                    └── .session-info.json`;
+                └── <session-id>/            # a UUIDv7; the JFR recordings land here
+                    └── profile-20261027-085500.Europe~Prague.jfr`;
 </script>
 
 <template>
@@ -275,7 +273,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         The layout is a contract between the provisioner that writes it and the Hub and Microscope that read it;
         all resolve every name from a single shared class, so no side can drift. See
         <router-link to="/docs/provisioner/directory-structure">Directory Structure</router-link>
-        for what each marker file carries.
+        for what each folder name means and how the chunk names carry the time zone.
       </p>
     </div>
 

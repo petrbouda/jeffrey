@@ -22,43 +22,32 @@ import ProjectInstance from '@remote/services/api/model/ProjectInstance.ts';
 
 const BASE = 1_750_000_000_000;
 
-function instance(
-  id: string,
-  createdAt: number,
-  lastDataAt: number | null,
-  sessionCount: number
-): ProjectInstance {
-  return new ProjectInstance(id, id, createdAt, lastDataAt, sessionCount);
+function instance(id: string, createdAt: number | null): ProjectInstance {
+  return new ProjectInstance(id, id, createdAt);
 }
 
 describe('summarizeInstances', () => {
-  it('counts the instances and sessions, the oldest creation and the newest data', () => {
+  it('counts the instances and finds the oldest creation', () => {
     const stats = summarizeInstances([
-      instance('a', BASE + 3_000, BASE + 9_000, 2),
-      instance('b', BASE + 1_000, BASE + 4_000, 1),
-      instance('c', BASE, BASE + 12_000, 4),
-      instance('d', BASE + 5_000, null, 0)
+      instance('a', BASE + 3_000),
+      instance('b', BASE + 1_000),
+      instance('c', BASE),
+      instance('d', BASE + 5_000)
     ]);
 
-    expect(stats).toEqual({
-      total: 4,
-      sessions: 7,
-      oldestCreatedAt: BASE,
-      lastDataAt: BASE + 12_000
-    });
+    expect(stats).toEqual({ total: 4, oldestCreatedAt: BASE });
   });
 
-  it('has no last data while no instance has a recording', () => {
-    expect(summarizeInstances([instance('a', BASE, null, 1)]).lastDataAt).toBeNull();
+  it('leaves out instances a share lists no time for', () => {
+    expect(summarizeInstances([instance('a', null), instance('b', BASE)])).toEqual({
+      total: 2,
+      oldestCreatedAt: BASE
+    });
+    expect(summarizeInstances([instance('a', null)]).oldestCreatedAt).toBeNull();
   });
 
   it('has no oldest creation time without instances', () => {
-    expect(summarizeInstances([])).toEqual({
-      total: 0,
-      sessions: 0,
-      oldestCreatedAt: null,
-      lastDataAt: null
-    });
+    expect(summarizeInstances([])).toEqual({ total: 0, oldestCreatedAt: null });
   });
 });
 

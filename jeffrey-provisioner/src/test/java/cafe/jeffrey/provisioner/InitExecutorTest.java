@@ -17,25 +17,22 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -145,24 +142,14 @@ class InitExecutorTest {
             assertFalse(Files.exists(sessionPath().resolve(".heartbeat")), "no heartbeat directory any more");
         }
 
+        /** A level is the directory names alone: no marker file is written anywhere below the workspace. */
         @Test
-        void writesTheThreeMarkerFiles() throws Exception {
+        void writesOnlyTheDirectories() throws Exception {
             new InitExecutor(Clock.systemUTC()).execute(config());
 
-            Path project = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME);
-            assertTrue(Files.exists(project.resolve(JeffreyLayout.PROJECT_INFO_FILE)), "project marker");
-            assertTrue(Files.exists(project.resolve(INSTANCE_NAME).resolve(JeffreyLayout.INSTANCE_INFO_FILE)),
-                    "instance marker");
-            assertTrue(Files.exists(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)), "session marker");
-        }
-
-        @Test
-        void leavesNoTemporaryMarkerFilesBehind() throws Exception {
-            new InitExecutor(Clock.systemUTC()).execute(config());
-
-            try (Stream<Path> tree = Files.walk(workspacesDir)) {
-                List<Path> temps = tree.filter(path -> path.getFileName().toString().endsWith(".tmp")).toList();
-                assertEquals(List.of(), temps, "atomic writes must not leave .tmp files");
+            try (Stream<Path> tree = Files.walk(workspacesDir.resolve(WORKSPACE_REF_ID))) {
+                List<Path> files = tree.filter(Files::isRegularFile).toList();
+                assertEquals(List.of(), files, "the names say it all");
             }
         }
     }
@@ -186,7 +173,7 @@ class InitExecutorTest {
 
             String session = sessionPath().toString();
             assertEquals("-agentpath:" + profilerLibrary + "=start,alloc,lock,event=ctimer,jfrsync=default,"
-                    + "loop=15m,chunksize=5m,file=" + session + "/profile-%t.jfr", argFileOptions().getFirst());
+                    + "loop=15m,chunksize=5m,file=" + session + "/profile-%t.UTC.jfr", argFileOptions().getFirst());
         }
 
         /** A missing library would stop the JVM, so the session runs unprofiled instead. */
@@ -198,8 +185,7 @@ class InitExecutorTest {
             assertFalse(options.isEmpty(), "the other features are still written");
             assertTrue(options.stream().noneMatch(option -> option.startsWith("-agentpath:")),
                     () -> "the profiler must not be armed: " + options);
-            assertTrue(Files.exists(sessionPath().resolve(JeffreyLayout.SESSION_INFO_FILE)),
-                    "the session is still recorded");
+            assertTrue(Files.isDirectory(sessionPath()), "the session is still recorded");
         }
 
         @Test
@@ -225,7 +211,7 @@ class InitExecutorTest {
                     "export JEFFREY_CURRENT_PROJECT="
                             + workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME),
                     "export JEFFREY_CURRENT_SESSION=" + session,
-                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr"),
+                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.UTC.jfr"),
                     layoutExports);
             assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
         }
@@ -238,24 +224,17 @@ class InitExecutorTest {
         @Test
         void secondRunAddsASessionAndKeepsTheProject() throws Exception {
             new InitExecutor(Clock.systemUTC()).execute(config());
-            String firstProjectMarker = Files.readString(
-                    workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(JeffreyLayout.PROJECT_INFO_FILE));
-
             new InitExecutor(Clock.systemUTC()).execute(config());
 
             Path instancePath = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(INSTANCE_NAME);
             try (Stream<Path> sessions = Files.list(instancePath)) {
                 assertEquals(2, sessions.filter(Files::isDirectory).count(), "one session per run");
             }
-
-            assertEquals(firstProjectMarker, Files.readString(
-                    workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(JeffreyLayout.PROJECT_INFO_FILE)),
-                    "the project marker must not be rewritten");
         }
 
-        /** A session's place in its instance is its start time; no ordinal is written down. */
+        /** A session's place in its instance is its start time, carried in its name; no ordinal is written down. */
         @Test
-        void eachSessionRecordsWhenItsRunStarted() throws Exception {
+        void eachSessionIsNamedForWhenItsRunStarted() throws Exception {
             Instant firstRun = Instant.parse("2026-03-01T10:00:00Z");
             Instant secondRun = Instant.parse("2026-03-01T11:00:00Z");
             new InitExecutor(Clock.fixed(firstRun, ZoneOffset.UTC)).execute(config());
@@ -263,22 +242,24 @@ class InitExecutorTest {
 
             Path instancePath = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(INSTANCE_NAME);
             try (Stream<Path> sessions = Files.list(instancePath)) {
-                Set<Long> startTimes = sessions
+                List<Instant> starts = sessions
                         .filter(Files::isDirectory)
-                        .map(session -> session.resolve(JeffreyLayout.SESSION_INFO_FILE))
-                        .map(InitExecutorTest::readSessionMarker)
-                        .map(RemoteProjectInstanceSession::createdAt)
-                        .collect(Collectors.toSet());
-                assertEquals(Set.of(firstRun.toEpochMilli(), secondRun.toEpochMilli()), startTimes);
+                        .map(session -> IDGenerator.timestampOf(session.getFileName().toString()).orElseThrow())
+                        .sorted()
+                        .toList();
+                assertEquals(List.of(firstRun, secondRun), starts);
             }
         }
-    }
 
-    private static RemoteProjectInstanceSession readSessionMarker(Path sessionInfoFile) {
-        try {
-            return Json.read(Files.readString(sessionInfoFile), RemoteProjectInstanceSession.class);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        /** async-profiler writes {@code %t} in local time, so the machine's zone travels in the recording's name. */
+        @Test
+        void theRecordingNameCarriesTheMachinesZone() throws Exception {
+            new InitExecutor(Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneId.of("Europe/Prague")))
+                    .execute(config());
+
+            String profiler = argFileOptions().getFirst();
+            assertTrue(profiler.endsWith("/profile-%t.Europe~Prague.jfr"),
+                    () -> "the zone must be in the file option: " + profiler);
         }
     }
 }

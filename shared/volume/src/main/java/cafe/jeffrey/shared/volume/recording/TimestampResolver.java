@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.volume.recording;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.Optional;
 
 /**
@@ -37,13 +36,11 @@ public interface TimestampResolver {
      * one more look at the file.
      *
      * @param file the file as the volume described it
-     * @param zone the time zone of the machine that wrote the session, which a timestamp in a file's
-     *             name is local to
      */
-    Optional<Instant> resolve(VolumeEntry file, ZoneId zone);
+    Optional<Instant> resolve(VolumeEntry file);
 
     /** The file's creation time as the volume reports it, if it did; wrong for a rewritten file. */
-    TimestampResolver VOLUME = (file, zone) -> file.createdAt();
+    TimestampResolver VOLUME = VolumeEntry::createdAt;
 
     /** The instant async-profiler wrote into the file's own name, falling back to the volume. */
     TimestampResolver RECORDING_NAME = new RecordingNameTimestamp();

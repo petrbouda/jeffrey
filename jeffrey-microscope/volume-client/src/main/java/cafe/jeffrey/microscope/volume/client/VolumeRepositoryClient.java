@@ -55,7 +55,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
     @Override
     public List<RecordingSessionResponse> recordingSessions(ProjectScope scope, RecordingSessionFilter filter) {
         return source.read(() -> {
-            ProjectTree project = source.requireProject(scope);
+            ProjectTree project = source.resolvedProject(scope);
             List<VolumeSession> sessions = source.sessions(project).all();
             Map<String, VolumeSession> byId = sessions.stream()
                     .collect(Collectors.toMap(VolumeSession::id, Function.identity()));
@@ -73,7 +73,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
     @Override
     public RecordingSessionResponse recordingSession(ProjectScope scope, String sessionId) {
         return source.read(() -> {
-            ProjectTree project = source.requireProject(scope);
+            ProjectTree project = source.resolvedProject(scope);
             ProjectSessions sessions = source.sessions(project);
             VolumeSession session = sessions.session(sessionId)
                     .orElseThrow(() -> Exceptions.recordingSessionNotFound(sessionId));

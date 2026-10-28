@@ -74,7 +74,6 @@
             >
               <i class="bi bi-folder"></i>
               <span class="ws-item-name">{{ workspace.name }}</span>
-              <Badge :value="workspace.projectCount" variant="secondary" size="xs" />
             </button>
 
             <div v-if="filteredWorkspaces.length === 0 && !showCreateForm" class="ws-empty">
@@ -258,7 +257,7 @@
             </button>
           </InfoRow>
 
-          <InfoRow label="Projects">{{ selectedWorkspace.projectCount }}</InfoRow>
+          <InfoRow label="Projects">{{ projects.length }}</InfoRow>
         </div>
       </DrawerSection>
 

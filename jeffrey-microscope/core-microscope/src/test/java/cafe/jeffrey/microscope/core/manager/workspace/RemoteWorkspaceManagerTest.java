@@ -48,7 +48,7 @@ class RemoteWorkspaceManagerTest {
 
     private static final Instant NOW = Instant.parse("2026-03-01T00:00:00Z");
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "prod", "prod", "Production", null, null, NOW, WorkspaceStatus.AVAILABLE, 0);
+            new WorkspaceInfo("ws-1", "prod", "prod", "Production", null, null, NOW, WorkspaceStatus.AVAILABLE);
 
     private final DiscoveryClient discovery = mock(DiscoveryClient.class);
     private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);

@@ -84,7 +84,7 @@ class HubWorkspacesManagerTest {
         /** The provisioner may write into a reference id before anyone creates it; its projects stay. */
         @Test
         void adoptsADirectoryTheProvisionerAlreadyWroteInto() {
-            TestVolume.project(root.resolve("prod-ws"), "p-1", "orders", NOW);
+            TestVolume.project(root.resolve("prod-ws"), "orders");
 
             WorkspaceInfo created = manager().create(new WorkspacesManager.CreateWorkspaceRequest("prod-ws", "Production"));
 
@@ -164,8 +164,8 @@ class HubWorkspacesManagerTest {
         @Test
         void countsTheProjectsInIt() {
             Path workspace = TestVolume.workspace(root, "prod-ws", "Production", NOW);
-            TestVolume.project(workspace, "p-1", "orders", NOW);
-            TestVolume.project(workspace, "p-2", "payments", NOW);
+            TestVolume.project(workspace, "orders");
+            TestVolume.project(workspace, "payments");
 
             assertEquals(2, manager().findAll().getFirst().info().projectCount());
         }

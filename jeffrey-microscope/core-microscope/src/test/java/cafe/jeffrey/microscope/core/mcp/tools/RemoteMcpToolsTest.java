@@ -212,7 +212,7 @@ class RemoteMcpToolsTest {
         when(remote.info()).thenReturn(remoteInfo(remoteName));
         when(remote.infoOrThrow()).thenReturn(new DiscoveryClient.PublicApiInfo("2.1.0"));
         WorkspaceInfo workspace = new WorkspaceInfo(
-                WORKSPACE_ID, "ref", "repo", "default", null, null, NOW, WorkspaceStatus.AVAILABLE, 1);
+                WORKSPACE_ID, "ref", "repo", "default", null, null, NOW, WorkspaceStatus.AVAILABLE);
         when(remote.workspaces()).thenReturn(List.of(workspace));
         when(remote.workspacesOrThrow()).thenReturn(List.of(workspace));
 

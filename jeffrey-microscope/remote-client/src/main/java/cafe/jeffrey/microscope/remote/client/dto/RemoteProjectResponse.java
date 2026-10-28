@@ -22,10 +22,10 @@ import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import java.time.Instant;
 
 /**
- * A project as its marker describes it: finding one reads nothing below it. What its instances say
- * of it is {@link ProjectActivity}, read only where it is shown.
+ * A project as its directory names it: its id and its name are the directory's name, and finding
+ * one reads nothing below it.
  *
- * @param createdAt   when the project was created, or {@code null} when its marker says nothing
+ * @param createdAt   when the project's directory was created, or {@code null} on a share that lists no times
  * @param workspaceId the project's workspace, which is also its reference id: the volume names a
  *                    workspace by its directory on the volume
  * @param statistics  what was measured for the project; never measured by Microscope

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -110,7 +111,8 @@ class PlaceholdersTest {
                             Path.of("/workspaces"),
                             Path.of("/workspaces/ws"),
                             Path.of("/workspaces/ws/proj"),
-                            SESSION),
+                            SESSION,
+                            ZoneOffset.UTC),
                     "/libs/libasyncProfiler-amd64.so",
                     EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
         }
@@ -124,7 +126,7 @@ class PlaceholdersTest {
             assertEquals("/workspaces/ws", placeholders.resolve("<<JEFFREY:CURRENT_WORKSPACE>>"));
             assertEquals("/workspaces/ws/proj", placeholders.resolve("<<JEFFREY:CURRENT_PROJECT>>"));
             assertEquals(SESSION.toString(), placeholders.resolve("<<JEFFREY:CURRENT_SESSION>>"));
-            assertEquals(SESSION.resolve("profile-%t.jfr").toString(),
+            assertEquals(SESSION.resolve("profile-%t.UTC.jfr").toString(),
                     placeholders.resolve("<<JEFFREY:FILE_PATTERN>>"));
             assertEquals("/libs/libasyncProfiler-amd64.so", placeholders.resolve("<<JEFFREY:PROFILER_PATH>>"));
         }

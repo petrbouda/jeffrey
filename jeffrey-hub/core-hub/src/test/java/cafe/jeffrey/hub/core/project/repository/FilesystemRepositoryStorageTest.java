@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,15 +44,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FilesystemRepositoryStorageTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-    private static final String SESSION_ID = "session-1";
-    private static final ProjectInfo PROJECT_INFO = new ProjectInfo("project-1", "project", "ws", T0, Map.of());
+    private static final String SESSION_ID = TestVolume.sessionId(T0);
+    private static final ProjectInfo PROJECT_INFO = new ProjectInfo("project-1", "project", "ws", Optional.of(T0));
 
     private static Path projectDir(Path workspacesDir) {
-        return TestVolume.project(workspacesDir.resolve("ws"), PROJECT_INFO.id(), PROJECT_INFO.name(), T0);
+        return TestVolume.project(workspacesDir.resolve("ws"), PROJECT_INFO.name());
     }
 
     private static Path sessionDir(Path workspacesDir) {
-        return TestVolume.session(TestVolume.instance(projectDir(workspacesDir), "instance", T0), SESSION_ID, T0);
+        return TestVolume.session(TestVolume.instance(projectDir(workspacesDir), "instance"), T0);
     }
 
     /**
@@ -63,8 +62,7 @@ class FilesystemRepositoryStorageTest {
     private static FilesystemRepositoryStorage storage(Path workspacesDir, boolean ended) {
         sessionDir(workspacesDir);
         if (ended) {
-            TestVolume.session(TestVolume.instance(projectDir(workspacesDir), "instance", T0),
-                    "session-2", T0.plusSeconds(1800));
+            TestVolume.session(TestVolume.instance(projectDir(workspacesDir), "instance"), T0.plusSeconds(1800));
         }
         return TestVolume.storage(PROJECT_INFO, workspacesDir, projectDir(workspacesDir));
     }
@@ -96,7 +94,7 @@ class FilesystemRepositoryStorageTest {
 
     /**
      * What the volume says about a project's sessions and instances, read at the moment of asking:
-     * markers name them, and their order says which session is each instance's newest.
+     * their directories name them, and their order says which session is each instance's newest.
      */
     @Nested
     class Listing {
@@ -115,88 +113,80 @@ class FilesystemRepositoryStorageTest {
             storage = TestVolume.storage(PROJECT_INFO, workspacesDir, project);
         }
 
-        private Path session(String instanceId, String sessionId, Instant createdAt) {
-            return TestVolume.session(TestVolume.instance(project, instanceId, T0), sessionId, createdAt);
+        /** A session started at {@code start} in the instance; its id. */
+        private String session(String instanceId, Instant start) {
+            return TestVolume.session(TestVolume.instance(project, instanceId), start).getFileName().toString();
         }
 
         /** What the compression job works on: each instance's two newest sessions, read with their files. */
         @Test
         void theNewestSessionsAreEachInstancesNewestTwo() {
-            session(INSTANCE, "a-1", T0);
-            session(INSTANCE, "a-2", T0.plusSeconds(60));
-            session(INSTANCE, "a-3", T0.plusSeconds(120));
-            session("pod-b", "b-1", T0.plusSeconds(30));
+            session(INSTANCE, T0);
+            String a2 = session(INSTANCE, T0.plusSeconds(60));
+            String a3 = session(INSTANCE, T0.plusSeconds(120));
+            String b1 = session("pod-b", T0.plusSeconds(30));
 
             Map<String, Boolean> newestById = storage.newestSessions(2).stream()
                     .collect(Collectors.toMap(RecordingSession::id, RecordingSession::newest));
 
-            assertEquals(Map.of("a-3", true, "a-2", false, "b-1", true), newestById);
+            assertEquals(Map.of(a3, true, a2, false, b1, true), newestById);
         }
 
         @Test
-        void listsEverySessionNewestFirstByItsMarker() {
-            session(INSTANCE, "s-old", T0);
-            session("pod-b", "s-new", T0.plusSeconds(120));
+        void listsEverySessionNewestFirst() {
+            String old = session(INSTANCE, T0);
+            String recent = session("pod-b", T0.plusSeconds(120));
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.HEADERS);
 
-            assertEquals(List.of("s-new", "s-old"), sessions.stream().map(RecordingSession::id).toList());
+            assertEquals(List.of(recent, old), sessions.stream().map(RecordingSession::id).toList());
             assertEquals(List.of(true, true), sessions.stream().map(RecordingSession::newest).toList(),
                     "each is its own instance's newest");
-            assertEquals("pod-b/s-new", sessions.getFirst().name());
+            assertEquals("pod-b/" + recent, sessions.getFirst().name());
         }
 
         /**
-         * The session's marker names the zone its machine runs in, and its chunks' names are read
-         * in it: a JVM in Prague names the chunk it opened at 12:05 UTC {@code 13:05}.
+         * A chunk's name carries the zone its machine runs in, and is read in it: a JVM in Prague
+         * names the chunk it opened at 12:05 UTC {@code 13:05}.
          */
         @Test
-        void readsItsRecordingsNamesInTheZoneTheMarkerRecords() throws IOException {
-            Path dir = TestVolume.session(TestVolume.instance(project, INSTANCE, T0), "s-1", T0, "Europe/Prague");
-            Files.writeString(dir.resolve("profile-20260220-130500.jfr"), CHUNK_BODY);
+        void readsItsRecordingsNamesInTheZoneTheyCarry() throws IOException {
+            String id = session(INSTANCE, T0);
+            Files.writeString(project.resolve(INSTANCE).resolve(id).resolve("profile-20260220-130500.Europe~Prague.jfr"),
+                    CHUNK_BODY);
 
-            RecordingSession session = listed(storage, "s-1").orElseThrow();
-
-            assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
-        }
-
-        /** A marker written before the zone was recorded is read the way it always was: in UTC. */
-        @Test
-        void readsAMarkerWithoutAZoneInUtc() throws IOException {
-            Path dir = session(INSTANCE, "s-1", T0);
-            Files.writeString(dir.resolve("profile-20260220-120500.jfr"), CHUNK_BODY);
-
-            RecordingSession session = listed(storage, "s-1").orElseThrow();
+            RecordingSession session = listed(storage, id).orElseThrow();
 
             assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
         }
 
-        /** One test of "is this an instance": a marker that does not read names no instance anywhere. */
+        /** A name without a zone — a custom template — is read in UTC. */
         @Test
-        void anInstanceWithACorruptMarkerIsNoInstance() throws IOException {
-            session(INSTANCE, "s-1", T0);
-            Files.writeString(project.resolve(INSTANCE).resolve(JeffreyLayout.INSTANCE_INFO_FILE), "{not json");
+        void readsANameWithoutAZoneInUtc() throws IOException {
+            String id = session(INSTANCE, T0);
+            Files.writeString(project.resolve(INSTANCE).resolve(id).resolve("profile-20260220-120500.jfr"), CHUNK_BODY);
 
-            assertTrue(storage.instances().isEmpty());
-            assertTrue(storage.listSessions(SessionDetail.HEADERS).isEmpty());
-            assertTrue(listed(storage, "s-1").isEmpty());
+            RecordingSession session = listed(storage, id).orElseThrow();
+
+            assertEquals(Instant.parse("2026-02-20T12:05:00Z"), session.files().getFirst().createdAt());
         }
 
         @Test
         void aNewerSessionInTheSameInstanceIsTheNewest() {
-            session(INSTANCE, "s-1", T0);
-            session(INSTANCE, "s-2", T0.plusSeconds(600));
+            String first = session(INSTANCE, T0);
+            String second = session(INSTANCE, T0.plusSeconds(600));
 
-            assertFalse(listed(storage, "s-1").orElseThrow().newest());
-            assertTrue(listed(storage, "s-2").orElseThrow().newest());
+            assertFalse(listed(storage, first).orElseThrow().newest());
+            assertTrue(listed(storage, second).orElseThrow().newest());
         }
 
+        /** A session is a directory named for its start; anything else in an instance is not one. */
         @Test
-        void aDirectoryWithoutItsMarkerIsNoSession() throws IOException {
-            session(INSTANCE, "s-1", T0);
+        void aDirectoryNotNamedForItsStartIsNoSession() throws IOException {
+            String id = session(INSTANCE, T0);
             Files.createDirectories(project.resolve(INSTANCE).resolve("half-written"));
 
-            assertEquals(List.of("s-1"), storage.listSessions(SessionDetail.HEADERS).stream()
+            assertEquals(List.of(id), storage.listSessions(SessionDetail.HEADERS).stream()
                     .map(RecordingSession::id).toList());
         }
 
@@ -205,17 +195,20 @@ class FilesystemRepositoryStorageTest {
 
             @Test
             void withoutASessionHasNone() {
-                TestVolume.instance(project, INSTANCE, T0);
+                TestVolume.instance(project, INSTANCE);
 
-                assertEquals(new ProjectInstanceInfo(INSTANCE, T0, 0), storage.instances().getFirst());
+                ProjectInstanceInfo instance = storage.instances().getFirst();
+                assertEquals(INSTANCE, instance.id());
+                assertEquals(0, instance.sessionCount());
+                assertTrue(instance.startedAt().isPresent(), "its directory's time, as the mount gives it");
             }
 
             @Test
             void countsItsSessions() {
-                session(INSTANCE, "s-1", T0);
-                session(INSTANCE, "s-2", T0.plusSeconds(120));
+                session(INSTANCE, T0);
+                session(INSTANCE, T0.plusSeconds(120));
 
-                assertEquals(new ProjectInstanceInfo(INSTANCE, T0, 2), storage.instances().getFirst());
+                assertEquals(2, storage.instances().getFirst().sessionCount());
             }
         }
     }
@@ -291,7 +284,7 @@ class FilesystemRepositoryStorageTest {
             write(older, "profile-20260220-121000.jfr");
             FilesystemRepositoryStorage storage = newestSession();
             Path newer = TestVolume.session(
-                    TestVolume.instance(projectDir(workspacesDir), "instance-2", T0), "session-2", T0.plusSeconds(1800));
+                    TestVolume.instance(projectDir(workspacesDir), "instance-2"), T0.plusSeconds(1800));
             write(newer, "profile-20260220-123000.jfr");
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);

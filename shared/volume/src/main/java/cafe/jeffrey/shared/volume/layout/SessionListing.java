@@ -24,8 +24,7 @@ import java.util.List;
 
 /**
  * One listing of a session directory, which answers everything a reader asks of the directory
- * itself: its files, and whether its marker is still there.
- * On a file share each question asked of the volume is a round-trip, so a session is listed once
+ * itself: its files. On a file share each question asked of the volume is a round-trip, so a session is listed once
  * and every answer is read off that one listing.
  *
  * <p>A listing that failed answers none of it: each question falls back to asking the volume, and
@@ -40,12 +39,6 @@ public sealed interface SessionListing {
      */
     List<VolumeEntry> entries();
 
-    /**
-     * Whether a file by this name was listed. A listing that failed cannot say, and answers that it
-     * does: the session is then read as it lies rather than dropped for a failure of the share.
-     */
-    boolean holdsFile(String name);
-
     /** The session directory as it was listed; empty when nothing is there. */
     record Listed(List<VolumeEntry> entries) implements SessionListing {
 
@@ -54,11 +47,6 @@ public sealed interface SessionListing {
                 throw new IllegalArgumentException("A session listing needs its entries");
             }
             entries = List.copyOf(entries);
-        }
-
-        @Override
-        public boolean holdsFile(String name) {
-            return entries.stream().anyMatch(entry -> entry.isFile() && entry.name().equals(name));
         }
     }
 
@@ -74,11 +62,6 @@ public sealed interface SessionListing {
         @Override
         public List<VolumeEntry> entries() {
             throw failure;
-        }
-
-        @Override
-        public boolean holdsFile(String name) {
-            return true;
         }
     }
 }

@@ -22,7 +22,6 @@ import cafe.jeffrey.microscope.remote.client.InstanceRead;
 import cafe.jeffrey.microscope.remote.client.InstancesClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
-import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionPage;
 
@@ -30,8 +29,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * A project's instances off the volume, each read off its newest session; one instance with a page
- * of its sessions, each with its file count and size, and its files when the page asks for them.
+ * A project's instances off the volume, each its directory: one listing of the project. One
+ * instance with a page of its sessions: one listing of the instance, whose names order the page.
  */
 final class VolumeInstancesClient implements InstancesClient {
 
@@ -43,38 +42,19 @@ final class VolumeInstancesClient implements InstancesClient {
 
     @Override
     public List<InstanceResponse> projectInstances(ProjectScope scope) {
-        return source.read(() -> {
-            ProjectTree project = source.requireProject(scope);
-            return source.sessions(project).instances().stream()
-                    .map(summary -> VolumeResponses.instance(summary, project))
-                    .toList();
-        });
+        return source.read(() -> source.resolvedProject(scope).instances().stream()
+                .map(VolumeResponses::instance)
+                .toList());
     }
 
-    @Override
-    public ProjectActivity activity(ProjectScope scope) {
-        return source.read(() -> {
-            ProjectTree project = source.requireProject(scope);
-            return VolumeResponses.activity(source.sessions(project).instances(), project);
-        });
-    }
-
-    /**
-     * The page's sessions are read off the one listing of each session directory their count and
-     * size need; a page that asks for files takes them from that same listing.
-     */
     @Override
     public Optional<InstanceRead> instance(ProjectScope scope, String instanceId, InstancePage page) {
         return source.read(() -> {
-            ProjectTree project = source.requireProject(scope);
+            ProjectTree project = source.resolvedProject(scope);
             return source.sessions(project).instance(instanceId, new SessionPage(page.limit(), page.before()))
                     .map(found -> new InstanceRead(
-                            VolumeResponses.instance(found.summary(), project),
-                            found.sessions().stream()
-                                    .map(session -> page.withFiles()
-                                            ? VolumeResponses.withFiles(project, session)
-                                            : VolumeResponses.header(project, session))
-                                    .toList(),
+                            VolumeResponses.instance(found.instance()),
+                            found.sessions().stream().map(VolumeResponses::header).toList(),
                             found.hasOlder()));
         });
     }

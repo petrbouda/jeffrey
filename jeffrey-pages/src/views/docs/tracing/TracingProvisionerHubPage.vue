@@ -67,9 +67,8 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
 const sessionLayout = `<workspaces>/<workspace-ref-id>/
 ├── .workspace-info.json               # written by the Hub when the workspace is created
-└── <project-name>/<instance-id>/<session-id>/
-    ├── profile-<timestamp>.jfr        # the durable chunks — traces live in these
-    └── .session-info.json`;
+└── <project-name>/<instance-id>/<session-id>/     # folder names are the ids, no markers below the workspace
+    └── profile-<timestamp>.<Zone~Id>.jfr          # the durable chunks — traces live in these`;
 </script>
 
 <template>
@@ -90,7 +89,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <ul>
         <li><strong>The Provisioner never talks to the Hub.</strong> It is a short-lived CLI that runs before <code>main()</code>, writes the session tree and an <code>@argfile</code>, and exits. Its only channel to the Hub is the shared volume — there is no event transport in between.</li>
-        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the marker files and directory listings when it is made, so a session shows up on the next listing after the Provisioner writes it. Session order and file names decide everything. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
+        <li><strong>Nothing pushes to anyone.</strong> Neither the Hub nor Microscope keeps a copy of the volume: every listing reads the directory listings when it is made &mdash; the folder names are the state, so a session shows up on the next listing after the Provisioner writes it. Session order and file names decide everything. The Hub and Microscope never talk to each other either &mdash; both work on the same volume.</li>
       </ul>
 
       <h2 id="switch">Turning Tracing On</h2>
@@ -137,7 +136,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes the marker files — atomically, because they are the Hub's only record of what exists. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.jfr</code> chunk on its loop interval.</p>
+      <p>The Provisioner creates the tree and writes no marker below the workspace: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.&lt;Zone~Id&gt;.jfr</code> chunk on its loop interval, the machine's time zone in its name (<code>profile-20261027-085500.Europe~Prague.jfr</code>) so the timestamp is read in the zone it was written in.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -153,7 +152,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           <tr>
             <td>Listing (no job)</td>
             <td>Every job run</td>
-            <td>Reads the marker JSONs to list projects, instances and sessions, ordered by their UUIDv7 directory names: a newer session in the same instance ends the one before it. A crash log left in the directory is listed as a session file, not acted on.</td>
+            <td>Lists projects, instances and sessions from their folder names, sessions ordered by their UUIDv7 directory names: a newer session in the same instance ends the one before it. A crash log left in the directory is listed as a session file, not acted on.</td>
           </tr>
           <tr>
             <td>Compression &amp; retention</td>

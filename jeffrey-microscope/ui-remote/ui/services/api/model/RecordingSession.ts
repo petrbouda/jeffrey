@@ -33,9 +33,12 @@ export default class RecordingSession {
     public files: RepositoryFile[],
     /** A newer session ended it before it wrote any data — e.g. a crash-looped container. */
     public failed: boolean = false,
-    /** How many files the session holds; a listing sends this instead of the files. */
-    public fileCount: number = 0,
-    /** Bytes the session's files occupy; a listing sends this instead of the files. */
-    public sizeBytes: number = 0
+    /**
+     * How many files the session holds; a listing sends this instead of the files. Null while the
+     * session is only named — an instance's page names its sessions and reads one when it is opened.
+     */
+    public fileCount: number | null = 0,
+    /** Bytes the session's files occupy; null while the session is only named. */
+    public sizeBytes: number | null = 0
   ) {}
 }

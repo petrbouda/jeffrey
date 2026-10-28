@@ -21,64 +21,40 @@ import cafe.jeffrey.shared.common.IDGenerator;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Clock;
 
 /**
- * Declares a run's project, instance and session to the hub by writing the marker files it
- * lists them from.
+ * Lays down a run's instance and session directories under its project, which is all the volume
+ * says of them: an instance is its directory, named after the instance, and a session is a
+ * directory named with a time-ordered id that carries its start. Nothing is written into them; the
+ * profiler's recordings carry the machine's zone in their names instead ({@link SessionLayout#recordingFilePattern}).
  *
- * <p>Project and instance are found-or-created, so repeated runs of the same application reuse
- * them; the session is always new. Registration is two steps because the session marker is what
- * makes the session visible to the hub, so it is written only once the JVM options have been
- * built around the session directory.
+ * <p>The project and the instance are reused by every run of the same application; the session is
+ * always new.
  */
 public class SessionRegistrar {
 
-    private final FileSystemRepository repository;
     private final LayoutProvisioner layoutProvisioner;
+    private final Clock clock;
 
-    public SessionRegistrar(FileSystemRepository repository, LayoutProvisioner layoutProvisioner) {
-        this.repository = repository;
+    /**
+     * @param clock when the session starts, carried in its name, and the zone the profiled machine
+     *              runs in, which async-profiler writes {@code %t} in
+     */
+    public SessionRegistrar(LayoutProvisioner layoutProvisioner, Clock clock) {
         this.layoutProvisioner = layoutProvisioner;
+        this.clock = clock;
     }
 
-    /** Ensures the project and instance exist, then creates this run's session directory. */
+    /** Ensures the instance's directory exists, then creates this run's session directory. */
     public ProvisionedSession openSession(InitConfig config, ProjectLayout layout) throws IOException {
-        ensureProject(config, layout);
-
         String instanceId = config.getInstanceName();
-        Path instancePath = layout.project().resolve(instanceId);
-        ensureInstance(instanceId, instancePath);
+        Path instancePath = LayoutProvisioner.createDirectories(layout.project().resolve(instanceId));
 
-        String sessionId = IDGenerator.generate();
+        String sessionId = IDGenerator.generate(clock);
         SessionLayout sessionLayout =
-                layoutProvisioner.provisionSession(layout, instancePath.resolve(sessionId));
+                layoutProvisioner.provisionSession(layout, instancePath.resolve(sessionId), clock.getZone());
 
         return new ProvisionedSession(instanceId, sessionId, sessionLayout);
-    }
-
-    /** Writes the session marker, which is what makes the session visible to the hub. */
-    public void recordSession(ProvisionedSession session) {
-        repository.addSession(session.sessionId(), session.layout().session());
-    }
-
-    private void ensureProject(InitConfig config, ProjectLayout layout) {
-        if (repository.findProject(layout.project()).isPresent()) {
-            return;
-        }
-
-        repository.addProject(
-                IDGenerator.generate(),
-                config.getProjectName(),
-                config.getAttributes(),
-                layout.project());
-    }
-
-    private void ensureInstance(String instanceId, Path instancePath) throws IOException {
-        if (repository.findInstance(instancePath).isPresent()) {
-            return;
-        }
-
-        LayoutProvisioner.createDirectories(instancePath);
-        repository.addInstance(instanceId, instancePath);
     }
 }

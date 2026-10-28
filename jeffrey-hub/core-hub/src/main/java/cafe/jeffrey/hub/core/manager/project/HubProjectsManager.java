@@ -23,8 +23,8 @@ import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import java.util.List;
 
 /**
- * The projects of one workspace: its child directories with a {@code .project-info.json}, each
- * known by the provisioner's project id from that marker.
+ * The projects of one workspace: its visible child directories, each known by its directory name
+ * — the project name the provisioner was configured with.
  */
 public class HubProjectsManager implements ProjectsManager {
 

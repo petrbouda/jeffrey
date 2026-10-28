@@ -21,7 +21,6 @@ import cafe.jeffrey.shared.volume.VolumePath;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,11 +30,11 @@ class InstanceSummaryTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final VolumePath INSTANCE = VolumePath.root().resolve("project").resolve("pod-a");
-    private static final InstanceDirectory DIRECTORY = new InstanceDirectory(INSTANCE, T0);
+    private static final InstanceDirectory DIRECTORY = new InstanceDirectory(INSTANCE, Optional.of(T0));
 
     private static VolumeSession newest() {
         return new VolumeSession(
-                new SessionDirectory(INSTANCE.resolve("s-1"), T0, ZoneOffset.UTC), true,
+                new SessionDirectory(INSTANCE.resolve("s-1"), T0), true,
                 new SessionListing.Listed(List.of()));
     }
 

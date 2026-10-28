@@ -16,11 +16,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  buildDisplayEntries,
-  hasUnreportedSizes,
-  isFailedSession
-} from '@remote/services/sessionGrouping.ts';
+import { hasUnreportedSizes, isFailedSession } from '@remote/services/sessionGrouping.ts';
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
@@ -126,67 +122,5 @@ describe('hasUnreportedSizes', () => {
   it('does not flag the newest session with no files — there is nothing to report on', () => {
     const empty = session('s1', NEWEST, [], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(empty)).toBe(false);
-  });
-});
-
-describe('buildDisplayEntries', () => {
-  it('returns plain session entries when nothing failed', () => {
-    const sessions = [
-      session('s1', NEWEST, [], BASE_CREATED_AT + 2_000),
-      session('s2', ENDED, [file(100)], BASE_CREATED_AT + 1_000)
-    ];
-
-    const entries = buildDisplayEntries(sessions);
-
-    expect(entries).toHaveLength(2);
-    expect(entries.every(entry => entry.type === 'session')).toBe(true);
-  });
-
-  it('folds consecutive failed sessions into a single group', () => {
-    const sessions = [
-      session('newest', NEWEST, [], BASE_CREATED_AT + 4_000),
-      session('failed-1', ENDED, [], BASE_CREATED_AT + 3_000),
-      session('failed-2', ENDED, [file(0)], BASE_CREATED_AT + 2_000),
-      session('real', ENDED, [file(100)], BASE_CREATED_AT + 1_000)
-    ];
-
-    const entries = buildDisplayEntries(sessions);
-
-    expect(entries).toHaveLength(3);
-    expect(entries[0].type).toBe('session');
-    expect(entries[1].type).toBe('failedGroup');
-    expect(entries[2].type).toBe('session');
-
-    const group = entries[1];
-    if (group.type !== 'failedGroup') {
-      throw new Error('expected a failedGroup entry');
-    }
-    expect(group.key).toBe('failed-1');
-    expect(group.sessions.map(s => s.id)).toEqual(['failed-1', 'failed-2']);
-    expect(group.lastCreatedAt).toBe(BASE_CREATED_AT + 3_000);
-    expect(group.firstCreatedAt).toBe(BASE_CREATED_AT + 2_000);
-  });
-
-  it('keeps non-consecutive failed sessions in separate groups', () => {
-    const sessions = [
-      session('failed-1', ENDED, [], BASE_CREATED_AT + 4_000),
-      session('real-1', ENDED, [file(100)], BASE_CREATED_AT + 3_000),
-      session('failed-2', ENDED, [], BASE_CREATED_AT + 2_000)
-    ];
-
-    const entries = buildDisplayEntries(sessions);
-
-    expect(entries.map(entry => entry.type)).toEqual(['failedGroup', 'session', 'failedGroup']);
-  });
-
-  it('wraps a single isolated failed session into a group of one', () => {
-    const entries = buildDisplayEntries([session('failed-1', ENDED, [])]);
-
-    expect(entries).toHaveLength(1);
-    expect(entries[0].type).toBe('failedGroup');
-  });
-
-  it('returns no entries for an empty list', () => {
-    expect(buildDisplayEntries([])).toEqual([]);
   });
 });

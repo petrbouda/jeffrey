@@ -23,8 +23,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,21 +63,49 @@ class TimestampResolverTest {
         void readsTheInstantTheProfilerWroteIntoIt() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")));
         }
 
         /**
          * async-profiler writes {@code %t} in the profiled machine's local time, so a JVM in Prague
          * names a chunk it opened at 12:05 UTC {@code 13:05} in winter. Read as UTC it would claim
          * to start an hour late, and every window and retention cut taken from it would be off by
-         * that hour.
+         * that hour — so the provisioner writes the zone after it, and the name is read in it.
          */
         @Test
-        void readsTheNameInTheZoneTheSessionRanIn() {
+        void readsTheNameInTheZoneItCarries() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(
-                            file("profile-20260220-130500.jfr"), ZoneId.of("Europe/Prague")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500.Europe~Prague.jfr")));
+        }
+
+        /** Each chunk carries its own zone, so a session running across a DST switch reads right on both sides. */
+        @Test
+        void readsEachChunkAcrossADaylightSavingSwitch() {
+            assertEquals(
+                    Optional.of(Instant.parse("2026-03-29T00:30:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260329-013000.Europe~Prague.jfr")));
+            assertEquals(
+                    Optional.of(Instant.parse("2026-03-29T01:30:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260329-033000.Europe~Prague.jfr")));
+        }
+
+        /** A name without a zone — a custom template — or with one this JVM does not know is read as UTC. */
+        @Test
+        void readsANameWithoutAKnownZoneAsUtc() {
+            assertEquals(
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")));
+            assertEquals(
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.Nowhere~Atlantis.jfr")));
+        }
+
+        @Test
+        void readsTheZoneFromTheArchiveToo() {
+            assertEquals(
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500.Europe~Prague.jfr")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500.Europe~Prague.jfr.lz4")));
         }
 
         /**
@@ -93,8 +119,8 @@ class TimestampResolverTest {
         @Test
         void isUnchangedByTheFileBeingCompressed() {
             assertEquals(
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr"), ZoneOffset.UTC),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr.lz4"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr.lz4")));
         }
     }
 
@@ -106,15 +132,15 @@ class TimestampResolverTest {
         void aRecordingStillReadsItsName() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-20260220-120500.jfr"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-20260220-120500.jfr")));
         }
 
         /** Nothing to go on: the caller takes one more look at the file rather than inventing a time. */
         @Test
         void anythingElseIsLeftForTheCallerToLookUp() {
-            assertEquals(Optional.empty(), TimestampResolver.VOLUME.resolve(untimed("service-app.log"), ZoneOffset.UTC));
+            assertEquals(Optional.empty(), TimestampResolver.VOLUME.resolve(untimed("service-app.log")));
             assertEquals(Optional.empty(),
-                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-not-a-timestamp.jfr"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-not-a-timestamp.jfr")));
         }
     }
 
@@ -124,7 +150,7 @@ class TimestampResolverTest {
         @Test
         void forARecordingNamedWithAnotherPrefix() {
             assertEquals(Optional.of(VOLUME_CREATED_AT),
-                    TimestampResolver.RECORDING_NAME.resolve(file("recording-20260220-120500.jfr"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(file("recording-20260220-120500.jfr")));
         }
 
         /**
@@ -134,12 +160,12 @@ class TimestampResolverTest {
         @Test
         void forATimestampThatDoesNotParse() {
             assertEquals(Optional.of(VOLUME_CREATED_AT),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-not-a-timestamp.jfr"), ZoneOffset.UTC));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-not-a-timestamp.jfr")));
         }
 
         @Test
         void forAFileThatIsNotARecording() {
-            assertEquals(Optional.of(VOLUME_CREATED_AT), TimestampResolver.VOLUME.resolve(file("service-app.log"), ZoneOffset.UTC));
+            assertEquals(Optional.of(VOLUME_CREATED_AT), TimestampResolver.VOLUME.resolve(file("service-app.log")));
         }
     }
 }

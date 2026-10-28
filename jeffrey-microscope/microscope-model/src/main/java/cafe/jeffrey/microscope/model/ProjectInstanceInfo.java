@@ -20,17 +20,10 @@ package cafe.jeffrey.microscope.model;
 import java.time.Instant;
 
 /**
- * An instance as the volume describes it.
+ * An instance as the volume names it: its directory.
  *
- * @param startedAt    when the provisioner registered it
- * @param lastDataAt   when the data of its newest session ends, or {@code null} while it has none
- * @param sessionCount how many sessions it holds
+ * @param startedAt when its directory was created, as the volume lists it; {@code null} on a share
+ *                  that lists no times
  */
-public record ProjectInstanceInfo(
-        String id,
-        String projectId,
-        String instanceName,
-        Instant startedAt,
-        Instant lastDataAt,
-        int sessionCount) {
+public record ProjectInstanceInfo(String id, String projectId, String instanceName, Instant startedAt) {
 }

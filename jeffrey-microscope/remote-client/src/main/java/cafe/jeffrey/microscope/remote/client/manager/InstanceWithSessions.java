@@ -18,17 +18,18 @@
 package cafe.jeffrey.microscope.remote.client.manager;
 
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
 
 import java.util.List;
 
 /**
  * One instance and a page of its sessions, newest first, read together in one call — what an
- * instance's own page shows. The sessions carry their files.
+ * instance's own page shows. The sessions are named, not read: each is read when it is opened.
  *
  * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceWithSessions(ProjectInstanceInfo instance, List<RecordingSession> sessions, boolean hasOlder) {
+public record InstanceWithSessions(
+        ProjectInstanceInfo instance, List<RecordingSessionHeader> sessions, boolean hasOlder) {
 
     public InstanceWithSessions {
         sessions = List.copyOf(sessions);

@@ -46,6 +46,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,7 +92,7 @@ class ProjectRetentionJobSessionsTest {
 
     @BeforeEach
     void setUp() {
-        ProjectInfo projectInfo = new ProjectInfo("proj-1", "my-project", "ws-1", NOW, Map.of());
+        ProjectInfo projectInfo = new ProjectInfo("proj-1", "my-project", "ws-1", Optional.of(NOW));
 
         when(projectManager.info()).thenReturn(projectInfo);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
@@ -127,7 +128,7 @@ class ProjectRetentionJobSessionsTest {
     }
 
     private static ProjectInstanceInfo instance(String instanceId) {
-        return new ProjectInstanceInfo(instanceId, NOW.minus(Duration.ofDays(30)), 3);
+        return new ProjectInstanceInfo(instanceId, Optional.of(NOW.minus(Duration.ofDays(30))), 3);
     }
 
     private static RepositoryFile recording(String id, Instant createdAt, long size) {

@@ -59,13 +59,14 @@ class ProjectSessionsTest {
 
     @BeforeEach
     void setUp() {
-        project = VolumeWriter.project(root, "p-1", "project", T0);
+        project = VolumeWriter.project(root, "project");
         FilesystemVolume volume = new FilesystemVolume(root);
         sessions = new ProjectSessions(ProjectTree.at(volume, VolumePath.root().resolve("project")).orElseThrow());
     }
 
-    private Path session(String instanceId, String sessionId, Instant createdAt) {
-        return VolumeWriter.session(VolumeWriter.instance(project, instanceId, T0), sessionId, createdAt, null);
+    /** A session started at {@code start} in the instance; its id. */
+    private String session(String instanceId, Instant start) {
+        return VolumeWriter.session(VolumeWriter.instance(project, instanceId), start).getFileName().toString();
     }
 
     @Nested
@@ -73,12 +74,12 @@ class ProjectSessionsTest {
 
         @Test
         void everySessionNewestFirstAcrossInstances() {
-            session("pod-a", "s-old", T0);
-            session("pod-b", "s-new", T0.plusSeconds(120));
+            String old = session("pod-a", T0);
+            String recent = session("pod-b", T0.plusSeconds(120));
 
             List<VolumeSession> all = sessions.all();
 
-            assertEquals(List.of("s-new", "s-old"), all.stream().map(VolumeSession::id).toList());
+            assertEquals(List.of(recent, old), all.stream().map(VolumeSession::id).toList());
         }
 
         /**
@@ -88,25 +89,39 @@ class ProjectSessionsTest {
          */
         @Test
         void eachInstanceHasItsOwnNewestSession() {
-            session("pod-a", "s-a", T0);
-            session("pod-b", "s-b", T0.plusSeconds(60));
+            session("pod-a", T0);
+            session("pod-b", T0.plusSeconds(60));
 
             assertTrue(sessions.all().stream().allMatch(VolumeSession::newest));
         }
 
         @Test
         void aNewerSessionInTheSameInstanceEndsTheOneBefore() {
-            session("pod-a", "s-1", T0);
-            session("pod-a", "s-2", T0.plusSeconds(300));
+            String first = session("pod-a", T0);
+            String second = session("pod-a", T0.plusSeconds(300));
 
-            assertFalse(sessions.session("s-1").orElseThrow().newest());
-            assertTrue(sessions.session("s-2").orElseThrow().newest());
+            assertFalse(sessions.session(first).orElseThrow().newest());
+            assertTrue(sessions.session(second).orElseThrow().newest());
             assertEquals(List.of(true, false), sessions.all().stream().map(VolumeSession::newest).toList());
         }
 
         @Test
         void anUnknownSessionIsNone() {
             assertEquals(Optional.empty(), sessions.session("missing"));
+            assertEquals(Optional.empty(), sessions.session(VolumeWriter.sessionIdAt(T0)));
+        }
+
+        @Test
+        void theNewestOfEachInstanceAreReadNewestFirst() {
+            String a1 = session("pod-a", T0);
+            String a2 = session("pod-a", T0.plusSeconds(60));
+            String a3 = session("pod-a", T0.plusSeconds(120));
+            String b1 = session("pod-b", T0.plusSeconds(30));
+
+            List<String> newest = sessions.newestOfEachInstance(2).stream().map(VolumeSession::id).toList();
+
+            assertEquals(List.of(a3, a2, b1), newest);
+            assertFalse(newest.contains(a1));
         }
     }
 
@@ -115,7 +130,7 @@ class ProjectSessionsTest {
 
         @Test
         void withoutASessionHasNoNewest() {
-            VolumeWriter.instance(project, "pod-a", T0);
+            VolumeWriter.instance(project, "pod-a");
 
             InstanceSummary summary = sessions.instances().getFirst();
 
@@ -125,61 +140,57 @@ class ProjectSessionsTest {
 
         @Test
         void isSummedUpByItsNewestSession() {
-            session("pod-a", "s-1", T0);
-            session("pod-a", "s-2", T0.plusSeconds(120));
+            session("pod-a", T0);
+            String second = session("pod-a", T0.plusSeconds(120));
 
             InstanceSummary summary = sessions.instances().getFirst();
 
-            assertEquals("s-2", summary.newest().orElseThrow().id());
+            assertEquals(second, summary.newest().orElseThrow().id());
             assertTrue(summary.newest().orElseThrow().newest());
             assertEquals(2, summary.sessionCount());
         }
 
         @Test
-        void oneInstanceWithItsSessionsAgreesWithItsSummary() {
-            session("pod-a", "s-1", T0);
-            session("pod-a", "s-2", T0.plusSeconds(120));
+        void oneInstanceNamesAPageOfItsSessionsNewestFirst() {
+            String first = session("pod-a", T0);
+            String second = session("pod-a", T0.plusSeconds(120));
 
-            InstanceSessionList instance = sessions.instance("pod-a").orElseThrow();
+            InstanceSessionList instance = sessions.instance("pod-a", SessionPage.ALL).orElseThrow();
 
-            assertEquals(List.of("s-2", "s-1"), instance.sessions().stream().map(VolumeSession::id).toList());
-            assertEquals(List.of(true, false), instance.sessions().stream().map(VolumeSession::newest).toList());
-            assertEquals("s-2", instance.summary().newest().orElseThrow().id());
-            assertEquals(2, instance.summary().sessionCount());
-            assertFalse(sessions.instance("pod-b").isPresent());
+            assertEquals(List.of(second, first), instance.sessions().stream().map(SessionHeader::id).toList());
+            assertEquals(List.of(true, false), instance.sessions().stream().map(SessionHeader::newest).toList());
+            assertFalse(instance.hasOlder());
+            assertFalse(sessions.instance("pod-b", SessionPage.ALL).isPresent());
         }
 
         @Test
-        void aPageAfterTheCursorStillKnowsTheInstancesNewest() {
-            String first = VolumeWriter.sessionIdAt(T0);
-            String second = VolumeWriter.sessionIdAt(T0.plusSeconds(60));
-            String third = VolumeWriter.sessionIdAt(T0.plusSeconds(120));
-            session("pod-a", first, T0);
-            session("pod-a", second, T0.plusSeconds(60));
-            session("pod-a", third, T0.plusSeconds(120));
+        void aPageAfterTheCursorKnowsWhetherOlderOnesAreLeft() {
+            session("pod-a", T0);
+            String second = session("pod-a", T0.plusSeconds(60));
+            String third = session("pod-a", T0.plusSeconds(120));
 
             InstanceSessionList page = sessions.instance("pod-a", new SessionPage(1, Optional.of(third))).orElseThrow();
 
-            assertEquals(List.of(second), page.sessions().stream().map(VolumeSession::id).toList());
+            assertEquals(List.of(second), page.sessions().stream().map(SessionHeader::id).toList());
             assertFalse(page.sessions().getFirst().newest());
-            assertEquals(third, page.summary().newest().orElseThrow().id());
             assertTrue(page.hasOlder());
         }
     }
 
     /**
-     * A session is read off one listing of its directory, and one that cannot be listed is still
-     * read; its siblings are read only as far as their names say they may have started after it.
+     * Nothing below a workspace is a file to read: a session is one listing of its directory, and
+     * one that cannot be listed is still read; whether it is the newest is its instance's listing.
      */
     @Nested
     class OneListing {
 
-        /** Fails the listing of one directory, records every read, and lists no creation times, as an NFS share lists. */
+        /** Fails the listing of one directory, records every read and listing, and lists no times, as an NFS share lists. */
         private static final class ProbedVolume implements VolumeAccess {
 
             private final VolumeAccess delegate;
             private final VolumePath unlistable;
             private final List<VolumePath> reads = new ArrayList<>();
+            private final List<VolumePath> listings = new ArrayList<>();
 
             private ProbedVolume(VolumeAccess delegate, VolumePath unlistable) {
                 this.delegate = delegate;
@@ -188,6 +199,7 @@ class ProjectSessionsTest {
 
             @Override
             public List<VolumeEntry> list(VolumePath directory) {
+                listings.add(directory);
                 if (directory.equals(unlistable)) {
                     throw new UncheckedIOException(new IOException("stale handle"));
                 }
@@ -213,8 +225,6 @@ class ProjectSessionsTest {
             }
         }
 
-        private static final VolumePath S_1 = VolumePath.root().resolve("project").resolve("pod-a").resolve("s-1");
-
         private ProbedVolume volume;
         private ProjectTree tree;
 
@@ -224,77 +234,63 @@ class ProjectSessionsTest {
             return new ProjectSessions(tree);
         }
 
+        private static VolumePath pathOf(String instanceId, String sessionId) {
+            return VolumePath.root().resolve("project").resolve(instanceId).resolve(sessionId);
+        }
+
         @Test
         void aSessionThatCannotBeListedIsStillRead() {
-            session("pod-a", "s-1", T0);
+            String id = session("pod-a", T0);
 
-            VolumeSession read = probed(S_1).session("s-1").orElseThrow();
+            VolumeSession read = probed(pathOf("pod-a", id)).session(id).orElseThrow();
 
             assertTrue(read.newest());
             assertThrows(UncheckedIOException.class, () -> tree.files(read));
         }
 
         @Test
-        void theNewestSessionDoesNotReadASiblingNamedBeforeIt() {
-            String older = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(2)));
-            String newest = VolumeWriter.sessionIdAt(T0);
-            session("pod-a", older, T0.minus(Duration.ofHours(2)));
-            session("pod-a", newest, T0);
+        void noFileIsReadToKnowTheSessionsOrWhichIsNewest() {
+            String older = session("pod-a", T0.minus(Duration.ofHours(2)));
+            String newest = session("pod-a", T0);
 
-            VolumeSession read = probed(VolumePath.root()).session(newest).orElseThrow();
+            ProjectSessions probed = probed(VolumePath.root());
 
-            assertTrue(read.newest());
-            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains(older)),
-                    "its name says the sibling started before, so its marker is not read");
+            assertTrue(probed.session(newest).orElseThrow().newest());
+            assertFalse(probed.session(older).orElseThrow().newest());
+            assertEquals(2, probed.instances().getFirst().sessionCount());
+            assertEquals(List.of(), volume.reads, "names say it all");
         }
 
         @Test
-        void aSiblingNamedAfterItEndsTheOlderSession() {
-            String older = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(2)));
-            String newer = VolumeWriter.sessionIdAt(T0);
-            session("pod-a", older, T0.minus(Duration.ofHours(2)));
-            session("pod-a", newer, T0);
+        void aDirectoryNotNamedForItsStartIsNoSession() throws IOException {
+            String first = session("pod-a", T0.minus(Duration.ofHours(4)));
+            Files.createDirectories(project.resolve("pod-a").resolve("scratch"));
 
-            assertFalse(probed(VolumePath.root()).session(older).orElseThrow().newest());
+            assertTrue(probed(VolumePath.root()).session(first).orElseThrow().newest());
+            assertEquals(1, sessions.instances().getFirst().sessionCount());
         }
 
         @Test
-        void onlyTheNextSessionAlongIsRead() {
-            String first = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(4)));
-            String second = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(2)));
-            String third = VolumeWriter.sessionIdAt(T0);
-            session("pod-a", first, T0.minus(Duration.ofHours(4)));
-            session("pod-a", second, T0.minus(Duration.ofHours(2)));
-            session("pod-a", third, T0);
+        void theInstancePageListsOnlyTheInstance() {
+            session("pod-a", T0);
+            session("pod-a", T0.plusSeconds(60));
 
-            VolumeSession read = probed(VolumePath.root()).session(first).orElseThrow();
+            probed(VolumePath.root()).instance("pod-a", SessionPage.ALL).orElseThrow();
 
-            assertFalse(read.newest());
-            assertTrue(volume.reads.stream().noneMatch(path -> path.toString().contains(third)),
-                    "the second session settles it, so the third's marker is not read");
-        }
-
-        @Test
-        void aSiblingWhoseMarkerIsNotWrittenYetIsNoNewerSession() throws IOException {
-            String first = VolumeWriter.sessionIdAt(T0.minus(Duration.ofHours(4)));
-            String undescribed = VolumeWriter.sessionIdAt(T0);
-            session("pod-a", first, T0.minus(Duration.ofHours(4)));
-            Files.createDirectories(project.resolve("pod-a").resolve(undescribed));
-
-            assertTrue(probed(VolumePath.root()).session(first).orElseThrow().newest(),
-                    "a directory without its marker is no session yet");
+            assertEquals(List.of(VolumePath.root().resolve("project").resolve("pod-a")), volume.listings);
         }
 
         @Test
         void itsFilesComeFromTheListingItWasReadFrom() {
-            Path dir = session("pod-a", "s-1", T0);
-            VolumeWriter.file(dir, "profile-20260220-120000.jfr", "x");
+            String id = session("pod-a", T0);
+            Path dir = project.resolve("pod-a").resolve(id);
+            VolumeWriter.file(dir, "profile-20260220-120000.UTC.jfr", "x");
 
             ProjectSessions sessions = probed(VolumePath.root());
-            VolumeSession read = sessions.session("s-1").orElseThrow();
-            VolumeWriter.file(dir, "profile-20260220-121000.jfr", "x");
+            VolumeSession read = sessions.session(id).orElseThrow();
+            VolumeWriter.file(dir, "profile-20260220-121000.UTC.jfr", "x");
 
-            assertEquals(List.of("profile-20260220-120000.jfr"),
+            assertEquals(List.of("profile-20260220-120000.UTC.jfr"),
                     tree.files(read).stream().map(SessionFile::name).toList());
         }
     }

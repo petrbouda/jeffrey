@@ -35,12 +35,7 @@ import { useRemoteReadOnly } from '@remote/composables/useRemoteReadOnly';
 import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
-import {
-  buildDisplayEntries,
-  hasUnreportedSizes,
-  isFailedSession,
-  type FailedSessionGroup
-} from '@remote/services/sessionGrouping.ts';
+import { hasUnreportedSizes } from '@remote/services/sessionGrouping.ts';
 import {
   chunkSelectionGapMessage,
   downloadableFiles,
@@ -55,18 +50,12 @@ interface Props {
   showInstanceLink?: boolean;
   headerText?: string;
   isCollectorOnly?: boolean;
-  /**
-   * Whether each session arrived with its files (the instance's page). Opening one then reads
-   * nothing off the remote; otherwise its files are read when it is opened.
-   */
-  sessionsCarryFiles?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showInstanceLink: true,
   headerText: 'Recording Sessions',
-  isCollectorOnly: false,
-  sessionsCarryFiles: false
+  isCollectorOnly: false
 });
 
 const emit = defineEmits<{
@@ -103,7 +92,6 @@ const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: 
 const visibleFilesCount = ref<{ [key: string]: number }>({});
 const expandedTypePanels = ref<{ [key: string]: boolean }>({});
 const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
-const expandedFailedGroups = ref<{ [key: string]: boolean }>({});
 
 // --- Files, read per session when it is opened ---
 const {
@@ -111,9 +99,16 @@ const {
   loading: readingSession,
   failed: sessionReadFailed,
   read: readSession,
-  seed: seedSession,
   retainOnly: retainReadSessions
 } = useSessionReads(() => repositoryService.value);
+
+/**
+ * The session as last read on its own, or as the list gave it until then: an instance's page names
+ * its sessions without reading them, so their figures come with the first read.
+ */
+const shown = (session: RecordingSession): RecordingSession => {
+  return readSessions.value[session.id] ?? session;
+};
 
 /** The session's files as last read on their own; a listed session carries none. */
 const filesOf = (session: RecordingSession): RepositoryFile[] => {
@@ -242,31 +237,7 @@ const sortedSessions = computed(() => {
   });
 });
 
-// Consecutive failed (ended, zero-size) sessions collapse into group entries
-const displayEntries = computed(() => buildDisplayEntries(sortedSessions.value));
-
-const failedSessionsCount = computed(() => {
-  return props.sessions.filter(isFailedSession).length;
-});
-
-const headerBarText = computed(() => {
-  let text = `${props.headerText} (${props.sessions.length})`;
-  if (failedSessionsCount.value > 0) {
-    text += ` · ${failedSessionsCount.value} failed`;
-  }
-  return text;
-});
-
-const failedGroupSummary = (group: FailedSessionGroup): string => {
-  const count = group.sessions.length;
-  const label = count === 1 ? 'failed session' : 'failed sessions';
-  const from = FormattingService.formatTimestamp(group.firstCreatedAt);
-  const to = FormattingService.formatTimestamp(group.lastCreatedAt);
-  if (count === 1) {
-    return `1 ${label} · 0 B · ${to}`;
-  }
-  return `${count} ${label} · 0 B · ${from} → ${to}`;
-};
+const headerBarText = computed(() => `${props.headerText} (${props.sessions.length})`);
 
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
@@ -299,10 +270,6 @@ const initializeExpandedState = () => {
   retainReadSessions(new Set(props.sessions.map(session => session.id)));
 
   props.sessions.forEach(session => {
-    if (props.sessionsCarryFiles) {
-      seedSession(session);
-    }
-
     if (expandedSessions.value[session.id] === undefined) {
       expandedSessions.value[session.id] = false;
     }
@@ -334,10 +301,6 @@ watch(
   },
   { immediate: true }
 );
-
-const toggleFailedGroup = (groupKey: string) => {
-  expandedFailedGroups.value[groupKey] = !expandedFailedGroups.value[groupKey];
-};
 
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
@@ -795,53 +758,7 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 
   <!-- Recording Sessions List -->
   <div class="col-12" v-if="sessions.length > 0">
-    <template
-      v-for="entry in displayEntries"
-      :key="entry.type === 'session' ? entry.session.id : entry.key"
-    >
-      <!-- Collapsed failed sessions (ended with zero bytes — e.g. a crash-looped container) -->
-      <div v-if="entry.type === 'failedGroup'" class="mb-3">
-        <div
-          class="failed-band rounded"
-          role="button"
-          :aria-expanded="expandedFailedGroups[entry.key] === true"
-          @click="toggleFailedGroup(entry.key)"
-        >
-          <i
-            class="bi failed-band-chevron"
-            :class="expandedFailedGroups[entry.key] ? 'bi-chevron-down' : 'bi-chevron-right'"
-          ></i>
-          <i class="bi bi-exclamation-triangle-fill failed-band-warn"></i>
-          <span class="failed-band-text">{{ failedGroupSummary(entry) }}</span>
-          <Badge value="no data recorded" variant="grey" size="xxs" :uppercase="false" class="ms-auto" />
-        </div>
-
-        <div v-if="expandedFailedGroups[entry.key]" class="failed-members">
-          <div v-for="failed in entry.sessions" :key="failed.id" class="failed-member">
-            <div class="failed-member-info">
-              <Badge value="Failed" variant="grey" size="xxs" />
-              <span class="failed-member-id">{{ failed.id }}</span>
-            </div>
-            <div class="failed-member-meta">
-              <span>{{ FormattingService.formatTimestamp(failed.createdAt) }}</span>
-              <span>0 B</span>
-              <button
-                v-if="!remoteReadOnly"
-                class="btn btn-sm btn-outline-danger"
-                type="button"
-                title="Delete Session"
-                @click.stop="deleteAll(failed.id)"
-              >
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Regular session (the single-element v-for keeps the block's `session` alias intact) -->
-      <template v-else>
-        <div v-for="session in [entry.session]" :key="session.id" class="mb-3">
+    <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
           <!-- Session header -->
       <div
         class="folder-row rounded"
@@ -879,11 +796,13 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
                   <span class="session-id-part">{{ session.id }}</span>
                 </div>
                 <div class="session-meta">
-                  <span
-                    ><i class="bi bi-files me-1"></i>{{ session.fileCount }} source{{ session.fileCount === 1 ? '' : 's' }}</span
+                  <span v-if="shown(session).fileCount !== null"
+                    ><i class="bi bi-files me-1"></i>{{ shown(session).fileCount }} source{{
+                      shown(session).fileCount === 1 ? '' : 's'
+                    }}</span
                   >
                   <Badge
-                    v-if="hasUnreportedSizes(session)"
+                    v-if="hasUnreportedSizes(shown(session))"
                     value="sizes unavailable"
                     variant="warning"
                     size="xxs"
@@ -936,8 +855,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <!-- Timeline section -->
         <TimelineBar
           :createdAt="session.createdAt"
-          :last-data-at="session.lastDataAt"
-          :duration="session.duration"
+          :last-data-at="shown(session).lastDataAt"
+          :duration="shown(session).duration"
+          :unread="shown(session).fileCount === null"
         />
       </div>
 
@@ -1344,8 +1264,6 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         </template>
       </div>
         </div>
-      </template>
-    </template>
   </div>
 
   <!-- Delete Session Confirmation Modal -->
@@ -1438,83 +1356,6 @@ code {
 
 .folder-row.session-ended {
   border-left: 3px solid var(--color-success);
-}
-
-/* Failed sessions — ended with zero bytes (prematurely killed process) */
-.failed-band {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border: 1px dashed var(--color-grey-muted);
-  background-color: rgba(108, 117, 125, 0.05);
-  color: var(--color-text-muted);
-  font-size: 0.82rem;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease;
-}
-
-.failed-band:hover {
-  background-color: rgba(108, 117, 125, 0.1);
-  border-color: var(--color-text-muted);
-}
-
-.failed-band-chevron {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-}
-
-.failed-band-warn {
-  color: var(--color-amber-highlight);
-}
-
-.failed-band-text {
-  font-weight: 500;
-}
-
-.failed-members {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 0 2px 26px;
-}
-
-.failed-member {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 12px;
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-grey-muted);
-  border-radius: var(--radius-sm);
-  background-color: rgba(108, 117, 125, 0.04);
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.failed-member-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.failed-member-id {
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.failed-member-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.75rem;
-  color: var(--color-text-light);
-  white-space: nowrap;
 }
 
 /* Rotation group styles */

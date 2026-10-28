@@ -18,17 +18,17 @@
 package cafe.jeffrey.microscope.remote.client;
 
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
-import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionHeaderResponse;
 
 import java.util.List;
 
 /**
- * One instance as the remote read it: its lifecycle and the page of its sessions asked for, newest
- * first, each with its file count and size, and its files when the page asked for them.
+ * One instance as the remote read it: the page of its sessions asked for, newest first, as one
+ * listing of the instance names them — no session read.
  *
  * @param hasOlder whether sessions older than the page's are left to read
  */
-public record InstanceRead(InstanceResponse instance, List<RecordingSessionResponse> sessions, boolean hasOlder) {
+public record InstanceRead(InstanceResponse instance, List<RecordingSessionHeaderResponse> sessions, boolean hasOlder) {
 
     public InstanceRead {
         sessions = List.copyOf(sessions);

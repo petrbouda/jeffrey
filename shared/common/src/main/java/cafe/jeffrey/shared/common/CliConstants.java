@@ -23,12 +23,18 @@ public abstract class CliConstants {
     public static final String CURRENT_SESSION = "<<JEFFREY:CURRENT_SESSION>>";
 
     /**
+     * The session's recording file, {@code <session>/profile-%t.<zone>.jfr}: async-profiler writes
+     * {@code %t} in local time, and the machine's zone after it is what every reader turns the name
+     * back into an instant with.
+     */
+    public static final String FILE_PATTERN = "<<JEFFREY:FILE_PATTERN>>";
+
+    /**
      * The async-profiler agent options a session runs with when no {@code profiler-command} is
      * configured. Options only: the library they are passed to is the one {@code profiler-path} names.
      */
     public static final String DEFAULT_PROFILER_OPTIONS =
-            "start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file="
-                    + CURRENT_SESSION + "/profile-%t.jfr";
+            "start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=" + FILE_PATTERN;
 
     /**
      * Reference id of the workspace used when {@code project.workspace-ref-id} is not set

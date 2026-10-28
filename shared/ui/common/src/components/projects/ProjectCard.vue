@@ -22,23 +22,11 @@
       <span class="project-name">{{ project.name }}</span>
     </div>
 
-    <!-- Footer Row: Date + Sessions on the left, when its data last arrived on the right -->
+    <!-- Footer Row: when its directory was created, where the share lists it; nothing below the project is read -->
     <div class="footer-row">
-      <div class="footer-meta">
-        <span class="date"><i class="bi bi-clock"></i>{{ formatDate(project.createdAt) }}</span>
-        <span class="sessions">
-          <i class="bi bi-broadcast"></i>
-          {{ project.sessionCount || 0 }} session{{ (project.sessionCount || 0) === 1 ? '' : 's' }}
-        </span>
-      </div>
-      <span
-        v-if="project.lastDataAt != null"
-        class="last-data"
-        :title="FormattingService.formatTimestampUTC(project.lastDataAt)"
+      <span v-if="project.createdAt" class="date"
+        ><i class="bi bi-clock"></i>{{ FormattingService.formatDateFromMillis(project.createdAt) }}</span
       >
-        Last data {{ FormattingService.formatRelativeTime(project.lastDataAt) }}
-      </span>
-      <span v-else class="last-data">No data yet</span>
     </div>
   </div>
 </template>
@@ -60,15 +48,6 @@ const emit = defineEmits<{
 
 const handleClick = () => {
   emit('open', { projectId: props.project.id, workspaceId: props.workspaceId });
-};
-
-const formatDate = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
 };
 </script>
 
@@ -130,14 +109,7 @@ const formatDate = (timestamp: number): string => {
   margin-top: 2px;
 }
 
-.footer-row .footer-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.footer-row .date,
-.footer-row .sessions {
+.footer-row .date {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -145,14 +117,7 @@ const formatDate = (timestamp: number): string => {
   color: var(--color-text-muted);
 }
 
-.footer-row .date i,
-.footer-row .sessions i {
+.footer-row .date i {
   font-size: 0.7rem;
-}
-
-.footer-row .last-data {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
 }
 </style>

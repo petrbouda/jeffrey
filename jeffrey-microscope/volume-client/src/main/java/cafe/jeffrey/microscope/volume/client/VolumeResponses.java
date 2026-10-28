@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
-import cafe.jeffrey.microscope.remote.client.dto.ProjectActivity;
+import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionHeaderResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.model.repository.RecordedSpan;
@@ -28,15 +28,14 @@ import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.shared.volume.layout.InstanceSummary;
+import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
+import cafe.jeffrey.shared.volume.layout.SessionHeader;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * The volume's types onto Microscope's own. What the hub's jobs decide from the same volume
@@ -76,46 +75,37 @@ final class VolumeResponses {
                 new SessionSize(0, 0));
     }
 
-    static InstanceResponse instance(InstanceSummary summary, ProjectTree project) {
-        return InstanceResponse.summary(
-                summary.instance().id(),
-                summary.instance().createdAt().toEpochMilli(),
-                lastDataAt(summary, project).map(Instant::toEpochMilli).orElse(null),
-                summary.sessionCount());
+    /** An instance as its directory names it. */
+    static InstanceResponse instance(InstanceDirectory instance) {
+        return InstanceResponse.summary(instance.id(), instance.createdAt().map(Instant::toEpochMilli).orElse(null));
     }
 
-    /** A project as its marker describes it; its size is never measured here, only by the hub's retention pass. */
+    /** A session as its instance's listing names it: nothing of it read. */
+    static RecordingSessionHeaderResponse header(SessionHeader session) {
+        return new RecordingSessionHeaderResponse(
+                session.id(),
+                session.name(),
+                session.instanceId(),
+                session.createdAt().toEpochMilli(),
+                session.newest());
+    }
+
+    /** A project as its directory names it; its size is never measured here, only by the hub's retention pass. */
     static RemoteProjectResponse project(ProjectTree project, String workspaceId) {
         return new RemoteProjectResponse(
-                project.marker().projectId(),
-                project.marker().projectName(),
-                project.marker().createdAt() != 0 ? Instant.ofEpochMilli(project.marker().createdAt()) : null,
+                project.id(),
+                project.id(),
+                project.createdAt().orElse(null),
                 workspaceId,
                 RepositoryStatistics.NOT_YET_MEASURED);
-    }
-
-    /** What a project's instances say of it, each read off its newest session alone. */
-    static ProjectActivity activity(List<InstanceSummary> instances, ProjectTree project) {
-        int sessionCount = instances.stream().mapToInt(InstanceSummary::sessionCount).sum();
-        Instant lastDataAt = instances.stream()
-                .map(instance -> lastDataAt(instance, project))
-                .flatMap(Optional::stream)
-                .max(Comparator.naturalOrder())
-                .orElse(null);
-        return new ProjectActivity(lastDataAt, sessionCount);
     }
 
     /**
      * @param name      the name its marker gives it, or its id for a directory without one
      * @param createdAt from its marker, or the directory's own creation time
      */
-    static WorkspaceInfo workspace(String id, String name, Instant createdAt, int projectCount) {
-        return new WorkspaceInfo(id, id, null, name, null, null, createdAt, WorkspaceStatus.AVAILABLE, projectCount);
-    }
-
-    /** When the data of the instance's newest session ends, off that session's listing. */
-    private static Optional<Instant> lastDataAt(InstanceSummary summary, ProjectTree project) {
-        return summary.newest().flatMap(newest -> RecordedSpan.end(project.recordingStarts(newest)));
+    static WorkspaceInfo workspace(String id, String name, Instant createdAt) {
+        return new WorkspaceInfo(id, id, null, name, null, null, createdAt, WorkspaceStatus.AVAILABLE);
     }
 
     /**

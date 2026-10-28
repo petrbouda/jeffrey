@@ -54,8 +54,7 @@ public class InitExecutor {
 
         ProjectLayout projectLayout = layoutProvisioner.provisionProject(config);
 
-        SessionRegistrar registrar = new SessionRegistrar(
-                new FileSystemRepository(clock), layoutProvisioner);
+        SessionRegistrar registrar = new SessionRegistrar(layoutProvisioner, clock);
         ProvisionedSession session = registrar.openSession(config, projectLayout);
 
         // Phase two of placeholder resolution: the layout only exists now that the session
@@ -71,7 +70,6 @@ public class InitExecutor {
         String jvmOptions = JvmFeatures.of(config, profiler.feature())
                 .render(session.layout().session(), placeholders);
 
-        registrar.recordSession(session);
         outputWriter.write(config, session.layout(), jvmOptions);
 
         // Single greppable verdict line — the one place that tells a user their setup works

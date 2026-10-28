@@ -120,7 +120,7 @@ onMounted(() => {
         <h3>Session Metadata</h3>
         <p>For each session, Jeffrey tracks:</p>
         <ul>
-          <li><strong>Session ID</strong> - Unique identifier for the session</li>
+          <li><strong>Session ID</strong> - The session's directory name, a UUIDv7</li>
           <li><strong>Instance</strong> - The application instance that generated this session</li>
           <li><strong>Start time</strong> - When profiling began, read from the session's UUIDv7 directory name</li>
           <li><strong>Last data</strong> - Where its recorded data ends: the newest recording's start plus the measured chunk length</li>
@@ -128,6 +128,7 @@ onMounted(() => {
           <li><strong>Newest</strong> - Whether it is its instance's newest session, the only one that may still grow; see <router-link to="/docs/hub/recording-sessions/lifecycle">Lifecycle</router-link></li>
           <li><strong>File counts</strong> - Number of JFR chunks and artifacts</li>
         </ul>
+        <p>Microscope's instance page lists sessions by name only: a session card shows its id, its start and whether it is the newest, and its files, size, last data and duration load when the card is expanded.</p>
 
         <figure class="docs-figure">
           <img src="/images/docs/recording-sessions/recording-session-files.png" alt="Single recording session with files" />

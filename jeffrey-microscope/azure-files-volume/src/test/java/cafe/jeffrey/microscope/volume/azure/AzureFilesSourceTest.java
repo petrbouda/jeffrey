@@ -26,11 +26,7 @@ import cafe.jeffrey.microscope.model.remote.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.remote.AzureFilesProtocol;
 import cafe.jeffrey.microscope.volume.client.VolumeRemoteClients;
 import cafe.jeffrey.microscope.volume.client.VolumeSource;
-import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.model.repository.RemoteProject;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +35,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -52,8 +47,12 @@ class AzureFilesSourceTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final Instant NOW = T0.plusSeconds(3600);
-    private static final String SESSION = "prod/orders/pod-a/s-live/";
-    private static final ProjectScope ORDERS = new ProjectScope("prod", "p-orders");
+    private static final String LIVE = VolumeWriter.sessionIdAt(T0);
+    private static final String SESSION = "prod/orders/pod-a/" + LIVE + "/";
+    private static final ProjectScope ORDERS = new ProjectScope("prod", "orders");
+    /** Chunks a JVM in Prague opened at 12:10 and 12:15 UTC: named in its local time, with its zone. */
+    private static final String OLDER_CHUNK = "profile-20260220-131000.Europe~Prague";
+    private static final String NEWEST_CHUNK = "profile-20260220-131500.Europe~Prague";
 
     private StubFileShare share;
     private RemoteClients clients;
@@ -61,14 +60,8 @@ class AzureFilesSourceTest {
     @BeforeEach
     void setUp() {
         share = new StubFileShare(AzureFilesProtocol.NFS)
-                .file("prod/orders/" + JeffreyLayout.PROJECT_INFO_FILE,
-                        Json.toString(new RemoteProject("p-orders", "orders", T0.toEpochMilli(), Map.of())), T0)
-                .file("prod/orders/pod-a/" + JeffreyLayout.INSTANCE_INFO_FILE,
-                        Json.toString(new RemoteProjectInstance("pod-a", T0.toEpochMilli())), T0)
-                .file(SESSION + JeffreyLayout.SESSION_INFO_FILE,
-                        Json.toString(new RemoteProjectInstanceSession("s-live", T0.toEpochMilli(), "Europe/Prague")), T0)
-                .file(SESSION + "profile-20260220-131000.jfr", "older chunk", T0)
-                .file(SESSION + "profile-20260220-131500.jfr", "newest", T0)
+                .file(SESSION + OLDER_CHUNK + ".jfr", "older chunk", T0)
+                .file(SESSION + NEWEST_CHUNK + ".jfr", "newest", T0)
                 .file(SESSION + "gc.log", "gc", T0);
 
         AzureFilesVolume volume = AzureFilesVolumes.open(
@@ -83,15 +76,15 @@ class AzureFilesSourceTest {
     /** A delete reaches the share as the layout's own write, and reads back as the hub would. */
     @Test
     void aSessionIsDeletedWithItsInstanceOnTheShare() {
-        clients.repository().deleteSession(ORDERS, "s-live");
+        clients.repository().deleteSession(ORDERS, LIVE);
 
         assertTrue(share.paths().stream().noneMatch(path -> path.startsWith("prod/orders/pod-a")), share.paths().toString());
         assertTrue(share.holds("prod/orders"));
     }
 
     @Test
-    void theNewestSessionReadsWithItsChunksTimedByTheirNamesInTheSessionsZone() {
-        RecordingSessionResponse session = clients.repository().recordingSession(ORDERS, "s-live");
+    void theNewestSessionReadsWithItsChunksTimedByTheirNamesInTheirZone() {
+        RecordingSessionResponse session = clients.repository().recordingSession(ORDERS, LIVE);
 
         assertTrue(session.newest());
         List<RepositoryFileResponse> recordings = session.files().stream()
@@ -109,9 +102,9 @@ class AzureFilesSourceTest {
     @Test
     void everyChunkDownloadsTheNewestToo() {
         StringBuilder received = new StringBuilder();
-        clients.files().streamFile(ORDERS, "s-live", "profile-20260220-131000",
+        clients.files().streamFile(ORDERS, LIVE, OLDER_CHUNK,
                 (in, file) -> received.append(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
-        clients.files().streamFile(ORDERS, "s-live", "profile-20260220-131500",
+        clients.files().streamFile(ORDERS, LIVE, NEWEST_CHUNK,
                 (in, file) -> received.append('+').append(new String(in.readAllBytes(), StandardCharsets.UTF_8)));
 
         assertEquals("older chunk+newest", received.toString());

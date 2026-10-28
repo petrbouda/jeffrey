@@ -20,9 +20,9 @@ import ProjectRepositoryClient from "@remote/services/api/ProjectRepositoryClien
 import RecordingSession from "@remote/services/api/model/RecordingSession";
 
 /**
- * Sessions read one at a time, files included, as they are opened. A listing carries each
- * session's file count and size but none of its files, so a view fetches a session when the
- * reader opens it and keeps the answer here.
+ * Sessions read one at a time, files included, as they are opened. A listing names its sessions
+ * without reading them, so a view fetches a session when the reader opens it and keeps the
+ * answer here.
  *
  * A read already in flight is shared rather than repeated, so a refresh that lands while the
  * reader is opening the same session costs one request, and an older answer can never
@@ -60,12 +60,6 @@ export function useSessionReads(client: () => ProjectRepositoryClient) {
     return request;
   }
 
-  /** Takes a session that arrived with its files as read, so opening it asks for nothing. */
-  function seed(session: RecordingSession): void {
-    sessions.value[session.id] = session;
-    failed.value[session.id] = false;
-  }
-
   /** Forgets every session but these — the ones a refreshed listing still holds. */
   function retainOnly(sessionIds: Set<string>): void {
     for (const state of [sessions.value, loading.value, failed.value]) {
@@ -77,5 +71,5 @@ export function useSessionReads(client: () => ProjectRepositoryClient) {
     }
   }
 
-  return { sessions, loading, failed, read, seed, retainOnly };
+  return { sessions, loading, failed, read, retainOnly };
 }

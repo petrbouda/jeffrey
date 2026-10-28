@@ -18,7 +18,9 @@
 package cafe.jeffrey.shared.common;
 
 import com.github.f4b6a3.uuid.UuidCreator;
+import com.github.f4b6a3.uuid.factory.standard.TimeOrderedEpochFactory;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +44,19 @@ public abstract class IDGenerator {
      */
     public static String generate() {
         return UuidCreator.getTimeOrderedEpochPlus1().toString();
+    }
+
+    /**
+     * The same kind of id, carrying the time {@code clock} reads instead of the system's: what a
+     * session directory is named, so the start it carries is the provisioner's clock.
+     */
+    public static String generate(Clock clock) {
+        return TimeOrderedEpochFactory.builder()
+                .withClock(clock)
+                .withIncrementPlus1()
+                .build()
+                .create()
+                .toString();
     }
 
     /**

@@ -67,12 +67,12 @@ onMounted(() => {
         <router-link to="/docs/microscope/projects/instances" class="tab-card">
           <div class="tab-icon"><i class="bi bi-grid"></i></div>
           <h4>Instances</h4>
-          <p>JVM processes connected to the project, with their sessions, last data and the project's storage.</p>
+          <p>JVM processes connected to the project, with their start, their sessions and the project's storage.</p>
         </router-link>
         <a href="#project-settings" class="tab-card">
           <div class="tab-icon"><i class="bi bi-sliders"></i></div>
           <h4>Settings</h4>
-          <p>Delete the project.</p>
+          <p>The project's name, read-only, and deleting the project.</p>
         </a>
       </div>
 
@@ -86,15 +86,18 @@ onMounted(() => {
 
       <h2 id="project-settings">Project Settings</h2>
       <p>
-        The <strong>Settings</strong> tab is intentionally minimal: it lets you <strong>delete</strong> the
-        project (a confirmation step protects against accidents). Deleting is final: the remote removes the
+        The <strong>Settings</strong> tab is intentionally minimal. It shows the project's
+        <strong>name</strong>, read-only: the name is the project's folder on the share, given by the
+        provisioner, and it is also the project's id, so a project cannot be renamed. It also lets you
+        <strong>delete</strong> the project (a confirmation step protects against accidents). Deleting is final: the remote removes the
         project's directory on the workspace volume, and there is no restore.
       </p>
 
       <h2 id="creating-projects">Creating Projects</h2>
       <p>
         Projects are not created in Microscope. A project appears when a JVM started by the
-        <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> writes its marker file:
+        <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> creates its folder &mdash;
+        named by the project <code>name</code> the provisioner was configured with, which is also the project's id:
         the remote is read from the shared filesystem on every request, so the next time
         Microscope syncs with the remote the project shows up under its workspace, together with
         its instances and recording sessions.

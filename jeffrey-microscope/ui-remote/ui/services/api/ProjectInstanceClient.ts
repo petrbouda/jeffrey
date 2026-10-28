@@ -22,9 +22,21 @@ import RecordingSession from '@remote/services/api/model/RecordingSession';
 
 const NOT_FOUND = 404;
 
+/** A session as an instance's page names it. */
+interface SessionHeader {
+  id: string;
+  name: string;
+  instanceId: string;
+  createdAt: number;
+  newest: boolean;
+}
+
 export interface InstanceWithSessions {
   instance: ProjectInstance;
-  /** A page of the instance's sessions, newest first, each with its files. */
+  /**
+   * A page of the instance's sessions, newest first, each only named: when it started and whether
+   * it is the newest. What a session holds is read when it is opened.
+   */
   sessions: RecordingSession[];
   /** Whether sessions older than the page's are left to read. */
   hasOlder: boolean;
@@ -40,9 +52,9 @@ export default class ProjectInstanceClient extends BasePlatformClient {
   }
 
   /**
-   * One instance with a page of its sessions, newest first, each with its files — what the
-   * instance's page shows, opening a session included, in one call. `before` names the session
-   * the previous page ended on. Undefined when the remote no longer has it.
+   * One instance with a page of its sessions, newest first, each named but not read — one listing
+   * of the instance on the remote, whatever its size. `before` names the session the previous page
+   * ended on. Undefined when the remote no longer has it.
    */
   async find(instanceId: string, before?: string): Promise<InstanceWithSessions | undefined> {
     const params = before ? { before } : undefined;
@@ -50,7 +62,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       .get<any>(`/${instanceId}`, params)
       .then(data => ({
         instance: this.mapToInstance(data.instance),
-        sessions: data.sessions as RecordingSession[],
+        sessions: (data.sessions as SessionHeader[]).map(this.mapToSession),
         hasOlder: data.hasOlder === true
       }))
       .catch(error => {
@@ -62,12 +74,23 @@ export default class ProjectInstanceClient extends BasePlatformClient {
   }
 
   private mapToInstance = (data: any): ProjectInstance => {
-    return new ProjectInstance(
-      data.id,
-      data.instanceName,
-      data.createdAt,
-      data.lastDataAt ?? null,
-      data.sessionCount || 0
+    return new ProjectInstance(data.id, data.instanceName, data.createdAt ?? null);
+  };
+
+  /** A session as the page names it: nothing of it read, so its figures are unknown, not zero. */
+  private mapToSession = (header: SessionHeader): RecordingSession => {
+    return new RecordingSession(
+      header.id,
+      header.name,
+      header.instanceId,
+      header.createdAt,
+      null,
+      header.newest,
+      null,
+      [],
+      false,
+      null,
+      null
     );
   };
 }

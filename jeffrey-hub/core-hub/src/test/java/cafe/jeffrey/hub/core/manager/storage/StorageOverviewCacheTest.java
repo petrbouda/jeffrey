@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,7 +45,7 @@ class StorageOverviewCacheTest {
     private static final WorkspaceInfo WORKSPACE =
             new WorkspaceInfo("ws-1", "production", CREATED_AT, 1);
     private static final ProjectInfo PROJECT =
-            new ProjectInfo("prj-1", "order-service", "ws-1", CREATED_AT, Map.of());
+            new ProjectInfo("prj-1", "order-service", "ws-1", Optional.of(CREATED_AT));
 
     private StorageOverviewCache cache;
 

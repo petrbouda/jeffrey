@@ -73,7 +73,7 @@ class RemoteSessionScanTest {
 
     private static WorkspaceInfo workspace(String id, String name) {
         return new WorkspaceInfo(id, "ref-" + id, "repo-" + id, name, null, null, NOW,
-                WorkspaceStatus.AVAILABLE, 1);
+                WorkspaceStatus.AVAILABLE);
     }
 
     private static ProjectInfo projectInfo(String id, String name) {

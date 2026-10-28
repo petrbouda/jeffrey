@@ -20,21 +20,18 @@ package cafe.jeffrey.shared.volume.layout;
 import cafe.jeffrey.shared.volume.VolumePath;
 
 import java.time.Instant;
-import java.time.ZoneId;
 
 /**
- * A session directory whose {@code .session-info.json} reads — likewise the one test of "is this
- * a session".
+ * A session directory: a visible directory in an instance, named with the time-ordered id the
+ * provisioner gives a session (a UUIDv7) — the one test of "is this a session".
  *
- * @param createdAt when the session started — the time its name carries, else its marker's; its
- *                  order within its instance
- * @param zone      the zone the session's machine runs in, which its recordings' names are local to
+ * @param createdAt when the session started, from its name; its order within its instance
  */
-public record SessionDirectory(VolumePath path, Instant createdAt, ZoneId zone) {
+public record SessionDirectory(VolumePath path, Instant createdAt) {
 
     public SessionDirectory {
-        if (path == null || createdAt == null || zone == null) {
-            throw new IllegalArgumentException("A session directory needs a path, a creation time and a zone");
+        if (path == null || createdAt == null) {
+            throw new IllegalArgumentException("A session directory needs a path and a creation time");
         }
     }
 
