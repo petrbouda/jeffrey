@@ -81,11 +81,11 @@ class RemoteManagersOverVolumeTest {
 
         Path busy = VolumeWriter.instance(project, BUSY_INSTANCE);
         Path older = VolumeWriter.session(busy, T0.plusSeconds(60));
-        VolumeWriter.file(older, "profile-20260220-120100.jfr", CHUNK_OF_1000_BYTES);
+        VolumeWriter.file(older, "rec-20260220-120100.jfr", CHUNK_OF_1000_BYTES);
         VolumeWriter.session(busy, T0.plusSeconds(900));
         Path newest = VolumeWriter.session(busy, T0.plusSeconds(1200));
-        VolumeWriter.file(newest, "profile-20260220-122000.jfr", CHUNK_OF_1000_BYTES);
-        VolumeWriter.file(newest, "profile-20260220-122100.jfr", CHUNK_OF_1000_BYTES);
+        VolumeWriter.file(newest, "rec-20260220-122000.jfr", CHUNK_OF_1000_BYTES);
+        VolumeWriter.file(newest, "rec-20260220-122100.jfr", CHUNK_OF_1000_BYTES);
 
         Path quiet = VolumeWriter.instance(project, QUIET_INSTANCE);
         VolumeWriter.session(quiet, T0);
@@ -152,7 +152,7 @@ class RemoteManagersOverVolumeTest {
 
             assertEquals(1000L, older.totalSizeBytes());
             assertEquals(1, older.fileCount());
-            assertEquals(List.of("profile-20260220-120100.jfr"),
+            assertEquals(List.of("rec-20260220-120100.jfr"),
                     older.files().stream().map(file -> file.name()).toList());
         }
 

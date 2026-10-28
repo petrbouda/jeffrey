@@ -92,12 +92,12 @@ class FilesystemVolumeTest {
          */
         @Test
         void leavesOutAChildThatIsGoneByTheTimeItIsLookedAt() throws IOException {
-            Files.writeString(root.resolve("profile-20260912-121559.jfr"), "chunk");
-            Files.createSymbolicLink(root.resolve("profile-20260912-121559.jfr.1~"), root.resolve("flushed"));
+            Files.writeString(root.resolve("rec-20260912-121559.jfr"), "chunk");
+            Files.createSymbolicLink(root.resolve("rec-20260912-121559.jfr.1~"), root.resolve("flushed"));
 
             List<String> names = volume().list(ROOT).stream().map(VolumeEntry::name).toList();
 
-            assertEquals(List.of("profile-20260912-121559.jfr"), names);
+            assertEquals(List.of("rec-20260912-121559.jfr"), names);
         }
     }
 

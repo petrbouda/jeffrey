@@ -260,17 +260,17 @@ class RecordingsControllerTest {
 
         @Test
         void downloadsARecordingFileUnderItsOwnName(@TempDir Path dir) throws IOException {
-            Path chunk = Files.writeString(dir.resolve("rec-1-profile-20260220-120500.jfr"), "chunk");
+            Path chunk = Files.writeString(dir.resolve("rec-1-rec-20260220-120500.jfr"), "chunk");
             when(recordingsManager.findRecordingFile("rec-1", "rf-1")).thenReturn(Optional.of(chunk));
             when(recordingsManager.findRecording("rec-1")).thenReturn(Optional.of(new Recording(
                     "rec-1", "checkout", null, RecordingEventSource.JDK, Instant.EPOCH, null, null,
                     false, null, null, List.of(new RecordingFile(
-                            "rf-1", "rec-1", "profile-20260220-120500.jfr", ManagedFile.JFR, Instant.EPOCH, 5L)))));
+                            "rf-1", "rec-1", "rec-20260220-120500.jfr", ManagedFile.JFR, Instant.EPOCH, 5L)))));
 
             ResponseEntity<Resource> response = new RecordingsController(
                     recordingsManager, NO_PROFILES).downloadFile("rec-1", "rf-1");
 
-            assertThat(savedAs(response)).isEqualTo("profile-20260220-120500.jfr");
+            assertThat(savedAs(response)).isEqualTo("rec-20260220-120500.jfr");
         }
 
         private static Bundle bundleWithFile(String filename) {

@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
+import cafe.jeffrey.shared.common.JeffreyLayout;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -31,7 +32,7 @@ public class EnvFileBuilder {
      * Also the source of {@code <<JEFFREY:FILE_PATTERN>>}, so the placeholder and the exported
      * {@code JEFFREY_FILE_PATTERN} can never drift apart.
      */
-    public static final String DEFAULT_FILE_TEMPLATE = "profile-%t.jfr";
+    public static final String DEFAULT_FILE_TEMPLATE = JeffreyLayout.RECORDING_TEMPLATE;
     private static final String JEFFREY_HOME_PROP = "JEFFREY_HOME";
     private static final String JEFFREY_WORKSPACES_PROP = "JEFFREY_WORKSPACES";
     private static final String JEFFREY_WORKSPACE_PROP = "JEFFREY_CURRENT_WORKSPACE";

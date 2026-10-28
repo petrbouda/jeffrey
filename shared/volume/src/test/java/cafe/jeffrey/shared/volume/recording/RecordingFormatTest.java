@@ -36,8 +36,8 @@ class RecordingFormatTest {
 
         @Test
         void aRecordingAndItsArchive() {
-            assertEquals(Optional.of(RecordingFormat.JFR), RecordingFormat.of("profile-20260220-120500.jfr"));
-            assertEquals(Optional.of(RecordingFormat.JFR_LZ4), RecordingFormat.of("profile-20260220-120500.jfr.lz4"));
+            assertEquals(Optional.of(RecordingFormat.JFR), RecordingFormat.of("rec-20260220-120500.jfr"));
+            assertEquals(Optional.of(RecordingFormat.JFR_LZ4), RecordingFormat.of("rec-20260220-120500.jfr.lz4"));
         }
 
         /**
@@ -60,7 +60,7 @@ class RecordingFormatTest {
             assertTrue(RecordingFormat.of("service-app.log").isEmpty());
             assertTrue(RecordingFormat.of("heap.hprof").isEmpty());
             assertTrue(RecordingFormat.of("app.pprof").isEmpty());
-            assertTrue(RecordingFormat.of("profile-20260220-120500.jfr.1~").isEmpty());
+            assertTrue(RecordingFormat.of("rec-20260220-120500.jfr.1~").isEmpty());
         }
 
         @Test
@@ -78,10 +78,10 @@ class RecordingFormatTest {
 
         @Test
         void aRecordingDropsItsExtensionSoTheIdSurvivesCompression() {
-            assertEquals("profile-20260220-120500",
-                    RecordingFormat.JFR.idOf("profile-20260220-120500.jfr"));
-            assertEquals("profile-20260220-120500",
-                    RecordingFormat.JFR_LZ4.idOf("profile-20260220-120500.jfr.lz4"));
+            assertEquals("rec-20260220-120500",
+                    RecordingFormat.JFR.idOf("rec-20260220-120500.jfr"));
+            assertEquals("rec-20260220-120500",
+                    RecordingFormat.JFR_LZ4.idOf("rec-20260220-120500.jfr.lz4"));
         }
 
         @Test

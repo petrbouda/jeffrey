@@ -94,7 +94,7 @@ export interface ConfigCardDefinition {
 export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
 
 /** Where a custom-profiler command writes its recordings when the output field is left blank. */
-export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
+export const DEFAULT_OUTPUT_FILE = '/tmp/rec-%t.jfr';
 
 /**
  * Where a Jeffrey JIB command writes its recordings when the output field is left blank: the

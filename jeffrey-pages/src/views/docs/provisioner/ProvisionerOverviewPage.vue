@@ -151,8 +151,8 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
               <h4>JFR Files</h4>
             </div>
             <div class="docs-card-body">
-              <code>profile-*.jfr</code>
-              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions, each named with its start time and the machine's UTC offset (<code>profile-20261027-085500+0100.jfr</code>).</p>
+              <code>rec-*.jfr</code>
+              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions, each named with its start time and the machine's UTC offset (<code>rec-20261027-085500+0100.jfr</code>).</p>
             </div>
           </div>
           <div class="docs-card session-card heap">

@@ -317,7 +317,7 @@ final class StubFileShare implements HttpClient {
 
     /**
      * A URL path percent-decoded: a {@code +} in a path is a plus, as in a recording's UTC offset
-     * ({@code profile-20260220-131000+0100.jfr}), which the SDK sends as it is — only a query
+     * ({@code rec-20260220-131000+0100.jfr}), which the SDK sends as it is — only a query
      * reads it as a space.
      */
     private static String decodePath(String rawPath) {

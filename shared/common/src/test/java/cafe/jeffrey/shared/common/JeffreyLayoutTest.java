@@ -36,16 +36,16 @@ class JeffreyLayoutTest {
 
         @Test
         void carriesTheOffsetRightAfterTheTimestamp() {
-            assertEquals("profile-%t+0100.jfr",
-                    JeffreyLayout.recordingTemplate("profile-%t.jfr", ZoneOffset.ofHours(1)));
-            assertEquals("/data/session/profile-%t+0000.jfr",
-                    JeffreyLayout.recordingTemplate("/data/session/profile-%t.jfr", ZoneOffset.UTC));
+            assertEquals("rec-%t+0100.jfr",
+                    JeffreyLayout.recordingTemplate(JeffreyLayout.RECORDING_TEMPLATE, ZoneOffset.ofHours(1)));
+            assertEquals("/data/session/rec-%t+0000.jfr",
+                    JeffreyLayout.recordingTemplate("/data/session/rec-%t.jfr", ZoneOffset.UTC));
         }
 
         @Test
         void refusesATemplateWithoutATimestampBeforeTheExtension() {
             assertThrows(IllegalArgumentException.class,
-                    () -> JeffreyLayout.recordingTemplate("profile.jfr", ZoneOffset.UTC));
+                    () -> JeffreyLayout.recordingTemplate("rec.jfr", ZoneOffset.UTC));
         }
     }
 

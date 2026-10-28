@@ -86,7 +86,7 @@ class EnvFileBuilderTest {
 
             String result = builder.build(context);
 
-            assertTrue(result.contains("export JEFFREY_FILE_PATTERN=" + SESSION_PATH + "/profile-%t+0100.jfr"),
+            assertTrue(result.contains("export JEFFREY_FILE_PATTERN=" + SESSION_PATH + "/rec-%t+0100.jfr"),
                     "async-profiler writes %t in local time, so the zone travels in the name");
         }
     }

@@ -116,11 +116,11 @@ onMounted(() => {
     └── {project}/
         └── {instance-id}/
             └── {session-id}/
-                ├── profile-20260220-120500+0000.jfr   # a chunk (or .jfr.lz4 once compressed)
+                ├── rec-20260220-120500+0000.jfr   # a chunk (or .jfr.lz4 once compressed)
                 └── ...                               # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
 
-      <p>A chunk's name carries the UTC offset of the machine that wrote it (<code>profile-%t&lt;offset&gt;.jfr</code> &mdash; <code>+0000</code> here, <code>+0100</code> on a machine in Prague in winter), and its timestamp is read at that offset. A name without an offset is read as UTC.</p>
+      <p>A chunk's name carries the UTC offset of the machine that wrote it (<code>rec-%t&lt;offset&gt;.jfr</code> &mdash; <code>+0000</code> here, <code>+0100</code> on a machine in Prague in winter), and its timestamp is read at that offset. A name without an offset is read as UTC.</p>
 
       <p>Each session ends up with its rotated JFR chunks and any optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, instance or session.</p>
 
@@ -167,7 +167,7 @@ onMounted(() => {
         └── {project}/                    # the folder names are the ids, no markers below the workspace
             └── {instance}/
                 └── {session}/            # a UUIDv7
-                    ├── profile-20260220-120500+0000.jfr  # a chunk (or .jfr.lz4 once compressed)
+                    ├── rec-20260220-120500+0000.jfr  # a chunk (or .jfr.lz4 once compressed)
                     └── ...                              # heap dumps, JVM logs, perf-counters</code></pre>
       </div>
 

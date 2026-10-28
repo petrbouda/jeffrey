@@ -34,7 +34,7 @@ import java.time.format.DateTimeFormatterBuilder;
  *     &lt;project-name&gt;/
  *       &lt;instance-name&gt;/
  *         &lt;session-uuidv7&gt;/        the session's start is in its name
- *           profile-&lt;local time&gt;&lt;UTC offset&gt;.jfr
+ *           rec-&lt;local time&gt;&lt;UTC offset&gt;.jfr
  * </pre>
  *
  * <p>async-profiler writes {@code %t} in the machine's local time, so the provisioner writes the
@@ -53,6 +53,17 @@ public abstract class JeffreyLayout {
     public static final String TIMESTAMP_PLACEHOLDER = "%t";
 
     /**
+     * What a recording's name starts with — {@code rec}, not {@code profile}: in Jeffrey a profile
+     * is what Microscope builds from a recording.
+     */
+    public static final String RECORDING_PREFIX = "rec-";
+
+    private static final String RECORDING_EXTENSION = ".jfr";
+
+    /** The provisioner's recording template before its offset goes in ({@link #recordingTemplate}). */
+    public static final String RECORDING_TEMPLATE = RECORDING_PREFIX + TIMESTAMP_PLACEHOLDER + RECORDING_EXTENSION;
+
+    /**
      * How a recording's name writes its UTC offset, right after the timestamp: {@code +0100},
      * {@code -0330}, {@code +0000} — no character a file share refuses in a name.
      */
@@ -61,15 +72,13 @@ public abstract class JeffreyLayout {
     /** How {@link #OFFSET_PATTERN} writes UTC. */
     public static final String UTC_OFFSET_TEXT = "+0000";
 
-    private static final String RECORDING_EXTENSION = ".jfr";
-
     private static final DateTimeFormatter OFFSET_FORMATTER = new DateTimeFormatterBuilder()
             .appendOffset(OFFSET_PATTERN, UTC_OFFSET_TEXT)
             .toFormatter();
 
     /**
      * A recording's file template with the machine's UTC offset in it: {@code prefix-%t+HHMM.jfr}
-     * for {@code prefix-%t.jfr} — {@code profile-20261027-085500+0100.jfr} once async-profiler
+     * for {@code prefix-%t.jfr} — {@code rec-20261027-085500+0100.jfr} once async-profiler
      * fills in {@code %t}. The offset is the one in effect when the session starts: a JVM that
      * runs through a daylight-saving change keeps writing local time, so its later chunks read an
      * hour off (owner decision).

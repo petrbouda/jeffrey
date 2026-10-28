@@ -213,8 +213,8 @@ onMounted(() => {
 │       ├── profile-data.db               # Its initialization runs
 │       └── heap-dump/                    # the copied dump, its index and cached reports
 └── recordings/                           # every stored file, in one flat directory
-    ├── {recording-id}-profile-20240101-120000.jfr   # one file, or several — see below
-    ├── {recording-id}-profile-20240101-121000.jfr
+    ├── {recording-id}-rec-20240101-120000.jfr   # one file, or several — see below
+    ├── {recording-id}-rec-20240101-121000.jfr
     ├── {heap-recording-id}-heap.hprof    # a heap dump is a recording of its own
     └── {bundle-id}-gc.jvm-log            # a bundle's download-only files, under the bundle's id</code></pre>
       </div>

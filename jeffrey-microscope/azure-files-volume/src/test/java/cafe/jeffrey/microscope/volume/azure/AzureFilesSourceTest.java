@@ -51,8 +51,8 @@ class AzureFilesSourceTest {
     private static final String SESSION = "prod/orders/pod-a/" + LIVE + "/";
     private static final ProjectScope ORDERS = new ProjectScope("prod", "orders");
     /** Chunks a JVM in Prague opened at 12:10 and 12:15 UTC: named in its local time, with its zone. */
-    private static final String OLDER_CHUNK = "profile-20260220-131000+0100";
-    private static final String NEWEST_CHUNK = "profile-20260220-131500+0100";
+    private static final String OLDER_CHUNK = "rec-20260220-131000+0100";
+    private static final String NEWEST_CHUNK = "rec-20260220-131500+0100";
 
     private StubFileShare share;
     private RemoteClients clients;

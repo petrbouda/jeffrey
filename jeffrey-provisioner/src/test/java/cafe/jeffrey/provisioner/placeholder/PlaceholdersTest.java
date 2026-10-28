@@ -126,7 +126,7 @@ class PlaceholdersTest {
             assertEquals("/workspaces/ws", placeholders.resolve("<<JEFFREY:CURRENT_WORKSPACE>>"));
             assertEquals("/workspaces/ws/proj", placeholders.resolve("<<JEFFREY:CURRENT_PROJECT>>"));
             assertEquals(SESSION.toString(), placeholders.resolve("<<JEFFREY:CURRENT_SESSION>>"));
-            assertEquals(SESSION.resolve("profile-%t+0000.jfr").toString(),
+            assertEquals(SESSION.resolve("rec-%t+0000.jfr").toString(),
                     placeholders.resolve("<<JEFFREY:FILE_PATTERN>>"));
             assertEquals("/libs/libasyncProfiler-amd64.so", placeholders.resolve("<<JEFFREY:PROFILER_PATH>>"));
         }
@@ -135,8 +135,8 @@ class PlaceholdersTest {
         @Test
         void resolvesTheSharedConstants() {
             assertEquals(
-                    SESSION + "/profile-%t.jfr",
-                    full().resolve(CliConstants.CURRENT_SESSION + "/profile-%t.jfr"));
+                    SESSION + "/rec-%t.jfr",
+                    full().resolve(CliConstants.CURRENT_SESSION + "/rec-%t.jfr"));
             assertEquals("/libs/libasyncProfiler-amd64.so", full().resolve(CliConstants.PROFILER_PATH));
         }
 

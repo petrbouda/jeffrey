@@ -752,12 +752,12 @@ class RemoteArtifactsMcpToolsTest {
 
         @Test
         void theProfilersCacheFileIsRefusedAsNotAnArtifact() {
-            remoteHolds(session(finished("f-cache", "profile-20260220-120000.jfr.1~", ManagedFile.ASPROF_TEMP)));
+            remoteHolds(session(finished("f-cache", "rec-20260220-120000.jfr.1~", ManagedFile.ASPROF_TEMP)));
 
             IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
                     () -> complete(tools.fetchFile(REF.encode(), "f-cache", RESOURCE_READ)));
 
-            assertTrue(refused.getMessage().contains("profile-20260220-120000.jfr.1~"), refused.getMessage());
+            assertTrue(refused.getMessage().contains("rec-20260220-120000.jfr.1~"), refused.getMessage());
             assertTrue(refused.getMessage().contains("remote_download"), refused.getMessage());
         }
 

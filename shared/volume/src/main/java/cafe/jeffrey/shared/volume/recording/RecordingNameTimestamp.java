@@ -32,7 +32,7 @@ import java.util.Optional;
 
 /**
  * The instant async-profiler wrote into the file's name, read the same from its {@code .lz4}
- * archive: {@code profile-20260220-120500+0100.jfr}. A name outside the convention falls back to
+ * archive: {@code rec-20260220-120500+0100.jfr}. A name outside the convention falls back to
  * the volume, logged at debug since this runs per file per listing.
  *
  * <p>async-profiler expands {@code %t} in the profiled machine's local time ({@code localtime_r}),
@@ -53,7 +53,6 @@ final class RecordingNameTimestamp implements TimestampResolver {
             .optionalEnd()
             .parseDefaulting(ChronoField.OFFSET_SECONDS, ZoneOffset.UTC.getTotalSeconds())
             .toFormatter();
-    private static final String PREFIX = "profile-";
 
     @Override
     public Optional<Instant> resolve(VolumeEntry file) {
@@ -61,8 +60,8 @@ final class RecordingNameTimestamp implements TimestampResolver {
         // The id is the name without the recording's extension, the same for a chunk and its archive
         Optional<String> id = RecordingFormat.of(name).map(format -> format.idOf(name));
 
-        if (id.isPresent() && id.get().startsWith(PREFIX)) {
-            Optional<Instant> createdAt = parse(id.get().substring(PREFIX.length()));
+        if (id.isPresent() && id.get().startsWith(JeffreyLayout.RECORDING_PREFIX)) {
+            Optional<Instant> createdAt = parse(id.get().substring(JeffreyLayout.RECORDING_PREFIX.length()));
             if (createdAt.isPresent()) {
                 return createdAt;
             }
@@ -70,7 +69,7 @@ final class RecordingNameTimestamp implements TimestampResolver {
                     name);
         } else {
             LOG.debug("Recording does not follow the naming convention, asking the volume: "
-                    + "filename={} expected_prefix={}", name, PREFIX);
+                    + "filename={} expected_prefix={}", name, JeffreyLayout.RECORDING_PREFIX);
         }
 
         return VOLUME.resolve(file);

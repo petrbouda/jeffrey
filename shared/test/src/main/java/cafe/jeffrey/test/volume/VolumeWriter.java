@@ -45,7 +45,6 @@ public final class VolumeWriter {
 
     /** async-profiler's {@code %t}: the machine's local time. */
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final String RECORDING_TEMPLATE = "profile-%t.jfr";
 
     private VolumeWriter() {
     }
@@ -76,10 +75,10 @@ public final class VolumeWriter {
 
     /**
      * The name async-profiler gives a recording opened at {@code openedAt} on a machine at
-     * {@code offset}, through the provisioner's template: {@code profile-20260220-120500+0000.jfr}.
+     * {@code offset}, through the provisioner's template: {@code rec-20260220-120500+0000.jfr}.
      */
     public static String recordingName(Instant openedAt, ZoneOffset offset) {
-        String template = JeffreyLayout.recordingTemplate(RECORDING_TEMPLATE, offset);
+        String template = JeffreyLayout.recordingTemplate(JeffreyLayout.RECORDING_TEMPLATE, offset);
         String local = LocalDateTime.ofInstant(openedAt, offset).format(TIMESTAMP);
         return template.replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, local);
     }

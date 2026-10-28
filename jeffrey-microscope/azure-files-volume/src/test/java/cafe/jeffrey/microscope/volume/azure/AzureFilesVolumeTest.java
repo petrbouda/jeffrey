@@ -61,7 +61,7 @@ class AzureFilesVolumeTest {
 
     private static StubFileShare sessionOn(AzureFilesProtocol protocol, String rootPrefix) {
         return new StubFileShare(protocol)
-                .file(rootPrefix + "prod/orders/pod-a/s-1/profile-20260220-120000.jfr", "chunk one", CREATED)
+                .file(rootPrefix + "prod/orders/pod-a/s-1/rec-20260220-120000.jfr", "chunk one", CREATED)
                 .file(rootPrefix + "prod/orders/pod-a/s-1/gc.log", "gc", CREATED.plusSeconds(5))
                 .directory(rootPrefix + "prod/orders/pod-a/s-1/.heartbeat", CREATED);
     }
@@ -77,7 +77,7 @@ class AzureFilesVolumeTest {
         void listsEachEntryWithItsTimesFromOneCall() {
             List<VolumeEntry> entries = volume.list(SESSION);
 
-            assertEquals(List.of(".heartbeat", "gc.log", "profile-20260220-120000.jfr"),
+            assertEquals(List.of(".heartbeat", "gc.log", "rec-20260220-120000.jfr"),
                     entries.stream().map(VolumeEntry::name).sorted().toList());
             VolumeEntry chunk = entries.stream().filter(entry -> entry.name().endsWith(".jfr")).findFirst().orElseThrow();
             assertTrue(chunk.isFile());
@@ -100,8 +100,8 @@ class AzureFilesVolumeTest {
         void readsAndStreamsAFile() throws IOException {
             assertArrayEquals("gc".getBytes(StandardCharsets.UTF_8), volume.read(SESSION.resolve("gc.log")).orElseThrow());
 
-            try (VolumeAccess.OpenedFile chunk = volume.open(SESSION.resolve("profile-20260220-120000.jfr")).orElseThrow()) {
-                assertEquals("profile-20260220-120000.jfr", chunk.name());
+            try (VolumeAccess.OpenedFile chunk = volume.open(SESSION.resolve("rec-20260220-120000.jfr")).orElseThrow()) {
+                assertEquals("rec-20260220-120000.jfr", chunk.name());
                 assertEquals("chunk one".length(), chunk.size());
                 assertEquals("chunk one", new String(chunk.content().readAllBytes(), StandardCharsets.UTF_8));
             }

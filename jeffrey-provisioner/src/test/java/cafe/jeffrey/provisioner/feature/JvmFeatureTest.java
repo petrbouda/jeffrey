@@ -60,9 +60,9 @@ class JvmFeatureTest {
 
         @Test
         void resolvesTheSessionIntoTheOptions() {
-            assertEquals("-agentpath:/opt/lib.so=start,file=" + SESSION + "/profile-%t.jfr",
+            assertEquals("-agentpath:/opt/lib.so=start,file=" + SESSION + "/rec-%t.jfr",
                     render(new JvmFeature.AsyncProfiler(
-                            "/opt/lib.so", "start,file=" + JvmFeature.CURRENT_SESSION + "/profile-%t.jfr")));
+                            "/opt/lib.so", "start,file=" + JvmFeature.CURRENT_SESSION + "/rec-%t.jfr")));
         }
 
         @Test

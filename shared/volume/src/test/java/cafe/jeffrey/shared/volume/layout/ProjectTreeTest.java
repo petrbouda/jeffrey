@@ -225,11 +225,11 @@ class ProjectTreeTest {
 
         @Test
         void aRecordingIsKnownByItsNameWithoutTheExtensionAndTimedByIt() {
-            VolumeWriter.file(session, "profile-20260220-130500+0100.jfr.lz4", "chunk");
+            VolumeWriter.file(session, "rec-20260220-130500+0100.jfr.lz4", "chunk");
 
             SessionFile file = tree.files(sessionPath).getFirst();
 
-            assertEquals("profile-20260220-130500+0100", file.id());
+            assertEquals("rec-20260220-130500+0100", file.id());
             assertTrue(file.recording());
             assertEquals(Instant.parse("2026-02-20T12:05:00Z"), file.createdAt());
         }
@@ -242,7 +242,7 @@ class ProjectTreeTest {
 
             List<String> names = tree.files(sessionPath).stream().map(SessionFile::name).toList();
 
-            assertEquals(List.of("profile-20260220-121500+0000.jfr", "profile-20260220-120000+0000.jfr"), names,
+            assertEquals(List.of("rec-20260220-121500+0000.jfr", "rec-20260220-120000+0000.jfr"), names,
                     "a nested directory is no file of the session");
         }
 
@@ -253,12 +253,12 @@ class ProjectTreeTest {
          */
         @Test
         void leavesOutAFileThatWentAwayWhileTheSessionWasListed() throws IOException {
-            VolumeWriter.file(session, "profile-20260912-121559+0000.jfr", "chunk");
-            Files.createSymbolicLink(session.resolve("profile-20260912-121559+0000.jfr.1~"), session.resolve("flushed"));
+            VolumeWriter.file(session, "rec-20260912-121559+0000.jfr", "chunk");
+            Files.createSymbolicLink(session.resolve("rec-20260912-121559+0000.jfr.1~"), session.resolve("flushed"));
 
             List<String> names = tree.files(sessionPath).stream().map(SessionFile::name).toList();
 
-            assertEquals(List.of("profile-20260912-121559+0000.jfr"), names);
+            assertEquals(List.of("rec-20260912-121559+0000.jfr"), names);
         }
 
         /**
@@ -268,13 +268,13 @@ class ProjectTreeTest {
          */
         @Test
         void onAVolumeListingNoTimesAFileIsTimedByOneLookAtIt() throws IOException {
-            VolumeWriter.file(session, "profile-20260220-130500+0000.jfr", "chunk");
+            VolumeWriter.file(session, "rec-20260220-130500+0000.jfr", "chunk");
             Path log = VolumeWriter.file(session, "gc.log", "line");
             ProjectTree untimed = ProjectTree.at(new UntimedListings(volume), PROJECT).orElseThrow();
 
             List<SessionFile> files = untimed.files(sessionPath);
 
-            assertEquals(List.of("profile-20260220-130500+0000.jfr", "gc.log"),
+            assertEquals(List.of("rec-20260220-130500+0000.jfr", "gc.log"),
                     files.stream().map(SessionFile::name).toList());
             assertEquals(Instant.parse("2026-02-20T13:05:00Z"), files.getFirst().createdAt());
             assertEquals(Files.readAttributes(log, BasicFileAttributes.class).creationTime().toInstant(),

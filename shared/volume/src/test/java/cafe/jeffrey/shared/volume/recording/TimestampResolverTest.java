@@ -63,7 +63,7 @@ class TimestampResolverTest {
         void readsTheInstantTheProfilerWroteIntoIt() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-120500.jfr")));
         }
 
         /**
@@ -76,20 +76,20 @@ class TimestampResolverTest {
         void readsTheNameAtTheOffsetItCarries() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500+0100.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-130500+0100.jfr")));
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500+0000.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-120500+0000.jfr")));
         }
 
         @Test
         void readsANegativeAndAHalfHourOffset() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-083500-0330.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-083500-0330.jfr")));
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-173500+0530.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-173500+0530.jfr")));
         }
 
         /** A name without an offset — a custom template — is read as UTC. */
@@ -97,14 +97,14 @@ class TimestampResolverTest {
         void readsANameWithoutAnOffsetAsUtc() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-120500.jfr")));
         }
 
         @Test
         void readsTheOffsetFromTheArchiveToo() {
             assertEquals(
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500+0100.jfr")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500+0100.jfr.lz4")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-130500+0100.jfr")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-130500+0100.jfr.lz4")));
         }
 
         /**
@@ -118,8 +118,8 @@ class TimestampResolverTest {
         @Test
         void isUnchangedByTheFileBeingCompressed() {
             assertEquals(
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr.lz4")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-120500.jfr")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-120500.jfr.lz4")));
         }
     }
 
@@ -131,7 +131,7 @@ class TimestampResolverTest {
         void aRecordingStillReadsItsName() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(untimed("profile-20260220-120500.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(untimed("rec-20260220-120500.jfr")));
         }
 
         /** Nothing to go on: the caller takes one more look at the file rather than inventing a time. */
@@ -152,6 +152,13 @@ class TimestampResolverTest {
                     TimestampResolver.RECORDING_NAME.resolve(file("recording-20260220-120500.jfr")));
         }
 
+        /** An older provisioner named its chunks {@code profile-…}; they are still recordings, timed by the volume. */
+        @Test
+        void forARecordingFromAnOlderProvisioner() {
+            assertEquals(Optional.of(VOLUME_CREATED_AT),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500+0000.jfr")));
+        }
+
         /**
          * A name that does not parse must not raise: the caller drops a file it cannot describe,
          * so one oddly named file would leave the listing entirely rather than sort imprecisely.
@@ -159,7 +166,7 @@ class TimestampResolverTest {
         @Test
         void forATimestampThatDoesNotParse() {
             assertEquals(Optional.of(VOLUME_CREATED_AT),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-not-a-timestamp.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("rec-not-a-timestamp.jfr")));
         }
 
         @Test

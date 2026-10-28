@@ -114,8 +114,8 @@ class VolumeRemoteClientsTest {
     /** The instance's newest session, with an older chunk and its newest recording five minutes later. */
     private Path liveSession() {
         Path dir = session("pod-a", LIVE_START);
-        VolumeWriter.file(dir, "profile-20260220-121000.jfr", "older chunk");
-        VolumeWriter.file(dir, "profile-20260220-121500.jfr", "newest");
+        VolumeWriter.file(dir, "rec-20260220-121000.jfr", "older chunk");
+        VolumeWriter.file(dir, "rec-20260220-121500.jfr", "newest");
         return dir;
     }
 
@@ -196,7 +196,7 @@ class VolumeRemoteClientsTest {
         @Test
         void aFilterIsAppliedBeforeAnyFileIsRead() {
             liveSession();
-            VolumeWriter.file(session("pod-b", T0), "profile-20260220-120000.jfr", "chunk");
+            VolumeWriter.file(session("pod-b", T0), "rec-20260220-120000.jfr", "chunk");
 
             List<RecordingSessionResponse> recent = clients.repository().recordingSessions(
                     ORDERS, RecordingSessionFilter.activeWithinLast(Duration.ofMinutes(45), NOW));
@@ -214,7 +214,7 @@ class VolumeRemoteClientsTest {
             assertTrue(session.newest());
             assertEquals(List.of(true, false),
                     session.files().stream().map(RepositoryFileResponse::newestRecording).toList());
-            assertEquals("profile-20260220-121500", session.files().getFirst().id());
+            assertEquals("rec-20260220-121500", session.files().getFirst().id());
             assertEquals(Instant.parse("2026-02-20T12:20:00Z").toEpochMilli(), session.lastDataAt());
         }
 
@@ -382,7 +382,7 @@ class VolumeRemoteClientsTest {
         void aChunkStreamsUnderItsName() {
             liveSession();
 
-            assertEquals("profile-20260220-121000.jfr=older chunk", stream(LIVE, "profile-20260220-121000"));
+            assertEquals("rec-20260220-121000.jfr=older chunk", stream(LIVE, "rec-20260220-121000"));
         }
 
         /**
@@ -393,7 +393,7 @@ class VolumeRemoteClientsTest {
         void theNewestRecordingIsServedToo() {
             liveSession();
 
-            assertEquals("profile-20260220-121500.jfr=newest", stream(LIVE, "profile-20260220-121500"));
+            assertEquals("rec-20260220-121500.jfr=newest", stream(LIVE, "rec-20260220-121500"));
         }
 
         @Test
@@ -406,10 +406,10 @@ class VolumeRemoteClientsTest {
         @Test
         void anEmptyRecordingIsRefusedButAnEmptyLogIsServed() {
             Path dir = session("pod-a", T0);
-            VolumeWriter.file(dir, "profile-20260220-120000.jfr", "");
+            VolumeWriter.file(dir, "rec-20260220-120000.jfr", "");
             VolumeWriter.file(dir, "app.log", "");
 
-            assertThrows(JeffreyClientException.class, () -> stream(id(T0), "profile-20260220-120000"));
+            assertThrows(JeffreyClientException.class, () -> stream(id(T0), "rec-20260220-120000"));
             assertEquals("app.log=", stream(id(T0), "app.log"));
         }
 
@@ -417,10 +417,10 @@ class VolumeRemoteClientsTest {
         @Test
         void theArchiveIsServedWhenARecordingAndItsArchiveShareAnId() {
             Path dir = session("pod-a", T0);
-            VolumeWriter.file(dir, "profile-20260220-120000.jfr", "raw");
-            VolumeWriter.file(dir, "profile-20260220-120000.jfr.lz4", "archived");
+            VolumeWriter.file(dir, "rec-20260220-120000.jfr", "raw");
+            VolumeWriter.file(dir, "rec-20260220-120000.jfr.lz4", "archived");
 
-            assertEquals("profile-20260220-120000.jfr.lz4=archived", stream(id(T0), "profile-20260220-120000"));
+            assertEquals("rec-20260220-120000.jfr.lz4=archived", stream(id(T0), "rec-20260220-120000"));
         }
     }
 
