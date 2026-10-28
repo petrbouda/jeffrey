@@ -31,9 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,8 +67,7 @@ class AzureFilesSourceTest {
                         AzureFilesProtocol.NFS, AzureFilesAuth.SAS, false),
                 new AzureFilesCredential.Sas("sv=2026-06-06&sig=c2ln"),
                 share);
-        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        clients = VolumeRemoteClients.of(new VolumeSource(volume, clock, "azure-files", false));
+        clients = VolumeRemoteClients.of(new VolumeSource(volume, "azure-files", false));
     }
 
     /** A delete reaches the share as the layout's own write, and reads back as the hub would. */

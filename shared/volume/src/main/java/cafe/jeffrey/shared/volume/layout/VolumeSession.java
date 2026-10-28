@@ -22,40 +22,44 @@ import cafe.jeffrey.shared.volume.VolumePath;
 import java.time.Instant;
 
 /**
- * A session as the volume says it is at the moment of reading: its directory, whether it is its
- * instance's newest, and the one listing of its directory — {@link ProjectTree#files(VolumeSession)}
- * describes its files from that listing, without listing the directory again.
- *
- * @param newest whether no newer session has started in its instance: only the newest session's
- *               newest recording may still be on its way onto the volume, and only it can grow
+ * A session as the volume says it is at the moment of reading: its header — its directory and
+ * whether it is its instance's newest — and the one listing of its directory, which
+ * {@link ProjectTree#files(VolumeSession)} describes its files from without listing it again.
  */
-public record VolumeSession(SessionDirectory directory, boolean newest, SessionListing listing) {
+public record VolumeSession(SessionHeader header, SessionListing listing) {
 
     public VolumeSession {
-        if (directory == null || listing == null) {
-            throw new IllegalArgumentException("A volume session needs its directory and its listing");
+        if (header == null || listing == null) {
+            throw new IllegalArgumentException("A volume session needs its header and its listing");
         }
     }
 
     public String id() {
-        return directory.id();
+        return header.id();
     }
 
     public String instanceId() {
-        return directory.instanceId();
+        return header.instanceId();
     }
 
-    /** Its name relative to the project — {@code pod-a/s-1} — as every reader of the volume lists it. */
+    /** Its name relative to the project — {@code pod-a/<id>} — as every reader of the volume lists it. */
     public String name() {
-        return new SessionHeader(directory, newest).name();
+        return header.name();
     }
 
     public Instant createdAt() {
-        return directory.createdAt();
+        return header.createdAt();
     }
 
-
     public VolumePath path() {
-        return directory.path();
+        return header.path();
+    }
+
+    /**
+     * Whether no newer session has started in its instance: only the newest session's newest
+     * recording may still be on its way onto the volume, and only it can grow.
+     */
+    public boolean newest() {
+        return header.newest();
     }
 }

@@ -17,23 +17,15 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import java.util.Optional;
 
 /**
- * An instance with how many sessions it holds and its newest one.
- *
- * @param sessionCount the instance's session directories, as one listing of it names them
- * @param newest       its newest session, or empty while it has none
+ * An instance with how many sessions it holds, as one listing of it names them.
  */
-public record InstanceSummary(InstanceDirectory instance, int sessionCount, Optional<VolumeSession> newest) {
+public record InstanceSummary(InstanceDirectory instance, int sessionCount) {
 
     public InstanceSummary {
-        if (instance == null || newest == null || sessionCount < 0) {
-            throw new IllegalArgumentException("An instance summary needs its instance, a count and its newest session");
-        }
-        if (newest.isEmpty() != (sessionCount == 0)) {
-            throw new IllegalArgumentException(
-                    "An instance has a newest session exactly when it has sessions: count=" + sessionCount);
+        if (instance == null || sessionCount < 0) {
+            throw new IllegalArgumentException("An instance summary needs its instance and a count");
         }
     }
 }

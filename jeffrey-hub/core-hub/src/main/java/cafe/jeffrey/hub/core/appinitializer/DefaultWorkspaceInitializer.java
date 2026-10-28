@@ -47,19 +47,12 @@ public class DefaultWorkspaceInitializer implements ApplicationListener<Applicat
 
     public void run() {
         properties.validate();
-
         String referenceId = properties.getReferenceId();
-        String name = properties.getName();
-
-        // Not merely present: with auto-create on, the directory is listed before anyone created it
-        if (workspacesManager.isDescribed(referenceId)) {
+        if (workspacesManager.exists(referenceId)) {
             LOG.debug("Default workspace already present, skipping creation: reference_id={}", referenceId);
             return;
         }
-
-        WorkspaceInfo created = workspacesManager.create(
-                new WorkspacesManager.CreateWorkspaceRequest(referenceId, name));
-
-        LOG.info("Created default workspace: workspace_id={} name={}", created.id(), created.name());
+        WorkspaceInfo created = workspacesManager.create(referenceId);
+        LOG.info("Created default workspace: workspace_id={}", created.id());
     }
 }

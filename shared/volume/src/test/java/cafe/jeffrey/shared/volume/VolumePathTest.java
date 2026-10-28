@@ -94,7 +94,7 @@ class VolumePathTest {
 
     @Test
     void aLeadingDotMarksTheVolumesOwnBookkeeping() {
-        assertTrue(VolumePath.root().resolve(".session-info.json").isHidden());
+        assertTrue(VolumePath.root().resolve(".heartbeat").isHidden());
         assertFalse(VolumePath.root().resolve("profile-1.jfr").isHidden());
     }
 }

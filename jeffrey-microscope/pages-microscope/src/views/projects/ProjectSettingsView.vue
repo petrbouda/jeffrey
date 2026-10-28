@@ -26,11 +26,11 @@
       <LoadingState v-if="isLoading" message="Loading project settings..." />
 
       <template v-else>
-        <!-- Top Row: General + Blocking -->
+        <!-- General: the project's name, read-only — it is its folder -->
         <div class="settings-grid">
           <div class="settings-card">
             <div class="settings-card-header">
-              <i class="bi bi-pencil-square"></i>
+              <i class="bi bi-folder"></i>
               <h6>General</h6>
             </div>
             <span class="field-label">Project Name</span>
@@ -260,14 +260,12 @@ async function deleteProject() {
 /* Form */
 .project-name-value {
   font-family: var(--font-family-monospace);
-  font-size: 0.9rem;
+  font-size: var(--font-size-base);
   color: var(--color-dark);
 }
 
 .field-hint {
   margin: 0.25rem 0 0;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
 }
 
 .field-label {

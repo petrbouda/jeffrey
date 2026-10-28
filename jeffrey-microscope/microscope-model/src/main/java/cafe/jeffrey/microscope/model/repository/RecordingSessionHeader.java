@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,14 @@ package cafe.jeffrey.microscope.model.repository;
 import java.time.Instant;
 
 /**
- * A recording session as its instance's listing names it, nothing of it read: when it started,
- * from its name, and whether it is its instance's newest. What it holds is read when it is opened.
- *
- * @param name   its instance and its id, {@code pod-a/<id>}
- * @param newest whether no newer session has started in its instance, so it may still grow
+ * A session as its instance's listing names it, nothing of it read: its id, when it started — off
+ * its name — and whether it is its instance's newest.
  */
-public record RecordingSessionHeader(String id, String name, String instanceId, Instant createdAt, boolean newest) {
+public record RecordingSessionHeader(String id, String instanceId, Instant createdAt, boolean newest) {
 
     public RecordingSessionHeader {
-        if (id == null || name == null || instanceId == null || createdAt == null) {
-            throw new IllegalArgumentException("A session header needs its id, name, instance and start");
+        if (id == null || instanceId == null || createdAt == null) {
+            throw new IllegalArgumentException("A session header needs its id, instance and start");
         }
     }
 }

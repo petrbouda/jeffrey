@@ -27,8 +27,7 @@ import java.util.List;
  * Logical retention units of one instance's sessions: a consecutive run of failed-empty
  * sessions (a crash loop) collapses into a single unit, while every session that produced
  * data — and the instance's newest, which is never failed — forms a unit of its own and splits
- * failed runs.
- * This mirrors the collapsed crash-loop groups the UI renders (sessionGrouping.ts).
+ * failed runs, so a crash loop counts as one session toward the per-instance cap.
  *
  * <p>Units and the sessions inside them are ordered newest-first by {@code createdAt}, ties broken
  * by id the way the volume's layout orders sessions ({@code ProjectTree}), so the session the

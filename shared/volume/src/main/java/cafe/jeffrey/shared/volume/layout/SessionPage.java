@@ -36,8 +36,4 @@ public record SessionPage(int limit, Optional<String> before) {
             throw new IllegalArgumentException("A session page takes at least one session and a cursor, if only an empty one");
         }
     }
-
-    public boolean isAll() {
-        return limit == Integer.MAX_VALUE && before.isEmpty();
-    }
 }

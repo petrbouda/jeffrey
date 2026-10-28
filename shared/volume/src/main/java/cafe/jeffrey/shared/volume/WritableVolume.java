@@ -20,8 +20,8 @@ package cafe.jeffrey.shared.volume;
 import java.io.UncheckedIOException;
 
 /**
- * A volume its holder may change: the few writes the layout makes — a directory, a marker or flag
- * file, and a subtree removed. Reading stays {@link VolumeAccess}'s, so a reader that must never
+ * A volume its holder may change: the two changes the layout makes — a directory created and a
+ * subtree removed. Nothing writes a file's content: the profilers write the recordings. Reading stays {@link VolumeAccess}'s, so a reader that must never
  * write is handed only that.
  *
  * <p>Every method is idempotent where the layout needs it to be: creating a directory that is
@@ -36,14 +36,6 @@ public interface WritableVolume extends VolumeAccess {
      * @throws UncheckedIOException when the backend refuses
      */
     void createDirectories(VolumePath directory);
-
-    /**
-     * Writes a small file whole or not at all — a reader never sees half a marker — replacing what
-     * was there. Its directory must exist.
-     *
-     * @throws UncheckedIOException when the backend refuses
-     */
-    void write(VolumePath file, byte[] content);
 
     /**
      * Removes a file, or a directory with everything under it; nothing there is no error.

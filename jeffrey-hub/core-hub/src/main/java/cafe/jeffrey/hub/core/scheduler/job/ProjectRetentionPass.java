@@ -72,7 +72,7 @@ final class ProjectRetentionPass {
     }
 
     String projectName() {
-        return project.info().name();
+        return project.info().id();
     }
 
     Instant now() {

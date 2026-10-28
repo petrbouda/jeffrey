@@ -115,18 +115,18 @@ onMounted(() => {
         writes into — and Microscope works with it over the Azure Files REST API, signing in with a
         SAS token or with Microsoft Entra ID. Its workspaces, projects, instances and recording
         sessions are browsed and downloaded straight off the share. Each directory at the share's
-        root (or under its configured root path) is a workspace. The folder names are the state: the
-        workspace list shows each workspace's folder name, its id (reference id); the display name in its
-        <code>.workspace-info.json</code> marker &mdash; the only marker on the volume &mdash; is read only
-        when that workspace is opened. A project is any visible (non-dot) folder in a workspace, its
+        root (or under its configured root path) is a workspace. The folder names are the state and
+        nothing on the volume is a marker: a workspace is a visible folder named by its reference id,
+        which is also its id and its name &mdash; there is no separate display name. Its
+        <strong>Workspace Info</strong> drawer shows the Reference ID (with a copy button) and its
+        project count. A project is any visible (non-dot) folder in a workspace, its
         name being its id, and a project card shows that name and the folder's creation date when the
-        share lists one. Microscope shows no counts or aggregates: no project count on a workspace and
-        no session count or last data on a project.
+        share lists one. Beyond that project count Microscope shows no counts or aggregates: no
+        session count or last data on a project.
       </p>
       <p>
         Microscope makes your changes on the share, exactly where the Jeffrey Hub's jobs expect them:
-        <strong>Create Workspace</strong> writes the workspace's marker (adopting a directory the
-        provisioner already wrote into), deleting a workspace or a project removes its directory,
+        <strong>Create Workspace</strong> creates the workspace's folder and nothing in it, deleting a workspace or a project removes its directory,
         and deleting a session takes its instance with its last session. Which session of an
         instance is the newest — the only one that may still grow — is read from the session
         directories' UUIDv7 names, by the same rules the hub applies.
@@ -153,7 +153,7 @@ onMounted(() => {
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
       <p>
         With the remote declared and online, click <strong>Create Workspace</strong> in the workspace
-        column. Microscope opens a side drawer with two fields:
+        column. Microscope opens a side drawer with a single field:
       </p>
 
       <table>
@@ -165,17 +165,15 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><strong>Workspace Name</strong></td>
-            <td>Display label for the workspace.</td>
-          </tr>
-          <tr>
             <td><strong>Reference ID</strong></td>
             <td>
               A stable identifier the workspace exposes to <code>provisioner</code>. The provisioner uses
               this ID to route uploads to the right workspace, so it has to match the value in
-              your provisioner's configuration. On the share it becomes the workspace's id and the
-              name of its directory on the recording volume; if the provisioner already wrote into a
-              directory of that name, creating the workspace adopts it with its projects.
+              your provisioner's configuration. It is the workspace's id, its name and the name of
+              its folder on the recording volume: 3-64 characters, letters, digits and dashes, not
+              starting or ending with a dash. Creating is refused when a folder with that id is
+              already there &mdash; the provisioner creates a missing workspace folder itself, which
+              makes it a workspace already, so there is nothing to create.
             </td>
           </tr>
         </tbody>
@@ -223,7 +221,7 @@ onMounted(() => {
       <h2 id="not-in-ui">What's Not in the UI</h2>
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
       <ul>
-        <li><strong>Renaming a workspace</strong> — the name is set at creation and is not editable.</li>
+        <li><strong>Renaming a workspace</strong> — a workspace's name is its reference id, the name of its folder on the share, and is not editable.</li>
         <li><strong>Renaming a project</strong> — a project's name is its folder on the share and its id, so the project's Settings show it read-only.</li>
         <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>
         <li><strong>More than one remote</strong> — Microscope reaches exactly one.</li>

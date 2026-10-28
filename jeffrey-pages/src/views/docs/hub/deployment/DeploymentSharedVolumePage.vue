@@ -89,9 +89,8 @@ spec:
 const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME (from sharedVolume.mountPath)
 ├── temp/
 └── workspaces/                              # the Hub's only state — it has no database
-    └── <workspace-ref-id>/
-        ├── .workspace-info.json             # written when the workspace is created
-        └── <project-name>/                  # folder names are the ids — no markers below the workspace
+    └── <workspace-ref-id>/                  # the workspace is its folder, no marker
+        └── <project-name>/                  # folder names are the ids — no markers anywhere
             └── <instance-id>/
                 └── <session-id>/            # a UUIDv7; the JFR recordings land here
                     └── rec-20261027-085500+0100.jfr`;

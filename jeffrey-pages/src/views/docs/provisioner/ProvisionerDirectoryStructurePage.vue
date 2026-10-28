@@ -51,8 +51,7 @@ onMounted(() => {
         <div class="directory-structure">
           <pre><code>&lt;jeffrey-home&gt;/
 └── workspaces/
-    └── &lt;workspace-id&gt;/
-        ├── .workspace-info.json             # Workspace marker (display name), written by Microscope or the Hub
+    └── &lt;workspace-id&gt;/                  # Workspace id = folder name (the reference id), created if missing
         └── &lt;project-name&gt;/                  # Project id = folder name (the configured project name)
             └── &lt;instance-name&gt;/             # Instance id = folder name (instance-name, HOSTNAME by default)
                 └── &lt;session-id&gt;/            # Session id = folder name, a UUIDv7 (its timestamp is the start)
@@ -61,10 +60,10 @@ onMounted(() => {
                     └── ...</code></pre>
         </div>
 
-        <p>The folder names are the state. A workspace's id is its folder (its reference id), a project's id is its folder (the project <code>name</code> the Provisioner was configured with), an instance's id is its folder, and a session's id is its folder &mdash; a UUIDv7 whose timestamp is the session's start. There are no marker files below the workspace: the Provisioner decides whether a project or an instance is new by whether its folder exists. A project or instance is any visible (non-dot) child directory; a session is a visible directory named with a UUIDv7, and anything else under an instance is ignored. The workspace's <code>.workspace-info.json</code> is the only marker left; it carries the display name and is read only when that workspace is opened &mdash; the workspace list shows folder names.</p>
+        <p>The folder names are the state. A workspace's id is its folder (its reference id), a project's id is its folder (the project <code>name</code> the Provisioner was configured with), an instance's id is its folder, and a session's id is its folder &mdash; a UUIDv7 whose timestamp is the session's start. There are no marker files anywhere on the volume: a workspace is a visible root folder named with a valid reference id, which is also its name, and the Provisioner creates that folder when it is missing &mdash; a workspace does not have to be created before the Provisioner writes into it. The Provisioner decides whether a project or an instance is new by whether its folder exists. A project or instance is any visible (non-dot) child directory; a session is a visible directory named with a UUIDv7, and anything else under an instance is ignored. Its recordings show up in Microscope and on the Hub's Storage page without any create step.</p>
 
         <DocsCallout type="warning">
-          <strong>Upgrading from a release with marker files:</strong> there is no compatibility with older volumes &mdash; re-provision. Links, downloads, MCP references and profiles that carried the old random project id are orphaned, since a project's id is now its folder name. Project rename is gone: the name in Settings is read-only. Old <code>.project-info.json</code>, <code>.instance-info.json</code> and <code>.session-info.json</code> files left in folders are ignored as hidden entries and go with their directory. Chunks an older Provisioner named <code>profile-…</code> are still listed and downloadable as recordings, but they are timed by the volume rather than by their name; new chunks are named <code>rec-…</code>.
+          <strong>Upgrading from a release with marker files:</strong> there is no compatibility with older volumes &mdash; re-provision. Links, downloads, MCP references and profiles that carried the old random project id are orphaned, since a project's id is now its folder name. Project rename is gone: the name in Settings is read-only. Old <code>.workspace-info.json</code>, <code>.project-info.json</code>, <code>.instance-info.json</code> and <code>.session-info.json</code> files left in folders are ignored as hidden entries and go with their directory. Workspace display names are gone: a workspace whose display name differed from its folder now shows the folder name, its reference id. Chunks an older Provisioner named <code>profile-…</code> are still listed and downloadable as recordings, but they are timed by the volume rather than by their name; new chunks are named <code>rec-…</code>.
         </DocsCallout>
 
         <DocsCallout type="info">

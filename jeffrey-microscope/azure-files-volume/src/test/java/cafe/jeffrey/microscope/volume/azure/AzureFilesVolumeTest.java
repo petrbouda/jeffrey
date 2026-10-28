@@ -110,9 +110,9 @@ class AzureFilesVolumeTest {
         /** A marker larger than one can be is refused after one byte past the cap, never fetched whole. */
         @Test
         void refusesAFileLargerThanAMarkerCanBe() {
-            share.file("prod/orders/pod-a/s-1/.session-info.json", "x".repeat(VolumeAccess.MAX_READ_BYTES + 10), CREATED);
+            share.file("prod/orders/pod-a/s-1/notes.json", "x".repeat(VolumeAccess.MAX_READ_BYTES + 10), CREATED);
 
-            assertThrows(UncheckedIOException.class, () -> volume.read(SESSION.resolve(".session-info.json")));
+            assertThrows(UncheckedIOException.class, () -> volume.read(SESSION.resolve("notes.json")));
             String range = share.requests().getLast().getHeaders().getValue("x-ms-range");
             assertEquals("bytes=0-" + VolumeAccess.MAX_READ_BYTES, range);
         }
@@ -145,26 +145,6 @@ class AzureFilesVolumeTest {
 
             assertTrue(share.holds("volume/staging"));
             assertTrue(share.holds("volume/staging/checkout"));
-        }
-
-        /** Through a scratch file renamed onto the marker, so no reader alongside sees half of one. */
-        @Test
-        void writesAMarkerWholeAndLeavesNoScratchFileBehind() {
-            volume.createDirectories(ROOT.resolve("staging"));
-
-            volume.write(ROOT.resolve("staging").resolve(".workspace-info.json"), "{\"name\":\"Staging\"}".getBytes(StandardCharsets.UTF_8));
-            volume.write(ROOT.resolve("staging").resolve(".workspace-info.json"), "{\"name\":\"Renamed\"}".getBytes(StandardCharsets.UTF_8));
-
-            assertEquals("{\"name\":\"Renamed\"}", share.content("volume/staging/.workspace-info.json"));
-            assertTrue(share.paths().stream().noneMatch(path -> path.endsWith(".tmp")), share.paths().toString());
-            assertTrue(share.requests().stream().anyMatch(request -> request.getUrl().getQuery().contains("comp=rename")));
-        }
-
-        @Test
-        void createsAnEmptyFlagInOneCall() {
-            volume.write(SESSION.resolve(".retained"), new byte[0]);
-
-            assertEquals("", share.content("volume/prod/orders/pod-a/s-1/.retained"));
         }
 
         @Test

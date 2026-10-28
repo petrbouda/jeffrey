@@ -28,10 +28,8 @@ import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
-import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
 
 import java.io.UncheckedIOException;
-import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -44,14 +42,12 @@ import java.util.function.Supplier;
  *
  * @param volume      the storage the volume lies on, its root holding the workspaces; a
  *                    {@link WritableVolume} unless the source is read-only
- * @param clock       when a change happened, for the markers a change writes
  * @param description what the source says about itself, reported as its version
  * @param readOnly    whether every change is refused
  * @param fanOut      how the independent reads of one call are run
  */
 public record VolumeSource(
         VolumeAccess volume,
-        Clock clock,
         String description,
         boolean readOnly,
         ReadFanOut fanOut) {
@@ -62,8 +58,8 @@ public record VolumeSource(
                     + "Declare it writable to make changes through Microscope.";
 
     public VolumeSource {
-        if (volume == null || clock == null || fanOut == null || description == null || description.isBlank()) {
-            throw new IllegalArgumentException("A volume source needs its volume, a clock and a description");
+        if (volume == null || fanOut == null || description == null || description.isBlank()) {
+            throw new IllegalArgumentException("A volume source needs its volume and a description");
         }
         if (!readOnly && !(volume instanceof WritableVolume)) {
             throw new IllegalArgumentException("A volume source that may be changed needs a writable volume");
@@ -71,8 +67,8 @@ public record VolumeSource(
     }
 
     /** A source whose reads run one after another. */
-    public VolumeSource(VolumeAccess volume, Clock clock, String description, boolean readOnly) {
-        this(volume, clock, description, readOnly, ReadFanOut.sequential());
+    public VolumeSource(VolumeAccess volume, String description, boolean readOnly) {
+        this(volume, description, readOnly, ReadFanOut.sequential());
     }
 
     /**
@@ -85,10 +81,6 @@ public record VolumeSource(
             throw Exceptions.invalidRequest(READ_ONLY.formatted(change));
         }
         return (WritableVolume) volume;
-    }
-
-    Optional<VolumePath> workspaceDirectory(String workspaceId) {
-        return ROOT.visibleChild(workspaceId).filter(directory -> VolumeMarkers.isDirectory(volume, directory));
     }
 
     /** The workspace's projects, each a visible directory in it: one listing. */
@@ -106,14 +98,10 @@ public record VolumeSource(
         return projectDirectory(scope).flatMap(directory -> ProjectTree.at(volume, directory));
     }
 
-    /** The project, looked at: for a change, which must not act on a project that is not there. */
-    ProjectTree requireProject(ProjectScope scope) {
-        return project(scope).orElseThrow(() -> Exceptions.projectNotFound(scope.projectId()));
-    }
-
     /**
-     * The project, not looked at: for the reads of a request that resolved it already
-     * ({@link #project}), which lists it anyway. A project that has gone since reads as empty.
+     * The project, not looked at: for every read and change behind a request that resolved it
+     * already ({@link #project}) — the one look a project-scoped request takes. A project that has
+     * gone since reads as empty, and a change finds nothing to act on.
      */
     ProjectTree resolvedProject(ProjectScope scope) {
         return projectDirectory(scope)

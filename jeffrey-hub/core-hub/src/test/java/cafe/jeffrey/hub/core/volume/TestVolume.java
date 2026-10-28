@@ -22,13 +22,13 @@ import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
-import cafe.jeffrey.shared.volume.layout.VolumeChanges;
-import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import cafe.jeffrey.test.volume.VolumeWriter;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.ZoneOffset;
 
 /**
  * Writes a volume the way the provisioner, the profiler and the hub's own workspace creation do,
@@ -55,10 +55,13 @@ public final class TestVolume {
         return new FilesystemRepositoryStorage(info, tree, volume);
     }
 
-    public static Path workspace(Path workspacesRoot, String id, String name, Instant createdAt) {
-        VolumeChanges.describeWorkspace(new FilesystemVolume(workspacesRoot), VolumePath.root().resolve(id),
-                new WorkspaceMarker(name, createdAt.toEpochMilli()));
-        return workspacesRoot.resolve(id);
+    /** A workspace: its directory, named by its id. */
+    public static Path workspace(Path workspacesRoot, String id) {
+        try {
+            return Files.createDirectories(workspacesRoot.resolve(id));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public static Path project(Path workspaceDir, String name) {
@@ -77,11 +80,6 @@ public final class TestVolume {
     /** The id a session started at {@code start} goes by. */
     public static String sessionId(Instant start) {
         return VolumeWriter.sessionIdAt(start);
-    }
-
-    /** The name a recording opened at {@code openedAt} on a UTC machine has. */
-    public static String recordingName(Instant openedAt) {
-        return VolumeWriter.recordingName(openedAt, ZoneOffset.UTC);
     }
 
     public static Path file(Path dir, String name, String content) {

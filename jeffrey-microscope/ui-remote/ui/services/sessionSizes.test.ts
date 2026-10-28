@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { hasUnreportedSizes, isFailedSession } from '@remote/services/sessionGrouping.ts';
+import { hasUnreportedSizes } from '@remote/services/sessionSizes.ts';
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
@@ -52,7 +52,7 @@ function session(
   createdAt: number = BASE_CREATED_AT,
   duration: number = SHORT_DURATION
 ): RecordingSession {
-  // As a listing sends it: the files' count and size, never the files themselves
+  // As the backend reads it: failed when a newer session ended it before it wrote anything
   const sizeBytes = files.reduce((sum, f) => sum + (f.size ?? 0), 0);
   return new RecordingSession(
     id,
@@ -62,41 +62,12 @@ function session(
     createdAt + duration,
     newest,
     duration,
-    [],
-    false,
+    files,
+    !newest && sizeBytes === 0,
     files.length,
     sizeBytes
   );
 }
-
-describe('isFailedSession', () => {
-  it('marks an ended session without files as failed', () => {
-    expect(isFailedSession(session('s1', ENDED, []))).toBe(true);
-  });
-
-  it('marks an ended session with only zero-size files as failed', () => {
-    expect(isFailedSession(session('s1', ENDED, [file(0), file(0)]))).toBe(true);
-  });
-
-  it('does not mark an ended session with data as failed', () => {
-    expect(isFailedSession(session('s1', ENDED, [file(0), file(1)]))).toBe(false);
-  });
-
-  it('does not mark the newest zero-size session as failed', () => {
-    expect(isFailedSession(session('s1', NEWEST, []))).toBe(false);
-  });
-
-  it('treats unknown file sizes as zero bytes', () => {
-    const unsized = file(0);
-    (unsized as unknown as { size: number | null }).size = null;
-    expect(isFailedSession(session('s1', ENDED, [unsized]))).toBe(true);
-  });
-
-  it('marks a long ended session with no data as failed, however long it ran', () => {
-    const long = session('s1', ENDED, [file(0)], BASE_CREATED_AT, LONG_DURATION);
-    expect(isFailedSession(long)).toBe(true);
-  });
-});
 
 describe('hasUnreportedSizes', () => {
   it('flags the newest session whose files all measure zero', () => {
@@ -117,6 +88,10 @@ describe('hasUnreportedSizes', () => {
   it('does not flag a session that reported data', () => {
     const real = session('s1', NEWEST, [file(100)], BASE_CREATED_AT, LONG_DURATION);
     expect(hasUnreportedSizes(real)).toBe(false);
+  });
+
+  it('does not flag a session not read yet', () => {
+    expect(hasUnreportedSizes(undefined)).toBe(false);
   });
 
   it('does not flag the newest session with no files — there is nothing to report on', () => {

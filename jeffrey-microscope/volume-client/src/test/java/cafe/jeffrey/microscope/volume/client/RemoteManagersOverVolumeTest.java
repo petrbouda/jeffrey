@@ -37,9 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,17 +79,15 @@ class RemoteManagersOverVolumeTest {
 
         Path busy = VolumeWriter.instance(project, BUSY_INSTANCE);
         Path older = VolumeWriter.session(busy, T0.plusSeconds(60));
-        VolumeWriter.file(older, "rec-20260220-120100.jfr", CHUNK_OF_1000_BYTES);
+        VolumeWriter.file(older, "rec-20260220-120100+0000.jfr", CHUNK_OF_1000_BYTES);
         VolumeWriter.session(busy, T0.plusSeconds(900));
         Path newest = VolumeWriter.session(busy, T0.plusSeconds(1200));
-        VolumeWriter.file(newest, "rec-20260220-122000.jfr", CHUNK_OF_1000_BYTES);
-        VolumeWriter.file(newest, "rec-20260220-122100.jfr", CHUNK_OF_1000_BYTES);
+        VolumeWriter.file(newest, "rec-20260220-122000+0000.jfr", CHUNK_OF_1000_BYTES);
+        VolumeWriter.file(newest, "rec-20260220-122100+0000.jfr", CHUNK_OF_1000_BYTES);
 
         Path quiet = VolumeWriter.instance(project, QUIET_INSTANCE);
         VolumeWriter.session(quiet, T0);
-
-        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        clients = VolumeRemoteClients.of(new VolumeSource(new FilesystemVolume(root), clock, "test-volume", false));
+        clients = VolumeRemoteClients.of(new VolumeSource(new FilesystemVolume(root), "test-volume", false));
     }
 
     private RemoteInstancesManager instances() {
@@ -116,7 +112,6 @@ class RemoteManagersOverVolumeTest {
             List<ProjectInstanceInfo> instances = instances().findAll();
 
             assertEquals(List.of(BUSY_INSTANCE, QUIET_INSTANCE), instances.stream().map(ProjectInstanceInfo::id).toList());
-            assertEquals("orders", instances.getFirst().projectId());
         }
     }
 
@@ -152,7 +147,7 @@ class RemoteManagersOverVolumeTest {
 
             assertEquals(1000L, older.totalSizeBytes());
             assertEquals(1, older.fileCount());
-            assertEquals(List.of("rec-20260220-120100.jfr"),
+            assertEquals(List.of("rec-20260220-120100+0000.jfr"),
                     older.files().stream().map(file -> file.name()).toList());
         }
 

@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,20 +21,18 @@ import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
 import cafe.jeffrey.shared.common.InstantUtils;
 
 /**
- * A session as an instance's page names it: no file of it read.
+ * A session as its instance's listing names it, on the wire: nothing of it read.
  *
- * @param createdAt epoch millis when it started, from its name
- * @param newest    whether it is its instance's newest session, which may still grow
+ * @param createdAt epoch millis, off its name
  */
-public record RecordingSessionHeaderResponse(String id, String name, String instanceId, long createdAt, boolean newest) {
+public record RecordingSessionHeaderResponse(String id, String instanceId, long createdAt, boolean newest) {
 
     public static RecordingSessionHeaderResponse from(RecordingSessionHeader session) {
         return new RecordingSessionHeaderResponse(
-                session.id(), session.name(), session.instanceId(), session.createdAt().toEpochMilli(),
-                session.newest());
+                session.id(), session.instanceId(), session.createdAt().toEpochMilli(), session.newest());
     }
 
     public RecordingSessionHeader toHeader() {
-        return new RecordingSessionHeader(id, name, instanceId, InstantUtils.fromEpochMilli(createdAt), newest);
+        return new RecordingSessionHeader(id, instanceId, InstantUtils.fromEpochMilli(createdAt), newest);
     }
 }

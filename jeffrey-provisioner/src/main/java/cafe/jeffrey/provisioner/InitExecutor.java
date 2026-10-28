@@ -61,8 +61,7 @@ public class InitExecutor {
         // directory has been created, so this is where <<JEFFREY:...>> becomes answerable.
         // Values carrying <<ENV:...>> were already resolved when the configuration was read.
         Placeholders placeholders = Placeholders.of(
-                JeffreyPlaceholderSource.of(session.layout(), config.getProfilerPath(),
-                        EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
+                JeffreyPlaceholderSource.of(session.layout(), config.getProfilerPath()));
 
         AsyncProfilerResolver.ResolvedProfiler profiler =
                 profilerResolver.resolve(config.getProfilerCommand(), config.getProfilerPath());

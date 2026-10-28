@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
-import cafe.jeffrey.microscope.remote.client.InstanceRead;
+import cafe.jeffrey.microscope.remote.client.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.microscope.remote.client.InstancePage;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
@@ -29,7 +29,6 @@ import cafe.jeffrey.microscope.remote.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
@@ -38,7 +37,6 @@ import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
-import cafe.jeffrey.shared.volume.layout.WorkspaceMarker;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -50,15 +48,14 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -87,8 +84,6 @@ class VolumeRemoteClientsTest {
     @BeforeEach
     void setUp() throws IOException {
         Path workspace = Files.createDirectories(root.resolve("prod"));
-        Files.writeString(workspace.resolve(WorkspaceMarker.FILE_NAME),
-                Json.toString(new WorkspaceMarker("Production", T0.toEpochMilli())));
         project = VolumeWriter.project(workspace, "orders");
         clients = clients(new FilesystemVolume(root));
     }
@@ -98,8 +93,7 @@ class VolumeRemoteClientsTest {
     }
 
     private static RemoteClients clients(VolumeAccess volume, boolean readOnly) {
-        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
-        return VolumeRemoteClients.of(new VolumeSource(volume, clock, DESCRIPTION, readOnly));
+        return VolumeRemoteClients.of(new VolumeSource(volume, DESCRIPTION, readOnly));
     }
 
     /** A session started at {@code start}, named as the provisioner names it. */
@@ -114,8 +108,8 @@ class VolumeRemoteClientsTest {
     /** The instance's newest session, with an older chunk and its newest recording five minutes later. */
     private Path liveSession() {
         Path dir = session("pod-a", LIVE_START);
-        VolumeWriter.file(dir, "rec-20260220-121000.jfr", "older chunk");
-        VolumeWriter.file(dir, "rec-20260220-121500.jfr", "newest");
+        VolumeWriter.file(dir, "rec-20260220-121000+0000.jfr", "older chunk");
+        VolumeWriter.file(dir, "rec-20260220-121500+0000.jfr", "newest");
         return dir;
     }
 
@@ -137,13 +131,14 @@ class VolumeRemoteClientsTest {
             assertEquals(List.of("prod", "staging"), workspaces.stream().map(WorkspaceInfo::name).toList());
         }
 
-        /** One workspace, opened, goes by the name its marker gives it. */
+        /** One workspace, opened, is its directory: named by its id, created when the directory was. */
         @Test
-        void oneWorkspaceIsNamedByItsMarker() {
+        void oneWorkspaceIsItsDirectory() {
             WorkspaceInfo prod = clients.discovery().workspaceOrThrow("prod").orElseThrow();
 
-            assertEquals("Production", prod.name());
-            assertEquals(T0, prod.createdAt());
+            assertEquals("prod", prod.name());
+            assertNotNull(prod.createdAt());
+            assertEquals(Optional.empty(), clients.discovery().workspaceOrThrow("missing"));
         }
 
         @Test
@@ -196,7 +191,7 @@ class VolumeRemoteClientsTest {
         @Test
         void aFilterIsAppliedBeforeAnyFileIsRead() {
             liveSession();
-            VolumeWriter.file(session("pod-b", T0), "rec-20260220-120000.jfr", "chunk");
+            VolumeWriter.file(session("pod-b", T0), "rec-20260220-120000+0000.jfr", "chunk");
 
             List<RecordingSessionResponse> recent = clients.repository().recordingSessions(
                     ORDERS, RecordingSessionFilter.activeWithinLast(Duration.ofMinutes(45), NOW));
@@ -214,7 +209,7 @@ class VolumeRemoteClientsTest {
             assertTrue(session.newest());
             assertEquals(List.of(true, false),
                     session.files().stream().map(RepositoryFileResponse::newestRecording).toList());
-            assertEquals("rec-20260220-121500", session.files().getFirst().id());
+            assertEquals("rec-20260220-121500+0000", session.files().getFirst().id());
             assertEquals(Instant.parse("2026-02-20T12:20:00Z").toEpochMilli(), session.lastDataAt());
         }
 
@@ -250,31 +245,22 @@ class VolumeRemoteClientsTest {
     class Changes {
 
         @Test
-        void createsAWorkspaceDescribedByItsMarker() throws IOException {
-            WorkspaceInfo created = clients.discovery().createWorkspace("staging", " Staging ");
+        void createsAWorkspaceAsItsDirectoryAlone() throws IOException {
+            WorkspaceInfo created = clients.discovery().createWorkspace("staging");
 
-            assertEquals("Staging", created.name());
-            assertEquals(new WorkspaceMarker("Staging", NOW.toEpochMilli()),
-                    Json.read(Files.readString(root.resolve("staging").resolve(WorkspaceMarker.FILE_NAME)),
-                            WorkspaceMarker.class));
+            assertEquals("staging", created.id());
+            assertEquals("staging", created.name());
+            try (var entries = Files.list(root.resolve("staging"))) {
+                assertEquals(0, entries.count(), "nothing is written into it");
+            }
         }
 
-        /** The provisioner may write into a workspace's directory before anyone describes it. */
+        /** The provisioner may write into a workspace's directory first: it is a workspace already. */
         @Test
-        void adoptsADirectoryTheProvisionerAlreadyWroteInto() throws IOException {
-            VolumeWriter.project(Files.createDirectories(root.resolve("auto")), "auto");
-
-            assertEquals("Auto", clients.discovery().createWorkspace("auto", "Auto").name());
-            assertEquals(List.of("auto"), clients.discovery().allProjects("auto").stream()
-                    .map(RemoteProjectResponse::id).toList(), "the project already written there stays");
-        }
-
-        @Test
-        void refusesAnIdAlreadyDescribedANameAlreadyTakenAndAnInvalidId() {
-            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("prod", "Other"));
-            assertThrows(JeffreyClientException.class,
-                    () -> clients.discovery().createWorkspace("other", "Production"));
-            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("../up", "Up"));
+        void refusesAnIdWhoseDirectoryIsThereAndAnInvalidId() {
+            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("prod"));
+            assertTrue(Files.isDirectory(project), "the project already written there stays");
+            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("../up"));
         }
 
         @Test
@@ -321,7 +307,7 @@ class VolumeRemoteClientsTest {
             RemoteClients readOnly = clients(new FilesystemVolume(root), true);
             Path dir = liveSession();
 
-            assertThrows(JeffreyClientException.class, () -> readOnly.discovery().createWorkspace("new-ws", "New"));
+            assertThrows(JeffreyClientException.class, () -> readOnly.discovery().createWorkspace("new-ws"));
             assertThrows(JeffreyClientException.class, () -> readOnly.discovery().deleteWorkspace("prod"));
             assertThrows(JeffreyClientException.class, () -> readOnly.repository().deleteSession(ORDERS, LIVE));
             assertThrows(JeffreyClientException.class, () -> readOnly.projects().deleteProject(ORDERS));
@@ -357,13 +343,13 @@ class VolumeRemoteClientsTest {
             liveSession();
             session("pod-a", T0);
 
-            InstanceRead read = clients.instances().instance(ORDERS, "pod-a", InstancePage.whole()).orElseThrow();
+            InstanceWithSessionsResponse read = clients.instances().instance(ORDERS, "pod-a", InstancePage.whole()).orElseThrow();
 
             assertEquals(List.of(LIVE, id(T0)), read.sessions().stream().map(RecordingSessionHeaderResponse::id).toList());
             assertEquals(List.of(true, false),
                     read.sessions().stream().map(RecordingSessionHeaderResponse::newest).toList());
             assertEquals(LIVE_START.toEpochMilli(), read.sessions().getFirst().createdAt());
-            assertEquals("pod-a/" + LIVE, read.sessions().getFirst().name());
+            assertEquals("pod-a", read.sessions().getFirst().instanceId());
             assertEquals(Optional.empty(), clients.instances().instance(ORDERS, "pod-z", InstancePage.whole()));
         }
     }
@@ -382,7 +368,7 @@ class VolumeRemoteClientsTest {
         void aChunkStreamsUnderItsName() {
             liveSession();
 
-            assertEquals("rec-20260220-121000.jfr=older chunk", stream(LIVE, "rec-20260220-121000"));
+            assertEquals("rec-20260220-121000+0000.jfr=older chunk", stream(LIVE, "rec-20260220-121000+0000"));
         }
 
         /**
@@ -393,7 +379,7 @@ class VolumeRemoteClientsTest {
         void theNewestRecordingIsServedToo() {
             liveSession();
 
-            assertEquals("rec-20260220-121500.jfr=newest", stream(LIVE, "rec-20260220-121500"));
+            assertEquals("rec-20260220-121500+0000.jfr=newest", stream(LIVE, "rec-20260220-121500+0000"));
         }
 
         @Test
@@ -406,10 +392,10 @@ class VolumeRemoteClientsTest {
         @Test
         void anEmptyRecordingIsRefusedButAnEmptyLogIsServed() {
             Path dir = session("pod-a", T0);
-            VolumeWriter.file(dir, "rec-20260220-120000.jfr", "");
+            VolumeWriter.file(dir, "rec-20260220-120000+0000.jfr", "");
             VolumeWriter.file(dir, "app.log", "");
 
-            assertThrows(JeffreyClientException.class, () -> stream(id(T0), "rec-20260220-120000"));
+            assertThrows(JeffreyClientException.class, () -> stream(id(T0), "rec-20260220-120000+0000"));
             assertEquals("app.log=", stream(id(T0), "app.log"));
         }
 
@@ -417,10 +403,10 @@ class VolumeRemoteClientsTest {
         @Test
         void theArchiveIsServedWhenARecordingAndItsArchiveShareAnId() {
             Path dir = session("pod-a", T0);
-            VolumeWriter.file(dir, "rec-20260220-120000.jfr", "raw");
-            VolumeWriter.file(dir, "rec-20260220-120000.jfr.lz4", "archived");
+            VolumeWriter.file(dir, "rec-20260220-120000+0000.jfr", "raw");
+            VolumeWriter.file(dir, "rec-20260220-120000+0000.jfr.lz4", "archived");
 
-            assertEquals("rec-20260220-120000.jfr.lz4=archived", stream(id(T0), "rec-20260220-120000"));
+            assertEquals("rec-20260220-120000+0000.jfr.lz4=archived", stream(id(T0), "rec-20260220-120000+0000"));
         }
     }
 

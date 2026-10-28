@@ -30,7 +30,6 @@ import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeWorkspace;
-import cafe.jeffrey.shared.volume.layout.WorkspaceCreation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,16 +37,14 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The workspaces and projects at the volume's root. Every visible directory there is a workspace:
- * named by its {@code .workspace-info.json} when someone created it, by its id otherwise — the
- * provisioner writes into a workspace before anyone describes it.
+ * The workspaces and projects at the volume's root. Every visible directory there is a workspace,
+ * named by its id — the reference id the provisioner writes into; nothing in it is read.
  */
 final class VolumeDiscoveryClient implements DiscoveryClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(VolumeDiscoveryClient.class);
 
     private static final String ID_TAKEN = "Workspace with reference ID '%s' already exists";
-    private static final String NAME_TAKEN = "Workspace with name '%s' already exists";
 
     private final VolumeSource source;
 
@@ -62,10 +59,10 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
         return new PublicApiInfo(source.description());
     }
 
-    /** One listing of the volume's root: each workspace by its id, no marker read. */
+    /** One listing of the volume's root: each workspace by its id. */
     @Override
     public List<WorkspaceInfo> allWorkspaces() {
-        return source.read(() -> VolumeWorkspace.listedAt(source.volume()).stream()
+        return source.read(() -> VolumeWorkspace.all(source.volume()).stream()
                 .map(VolumeDiscoveryClient::workspace)
                 .toList());
     }
@@ -85,33 +82,25 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
 
     @Override
     public Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId) {
-        return source.read(() -> source.workspaceDirectory(workspaceId).map(this::workspace));
+        return source.read(() -> VolumeWorkspace.at(source.volume(), workspaceId).map(VolumeDiscoveryClient::workspace));
     }
 
-    /**
-     * Creates a workspace: its directory, adopting one the provisioner already wrote into,
-     * described by its marker; refused for an id already described or a name another workspace
-     * goes by.
-     */
+    /** Creates a workspace: its directory; refused for an id whose directory is there already. */
     @Override
-    public WorkspaceInfo createWorkspace(String referenceId, String name) {
+    public WorkspaceInfo createWorkspace(String referenceId) {
         WritableVolume volume = source.writable("Cannot create workspace " + referenceId);
-        if (!WorkspaceReferenceId.isValid(referenceId) || name == null || name.isBlank()) {
+        if (!WorkspaceReferenceId.isValid(referenceId)) {
             throw Exceptions.invalidRequest("Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
         }
-        String trimmedName = name.trim();
         return source.read(() -> {
-            WorkspaceCreation creation =
-                    VolumeChanges.createWorkspace(volume, referenceId, trimmedName, source.clock().millis());
-            if (creation == WorkspaceCreation.ID_TAKEN) {
+            if (!VolumeChanges.createWorkspace(volume, referenceId)) {
                 throw Exceptions.invalidRequest(ID_TAKEN.formatted(referenceId));
-            }
-            if (creation == WorkspaceCreation.NAME_TAKEN) {
-                throw Exceptions.invalidRequest(NAME_TAKEN.formatted(trimmedName));
             }
             LOG.info("Created workspace on the recording volume: workspace_id={} source={}",
                     referenceId, source.description());
-            return workspace(VolumePath.root().resolve(referenceId));
+            return VolumeWorkspace.at(volume, referenceId)
+                    .map(VolumeDiscoveryClient::workspace)
+                    .orElseThrow(() -> Exceptions.workspaceNotFound(referenceId));
         });
     }
 
@@ -119,9 +108,9 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
     public void deleteWorkspace(String workspaceId) {
         WritableVolume volume = source.writable("Cannot delete workspace " + workspaceId);
         source.read(() -> {
-            VolumePath directory = source.workspaceDirectory(workspaceId)
+            VolumeWorkspace workspace = VolumeWorkspace.at(volume, workspaceId)
                     .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
-            volume.delete(directory);
+            volume.delete(workspace.path());
             LOG.info("Deleted workspace on the recording volume: workspace_id={} source={}",
                     workspaceId, source.description());
         });
@@ -148,12 +137,7 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
         return VolumeResponses.project(project, workspaceId);
     }
 
-    /** One workspace, read: its marker, for the name it may go by. */
-    private WorkspaceInfo workspace(VolumePath directory) {
-        return workspace(VolumeWorkspace.at(source.volume(), directory));
-    }
-
     private static WorkspaceInfo workspace(VolumeWorkspace workspace) {
-        return VolumeResponses.workspace(workspace.id(), workspace.name(), workspace.createdAt().orElse(null));
+        return VolumeResponses.workspace(workspace.id(), workspace.createdAt().orElse(null));
     }
 }

@@ -19,9 +19,9 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type { RequestOptions } from '@shared/services/api/BasePlatformClient';
 import Workspace from '@remote/services/api/model/Workspace';
 
+/** A workspace to create: its reference id, which names its folder and is its name. */
 export interface CreateWorkspaceRequest {
   referenceId: string;
-  name: string;
 }
 
 /**

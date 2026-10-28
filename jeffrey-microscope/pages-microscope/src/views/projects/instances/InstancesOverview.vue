@@ -80,7 +80,7 @@
           >
             <td>
               <router-link :to="generateInstanceUrl(instance.id)" class="instance-name" @click.stop>
-                {{ instance.instanceName }}
+                {{ instance.id }}
               </router-link>
             </td>
             <td
@@ -140,7 +140,7 @@ function compareByStart(a: ProjectInstance, b: ProjectInstance): number {
   if (a.createdAt !== b.createdAt) {
     return (b.createdAt ?? Number.NEGATIVE_INFINITY) - (a.createdAt ?? Number.NEGATIVE_INFINITY);
   }
-  return a.instanceName.localeCompare(b.instanceName);
+  return a.id.localeCompare(b.id);
 }
 
 const filteredInstances = computed(() => {
@@ -148,7 +148,7 @@ const filteredInstances = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(instance => instance.instanceName.toLowerCase().includes(query));
+    result = result.filter(instance => instance.id.toLowerCase().includes(query));
   }
 
   return [...result].sort(compareByStart);

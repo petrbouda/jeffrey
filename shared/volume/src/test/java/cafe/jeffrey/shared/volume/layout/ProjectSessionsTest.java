@@ -129,25 +129,14 @@ class ProjectSessionsTest {
     class Instances {
 
         @Test
-        void withoutASessionHasNoNewest() {
+        void countsTheSessionsItsListingNames() {
             VolumeWriter.instance(project, "pod-a");
+            session("pod-b", T0);
+            session("pod-b", T0.plusSeconds(120));
 
-            InstanceSummary summary = sessions.instances().getFirst();
+            List<InstanceSummary> summaries = sessions.instances();
 
-            assertEquals(0, summary.sessionCount());
-            assertEquals(Optional.empty(), summary.newest());
-        }
-
-        @Test
-        void isSummedUpByItsNewestSession() {
-            session("pod-a", T0);
-            String second = session("pod-a", T0.plusSeconds(120));
-
-            InstanceSummary summary = sessions.instances().getFirst();
-
-            assertEquals(second, summary.newest().orElseThrow().id());
-            assertTrue(summary.newest().orElseThrow().newest());
-            assertEquals(2, summary.sessionCount());
+            assertEquals(List.of(0, 2), summaries.stream().map(InstanceSummary::sessionCount).toList());
         }
 
         @Test

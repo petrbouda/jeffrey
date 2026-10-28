@@ -120,7 +120,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <li>Creates workspace/project/session directory structure</li>
           <li>Generates JVM flags for async-profiler and enabled features</li>
           <li>Writes output files: <code>.env</code> file (shell exports) and/or JVM arguments file (@argfile format)</li>
-          <li>Names the session directory with a UUIDv7 &mdash; the folder names are all Jeffrey reads, no metadata file is written below the workspace</li>
+          <li>Names the session directory with a UUIDv7 &mdash; the folder names are all Jeffrey reads, no metadata file is written anywhere</li>
         </ul>
 
         <h3>When to Use Jeffrey Provisioner</h3>

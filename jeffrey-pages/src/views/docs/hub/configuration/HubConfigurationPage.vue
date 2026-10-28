@@ -52,8 +52,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
     -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
     -Dlogging.logback.rollingpolicy.max-file-size=10MB
     -Dlogging.logback.rollingpolicy.total-size-cap=100MB
-    -Dlogging.logback.rollingpolicy.max-history=2
-    -Djeffrey.hub.workspaces.auto-create=true`;
+    -Dlogging.logback.rollingpolicy.max-history=2`;
 </script>
 
 <template>
@@ -338,15 +337,17 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
         names); a project's id is its directory name (the provisioner's <code>project.name</code>);
         an instance's id is its directory name (<code>instance-name</code>, <code>HOSTNAME</code> by
         default); a session's id is its directory name, a UUIDv7 whose timestamp is the session's start.
-        There are no marker files below the workspace: a project or an instance is any visible
+        There are no marker files anywhere on the volume: a project or an instance is any visible
         (non-dot) child directory, a session a visible directory named with a UUIDv7, and anything
         else under an instance is ignored.
       </p>
       <p>
-        A directory is a workspace once the Hub wrote its <code>.workspace-info.json</code> (name and
-        creation time) — by the default-workspace initializer — or Microscope wrote it when a user
-        created the workspace on the Azure file share. Creating a workspace whose directory already exists adopts it with its projects.
-        Directories starting with <code>.</code> are skipped.
+        Every root directory whose name is a valid reference id is a workspace, named by that id;
+        there is no separate display name. It does not matter who created the folder: the
+        provisioner creates a missing workspace folder itself, Microscope creates it when a user
+        creates the workspace on the Azure file share, and the default-workspace initializer creates
+        the default one at startup. Directories starting with <code>.</code> are skipped, so old
+        <code>.workspace-info.json</code> files left on a volume are ignored.
       </p>
 
       <table>
@@ -361,22 +362,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>jeffrey.hub.default-workspace.reference-id</code></td>
             <td><code>$default</code></td>
-            <td>Reference id of the workspace every Hub starts with; created at startup if missing.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.default-workspace.name</code></td>
-            <td><code>$default</code></td>
-            <td>Display name of that default workspace.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.workspaces.auto-create</code></td>
-            <td><code>false</code></td>
-            <td>
-              List every workspace directory on the volume, including one without the Hub's
-              <code>.workspace-info.json</code> — one the provisioner wrote into but nobody created.
-              Such a workspace is named after its directory. Off, that directory is not listed
-              until a workspace with its reference id is created.
-            </td>
+            <td>Reference id of the workspace every Hub starts with; its folder is created at startup if missing.</td>
           </tr>
         </tbody>
       </table>

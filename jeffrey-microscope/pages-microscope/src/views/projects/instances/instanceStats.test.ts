@@ -23,7 +23,7 @@ import ProjectInstance from '@remote/services/api/model/ProjectInstance.ts';
 const BASE = 1_750_000_000_000;
 
 function instance(id: string, createdAt: number | null): ProjectInstance {
-  return new ProjectInstance(id, id, createdAt);
+  return new ProjectInstance(id, createdAt);
 }
 
 describe('summarizeInstances', () => {

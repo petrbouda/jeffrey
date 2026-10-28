@@ -17,8 +17,8 @@
 
 export default class ProjectInstance {
   constructor(
+    /** Its directory name: the instance's name, typically the pod's hostname. */
     public id: string,
-    public instanceName: string,
     /** When its directory was created; null on a share that lists no times. */
     public createdAt: number | null
   ) {}

@@ -18,28 +18,26 @@
 package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.volume.VolumeAccess;
-import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * A directory at the volume's root read as a workspace: named by the hub's
- * {@code .workspace-info.json} when one describes it, by its id otherwise — the provisioner writes
- * into a workspace before anyone describes it. Every reader of a volume names a workspace this way.
+ * A workspace: a visible directory at the volume's root, named by its id — the reference id the
+ * provisioner writes into, which is also its name. Nothing in it is read to tell, like every
+ * level below it.
  *
  * @param path      the directory, named by the workspace's id
- * @param createdAt the marker's time, or the directory's own; empty when neither can be read
- * @param described whether the hub's marker describes it; false for a workspace only listed
+ * @param createdAt when the directory was created, as the volume lists it; empty on a share that
+ *                  lists no times
  */
-public record VolumeWorkspace(VolumePath path, String name, Optional<Instant> createdAt, boolean described) {
+public record VolumeWorkspace(VolumePath path, Optional<Instant> createdAt) {
 
     public VolumeWorkspace {
-        if (path == null || name == null || createdAt == null) {
-            throw new IllegalArgumentException("A workspace needs its directory, a name and its creation time");
+        if (path == null || createdAt == null) {
+            throw new IllegalArgumentException("A workspace needs its directory and its creation time");
         }
     }
 
@@ -47,35 +45,20 @@ public record VolumeWorkspace(VolumePath path, String name, Optional<Instant> cr
         return path.name();
     }
 
-    /** The workspace in this directory, read now. */
-    public static VolumeWorkspace at(VolumeAccess volume, VolumePath directory) {
-        Optional<WorkspaceMarker> marker =
-                VolumeMarkers.read(volume, directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class);
-        String name = marker.map(WorkspaceMarker::name).orElse(directory.name());
-        Optional<Instant> createdAt = marker.map(found -> Instant.ofEpochMilli(found.createdAt()))
-                .or(() -> volume.stat(directory).flatMap(VolumeEntry::createdAt));
-        return new VolumeWorkspace(directory, name, createdAt, marker.isPresent());
-    }
-
-    /**
-     * Every visible directory at the volume's root, read as a workspace: each marker read, which is
-     * what telling a workspace's name from its id takes. For the rare change that must know every
-     * name; a list shows {@link #listedAt} instead.
-     */
+    /** Every workspace on the volume: one listing of its root. */
     public static List<VolumeWorkspace> all(VolumeAccess volume) {
-        return VolumeMarkers.childDirectories(volume, VolumePath.root()).stream()
-                .map(directory -> at(volume, directory))
+        return VolumeDirectories.childDirectoryEntries(volume, VolumePath.root()).stream()
+                .map(entry -> new VolumeWorkspace(entry.path(), entry.createdAt()))
                 .toList();
     }
 
     /**
-     * Every visible directory at the volume's root as one listing names it: by its id, created
-     * when the listing says, no marker read.
+     * The workspace by that id, or empty when no directory is there or the id is not one plain
+     * path element: one look at it.
      */
-    public static List<VolumeWorkspace> listedAt(VolumeAccess volume) {
-        return VolumeMarkers.childDirectoryEntries(volume, VolumePath.root()).stream()
-                .sorted(Comparator.comparing(VolumeEntry::name))
-                .map(entry -> new VolumeWorkspace(entry.path(), entry.name(), entry.createdAt(), false))
-                .toList();
+    public static Optional<VolumeWorkspace> at(VolumeAccess volume, String id) {
+        return VolumePath.root().visibleChild(id)
+                .flatMap(directory -> VolumeDirectories.directory(volume, directory)
+                        .map(entry -> new VolumeWorkspace(directory, entry.createdAt())));
     }
 }

@@ -18,21 +18,19 @@
 package cafe.jeffrey.hub.model;
 
 import java.time.Instant;
-import java.util.Optional;
 
 /**
  * A project as its directory on the volume names it.
  *
- * @param id          its directory name, which is also its name
+ * @param id          its directory name — the project name the provisioner was configured with
  * @param workspaceId the workspace directory the project lies in
- * @param createdAt   when its directory was created, as the volume lists it; empty on a share that
- *                    lists no times
+ * @param createdAt   when its directory was created
  */
-public record ProjectInfo(String id, String name, String workspaceId, Optional<Instant> createdAt) {
+public record ProjectInfo(String id, String workspaceId, Instant createdAt) {
 
     public ProjectInfo {
-        if (id == null || name == null || workspaceId == null || createdAt == null) {
-            throw new IllegalArgumentException("A project needs its id, name, workspace and creation time");
+        if (id == null || workspaceId == null || createdAt == null) {
+            throw new IllegalArgumentException("A project needs its id, workspace and creation time");
         }
     }
 }

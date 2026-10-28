@@ -28,6 +28,8 @@ import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
@@ -47,14 +49,22 @@ final class VolumeResponses {
     private VolumeResponses() {
     }
 
-    /** A session as a listing carries it: its file count and size, none of its files. */
-    static RecordingSessionResponse header(ProjectTree project, VolumeSession session) {
-        return response(project, session, false);
+    /**
+     * A session as a listing of many carries it: its file count and size off its own listing,
+     * none of its files, none of them looked at.
+     */
+    static RecordingSessionResponse listed(ProjectTree project, VolumeSession session) {
+        List<VolumeEntry> files = project.listedFiles(session);
+        long bytes = files.stream().mapToLong(VolumeEntry::size).sum();
+        return response(project, session, List.of(), new SessionSize(files.size(), bytes));
     }
 
     /** A session read on its own, with every file. */
     static RecordingSessionResponse withFiles(ProjectTree project, VolumeSession session) {
-        return response(project, session, true);
+        List<SessionFile> files = project.files(session);
+        long bytes = files.stream().mapToLong(SessionFile::size).sum();
+        return response(project, session, files.stream().map(VolumeResponses::file).toList(),
+                new SessionSize(files.size(), bytes));
     }
 
     /**
@@ -77,14 +87,13 @@ final class VolumeResponses {
 
     /** An instance as its directory names it. */
     static InstanceResponse instance(InstanceDirectory instance) {
-        return InstanceResponse.summary(instance.id(), instance.createdAt().map(Instant::toEpochMilli).orElse(null));
+        return new InstanceResponse(instance.id(), InstantUtils.toEpochMilli(instance.createdAt().orElse(null)));
     }
 
     /** A session as its instance's listing names it: nothing of it read. */
     static RecordingSessionHeaderResponse header(SessionHeader session) {
         return new RecordingSessionHeaderResponse(
                 session.id(),
-                session.name(),
                 session.instanceId(),
                 session.createdAt().toEpochMilli(),
                 session.newest());
@@ -101,20 +110,18 @@ final class VolumeResponses {
     }
 
     /**
-     * @param name      the name its marker gives it, or its id for a directory without one
-     * @param createdAt from its marker, or the directory's own creation time
+     * A workspace as its directory names it: its id is its reference id and its name.
+     *
+     * @param createdAt the directory's creation time; {@code null} on a share that lists no times
      */
-    static WorkspaceInfo workspace(String id, String name, Instant createdAt) {
-        return new WorkspaceInfo(id, id, null, name, null, null, createdAt, WorkspaceStatus.AVAILABLE);
+    static WorkspaceInfo workspace(String id, Instant createdAt) {
+        return new WorkspaceInfo(id, id, null, id, null, null, createdAt, WorkspaceStatus.AVAILABLE);
     }
 
-    /**
-     * The session in Microscope's model, then on the wire: its span from the names its listing
-     * shows, its size from its files, and those files themselves only when it carries them.
-     */
-    private static RecordingSessionResponse response(ProjectTree project, VolumeSession session, boolean carryFiles) {
-        List<SessionFile> files = project.files(session);
-        long bytes = files.stream().mapToLong(SessionFile::size).sum();
+    /** The session in Microscope's model, then on the wire: its span from the names its listing shows. */
+    private static RecordingSessionResponse response(
+            ProjectTree project, VolumeSession session, List<RepositoryFile> files, SessionSize size) {
+
         RecordingSession described = new RecordingSession(
                 session.id(),
                 session.name(),
@@ -123,9 +130,9 @@ final class VolumeResponses {
                 RecordedSpan.end(project.recordingStarts(session)).orElse(null),
                 session.newest(),
                 null,
-                carryFiles ? files.stream().map(VolumeResponses::file).toList() : List.of(),
-                failed(session, bytes),
-                new SessionSize(files.size(), bytes));
+                files,
+                failed(session, size.bytes()),
+                size);
         return RecordingSessionResponse.from(described);
     }
 

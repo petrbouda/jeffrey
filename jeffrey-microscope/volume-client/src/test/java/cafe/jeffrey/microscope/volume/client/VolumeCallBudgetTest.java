@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.remote.client.InstancePage;
-import cafe.jeffrey.microscope.remote.client.InstanceRead;
+import cafe.jeffrey.microscope.remote.client.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.RemoteClients;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionHeaderResponse;
@@ -37,10 +37,8 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -139,12 +137,6 @@ class VolumeCallBudgetTest {
         }
 
         @Override
-        public void write(VolumePath file, byte[] content) {
-            calls.add("write " + file);
-            delegate.write(file, content);
-        }
-
-        @Override
         public void delete(VolumePath path) {
             calls.add("delete " + path);
             delegate.delete(path);
@@ -188,21 +180,19 @@ class VolumeCallBudgetTest {
     }
 
     private RemoteClients clientsOver(boolean listsTimes) {
-        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         volume = new CountingVolume(new FilesystemVolume(root), listsTimes);
-        return VolumeRemoteClients.of(new VolumeSource(volume, clock, "budget", true));
+        return VolumeRemoteClients.of(new VolumeSource(volume, "budget", true));
     }
 
     /** As Microscope reads a share: the independent reads of a call several at a time. */
     private RemoteClients asMicroscopeReadsAShare() {
-        Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         volume = new CountingVolume(new FilesystemVolume(root), true);
-        return VolumeRemoteClients.of(new VolumeSource(volume, clock, "budget", true,
+        return VolumeRemoteClients.of(new VolumeSource(volume, "budget", true,
                 new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
     }
 
     /** What the instance page asks for: its project found, as every project-scoped request does, then its page. */
-    private static InstanceRead openTheInstancePage(RemoteClients over) {
+    private static InstanceWithSessionsResponse openTheInstancePage(RemoteClients over) {
         over.discovery().project(ORDERS.workspaceId(), ORDERS.projectId()).orElseThrow();
         return over.instances().instance(ORDERS, "pod-1", InstancePage.newest(Optional.empty())).orElseThrow();
     }
@@ -234,7 +224,7 @@ class VolumeCallBudgetTest {
         /** A look at the instance, so an unknown one is not found, and one listing of it; no session read. */
         @Test
         void anInstancesSessionsWhateverTheirNumber() {
-            InstanceRead page = clients.instances().instance(ORDERS, "pod-1", InstancePage.whole()).orElseThrow();
+            InstanceWithSessionsResponse page = clients.instances().instance(ORDERS, "pod-1", InstancePage.whole()).orElseThrow();
 
             assertEquals(2, volume.countAndReset());
             assertEquals(SESSIONS, page.sessions().size());
@@ -261,17 +251,17 @@ class VolumeCallBudgetTest {
             assertEquals(1, volume.countAndReset());
         }
 
-        /** A look at the directory and its marker, for the name it may go by. */
+        /** One look at the directory, named by its id, which gives its time too; nothing in it is read. */
         @Test
-        void aWorkspaceIsOneLookAndItsMarker() {
+        void aWorkspaceIsOneLook() {
             clients.discovery().workspaceOrThrow("prod").orElseThrow();
 
-            assertEquals(3, volume.countAndReset(), "the look, the marker, and the directory's time when no marker is there");
+            assertEquals(1, volume.countAndReset());
         }
 
         @Test
         void theInstancePageAfterItsProject() {
-            InstanceRead page = openTheInstancePage(clients);
+            InstanceWithSessionsResponse page = openTheInstancePage(clients);
 
             assertEquals(1 + 2, volume.countAndReset());
             assertEquals(InstancePage.PAGE_SIZE, page.sessions().size());
@@ -282,7 +272,7 @@ class VolumeCallBudgetTest {
         void theOlderPageStartsAfterTheCursor() {
             String lastOnFirstPage = SESSION_IDS.get(SESSIONS - InstancePage.PAGE_SIZE);
 
-            InstanceRead older = clients.instances()
+            InstanceWithSessionsResponse older = clients.instances()
                     .instance(ORDERS, "pod-1", InstancePage.newest(Optional.of(lastOnFirstPage)))
                     .orElseThrow();
 
@@ -297,32 +287,31 @@ class VolumeCallBudgetTest {
     class OpeningASession {
 
         /**
-         * The project's listing, a look into each instance by name until one holds the session —
-         * {@code pod-1}, the first — its own listing, and its instance's listing to say whether it
-         * is the newest.
+         * The project's listing, each instance's listing by name until one holds the session —
+         * {@code pod-1}, the first — which also says whether it is the newest, and its own listing.
          */
         @Test
         void theNewestReadsItsListingAndItsInstances() {
             clients.repository().recordingSession(ORDERS, NEWEST_SESSION);
 
-            assertEquals(1 + 1 + 1 + 1, volume.countAndReset());
+            assertEquals(1 + 1 + 1, volume.countAndReset());
         }
 
         @Test
         void anOlderOneTheSame() {
             clients.repository().recordingSession(ORDERS, OLDER_SESSION);
 
-            assertEquals(1 + 1 + 1 + 1, volume.countAndReset());
+            assertEquals(1 + 1 + 1, volume.countAndReset());
         }
 
-        /** Held by the last instance by name: a look into each before it. */
+        /** Held by the last instance by name: a listing of each before it. */
         @Test
         void inTheLastInstanceAfterALookIntoEach() {
             String last = VolumeWriter.sessionIdAt(T0.plusSeconds(OTHER_INSTANCES));
 
             clients.repository().recordingSession(ORDERS, last);
 
-            assertEquals(1 + (1 + OTHER_INSTANCES) + 1 + 1, volume.countAndReset());
+            assertEquals(1 + (1 + OTHER_INSTANCES) + 1, volume.countAndReset());
         }
 
         @Test

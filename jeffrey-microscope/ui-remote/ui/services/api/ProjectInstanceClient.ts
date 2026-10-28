@@ -18,18 +18,9 @@
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import ProjectInstance from '@remote/services/api/model/ProjectInstance';
-import RecordingSession from '@remote/services/api/model/RecordingSession';
+import RecordingSessionHeader from '@remote/services/api/model/RecordingSessionHeader';
 
 const NOT_FOUND = 404;
-
-/** A session as an instance's page names it. */
-interface SessionHeader {
-  id: string;
-  name: string;
-  instanceId: string;
-  createdAt: number;
-  newest: boolean;
-}
 
 export interface InstanceWithSessions {
   instance: ProjectInstance;
@@ -37,7 +28,7 @@ export interface InstanceWithSessions {
    * A page of the instance's sessions, newest first, each only named: when it started and whether
    * it is the newest. What a session holds is read when it is opened.
    */
-  sessions: RecordingSession[];
+  sessions: RecordingSessionHeader[];
   /** Whether sessions older than the page's are left to read. */
   hasOlder: boolean;
 }
@@ -62,7 +53,7 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       .get<any>(`/${instanceId}`, params)
       .then(data => ({
         instance: this.mapToInstance(data.instance),
-        sessions: (data.sessions as SessionHeader[]).map(this.mapToSession),
+        sessions: (data.sessions as any[]).map(this.mapToHeader),
         hasOlder: data.hasOlder === true
       }))
       .catch(error => {
@@ -74,23 +65,11 @@ export default class ProjectInstanceClient extends BasePlatformClient {
   }
 
   private mapToInstance = (data: any): ProjectInstance => {
-    return new ProjectInstance(data.id, data.instanceName, data.createdAt ?? null);
+    return new ProjectInstance(data.id, data.createdAt ?? null);
   };
 
-  /** A session as the page names it: nothing of it read, so its figures are unknown, not zero. */
-  private mapToSession = (header: SessionHeader): RecordingSession => {
-    return new RecordingSession(
-      header.id,
-      header.name,
-      header.instanceId,
-      header.createdAt,
-      null,
-      header.newest,
-      null,
-      [],
-      false,
-      null,
-      null
-    );
+  /** A session as the page names it: nothing of it read. */
+  private mapToHeader = (data: any): RecordingSessionHeader => {
+    return new RecordingSessionHeader(data.id, data.instanceId, data.createdAt, data.newest === true);
   };
 }

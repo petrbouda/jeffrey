@@ -18,7 +18,6 @@
 package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.volume.ReadFanOut;
-import cafe.jeffrey.shared.volume.VolumeEntry;
 
 import java.util.Comparator;
 import java.util.List;
@@ -59,11 +58,8 @@ public final class ProjectSessions {
 
     /** Every session of the project, newest first, each read: every instance's listing, then every session's. */
     public List<VolumeSession> all() {
-        List<List<SessionDirectory>> byInstance =
-                fanOut.map(tree.instances(), instance -> tree.sessionsOldestFirst(instance.path()));
-        List<SessionHeader> headers = byInstance.stream()
-                .flatMap(oldestFirst -> oldestFirst.stream()
-                        .map(session -> new SessionHeader(session, session.equals(oldestFirst.getLast()))))
+        List<SessionHeader> headers = fanOut.map(tree.instances(), tree::sessionsNewestFirst).stream()
+                .flatMap(List::stream)
                 .toList();
         return fanOut.map(headers, this::read).stream()
                 .sorted(NEWEST_FIRST)
@@ -72,39 +68,24 @@ public final class ProjectSessions {
 
     /** The newest {@code limit} sessions of every instance, each instance's newest first, each read. */
     public List<VolumeSession> newestOfEachInstance(int limit) {
-        return fanOut.map(tree.instances(), instance -> {
-                    List<SessionHeader> newestFirst = newestFirst(tree.sessionsOldestFirst(instance.path()));
-                    return newestFirst.subList(0, Math.min(limit, newestFirst.size())).stream()
-                            .map(this::read)
-                            .toList();
-                })
+        return fanOut.map(tree.instances(), instance -> tree.sessionsNewestFirst(instance).stream()
+                        .limit(limit)
+                        .map(this::read)
+                        .toList())
                 .stream()
                 .flatMap(List::stream)
                 .toList();
     }
 
-    /**
-     * One session, read, or empty when the project holds none by that id. Whether it is its
-     * instance's newest is read off the instance's listing.
-     */
+    /** One session, read, or empty when the project holds none by that id. */
     public Optional<VolumeSession> session(String sessionId) {
-        return tree.session(sessionId)
-                .map(session -> read(new SessionHeader(session, tree.isNewest(session))));
+        return tree.session(sessionId).map(this::read);
     }
 
-    /**
-     * Every instance with its count and its newest session, read: one listing of each instance's
-     * directory, whose names say which session is the newest and how many there are, then that
-     * session's listing.
-     */
+    /** Every instance with how many sessions it holds: one listing of each instance's directory. */
     public List<InstanceSummary> instances() {
-        return fanOut.map(tree.instances(), instance -> {
-            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(instance.path());
-            Optional<VolumeSession> newest = oldestFirst.isEmpty()
-                    ? Optional.empty()
-                    : Optional.of(read(new SessionHeader(oldestFirst.getLast(), true)));
-            return new InstanceSummary(instance, oldestFirst.size(), newest);
-        });
+        return fanOut.map(tree.instances(),
+                instance -> new InstanceSummary(instance, tree.sessionsNewestFirst(instance).size()));
     }
 
     /**
@@ -114,19 +95,11 @@ public final class ProjectSessions {
      */
     public Optional<InstanceSessionList> instance(String instanceId, SessionPage page) {
         return tree.instance(instanceId).map(instance -> {
-            List<SessionHeader> newestFirst = newestFirst(tree.sessionsOldestFirst(instance.path()));
+            List<SessionHeader> newestFirst = tree.sessionsNewestFirst(instance);
             int start = startOf(newestFirst, page);
             int end = (int) Math.min((long) start + page.limit(), newestFirst.size());
             return new InstanceSessionList(instance, newestFirst.subList(start, end), end < newestFirst.size());
         });
-    }
-
-    /** An instance's sessions newest first, the first of them its newest. */
-    private static List<SessionHeader> newestFirst(List<SessionDirectory> oldestFirst) {
-        List<SessionDirectory> reversed = oldestFirst.reversed();
-        return reversed.stream()
-                .map(session -> new SessionHeader(session, session.equals(reversed.getFirst())))
-                .toList();
     }
 
     /** Where a page starts: after the session its cursor names, or past the end for one not there. */
@@ -142,6 +115,6 @@ public final class ProjectSessions {
 
     /** A session off one listing of its directory. */
     private VolumeSession read(SessionHeader session) {
-        return new VolumeSession(session.directory(), session.newest(), tree.listing(session.directory()));
+        return new VolumeSession(session, tree.listing(session.directory()));
     }
 }

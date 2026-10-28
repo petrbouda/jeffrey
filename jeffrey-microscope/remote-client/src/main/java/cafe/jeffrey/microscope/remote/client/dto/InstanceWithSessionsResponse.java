@@ -30,6 +30,10 @@ import java.util.List;
 public record InstanceWithSessionsResponse(
         InstanceResponse instance, List<RecordingSessionHeaderResponse> sessions, boolean hasOlder) {
 
+    public InstanceWithSessionsResponse {
+        sessions = List.copyOf(sessions);
+    }
+
     public static InstanceWithSessionsResponse from(InstanceWithSessions found) {
         return new InstanceWithSessionsResponse(
                 InstanceResponse.from(found.instance()),

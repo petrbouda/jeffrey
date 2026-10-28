@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.provisioner.placeholder;
 
-import cafe.jeffrey.provisioner.EnvFileBuilder;
 import cafe.jeffrey.provisioner.SessionLayout;
 import cafe.jeffrey.shared.common.CliConstants;
 import org.junit.jupiter.api.Nested;
@@ -113,8 +112,7 @@ class PlaceholdersTest {
                             Path.of("/workspaces/ws/proj"),
                             SESSION,
                             ZoneOffset.UTC),
-                    "/libs/libasyncProfiler-amd64.so",
-                    EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
+                    "/libs/libasyncProfiler-amd64.so"));
         }
 
         @Test

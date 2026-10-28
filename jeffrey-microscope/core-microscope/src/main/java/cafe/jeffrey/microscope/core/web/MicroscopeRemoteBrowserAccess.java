@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.dto.workspace.Mappers;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteBrowserAccess;
 import cafe.jeffrey.shared.ui.remote.dto.ProjectResponse;
@@ -48,13 +47,13 @@ public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {
 
     @Override
     public WorkspaceResponse workspace(String workspaceId) {
-        WorkspaceManager workspace = resolver.resolveWorkspace(workspaceId);
-        return Mappers.toResponse(workspace.resolveInfo());
+        // Resolving it read the workspace just now: its marker, for the name it may go by
+        return Mappers.toResponse(resolver.resolveWorkspace(workspaceId).localInfo());
     }
 
     @Override
-    public WorkspaceResponse createWorkspace(String referenceId, String name) {
-        return Mappers.toResponse(resolver.resolveRemote().createWorkspace(referenceId, name));
+    public WorkspaceResponse createWorkspace(String referenceId) {
+        return Mappers.toResponse(resolver.resolveRemote().createWorkspace(referenceId));
     }
 
     @Override

@@ -63,9 +63,9 @@ public class ProjectInstancesController {
     }
 
     /**
-     * One instance with a page of its sessions, newest first and each with its files, from one read
-     * of the remote — what an instance's page shows, opening a session included; {@code before}
-     * names the session the previous page ended on, for "Show older sessions".
+     * One instance with a page of its sessions, newest first, each named but not read, from one
+     * read of the remote — what an instance's page shows; a session's files come when it is
+     * opened. {@code before} names the session the previous page ended on, for "Load more".
      */
     @GetMapping("/{instanceId}")
     public InstanceWithSessionsResponse get(

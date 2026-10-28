@@ -65,7 +65,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
                     .toList());
             return kept.stream()
                     .map(session -> byId.get(session.id()))
-                    .map(session -> VolumeResponses.header(project, session))
+                    .map(session -> VolumeResponses.listed(project, session))
                     .toList();
         });
     }
@@ -86,7 +86,7 @@ final class VolumeRepositoryClient implements RepositoryClient {
     public void deleteSession(ProjectScope scope, String sessionId) {
         WritableVolume volume = source.writable("Cannot delete session " + sessionId);
         source.read(() -> {
-            SessionDeletion deletion = VolumeChanges.deleteSession(volume, source.requireProject(scope), sessionId);
+            SessionDeletion deletion = VolumeChanges.deleteSession(volume, source.resolvedProject(scope), sessionId);
             if (!deletion.deleted()) {
                 throw Exceptions.recordingSessionNotFound(sessionId);
             }

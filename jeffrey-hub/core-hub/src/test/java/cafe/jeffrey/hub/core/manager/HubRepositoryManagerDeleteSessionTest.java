@@ -28,8 +28,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HubRepositoryManagerDeleteSessionTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
-    private static final ProjectInfo PROJECT = new ProjectInfo("project-1", "project", "ws", Optional.of(T0));
+    private static final ProjectInfo PROJECT = new ProjectInfo("project", "ws", T0);
 
     @TempDir
     Path workspacesDir;
@@ -52,7 +50,7 @@ class HubRepositoryManagerDeleteSessionTest {
 
     @BeforeEach
     void setUp() {
-        Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.name());
+        Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.id());
         instance = TestVolume.instance(project, "pod-a");
         manager = new HubRepositoryManager(PROJECT,
                 TestVolume.storage(PROJECT, workspacesDir, project));

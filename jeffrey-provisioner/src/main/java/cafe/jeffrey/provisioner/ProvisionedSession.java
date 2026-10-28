@@ -18,8 +18,8 @@
 package cafe.jeffrey.provisioner;
 
 /**
- * A session that exists on disk: the ids identifying it to the hub and the layout it was
- * created in.
+ * A session that exists on disk: its instance and session ids — the directory names every reader
+ * of the volume knows it by — and the layout it was created in.
  */
 public record ProvisionedSession(
         String instanceId,

@@ -39,11 +39,11 @@ record StaleInstanceRule(Duration retention) implements RetentionRule {
         Instant cutoff = pass.now().minus(retention);
         for (ProjectInstanceInfo instance : pass.instances()) {
             boolean abandoned = instance.sessionCount() == 0
-                    && instance.startedAt().filter(startedAt -> startedAt.isBefore(cutoff)).isPresent();
+                    && instance.startedAt().isBefore(cutoff);
             if (abandoned) {
                 pass.deleteInstance(instance.id());
                 LOG.info("Deleted an abandoned instance without sessions: project_name={} instance_id={} started_at={}",
-                        pass.projectName(), instance.id(), instance.startedAt().orElse(null));
+                        pass.projectName(), instance.id(), instance.startedAt());
             }
         }
     }

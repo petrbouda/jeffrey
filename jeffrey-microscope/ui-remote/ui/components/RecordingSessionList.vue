@@ -17,11 +17,11 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useNavigation } from '@/composables/useNavigation';
 import { downloadAssistantStore } from '@remote/stores/assistants/downloadAssistantStore';
 import ProjectRepositoryClient from '@remote/services/api/ProjectRepositoryClient.ts';
 import { ToastService } from '@shared/services/ToastService';
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
+import RecordingSessionHeader from '@remote/services/api/model/RecordingSessionHeader.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
@@ -35,7 +35,7 @@ import { useRemoteReadOnly } from '@remote/composables/useRemoteReadOnly';
 import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
-import { hasUnreportedSizes } from '@remote/services/sessionGrouping.ts';
+import { hasUnreportedSizes } from '@remote/services/sessionSizes.ts';
 import {
   chunkSelectionGapMessage,
   downloadableFiles,
@@ -44,16 +44,14 @@ import {
 } from '@remote/services/chunkSelection.ts';
 
 interface Props {
-  sessions: RecordingSession[];
+  sessions: RecordingSessionHeader[];
   workspaceId: string;
   projectId: string;
-  showInstanceLink?: boolean;
   headerText?: string;
   isCollectorOnly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showInstanceLink: true,
   headerText: 'Recording Sessions',
   isCollectorOnly: false
 });
@@ -75,8 +73,6 @@ const UNREPORTED_SIZES_HINT =
   'that mount is serving stale file metadata (an object-storage FUSE, an NFS attribute cache, ' +
   'or an SMB share listing a file another client still has open) rather than that the session ' +
   'is empty. The files can still be downloaded.';
-
-const { generateInstanceUrl } = useNavigation();
 
 const repositoryService = computed(
   () => new ProjectRepositoryClient(props.workspaceId, props.projectId)
@@ -103,15 +99,15 @@ const {
 } = useSessionReads(() => repositoryService.value);
 
 /**
- * The session as last read on its own, or as the list gave it until then: an instance's page names
+ * The session as last read on its own, or undefined until it is opened: an instance's page names
  * its sessions without reading them, so their figures come with the first read.
  */
-const shown = (session: RecordingSession): RecordingSession => {
-  return readSessions.value[session.id] ?? session;
+const readOf = (session: RecordingSessionHeader): RecordingSession | undefined => {
+  return readSessions.value[session.id];
 };
 
 /** The session's files as last read on their own; a listed session carries none. */
-const filesOf = (session: RecordingSession): RepositoryFile[] => {
+const filesOf = (session: RecordingSessionHeader): RepositoryFile[] => {
   return readSessions.value[session.id]?.files ?? [];
 };
 
@@ -135,17 +131,16 @@ const loadFilesInBackground = (sessionId: string): void => {
 
 /**
  * Whether a refresh of the list should read an open session again: only while it can still have
- * changed — it is its instance's newest session, or its listing counts files the last read did
- * not have.
+ * changed — it is its instance's newest session — or it was never read. An ended session's files
+ * change only by retention or compression, which the next opening picks up.
  */
-const isStale = (session: RecordingSession): boolean => {
-  const read = readSessions.value[session.id];
-  return !read || session.newest || read.files.length !== session.fileCount;
+const isStale = (session: RecordingSessionHeader): boolean => {
+  return !readSessions.value[session.id] || session.newest;
 };
 
 // Delete dialog state
 const deleteSessionDialog = ref(false);
-const sessionToDelete = ref<RecordingSession | null>(null);
+const sessionToDelete = ref<RecordingSessionHeader | null>(null);
 const deletingSession = ref(false);
 
 // --- Constants ---
@@ -220,16 +215,6 @@ interface TypeGroupPanel {
   totalSize: number;
 }
 
-// --- Utility functions ---
-const parseSessionName = (name: string): { sessionInstance: string; sessionId: string } => {
-  const slashIndex = name.indexOf('/');
-  if (slashIndex === -1) {return { sessionInstance: name, sessionId: '' };}
-  return {
-    sessionInstance: name.substring(0, slashIndex),
-    sessionId: name.substring(slashIndex + 1)
-  };
-};
-
 // --- Computed ---
 const sortedSessions = computed(() => {
   return [...props.sessions].sort((a, b) => {
@@ -240,7 +225,7 @@ const sortedSessions = computed(() => {
 const headerBarText = computed(() => `${props.headerText} (${props.sessions.length})`);
 
 // --- Sorting ---
-const getSortedRecordings = (session: RecordingSession) => {
+const getSortedRecordings = (session: RecordingSessionHeader) => {
   const getSortPriority = (file: RepositoryFile): number => {
     if (file.isRecording || file.fileType === RecordingFileType.ASPROF) {return 1;}
     return 0;
@@ -326,7 +311,7 @@ const toggleSession = (sessionId: string) => {
  */
 type SessionTone = 'newest' | 'ended';
 
-const sessionTone = (session: RecordingSession): SessionTone => {
+const sessionTone = (session: RecordingSessionHeader): SessionTone => {
   return session.newest ? 'newest' : 'ended';
 };
 
@@ -527,7 +512,7 @@ const confirmDeleteSession = async () => {
   deletingSession.value = true;
 
   try {
-    await repositoryService.value.deleteRecordingSession(sessionToDelete.value);
+    await repositoryService.value.deleteRecordingSession(sessionToDelete.value.id);
     toast.success('Delete All', 'Successfully deleted all recordings in the session');
 
     emit('refresh');
@@ -599,15 +584,15 @@ const isRecordingOrTempFile = (file: RepositoryFile): boolean => {
   return file.isRecording || file.fileType === RecordingFileType.ASPROF;
 };
 
-const getRecordingFiles = (session: RecordingSession): RepositoryFile[] => {
+const getRecordingFiles = (session: RecordingSessionHeader): RepositoryFile[] => {
   return getSortedRecordings(session).filter(f => isRecordingOrTempFile(f));
 };
 
-const getRecordingGroupedFiles = (session: RecordingSession): FileGroupEntry[] => {
+const getRecordingGroupedFiles = (session: RecordingSessionHeader): FileGroupEntry[] => {
   return groupRotatedFiles(getRecordingFiles(session));
 };
 
-const getRecordingTotalSize = (session: RecordingSession): number => {
+const getRecordingTotalSize = (session: RecordingSessionHeader): number => {
   return getRecordingFiles(session).reduce((sum, f) => sum + f.size, 0);
 };
 
@@ -625,13 +610,13 @@ const toggleRecordingPanel = (sessionId: string) => {
     !isRecordingPanelExpanded(sessionId);
 };
 
-const getVisibleRecordingGroups = (session: RecordingSession): FileGroupEntry[] => {
+const getVisibleRecordingGroups = (session: RecordingSessionHeader): FileGroupEntry[] => {
   const allGroups = getRecordingGroupedFiles(session);
   const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
   return allGroups.slice(0, limit);
 };
 
-const hasMoreRecordingGroups = (session: RecordingSession): boolean => {
+const hasMoreRecordingGroups = (session: RecordingSessionHeader): boolean => {
   const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
   return getRecordingGroupedFiles(session).length > limit;
 };
@@ -642,13 +627,13 @@ const showMoreRecordingGroups = (sessionId: string) => {
   visibleFilesCount.value[sessionId] = getRecordingGroupedFiles(session).length;
 };
 
-const getRemainingRecordingGroupCount = (session: RecordingSession): number => {
+const getRemainingRecordingGroupCount = (session: RecordingSessionHeader): number => {
   const limit = visibleFilesCount.value[session.id] || DEFAULT_FILES_LIMIT;
   return getRecordingGroupedFiles(session).length - limit;
 };
 
 const getArtifactGroupMap = (
-  session: RecordingSession
+  session: RecordingSessionHeader
 ): Map<ArtifactTypeGroup, RepositoryFile[]> => {
   const sortedFiles = getSortedRecordings(session);
   const groupMap = new Map<ArtifactTypeGroup, RepositoryFile[]>();
@@ -664,7 +649,7 @@ const getArtifactGroupMap = (
 // Groups that always show as a panel, even with a single file
 const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
 
-const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
+const getTypeGroupPanels = (session: RecordingSessionHeader): TypeGroupPanel[] => {
   const groupMap = getArtifactGroupMap(session);
   const panels: TypeGroupPanel[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
@@ -683,7 +668,7 @@ const getTypeGroupPanels = (session: RecordingSession): TypeGroupPanel[] => {
   return panels;
 };
 
-const getStandaloneArtifactFiles = (session: RecordingSession): RepositoryFile[] => {
+const getStandaloneArtifactFiles = (session: RecordingSessionHeader): RepositoryFile[] => {
   const groupMap = getArtifactGroupMap(session);
   const standalone: RepositoryFile[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
@@ -778,31 +763,17 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
               </div>
               <div>
                 <div class="d-flex align-items-center gap-2">
-                  <template v-if="showInstanceLink">
-                    <span class="session-name-label">Instance:</span>
-                    <router-link
-                      :to="generateInstanceUrl(session.instanceId)"
-                      class="instance-link"
-                      @click.stop
-                    >
-                      {{ parseSessionName(session.name).sessionInstance }}
-                    </router-link>
-                    <span class="session-separator">/</span>
-                    <span class="session-name-label">Session:</span>
-                  </template>
-                  <template v-else>
-                    <span class="session-name-label">Session:</span>
-                  </template>
+                  <span class="session-name-label">Session:</span>
                   <span class="session-id-part">{{ session.id }}</span>
                 </div>
                 <div class="session-meta">
-                  <span v-if="shown(session).fileCount !== null"
-                    ><i class="bi bi-files me-1"></i>{{ shown(session).fileCount }} source{{
-                      shown(session).fileCount === 1 ? '' : 's'
+                  <span v-if="readOf(session)"
+                    ><i class="bi bi-files me-1"></i>{{ readOf(session)!.fileCount }} source{{
+                      readOf(session)!.fileCount === 1 ? '' : 's'
                     }}</span
                   >
                   <Badge
-                    v-if="hasUnreportedSizes(shown(session))"
+                    v-if="hasUnreportedSizes(readOf(session))"
                     value="sizes unavailable"
                     variant="warning"
                     size="xxs"
@@ -855,9 +826,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
         <!-- Timeline section -->
         <TimelineBar
           :createdAt="session.createdAt"
-          :last-data-at="shown(session).lastDataAt"
-          :duration="shown(session).duration"
-          :unread="shown(session).fileCount === null"
+          :last-data-at="readOf(session)?.lastDataAt ?? null"
+          :duration="readOf(session)?.duration ?? null"
+          :unread="!readOf(session)"
         />
       </div>
 
@@ -1502,25 +1473,6 @@ code {
   color: var(--color-text-light);
   font-weight: 500;
   margin-right: 4px;
-}
-
-.instance-link {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.15s ease;
-}
-
-.instance-link:hover {
-  text-decoration: underline;
-  color: var(--color-primary-hover);
-}
-
-.session-separator {
-  color: var(--color-muted-separator);
-  margin: 0 8px;
-  font-weight: 400;
 }
 
 .session-id-part {

@@ -19,7 +19,7 @@
   <div>
     <MainCard>
       <template #header>
-        <MainCardHeader icon="bi bi-box" :title="instance?.instanceName ?? 'Instance'">
+        <MainCardHeader icon="bi bi-box" :title="instance?.id ?? 'Instance'">
           <template #actions>
             <button
               class="btn btn-sm btn-outline-secondary"
@@ -53,7 +53,6 @@
           :workspaceId="workspaceId!"
           :projectId="projectId!"
           :isCollectorOnly="isCollectorOnly"
-          :showInstanceLink="false"
           headerText="Sessions"
           @refresh="() => load(true)"
         />
@@ -91,7 +90,7 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import RecordingSessionList from '@remote/components/RecordingSessionList.vue';
 import ProjectInstanceClient from '@remote/services/api/ProjectInstanceClient';
 import ProjectInstance from '@remote/services/api/model/ProjectInstance';
-import RecordingSession from '@remote/services/api/model/RecordingSession';
+import RecordingSessionHeader from '@remote/services/api/model/RecordingSessionHeader';
 import { useNavigation } from '@/composables/useNavigation';
 import '@shared/styles/shared-components.css';
 
@@ -111,7 +110,7 @@ const loadingOlder = ref(false);
 const hasOlder = ref(false);
 const failed = ref(false);
 const instance = ref<ProjectInstance | null>(null);
-const sessions = ref<RecordingSession[]>([]);
+const sessions = ref<RecordingSessionHeader[]>([]);
 
 /**
  * Reads the instance and a page of its sessions, named but not read: one listing of the instance

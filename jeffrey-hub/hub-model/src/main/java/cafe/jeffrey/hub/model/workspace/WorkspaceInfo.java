@@ -26,7 +26,6 @@ import java.time.Instant;
  */
 public record WorkspaceInfo(
         String id,
-        String name,
         Instant createdAt,
         int projectCount) {
 }

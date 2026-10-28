@@ -45,10 +45,10 @@ class FilesystemRepositoryStorageTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final String SESSION_ID = TestVolume.sessionId(T0);
-    private static final ProjectInfo PROJECT_INFO = new ProjectInfo("project-1", "project", "ws", Optional.of(T0));
+    private static final ProjectInfo PROJECT_INFO = new ProjectInfo("project", "ws", T0);
 
     private static Path projectDir(Path workspacesDir) {
-        return TestVolume.project(workspacesDir.resolve("ws"), PROJECT_INFO.name());
+        return TestVolume.project(workspacesDir.resolve("ws"), PROJECT_INFO.id());
     }
 
     private static Path sessionDir(Path workspacesDir) {
@@ -164,7 +164,7 @@ class FilesystemRepositoryStorageTest {
         @Test
         void readsANameWithoutAZoneInUtc() throws IOException {
             String id = session(INSTANCE, T0);
-            Files.writeString(project.resolve(INSTANCE).resolve(id).resolve("rec-20260220-120500.jfr"), CHUNK_BODY);
+            Files.writeString(project.resolve(INSTANCE).resolve(id).resolve("rec-20260220-120500+0000.jfr"), CHUNK_BODY);
 
             RecordingSession session = listed(storage, id).orElseThrow();
 
@@ -200,7 +200,6 @@ class FilesystemRepositoryStorageTest {
                 ProjectInstanceInfo instance = storage.instances().getFirst();
                 assertEquals(INSTANCE, instance.id());
                 assertEquals(0, instance.sessionCount());
-                assertTrue(instance.startedAt().isPresent(), "its directory's time, as the mount gives it");
             }
 
             @Test
@@ -241,13 +240,13 @@ class FilesystemRepositoryStorageTest {
         @Test
         void replacesEveryClosedChunkWithItsArchive() throws IOException {
             Path session = sessionDir();
-            write(session, "rec-20260220-120000.jfr");
-            write(session, "rec-20260220-121000.jfr");
+            write(session, "rec-20260220-120000+0000.jfr");
+            write(session, "rec-20260220-121000+0000.jfr");
 
             assertEquals(2, compress(endedSession()));
 
             assertEquals(
-                    List.of("rec-20260220-120000.jfr.lz4", "rec-20260220-121000.jfr.lz4"),
+                    List.of("rec-20260220-120000+0000.jfr.lz4", "rec-20260220-121000+0000.jfr.lz4"),
                     names(session),
                     "each recording is gone and its archive is there");
         }
@@ -260,13 +259,13 @@ class FilesystemRepositoryStorageTest {
         @Test
         void leavesTheNewestRecordingOfTheNewestSession() throws IOException {
             Path session = sessionDir();
-            write(session, "rec-20260220-120000.jfr");
-            write(session, "rec-20260220-121000.jfr");
+            write(session, "rec-20260220-120000+0000.jfr");
+            write(session, "rec-20260220-121000+0000.jfr");
 
             assertEquals(1, compress(newestSession()));
 
             assertEquals(
-                    List.of("rec-20260220-120000.jfr.lz4", "rec-20260220-121000.jfr"),
+                    List.of("rec-20260220-120000+0000.jfr.lz4", "rec-20260220-121000+0000.jfr"),
                     names(session),
                     "the newest recording of the instance's newest session is untouched");
         }
@@ -280,17 +279,17 @@ class FilesystemRepositoryStorageTest {
         @Test
         void everyInstancesNewestSessionKeepsItsNewestRecordingWhateverItsPosition() throws IOException {
             Path older = sessionDir();
-            write(older, "rec-20260220-120000.jfr");
-            write(older, "rec-20260220-121000.jfr");
+            write(older, "rec-20260220-120000+0000.jfr");
+            write(older, "rec-20260220-121000+0000.jfr");
             FilesystemRepositoryStorage storage = newestSession();
             Path newer = TestVolume.session(
                     TestVolume.instance(projectDir(workspacesDir), "instance-2"), T0.plusSeconds(1800));
-            write(newer, "rec-20260220-123000.jfr");
+            write(newer, "rec-20260220-123000+0000.jfr");
 
             List<RecordingSession> sessions = storage.listSessions(SessionDetail.WITH_FILES);
 
             assertEquals(List.of(true, true), sessions.stream().map(RecordingSession::newest).toList());
-            assertEquals(List.of("rec-20260220-123000.jfr", "rec-20260220-121000.jfr"),
+            assertEquals(List.of("rec-20260220-123000+0000.jfr", "rec-20260220-121000+0000.jfr"),
                     sessions.stream().map(session -> session.openRecording().orElseThrow().name()).toList(),
                     "each instance's newest session holds back its own newest recording");
         }
@@ -319,11 +318,11 @@ class FilesystemRepositoryStorageTest {
         @Test
         void leavesAnEmptyRecordingAlone() throws IOException {
             Path session = sessionDir();
-            Files.createFile(session.resolve("rec-20260220-120000.jfr"));
+            Files.createFile(session.resolve("rec-20260220-120000+0000.jfr"));
 
             assertEquals(0, compress(endedSession()));
 
-            assertEquals(List.of("rec-20260220-120000.jfr"), names(session));
+            assertEquals(List.of("rec-20260220-120000+0000.jfr"), names(session));
         }
 
         /**
@@ -333,15 +332,15 @@ class FilesystemRepositoryStorageTest {
         @Test
         void isIdempotent() throws IOException {
             Path session = sessionDir();
-            write(session, "rec-20260220-120000.jfr");
+            write(session, "rec-20260220-120000+0000.jfr");
 
             assertEquals(1, compress(endedSession()));
-            long firstSize = Files.size(session.resolve("rec-20260220-120000.jfr.lz4"));
+            long firstSize = Files.size(session.resolve("rec-20260220-120000+0000.jfr.lz4"));
 
             assertEquals(1, compress(endedSession()));
 
-            assertEquals(List.of("rec-20260220-120000.jfr.lz4"), names(session));
-            assertEquals(firstSize, Files.size(session.resolve("rec-20260220-120000.jfr.lz4")));
+            assertEquals(List.of("rec-20260220-120000+0000.jfr.lz4"), names(session));
+            assertEquals(firstSize, Files.size(session.resolve("rec-20260220-120000+0000.jfr.lz4")));
         }
 
         /**
@@ -353,12 +352,12 @@ class FilesystemRepositoryStorageTest {
         @Test
         void removesARecordingWhoseArchiveIsAlreadyThere() throws IOException {
             Path session = sessionDir();
-            write(session, "rec-20260220-120000.jfr");
-            write(session, "rec-20260220-120000.jfr.lz4");
+            write(session, "rec-20260220-120000+0000.jfr");
+            write(session, "rec-20260220-120000+0000.jfr.lz4");
 
             compress(endedSession());
 
-            assertEquals(List.of("rec-20260220-120000.jfr.lz4"), names(session));
+            assertEquals(List.of("rec-20260220-120000+0000.jfr.lz4"), names(session));
         }
 
         /**
@@ -369,8 +368,8 @@ class FilesystemRepositoryStorageTest {
         @Test
         void aScratchFileIsNoFileOfTheSession() throws IOException {
             Path session = sessionDir();
-            write(session, "rec-20260220-120000.jfr");
-            Files.write(session.resolve(".rec-20260220-120000.jfr.lz4.0e57.tmp"),
+            write(session, "rec-20260220-120000+0000.jfr");
+            Files.write(session.resolve(".rec-20260220-120000+0000.jfr.lz4.0e57.tmp"),
                     "half an archive".getBytes(StandardCharsets.UTF_8));
 
             List<RepositoryFile> files = listed(endedSession(), SESSION_ID)
@@ -378,7 +377,7 @@ class FilesystemRepositoryStorageTest {
                     .files();
 
             assertEquals(
-                    List.of("rec-20260220-120000.jfr"),
+                    List.of("rec-20260220-120000+0000.jfr"),
                     files.stream().map(RepositoryFile::name).toList());
         }
     }
@@ -413,10 +412,10 @@ class FilesystemRepositoryStorageTest {
         @Test
         void deletesAChunkNamedByItsId() throws IOException {
             Path session = sessionDir();
-            Path chunk = write(session, "rec-20260220-120000.jfr");
-            Path kept = write(session, "rec-20260220-120500.jfr");
+            Path chunk = write(session, "rec-20260220-120000+0000.jfr");
+            Path kept = write(session, "rec-20260220-120500+0000.jfr");
 
-            storage().deleteRepositoryFiles(SESSION_ID, List.of("rec-20260220-120000"));
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("rec-20260220-120000+0000"));
 
             assertFalse(Files.exists(chunk));
             assertTrue(Files.exists(kept), "only the file that was named goes");
@@ -429,9 +428,9 @@ class FilesystemRepositoryStorageTest {
         @Test
         void deletesTheCompressedFormUnderTheSameId() throws IOException {
             Path session = sessionDir();
-            Path archive = write(session, "rec-20260220-120000.jfr.lz4");
+            Path archive = write(session, "rec-20260220-120000+0000.jfr.lz4");
 
-            storage().deleteRepositoryFiles(SESSION_ID, List.of("rec-20260220-120000"));
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("rec-20260220-120000+0000"));
 
             assertFalse(Files.exists(archive));
         }
@@ -449,9 +448,9 @@ class FilesystemRepositoryStorageTest {
         @Test
         void leavesTheSessionAloneForAnIdItDoesNotHold() throws IOException {
             Path session = sessionDir();
-            Path chunk = write(session, "rec-20260220-120000.jfr");
+            Path chunk = write(session, "rec-20260220-120000+0000.jfr");
 
-            storage().deleteRepositoryFiles(SESSION_ID, List.of("rec-20260220-999999"));
+            storage().deleteRepositoryFiles(SESSION_ID, List.of("rec-20260220-999999+0000"));
 
             assertTrue(Files.exists(chunk));
         }

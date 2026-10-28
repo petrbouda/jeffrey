@@ -57,7 +57,7 @@ public interface DiscoveryClient {
      */
     Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId);
 
-    WorkspaceInfo createWorkspace(String referenceId, String name);
+    WorkspaceInfo createWorkspace(String referenceId);
 
     void deleteWorkspace(String workspaceId);
 

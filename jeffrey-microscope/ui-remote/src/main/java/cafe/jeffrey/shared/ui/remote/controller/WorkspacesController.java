@@ -81,16 +81,13 @@ public class WorkspacesController {
         if (request.referenceId() == null || request.referenceId().isBlank()) {
             throw Exceptions.invalidRequest("Reference ID is required");
         }
-        if (request.name() == null || request.name().isBlank()) {
-            throw Exceptions.invalidRequest("Workspace name is required");
-        }
         String referenceId = request.referenceId().trim();
         if (!WorkspaceReferenceId.isValid(referenceId)) {
             throw Exceptions.invalidRequest(
                     "Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
         }
 
-        WorkspaceResponse created = access.createWorkspace(referenceId, request.name().trim());
+        WorkspaceResponse created = access.createWorkspace(referenceId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

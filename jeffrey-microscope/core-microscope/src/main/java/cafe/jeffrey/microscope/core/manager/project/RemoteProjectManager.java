@@ -67,7 +67,6 @@ public class RemoteProjectManager implements ProjectManager {
         return projectInfo;
     }
 
-
     @Override
     public ProfilesManager profilesManager() {
         return profilesManagerFactory.apply(projectInfo);

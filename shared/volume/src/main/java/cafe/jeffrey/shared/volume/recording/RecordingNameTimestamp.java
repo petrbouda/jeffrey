@@ -23,11 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.Optional;
 
 /**
@@ -45,42 +40,17 @@ final class RecordingNameTimestamp implements TimestampResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingNameTimestamp.class);
 
-    /** {@code 20260220-120500}, then the offset when the name carries one; UTC when it does not. */
-    private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder()
-            .appendPattern("yyyyMMdd-HHmmss")
-            .optionalStart()
-            .appendOffset(JeffreyLayout.OFFSET_PATTERN, JeffreyLayout.UTC_OFFSET_TEXT)
-            .optionalEnd()
-            .parseDefaulting(ChronoField.OFFSET_SECONDS, ZoneOffset.UTC.getTotalSeconds())
-            .toFormatter();
-
     @Override
     public Optional<Instant> resolve(VolumeEntry file) {
         String name = file.name();
         // The id is the name without the recording's extension, the same for a chunk and its archive
-        Optional<String> id = RecordingFormat.of(name).map(format -> format.idOf(name));
-
-        if (id.isPresent() && id.get().startsWith(JeffreyLayout.RECORDING_PREFIX)) {
-            Optional<Instant> createdAt = parse(id.get().substring(JeffreyLayout.RECORDING_PREFIX.length()));
-            if (createdAt.isPresent()) {
-                return createdAt;
-            }
-            LOG.debug("Recording has an unparseable timestamp in its name, asking the volume: filename={}",
-                    name);
-        } else {
-            LOG.debug("Recording does not follow the naming convention, asking the volume: "
-                    + "filename={} expected_prefix={}", name, JeffreyLayout.RECORDING_PREFIX);
+        Optional<Instant> createdAt = RecordingFormat.of(name)
+                .map(format -> format.idOf(name))
+                .flatMap(JeffreyLayout::recordingStart);
+        if (createdAt.isPresent()) {
+            return createdAt;
         }
-
+        LOG.debug("Recording's name carries no start, asking the volume: filename={}", name);
         return VOLUME.resolve(file);
-    }
-
-    /** {@code 20260220-120500+0100} or {@code 20260220-120500}. */
-    private static Optional<Instant> parse(String stamp) {
-        try {
-            return Optional.of(FORMATTER.parse(stamp, Instant::from));
-        } catch (DateTimeParseException e) {
-            return Optional.empty();
-        }
     }
 }

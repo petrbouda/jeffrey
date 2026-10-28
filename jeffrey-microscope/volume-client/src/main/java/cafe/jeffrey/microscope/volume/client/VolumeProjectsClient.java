@@ -38,7 +38,7 @@ final class VolumeProjectsClient implements ProjectsClient {
     public void deleteProject(ProjectScope scope) {
         WritableVolume volume = source.writable("Cannot delete project " + scope.projectId());
         source.read(() -> {
-            volume.delete(source.requireProject(scope).path());
+            volume.delete(source.resolvedProject(scope).path());
             LOG.info("Deleted project on the recording volume: project_id={} source={}",
                     scope.projectId(), source.description());
         });

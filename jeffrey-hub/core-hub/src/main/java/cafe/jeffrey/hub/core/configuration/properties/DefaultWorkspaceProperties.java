@@ -22,20 +22,18 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * {@code jeffrey.hub.default-workspace.*}: the workspace every hub starts with. Bound by Boot,
- * which is why it is a mutable bean; the two-argument constructor is for tests.
+ * which is why it is a mutable bean; the one-argument constructor is for tests.
  */
 @ConfigurationProperties("jeffrey.hub.default-workspace")
 public class DefaultWorkspaceProperties {
 
     private String referenceId = CliConstants.DEFAULT_WORKSPACE_REF_ID;
-    private String name = CliConstants.DEFAULT_WORKSPACE_REF_ID;
 
     public DefaultWorkspaceProperties() {
     }
 
-    public DefaultWorkspaceProperties(String referenceId, String name) {
+    public DefaultWorkspaceProperties(String referenceId) {
         this.referenceId = referenceId;
-        this.name = name;
     }
 
     public String getReferenceId() {
@@ -46,22 +44,10 @@ public class DefaultWorkspaceProperties {
         this.referenceId = referenceId;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public void validate() {
         if (referenceId == null || referenceId.isBlank()) {
             throw new IllegalArgumentException(
                     "jeffrey.hub.default-workspace.reference-id must not be blank");
-        }
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException(
-                    "jeffrey.hub.default-workspace.name must not be blank");
         }
     }
 }

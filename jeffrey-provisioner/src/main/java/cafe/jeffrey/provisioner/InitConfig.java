@@ -230,11 +230,8 @@ public class InitConfig {
     // ==================== Resolution ====================
 
     /**
-     * Reference ID of the workspace on the target Jeffrey server. The workspace must already
-     * exist — create it via the local UI's "Create Workspace" flow before pointing the provisioner
-     * at it. Events for an unknown reference ID are dropped on the server side with a warning,
-     * unless the hub opts into auto-creation via {@code jeffrey.hub.workspaces.auto-create=true},
-     * in which case the workspace is created on the first incoming event.
+     * Reference ID of the workspace: the directory under the workspaces root the provisioner
+     * writes into, created when it is not there yet. A workspace is that directory, nothing more.
      */
     private static String resolveWorkspaceRefId(String configured) {
         String value = nullIfBlank(configured);

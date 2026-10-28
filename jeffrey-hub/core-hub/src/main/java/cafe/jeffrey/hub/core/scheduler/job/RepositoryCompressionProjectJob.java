@@ -60,7 +60,7 @@ public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
 
     @Override
     protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
-        String projectName = manager.info().name();
+        String projectName = manager.info().id();
         LOG.debug("Starting JFR compression check: project_name={}", projectName);
 
         // Only each instance's newest sessions are read, with their files

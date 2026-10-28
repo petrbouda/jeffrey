@@ -43,11 +43,11 @@ public record SessionLayout(
     }
 
     /**
-     * The file the profiler writes recordings to, by the session's own naming template with the
+     * The file the profiler writes recordings to, by Jeffrey's naming template with the
      * machine's UTC offset in it: async-profiler writes {@code %t} in local time, and the offset
      * after it is what lets every reader turn the name back into an instant.
      */
-    public Path recordingFilePattern(String template) {
-        return session.resolve(JeffreyLayout.recordingTemplate(template, offset));
+    public Path recordingFilePattern() {
+        return session.resolve(JeffreyLayout.recordingTemplate(offset));
     }
 }

@@ -17,102 +17,68 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
+import cafe.jeffrey.hub.core.volume.MountTimes;
 import cafe.jeffrey.hub.core.volume.WorkspaceDirectory;
 import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.hub.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
-import cafe.jeffrey.shared.volume.layout.VolumeMarkers;
 import cafe.jeffrey.shared.volume.layout.VolumeWorkspace;
-import cafe.jeffrey.shared.volume.layout.WorkspaceCreation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UncheckedIOException;
-import java.nio.file.NoSuchFileException;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * The workspaces under the hub's workspaces root. A workspace is a directory named by its id with
- * the hub's {@code .workspace-info.json} in it. A directory the provisioner wrote into without one
- * is a workspace too when {@code autoCreate} is on, named by its id; otherwise it is left out
- * until someone creates the workspace.
+ * The workspaces under the hub's workspaces root: each a directory named by a valid reference id,
+ * the one the provisioner writes into. Nothing in a directory is read to tell — the same rule
+ * Microscope reads the volume by.
  */
 public final class HubWorkspacesManager implements WorkspacesManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubWorkspacesManager.class);
 
     private final FilesystemVolume volume;
-    private final Clock clock;
-    private final boolean autoCreate;
     private final WorkspaceManager.Factory workspaceManagerFactory;
 
-    public HubWorkspacesManager(
-            FilesystemVolume volume,
-            Clock clock,
-            boolean autoCreate,
-            WorkspaceManager.Factory workspaceManagerFactory) {
-
+    public HubWorkspacesManager(FilesystemVolume volume, WorkspaceManager.Factory workspaceManagerFactory) {
         this.volume = volume;
-        this.clock = clock;
-        this.autoCreate = autoCreate;
         this.workspaceManagerFactory = workspaceManagerFactory;
     }
 
     @Override
-    public WorkspaceInfo create(CreateWorkspaceRequest request) {
-        if (request.name() == null || request.name().isBlank()) {
-            throw new IllegalArgumentException("Workspace Name cannot be null or empty");
+    public WorkspaceInfo create(String referenceId) {
+        WorkspaceReferenceId.validate(referenceId);
+        if (!VolumeChanges.createWorkspace(volume, referenceId)) {
+            throw new WorkspaceAlreadyExistsException("Workspace with reference ID '" + referenceId + "' already exists");
         }
-        String id = request.referenceId().trim();
-        String name = request.name().trim();
+        LOG.info("Created workspace: workspace_id={}", referenceId);
+        return VolumeWorkspace.at(volume, referenceId)
+                .flatMap(this::workspace)
+                .orElseThrow()
+                .info();
+    }
 
-        WorkspaceCreation creation = VolumeChanges.createWorkspace(volume, id, name, clock.millis());
-        if (creation == WorkspaceCreation.ID_TAKEN) {
-            throw new WorkspaceAlreadyExistsException("Workspace with reference ID '" + id + "' already exists");
-        }
-        if (creation == WorkspaceCreation.NAME_TAKEN) {
-            throw new WorkspaceAlreadyExistsException("Workspace with name '" + name + "' already exists");
-        }
-        LOG.info("Created workspace: workspace_id={} name={}", id, name);
-        return workspace(VolumePath.root().resolve(id)).orElseThrow().info();
+    @Override
+    public boolean exists(String referenceId) {
+        return WorkspaceReferenceId.isValid(referenceId) && VolumeWorkspace.at(volume, referenceId).isPresent();
     }
 
     @Override
     public List<WorkspaceManager> findAll() {
-        return workspaceDirectories().stream()
+        return VolumeWorkspace.all(volume).stream()
+                .map(this::workspace)
+                .flatMap(Optional::stream)
                 .map(workspaceManagerFactory)
                 .toList();
     }
 
-    private List<WorkspaceDirectory> workspaceDirectories() {
-        return VolumeMarkers.childDirectories(volume, VolumePath.root()).stream()
-                .map(this::workspace)
-                .flatMap(Optional::stream)
-                .toList();
-    }
-
-    @Override
-    public boolean isDescribed(String workspaceId) {
-        return WorkspaceReferenceId.isValid(workspaceId)
-                && VolumeChanges.isDescribedWorkspace(volume, VolumePath.root().resolve(workspaceId));
-    }
-
-    private Optional<WorkspaceDirectory> workspace(VolumePath directory) {
-        if (!WorkspaceReferenceId.isValid(directory.name())) {
+    private Optional<WorkspaceDirectory> workspace(VolumeWorkspace workspace) {
+        if (!WorkspaceReferenceId.isValid(workspace.id())) {
             return Optional.empty();
         }
-        VolumeWorkspace workspace = VolumeWorkspace.at(volume, directory);
-        if (!workspace.described() && !autoCreate) {
-            return Optional.empty();
-        }
-        Instant createdAt = workspace.createdAt().orElseThrow(() -> new UncheckedIOException(
-                "Workspace directory vanished while it was read: path=" + directory,
-                new NoSuchFileException(directory.toString())));
-        return Optional.of(new WorkspaceDirectory(volume, directory, workspace.name(), createdAt));
+        return Optional.of(new WorkspaceDirectory(
+                volume, workspace.path(), MountTimes.createdAt(workspace.createdAt(), workspace.path())));
     }
 }

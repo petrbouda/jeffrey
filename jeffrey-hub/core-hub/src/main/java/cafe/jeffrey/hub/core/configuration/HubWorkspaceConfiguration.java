@@ -19,7 +19,6 @@ package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
-import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -32,7 +31,6 @@ import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Clock;
 
 /**
  * Wires the workspace tree over the volume: the one {@link HubWorkspacesManager} at the
@@ -59,12 +57,8 @@ public class HubWorkspaceConfiguration {
 
     @Bean
     public HubWorkspacesManager workspacesManager(
-            FilesystemVolume workspacesVolume,
-            Clock applicationClock,
-            WorkspacesProperties workspacesProperties,
-            WorkspaceManager.Factory workspaceManagerFactory) {
-        return new HubWorkspacesManager(
-                workspacesVolume, applicationClock, workspacesProperties.isAutoCreate(), workspaceManagerFactory);
+            FilesystemVolume workspacesVolume, WorkspaceManager.Factory workspaceManagerFactory) {
+        return new HubWorkspacesManager(workspacesVolume, workspaceManagerFactory);
     }
 
     @Bean

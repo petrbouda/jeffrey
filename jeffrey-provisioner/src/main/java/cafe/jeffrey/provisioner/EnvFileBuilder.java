@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +26,6 @@ import java.util.List;
  */
 public class EnvFileBuilder {
 
-    /**
-     * Also the source of {@code <<JEFFREY:FILE_PATTERN>>}, so the placeholder and the exported
-     * {@code JEFFREY_FILE_PATTERN} can never drift apart.
-     */
-    public static final String DEFAULT_FILE_TEMPLATE = JeffreyLayout.RECORDING_TEMPLATE;
     private static final String JEFFREY_HOME_PROP = "JEFFREY_HOME";
     private static final String JEFFREY_WORKSPACES_PROP = "JEFFREY_WORKSPACES";
     private static final String JEFFREY_WORKSPACE_PROP = "JEFFREY_CURRENT_WORKSPACE";
@@ -70,7 +63,7 @@ public class EnvFileBuilder {
         exports.add(export(JEFFREY_WORKSPACE_PROP, layout.workspace()));
         exports.add(export(JEFFREY_PROJECT_PROP, layout.project()));
         exports.add(export(JEFFREY_SESSION_PROP, layout.session()));
-        exports.add(export(JEFFREY_FILE_PATTERN_PROP, layout.recordingFilePattern(DEFAULT_FILE_TEMPLATE)));
+        exports.add(export(JEFFREY_FILE_PATTERN_PROP, layout.recordingFilePattern()));
 
         // The flags reach the JVM through the argfile, or through JDK_JAVA_OPTIONS when that is
         // asked for. The .env file carries the layout, not a second copy of the command.

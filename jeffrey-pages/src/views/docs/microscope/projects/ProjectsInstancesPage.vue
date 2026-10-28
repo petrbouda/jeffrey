@@ -74,7 +74,7 @@ onMounted(() => {
         <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, and an instance's page reads that instance and a page of its sessions by name only.</p>
         <p>Nothing reloads on its own. On the Azure file share every read is a round-trip to the share, so an instance's page reads the instance once when it opens, every session starts collapsed, and a recording session's sizes stay as they were read until <strong>Refresh</strong> in the page header reads them again.</p>
         <p>An instance's page lists its sessions by name only, ten at a time: its ten newest sessions, and <strong>Load more</strong> under the list reads the next ten older ones. Each session card shows the session's id and start, both from its UUIDv7 folder name, and whether it is the instance's newest session; its files, size, last data and duration load when the card is expanded. A session is a visible folder named with a UUIDv7 &mdash; anything else under the instance is ignored. There is no failed-session band on the page.</p>
-        <p>There are no description files to read: the provisioner writes no marker below the workspace, so every id Microscope shows is a folder name and a page asks the share only for folder listings and sizes. The reads of one page go out up to eight at a time.</p>
+        <p>There are no description files to read: the provisioner writes no marker anywhere on the volume, so every id Microscope shows is a folder name and a page asks the share only for folder listings and sizes. The reads of one page go out up to eight at a time.</p>
       </div>
 
       <DocsNavFooter />

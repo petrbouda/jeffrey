@@ -15,22 +15,17 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.volume.layout;
-
 /**
- * The hub's own marker in a workspace directory: what a workspace is called and when it was
- * created. The workspace's id is its directory name, which is also the reference id the
- * provisioner writes into.
- *
- * @param createdAt epoch millis
+ * A session as an instance's page names it, nothing of it read: when it started — off its name —
+ * and whether it is its instance's newest. What it holds is a `RecordingSession`, read when it is
+ * opened.
  */
-public record WorkspaceMarker(String name, long createdAt) {
-
-    public static final String FILE_NAME = ".workspace-info.json";
-
-    public WorkspaceMarker {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("A workspace marker needs a name");
-        }
-    }
+export default class RecordingSessionHeader {
+  constructor(
+    public id: string,
+    public instanceId: string,
+    public createdAt: number,
+    /** Its instance's newest session: no newer one has started there, so it may still grow. */
+    public newest: boolean
+  ) {}
 }

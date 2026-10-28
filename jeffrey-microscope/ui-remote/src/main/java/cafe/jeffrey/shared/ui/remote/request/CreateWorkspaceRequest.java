@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.shared.ui.remote.request;
 
-public record CreateWorkspaceRequest(
-        String referenceId,
-        String name) {
+/** A workspace to create: its reference id, which names its directory and is all a workspace is. */
+public record CreateWorkspaceRequest(String referenceId) {
 }

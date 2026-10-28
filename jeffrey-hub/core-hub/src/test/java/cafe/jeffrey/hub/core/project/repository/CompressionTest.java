@@ -80,12 +80,12 @@ class CompressionTest {
         @Test
         void theArchiveIsStillTheSameRecording() throws IOException {
             Path source = Files.write(
-                    dir.resolve("rec-20260220-120500.jfr"), "x".getBytes(StandardCharsets.UTF_8));
+                    dir.resolve("rec-20260220-120500+0000.jfr"), "x".getBytes(StandardCharsets.UTF_8));
 
             Path target = jfrCompression().target(source);
             jfrCompression().compress(source, target);
 
-            assertEquals("rec-20260220-120500.jfr.lz4", target.getFileName().toString());
+            assertEquals("rec-20260220-120500+0000.jfr.lz4", target.getFileName().toString());
             assertTrue(Files.isRegularFile(target));
 
             RecordingFormat archived = RecordingFormat.of(target.getFileName().toString()).orElseThrow();
@@ -116,7 +116,7 @@ class CompressionTest {
          */
         @Test
         void theTargetNameNeverNamesAPartialFile() throws IOException {
-            Path source = Files.write(dir.resolve("rec-20260220-120500.jfr"), body());
+            Path source = Files.write(dir.resolve("rec-20260220-120500+0000.jfr"), body());
             Path target = jfrCompression().target(source);
 
             jfrCompression().compress(source, target);
@@ -133,7 +133,7 @@ class CompressionTest {
          */
         @Test
         void leavesTheRecordingItWasMadeFrom() throws IOException {
-            Path source = Files.write(dir.resolve("rec-20260220-120500.jfr"), body());
+            Path source = Files.write(dir.resolve("rec-20260220-120500+0000.jfr"), body());
 
             jfrCompression().compress(
                     source, jfrCompression().target(source));
@@ -149,7 +149,7 @@ class CompressionTest {
          */
         @Test
         void aSecondRunOverTheSameFileLandsAWholeArchive() throws IOException {
-            Path source = Files.write(dir.resolve("rec-20260220-120500.jfr"), body());
+            Path source = Files.write(dir.resolve("rec-20260220-120500+0000.jfr"), body());
             Path target = jfrCompression().target(source);
 
             jfrCompression().compress(source, target);
@@ -170,7 +170,7 @@ class CompressionTest {
          */
         @Test
         void anEmptyRecordingStillCompressesIntoARealArchive() throws IOException {
-            Path source = Files.createFile(dir.resolve("rec-20260220-120500.jfr"));
+            Path source = Files.createFile(dir.resolve("rec-20260220-120500+0000.jfr"));
             Path target = jfrCompression().target(source);
 
             jfrCompression().compress(source, target);
@@ -187,7 +187,7 @@ class CompressionTest {
          */
         @Test
         void theScratchFileIsHidden() throws IOException {
-            Path source = Files.write(dir.resolve("rec-20260220-120500.jfr"), body());
+            Path source = Files.write(dir.resolve("rec-20260220-120500+0000.jfr"), body());
             Path target = jfrCompression().target(source);
 
             // Nothing to observe mid-flight from here, so the name is asserted where it is

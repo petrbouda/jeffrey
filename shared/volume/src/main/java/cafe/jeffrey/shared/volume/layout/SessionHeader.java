@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
+import cafe.jeffrey.shared.volume.VolumePath;
+
 import java.time.Instant;
 
 /**
@@ -51,5 +53,9 @@ public record SessionHeader(SessionDirectory directory, boolean newest) {
 
     public Instant createdAt() {
         return directory.createdAt();
+    }
+
+    public VolumePath path() {
+        return directory.path();
     }
 }

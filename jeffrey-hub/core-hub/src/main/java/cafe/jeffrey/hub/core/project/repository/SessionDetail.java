@@ -17,9 +17,9 @@
 package cafe.jeffrey.hub.core.project.repository;
 
 /**
- * How much of a session a listing loads. {@link #HEADERS} is its marker and its place in its
- * instance — enough to pick a session by id, order or start. {@link #WITH_FILES} walks the session's directory on the
- * volume as well, which is a stat per file over a network mount: what
+ * How much of a session a listing loads. {@link #HEADERS} is its name and its place in its
+ * instance — enough to pick a session by id, order or start. {@link #WITH_FILES} lists the
+ * session's directory on the volume as well: what
  * {@code openRecording()}, {@code trimmableRecordings()}, {@code totalSizeBytes()} and
  * {@code isFailedEmpty()} answer from, and meaningless without.
  */

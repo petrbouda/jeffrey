@@ -30,7 +30,6 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Clock;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,15 +45,13 @@ public final class AzureFilesClientsFactory {
     /** What a share reports where a hub reports its version. */
     private static final String DESCRIPTION = "azure-files";
 
-    private final Clock clock;
     private final Optional<String> sasToken;
     private final ConcurrentHashMap<AzureFilesAddress, RemoteClients> cache = new ConcurrentHashMap<>();
 
     /**
      * @param sasToken the configured remote's SAS token, when it signs in with one
      */
-    public AzureFilesClientsFactory(Clock clock, Optional<String> sasToken) {
-        this.clock = clock;
+    public AzureFilesClientsFactory(Optional<String> sasToken) {
         this.sasToken = sasToken;
     }
 
@@ -65,13 +62,13 @@ public final class AzureFilesClientsFactory {
     /**
      * The independent reads of one call go out {@link BoundedReadFanOut#DEFAULT_MAX_IN_FLIGHT} at a
      * time, so their round-trips overlap. Nothing is remembered: a level is one listing of its
-     * parent, with no marker file to read twice.
+     * parent, with no file in it to read.
      */
     private RemoteClients open(AzureFilesAddress address) {
         AzureFilesVolume volume = AzureFilesVolumes.open(address, credential(address));
         LOG.info("Opened an Azure Files recording volume: address={}", address);
         return VolumeRemoteClients.of(new VolumeSource(
-                volume, clock, DESCRIPTION, address.readOnly(),
+                volume, DESCRIPTION, address.readOnly(),
                 new BoundedReadFanOut(BoundedReadFanOut.DEFAULT_MAX_IN_FLIGHT)));
     }
 

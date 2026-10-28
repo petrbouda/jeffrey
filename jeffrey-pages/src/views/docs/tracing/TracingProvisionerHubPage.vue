@@ -65,9 +65,8 @@ jdk.ThreadSleep#enabled=true,jdk.ThreadSleep#threshold=1ms,\\
 jdk.VirtualThreadPinned#enabled=true,jdk.VirtualThreadPinned#threshold=1ms,\\
 jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
-const sessionLayout = `<workspaces>/<workspace-ref-id>/
-├── .workspace-info.json               # written by the Hub when the workspace is created
-└── <project-name>/<instance-id>/<session-id>/     # folder names are the ids, no markers below the workspace
+const sessionLayout = `<workspaces>/<workspace-ref-id>/            # the workspace is its folder, created by the Provisioner if missing
+└── <project-name>/<instance-id>/<session-id>/     # folder names are the ids, no markers anywhere
     └── rec-<timestamp><offset>.jfr          # the durable chunks — traces live in these`;
 </script>
 
@@ -136,7 +135,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes no marker below the workspace: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>rec-&lt;timestamp&gt;&lt;offset&gt;.jfr</code> chunk on its loop interval, the machine's UTC offset in its name (<code>rec-20261027-085500+0100.jfr</code>) so the timestamp is read at the offset it was written in.</p>
+      <p>The Provisioner creates the tree, the workspace folder included when it is missing, and writes no marker: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>rec-&lt;timestamp&gt;&lt;offset&gt;.jfr</code> chunk on its loop interval, the machine's UTC offset in its name (<code>rec-20261027-085500+0100.jfr</code>) so the timestamp is read at the offset it was written in.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 
@@ -206,7 +205,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
           <tr>
             <td>The session never appears in Microscope</td>
             <td>The application is not writing to the volume Microscope reads (a different share, root path or mount)</td>
-            <td>Microscope reads the share on every listing — if nothing arrives, the volume is the thing to check, not the app: compare the Provisioner's <code>jeffrey-home</code> with the share and <code>root-path</code> Microscope declares. Create the workspace with the reference id the Provisioner uses (it adopts the existing directory), or set <code>jeffrey.hub.workspaces.auto-create=true</code>, so the Hub's jobs cover it too</td>
+            <td>Microscope reads the share on every listing — if nothing arrives, the volume is the thing to check, not the app: compare the Provisioner's <code>jeffrey-home</code> with the share and <code>root-path</code> Microscope declares. There is no create step to miss: the Provisioner creates the workspace folder when it is missing, and every root folder named with a valid reference id is a workspace to Microscope and to the Hub's jobs</td>
           </tr>
         </tbody>
       </table>

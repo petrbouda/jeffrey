@@ -35,7 +35,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -66,7 +65,7 @@ class RepositoryCompressionProjectJobTest {
 
     @BeforeEach
     void setUp() {
-        when(projectManager.info()).thenReturn(new ProjectInfo("proj-1", "my-project", "ws-1", Optional.of(T0)));
+        when(projectManager.info()).thenReturn(new ProjectInfo("proj-1", "ws-1", T0));
         job = new RepositoryCompressionProjectJob(workspacesManager, new JobConfig(true, Duration.ofMinutes(1), Map.of()));
     }
 

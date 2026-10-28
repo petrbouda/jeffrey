@@ -66,10 +66,6 @@ public class RemoteInstancesManager {
     }
 
     private ProjectInstanceInfo toProjectInstanceInfo(InstanceResponse response) {
-        return new ProjectInstanceInfo(
-                response.id(),
-                scope.projectId(),
-                response.instanceName(),
-                InstantUtils.fromEpochMilli(response.createdAt()));
+        return new ProjectInstanceInfo(response.id(), InstantUtils.fromEpochMilli(response.createdAt()));
     }
 }

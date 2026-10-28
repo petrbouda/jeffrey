@@ -18,16 +18,14 @@
 package cafe.jeffrey.hub.model;
 
 import java.time.Instant;
-import java.util.Optional;
 
 /**
  * An instance as its directory on the volume says at the moment of reading.
  *
  * @param id           the instance's directory name, typically the pod's hostname
- * @param startedAt    when its directory was created, as the volume lists it; empty on a share
- *                     that lists no times
+ * @param startedAt    when its directory was created
  * @param sessionCount how many sessions it holds; none while the provisioner registered it and
  *                     nothing has started yet
  */
-public record ProjectInstanceInfo(String id, Optional<Instant> startedAt, int sessionCount) {
+public record ProjectInstanceInfo(String id, Instant startedAt, int sessionCount) {
 }

@@ -148,7 +148,7 @@ onMounted(() => {
       <h2 id="storage">Storage</h2>
       <p>
         The shared volume is the hub's only state: workspaces, projects, instances and sessions are
-        its directories (the only marker is a workspace's <code>.workspace-info.json</code>), and the JFR recordings sit inside them, laid out by
+        its directories (no marker files: a workspace is a root folder named by its reference id), and the JFR recordings sit inside them, laid out by
         workspace and project. There is no database, no cache, no object store, and no
         per-profile databases. See the
         <router-link to="/docs/hub/storage">Storage</router-link> page for the directory

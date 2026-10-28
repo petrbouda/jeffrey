@@ -49,7 +49,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,7 +74,7 @@ class ProjectRetentionJobTest {
     private static final long MB = 1024L * 1024L;
 
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "production", NOW, 1);
+            new WorkspaceInfo("ws-1", NOW, 1);
 
     @Mock
     WorkspacesManager workspacesManager;
@@ -118,7 +117,7 @@ class ProjectRetentionJobTest {
     }
 
     private void stubProject(ProjectManager project, String projectId, RepositoryStorage repositoryStorage) {
-        when(project.info()).thenReturn(new ProjectInfo(projectId, projectId, "ws-1", Optional.of(NOW)));
+        when(project.info()).thenReturn(new ProjectInfo(projectId, "ws-1", NOW));
         when(project.repositoryManager()).thenReturn(repositoryManager);
         when(project.repositoryStorage()).thenReturn(repositoryStorage);
     }
@@ -178,7 +177,7 @@ class ProjectRetentionJobTest {
             var cached = storageOverview.get();
             assertEquals(NOW, cached.computedAt());
             ProjectStorage project = cached.overview().projects().getFirst();
-            assertEquals("production", project.workspaceName());
+            assertEquals("ws-1", project.workspaceName());
             assertEquals("prj-1", project.projectId());
             assertEquals(30 * MB, project.totalSizeBytes());
             assertEquals(1, project.totalFiles());
@@ -207,7 +206,7 @@ class ProjectRetentionJobTest {
         private static final Instant LONG_AGO = NOW.minus(INSTANCE_RETENTION).minusSeconds(1);
 
         private static ProjectInstanceInfo instance(String id, Instant startedAt, int sessions) {
-            return new ProjectInstanceInfo(id, Optional.of(startedAt), sessions);
+            return new ProjectInstanceInfo(id, startedAt, sessions);
         }
 
         @BeforeEach

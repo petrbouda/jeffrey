@@ -27,7 +27,6 @@ import java.util.function.Function;
 
 public interface ProjectManager {
 
-
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, ProjectManager> {
     }
@@ -41,7 +40,6 @@ public interface ProjectManager {
     RemoteInstancesManager instancesManager();
 
     ProjectInfo info();
-
 
     void delete();
 }

@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.hub.core.project.repository;
 
+import cafe.jeffrey.hub.core.volume.MountTimes;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
@@ -29,7 +30,7 @@ import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionDeletion;
-import cafe.jeffrey.shared.volume.layout.SessionDirectory;
+import cafe.jeffrey.shared.volume.layout.SessionHeader;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
 import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;
@@ -132,7 +133,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     private static ProjectInstanceInfo instanceInfo(InstanceSummary summary) {
         return new ProjectInstanceInfo(
                 summary.instance().id(),
-                summary.instance().createdAt(),
+                MountTimes.createdAt(summary.instance().createdAt(), summary.instance().path()),
                 summary.sessionCount());
     }
 
@@ -143,7 +144,7 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      */
     @Override
     public void deleteRepositoryFiles(String sessionId, List<String> fileIds) {
-        Optional<SessionDirectory> session = tree.session(sessionId);
+        Optional<SessionHeader> session = tree.session(sessionId);
         if (session.isEmpty()) {
             return;
         }

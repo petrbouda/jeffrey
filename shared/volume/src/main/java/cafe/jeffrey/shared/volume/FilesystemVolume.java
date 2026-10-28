@@ -26,12 +26,10 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -83,25 +81,6 @@ public final class FilesystemVolume implements WritableVolume {
         }
     }
 
-    /** To a scratch file beside the target, then renamed onto it: the file appears whole or not at all. */
-    @Override
-    public void write(VolumePath path, byte[] content) {
-        Path target = resolve(path);
-        Path scratch = resolve(path.scratchSibling());
-        try {
-            Files.write(scratch, content);
-            try {
-                Files.move(scratch, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(scratch, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot write a volume file: path=" + target, e);
-        } finally {
-            deleteQuietly(scratch);
-        }
-    }
-
     @Override
     public void delete(VolumePath path) {
         Path target = resolve(path);
@@ -113,14 +92,6 @@ public final class FilesystemVolume implements WritableVolume {
             Files.deleteIfExists(target);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot delete a volume file: path=" + target, e);
-        }
-    }
-
-    private static void deleteQuietly(Path path) {
-        try {
-            Files.deleteIfExists(path);
-        } catch (IOException e) {
-            LOG.warn("Cannot remove scratch file: path={}", path, e);
         }
     }
 

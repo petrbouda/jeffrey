@@ -177,32 +177,18 @@
       </DrawerSection>
 
       <DrawerSection label="Workspace" icon="bi-folder-plus">
-        <DrawerField
-          label="Workspace Name"
-          required
-          hint="Shown in the workspace list and project header."
-          :disabled="creating"
-        >
-          <input
-            v-model="createForm.name"
-            type="text"
-            class="field-input"
-            placeholder="e.g. dev-pb"
-            :disabled="creating"
-          />
-        </DrawerField>
-
         <DrawerField label="Reference ID" required :error="referenceIdError ?? undefined" :disabled="creating">
           <input
             v-model="createForm.referenceId"
             type="text"
             class="field-input is-mono"
-            placeholder="e.g. jeffrey-testapp-1"
+            placeholder="e.g. payments-prod"
             :disabled="creating"
           />
           <template #hint>
-            Used by <strong>provisioner</strong>'s <code>project.workspace-ref-id</code>. Must be
-            unique on this remote.
+            The workspace's folder on the share, and so its name. Used by
+            <strong>provisioner</strong>'s <code>project.workspace-ref-id</code>. Must be unique on
+            this remote.
             {{ WORKSPACE_REF_ID_HINT }}
           </template>
         </DrawerField>
@@ -236,21 +222,7 @@
     >
       <DrawerSection label="Workspace" icon="bi-folder">
         <div class="info-rows">
-          <InfoRow label="Name">{{ selectedWorkspace.name }}</InfoRow>
-
           <InfoRow label="Reference ID" mono>
-            <span class="info-row-text">{{ selectedWorkspace.referenceId || '—' }}</span>
-            <button
-              v-if="selectedWorkspace.referenceId"
-              class="info-copy-btn"
-              title="Copy"
-              @click="copyText(selectedWorkspace.referenceId)"
-            >
-              <i class="bi bi-clipboard"></i>
-            </button>
-          </InfoRow>
-
-          <InfoRow label="Workspace ID" mono>
             <span class="info-row-text">{{ selectedWorkspace.id }}</span>
             <button class="info-copy-btn" title="Copy" @click="copyText(selectedWorkspace.id)">
               <i class="bi bi-clipboard"></i>
@@ -349,7 +321,7 @@ const showWorkspaceInfo = ref(false);
 const showCreateForm = ref(false);
 const creating = ref(false);
 const createError = ref<string | null>(null);
-const createForm = ref({ name: '', referenceId: '' });
+const createForm = ref({ referenceId: '' });
 
 const WORKSPACE_REF_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$/;
 const WORKSPACE_REF_ID_HINT =
@@ -409,10 +381,8 @@ const referenceIdError = computed(() => {
   return WORKSPACE_REF_ID_PATTERN.test(ref) ? null : WORKSPACE_REF_ID_HINT;
 });
 
-const isCreateFormValid = computed(
-  () =>
-    createForm.value.name.trim().length > 0 &&
-    WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim())
+const isCreateFormValid = computed(() =>
+  WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim())
 );
 
 
@@ -515,13 +485,13 @@ const copyText = async (value: string) => {
 
 const openCreateForm = () => {
   showCreateForm.value = true;
-  createForm.value = { name: '', referenceId: crypto.randomUUID() };
+  createForm.value = { referenceId: '' };
   createError.value = null;
 };
 
 const closeCreateForm = () => {
   showCreateForm.value = false;
-  createForm.value = { name: '', referenceId: '' };
+  createForm.value = { referenceId: '' };
   createError.value = null;
 };
 
@@ -532,11 +502,9 @@ const submitCreate = async () => {
   creating.value = true;
   createError.value = null;
   try {
-    const created = await workspaceClient.create({
-      referenceId: createForm.value.referenceId.trim(),
-      name: createForm.value.name.trim()
-    });
-    ToastService.success('Workspace Created', `"${createForm.value.name}" is ready.`);
+    const referenceId = createForm.value.referenceId.trim();
+    const created = await workspaceClient.create({ referenceId });
+    ToastService.success('Workspace Created', `"${referenceId}" is ready.`);
     closeCreateForm();
     await refreshWorkspaces();
     if (created?.id) {

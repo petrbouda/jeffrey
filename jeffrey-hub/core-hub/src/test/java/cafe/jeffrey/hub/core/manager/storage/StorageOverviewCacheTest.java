@@ -31,8 +31,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,9 +41,9 @@ class StorageOverviewCacheTest {
     private static final Instant LAST_ACTIVITY = Instant.parse("2026-08-09T10:00:00Z");
 
     private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", "production", CREATED_AT, 1);
+            new WorkspaceInfo("ws-1", CREATED_AT, 1);
     private static final ProjectInfo PROJECT =
-            new ProjectInfo("prj-1", "order-service", "ws-1", Optional.of(CREATED_AT));
+            new ProjectInfo("prj-1", "ws-1", CREATED_AT);
 
     private StorageOverviewCache cache;
 
@@ -108,7 +106,7 @@ class StorageOverviewCacheTest {
             ProjectStorage project = ProjectStorage.measure(WORKSPACE, PROJECT, sessions);
 
             assertThat(project).isEqualTo(new ProjectStorage(
-                    "ws-1", "production", "prj-1", "order-service", 1730L, 5, LAST_ACTIVITY.toEpochMilli()));
+                    "ws-1", "ws-1", "prj-1", "prj-1", 1730L, 5, LAST_ACTIVITY.toEpochMilli()));
         }
 
         @Test

@@ -131,14 +131,12 @@ public class RemoteConnection {
     /**
      * Creates a workspace on the remote.
      *
-     * @param referenceId stable user-supplied id; jeffrey-provisioner's project.workspace-ref-id
-     *                    must match this value to route recordings to the workspace
-     * @param name        display name
+     * @param referenceId stable user-supplied id, which names the workspace's directory;
+     *                    jeffrey-provisioner's project.workspace-ref-id must match it
      */
-    public WorkspaceInfo createWorkspace(String referenceId, String name) {
-        WorkspaceInfo created = clients.discovery().createWorkspace(referenceId, name);
-        LOG.info("Created workspace on the remote: workspace_id={} reference_id={} name={}",
-                created.id(), referenceId, name);
+    public WorkspaceInfo createWorkspace(String referenceId) {
+        WorkspaceInfo created = clients.discovery().createWorkspace(referenceId);
+        LOG.info("Created workspace on the remote: workspace_id={}", created.id());
         return created;
     }
 }

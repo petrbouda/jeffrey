@@ -53,9 +53,9 @@ public final class ProjectTree {
     private static final Comparator<VolumeEntry> NEWEST_BY_NAME =
             Comparator.comparing(VolumeEntry::name).reversed();
 
-    /** The order an instance's sessions started in: by their starts, a tie broken by name. */
-    static final Comparator<SessionDirectory> OLDEST_FIRST =
-            Comparator.comparing(SessionDirectory::createdAt).thenComparing(SessionDirectory::id);
+    /** The order an instance's sessions started in, newest first: by their starts, a tie broken by name. */
+    private static final Comparator<SessionDirectory> NEWEST_FIRST =
+            Comparator.comparing(SessionDirectory::createdAt).thenComparing(SessionDirectory::id).reversed();
 
     private final VolumeAccess volume;
     private final VolumePath path;
@@ -72,7 +72,7 @@ public final class ProjectTree {
      * below it — the one test of "is this a project".
      */
     public static Optional<ProjectTree> at(VolumeAccess volume, VolumePath directory) {
-        return look(volume, directory).map(entry -> new ProjectTree(volume, directory, entry.createdAt()));
+        return VolumeDirectories.directory(volume, directory).map(entry -> new ProjectTree(volume, directory, entry.createdAt()));
     }
 
     /**
@@ -86,8 +86,7 @@ public final class ProjectTree {
 
     /** The projects in a workspace's directory, each a visible child directory: one listing. */
     public static List<ProjectTree> allIn(VolumeAccess volume, VolumePath workspaceDirectory) {
-        return VolumeMarkers.childDirectoryEntries(volume, workspaceDirectory).stream()
-                .sorted(Comparator.comparing(VolumeEntry::name))
+        return VolumeDirectories.childDirectoryEntries(volume, workspaceDirectory).stream()
                 .map(entry -> new ProjectTree(volume, entry.path(), entry.createdAt()))
                 .toList();
     }
@@ -111,8 +110,7 @@ public final class ProjectTree {
 
     /** The project's instances, each a visible child directory: one listing. */
     public List<InstanceDirectory> instances() {
-        return VolumeMarkers.childDirectoryEntries(volume, path).stream()
-                .sorted(Comparator.comparing(VolumeEntry::name))
+        return VolumeDirectories.childDirectoryEntries(volume, path).stream()
                 .map(entry -> new InstanceDirectory(entry.path(), entry.createdAt()))
                 .toList();
     }
@@ -120,7 +118,8 @@ public final class ProjectTree {
     /** One instance, or empty when the project holds no directory by that id: one look at it. */
     public Optional<InstanceDirectory> instance(String instanceId) {
         return path.visibleChild(instanceId)
-                .flatMap(dir -> look(volume, dir).map(entry -> new InstanceDirectory(dir, entry.createdAt())));
+                .flatMap(dir -> VolumeDirectories.directory(volume, dir)
+                        .map(entry -> new InstanceDirectory(dir, entry.createdAt())));
     }
 
     /**
@@ -128,84 +127,47 @@ public final class ProjectTree {
      * profiler has not written yet is a session about to start.
      */
     boolean holdsAnyDirectory(VolumePath instanceDir) {
-        return !VolumeMarkers.childDirectories(volume, instanceDir).isEmpty();
+        return !VolumeDirectories.childDirectories(volume, instanceDir).isEmpty();
     }
 
     // ========== Sessions ==========
 
     /**
-     * A session lies in one of the instance directories, under its own id: the project is listed
-     * for its instances, and each is looked at for the session until one holds it. An id that is
-     * not a session's name asks the volume nothing.
+     * An instance's sessions newest first, off one listing of its directory: each a visible
+     * directory named with the time-ordered id the provisioner gives a session (a UUIDv7), whose
+     * name says when it started. The first is the instance's newest — no newer session has started
+     * there — and the one rule for which session that is.
      */
-    public Optional<SessionDirectory> session(String sessionId) {
-        if (startNamedBy(sessionId).isEmpty()) {
+    public List<SessionHeader> sessionsNewestFirst(InstanceDirectory instance) {
+        List<SessionDirectory> newestFirst = VolumeDirectories.childDirectories(volume, instance.path()).stream()
+                .flatMap(dir -> IDGenerator.timestampOf(dir.name())
+                        .map(start -> new SessionDirectory(dir, start))
+                        .stream())
+                .sorted(NEWEST_FIRST)
+                .toList();
+        return newestFirst.stream()
+                .map(session -> new SessionHeader(session, session.equals(newestFirst.getFirst())))
+                .toList();
+    }
+
+    /**
+     * A session lies in one of the instance directories, under its own id: the project is listed
+     * for its instances, and each instance in turn until one holds it — the listing that finds it
+     * also says whether it is the newest. An id that is not a session's name asks the volume nothing.
+     */
+    public Optional<SessionHeader> session(String sessionId) {
+        if (IDGenerator.timestampOf(sessionId).isEmpty()) {
             return Optional.empty();
         }
-        for (VolumePath instanceDir : VolumeMarkers.childDirectories(volume, path)) {
-            Optional<SessionDirectory> session = instanceDir.visibleChild(sessionId)
-                    .filter(dir -> look(volume, dir).isPresent())
-                    .flatMap(ProjectTree::sessionAt);
+        for (InstanceDirectory instance : instances()) {
+            Optional<SessionHeader> session = sessionsNewestFirst(instance).stream()
+                    .filter(header -> header.id().equals(sessionId))
+                    .findFirst();
             if (session.isPresent()) {
                 return session;
             }
         }
         return Optional.empty();
-    }
-
-    /**
-     * The session in this directory, from its name alone: the provisioner names each session with
-     * a time-ordered id ({@link IDGenerator#generate()}) that carries its start. Empty for any other
-     * name — no session — so nothing is read to tell.
-     */
-    static Optional<SessionDirectory> sessionAt(VolumePath dir) {
-        return startNamedBy(dir.name()).map(start -> new SessionDirectory(dir, start));
-    }
-
-    /** When the session a directory is named for started, from the name alone. */
-    static Optional<Instant> startNamedBy(String directoryName) {
-        return IDGenerator.timestampOf(directoryName);
-    }
-
-    /** An instance's sessions in the order they started — the order a session's end is read from. */
-    public List<SessionDirectory> sessionsOldestFirst(VolumePath instanceDir) {
-        return sessionsOldestFirst(instanceListing(instanceDir));
-    }
-
-    /** The sessions among an instance directory's listed entries, in the order they started. */
-    static List<SessionDirectory> sessionsOldestFirst(List<VolumeEntry> instanceEntries) {
-        return visibleDirectories(instanceEntries).stream()
-                .map(entry -> sessionAt(entry.path()))
-                .flatMap(Optional::stream)
-                .sorted(OLDEST_FIRST)
-                .toList();
-    }
-
-    /** One listing of an instance's directory; nothing when it is gone or cannot be listed. */
-    List<VolumeEntry> instanceListing(VolumePath instanceDir) {
-        try {
-            return volume.list(instanceDir);
-        } catch (UncheckedIOException e) {
-            LOG.warn("Cannot list directory: path={}", instanceDir, e);
-            return List.of();
-        }
-    }
-
-    /** The visible directories among listed entries; dot-directories are the volume's own bookkeeping. */
-    static List<VolumeEntry> visibleDirectories(List<VolumeEntry> entries) {
-        return entries.stream()
-                .filter(VolumeEntry::isDirectory)
-                .filter(entry -> !entry.path().isHidden())
-                .toList();
-    }
-
-    /**
-     * Whether no newer session has started in this one's instance — a newer session is what ends
-     * it. One listing of the instance: its sessions' names say when each started.
-     */
-    boolean isNewest(SessionDirectory session) {
-        return sessionsOldestFirst(instanceListing(session.path().parent())).stream()
-                .noneMatch(sibling -> OLDEST_FIRST.compare(sibling, session) > 0);
     }
 
     /**
@@ -231,6 +193,19 @@ public final class ProjectTree {
      */
     public List<SessionFile> files(VolumeSession session) {
         return files(session.listing().entries());
+    }
+
+    /**
+     * The visible files of a session just read as its listing names them, none of them looked at:
+     * enough to count them and add up their sizes.
+     *
+     * @throws UncheckedIOException when its directory could not be listed
+     */
+    public List<VolumeEntry> listedFiles(VolumeSession session) {
+        return session.listing().entries().stream()
+                .filter(VolumeEntry::isFile)
+                .filter(entry -> !entry.path().isHidden())
+                .toList();
     }
 
     /**
@@ -308,15 +283,5 @@ public final class ProjectTree {
             LOG.warn("Leaving out a session file the volume gives no time for: path={}", file);
         }
         return entry.get().createdAt();
-    }
-
-    /** The directory at {@code dir} as one look at it describes it; empty when no directory is there. */
-    private static Optional<VolumeEntry> look(VolumeAccess volume, VolumePath dir) {
-        try {
-            return volume.stat(dir).filter(VolumeEntry::isDirectory);
-        } catch (UncheckedIOException e) {
-            LOG.debug("Cannot look at a directory, reading it as not there: path={} reason={}", dir, e.getMessage());
-            return Optional.empty();
-        }
     }
 }

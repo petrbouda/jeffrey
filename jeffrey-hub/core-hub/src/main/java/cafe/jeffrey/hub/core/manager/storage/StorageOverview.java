@@ -63,7 +63,7 @@ public record StorageOverview(List<ProjectStorage> projects) {
                     .orElse(0L);
 
             return new ProjectStorage(
-                    workspace.id(), workspace.name(), project.id(), project.name(),
+                    workspace.id(), workspace.id(), project.id(), project.id(),
                     totalSize, files.size(), lastActivity);
         }
     }

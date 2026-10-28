@@ -151,10 +151,10 @@ class ProjectTreeTest {
             Path session = VolumeWriter.session(instance, T0);
             Files.createDirectories(instance.resolve("not-a-session"));
 
-            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
+            List<SessionHeader> sessions = tree.sessionsNewestFirst(tree.instance("pod-a").orElseThrow());
 
             assertEquals(List.of(session.getFileName().toString()),
-                    oldestFirst.stream().map(SessionDirectory::id).toList());
+                    sessions.stream().map(SessionHeader::id).toList());
             assertTrue(tree.session("not-a-session").isEmpty());
         }
 
@@ -164,12 +164,11 @@ class ProjectTreeTest {
             String first = VolumeWriter.session(instance, T0).getFileName().toString();
             String second = VolumeWriter.session(instance, T0.plusSeconds(60)).getFileName().toString();
 
-            List<SessionDirectory> oldestFirst = tree.sessionsOldestFirst(PROJECT.resolve("pod-a"));
+            List<SessionHeader> newestFirst = tree.sessionsNewestFirst(tree.instance("pod-a").orElseThrow());
 
-            assertEquals(List.of(first, second), oldestFirst.stream().map(SessionDirectory::id).toList());
-            assertEquals(T0, oldestFirst.getFirst().createdAt());
-            assertFalse(tree.isNewest(oldestFirst.getFirst()));
-            assertTrue(tree.isNewest(oldestFirst.getLast()));
+            assertEquals(List.of(second, first), newestFirst.stream().map(SessionHeader::id).toList());
+            assertEquals(T0, newestFirst.getLast().createdAt());
+            assertEquals(List.of(true, false), newestFirst.stream().map(SessionHeader::newest).toList());
         }
 
         @Test
@@ -177,10 +176,11 @@ class ProjectTreeTest {
             VolumeWriter.instance(project, "pod-a");
             String id = VolumeWriter.session(VolumeWriter.instance(project, "pod-b"), T0).getFileName().toString();
 
-            SessionDirectory session = tree.session(id).orElseThrow();
+            SessionHeader session = tree.session(id).orElseThrow();
 
             assertEquals("pod-b", session.instanceId());
             assertEquals(T0, session.createdAt());
+            assertTrue(session.newest());
         }
 
         @Test

@@ -29,11 +29,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -52,10 +50,10 @@ class HubProjectsManagerTest {
 
     @BeforeEach
     void setUp() {
-        workspaceDir = TestVolume.workspace(root, "prod-ws", "Production", T0);
+        workspaceDir = TestVolume.workspace(root, "prod-ws");
         FilesystemVolume volume = new FilesystemVolume(root);
         projects = new HubProjectsManager(
-                new WorkspaceDirectory(volume, TestVolume.volumePath(root, workspaceDir), "Production", T0),
+                new WorkspaceDirectory(volume, TestVolume.volumePath(root, workspaceDir), T0),
                 project -> new HubProjectManager(project, volume));
     }
 
@@ -65,9 +63,8 @@ class HubProjectsManagerTest {
 
         ProjectInfo info = projects.findAll().getFirst().info();
         assertEquals("orders", info.id());
-        assertEquals("orders", info.name());
         assertEquals("prod-ws", info.workspaceId());
-        assertTrue(info.createdAt().isPresent(), "its directory's time, as the mount gives it");
+        assertNotNull(info.createdAt(), "its directory's time, as the mount gives it");
     }
 
     @Test

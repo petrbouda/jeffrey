@@ -17,12 +17,9 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
@@ -38,48 +35,26 @@ public final class VolumeChanges {
     private VolumeChanges() {
     }
 
-    /** Whether a workspace's directory already holds its {@code .workspace-info.json}. */
-    public static boolean isDescribedWorkspace(VolumeAccess volume, VolumePath directory) {
-        return VolumeMarkers.read(volume, directory, WorkspaceMarker.FILE_NAME, WorkspaceMarker.class).isPresent();
-    }
-
     /**
-     * Creates the workspace {@code id} named {@code name}, adopting a directory the provisioner
-     * already wrote into; refused for an id already described or a name another workspace goes by.
-     *
-     * @param createdAt epoch millis, for its marker
+     * Creates the workspace {@code id}: its directory, which is all a workspace is. False when a
+     * directory by that id is there already — the provisioner may have written into it first.
      */
-    public static WorkspaceCreation createWorkspace(WritableVolume volume, String id, String name, long createdAt) {
+    public static boolean createWorkspace(WritableVolume volume, String id) {
         VolumePath directory = VolumePath.root().resolve(id);
-        if (isDescribedWorkspace(volume, directory)) {
-            return WorkspaceCreation.ID_TAKEN;
+        if (VolumeDirectories.directory(volume, directory).isPresent()) {
+            return false;
         }
-        // Another workspace's name; the one being adopted may already be listed under its id
-        boolean nameTaken = VolumeWorkspace.all(volume).stream()
-                .anyMatch(workspace -> !workspace.id().equals(id) && workspace.name().equals(name));
-        if (nameTaken) {
-            return WorkspaceCreation.NAME_TAKEN;
-        }
-        describeWorkspace(volume, directory, new WorkspaceMarker(name, createdAt));
-        return WorkspaceCreation.CREATED;
-    }
-
-    /**
-     * Creates a workspace's directory, adopting one the provisioner already wrote into, and
-     * describes it with its marker — written whole, so a reader alongside sees it or not at all.
-     */
-    public static void describeWorkspace(WritableVolume volume, VolumePath directory, WorkspaceMarker marker) {
         volume.createDirectories(directory);
-        volume.write(directory.resolve(WorkspaceMarker.FILE_NAME), Json.toString(marker).getBytes(StandardCharsets.UTF_8));
+        return true;
     }
 
     /**
      * Deletes a session; its instance goes too when no directory is left in it. Any directory
-     * counts, marker or not: one the provisioner has created but not yet described is a session
-     * about to start, and its profiler may already be writing into it.
+     * counts: one the provisioner has just created is a session about to start, and its profiler
+     * may already be writing into it.
      */
     public static SessionDeletion deleteSession(WritableVolume volume, ProjectTree project, String sessionId) {
-        Optional<SessionDirectory> session = project.session(sessionId);
+        Optional<SessionHeader> session = project.session(sessionId);
         if (session.isEmpty()) {
             return SessionDeletion.NOT_FOUND;
         }

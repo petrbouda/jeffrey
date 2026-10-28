@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.test.volume.VolumeWriter;
@@ -30,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,65 +61,31 @@ class VolumeChangesTest {
     class Workspace {
 
         @Test
-        void isDescribedByItsMarkerWrittenWhole() throws IOException {
-            assertFalse(VolumeChanges.isDescribedWorkspace(volume, WORKSPACE));
+        void isItsDirectory() throws IOException {
+            assertTrue(VolumeChanges.createWorkspace(volume, "staging"));
 
-            VolumeChanges.describeWorkspace(volume, WORKSPACE, new WorkspaceMarker("Production", T0.toEpochMilli()));
-
-            assertTrue(VolumeChanges.isDescribedWorkspace(volume, WORKSPACE));
-            assertEquals(new WorkspaceMarker("Production", T0.toEpochMilli()), Json.read(
-                    Files.readString(root.resolve("prod").resolve(WorkspaceMarker.FILE_NAME)), WorkspaceMarker.class));
-            try (var left = Files.list(root.resolve("prod"))) {
-                assertTrue(left.noneMatch(path -> path.getFileName().toString().endsWith(".tmp")));
+            VolumeWorkspace created = VolumeWorkspace.at(volume, "staging").orElseThrow();
+            assertEquals("staging", created.id());
+            assertTrue(created.createdAt().isPresent(), "its directory's time, as the volume lists it");
+            try (var left = Files.list(root.resolve("staging"))) {
+                assertEquals(0, left.count(), "nothing is written into it");
             }
         }
 
         @Test
-        void createsTheDirectoryWhenNoneIsThere() {
-            VolumePath fresh = VolumePath.root().resolve("staging");
-
-            VolumeChanges.describeWorkspace(volume, fresh, new WorkspaceMarker("Staging", T0.toEpochMilli()));
-
-            assertTrue(VolumeChanges.isDescribedWorkspace(volume, fresh));
+        void isRefusedForAnIdWhoseDirectoryIsThere() {
+            assertFalse(VolumeChanges.createWorkspace(volume, "prod"));
+            assertTrue(Files.isDirectory(projectDir), "the project the provisioner wrote there stays");
         }
 
         @Test
-        void isCreatedAdoptingTheDirectoryTheProvisionerWroteInto() {
-            assertEquals(WorkspaceCreation.CREATED,
-                    VolumeChanges.createWorkspace(volume, "prod", "Production", T0.toEpochMilli()));
+        void areListedByTheirDirectoriesAlone() throws IOException {
+            Files.createDirectories(root.resolve(".scratch"));
+            VolumeChanges.createWorkspace(volume, "staging");
 
-            VolumeWorkspace created = VolumeWorkspace.at(volume, WORKSPACE);
-            assertEquals("Production", created.name());
-            assertEquals(Optional.of(T0), created.createdAt());
-            assertTrue(created.described());
-            assertTrue(Files.isDirectory(projectDir), "the project already written there stays");
-        }
-
-        @Test
-        void isRefusedForAnIdAlreadyDescribed() {
-            VolumeChanges.createWorkspace(volume, "prod", "Production", T0.toEpochMilli());
-
-            assertEquals(WorkspaceCreation.ID_TAKEN,
-                    VolumeChanges.createWorkspace(volume, "prod", "Another", T0.toEpochMilli()));
-        }
-
-        @Test
-        void isRefusedForANameAnotherWorkspaceGoesBy() {
-            VolumeChanges.createWorkspace(volume, "prod", "Production", T0.toEpochMilli());
-
-            assertEquals(WorkspaceCreation.NAME_TAKEN,
-                    VolumeChanges.createWorkspace(volume, "staging", "Production", T0.toEpochMilli()));
-            assertFalse(VolumeChanges.isDescribedWorkspace(volume, VolumePath.root().resolve("staging")));
-        }
-
-        @Test
-        void anUndescribedDirectoryGoesByItsId() {
-            VolumeWorkspace undescribed = VolumeWorkspace.at(volume, WORKSPACE);
-
-            assertEquals("prod", undescribed.name());
-            assertFalse(undescribed.described());
-            assertEquals(WorkspaceCreation.NAME_TAKEN,
-                    VolumeChanges.createWorkspace(volume, "staging", "prod", T0.toEpochMilli()));
+            assertEquals(List.of("prod", "staging"), VolumeWorkspace.all(volume).stream().map(VolumeWorkspace::id).toList());
+            assertEquals(Optional.empty(), VolumeWorkspace.at(volume, "missing"));
+            assertEquals(Optional.empty(), VolumeWorkspace.at(volume, "../prod"));
         }
     }
 

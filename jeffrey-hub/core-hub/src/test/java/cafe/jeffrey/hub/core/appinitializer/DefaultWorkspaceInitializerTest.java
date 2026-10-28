@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
@@ -45,49 +44,33 @@ class DefaultWorkspaceInitializerTest {
     @BeforeEach
     void setUp() {
         properties = new DefaultWorkspaceProperties();
-        // properties default to $default / $default
+        // the reference id defaults to $default
     }
 
     @Nested
     class WorkspaceMissing {
 
         @Test
-        void createsDefaultWorkspaceWithConfiguredReferenceIdAndName() {
-            when(workspacesManager.isDescribed("$default")).thenReturn(false);
-            when(workspacesManager.create(any())).thenReturn(
-                    new WorkspaceInfo("$default", "$default", Instant.parse("2026-01-01T00:00:00Z"), 0));
+        void createsTheDefaultWorkspaceUnderItsReferenceId() {
+            when(workspacesManager.exists("$default")).thenReturn(false);
+            when(workspacesManager.create("$default")).thenReturn(
+                    new WorkspaceInfo("$default", Instant.parse("2026-01-01T00:00:00Z"), 0));
 
-            DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
-                    workspacesManager, properties);
+            new DefaultWorkspaceInitializer(workspacesManager, properties).run();
 
-            initializer.run();
-
-            ArgumentCaptor<WorkspacesManager.CreateWorkspaceRequest> captor =
-                    ArgumentCaptor.forClass(WorkspacesManager.CreateWorkspaceRequest.class);
-            verify(workspacesManager).create(captor.capture());
-            assertEquals("$default", captor.getValue().referenceId());
-            assertEquals("$default", captor.getValue().name());
+            verify(workspacesManager).create("$default");
         }
 
         @Test
-        void honorsCustomReferenceIdAndName() {
+        void honorsACustomReferenceId() {
             properties.setReferenceId("$prod");
-            properties.setName("$prod");
+            when(workspacesManager.exists("$prod")).thenReturn(false);
+            when(workspacesManager.create("$prod")).thenReturn(
+                    new WorkspaceInfo("$prod", Instant.parse("2026-01-01T00:00:00Z"), 0));
 
-            when(workspacesManager.isDescribed("$prod")).thenReturn(false);
-            when(workspacesManager.create(any())).thenReturn(
-                    new WorkspaceInfo("$prod", "$prod", Instant.parse("2026-01-01T00:00:00Z"), 0));
+            new DefaultWorkspaceInitializer(workspacesManager, properties).run();
 
-            DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
-                    workspacesManager, properties);
-
-            initializer.run();
-
-            ArgumentCaptor<WorkspacesManager.CreateWorkspaceRequest> captor =
-                    ArgumentCaptor.forClass(WorkspacesManager.CreateWorkspaceRequest.class);
-            verify(workspacesManager).create(captor.capture());
-            assertEquals("$prod", captor.getValue().referenceId());
-            assertEquals("$prod", captor.getValue().name());
+            verify(workspacesManager).create("$prod");
         }
     }
 
@@ -96,12 +79,9 @@ class DefaultWorkspaceInitializerTest {
 
         @Test
         void doesNotCreateAnything() {
-            when(workspacesManager.isDescribed("$default")).thenReturn(true);
+            when(workspacesManager.exists("$default")).thenReturn(true);
 
-            DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
-                    workspacesManager, properties);
-
-            initializer.run();
+            new DefaultWorkspaceInitializer(workspacesManager, properties).run();
 
             verify(workspacesManager, never()).create(any());
         }
@@ -113,17 +93,6 @@ class DefaultWorkspaceInitializerTest {
         @Test
         void blankReferenceIdThrows() {
             properties.setReferenceId("");
-
-            DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
-                    workspacesManager, properties);
-
-            assertThrows(IllegalArgumentException.class, initializer::run);
-            verify(workspacesManager, never()).create(any());
-        }
-
-        @Test
-        void blankNameThrows() {
-            properties.setName(null);
 
             DefaultWorkspaceInitializer initializer = new DefaultWorkspaceInitializer(
                     workspacesManager, properties);

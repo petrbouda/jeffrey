@@ -34,8 +34,8 @@ export default class ProjectRepositoryClient extends BasePlatformClient {
     return super.get<RepositoryStatistics>('/statistics');
   }
 
-  deleteRecordingSession(recordingSession: RecordingSession): Promise<void> {
-    return super.del<void>('/sessions/' + recordingSession.id);
+  deleteRecordingSession(sessionId: string): Promise<void> {
+    return super.del<void>('/sessions/' + sessionId);
   }
 
   async downloadFile(sessionId: string, fileId: string): Promise<void> {

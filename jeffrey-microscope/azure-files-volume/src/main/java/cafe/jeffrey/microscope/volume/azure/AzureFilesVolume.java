@@ -34,12 +34,10 @@ import com.azure.storage.file.share.models.ShareFileItemProperties;
 import com.azure.storage.file.share.models.ShareFileProperties;
 import com.azure.storage.file.share.models.ShareFileRange;
 import com.azure.storage.file.share.models.ShareStorageException;
-import com.azure.storage.file.share.options.ShareFileRenameOptions;
 import com.azure.storage.file.share.options.ShareListFilesAndDirectoriesOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -59,9 +57,8 @@ import java.util.Set;
  * time and a reader that needs one asks {@link #stat} for that entry. A look at one entry always
  * answers a time: the creation time where the share keeps it, its last modification otherwise.
  *
- * <p>Writes are the few the layout makes. A marker is written to a scratch file beside it and
- * renamed onto it, so a reader alongside never sees half of one; an empty flag file is created in
- * one call. The share has no recursive delete, so a directory is emptied entry by entry first.
+ * <p>Changes are the two the layout makes: a directory created, and a subtree removed. The share
+ * has no recursive delete, so a directory is emptied entry by entry first.
  *
  * <p>"Not there" — a missing file, a missing parent, the other kind of entry under that name — is
  * an empty answer; any other refusal of the service (a credential it rejects, a share it cannot
@@ -197,30 +194,6 @@ public final class AzureFilesVolume implements WritableVolume {
     }
 
     @Override
-    public void write(VolumePath file, byte[] content) {
-        if (content.length == 0) {
-            // Created at its final size in one call, so there is no half of it to see
-            try {
-                fileClient(file).create(0);
-            } catch (ShareStorageException e) {
-                throw unwritable("write", file, e);
-            }
-            return;
-        }
-        VolumePath scratch = file.scratchSibling();
-        ShareFileClient scratchClient = fileClient(scratch);
-        try {
-            scratchClient.create(content.length);
-            scratchClient.uploadRange(new ByteArrayInputStream(content), content.length);
-            scratchClient.renameWithResponse(
-                    new ShareFileRenameOptions(location(file)).setReplaceIfExists(true), null, Context.NONE);
-        } catch (ShareStorageException e) {
-            deleteQuietly(scratchClient, scratch);
-            throw unwritable("write", file, e);
-        }
-    }
-
-    @Override
     public void delete(VolumePath path) {
         Optional<VolumeEntry> entry = stat(path);
         if (entry.isEmpty()) {
@@ -251,15 +224,6 @@ public final class AzureFilesVolume implements WritableVolume {
             }
         }
         directory.deleteIfExists();
-    }
-
-    private void deleteQuietly(ShareFileClient client, VolumePath scratch) {
-        try {
-            client.deleteIfExists();
-        } catch (ShareStorageException e) {
-            LOG.warn("Cannot remove scratch file: share={} path={} status={}",
-                    share.getShareName(), location(scratch), e.getStatusCode());
-        }
     }
 
     private Optional<VolumeEntry> directoryStat(VolumePath path) {

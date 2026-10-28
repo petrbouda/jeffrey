@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
-import cafe.jeffrey.hub.core.configuration.properties.WorkspacesProperties;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.slf4j.Logger;
@@ -46,8 +45,7 @@ import java.time.Clock;
 })
 @EnableConfigurationProperties({
         SchedulerJobsProperties.class,
-        DefaultWorkspaceProperties.class,
-        WorkspacesProperties.class
+        DefaultWorkspaceProperties.class
 })
 @PropertySource("classpath:scheduler-defaults.properties")
 public class HubAppConfiguration {

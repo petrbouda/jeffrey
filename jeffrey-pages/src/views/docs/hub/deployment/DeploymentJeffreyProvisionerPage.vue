@@ -67,8 +67,7 @@ env:
       -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
       -Dlogging.logback.rollingpolicy.max-file-size=10MB
       -Dlogging.logback.rollingpolicy.total-size-cap=100MB
-      -Dlogging.logback.rollingpolicy.max-history=2
-      -Djeffrey.hub.workspaces.auto-create=true`;
+      -Dlogging.logback.rollingpolicy.max-history=2`;
 
 const baseConf = `# helm/jeffrey-testapp-server/jeffrey-base.conf
 # Read by \`provisioner init\` at container start (invoked by the jeffrey-jib entrypoint

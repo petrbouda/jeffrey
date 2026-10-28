@@ -85,8 +85,7 @@ const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned l
     -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
     -Dlogging.logback.rollingpolicy.max-file-size=10MB
     -Dlogging.logback.rollingpolicy.total-size-cap=100MB
-    -Dlogging.logback.rollingpolicy.max-history=2
-    -Djeffrey.hub.workspaces.auto-create=true`;
+    -Dlogging.logback.rollingpolicy.max-history=2`;
 
 const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
   jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
@@ -236,11 +235,9 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
                 workspace directory the provisioner writes into, and the workspace's id. Optional — when omitted (or blank), recordings go to the server's default
                 workspace (<code>$default</code> unless reconfigured via
                 <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
-                If set, it should name a workspace created in Microscope — a directory without its
-                <code>.workspace-info.json</code> is not listed by the Hub, unless the hub enables
-                <code>jeffrey.hub.workspaces.auto-create=true</code>, in which case every
-                workspace directory is listed. Creating the workspace later adopts what was
-                already written.
+                The workspace does not have to exist: the provisioner creates its folder when it is
+                missing, and that folder is the workspace &mdash; its recordings show up in
+                Microscope and on the Hub's Storage page without any create step.
               </td>
             </tr>
             <tr>

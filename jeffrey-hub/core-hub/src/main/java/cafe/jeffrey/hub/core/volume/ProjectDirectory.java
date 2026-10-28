@@ -37,6 +37,6 @@ public record ProjectDirectory(ProjectTree tree, ProjectInfo info) {
 
     /** The hub's project the directory names, in workspace {@code workspaceId}. */
     public static ProjectDirectory of(ProjectTree tree, String workspaceId) {
-        return new ProjectDirectory(tree, new ProjectInfo(tree.id(), tree.id(), workspaceId, tree.createdAt()));
+        return new ProjectDirectory(tree, new ProjectInfo(tree.id(), workspaceId, MountTimes.createdAt(tree.createdAt(), tree.path())));
     }
 }

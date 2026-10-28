@@ -34,7 +34,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import java.time.Clock;
 
 @Configuration
 @Import(AppConfiguration.class)
@@ -49,10 +48,8 @@ public class RemoteConfiguration {
 
     /** The share's clients. */
     @Bean
-    public AzureFilesClientsFactory azureFilesClientsFactory(
-            Clock clock, ConfiguredRemoteProperties.Declared declaredRemote) {
-
-        return new AzureFilesClientsFactory(clock, declaredRemote.sasToken());
+    public AzureFilesClientsFactory azureFilesClientsFactory(ConfiguredRemoteProperties.Declared declaredRemote) {
+        return new AzureFilesClientsFactory(declaredRemote.sasToken());
     }
 
     @Bean

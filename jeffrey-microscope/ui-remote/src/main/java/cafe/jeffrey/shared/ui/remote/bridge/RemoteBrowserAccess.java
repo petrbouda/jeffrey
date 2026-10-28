@@ -33,7 +33,7 @@ public interface RemoteBrowserAccess {
 
     WorkspaceResponse workspace(String workspaceId);
 
-    WorkspaceResponse createWorkspace(String referenceId, String name);
+    WorkspaceResponse createWorkspace(String referenceId);
 
     void deleteWorkspace(String workspaceId);
 

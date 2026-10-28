@@ -26,17 +26,17 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * A workspace directory on the volume and what its {@code .workspace-info.json} declares (or, for
- * an auto-created one without it, its id and the directory's own creation time).
+ * A workspace directory on the volume, named by its id — which is all a workspace is.
  *
- * @param volume the volume the workspace lies on
- * @param path   the directory, named by the workspace's id
+ * @param volume    the volume the workspace lies on
+ * @param path      the directory, named by the workspace's id
+ * @param createdAt when the directory was created
  */
-public record WorkspaceDirectory(VolumeAccess volume, VolumePath path, String name, Instant createdAt) {
+public record WorkspaceDirectory(VolumeAccess volume, VolumePath path, Instant createdAt) {
 
     public WorkspaceDirectory {
-        if (volume == null || path == null || name == null || createdAt == null) {
-            throw new IllegalArgumentException("A workspace directory needs a volume, a path, a name and a creation time");
+        if (volume == null || path == null || createdAt == null) {
+            throw new IllegalArgumentException("A workspace directory needs a volume, a path and a creation time");
         }
     }
 
@@ -52,10 +52,10 @@ public record WorkspaceDirectory(VolumeAccess volume, VolumePath path, String na
     }
 
     /**
-     * The workspace with its project count, which reads every project's marker — so only a
-     * caller that shows the count asks for it, not every request that merely names the workspace.
+     * The workspace with its project count: one listing of its directory, so only a caller that
+     * shows the count asks for it, not every request that merely names the workspace.
      */
     public WorkspaceInfo info() {
-        return new WorkspaceInfo(id(), name, createdAt, projects().size());
+        return new WorkspaceInfo(id(), createdAt, projects().size());
     }
 }

@@ -52,12 +52,12 @@ public interface RepositoryStorage {
     SessionDeletion deleteSession(String sessionId);
 
     /**
-     * Every instance of the project, its status read off its newest session at this moment.
+     * Every instance of the project with how many sessions it holds, at this moment.
      */
     List<ProjectInstanceInfo> instances();
 
     /**
-     * Deletes an instance's directory, its marker file included.
+     * Deletes an instance's directory with whatever is left in it.
      *
      * @param instanceId the unique identifier of the instance whose directory to delete
      */

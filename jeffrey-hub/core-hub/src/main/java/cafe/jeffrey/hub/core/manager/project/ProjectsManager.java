@@ -28,6 +28,6 @@ public interface ProjectsManager {
     interface Factory extends Function<WorkspaceDirectory, ProjectsManager> {
     }
 
-    /** Every project directory of the workspace that carries a readable project marker. */
+    /** Every project of the workspace: each a visible directory in it, one listing. */
     List<ProjectManager> findAll();
 }

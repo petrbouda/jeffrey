@@ -109,11 +109,6 @@ public record VolumePath(List<String> segments) {
         return hidden + SCRATCH_SEPARATOR + UUID.randomUUID() + SCRATCH_SUFFIX;
     }
 
-    /** Where this file is written before it is renamed into place ({@link #scratchName}). */
-    public VolumePath scratchSibling() {
-        return parent().resolve(scratchName(name()));
-    }
-
     /** Whether the last element is the volume's own bookkeeping, marked by a leading dot. */
     public boolean isHidden() {
         return name().startsWith(HIDDEN_PREFIX);

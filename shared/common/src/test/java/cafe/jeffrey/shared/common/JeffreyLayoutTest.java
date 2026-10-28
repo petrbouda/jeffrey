@@ -20,10 +20,11 @@ package cafe.jeffrey.shared.common;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The UTC offset a recording's name carries: async-profiler writes {@code %t} in local time, so
@@ -31,38 +32,51 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 class JeffreyLayoutTest {
 
+    /** A file share refuses {@code :} in a name, so an offset is written without it. */
     @Nested
     class RecordingTemplate {
 
         @Test
         void carriesTheOffsetRightAfterTheTimestamp() {
-            assertEquals("rec-%t+0100.jfr",
-                    JeffreyLayout.recordingTemplate(JeffreyLayout.RECORDING_TEMPLATE, ZoneOffset.ofHours(1)));
-            assertEquals("/data/session/rec-%t+0000.jfr",
-                    JeffreyLayout.recordingTemplate("/data/session/rec-%t.jfr", ZoneOffset.UTC));
-        }
-
-        @Test
-        void refusesATemplateWithoutATimestampBeforeTheExtension() {
-            assertThrows(IllegalArgumentException.class,
-                    () -> JeffreyLayout.recordingTemplate("rec.jfr", ZoneOffset.UTC));
+            assertEquals("rec-%t+0100.jfr", JeffreyLayout.recordingTemplate(ZoneOffset.ofHours(1)));
+            assertEquals("rec-%t+0000.jfr", JeffreyLayout.recordingTemplate(ZoneOffset.UTC));
+            assertEquals("rec-%t+0530.jfr", JeffreyLayout.recordingTemplate(ZoneOffset.ofHoursMinutes(5, 30)));
+            assertEquals("rec-%t-0330.jfr", JeffreyLayout.recordingTemplate(ZoneOffset.ofHoursMinutes(-3, -30)));
         }
     }
 
-    /** A file share refuses {@code :} in a name, so an offset is written without it. */
     @Nested
-    class OffsetSegment {
+    class RecordingStart {
 
         @Test
-        void writesUtcAsZeros() {
-            assertEquals("+0000", JeffreyLayout.offsetSegment(ZoneOffset.UTC));
+        void readsTheNameAtItsOffset() {
+            assertEquals(Optional.of(Instant.parse("2026-10-27T07:55:00Z")),
+                    JeffreyLayout.recordingStart("rec-20261027-085500+0100"));
+            assertEquals(Optional.of(Instant.parse("2026-10-27T12:25:00Z")),
+                    JeffreyLayout.recordingStart("rec-20261027-085500-0330"));
         }
 
         @Test
-        void writesHoursAndMinutesWithoutAColon() {
-            assertEquals("+0200", JeffreyLayout.offsetSegment(ZoneOffset.ofHours(2)));
-            assertEquals("+0530", JeffreyLayout.offsetSegment(ZoneOffset.ofHoursMinutes(5, 30)));
-            assertEquals("-0330", JeffreyLayout.offsetSegment(ZoneOffset.ofHoursMinutes(-3, -30)));
+        void readsANameWithoutAnOffsetAsUtc() {
+            assertEquals(Optional.of(Instant.parse("2026-10-27T08:55:00Z")),
+                    JeffreyLayout.recordingStart("rec-20261027-085500"));
+        }
+
+        /** What the template writes, the reader reads back. */
+        @Test
+        void readsWhatTheTemplateWrites() {
+            String id = JeffreyLayout.recordingTemplate(ZoneOffset.ofHours(2))
+                    .replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, "20260701-120000")
+                    .replace(".jfr", "");
+
+            assertEquals(Optional.of(Instant.parse("2026-07-01T10:00:00Z")), JeffreyLayout.recordingStart(id));
+        }
+
+        @Test
+        void aNameOutsideTheConventionHasNoStart() {
+            assertEquals(Optional.empty(), JeffreyLayout.recordingStart("profile-20261027-085500+0100"));
+            assertEquals(Optional.empty(), JeffreyLayout.recordingStart("rec-not-a-timestamp"));
+            assertEquals(Optional.empty(), JeffreyLayout.recordingStart("gc"));
         }
     }
 }

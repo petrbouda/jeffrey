@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -144,21 +143,6 @@ class FilesystemVolumeTest {
     class Writing {
 
         @Test
-        void writesAFileWholeReplacingWhatWasThereAndLeavesNoScratchFile() throws IOException {
-            volume().createDirectories(ROOT.resolve("prod").resolve("orders"));
-            VolumePath marker = ROOT.resolve("prod").resolve(".workspace-info.json");
-
-            volume().write(marker, "first".getBytes(StandardCharsets.UTF_8));
-            volume().write(marker, "second".getBytes(StandardCharsets.UTF_8));
-
-            assertEquals("second", Files.readString(root.resolve("prod").resolve(".workspace-info.json")));
-            try (Stream<Path> left = Files.list(root.resolve("prod"))) {
-                assertEquals(List.of(".workspace-info.json", "orders"),
-                        left.map(path -> path.getFileName().toString()).sorted().toList());
-            }
-        }
-
-        @Test
         void deletesADirectoryWithEverythingUnderItAndTreatsWhatIsGoneAsDone() throws IOException {
             Files.createDirectories(root.resolve("prod").resolve("orders"));
             Files.writeString(root.resolve("prod").resolve("orders").resolve("gc.log"), "gc");
@@ -196,18 +180,18 @@ class FilesystemVolumeTest {
 
         @Test
         void returnsAFileExactlyAtTheCap() throws IOException {
-            Files.write(root.resolve(".session-info.json"), new byte[VolumeAccess.MAX_READ_BYTES]);
+            Files.write(root.resolve("notes.json"), new byte[VolumeAccess.MAX_READ_BYTES]);
 
             assertEquals(VolumeAccess.MAX_READ_BYTES,
-                    volume().read(ROOT.resolve(".session-info.json")).orElseThrow().length);
+                    volume().read(ROOT.resolve("notes.json")).orElseThrow().length);
         }
 
         /** Whoever writes to the volume must not make a reader hold a file of any size by listing. */
         @Test
         void refusesAFileLargerThanAMarkerCanBe() throws IOException {
-            Files.write(root.resolve(".session-info.json"), new byte[VolumeAccess.MAX_READ_BYTES + 1]);
+            Files.write(root.resolve("notes.json"), new byte[VolumeAccess.MAX_READ_BYTES + 1]);
 
-            assertThrows(UncheckedIOException.class, () -> volume().read(ROOT.resolve(".session-info.json")));
+            assertThrows(UncheckedIOException.class, () -> volume().read(ROOT.resolve("notes.json")));
         }
     }
 }

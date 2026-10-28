@@ -18,10 +18,10 @@
 package cafe.jeffrey.microscope.volume.client;
 
 import cafe.jeffrey.microscope.remote.client.InstancePage;
-import cafe.jeffrey.microscope.remote.client.InstanceRead;
 import cafe.jeffrey.microscope.remote.client.InstancesClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.InstanceResponse;
+import cafe.jeffrey.microscope.remote.client.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionPage;
 
@@ -48,11 +48,11 @@ final class VolumeInstancesClient implements InstancesClient {
     }
 
     @Override
-    public Optional<InstanceRead> instance(ProjectScope scope, String instanceId, InstancePage page) {
+    public Optional<InstanceWithSessionsResponse> instance(ProjectScope scope, String instanceId, InstancePage page) {
         return source.read(() -> {
             ProjectTree project = source.resolvedProject(scope);
             return source.sessions(project).instance(instanceId, new SessionPage(page.limit(), page.before()))
-                    .map(found -> new InstanceRead(
+                    .map(found -> new InstanceWithSessionsResponse(
                             VolumeResponses.instance(found.instance()),
                             found.sessions().stream().map(VolumeResponses::header).toList(),
                             found.hasOlder()));

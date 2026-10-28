@@ -63,9 +63,8 @@ class ProjectInstancesControllerTest {
     @Test
     void oneInstanceComesWithAPageOfItsSessions() {
         Instant now = Instant.parse("2026-04-26T12:00:00Z");
-        ProjectInstanceInfo instance = new ProjectInstanceInfo("inst-1", "p-1", "inst-1", now.minusSeconds(60));
-        RecordingSessionHeader session = new RecordingSessionHeader(
-                "s-1", "inst-1/s-1", "inst-1", now.minusSeconds(60), false);
+        ProjectInstanceInfo instance = new ProjectInstanceInfo("inst-1", now.minusSeconds(60));
+        RecordingSessionHeader session = new RecordingSessionHeader("s-1", "inst-1", now.minusSeconds(60), false);
         when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
         when(instancesManager.find("inst-1", Optional.empty()))
                 .thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(session), true)));
@@ -84,7 +83,7 @@ class ProjectInstancesControllerTest {
     @Test
     void theOlderPageStartsAfterTheCursor() {
         Instant now = Instant.parse("2026-04-26T12:00:00Z");
-        ProjectInstanceInfo instance = new ProjectInstanceInfo("inst-1", "p-1", "inst-1", now.minusSeconds(60));
+        ProjectInstanceInfo instance = new ProjectInstanceInfo("inst-1", now.minusSeconds(60));
         when(projectAccess.instancesManager("ws-1", "p-1")).thenReturn(instancesManager);
         when(instancesManager.find("inst-1", Optional.of("s-10")))
                 .thenReturn(Optional.of(new InstanceWithSessions(instance, List.of(), false)));
