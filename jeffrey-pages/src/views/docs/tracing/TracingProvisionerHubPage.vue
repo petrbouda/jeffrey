@@ -68,7 +68,7 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 const sessionLayout = `<workspaces>/<workspace-ref-id>/
 ├── .workspace-info.json               # written by the Hub when the workspace is created
 └── <project-name>/<instance-id>/<session-id>/     # folder names are the ids, no markers below the workspace
-    └── profile-<timestamp>.<Zone~Id>.jfr          # the durable chunks — traces live in these`;
+    └── profile-<timestamp><offset>.jfr          # the durable chunks — traces live in these`;
 </script>
 
 <template>
@@ -136,7 +136,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree and writes no marker below the workspace: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;.&lt;Zone~Id&gt;.jfr</code> chunk on its loop interval, the machine's time zone in its name (<code>profile-20261027-085500.Europe~Prague.jfr</code>) so the timestamp is read in the zone it was written in.</p>
+      <p>The Provisioner creates the tree and writes no marker below the workspace: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>profile-&lt;timestamp&gt;&lt;offset&gt;.jfr</code> chunk on its loop interval, the machine's UTC offset in its name (<code>profile-20261027-085500+0100.jfr</code>) so the timestamp is read at the offset it was written in.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 

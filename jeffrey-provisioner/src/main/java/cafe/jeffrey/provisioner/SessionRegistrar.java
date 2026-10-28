@@ -22,12 +22,13 @@ import cafe.jeffrey.shared.common.IDGenerator;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.ZoneOffset;
 
 /**
  * Lays down a run's instance and session directories under its project, which is all the volume
  * says of them: an instance is its directory, named after the instance, and a session is a
  * directory named with a time-ordered id that carries its start. Nothing is written into them; the
- * profiler's recordings carry the machine's zone in their names instead ({@link SessionLayout#recordingFilePattern}).
+ * profiler's recordings carry the machine's UTC offset in their names instead ({@link SessionLayout#recordingFilePattern}).
  *
  * <p>The project and the instance are reused by every run of the same application; the session is
  * always new.
@@ -39,7 +40,7 @@ public class SessionRegistrar {
 
     /**
      * @param clock when the session starts, carried in its name, and the zone the profiled machine
-     *              runs in, which async-profiler writes {@code %t} in
+     *              runs in, whose offset at that start async-profiler's {@code %t} is local to
      */
     public SessionRegistrar(LayoutProvisioner layoutProvisioner, Clock clock) {
         this.layoutProvisioner = layoutProvisioner;
@@ -52,8 +53,9 @@ public class SessionRegistrar {
         Path instancePath = LayoutProvisioner.createDirectories(layout.project().resolve(instanceId));
 
         String sessionId = IDGenerator.generate(clock);
+        ZoneOffset offset = clock.getZone().getRules().getOffset(clock.instant());
         SessionLayout sessionLayout =
-                layoutProvisioner.provisionSession(layout, instancePath.resolve(sessionId), clock.getZone());
+                layoutProvisioner.provisionSession(layout, instancePath.resolve(sessionId), offset);
 
         return new ProvisionedSession(instanceId, sessionId, sessionLayout);
     }

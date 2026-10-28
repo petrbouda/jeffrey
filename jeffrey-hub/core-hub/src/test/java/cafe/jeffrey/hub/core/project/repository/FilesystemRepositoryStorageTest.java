@@ -152,7 +152,7 @@ class FilesystemRepositoryStorageTest {
         @Test
         void readsItsRecordingsNamesInTheZoneTheyCarry() throws IOException {
             String id = session(INSTANCE, T0);
-            Files.writeString(project.resolve(INSTANCE).resolve(id).resolve("profile-20260220-130500.Europe~Prague.jfr"),
+            Files.writeString(project.resolve(INSTANCE).resolve(id).resolve("profile-20260220-130500+0100.jfr"),
                     CHUNK_BODY);
 
             RecordingSession session = listed(storage, id).orElseThrow();

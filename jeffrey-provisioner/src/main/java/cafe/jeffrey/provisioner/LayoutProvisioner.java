@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 /**
  * Creates the directory tree a run needs, up to and including its session directory. The
@@ -46,11 +46,11 @@ public class LayoutProvisioner {
     }
 
     /** Creates the session directory. */
-    public SessionLayout provisionSession(ProjectLayout layout, Path sessionPath, ZoneId zone) throws IOException {
+    public SessionLayout provisionSession(ProjectLayout layout, Path sessionPath, ZoneOffset offset) throws IOException {
         Path session = createDirectories(sessionPath);
 
         LOG.debug("Session directory created: sessionPath={}", session);
-        return layout.withSession(session, zone);
+        return layout.withSession(session, offset);
     }
 
     public static Path createDirectories(Path path) throws IOException {

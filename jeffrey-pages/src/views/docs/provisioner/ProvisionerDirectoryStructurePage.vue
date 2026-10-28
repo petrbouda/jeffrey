@@ -56,8 +56,8 @@ onMounted(() => {
         └── &lt;project-name&gt;/                  # Project id = folder name (the configured project name)
             └── &lt;instance-name&gt;/             # Instance id = folder name (instance-name, HOSTNAME by default)
                 └── &lt;session-id&gt;/            # Session id = folder name, a UUIDv7 (its timestamp is the start)
-                    ├── profile-20261027-085500.Europe~Prague.jfr # Async-Profiler output
-                    ├── profile-20261027-091000.Europe~Prague.jfr
+                    ├── profile-20261027-085500+0100.jfr # Async-Profiler output
+                    ├── profile-20261027-091000+0100.jfr
                     └── ...</code></pre>
         </div>
 
@@ -76,16 +76,16 @@ onMounted(() => {
 
         <div class="directory-structure">
           <pre><code>&lt;session-id&gt;/
-├── profile-20261027-085500.Europe~Prague.jfr  # JFR chunk (timestamp + zone naming)
-├── profile-20261027-091000.Europe~Prague.jfr  # Next chunk after loop interval
-├── profile-20261027-092500.Europe~Prague.jfr  # ... more chunks
+├── profile-20261027-085500+0100.jfr  # JFR chunk (local timestamp + UTC offset)
+├── profile-20261027-091000+0100.jfr  # Next chunk after loop interval
+├── profile-20261027-092500+0100.jfr  # ... more chunks
 ├── heap-dump.hprof.gz           # Heap dump (if captured)
 ├── jfr.jvm-log                  # JVM log (if enabled)
 ├── perf-counters.hsperfdata     # Performance counters (if enabled)
 └── hs-jvm-err.log               # HotSpot error log (written on JVM crash)</code></pre>
         </div>
 
-        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone, so the Provisioner writes its own zone (<code>ZoneId.systemDefault()</code>, i.e. <code>TZ</code> or <code>/etc/localtime</code>) into the file template as literal text: <code>profile-%t.&lt;Zone~Id&gt;.jfr</code>. The <code>/</code> of a zone id becomes <code>~</code> (<code>Europe~Prague</code>), an offset loses its colon (<code>+02:00</code> becomes <code>+0200</code>), and a UTC machine writes <code>.UTC</code> (<code>profile-20260220-120500.UTC.jfr</code>). The Hub and Microscope read each chunk's timestamp in the zone its own name carries, DST-correct per chunk; a name without a zone segment is read as UTC.</p>
+        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone, so the Provisioner writes the UTC offset of its own zone (<code>TZ</code> or <code>/etc/localtime</code>) at the session's start into the file template as literal text: <code>profile-%t&lt;offset&gt;.jfr</code>, the offset without its colon (<code>+0100</code>, <code>-0330</code>, and <code>+0000</code> on a UTC machine: <code>profile-20260220-120500+0000.jfr</code>). The Hub and Microscope read each chunk's timestamp at the offset its own name carries; a name without an offset is read as UTC. The offset is fixed for the session: in a zone with daylight saving, the chunks a JVM writes after a switch read one hour off until it restarts. UTC machines are never affected.</p>
 
         <DocsCallout type="info">
           <strong>Session order and crashes:</strong> nothing in the session reports liveness &mdash; the Hub and Microscope order sessions by their UUIDv7 directory names and read the file names. A <code>.heartbeat/</code> folder left by an older release is ignored and goes with its session. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.

@@ -17,10 +17,9 @@
 
 package cafe.jeffrey.shared.common;
 
-import java.time.DateTimeException;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Optional;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 
 /**
  * The on-disk layout contract of the shared workspaces filesystem.
@@ -35,12 +34,12 @@ import java.util.Optional;
  *     &lt;project-name&gt;/
  *       &lt;instance-name&gt;/
  *         &lt;session-uuidv7&gt;/        the session's start is in its name
- *           profile-&lt;local time&gt;.&lt;zone&gt;.jfr
+ *           profile-&lt;local time&gt;&lt;UTC offset&gt;.jfr
  * </pre>
  *
  * <p>async-profiler writes {@code %t} in the machine's local time, so the provisioner writes the
- * machine's zone into each recording's name ({@link #recordingTemplate}), and a reader turns the
- * name into an instant from the name alone ({@link #zoneOfSegment}).</p>
+ * machine's UTC offset into each recording's name ({@link #recordingTemplate}), and a reader turns
+ * the name into an instant from the name alone ({@link #OFFSET_PATTERN}).</p>
  *
  * <p>Both sides must resolve these names from this single class; any rename
  * silently desynchronizes producer and consumer otherwise.</p>
@@ -53,52 +52,41 @@ public abstract class JeffreyLayout {
     /** async-profiler's placeholder for the time a recording's file was opened. */
     public static final String TIMESTAMP_PLACEHOLDER = "%t";
 
-    /** Separates a recording name's timestamp from the zone it is local to. */
-    public static final String ZONE_SEGMENT_SEPARATOR = ".";
+    /**
+     * How a recording's name writes its UTC offset, right after the timestamp: {@code +0100},
+     * {@code -0330}, {@code +0000} — no character a file share refuses in a name.
+     */
+    public static final String OFFSET_PATTERN = "+HHMM";
+
+    /** How {@link #OFFSET_PATTERN} writes UTC. */
+    public static final String UTC_OFFSET_TEXT = "+0000";
 
     private static final String RECORDING_EXTENSION = ".jfr";
 
-    /** What a zone id's {@code /} becomes in a file name, which cannot hold one. */
-    private static final char ZONE_PATH_SEPARATOR = '/';
-    private static final char ZONE_NAME_SEPARATOR = '~';
-    private static final String OFFSET_SEPARATOR = ":";
-    private static final String UTC_SEGMENT = "UTC";
+    private static final DateTimeFormatter OFFSET_FORMATTER = new DateTimeFormatterBuilder()
+            .appendOffset(OFFSET_PATTERN, UTC_OFFSET_TEXT)
+            .toFormatter();
 
     /**
-     * A recording's file template with the machine's zone in it: {@code prefix-%t.<zone>.jfr} for
-     * {@code prefix-%t.jfr} — {@code profile-20261027-085500.Europe~Prague.jfr} once async-profiler
-     * fills in {@code %t}.
+     * A recording's file template with the machine's UTC offset in it: {@code prefix-%t+HHMM.jfr}
+     * for {@code prefix-%t.jfr} — {@code profile-20261027-085500+0100.jfr} once async-profiler
+     * fills in {@code %t}. The offset is the one in effect when the session starts: a JVM that
+     * runs through a daylight-saving change keeps writing local time, so its later chunks read an
+     * hour off (owner decision).
      *
      * @param template a template ending in {@code %t.jfr}
      */
-    public static String recordingTemplate(String template, ZoneId zone) {
+    public static String recordingTemplate(String template, ZoneOffset offset) {
         String suffix = TIMESTAMP_PLACEHOLDER + RECORDING_EXTENSION;
         if (!template.endsWith(suffix)) {
             throw new IllegalArgumentException("A recording template must end in " + suffix + ": " + template);
         }
         String head = template.substring(0, template.length() - RECORDING_EXTENSION.length());
-        return head + ZONE_SEGMENT_SEPARATOR + zoneSegment(zone) + RECORDING_EXTENSION;
+        return head + offsetSegment(offset) + RECORDING_EXTENSION;
     }
 
-    /**
-     * A zone as a file-name segment: {@code Europe~Prague}, {@code UTC}, {@code +0530} — no
-     * character a file share refuses in a name.
-     */
-    public static String zoneSegment(ZoneId zone) {
-        if (zone.normalized().equals(ZoneOffset.UTC)) {
-            return UTC_SEGMENT;
-        }
-        return zone.getId()
-                .replace(ZONE_PATH_SEPARATOR, ZONE_NAME_SEPARATOR)
-                .replace(OFFSET_SEPARATOR, "");
-    }
-
-    /** The zone a file-name segment names, or empty for one that names no zone this JVM knows. */
-    public static Optional<ZoneId> zoneOfSegment(String segment) {
-        try {
-            return Optional.of(ZoneId.of(segment.replace(ZONE_NAME_SEPARATOR, ZONE_PATH_SEPARATOR)));
-        } catch (DateTimeException e) {
-            return Optional.empty();
-        }
+    /** An offset as a recording name writes it: {@code +0100}, {@code -0330}, {@code +0000}. */
+    public static String offsetSegment(ZoneOffset offset) {
+        return OFFSET_FORMATTER.format(offset);
     }
 }

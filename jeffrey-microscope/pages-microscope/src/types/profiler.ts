@@ -99,8 +99,8 @@ export const DEFAULT_OUTPUT_FILE = '/tmp/profile-%t.jfr';
 /**
  * Where a Jeffrey JIB command writes its recordings when the output field is left blank: the
  * provisioned session's recording pattern, which Jeffrey Provisioner substitutes before the JVM
- * starts — the session's directory and a name carrying the machine's zone, because async-profiler
- * writes `%t` in local time and a name without a zone is read as UTC.
+ * starts — the session's directory and a name carrying the machine's UTC offset, because
+ * async-profiler writes `%t` in local time and a name without an offset is read as UTC.
  */
 export const JEFFREY_SESSION_OUTPUT_FILE = '<<JEFFREY:FILE_PATTERN>>';
 

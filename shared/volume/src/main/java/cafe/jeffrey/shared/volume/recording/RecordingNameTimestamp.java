@@ -23,29 +23,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
 import java.util.Optional;
 
 /**
  * The instant async-profiler wrote into the file's name, read the same from its {@code .lz4}
- * archive: {@code profile-20260220-120500.Europe~Prague.jfr}. A name outside the convention falls
- * back to the volume, logged at debug since this runs per file per listing.
+ * archive: {@code profile-20260220-120500+0100.jfr}. A name outside the convention falls back to
+ * the volume, logged at debug since this runs per file per listing.
  *
  * <p>async-profiler expands {@code %t} in the profiled machine's local time ({@code localtime_r}),
- * so the provisioner writes the machine's zone after it ({@link JeffreyLayout#recordingTemplate}),
- * and the name is read in that zone: read as UTC, every chunk of a JVM running in Prague would
- * claim to start an hour or two later than it did. A name without a zone, or with one this JVM
- * does not know, is read as UTC.
+ * so the provisioner writes the machine's UTC offset right after it
+ * ({@link JeffreyLayout#recordingTemplate}), and the name is read at that offset: read as UTC,
+ * every chunk of a JVM running in Prague would claim to start an hour or two later than it did. A
+ * name without an offset is read as UTC.
  */
 final class RecordingNameTimestamp implements TimestampResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingNameTimestamp.class);
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    /** {@code 20260220-120500}, then the offset when the name carries one; UTC when it does not. */
+    private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder()
+            .appendPattern("yyyyMMdd-HHmmss")
+            .optionalStart()
+            .appendOffset(JeffreyLayout.OFFSET_PATTERN, JeffreyLayout.UTC_OFFSET_TEXT)
+            .optionalEnd()
+            .parseDefaulting(ChronoField.OFFSET_SECONDS, ZoneOffset.UTC.getTotalSeconds())
+            .toFormatter();
     private static final String PREFIX = "profile-";
 
     @Override
@@ -69,15 +76,10 @@ final class RecordingNameTimestamp implements TimestampResolver {
         return VOLUME.resolve(file);
     }
 
-    /** {@code 20260220-120500} or {@code 20260220-120500.Europe~Prague}. */
+    /** {@code 20260220-120500+0100} or {@code 20260220-120500}. */
     private static Optional<Instant> parse(String stamp) {
-        int separator = stamp.indexOf(JeffreyLayout.ZONE_SEGMENT_SEPARATOR);
-        String timestamp = separator < 0 ? stamp : stamp.substring(0, separator);
-        ZoneId zone = separator < 0
-                ? ZoneOffset.UTC
-                : JeffreyLayout.zoneOfSegment(stamp.substring(separator + 1)).orElse(ZoneOffset.UTC);
         try {
-            return Optional.of(LocalDateTime.parse(timestamp, FORMATTER).atZone(zone).toInstant());
+            return Optional.of(FORMATTER.parse(stamp, Instant::from));
         } catch (DateTimeParseException e) {
             return Optional.empty();
         }

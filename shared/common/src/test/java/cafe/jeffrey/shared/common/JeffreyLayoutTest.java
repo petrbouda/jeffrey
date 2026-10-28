@@ -20,16 +20,14 @@ package cafe.jeffrey.shared.common;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * The zone a recording's name carries: async-profiler writes {@code %t} in local time, so the
- * provisioner writes the zone beside it, and every reader turns the name back into that zone.
+ * The UTC offset a recording's name carries: async-profiler writes {@code %t} in local time, so
+ * the provisioner writes the offset right after it, and every reader reads the name in it.
  */
 class JeffreyLayoutTest {
 
@@ -37,10 +35,10 @@ class JeffreyLayoutTest {
     class RecordingTemplate {
 
         @Test
-        void carriesTheZoneAfterTheTimestamp() {
-            assertEquals("profile-%t.Europe~Prague.jfr",
-                    JeffreyLayout.recordingTemplate("profile-%t.jfr", ZoneId.of("Europe/Prague")));
-            assertEquals("/data/session/profile-%t.UTC.jfr",
+        void carriesTheOffsetRightAfterTheTimestamp() {
+            assertEquals("profile-%t+0100.jfr",
+                    JeffreyLayout.recordingTemplate("profile-%t.jfr", ZoneOffset.ofHours(1)));
+            assertEquals("/data/session/profile-%t+0000.jfr",
                     JeffreyLayout.recordingTemplate("/data/session/profile-%t.jfr", ZoneOffset.UTC));
         }
 
@@ -51,34 +49,20 @@ class JeffreyLayoutTest {
         }
     }
 
+    /** A file share refuses {@code :} in a name, so an offset is written without it. */
     @Nested
-    class ZoneSegment {
+    class OffsetSegment {
 
         @Test
-        void roundTripsARegion() {
-            ZoneId zone = ZoneId.of("America/Argentina/Buenos_Aires");
-
-            assertEquals("America~Argentina~Buenos_Aires", JeffreyLayout.zoneSegment(zone));
-            assertEquals(Optional.of(zone), JeffreyLayout.zoneOfSegment(JeffreyLayout.zoneSegment(zone)));
+        void writesUtcAsZeros() {
+            assertEquals("+0000", JeffreyLayout.offsetSegment(ZoneOffset.UTC));
         }
 
         @Test
-        void writesUtcByName() {
-            assertEquals("UTC", JeffreyLayout.zoneSegment(ZoneOffset.UTC));
-            assertEquals("UTC", JeffreyLayout.zoneSegment(ZoneId.of("Etc/UTC")));
-            assertEquals(Optional.of(ZoneId.of("UTC")), JeffreyLayout.zoneOfSegment("UTC"));
-        }
-
-        /** A file share refuses {@code :} in a name, so a fixed offset is written without it. */
-        @Test
-        void writesAFixedOffsetWithoutAColon() {
-            assertEquals("+0530", JeffreyLayout.zoneSegment(ZoneOffset.ofHoursMinutes(5, 30)));
-            assertEquals(Optional.of(ZoneOffset.ofHoursMinutes(5, 30)), JeffreyLayout.zoneOfSegment("+0530"));
-        }
-
-        @Test
-        void aSegmentNamingNoZoneIsNone() {
-            assertEquals(Optional.empty(), JeffreyLayout.zoneOfSegment("Nowhere~Atlantis"));
+        void writesHoursAndMinutesWithoutAColon() {
+            assertEquals("+0200", JeffreyLayout.offsetSegment(ZoneOffset.ofHours(2)));
+            assertEquals("+0530", JeffreyLayout.offsetSegment(ZoneOffset.ofHoursMinutes(5, 30)));
+            assertEquals("-0330", JeffreyLayout.offsetSegment(ZoneOffset.ofHoursMinutes(-3, -30)));
         }
     }
 }

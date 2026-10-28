@@ -152,7 +152,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>profile-*.jfr</code>
-              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions, each named with its start time and the machine's time zone (<code>profile-20261027-085500.Europe~Prague.jfr</code>).</p>
+              <p>Core profiling data with CPU samples, allocations, locks, and JVM events. Multiple chunk files are created during long-running sessions, each named with its start time and the machine's UTC offset (<code>profile-20261027-085500+0100.jfr</code>).</p>
             </div>
           </div>
           <div class="docs-card session-card heap">
@@ -202,7 +202,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             </div>
             <div class="docs-card-body">
               <code>&lt;session-id&gt;/</code>
-              <p>The session's id is its folder name, a UUIDv7 whose timestamp is the session's start, so the names alone order an instance's sessions. Its instance, project and workspace are the directories it sits in; no marker file is written, and the time zone travels in each chunk's name.</p>
+              <p>The session's id is its folder name, a UUIDv7 whose timestamp is the session's start, so the names alone order an instance's sessions. Its instance, project and workspace are the directories it sits in; no marker file is written, and the UTC offset travels in each chunk's name.</p>
             </div>
           </div>
         </div>

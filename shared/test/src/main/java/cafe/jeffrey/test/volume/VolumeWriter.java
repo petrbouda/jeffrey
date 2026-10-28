@@ -26,13 +26,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
  * Writes a recording volume the way the provisioner and the profiler do — directories named for
- * what they hold, and recordings named for when they were opened and in which zone — so every
+ * what they hold, and recordings named for when they were opened and at which UTC offset — so every
  * reader of a volume (the hub, the shared layout, Microscope reading storage directly) is tested
  * against what production writes. Nothing below a workspace has a marker file.
  */
@@ -75,18 +75,18 @@ public final class VolumeWriter {
     }
 
     /**
-     * The name async-profiler gives a recording opened at {@code openedAt} on a machine in
-     * {@code zone}, through the provisioner's template: {@code profile-20260220-120500.UTC.jfr}.
+     * The name async-profiler gives a recording opened at {@code openedAt} on a machine at
+     * {@code offset}, through the provisioner's template: {@code profile-20260220-120500+0000.jfr}.
      */
-    public static String recordingName(Instant openedAt, ZoneId zone) {
-        String template = JeffreyLayout.recordingTemplate(RECORDING_TEMPLATE, zone);
-        String local = LocalDateTime.ofInstant(openedAt, zone).format(TIMESTAMP);
+    public static String recordingName(Instant openedAt, ZoneOffset offset) {
+        String template = JeffreyLayout.recordingTemplate(RECORDING_TEMPLATE, offset);
+        String local = LocalDateTime.ofInstant(openedAt, offset).format(TIMESTAMP);
         return template.replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, local);
     }
 
-    /** A recording opened at {@code openedAt} on a machine in {@code zone}. */
-    public static Path recording(Path sessionDir, Instant openedAt, ZoneId zone, String content) {
-        return file(sessionDir, recordingName(openedAt, zone), content);
+    /** A recording opened at {@code openedAt} on a machine at {@code offset}. */
+    public static Path recording(Path sessionDir, Instant openedAt, ZoneOffset offset, String content) {
+        return file(sessionDir, recordingName(openedAt, offset), content);
     }
 
     public static Path file(Path dir, String name, String content) {

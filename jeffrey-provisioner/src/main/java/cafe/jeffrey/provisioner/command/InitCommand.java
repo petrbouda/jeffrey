@@ -61,8 +61,8 @@ public class InitCommand implements Callable<Integer> {
             if (config.isProvisionerVerbose()) {
                 VerboseLogging.enable();
             }
-            // The machine's own zone, not UTC: the session marker records it, because async-profiler
-            // writes the timestamp in a recording's name in this zone and the hub has to read it back.
+            // The machine's own zone, not UTC: async-profiler writes the timestamp in a recording's name
+            // in local time, so its offset goes into the name for every reader to read it back.
             new InitExecutor(Clock.systemDefaultZone()).execute(config);
             return ExitCode.OK;
         } catch (Exception e) {

@@ -173,7 +173,7 @@ class InitExecutorTest {
 
             String session = sessionPath().toString();
             assertEquals("-agentpath:" + profilerLibrary + "=start,alloc,lock,event=ctimer,jfrsync=default,"
-                    + "loop=15m,chunksize=5m,file=" + session + "/profile-%t.UTC.jfr", argFileOptions().getFirst());
+                    + "loop=15m,chunksize=5m,file=" + session + "/profile-%t+0000.jfr", argFileOptions().getFirst());
         }
 
         /** A missing library would stop the JVM, so the session runs unprofiled instead. */
@@ -211,7 +211,7 @@ class InitExecutorTest {
                     "export JEFFREY_CURRENT_PROJECT="
                             + workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME),
                     "export JEFFREY_CURRENT_SESSION=" + session,
-                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.UTC.jfr"),
+                    "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t+0000.jfr"),
                     layoutExports);
             assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
         }
@@ -251,15 +251,21 @@ class InitExecutorTest {
             }
         }
 
-        /** async-profiler writes {@code %t} in local time, so the machine's zone travels in the recording's name. */
+        /**
+         * async-profiler writes {@code %t} in local time, so the machine's UTC offset when the
+         * session starts travels in the recording's name: winter and summer in Prague differ.
+         */
         @Test
-        void theRecordingNameCarriesTheMachinesZone() throws Exception {
-            new InitExecutor(Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), ZoneId.of("Europe/Prague")))
-                    .execute(config());
+        void theRecordingNameCarriesTheMachinesOffset() throws Exception {
+            ZoneId prague = ZoneId.of("Europe/Prague");
 
-            String profiler = argFileOptions().getFirst();
-            assertTrue(profiler.endsWith("/profile-%t.Europe~Prague.jfr"),
-                    () -> "the zone must be in the file option: " + profiler);
+            new InitExecutor(Clock.fixed(Instant.parse("2026-03-01T10:00:00Z"), prague)).execute(config());
+            String winter = argFileOptions().getFirst();
+            assertTrue(winter.endsWith("/profile-%t+0100.jfr"), () -> "the winter offset must be in the file option: " + winter);
+
+            new InitExecutor(Clock.fixed(Instant.parse("2026-07-01T10:00:00Z"), prague)).execute(config());
+            String summer = argFileOptions().getFirst();
+            assertTrue(summer.endsWith("/profile-%t+0200.jfr"), () -> "the summer offset must be in the file option: " + summer);
         }
     }
 }

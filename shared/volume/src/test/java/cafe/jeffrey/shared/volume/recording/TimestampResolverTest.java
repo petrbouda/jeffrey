@@ -70,42 +70,41 @@ class TimestampResolverTest {
          * async-profiler writes {@code %t} in the profiled machine's local time, so a JVM in Prague
          * names a chunk it opened at 12:05 UTC {@code 13:05} in winter. Read as UTC it would claim
          * to start an hour late, and every window and retention cut taken from it would be off by
-         * that hour — so the provisioner writes the zone after it, and the name is read in it.
+         * that hour — so the provisioner writes the UTC offset after it, and the name is read at it.
          */
         @Test
-        void readsTheNameInTheZoneItCarries() {
+        void readsTheNameAtTheOffsetItCarries() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500.Europe~Prague.jfr")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500+0100.jfr")));
+            assertEquals(
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500+0000.jfr")));
         }
 
-        /** Each chunk carries its own zone, so a session running across a DST switch reads right on both sides. */
         @Test
-        void readsEachChunkAcrossADaylightSavingSwitch() {
+        void readsANegativeAndAHalfHourOffset() {
             assertEquals(
-                    Optional.of(Instant.parse("2026-03-29T00:30:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260329-013000.Europe~Prague.jfr")));
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-083500-0330.jfr")));
             assertEquals(
-                    Optional.of(Instant.parse("2026-03-29T01:30:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260329-033000.Europe~Prague.jfr")));
+                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-173500+0530.jfr")));
         }
 
-        /** A name without a zone — a custom template — or with one this JVM does not know is read as UTC. */
+        /** A name without an offset — a custom template — is read as UTC. */
         @Test
-        void readsANameWithoutAKnownZoneAsUtc() {
+        void readsANameWithoutAnOffsetAsUtc() {
             assertEquals(
                     Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
                     TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.jfr")));
-            assertEquals(
-                    Optional.of(Instant.parse("2026-02-20T12:05:00Z")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-120500.Nowhere~Atlantis.jfr")));
         }
 
         @Test
-        void readsTheZoneFromTheArchiveToo() {
+        void readsTheOffsetFromTheArchiveToo() {
             assertEquals(
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500.Europe~Prague.jfr")),
-                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500.Europe~Prague.jfr.lz4")));
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500+0100.jfr")),
+                    TimestampResolver.RECORDING_NAME.resolve(file("profile-20260220-130500+0100.jfr.lz4")));
         }
 
         /**

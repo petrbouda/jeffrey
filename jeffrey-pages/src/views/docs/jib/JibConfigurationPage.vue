@@ -45,7 +45,7 @@ const customProfilerRuntime = `env:
     value: /opt/async-profiler/libasyncProfiler.so`;
 
 const defaultAgentCommand = `-agentpath:<profiler-path>=start,alloc,lock,event=ctimer,jfrsync=default,\
-loop=15m,chunksize=5m,file=<session>/profile-%t.<Zone~Id>.jfr`;
+loop=15m,chunksize=5m,file=<session>/profile-%t<offset>.jfr`;
 
 const customProfilerCommand = `profiler-command = "start,event=itimer,file=<<JEFFREY:FILE_PATTERN>>"`;
 
@@ -197,10 +197,10 @@ onMounted(() => {
           <code>profiler-command</code> rather than fighting the default. Give it the options
           alone and the provisioner passes them to the library <code>profilerPath</code> names;
           the <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> placeholder keeps it portable &mdash; it
-          expands to the session directory plus <code>profile-%t.&lt;Zone~Id&gt;.jfr</code>, the
-          machine's time zone written into each chunk's name. A <code>file=</code> of your own, such as
-          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>, gets names without a
-          zone, which are read as UTC &mdash; wrong times on a non-UTC machine:</p>
+          expands to the session directory plus <code>profile-%t&lt;offset&gt;.jfr</code>, the
+          machine's UTC offset written into each chunk's name. A <code>file=</code> of your own, such as
+          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/profile-%t.jfr</code>, gets names without an
+          offset, which are read as UTC &mdash; wrong times on a non-UTC machine:</p>
 
         <DocsCodeBlock
           language="hocon"

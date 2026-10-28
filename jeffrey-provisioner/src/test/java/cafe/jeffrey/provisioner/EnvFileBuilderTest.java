@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,7 +38,7 @@ class EnvFileBuilderTest {
 
     private static SessionLayout layout() {
         return new SessionLayout(JEFFREY_HOME, WORKSPACES_PATH, WORKSPACE_PATH, PROJECT_PATH, SESSION_PATH,
-                ZoneId.of("Europe/Prague"));
+                ZoneOffset.ofHours(1));
     }
 
     @Nested
@@ -86,7 +86,7 @@ class EnvFileBuilderTest {
 
             String result = builder.build(context);
 
-            assertTrue(result.contains("export JEFFREY_FILE_PATTERN=" + SESSION_PATH + "/profile-%t.Europe~Prague.jfr"),
+            assertTrue(result.contains("export JEFFREY_FILE_PATTERN=" + SESSION_PATH + "/profile-%t+0100.jfr"),
                     "async-profiler writes %t in local time, so the zone travels in the name");
         }
     }

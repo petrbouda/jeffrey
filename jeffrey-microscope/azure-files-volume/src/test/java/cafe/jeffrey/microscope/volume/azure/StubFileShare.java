@@ -53,6 +53,8 @@ final class StubFileShare implements HttpClient {
 
     private static final String SHARE = "recordings";
     private static final String SEPARATOR = "/";
+    private static final String PLUS = "+";
+    private static final String ENCODED_PLUS = "%2B";
     private static final Pattern RANGE = Pattern.compile("bytes=(\\d+)-(\\d*)");
     private static final DateTimeFormatter RFC_1123 = DateTimeFormatter.RFC_1123_DATE_TIME.withZone(ZoneOffset.UTC);
 
@@ -129,7 +131,7 @@ final class StubFileShare implements HttpClient {
         if (!rawPath.startsWith(prefix)) {
             return error(request, 404, "ShareNotFound");
         }
-        String path = URLDecoder.decode(rawPath.substring(prefix.length()), StandardCharsets.UTF_8);
+        String path = decodePath(rawPath.substring(prefix.length()));
         path = path.startsWith(SEPARATOR) ? path.substring(1) : path;
         Map<String, String> query = query(request.getUrl().getQuery());
         boolean directoryCall = "directory".equals(query.get("restype"));
@@ -313,11 +315,20 @@ final class StubFileShare implements HttpClient {
         return last < 0 || (nodes.containsKey(path.substring(0, last)) && nodes.get(path.substring(0, last)).directory());
     }
 
+    /**
+     * A URL path percent-decoded: a {@code +} in a path is a plus, as in a recording's UTC offset
+     * ({@code profile-20260220-131000+0100.jfr}), which the SDK sends as it is — only a query
+     * reads it as a space.
+     */
+    private static String decodePath(String rawPath) {
+        return URLDecoder.decode(rawPath.replace(PLUS, ENCODED_PLUS), StandardCharsets.UTF_8);
+    }
+
     /** The path within the share of a full URL the SDK sends, its query dropped. */
     private static String sharePath(String url) {
         String withoutQuery = url.contains("?") ? url.substring(0, url.indexOf('?')) : url;
         // The SDK encodes the separators of the share path, its first one included
-        String decoded = URLDecoder.decode(withoutQuery, StandardCharsets.UTF_8);
+        String decoded = decodePath(withoutQuery);
         String marker = SEPARATOR + SHARE + SEPARATOR;
         return decoded.contains(marker) ? decoded.substring(decoded.indexOf(marker) + marker.length()) : decoded;
     }

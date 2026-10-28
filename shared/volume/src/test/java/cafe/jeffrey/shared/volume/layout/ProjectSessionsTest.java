@@ -284,13 +284,13 @@ class ProjectSessionsTest {
         void itsFilesComeFromTheListingItWasReadFrom() {
             String id = session("pod-a", T0);
             Path dir = project.resolve("pod-a").resolve(id);
-            VolumeWriter.file(dir, "profile-20260220-120000.UTC.jfr", "x");
+            VolumeWriter.file(dir, "profile-20260220-120000+0000.jfr", "x");
 
             ProjectSessions sessions = probed(VolumePath.root());
             VolumeSession read = sessions.session(id).orElseThrow();
-            VolumeWriter.file(dir, "profile-20260220-121000.UTC.jfr", "x");
+            VolumeWriter.file(dir, "profile-20260220-121000+0000.jfr", "x");
 
-            assertEquals(List.of("profile-20260220-120000.UTC.jfr"),
+            assertEquals(List.of("profile-20260220-120000+0000.jfr"),
                     tree.files(read).stream().map(SessionFile::name).toList());
         }
     }
