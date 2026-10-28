@@ -90,8 +90,12 @@ jobs:
           echo "JIB_EXTRA_TAGS=${{ inputs.version }}" >> "$GITHUB_ENV"
         fi
 
+    # build-hub-jib pins a published jeffrey-jib release for local builds; here it takes the jar
+    # flavour installed above instead, so the image carries THIS release's provisioner.
     - name: Build & push image with Jib
       run: |
+        JEFFREY_JIB_VERSION=$(mvn -q -N -f jeffrey-jib/pom.xml -DforceStdout help:evaluate -Dexpression=project.version)
         mvn -pl build/build-hub-jib compile jib:build \
+          -Djeffrey-jib-maven.version=${JEFFREY_JIB_VERSION} \
           -Djib.to.image=petrbouda/jeffrey-hub:${{ inputs.version }} \
           -Djib.to.tags=${JIB_EXTRA_TAGS}
