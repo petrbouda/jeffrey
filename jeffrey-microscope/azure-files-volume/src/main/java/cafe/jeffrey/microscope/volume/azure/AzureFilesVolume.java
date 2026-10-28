@@ -32,13 +32,11 @@ import com.azure.storage.file.share.models.ShareErrorCode;
 import com.azure.storage.file.share.models.ShareFileItem;
 import com.azure.storage.file.share.models.ShareFileItemProperties;
 import com.azure.storage.file.share.models.ShareFileProperties;
-import com.azure.storage.file.share.models.ShareFileRange;
 import com.azure.storage.file.share.models.ShareStorageException;
 import com.azure.storage.file.share.options.ShareListFilesAndDirectoriesOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Instant;
@@ -77,7 +75,6 @@ public final class AzureFilesVolume implements WritableVolume {
             ShareErrorCode.RESOURCE_TYPE_MISMATCH);
 
     private static final int NOT_FOUND = 404;
-    private static final int RANGE_NOT_SATISFIABLE = 416;
     private static final int FORBIDDEN = 403;
     private static final String WRITE_RIGHTS_HINT =
             " (the credential lacks the create, write or delete right; declare the share read-only, or grant them)";
@@ -136,26 +133,6 @@ public final class AzureFilesVolume implements WritableVolume {
             }
             throw unreadable("look at", path, e);
         }
-    }
-
-    @Override
-    public Optional<byte[]> read(VolumePath file) {
-        ByteArrayOutputStream content = new ByteArrayOutputStream();
-        try {
-            // One byte past the cap, so a file over it is told apart from one exactly at it
-            fileClient(file).downloadWithResponse(
-                    content, new ShareFileRange(0, (long) MAX_READ_BYTES), false, null, Context.NONE);
-        } catch (ShareStorageException e) {
-            if (isNothingThere(e)) {
-                return Optional.empty();
-            }
-            if (e.getStatusCode() == RANGE_NOT_SATISFIABLE) {
-                // A range on an empty file asks for bytes it does not have
-                return Optional.of(new byte[0]);
-            }
-            throw unreadable("read", file, e);
-        }
-        return Optional.of(VolumeAccess.withinReadCap(file, content.toByteArray()));
     }
 
     /**

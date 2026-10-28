@@ -77,11 +77,6 @@ class ProjectTreeTest {
         }
 
         @Override
-        public Optional<byte[]> read(VolumePath file) {
-            return delegate.read(file);
-        }
-
-        @Override
         public Optional<OpenedFile> open(VolumePath file) {
             return delegate.open(file);
         }

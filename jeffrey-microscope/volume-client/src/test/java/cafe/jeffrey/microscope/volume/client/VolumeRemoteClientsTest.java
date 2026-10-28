@@ -424,11 +424,6 @@ class VolumeRemoteClientsTest {
         }
 
         @Override
-        public Optional<byte[]> read(VolumePath file) {
-            throw refused();
-        }
-
-        @Override
         public Optional<OpenedFile> open(VolumePath file) {
             throw refused();
         }

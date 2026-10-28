@@ -31,16 +31,9 @@ import java.util.Optional;
  *
  * <p>Every method keeps "nothing is there" apart from "it could not be looked at": the first is an
  * empty answer, the second an {@link UncheckedIOException}. The layout acts on that
- * difference — a marker that cannot be read is not taken for one that is missing.
+ * difference — a directory that cannot be listed is never taken for one that is missing.
  */
 public interface VolumeAccess {
-
-    /**
-     * The most {@link #read} hands over. Markers are a few hundred bytes, and
-     * anything that can write to the volume — every profiled workload — could otherwise make a
-     * reader hold a file of any size in memory just by listing.
-     */
-    int MAX_READ_BYTES = 1024 * 1024;
 
     /**
      * What lies directly under {@code directory}, in no particular order; empty when there is no
@@ -57,25 +50,6 @@ public interface VolumeAccess {
      * @throws UncheckedIOException when it cannot be looked at
      */
     Optional<VolumeEntry> stat(VolumePath path);
-
-    /**
-     * The whole content of a small file — a marker — or empty when there is none.
-     * Never reads more than {@link #MAX_READ_BYTES} plus one byte of it.
-     *
-     * @throws UncheckedIOException when something is there and cannot be read: a directory in the
-     *                              file's place, or a file larger than {@link #MAX_READ_BYTES}
-     */
-    Optional<byte[]> read(VolumePath file);
-
-    /** Hands over what a {@link #read} received, refusing it when it came past the cap. */
-    static byte[] withinReadCap(VolumePath file, byte[] content) {
-        if (content.length > MAX_READ_BYTES) {
-            throw new UncheckedIOException(new IOException(
-                    "A volume file is larger than a marker can be: path=%s max_bytes=%d"
-                            .formatted(file, MAX_READ_BYTES)));
-        }
-        return content;
-    }
 
     /**
      * A file opened for streaming, with the name and size it has at the moment it was opened —

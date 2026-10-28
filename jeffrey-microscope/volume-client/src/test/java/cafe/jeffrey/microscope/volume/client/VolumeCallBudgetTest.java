@@ -119,12 +119,6 @@ class VolumeCallBudgetTest {
         }
 
         @Override
-        public Optional<byte[]> read(VolumePath file) {
-            calls.add("read " + file);
-            return delegate.read(file);
-        }
-
-        @Override
         public Optional<OpenedFile> open(VolumePath file) {
             calls.add("open " + file);
             return delegate.open(file);

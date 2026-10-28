@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -120,18 +119,6 @@ public final class FilesystemVolume implements WritableVolume {
             return Optional.empty();
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read the attributes of a volume entry: path=" + file, e);
-        }
-    }
-
-    @Override
-    public Optional<byte[]> read(VolumePath path) {
-        Path file = resolve(path);
-        try (InputStream content = Files.newInputStream(file)) {
-            return Optional.of(VolumeAccess.withinReadCap(path, content.readNBytes(MAX_READ_BYTES + 1)));
-        } catch (NoSuchFileException e) {
-            return Optional.empty();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read a volume file: path=" + file, e);
         }
     }
 

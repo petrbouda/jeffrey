@@ -173,12 +173,11 @@ class ProjectSessionsTest {
     @Nested
     class OneListing {
 
-        /** Fails the listing of one directory, records every read and listing, and lists no times, as an NFS share lists. */
+        /** Fails the listing of one directory, records every listing, and lists no times, as an NFS share lists. */
         private static final class ProbedVolume implements VolumeAccess {
 
             private final VolumeAccess delegate;
             private final VolumePath unlistable;
-            private final List<VolumePath> reads = new ArrayList<>();
             private final List<VolumePath> listings = new ArrayList<>();
 
             private ProbedVolume(VolumeAccess delegate, VolumePath unlistable) {
@@ -200,12 +199,6 @@ class ProjectSessionsTest {
             @Override
             public Optional<VolumeEntry> stat(VolumePath path) {
                 return delegate.stat(path);
-            }
-
-            @Override
-            public Optional<byte[]> read(VolumePath file) {
-                reads.add(file);
-                return delegate.read(file);
             }
 
             @Override
@@ -238,7 +231,7 @@ class ProjectSessionsTest {
         }
 
         @Test
-        void noFileIsReadToKnowTheSessionsOrWhichIsNewest() {
+        void theNamesTellTheSessionsAndWhichIsNewest() {
             String older = session("pod-a", T0.minus(Duration.ofHours(2)));
             String newest = session("pod-a", T0);
 
@@ -247,7 +240,6 @@ class ProjectSessionsTest {
             assertTrue(probed.session(newest).orElseThrow().newest());
             assertFalse(probed.session(older).orElseThrow().newest());
             assertEquals(2, probed.instances().getFirst().sessionCount());
-            assertEquals(List.of(), volume.reads, "names say it all");
         }
 
         @Test

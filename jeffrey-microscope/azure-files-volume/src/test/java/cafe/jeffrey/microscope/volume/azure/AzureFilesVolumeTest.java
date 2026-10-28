@@ -35,7 +35,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -97,31 +96,12 @@ class AzureFilesVolumeTest {
         }
 
         @Test
-        void readsAndStreamsAFile() throws IOException {
-            assertArrayEquals("gc".getBytes(StandardCharsets.UTF_8), volume.read(SESSION.resolve("gc.log")).orElseThrow());
-
+        void streamsAFile() throws IOException {
             try (VolumeAccess.OpenedFile chunk = volume.open(SESSION.resolve("rec-20260220-120000.jfr")).orElseThrow()) {
                 assertEquals("rec-20260220-120000.jfr", chunk.name());
                 assertEquals("chunk one".length(), chunk.size());
                 assertEquals("chunk one", new String(chunk.content().readAllBytes(), StandardCharsets.UTF_8));
             }
-        }
-
-        /** A marker larger than one can be is refused after one byte past the cap, never fetched whole. */
-        @Test
-        void refusesAFileLargerThanAMarkerCanBe() {
-            share.file("prod/orders/pod-a/s-1/notes.json", "x".repeat(VolumeAccess.MAX_READ_BYTES + 10), CREATED);
-
-            assertThrows(UncheckedIOException.class, () -> volume.read(SESSION.resolve("notes.json")));
-            String range = share.requests().getLast().getHeaders().getValue("x-ms-range");
-            assertEquals("bytes=0-" + VolumeAccess.MAX_READ_BYTES, range);
-        }
-
-        @Test
-        void readsAnEmptyFileAsEmpty() {
-            share.file("prod/orders/pod-a/s-1/.retained", "", CREATED);
-
-            assertArrayEquals(new byte[0], volume.read(SESSION.resolve(".retained")).orElseThrow());
         }
 
         @Test
@@ -207,7 +187,6 @@ class AzureFilesVolumeTest {
             assertEquals(List.of(), volume.list(ROOT.resolve("missing")));
             assertEquals(List.of(), volume.list(SESSION.resolve("gc.log")));
             assertEquals(Optional.empty(), volume.stat(SESSION.resolve("missing.jfr")));
-            assertEquals(Optional.empty(), volume.read(SESSION.resolve("missing.jfr")));
             assertEquals(Optional.empty(), volume.open(SESSION.resolve("missing.jfr")));
         }
     }
@@ -221,7 +200,6 @@ class AzureFilesVolumeTest {
 
         assertThrows(UncheckedIOException.class, () -> volume.list(SESSION));
         assertThrows(UncheckedIOException.class, () -> volume.stat(SESSION.resolve("gc.log")));
-        assertThrows(UncheckedIOException.class, () -> volume.read(SESSION.resolve("gc.log")));
     }
 
     @Test
