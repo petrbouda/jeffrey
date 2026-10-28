@@ -96,7 +96,7 @@ onMounted(() => {
           <p><strong>Purpose:</strong> Describe every entity the Hub lists.</p>
           <h5>Contains:</h5>
           <ul>
-            <li>A workspace is any root directory whose name is a valid reference id — created by the Provisioner when it is missing, by Microscope when a user creates the workspace, or by the Hub's default-workspace initializer at startup</li>
+            <li>A workspace is any root directory whose name is a valid reference id — created only by the Provisioner, when it first provisions a project into it; neither the Hub nor Microscope creates one</li>
             <li>No marker files anywhere — a project or an instance is any visible (non-dot) child directory, a session is a visible directory named with a UUIDv7; anything else under an instance is ignored</li>
           </ul>
           <p>Ids are folder names: a workspace's id is its directory name (the reference id the Provisioner names), a project's is its directory name (the project <code>name</code> the Provisioner was configured with), an instance's is its directory name (<code>instance-name</code>, <code>HOSTNAME</code> by default), and a session's is its directory name, a UUIDv7 whose timestamp is the session's start.</p>
@@ -153,7 +153,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job replaces chunks with their LZ4 archives, the retention job deletes sessions and instance directories, and the default-workspace initializer creates the default workspace's folder when it is missing. A read-only mount leaves every one of those failing quietly. The user's own changes — creating or deleting a workspace, deleting a project, deleting a session — are made by Microscope on the Azure file share, not by the Server.
+        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job rewrites chunks into their LZ4 archives and the retention job deletes sessions and instance directories. A read-only mount leaves both failing quietly. The Server never creates a folder — workspaces come from the Provisioner. The user's own changes — deleting a workspace, a project or a session — are made by Microscope on the Azure file share, not by the Server.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
@@ -178,7 +178,7 @@ onMounted(() => {
       <p>Earlier Hubs kept a copy of the volume in an embedded DuckDB file. Moving to a Hub without one is a one-time break:</p>
       <ul>
         <li><strong>The old database is ignored.</strong> An existing <code>$JEFFREY_HOME/jeffrey-data.db</code> (and its <code>.wal</code>) is never opened and can be deleted.</li>
-        <li><strong>A workspace is its folder.</strong> Every root directory named with a valid reference id is listed as a workspace, with nothing to create first. An old <code>.workspace-info.json</code> left in a workspace is ignored as a hidden file, and display names are gone: a workspace whose display name differed from its folder now shows the folder name, its reference id. The <code>jeffrey.hub.workspaces.auto-create</code> and <code>jeffrey.hub.default-workspace.name</code> properties are removed.</li>
+        <li><strong>A workspace is its folder.</strong> Every root directory named with a valid reference id is listed as a workspace, with nothing to create first. An old <code>.workspace-info.json</code> left in a workspace is ignored as a hidden file, and display names are gone: a workspace whose display name differed from its folder now shows the folder name, its reference id. The <code>jeffrey.hub.workspaces.auto-create</code>, <code>jeffrey.hub.default-workspace.name</code> and <code>jeffrey.hub.default-workspace.reference-id</code> properties are removed, and so is Microscope's <strong>Create Workspace</strong>: a workspace appears when the Provisioner first provisions a project into it.</li>
         <li><strong>Volumes with project, instance and session markers need re-provisioning.</strong> A project's id is now its folder name, not the random <code>projectId</code> of its old <code>.project-info.json</code>, so links, downloads, MCP references and profiles that carried the old id are orphaned. Old marker files left in folders are ignored as hidden entries and go with their directory; see <router-link to="/docs/provisioner/directory-structure">Directory Structure</router-link>.</li>
         <li><strong>Microscope loses its links to older downloads.</strong> Recordings and profiles Microscope downloaded before the upgrade carry the old hub UUIDs, so they no longer link to their hub project: they are not recognised as already downloaded and do not appear in that project's profile list. Download them again to restore the link.</li>
       </ul>

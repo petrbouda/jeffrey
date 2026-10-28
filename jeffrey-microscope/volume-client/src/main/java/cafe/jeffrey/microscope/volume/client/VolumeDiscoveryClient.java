@@ -21,14 +21,12 @@ import cafe.jeffrey.microscope.remote.client.DiscoveryClient;
 import cafe.jeffrey.microscope.remote.client.ProjectScope;
 import cafe.jeffrey.microscope.remote.client.dto.RemoteProjectResponse;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceReferenceId;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
-import cafe.jeffrey.shared.volume.layout.VolumeChanges;
 import cafe.jeffrey.shared.volume.layout.VolumeWorkspace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +36,12 @@ import java.util.Optional;
 
 /**
  * The workspaces and projects at the volume's root. Every visible directory there is a workspace,
- * named by its id — the reference id the provisioner writes into; nothing in it is read.
+ * named by its id — the reference id the provisioner writes into, and creates: nothing here
+ * creates one, and nothing in one is read.
  */
 final class VolumeDiscoveryClient implements DiscoveryClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(VolumeDiscoveryClient.class);
-
-    private static final String ID_TAKEN = "Workspace with reference ID '%s' already exists";
 
     private final VolumeSource source;
 
@@ -83,25 +80,6 @@ final class VolumeDiscoveryClient implements DiscoveryClient {
     @Override
     public Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId) {
         return source.read(() -> VolumeWorkspace.at(source.volume(), workspaceId).map(VolumeDiscoveryClient::workspace));
-    }
-
-    /** Creates a workspace: its directory; refused for an id whose directory is there already. */
-    @Override
-    public WorkspaceInfo createWorkspace(String referenceId) {
-        WritableVolume volume = source.writable("Cannot create workspace " + referenceId);
-        if (!WorkspaceReferenceId.isValid(referenceId)) {
-            throw Exceptions.invalidRequest("Invalid workspace reference ID: " + WorkspaceReferenceId.DESCRIPTION);
-        }
-        return source.read(() -> {
-            if (!VolumeChanges.createWorkspace(volume, referenceId)) {
-                throw Exceptions.invalidRequest(ID_TAKEN.formatted(referenceId));
-            }
-            LOG.info("Created workspace on the recording volume: workspace_id={} source={}",
-                    referenceId, source.description());
-            return VolumeWorkspace.at(volume, referenceId)
-                    .map(VolumeDiscoveryClient::workspace)
-                    .orElseThrow(() -> Exceptions.workspaceNotFound(referenceId));
-        });
     }
 
     @Override

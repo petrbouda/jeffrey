@@ -62,6 +62,7 @@ final class StubFileShare implements HttpClient {
     private final Map<String, Node> nodes = new TreeMap<>();
     private final List<HttpRequest> requests = new CopyOnWriteArrayList<>();
     private boolean rejectEveryCredential;
+    private boolean refuseDeletes;
 
     private record Node(boolean directory, byte[] content, Instant createdAt, Instant lastModified) {
     }
@@ -94,6 +95,11 @@ final class StubFileShare implements HttpClient {
     /** From now on every request is refused as a rejected credential is. */
     void rejectEveryCredential() {
         rejectEveryCredential = true;
+    }
+
+    /** From now on a delete is refused as a credential without the delete right is; reads still answer. */
+    void refuseDeletes() {
+        refuseDeletes = true;
     }
 
     List<HttpRequest> requests() {
@@ -140,9 +146,12 @@ final class StubFileShare implements HttpClient {
             return list(request, path, query);
         }
         if (request.getHttpMethod() == HttpMethod.PUT) {
-            return put(request, path, query, directoryCall);
+            return put(request, path, query);
         }
         if (request.getHttpMethod() == HttpMethod.DELETE) {
+            if (refuseDeletes) {
+                return error(request, 403, "AuthorizationPermissionMismatch");
+            }
             return delete(request, path, directoryCall);
         }
         if (directoryCall) {
@@ -247,18 +256,11 @@ final class StubFileShare implements HttpClient {
         return headers;
     }
 
-    private HttpResponse put(HttpRequest request, String path, Map<String, String> query, boolean directoryCall) {
+    private HttpResponse put(HttpRequest request, String path, Map<String, String> query) {
         if (!parentExists(path)) {
             return error(request, 404, "ParentNotFound");
         }
         Instant now = Instant.parse("2026-03-01T00:00:00Z");
-        if (directoryCall) {
-            if (nodes.containsKey(path)) {
-                return error(request, 409, "ResourceAlreadyExists");
-            }
-            nodes.put(path, new Node(true, new byte[0], now, now));
-            return written(request, 201, nodes.get(path));
-        }
         String comp = query.get("comp");
         if ("range".equals(comp)) {
             Node node = nodes.get(path);

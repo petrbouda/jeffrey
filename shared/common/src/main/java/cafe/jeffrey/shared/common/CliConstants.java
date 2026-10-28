@@ -37,12 +37,10 @@ public abstract class CliConstants {
             "start,alloc,lock,event=ctimer,jfrsync=default,loop=15m,chunksize=5m,file=" + FILE_PATTERN;
 
     /**
-     * Reference id of the workspace used when {@code project.workspace-ref-id} is not set
-     * in the provisioner's HOCON config. Both jeffrey-provisioner (when writing project metadata + the
-     * filesystem layout) and jeffrey-hub (as the fallback for
-     * {@code jeffrey.hub.default-workspace.reference-id}) resolve to this single
-     * value so the two sides agree on the directory structure
-     * <code>&lt;workspaces&gt;/$default/&lt;project&gt;/...</code>.
+     * Reference id of the workspace used when {@code project.workspace-ref-id} is not set in the
+     * provisioner's HOCON config: the provisioner lays the project down under
+     * <code>&lt;workspaces&gt;/$default/&lt;project&gt;/...</code>, creating that workspace's
+     * directory when it is missing. Nothing else creates a workspace.
      */
     public static final String DEFAULT_WORKSPACE_REF_ID = "$default";
 }

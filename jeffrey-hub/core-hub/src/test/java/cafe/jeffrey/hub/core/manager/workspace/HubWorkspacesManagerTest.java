@@ -21,7 +21,6 @@ import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.volume.TestVolume;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,18 +32,22 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Workspaces are directories under the workspaces root, named by their reference id; nothing in them is read. */
+/**
+ * Workspaces are directories under the workspaces root, named by their reference id; nothing in
+ * them is read, and the hub creates none: the provisioner lays each one down.
+ */
 class HubWorkspacesManagerTest {
 
     @TempDir
     Path root;
 
     private HubWorkspacesManager manager() {
-        FilesystemVolume volume = new FilesystemVolume(root);
+        return manager(root);
+    }
+
+    private static HubWorkspacesManager manager(Path workspacesRoot) {
+        FilesystemVolume volume = new FilesystemVolume(workspacesRoot);
         ProjectManager.Factory projectFactory =
                 project -> new HubProjectManager(project, volume);
         return new HubWorkspacesManager(volume,
@@ -53,41 +56,6 @@ class HubWorkspacesManagerTest {
 
     private static List<String> ids(List<WorkspaceManager> workspaces) {
         return workspaces.stream().map(workspace -> workspace.info().id()).toList();
-    }
-
-    @Nested
-    class Create {
-
-        @Test
-        void writesItsDirectoryAndNothingInIt() throws IOException {
-            WorkspaceInfo created = manager().create("prod-ws");
-
-            assertEquals("prod-ws", created.id());
-            assertEquals(0, created.projectCount());
-            try (var entries = Files.list(root.resolve("prod-ws"))) {
-                assertEquals(0, entries.count());
-            }
-        }
-
-        @Test
-        void blankReferenceId_throwsIllegalArgumentException() {
-            assertThrows(IllegalArgumentException.class, () -> manager().create("  "));
-        }
-
-        @Test
-        void invalidFormatReferenceId_throwsIllegalArgumentException() {
-            assertThrows(IllegalArgumentException.class, () -> manager().create("../escape"));
-        }
-
-        /** The provisioner may have written into the reference id first: it is a workspace already. */
-        @Test
-        void aDirectoryAlreadyThere_throwsAlreadyExists() {
-            TestVolume.project(root.resolve("prod-ws"), "orders");
-
-            assertThrows(WorkspaceAlreadyExistsException.class, () -> manager().create("prod-ws"));
-            assertTrue(manager().exists("prod-ws"));
-            assertFalse(manager().exists("other-ws"));
-        }
     }
 
     @Nested
@@ -100,6 +68,12 @@ class HubWorkspacesManagerTest {
             Files.createDirectories(root.resolve(".pending"));
 
             assertEquals(List.of("prod-ws", "staging-ws"), ids(manager().findAll()));
+        }
+
+        /** Before the provisioner has written anything, there is no workspace, and no failure. */
+        @Test
+        void listsNoneUnderARootNothingHasWrittenYet() {
+            assertEquals(List.of(), ids(manager(root.resolve("workspaces")).findAll()));
         }
 
         @Test

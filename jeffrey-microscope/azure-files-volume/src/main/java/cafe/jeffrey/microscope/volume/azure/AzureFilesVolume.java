@@ -55,8 +55,8 @@ import java.util.Set;
  * time and a reader that needs one asks {@link #stat} for that entry. A look at one entry always
  * answers a time: the creation time where the share keeps it, its last modification otherwise.
  *
- * <p>Changes are the two the layout makes: a directory created, and a subtree removed. The share
- * has no recursive delete, so a directory is emptied entry by entry first.
+ * <p>The one change the layout makes is a subtree removed. The share has no recursive delete, so
+ * a directory is emptied entry by entry first.
  *
  * <p>"Not there" — a missing file, a missing parent, the other kind of entry under that name — is
  * an empty answer; any other refusal of the service (a credential it rejects, a share it cannot
@@ -77,7 +77,7 @@ public final class AzureFilesVolume implements WritableVolume {
     private static final int NOT_FOUND = 404;
     private static final int FORBIDDEN = 403;
     private static final String WRITE_RIGHTS_HINT =
-            " (the credential lacks the create, write or delete right; declare the share read-only, or grant them)";
+            " (the credential lacks the delete right; declare the share read-only, or grant it)";
 
     private final ShareClient share;
     private final String rootPath;
@@ -151,22 +151,6 @@ public final class AzureFilesVolume implements WritableVolume {
                 return Optional.empty();
             }
             throw unreadable("open", file, e);
-        }
-    }
-
-    @Override
-    public void createDirectories(VolumePath directory) {
-        StringBuilder location = new StringBuilder();
-        for (String element : location(directory).split(SEPARATOR)) {
-            if (element.isEmpty()) {
-                continue;
-            }
-            location.append(location.isEmpty() ? "" : SEPARATOR).append(element);
-            try {
-                share.getDirectoryClient(location.toString()).createIfNotExists();
-            } catch (ShareStorageException e) {
-                throw unwritable("create", directory, e);
-            }
         }
     }
 

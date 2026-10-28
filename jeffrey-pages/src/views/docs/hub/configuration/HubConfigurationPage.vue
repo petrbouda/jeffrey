@@ -343,29 +343,13 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
       </p>
       <p>
         Every root directory whose name is a valid reference id is a workspace, named by that id;
-        there is no separate display name. It does not matter who created the folder: the
-        provisioner creates a missing workspace folder itself, Microscope creates it when a user
-        creates the workspace on the Azure file share, and the default-workspace initializer creates
-        the default one at startup. Directories starting with <code>.</code> are skipped, so old
-        <code>.workspace-info.json</code> files left on a volume are ignored.
+        there is no separate display name. The Hub lists every validly named root folder and
+        creates none: a workspace appears when the provisioner writes it, the first time it
+        provisions a project into that workspace (its <code>project.workspace-ref-id</code>,
+        <code>$default</code> when unset). There is no property for this. Directories starting
+        with <code>.</code> are skipped, so old <code>.workspace-info.json</code> files left on a
+        volume are ignored.
       </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.hub.default-workspace.reference-id</code></td>
-            <td><code>$default</code></td>
-            <td>Reference id of the workspace every Hub starts with; its folder is created at startup if missing.</td>
-          </tr>
-        </tbody>
-      </table>
 
       <h2 id="live-workspace">No Profile Analysis</h2>
       <p>

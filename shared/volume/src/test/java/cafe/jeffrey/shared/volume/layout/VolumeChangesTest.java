@@ -57,31 +57,23 @@ class VolumeChangesTest {
         return ProjectTree.at(volume, WORKSPACE.resolve(projectDir.getFileName().toString())).orElseThrow();
     }
 
+    /** A workspace is the directory the provisioner laid down: nothing here creates one. */
     @Nested
     class Workspace {
 
         @Test
         void isItsDirectory() throws IOException {
-            assertTrue(VolumeChanges.createWorkspace(volume, "staging"));
+            Files.createDirectories(root.resolve("staging"));
 
-            VolumeWorkspace created = VolumeWorkspace.at(volume, "staging").orElseThrow();
-            assertEquals("staging", created.id());
-            assertTrue(created.createdAt().isPresent(), "its directory's time, as the volume lists it");
-            try (var left = Files.list(root.resolve("staging"))) {
-                assertEquals(0, left.count(), "nothing is written into it");
-            }
-        }
-
-        @Test
-        void isRefusedForAnIdWhoseDirectoryIsThere() {
-            assertFalse(VolumeChanges.createWorkspace(volume, "prod"));
-            assertTrue(Files.isDirectory(projectDir), "the project the provisioner wrote there stays");
+            VolumeWorkspace staging = VolumeWorkspace.at(volume, "staging").orElseThrow();
+            assertEquals("staging", staging.id());
+            assertTrue(staging.createdAt().isPresent(), "its directory's time, as the volume lists it");
         }
 
         @Test
         void areListedByTheirDirectoriesAlone() throws IOException {
             Files.createDirectories(root.resolve(".scratch"));
-            VolumeChanges.createWorkspace(volume, "staging");
+            Files.createDirectories(root.resolve("staging"));
 
             assertEquals(List.of("prod", "staging"), VolumeWorkspace.all(volume).stream().map(VolumeWorkspace::id).toList());
             assertEquals(Optional.empty(), VolumeWorkspace.at(volume, "missing"));

@@ -24,8 +24,8 @@ package cafe.jeffrey.microscope.volume.azure;
 public sealed interface AzureFilesCredential {
 
     /**
-     * A shared access signature scoped to the share: read and list, plus create, write and delete for
-     * a share that takes the user's changes.
+     * A shared access signature scoped to the share: read and list, plus delete for a share that
+     * takes the user's changes.
      *
      * @param token the SAS query string, with or without its leading {@code ?}
      */

@@ -17,23 +17,10 @@
 
 package cafe.jeffrey.hub.core.manager.workspace;
 
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
-
 import java.util.List;
 
 /** The workspaces on the hub's volume: each a directory named by its reference id. */
 public interface WorkspacesManager {
-
-    /**
-     * Creates the workspace's directory, named by its reference id.
-     *
-     * @throws IllegalArgumentException        for an id that is not a valid reference id
-     * @throws WorkspaceAlreadyExistsException when a directory by that id is there already
-     */
-    WorkspaceInfo create(String referenceId);
-
-    /** Whether a workspace by that id is there: its directory. */
-    boolean exists(String referenceId);
 
     /** Every workspace directory on the volume. */
     List<WorkspaceManager> findAll();

@@ -26,9 +26,8 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'declare-remote', text: 'Step 1 — Declare the Remote', level: 2 },
+  { id: 'declare-remote', text: 'Declare the Remote', level: 2 },
   { id: 'azure-files', text: 'Working on an Azure File Share', level: 3 },
-  { id: 'create-workspace', text: 'Step 2 — Create a Workspace', level: 2 },
   { id: 'status', text: 'Remote Status', level: 2 },
   { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
 ];
@@ -54,11 +53,13 @@ onMounted(() => {
         the workspaces it holds. Heavy analysis still runs locally — Microscope just borrows the data.
       </p>
       <p>
-        Getting there is a two-step process: declare the share in Microscope's configuration, then
-        create or pick a workspace on it.
+        All Microscope needs is the share, declared in its configuration. Workspaces come from
+        provisioning, not from Microscope: a workspace shows up on the Remote page once the
+        <router-link to="/docs/provisioner">provisioner</router-link> has provisioned a project into
+        it (its <code>project.workspace-ref-id</code>, <code>$default</code> when unset).
       </p>
 
-      <h2 id="declare-remote">Step 1 — Declare the Remote</h2>
+      <h2 id="declare-remote">Declare the Remote</h2>
       <p>
         The remote is declared in configuration only, with
         <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>,
@@ -117,7 +118,10 @@ onMounted(() => {
         sessions are browsed and downloaded straight off the share. Each directory at the share's
         root (or under its configured root path) is a workspace. The folder names are the state and
         nothing on the volume is a marker: a workspace is a visible folder named by its reference id,
-        which is also its id and its name &mdash; there is no separate display name. Its
+        which is also its id and its name &mdash; there is no separate display name. That reference
+        id is the provisioner's <code>project.workspace-ref-id</code> (3-64 characters, letters,
+        digits and dashes, not starting or ending with a dash), and the folder appears when the
+        provisioner first provisions a project into it. Its
         <strong>Workspace Info</strong> drawer shows the Reference ID (with a copy button) and its
         project count. A project is any visible (non-dot) folder in a workspace, its
         name being its id, and a project card shows that name and the folder's creation date when the
@@ -125,18 +129,18 @@ onMounted(() => {
         session count or last data on a project.
       </p>
       <p>
-        Microscope makes your changes on the share, exactly where the Jeffrey Hub's jobs expect them:
-        <strong>Create Workspace</strong> creates the workspace's folder and nothing in it, deleting a workspace or a project removes its directory,
-        and deleting a session takes its instance with its last session. Which session of an
-        instance is the newest — the only one that may still grow — is read from the session
+        Microscope creates nothing on the share: workspaces, projects, instances and sessions all
+        come from provisioning. The only changes it makes are the deletions you ask for, exactly
+        where the Jeffrey Hub's jobs expect them: deleting a workspace or a project removes its
+        directory, and deleting a session takes its instance with its last session. Which session
+        of an instance is the newest — the only one that may still grow — is read from the session
         directories' UUIDv7 names, by the same rules the hub applies.
       </p>
       <p>
         Declared with <code>read-only=true</code>, the remote carries a <strong>Read-only</strong>
-        badge and changes nothing: there is no <strong>Create Workspace</strong>, and no button to
-        delete a workspace, a project or a session (a request that reaches the
-        backend anyway is refused, saying the remote is read-only).
-        Use it with a credential that may only read.
+        badge and only browses and downloads: there is no button to delete a workspace, a project
+        or a session (a request that reaches the backend anyway is refused, saying the remote is
+        read-only). Use it with a credential that may only read and list.
       </p>
 
       <DocsCallout type="warning">
@@ -148,41 +152,6 @@ onMounted(() => {
         share directly. They work side by side: the hub writes an archive whole before it
         removes the original, and a download whose file was just compressed is retried on the
         archive.
-      </DocsCallout>
-
-      <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
-      <p>
-        With the remote declared and online, click <strong>Create Workspace</strong> in the workspace
-        column. Microscope opens a side drawer with a single field:
-      </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Field</th>
-            <th>What it means</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Reference ID</strong></td>
-            <td>
-              A stable identifier the workspace exposes to <code>provisioner</code>. The provisioner uses
-              this ID to route uploads to the right workspace, so it has to match the value in
-              your provisioner's configuration. It is the workspace's id, its name and the name of
-              its folder on the recording volume: 3-64 characters, letters, digits and dashes, not
-              starting or ending with a dash. Creating is refused when a folder with that id is
-              already there &mdash; the provisioner creates a missing workspace folder itself, which
-              makes it a workspace already, so there is nothing to create.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <DocsCallout type="warning">
-        <strong>Reference ID is permanent.</strong> It cannot be changed after creation, and
-        any provisioner clients that already point at the old value will stop uploading. Pick it
-        deliberately — typically a short slug like <code>prod-eu</code> or <code>staging</code>.
       </DocsCallout>
 
       <h2 id="status">Remote Status</h2>
@@ -221,6 +190,7 @@ onMounted(() => {
       <h2 id="not-in-ui">What's Not in the UI</h2>
       <p>A handful of things you might look for don't exist today — knowing this saves you a hunt:</p>
       <ul>
+        <li><strong>Creating a workspace</strong> — a workspace appears when the provisioner first provisions a project into it.</li>
         <li><strong>Renaming a workspace</strong> — a workspace's name is its reference id, the name of its folder on the share, and is not editable.</li>
         <li><strong>Renaming a project</strong> — a project's name is its folder on the share and its id, so the project's Settings show it read-only.</li>
         <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>

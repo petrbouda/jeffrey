@@ -125,12 +125,6 @@ class VolumeCallBudgetTest {
         }
 
         @Override
-        public void createDirectories(VolumePath directory) {
-            calls.add("mkdir " + directory);
-            delegate.createDirectories(directory);
-        }
-
-        @Override
         public void delete(VolumePath path) {
             calls.add("delete " + path);
             delegate.delete(path);

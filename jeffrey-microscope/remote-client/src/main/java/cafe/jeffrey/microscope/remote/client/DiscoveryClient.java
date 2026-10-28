@@ -57,8 +57,6 @@ public interface DiscoveryClient {
      */
     Optional<WorkspaceInfo> workspaceOrThrow(String workspaceId);
 
-    WorkspaceInfo createWorkspace(String referenceId);
-
     void deleteWorkspace(String workspaceId);
 
     List<RemoteProjectResponse> allProjects(String workspaceId);

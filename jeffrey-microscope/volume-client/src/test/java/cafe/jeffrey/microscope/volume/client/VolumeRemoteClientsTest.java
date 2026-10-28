@@ -245,25 +245,6 @@ class VolumeRemoteClientsTest {
     class Changes {
 
         @Test
-        void createsAWorkspaceAsItsDirectoryAlone() throws IOException {
-            WorkspaceInfo created = clients.discovery().createWorkspace("staging");
-
-            assertEquals("staging", created.id());
-            assertEquals("staging", created.name());
-            try (var entries = Files.list(root.resolve("staging"))) {
-                assertEquals(0, entries.count(), "nothing is written into it");
-            }
-        }
-
-        /** The provisioner may write into a workspace's directory first: it is a workspace already. */
-        @Test
-        void refusesAnIdWhoseDirectoryIsThereAndAnInvalidId() {
-            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("prod"));
-            assertTrue(Files.isDirectory(project), "the project already written there stays");
-            assertThrows(JeffreyClientException.class, () -> clients.discovery().createWorkspace("../up"));
-        }
-
-        @Test
         void deletesAWorkspaceWithEverythingInIt() {
             liveSession();
 
@@ -307,12 +288,10 @@ class VolumeRemoteClientsTest {
             RemoteClients readOnly = clients(new FilesystemVolume(root), true);
             Path dir = liveSession();
 
-            assertThrows(JeffreyClientException.class, () -> readOnly.discovery().createWorkspace("new-ws"));
             assertThrows(JeffreyClientException.class, () -> readOnly.discovery().deleteWorkspace("prod"));
             assertThrows(JeffreyClientException.class, () -> readOnly.repository().deleteSession(ORDERS, LIVE));
             assertThrows(JeffreyClientException.class, () -> readOnly.projects().deleteProject(ORDERS));
             assertTrue(Files.isDirectory(dir));
-            assertFalse(Files.exists(root.resolve("new-ws")));
         }
 
         @Test

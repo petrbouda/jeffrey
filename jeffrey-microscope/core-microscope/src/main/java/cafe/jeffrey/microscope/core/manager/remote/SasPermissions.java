@@ -37,7 +37,7 @@ record SasPermissions(Set<Character> letters) {
     private static final String VALUE_SEPARATOR = "=";
     private static final String QUERY_START = "?";
     private static final Set<Character> CHANGES = Set.of('c', 'w', 'd');
-    private static final Set<Character> EVERY_CHANGE = Set.of('r', 'l', 'c', 'w', 'd');
+    private static final Set<Character> EVERY_CHANGE = Set.of('r', 'l', 'd');
 
     SasPermissions {
         letters = Set.copyOf(letters);
@@ -59,7 +59,10 @@ record SasPermissions(Set<Character> letters) {
         return letters.stream().anyMatch(CHANGES::contains);
     }
 
-    /** Whether the token can make every change a writable source makes. */
+    /**
+     * Whether the token can make every change a writable source makes: it reads and lists the share
+     * and deletes from it, and never creates or writes.
+     */
     boolean grantsEveryChange() {
         return letters.containsAll(EVERY_CHANGE);
     }

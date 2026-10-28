@@ -33,8 +33,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * The configured remote: lists its workspaces live, creates workspaces on it, and produces
- * per-workspace and per-project managers. How the share is read is its clients' business.
+ * The configured remote: lists its workspaces live and produces per-workspace and per-project
+ * managers. How the share is read is its clients' business.
  */
 public class RemoteConnection {
 
@@ -126,17 +126,5 @@ public class RemoteConnection {
      */
     public WorkspaceManager workspace(WorkspaceInfo workspaceInfo) {
         return workspaceManagerFactory.create(remote, workspaceInfo, clients);
-    }
-
-    /**
-     * Creates a workspace on the remote.
-     *
-     * @param referenceId stable user-supplied id, which names the workspace's directory;
-     *                    jeffrey-provisioner's project.workspace-ref-id must match it
-     */
-    public WorkspaceInfo createWorkspace(String referenceId) {
-        WorkspaceInfo created = clients.discovery().createWorkspace(referenceId);
-        LOG.info("Created workspace on the remote: workspace_id={}", created.id());
-        return created;
     }
 }

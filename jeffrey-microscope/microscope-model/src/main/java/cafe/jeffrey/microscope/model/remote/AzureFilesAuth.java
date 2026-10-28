@@ -28,8 +28,8 @@ import java.util.Optional;
 public enum AzureFilesAuth {
 
     /**
-     * A share-scoped shared access signature: read and list for a read-only share; create, write and
-     * delete as well for one that takes the user's changes.
+     * A share-scoped shared access signature: read and list for a read-only share; delete as well
+     * for one that takes the user's changes.
      */
     SAS,
 

@@ -64,7 +64,7 @@ WARN  Jeffrey profiling DISABLED, async-profiler is not available: project=... s
 const envOnlySetup = `# The complete environment-only setup - no config file needed:
 JEFFREY_HOME=/mnt/jeffrey             # shared volume root (baked by jeffrey-jib)
 JEFFREY_PROJECT_NAME=my-service       # baked by jeffrey-jib from the artifactId
-JEFFREY_WORKSPACE_REF_ID=production   # optional (default: the hub's default workspace)
+JEFFREY_WORKSPACE_REF_ID=production   # optional (default: $default)
 
 # Optional extras:
 JEFFREY_INSTANCE_NAME=instance-1      # default: HOSTNAME (= pod name), then UUID
@@ -232,12 +232,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>JEFFREY_WORKSPACE_REF_ID</code></td>
               <td>
                 Reference ID of the workspace on the shared volume — the name of the
-                workspace directory the provisioner writes into, and the workspace's id. Optional — when omitted (or blank), recordings go to the server's default
-                workspace (<code>$default</code> unless reconfigured via
-                <code>jeffrey.hub.default-workspace.reference-id</code> on the server).
+                workspace directory the provisioner writes into, and the workspace's id. Optional — when omitted (or blank), recordings go to the workspace
+                <code>$default</code>.
                 The workspace does not have to exist: the provisioner creates its folder when it is
-                missing, and that folder is the workspace &mdash; its recordings show up in
-                Microscope and on the Hub's Storage page without any create step.
+                missing (along with the project, instance and session directories), and that folder
+                is the workspace &mdash; its recordings show up in Microscope and on the Hub's
+                Storage page without any create step. Nothing else creates a workspace.
               </td>
             </tr>
             <tr>

@@ -120,14 +120,6 @@ class AzureFilesVolumeTest {
         private final WritableVolume volume = volume(share, AzureFilesProtocol.SMB, "volume");
 
         @Test
-        void createsEveryMissingDirectoryUnderTheRoot() {
-            volume.createDirectories(ROOT.resolve("staging").resolve("checkout"));
-
-            assertTrue(share.holds("volume/staging"));
-            assertTrue(share.holds("volume/staging/checkout"));
-        }
-
-        @Test
         void deletesADirectoryWithEverythingUnderIt() {
             volume.delete(SESSION);
 
@@ -145,11 +137,11 @@ class AzureFilesVolumeTest {
         }
 
         @Test
-        void aWriteTheCredentialRefusesSaysWhichRightIsMissing() {
-            share.rejectEveryCredential();
+        void aDeleteTheCredentialRefusesSaysWhichRightIsMissing() {
+            share.refuseDeletes();
 
             UncheckedIOException refused = assertThrows(UncheckedIOException.class,
-                    () -> volume.createDirectories(ROOT.resolve("staging")));
+                    () -> volume.delete(SESSION.resolve("gc.log")));
             assertTrue(refused.getMessage().contains("lacks"), refused.getMessage());
         }
     }

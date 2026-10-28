@@ -19,11 +19,6 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type { RequestOptions } from '@shared/services/api/BasePlatformClient';
 import Workspace from '@remote/services/api/model/Workspace';
 
-/** A workspace to create: its reference id, which names its folder and is its name. */
-export interface CreateWorkspaceRequest {
-  referenceId: string;
-}
-
 /**
  * API client for workspace operations on the configured remote.
  * Workspaces are listed live from the remote.
@@ -39,10 +34,6 @@ export default class WorkspaceClient extends BasePlatformClient {
 
   async getById(workspaceId: string): Promise<Workspace> {
     return super.get<Workspace>(`/${workspaceId}`);
-  }
-
-  async create(request: CreateWorkspaceRequest): Promise<Workspace> {
-    return super.post<Workspace>('', request);
   }
 
   async delete(workspaceId: string): Promise<void> {

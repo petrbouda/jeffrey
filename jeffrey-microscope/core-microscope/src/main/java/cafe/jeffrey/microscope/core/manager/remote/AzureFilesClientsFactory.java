@@ -93,7 +93,7 @@ public final class AzureFilesClientsFactory {
                     + "read and list only: address={} permissions={}", address, permissions);
         } else if (!address.readOnly() && !permissions.grantsEveryChange()) {
             LOG.warn("The SAS token of a writable Azure Files source lacks a right its changes need; issue one with "
-                    + "read, list, create, write and delete, or declare the source read-only: address={} permissions={}",
+                    + "read, list and delete, or declare the source read-only: address={} permissions={}",
                     address, permissions);
         }
     }

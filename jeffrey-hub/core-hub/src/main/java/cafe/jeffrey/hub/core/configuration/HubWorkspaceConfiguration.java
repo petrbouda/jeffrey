@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.hub.core.configuration;
 
-import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
-import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.HubProjectsManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
@@ -26,7 +24,6 @@ import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.HubWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,11 +56,5 @@ public class HubWorkspaceConfiguration {
     public HubWorkspacesManager workspacesManager(
             FilesystemVolume workspacesVolume, WorkspaceManager.Factory workspaceManagerFactory) {
         return new HubWorkspacesManager(workspacesVolume, workspaceManagerFactory);
-    }
-
-    @Bean
-    public DefaultWorkspaceInitializer defaultWorkspaceInitializer(
-            WorkspacesManager workspacesManager, DefaultWorkspaceProperties defaultWorkspaceProperties) {
-        return new DefaultWorkspaceInitializer(workspacesManager, defaultWorkspaceProperties);
     }
 }

@@ -21,8 +21,8 @@ export default interface Remote {
   /** Where the share lies, as a person reads it: its endpoint, name and directory. */
   location: string;
   /**
-   * A remote declared read-only (`azure-files.read-only=true`): no workspace is created or
-   * deleted, and no session deleted or pinned, through it.
+   * A remote declared read-only (`azure-files.read-only=true`): no workspace, project or session
+   * is deleted through it.
    */
   readOnly: boolean;
 }

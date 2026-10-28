@@ -260,10 +260,10 @@ onMounted(() => {
             <td><code>jeffrey.microscope.remote.azure-files.sas-token</code></td>
             <td>—</td>
             <td>
-              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read, list,
-              create, write and delete on the share — read and list alone with
-              <code>read-only=true</code>; Microscope warns at startup, naming only the rights, when
-              a token grants more or less than its source uses. It stays in the configuration:
+              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read, list
+              and delete on the share (<code>sp=rld</code>) — read and list alone with
+              <code>read-only=true</code>. Microscope warns at startup, naming only the rights, when
+              a writable token lacks one of them, or a read-only one grants create, write or delete. It stays in the configuration:
               Microscope never stores it in its database and never logs it, so pass it from a secret
               (an environment variable or a mounted secret file).
             </td>
@@ -272,9 +272,9 @@ onMounted(() => {
             <td><code>jeffrey.microscope.remote.azure-files.read-only</code></td>
             <td><code>false</code></td>
             <td>
-              Refuse every change to the share — no workspace created or deleted, no project
-              deleted, no session deleted or pinned — and hide those actions in the UI. The
-              credential then needs only read rights.
+              Refuse every change to the share — nothing is deleted: no workspace, project or
+              session deletion — and hide those actions in the UI. The credential then needs only
+              read and list rights.
             </td>
           </tr>
         </tbody>

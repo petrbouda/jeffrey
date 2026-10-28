@@ -71,16 +71,6 @@ public final class FilesystemVolume implements WritableVolume {
     }
 
     @Override
-    public void createDirectories(VolumePath directory) {
-        Path dir = resolve(directory);
-        try {
-            Files.createDirectories(dir);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot create a volume directory: path=" + dir, e);
-        }
-    }
-
-    @Override
     public void delete(VolumePath path) {
         Path target = resolve(path);
         if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {

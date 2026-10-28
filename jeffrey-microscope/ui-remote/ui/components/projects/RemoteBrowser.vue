@@ -38,7 +38,7 @@
     </div>
 
     <template v-else>
-      <!-- Workspace column: the remote's header + workspace list + create form -->
+      <!-- Workspace column: the remote's header + workspace list -->
       <section class="workspace-column">
         <header class="ws-head">
           <h3 class="ws-head-name">
@@ -76,15 +76,10 @@
               <span class="ws-item-name">{{ workspace.name }}</span>
             </button>
 
-            <div v-if="filteredWorkspaces.length === 0 && !showCreateForm" class="ws-empty">
+            <div v-if="filteredWorkspaces.length === 0" class="ws-empty">
               <i class="bi bi-folder-x"></i>
               <span>No workspaces yet</span>
             </div>
-
-            <!-- Inline "Create Workspace" trigger / form -->
-            <button v-if="!remote.readOnly" class="ws-create-trigger" @click="openCreateForm">
-              <i class="bi bi-plus-lg"></i> Create Workspace
-            </button>
           </template>
         </div>
       </section>
@@ -153,66 +148,12 @@
           v-else
           icon="bi-folder-plus"
           title="No workspace selected"
-          :description="remote.readOnly ? NO_WORKSPACE_READ_ONLY : NO_WORKSPACE"
+          :description="NO_WORKSPACE"
         />
       </main>
     </template>
 
     <!-- Drawers -->
-
-    <LeftDrawer
-      v-model:show="showCreateForm"
-      title="Create Workspace"
-      icon="bi-folder-plus"
-      @submit="submitCreate"
-    >
-      <DrawerSection v-if="remote" label="Remote" icon="bi-hdd-network">
-        <div class="server-context-card">
-          <div class="server-context-name">{{ remote.name }}</div>
-          <span class="server-context-pill">
-            <StatusDot :tone="STATUS_TONES[status]" size="xs" />
-            {{ statusLabel }}
-          </span>
-        </div>
-      </DrawerSection>
-
-      <DrawerSection label="Workspace" icon="bi-folder-plus">
-        <DrawerField label="Reference ID" required :error="referenceIdError ?? undefined" :disabled="creating">
-          <input
-            v-model="createForm.referenceId"
-            type="text"
-            class="field-input is-mono"
-            placeholder="e.g. payments-prod"
-            :disabled="creating"
-          />
-          <template #hint>
-            The workspace's folder on the share, and so its name. Used by
-            <strong>provisioner</strong>'s <code>project.workspace-ref-id</code>. Must be unique on
-            this remote.
-            {{ WORKSPACE_REF_ID_HINT }}
-          </template>
-        </DrawerField>
-      </DrawerSection>
-
-      <div v-if="createError" class="field-alert" role="alert">
-        <i class="bi bi-exclamation-triangle"></i>
-        <span>{{ createError }}</span>
-      </div>
-
-      <template #footer>
-        <button class="btn btn-secondary" :disabled="creating" @click="closeCreateForm">
-          Cancel
-        </button>
-        <button
-          class="btn btn-primary"
-          :disabled="!isCreateFormValid || creating"
-          @click="submitCreate"
-        >
-          <span v-if="creating" class="spinner-border spinner-border-sm me-2" role="status"></span>
-          Create Workspace
-        </button>
-      </template>
-    </LeftDrawer>
 
     <LeftDrawer
       v-if="selectedWorkspace"
@@ -263,7 +204,6 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import LeftDrawer from '@shared/components/LeftDrawer.vue';
 import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
-import DrawerField from '@shared/components/drawer/DrawerField.vue';
 import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import Badge from '@shared/components/Badge.vue';
 import StatusDot from '@shared/components/StatusDot.vue';
@@ -318,15 +258,6 @@ const projectSearchQuery = ref('');
 
 const showWorkspaceInfo = ref(false);
 
-const showCreateForm = ref(false);
-const creating = ref(false);
-const createError = ref<string | null>(null);
-const createForm = ref({ referenceId: '' });
-
-const WORKSPACE_REF_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,62}[a-zA-Z0-9]$/;
-const WORKSPACE_REF_ID_HINT =
-  '3-64 characters, alphanumeric and dashes only, no leading or trailing dash.';
-
 const STATUS_TONES: Record<RemoteStatus, StatusDotTone> = {
   online: 'success',
   offline: 'danger',
@@ -335,15 +266,12 @@ const STATUS_TONES: Record<RemoteStatus, StatusDotTone> = {
 
 const REMOTE_PROPERTIES = 'jeffrey.microscope.remote.*';
 const NO_REMOTE_DESCRIPTION =
-  'Microscope reads the recordings of one remote: a Jeffrey Hub, or the recording volume on an ' +
-  "Azure file share. It is declared in Microscope's configuration only and read at startup: add it " +
+  'Microscope reads the recordings of one remote: the recording volume on an Azure file share. ' +
+  "It is declared in Microscope's configuration only and read at startup: add it " +
   'under these properties and restart.';
 const NO_WORKSPACE =
-  "Create a workspace in the panel on the left — its Reference ID becomes the provisioner's " +
-  'project.workspace-ref-id.';
-const NO_WORKSPACE_READ_ONLY =
-  'This remote is read-only, so workspaces are not created through it; a workspace appears here ' +
-  'once one exists on the volume.';
+  'A workspace appears here once the provisioner provisions a project into it: its folder on the ' +
+  "share is named by the provisioner's project.workspace-ref-id.";
 
 const workspaceToDelete = ref<Workspace | null>(null);
 
@@ -372,19 +300,6 @@ const filteredProjects = computed(() => {
   }
   return projects.value.filter(p => p.name.toLowerCase().includes(q));
 });
-
-const referenceIdError = computed(() => {
-  const ref = createForm.value.referenceId.trim();
-  if (ref.length === 0) {
-    return null;
-  }
-  return WORKSPACE_REF_ID_PATTERN.test(ref) ? null : WORKSPACE_REF_ID_HINT;
-});
-
-const isCreateFormValid = computed(() =>
-  WORKSPACE_REF_ID_PATTERN.test(createForm.value.referenceId.trim())
-);
-
 
 const statusLabel = computed(() => STATUS_LABELS[status.value]);
 
@@ -480,42 +395,6 @@ const copyText = async (value: string) => {
     ToastService.success('Copied', value);
   } catch {
     ToastService.error('Copy failed', 'Clipboard not available');
-  }
-};
-
-const openCreateForm = () => {
-  showCreateForm.value = true;
-  createForm.value = { referenceId: '' };
-  createError.value = null;
-};
-
-const closeCreateForm = () => {
-  showCreateForm.value = false;
-  createForm.value = { referenceId: '' };
-  createError.value = null;
-};
-
-const submitCreate = async () => {
-  if (!remote.value || !isCreateFormValid.value) {
-    return;
-  }
-  creating.value = true;
-  createError.value = null;
-  try {
-    const referenceId = createForm.value.referenceId.trim();
-    const created = await workspaceClient.create({ referenceId });
-    ToastService.success('Workspace Created', `"${referenceId}" is ready.`);
-    closeCreateForm();
-    await refreshWorkspaces();
-    if (created?.id) {
-      selectedWorkspaceId.value = created.id;
-      await refreshProjects();
-    }
-  } catch (error: any) {
-    createError.value =
-      error?.response?.data?.message ?? error?.message ?? 'Failed to create workspace';
-  } finally {
-    creating.value = false;
   }
 };
 
@@ -684,29 +563,6 @@ onMounted(refreshRemote);
 
 .ws-empty i {
   font-size: 1.5rem;
-}
-
-.ws-create-trigger {
-  margin-top: var(--spacing-2);
-  padding: var(--spacing-3);
-  border: 1px dashed var(--color-primary-border);
-  border-radius: var(--radius-md);
-  background: var(--color-primary-lighter);
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-sm);
-  text-align: center;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all var(--transition-base);
-}
-
-.ws-create-trigger:hover {
-  border-style: solid;
-  background: var(--color-primary-light);
 }
 
 /* ============== Project main area ============== */

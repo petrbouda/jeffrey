@@ -34,12 +34,14 @@ class SasPermissionsTest {
         assertFalse(permissions.grantsEveryChange());
     }
 
+    /** A writable source reads, lists and deletes: it never creates or writes. */
     @Test
-    void aTokenForAWritableSourceGrantsEveryChange() {
-        SasPermissions permissions = SasPermissions.of("sv=2026-06-06&sp=rwdlc&sig=SECRET");
+    void aTokenForAWritableSourceNeedsReadListAndDelete() {
+        SasPermissions permissions = SasPermissions.of("sv=2026-06-06&sp=rld&sig=SECRET");
 
         assertTrue(permissions.grantsChanges());
         assertTrue(permissions.grantsEveryChange());
+        assertFalse(SasPermissions.of("sv=2026-06-06&sp=rlcw&sig=SECRET").grantsEveryChange());
     }
 
     @Test

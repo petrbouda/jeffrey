@@ -47,13 +47,8 @@ public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {
 
     @Override
     public WorkspaceResponse workspace(String workspaceId) {
-        // Resolving it read the workspace just now: its marker, for the name it may go by
+        // Resolving it looked at the workspace just now: its directory is all there is to it
         return Mappers.toResponse(resolver.resolveWorkspace(workspaceId).localInfo());
-    }
-
-    @Override
-    public WorkspaceResponse createWorkspace(String referenceId) {
-        return Mappers.toResponse(resolver.resolveRemote().createWorkspace(referenceId));
     }
 
     @Override
