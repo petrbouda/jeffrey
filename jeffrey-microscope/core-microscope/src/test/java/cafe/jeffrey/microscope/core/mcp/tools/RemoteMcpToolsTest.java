@@ -393,6 +393,25 @@ class RemoteMcpToolsTest {
             assertEquals(NOW.toEpochMilli(), row.path("startedAtEpochMs").asLong());
         }
 
+        /**
+         * Data ending before the session started means the chunk names and the session's own name
+         * disagree; the span is unknown, which is null, never a negative figure the schema refuses.
+         */
+        @Test
+        void aSessionWhoseDataEndsBeforeItStartedHasNoDuration() {
+            RecordingSession skewed = new RecordingSession(SESSION_ID, SESSION_ID, "inst-1", NOW,
+                    NOW.minusSeconds(60), false, null, List.of(), false);
+            RemoteConnection production = reachableRemote("production", "checkout", repositoryWith(skewed));
+            configure(production);
+            noLocalRecordings();
+
+            JsonNode catalogue = page(tools, null, null, 1, null).path("structuredContent");
+            JsonNode row = catalogue.path("sessions").get(0);
+
+            McpSchemaConformance.assertConforms(catalogue, schema);
+            assertTrue(row.path("durationMs").isNull(), row.toString());
+        }
+
         @Test
         void partialEmptyCatalogueNeverClaimsThereAreZeroSessions() {
             RemoteConnection down = mock(RemoteConnection.class);

@@ -1051,13 +1051,16 @@ public class RemoteMcpTools {
 
     /**
      * The session's span in milliseconds, from its start to the end of its recorded data, or null
-     * while it has no recording or never started — zero would claim a span it does not have.
+     * while it has no recording, never started or has data ending before it started (the names of
+     * its chunks and of the session disagree) — zero would claim a span it does not have, and a
+     * negative one is not a span.
      */
     private static Long durationMs(RecordingSession session) {
         if (session.createdAt() == null || session.lastDataAt() == null) {
             return null;
         }
-        return Duration.between(session.createdAt(), session.lastDataAt()).toMillis();
+        Duration elapsed = Duration.between(session.createdAt(), session.lastDataAt());
+        return elapsed.isNegative() ? null : elapsed.toMillis();
     }
 
     /**
@@ -1074,6 +1077,9 @@ public class RemoteMcpTools {
             return "no data yet";
         }
         Duration elapsed = Duration.between(start, end);
+        if (elapsed.isNegative()) {
+            return "unknown";
+        }
         if (elapsed.toHours() > 0) {
             return elapsed.toHours() + "h" + elapsed.toMinutesPart() + "m";
         }
