@@ -95,7 +95,7 @@ final class StatementParameters {
         if (parameterObject == null) {
             return null;
         }
-        if (configuration.getTypeHandlerRegistry().hasTypeHandler(parameterObject.getClass())) {
+        if (TypeHandlerProbe.hasTypeHandler(configuration.getTypeHandlerRegistry(), parameterObject.getClass())) {
             // The statement takes a single scalar, and the property is the name it was given.
             return parameterObject;
         }
