@@ -84,7 +84,6 @@ class AzureFilesTrafficTest {
             assertEquals(1, exchanges.size());
             AzureFilesExchange exchange = exchanges.getFirst();
             assertEquals(StubFileShare.shareName(), exchange.share());
-            assertEquals(1, exchange.number());
             assertEquals("GET", exchange.request().method());
             assertEquals("list", exchange.request().operation());
             assertEquals("/recordings/prod/orders/pod-a/s-1", exchange.request().path());
@@ -94,13 +93,12 @@ class AzureFilesTrafficTest {
 
         /** Not a file by that name, then not a directory either: two requests, both answered 404. */
         @Test
-        void aLookAtAMissingEntryIsTwoExchangesNumberedInOrder() {
+        void aLookAtAMissingEntryIsTwoExchangesInOrder() {
             volume.stat(SESSION.resolve("missing.jfr"));
 
             assertEquals(List.of("file-properties", "directory-properties"),
                     exchanges.stream().map(exchange -> exchange.request().operation()).toList());
             assertEquals(List.of(404, 404), exchanges.stream().map(exchange -> answered(exchange).status()).toList());
-            assertEquals(List.of(1L, 2L), exchanges.stream().map(AzureFilesExchange::number).toList());
         }
 
         @Test

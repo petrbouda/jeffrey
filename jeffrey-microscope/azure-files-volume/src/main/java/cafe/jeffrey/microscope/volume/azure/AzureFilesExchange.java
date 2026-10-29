@@ -32,11 +32,10 @@ import java.util.regex.Pattern;
  * its query string — the query carries the SAS signature, a header the bearer token.
  *
  * @param share   the share the request went to
- * @param number  the request's number among every request sent to the share, from 1
  * @param request the request as it was sent
  * @param outcome the response, or the failure that left the request without one
  */
-record AzureFilesExchange(String share, long number, Request request, Outcome outcome) {
+record AzureFilesExchange(String share, Request request, Outcome outcome) {
 
     public AzureFilesExchange {
         if (share == null || request == null || outcome == null) {

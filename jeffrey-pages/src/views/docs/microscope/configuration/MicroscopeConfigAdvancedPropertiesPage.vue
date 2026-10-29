@@ -78,10 +78,10 @@ onMounted(() => {
             <td><code>logging.level.cafe.jeffrey.microscope.volume.azure.AzureFilesTraffic</code></td>
             <td><code>INFO</code></td>
             <td>
-              Set to <code>DEBUG</code> to log every request sent to the Azure file share, one line each once it
-              ends: its number since startup (<code>request_no</code>), method, operation, path, status, elapsed time
-              and the declared request and response sizes, or the error's type when no response came. A retry is a
-              line of its own. Payloads, headers and the SAS signature are never logged.
+              Logs every request sent to the Azure file share, one line per request once it ends (a retry is its
+              own line): method, operation, path, status, elapsed time and the declared request and response sizes,
+              or the error's type when no response came. Payloads,
+              headers and the SAS signature are never logged. Set to <code>WARN</code> to silence it.
             </td>
           </tr>
         </tbody>

@@ -30,22 +30,20 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Signal;
 
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Every request sent to one share, logged at {@code DEBUG} in one line once it ends — retries
+ * Every request sent to one share, logged at {@code INFO} in one line once it ends — retries
  * included, each its own line — with no payload, no header and no query string (which carries
  * the SAS signature):
  *
  * <pre>
- * Azure Files request: share=recordings request_no=42 method=GET operation=list path=/recordings/prod status=200 elapsed_ms=31 request_bytes=0 response_bytes=2311
- * Azure Files request failed: share=recordings request_no=43 method=HEAD operation=file-properties path=/recordings/prod/gc.log elapsed_ms=30001 error=java.io.UncheckedIOException cause=java.net.http.HttpTimeoutException
+ * Azure Files request: share=recordings method=GET operation=list path=/recordings/prod status=200 elapsed_ms=31 request_bytes=0 response_bytes=2311
+ * Azure Files request failed: share=recordings method=HEAD operation=file-properties path=/recordings/prod/gc.log elapsed_ms=30001 error=java.io.UncheckedIOException cause=java.net.http.HttpTimeoutException
  * </pre>
  *
- * <p>{@code request_no} counts the requests the share has been sent since Microscope started, so
- * two lines tell how many an action cost. Turned on by
- * {@code logging.level.cafe.jeffrey.microscope.volume.azure.AzureFilesTraffic=DEBUG}.
+ * <p>Silenced by
+ * {@code logging.level.cafe.jeffrey.microscope.volume.azure.AzureFilesTraffic=WARN}.
  */
 final class AzureFilesTraffic implements HttpPipelinePolicy {
 
@@ -53,7 +51,6 @@ final class AzureFilesTraffic implements HttpPipelinePolicy {
 
     private final String share;
     private final Consumer<AzureFilesExchange> listener;
-    private final AtomicLong requests = new AtomicLong();
 
     /**
      * @param share the share's name, which every line carries
@@ -120,26 +117,26 @@ final class AzureFilesTraffic implements HttpPipelinePolicy {
     }
 
     private void ended(AzureFilesExchange.Request request, AzureFilesExchange.Outcome outcome) {
-        listener.accept(new AzureFilesExchange(share, requests.incrementAndGet(), request, outcome));
+        listener.accept(new AzureFilesExchange(share, request, outcome));
     }
 
     private static void log(AzureFilesExchange exchange) {
-        if (!LOG.isDebugEnabled()) {
+        if (!LOG.isInfoEnabled()) {
             return;
         }
         AzureFilesExchange.Request request = exchange.request();
         switch (exchange.outcome()) {
-            case AzureFilesExchange.Answered answered -> LOG.debug(
-                    "Azure Files request: share={} request_no={} method={} operation={} path={} status={} "
+            case AzureFilesExchange.Answered answered -> LOG.info(
+                    "Azure Files request: share={} method={} operation={} path={} status={} "
                             + "elapsed_ms={} request_bytes={} response_bytes={}",
-                    exchange.share(), exchange.number(), request.method(), request.operation(), request.path(),
+                    exchange.share(), request.method(), request.operation(), request.path(),
                     answered.status(), answered.elapsed().toMillis(), request.requestBytes(),
                     answered.responseBytes());
             // The types alone, never a message: a transport's may quote the URL, signature and all
-            case AzureFilesExchange.Failed failed -> LOG.debug(
-                    "Azure Files request failed: share={} request_no={} method={} operation={} path={} "
+            case AzureFilesExchange.Failed failed -> LOG.info(
+                    "Azure Files request failed: share={} method={} operation={} path={} "
                             + "elapsed_ms={} error={} cause={}",
-                    exchange.share(), exchange.number(), request.method(), request.operation(), request.path(),
+                    exchange.share(), request.method(), request.operation(), request.path(),
                     failed.elapsed().toMillis(), failed.error().getClass().getName(),
                     failed.rootCause().getClass().getName());
         }
