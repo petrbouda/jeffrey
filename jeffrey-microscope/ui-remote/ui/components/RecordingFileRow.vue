@@ -15,11 +15,20 @@
   - limitations under the License.
   -->
 
+<!--
+  One row of a file listing, shared by a remote session's detail and a bundle on the Recordings page:
+  the file type's colour on the row, its icon and badge, then the name, size and time. A row stands
+  for one file, or for a group of files of one type when the caller names it after the group. A
+  download-only row (a log, a crash file: nothing Jeffrey initializes) keeps its solid left edge and
+  draws the rest of its border dashed.
+-->
 <script setup lang="ts">
+import { computed } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
-import Utils from '@/services/Utils';
 import type { Variant } from '@shared/types/ui';
+import Utils from '@/services/Utils';
+import RecordingFileType from '@remote/services/api/model/RecordingFileType';
 
 interface Props {
   filename: string;
@@ -28,111 +37,123 @@ interface Props {
   description?: string;
   timestamp?: number;
   compact?: boolean;
+  /** A file Jeffrey never initializes: it is only downloaded or handed to an agent as a path. */
+  downloadOnly?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  sizeInBytes: undefined,
+  description: undefined,
+  timestamp: undefined,
+  compact: false,
+  downloadOnly: false
+});
 
-const getRowClasses = (): string[] => [getFileTypeClass(props.fileType)];
+/** How a file type looks: the class that sets the row's accent, its badge colour and its icon. */
+interface FileTypeStyle {
+  cssClass: string;
+  variant: Variant;
+  icon: string;
+}
 
-const getFileTypeClass = (fileType: string): string => {
-  switch (fileType) {
-    case 'JFR':
-    case 'JFR_LZ4':
-      return 'file-type-jfr';
-    case 'HEAP_DUMP_GZ':
-      return 'file-type-heap-dump-gz';
-    case 'HEAP_DUMP':
-      return 'file-type-heap-dump';
-    case 'PERF_COUNTERS':
-      return 'file-type-perf-counters';
-    case 'JVM_LOG':
-      return 'file-type-jvm-log';
-    case 'APP_LOG':
-      return 'file-type-app-log';
-    case 'HS_JVM_ERROR_LOG':
-      return 'file-type-hs-jvm-error-log';
-    case 'ASPROF_TEMP':
-      return 'file-type-asprof-temp';
-    default:
-      return 'file-type-unknown';
+const FILE_TYPE_STYLES: Record<string, FileTypeStyle> = {
+  [RecordingFileType.JFR]: {
+    cssClass: 'file-type-jfr',
+    variant: 'primary',
+    icon: 'bi-file-earmark-code'
+  },
+  [RecordingFileType.JFR_LZ4]: {
+    cssClass: 'file-type-jfr',
+    variant: 'indigo',
+    icon: 'bi-file-earmark-zip'
+  },
+  [RecordingFileType.HEAP_DUMP_GZ]: {
+    cssClass: 'file-type-heap-dump-gz',
+    variant: 'violet',
+    icon: 'bi-file-earmark-zip'
+  },
+  [RecordingFileType.HEAP_DUMP]: {
+    cssClass: 'file-type-heap-dump',
+    variant: 'purple',
+    icon: 'bi-file-earmark-binary'
+  },
+  [RecordingFileType.PERF_COUNTERS]: {
+    cssClass: 'file-type-perf-counters',
+    variant: 'blue',
+    icon: 'bi-file-earmark-bar-graph'
+  },
+  [RecordingFileType.PPROF]: {
+    cssClass: 'file-type-pprof',
+    variant: 'teal',
+    icon: 'bi-bar-chart'
+  },
+  [RecordingFileType.OTLP_PROFILE]: {
+    cssClass: 'file-type-otlp',
+    variant: 'orange',
+    icon: 'bi-broadcast'
+  },
+  [RecordingFileType.JVM_LOG]: {
+    cssClass: 'file-type-jvm-log',
+    variant: 'green',
+    icon: 'bi-file-earmark-text'
+  },
+  [RecordingFileType.APP_LOG]: {
+    cssClass: 'file-type-app-log',
+    variant: 'brown',
+    icon: 'bi-file-earmark-text'
+  },
+  [RecordingFileType.HS_JVM_ERROR_LOG]: {
+    cssClass: 'file-type-hs-jvm-error-log',
+    variant: 'red',
+    icon: 'bi-file-earmark-x'
+  },
+  [RecordingFileType.ASPROF]: {
+    cssClass: 'file-type-asprof-temp',
+    variant: 'orange',
+    icon: 'bi-hourglass-split'
   }
 };
 
-const getFileTypeVariant = (fileType: string): Variant => {
-  switch (fileType) {
-    case 'JFR':
-      return 'primary';
-    case 'JFR_LZ4':
-      return 'indigo';
-    case 'HEAP_DUMP_GZ':
-      return 'violet';
-    case 'HEAP_DUMP':
-      return 'purple';
-    case 'ASPROF_TEMP':
-      return 'orange';
-    case 'PERF_COUNTERS':
-      return 'blue';
-    case 'JVM_LOG':
-      return 'green';
-    case 'APP_LOG':
-      return 'brown';
-    case 'HS_JVM_ERROR_LOG':
-      return 'red';
-    case 'UNKNOWN':
-    default:
-      return 'grey';
-  }
+const UNKNOWN_STYLE: FileTypeStyle = {
+  cssClass: 'file-type-unknown',
+  variant: 'grey',
+  icon: 'bi-file-earmark'
 };
 
-const getFileTypeIcon = (fileType: string): string => {
-  switch (fileType) {
-    case 'JFR':
-      return 'bi-file-earmark-code';
-    case 'JFR_LZ4':
-      return 'bi-file-earmark-zip';
-    case 'HEAP_DUMP_GZ':
-      return 'bi-file-earmark-zip';
-    case 'HEAP_DUMP':
-      return 'bi-file-earmark-binary';
-    case 'ASPROF_TEMP':
-      return 'bi-hourglass-split';
-    case 'PERF_COUNTERS':
-      return 'bi-file-earmark-bar-graph';
-    case 'JVM_LOG':
-      return 'bi-file-earmark-text';
-    case 'APP_LOG':
-      return 'bi-file-earmark-text';
-    case 'HS_JVM_ERROR_LOG':
-      return 'bi-file-earmark-x';
-    default:
-      return 'bi-file-earmark';
-  }
-};
+const DOWNLOAD_ONLY_TITLE =
+  'Download only: Jeffrey does not initialize this file. Download it, or hand it to an agent as a path.';
+
+const style = computed(() => FILE_TYPE_STYLES[props.fileType] ?? UNKNOWN_STYLE);
 </script>
 
 <template>
   <div
     class="recording-file-row"
-    :class="[...getRowClasses(), props.compact ? 'recording-file-row-compact p-1' : 'p-2']"
+    :class="[
+      style.cssClass,
+      props.compact ? 'recording-file-row-compact p-1' : 'p-2',
+      { 'recording-file-row--download-only': props.downloadOnly }
+    ]"
+    :title="props.downloadOnly ? DOWNLOAD_ONLY_TITLE : undefined"
   >
     <div class="d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center">
+      <div class="d-flex align-items-center recording-file-main">
         <slot name="before" />
         <div
           :class="
             props.compact ? 'recording-file-icon-small me-2' : 'recording-file-icon-medium me-2'
           "
         >
-          <i class="bi" :class="getFileTypeIcon(props.fileType)"></i>
+          <i class="bi" :class="style.icon"></i>
         </div>
-        <div>
+        <div class="recording-file-text">
           <div :class="props.compact ? 'recording-file-name-compact' : 'recording-file-name'">
             {{ props.filename }}
           </div>
           <div :class="['d-flex', 'align-items-center', props.compact ? 'mt-0' : 'mt-1']">
             <Badge
               :value="Utils.formatFileType(props.fileType)"
-              :variant="getFileTypeVariant(props.fileType)"
+              :variant="style.variant"
               size="xxs"
             />
             <span class="recording-file-size ms-2" v-if="props.sizeInBytes !== undefined">
@@ -157,208 +178,141 @@ const getFileTypeIcon = (fileType: string): string => {
 <style>
 /* Non-scoped styles so parent components can target child elements */
 
-.recording-file-icon-medium {
+/*
+ * Each file type sets one accent; the row's tint, border and icon tile are all mixed from it.
+ * A download-only row keeps its solid left edge and dashes the rest of its border, the way
+ * async-profiler's unfinished scratch file always has.
+ */
+.recording-file-row {
+  --file-accent: var(--color-grey-muted);
+  background-color: color-mix(in srgb, var(--file-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--file-accent) 20%, transparent);
+  border-left: 3px solid var(--file-accent);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.recording-file-row:hover {
+  background-color: color-mix(in srgb, var(--file-accent) 12%, transparent);
+}
+
+.recording-file-row.recording-file-row--download-only,
+.recording-file-row.file-type-asprof-temp {
+  border-top-style: dashed;
+  border-right-style: dashed;
+  border-bottom-style: dashed;
+}
+
+.recording-file-row.file-type-asprof-temp {
+  border-top-color: color-mix(in srgb, var(--file-accent) 40%, transparent);
+  border-right-color: color-mix(in srgb, var(--file-accent) 40%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--file-accent) 40%, transparent);
+}
+
+.recording-file-row.file-type-jfr {
+  --file-accent: var(--color-primary);
+}
+
+.recording-file-row.file-type-heap-dump {
+  --file-accent: var(--color-purple);
+}
+
+.recording-file-row.file-type-heap-dump-gz {
+  --file-accent: var(--color-violet-text);
+}
+
+.recording-file-row.file-type-perf-counters {
+  --file-accent: var(--color-sky);
+}
+
+.recording-file-row.file-type-pprof {
+  --file-accent: var(--color-teal);
+}
+
+.recording-file-row.file-type-otlp {
+  --file-accent: var(--color-orange);
+}
+
+.recording-file-row.file-type-jvm-log {
+  --file-accent: var(--color-green-accent);
+}
+
+.recording-file-row.file-type-app-log {
+  --file-accent: var(--color-amber-dark);
+}
+
+.recording-file-row.file-type-hs-jvm-error-log {
+  --file-accent: var(--color-red-text);
+}
+
+.recording-file-row.file-type-asprof-temp {
+  --file-accent: var(--color-orange-accent);
+}
+
+.recording-file-main {
+  min-width: 0;
+}
+
+.recording-file-text {
+  min-width: 0;
+}
+
+.recording-file-icon-medium,
+.recording-file-icon-small {
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: color-mix(in srgb, var(--file-accent, var(--color-primary)) 15%, transparent);
+  color: var(--file-accent, var(--color-primary));
+}
+
+.recording-file-icon-medium {
   width: 32px;
   height: 32px;
   min-width: 32px;
-  border-radius: 5px;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: var(--color-primary);
+  border-radius: var(--radius-base);
   font-size: 1rem;
+}
+
+.recording-file-icon-small {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+
+/* The expand chevron in front of a group row, or the same space in front of a single file. */
+.recording-file-chevron {
+  width: 16px;
+  min-width: 16px;
+  margin-right: var(--spacing-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
 }
 
 .recording-file-name {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-dark);
+  overflow-wrap: anywhere;
 }
 
-.recording-file-row {
-  background-color: rgba(255, 255, 255, 0.7);
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.15s ease;
-}
-
-.recording-file-row:hover {
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
-}
-
-/* JFR file styling - blue theme */
-.recording-file-row.file-type-jfr {
-  background-color: rgba(94, 100, 255, 0.08);
-  border-left: 3px solid var(--color-primary);
-  border-top: 1px solid rgba(94, 100, 255, 0.2);
-  border-right: 1px solid rgba(94, 100, 255, 0.2);
-  border-bottom: 1px solid rgba(94, 100, 255, 0.2);
-}
-
-.recording-file-row.file-type-jfr:hover {
-  background-color: rgba(94, 100, 255, 0.12);
-  box-shadow: 0 2px 5px rgba(94, 100, 255, 0.15);
-}
-
-.recording-file-row.file-type-jfr .recording-file-icon-medium {
-  background-color: rgba(94, 100, 255, 0.15);
-  color: var(--color-primary);
-}
-
-/* HEAP_DUMP file styling - purple theme */
-.recording-file-row.file-type-heap-dump {
-  background-color: rgba(111, 66, 193, 0.08);
-  border-left: 3px solid var(--color-purple);
-  border-top: 1px solid rgba(111, 66, 193, 0.2);
-  border-right: 1px solid rgba(111, 66, 193, 0.2);
-  border-bottom: 1px solid rgba(111, 66, 193, 0.2);
-}
-
-.recording-file-row.file-type-heap-dump:hover {
-  background-color: rgba(111, 66, 193, 0.12);
-  box-shadow: 0 2px 5px rgba(111, 66, 193, 0.15);
-}
-
-.recording-file-row.file-type-heap-dump .recording-file-icon-medium {
-  background-color: rgba(111, 66, 193, 0.15);
-  color: var(--color-purple);
-}
-
-/* HEAP_DUMP_GZ file styling - deeper purple/violet theme */
-.recording-file-row.file-type-heap-dump-gz {
-  background-color: rgba(81, 45, 168, 0.08);
-  border-left: 3px solid var(--color-violet-text);
-  border-top: 1px solid rgba(81, 45, 168, 0.2);
-  border-right: 1px solid rgba(81, 45, 168, 0.2);
-  border-bottom: 1px solid rgba(81, 45, 168, 0.2);
-}
-
-.recording-file-row.file-type-heap-dump-gz:hover {
-  background-color: rgba(81, 45, 168, 0.12);
-  box-shadow: 0 2px 5px rgba(81, 45, 168, 0.15);
-}
-
-.recording-file-row.file-type-heap-dump-gz .recording-file-icon-medium {
-  background-color: rgba(81, 45, 168, 0.15);
-  color: var(--color-violet-text);
-}
-
-/* PERF_COUNTERS file styling - sky blue theme */
-.recording-file-row.file-type-perf-counters {
-  background-color: rgba(14, 165, 233, 0.08);
-  border-left: 3px solid var(--color-sky);
-  border-top: 1px solid rgba(14, 165, 233, 0.2);
-  border-right: 1px solid rgba(14, 165, 233, 0.2);
-  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
-}
-
-.recording-file-row.file-type-perf-counters:hover {
-  background-color: rgba(14, 165, 233, 0.12);
-  box-shadow: 0 2px 5px rgba(14, 165, 233, 0.15);
-}
-
-.recording-file-row.file-type-perf-counters .recording-file-icon-medium {
-  background-color: rgba(14, 165, 233, 0.15);
-  color: var(--color-sky);
-}
-
-/* JVM_LOG file styling - green theme */
-.recording-file-row.file-type-jvm-log {
-  background-color: rgba(22, 163, 74, 0.08);
-  border-left: 3px solid var(--color-green-accent);
-  border-top: 1px solid rgba(22, 163, 74, 0.2);
-  border-right: 1px solid rgba(22, 163, 74, 0.2);
-  border-bottom: 1px solid rgba(22, 163, 74, 0.2);
-}
-
-.recording-file-row.file-type-jvm-log:hover {
-  background-color: rgba(22, 163, 74, 0.12);
-  box-shadow: 0 2px 5px rgba(22, 163, 74, 0.15);
-}
-
-.recording-file-row.file-type-jvm-log .recording-file-icon-medium {
-  background-color: rgba(22, 163, 74, 0.15);
-  color: var(--color-green-accent);
-}
-
-/* APP_LOG file styling - brown theme */
-.recording-file-row.file-type-app-log {
-  background-color: rgba(120, 53, 15, 0.08);
-  border-left: 3px solid var(--color-amber-dark);
-  border-top: 1px solid rgba(120, 53, 15, 0.2);
-  border-right: 1px solid rgba(120, 53, 15, 0.2);
-  border-bottom: 1px solid rgba(120, 53, 15, 0.2);
-}
-
-.recording-file-row.file-type-app-log:hover {
-  background-color: rgba(120, 53, 15, 0.12);
-  box-shadow: 0 2px 5px rgba(120, 53, 15, 0.15);
-}
-
-.recording-file-row.file-type-app-log .recording-file-icon-medium {
-  background-color: rgba(120, 53, 15, 0.15);
-  color: var(--color-amber-dark);
-}
-
-/* HS_JVM_ERROR_LOG file styling - red theme */
-.recording-file-row.file-type-hs-jvm-error-log {
-  background-color: rgba(198, 40, 40, 0.08);
-  border-left: 3px solid var(--color-red-text);
-  border-top: 1px solid rgba(198, 40, 40, 0.2);
-  border-right: 1px solid rgba(198, 40, 40, 0.2);
-  border-bottom: 1px solid rgba(198, 40, 40, 0.2);
-}
-
-.recording-file-row.file-type-hs-jvm-error-log:hover {
-  background-color: rgba(198, 40, 40, 0.12);
-  box-shadow: 0 2px 5px rgba(198, 40, 40, 0.15);
-}
-
-.recording-file-row.file-type-hs-jvm-error-log .recording-file-icon-medium {
-  background-color: rgba(198, 40, 40, 0.15);
-  color: var(--color-red-text);
-}
-
-/* ASPROF_TEMP file styling - orange theme with dashed border */
-.recording-file-row.file-type-asprof-temp {
-  background-color: rgba(255, 142, 51, 0.08);
-  border-left: 3px solid var(--color-orange-accent);
-  border-top: 1px dashed rgba(255, 142, 51, 0.4);
-  border-right: 1px dashed rgba(255, 142, 51, 0.4);
-  border-bottom: 1px dashed rgba(255, 142, 51, 0.4);
-}
-
-.recording-file-row.file-type-asprof-temp:hover {
-  background-color: rgba(255, 142, 51, 0.12);
-  box-shadow: 0 2px 5px rgba(255, 142, 51, 0.15);
-}
-
-.recording-file-row.file-type-asprof-temp .recording-file-icon-medium {
-  background-color: rgba(255, 142, 51, 0.15);
-  color: var(--color-orange-accent);
-}
-
-
-/* UNKNOWN file styling - gray theme */
-.recording-file-row.file-type-unknown {
-  background-color: rgba(108, 117, 125, 0.08);
-  border-left: 3px solid var(--color-grey-muted);
-  border-top: 1px solid rgba(108, 117, 125, 0.2);
-  border-right: 1px solid rgba(108, 117, 125, 0.2);
-  border-bottom: 1px solid rgba(108, 117, 125, 0.2);
-}
-
-.recording-file-row.file-type-unknown:hover {
-  background-color: rgba(108, 117, 125, 0.12);
-  box-shadow: 0 2px 5px rgba(108, 117, 125, 0.15);
-}
-
-.recording-file-row.file-type-unknown .recording-file-icon-medium {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: var(--color-text-muted);
+/* The files of an opened group, indented under its row to start below its icon. */
+.recording-file-children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-left: var(--spacing-8);
+  padding-left: var(--spacing-5);
+  border-left: 1px solid var(--color-border);
 }
 
 /* Compact variant for smaller/denser display */
@@ -366,70 +320,11 @@ const getFileTypeIcon = (fileType: string): string => {
   font-size: 0.8rem;
 }
 
-.recording-file-icon-small {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
-  border-radius: 4px;
-  background-color: rgba(94, 100, 255, 0.1);
-  color: var(--color-primary);
-  font-size: 0.75rem;
-}
-
 .recording-file-name-compact {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-dark);
   line-height: 1.2;
-}
-
-/* Compact file-type icon overrides */
-.recording-file-row.file-type-jfr .recording-file-icon-small {
-  background-color: rgba(94, 100, 255, 0.15);
-  color: var(--color-primary);
-}
-
-.recording-file-row.file-type-heap-dump .recording-file-icon-small {
-  background-color: rgba(111, 66, 193, 0.15);
-  color: var(--color-purple);
-}
-
-.recording-file-row.file-type-heap-dump-gz .recording-file-icon-small {
-  background-color: rgba(81, 45, 168, 0.15);
-  color: var(--color-violet-text);
-}
-
-.recording-file-row.file-type-perf-counters .recording-file-icon-small {
-  background-color: rgba(14, 165, 233, 0.15);
-  color: var(--color-sky);
-}
-
-.recording-file-row.file-type-jvm-log .recording-file-icon-small {
-  background-color: rgba(22, 163, 74, 0.15);
-  color: var(--color-green-accent);
-}
-
-.recording-file-row.file-type-app-log .recording-file-icon-small {
-  background-color: rgba(120, 53, 15, 0.15);
-  color: var(--color-amber-dark);
-}
-
-.recording-file-row.file-type-hs-jvm-error-log .recording-file-icon-small {
-  background-color: rgba(198, 40, 40, 0.15);
-  color: var(--color-red-text);
-}
-
-.recording-file-row.file-type-asprof-temp .recording-file-icon-small {
-  background-color: rgba(255, 142, 51, 0.15);
-  color: var(--color-orange-accent);
-}
-
-.recording-file-row.file-type-unknown .recording-file-icon-small {
-  background-color: rgba(108, 117, 125, 0.15);
-  color: var(--color-text-muted);
 }
 
 .recording-file-row-compact .recording-file-size,

@@ -166,6 +166,14 @@ describe('Utils', () => {
       expect(Utils.formatFileType('JVM_LOG')).toBe('JVM Log');
     });
 
+    it('formats PPROF', () => {
+      expect(Utils.formatFileType('PPROF')).toBe('pprof');
+    });
+
+    it('formats OTLP_PROFILE', () => {
+      expect(Utils.formatFileType('OTLP_PROFILE')).toBe('OpenTelemetry');
+    });
+
     it('returns raw value for unrecognized type', () => {
       expect(Utils.formatFileType('CUSTOM')).toBe('CUSTOM');
     });

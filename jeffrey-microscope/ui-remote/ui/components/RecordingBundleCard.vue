@@ -18,8 +18,9 @@
 <!--
   A bundle: the items a remote session download brought in together, as one row of the recordings list.
   Collapsed, it names the bundle and shows a badge per item with its state; expanded, it lists its items
-  as ordinary recording cards, initialized or not, followed by the bundle's download-only files (logs,
-  crash files). Each profile built from an item is a row of its own in the Profiles column, outside the
+  and then its download-only files (logs, crash files) as the same file rows a remote session's detail
+  shows, grouped by the same rules. An item carries its state on the right; a download-only row dashes
+  its border. Each profile built from an item is a row of its own in the Profiles column, outside the
   bundle.
 -->
 <script setup lang="ts">
@@ -29,11 +30,10 @@ import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
 import type Bundle from '../services/api/model/Bundle';
 import type Recording from '../services/api/model/Recording';
-import RecordingCard from './RecordingCard.vue';
+import BundleMemberRow from './BundleMemberRow.vue';
 import RecordingFileGroupList from './RecordingFileGroupList.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 import { BUNDLE_DRAG_PREFIX, bundleItemsLabel, bundleSize, memberBadges } from './bundleSummary';
-import { builtProfiles } from './recordingColumns';
 
 const props = withDefaults(
   defineProps<{
@@ -154,49 +154,28 @@ const onDragStart = (event: DragEvent) => {
     </div>
 
     <div v-if="expanded" class="bundle-card__body">
-      <RecordingCard
+      <BundleMemberRow
         v-for="member in listed"
         :key="member.id"
-        :recording-id="member.id"
-        :name="member.filename"
-        :size-in-bytes="member.sizeInBytes"
-        :duration-in-millis="member.durationInMillis"
-        :uploaded-at="member.uploadedAt"
-        :source-type="member.eventSource"
-        :profile-id="member.profileId"
-        :profile-size-in-bytes="member.profileSizeInBytes"
-        :profile-created-at="member.profileCreatedAt"
-        :profile-modified="member.profileModified"
-        :profile-count="builtProfiles(member).length"
+        :member="member"
         :analyzing="analyzingMembers.has(member.id)"
-        :init-progress="member.initProgress"
         :tick-now="tickNow"
-        :file-count="member.files.length"
-        :expandable="member.files.length > 1"
         :expanded="expandedMembers.has(member.id)"
         @click="emit('member-click', member)"
         @create-profile="emit('member-create-profile', member)"
         @initialize-again="emit('member-initialize-again', member)"
         @delete-recording="emit('member-delete-recording', member)"
         @toggle-expand="emit('member-toggle-expand', member)"
-      >
-        <template #expanded-content>
-          <RecordingFileGroupList
-            :recording-id="member.id"
-            :files="member.files"
-            @download="(recordingId, fileId) => emit('download-member-file', recordingId, fileId)"
-          />
-        </template>
-      </RecordingCard>
+        @download="fileId => emit('download-member-file', member.id, fileId)"
+      />
 
-      <div v-if="bundle.files.length > 0" class="bundle-card__files">
-        <div class="bundle-card__files-title">Files</div>
-        <RecordingFileGroupList
-          :recording-id="bundle.id"
-          :files="bundle.files"
-          @download="(_ownerId, fileId) => emit('download-file', fileId)"
-        />
-      </div>
+      <RecordingFileGroupList
+        v-if="bundle.files.length > 0"
+        :recording-id="bundle.id"
+        :files="bundle.files"
+        download-only
+        @download="(_ownerId, fileId) => emit('download-file', fileId)"
+      />
     </div>
   </div>
 </template>
@@ -357,21 +336,5 @@ const onDragStart = (event: DragEvent) => {
   flex-direction: column;
   gap: 8px;
   padding: 0 14px 12px 42px;
-}
-
-.bundle-card__files {
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-base);
-  background: var(--color-white);
-  padding: 8px 10px;
-}
-
-.bundle-card__files-title {
-  font-size: 0.65rem;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin-bottom: 6px;
 }
 </style>

@@ -1579,7 +1579,7 @@ const onDragEnd = () => {
 }
 
 .format-perf .format-ic {
-  background: var(--color-pink-text);
+  background: var(--color-sky);
 }
 
 .drop-file-dot {
@@ -1607,7 +1607,7 @@ const onDragEnd = () => {
 }
 
 .dot-perf {
-  background: var(--color-pink-text);
+  background: var(--color-sky);
 }
 
 /* ============ Files (auto-uploading, inside the drop zone) ============ */
@@ -1956,9 +1956,9 @@ const onDragEnd = () => {
 }
 
 .type-chip--perf {
-  --type-solid: var(--color-pink-text);
-  --type-soft: var(--color-pink-bg);
-  --type-text: var(--color-pink-text);
+  --type-solid: var(--color-sky);
+  --type-soft: var(--color-sky-bg);
+  --type-text: var(--color-info-text);
 }
 
 .type-chip:hover {

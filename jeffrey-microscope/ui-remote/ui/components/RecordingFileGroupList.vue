@@ -15,235 +15,120 @@
   - limitations under the License.
   -->
 
+<!--
+  A recording's or a bundle's files, laid out by the same rules as a remote session's detail
+  (sessionFiles.ts): a type with several files, and the logs always, fold into one row named after
+  the type, opened with its chevron; a type with a single file is a row under the file's own name.
+-->
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import RecordingFileList from '@remote/components/RecordingFileList.vue';
 import RecordingFileRow from '@remote/components/RecordingFileRow.vue';
-import RecordingFileType from '@remote/services/api/model/RecordingFileType';
-import type { Variant } from '@shared/types/ui';
-import RecordingFile from '@remote/services/api/model/RecordingFile';
+import type RecordingFile from '@remote/services/api/model/RecordingFile';
+import {
+  type ArtifactTypeGroup,
+  fileGroupPanels,
+  fromRecordingFile,
+  standaloneFiles
+} from '@remote/services/sessionFiles';
 
-interface Props {
-  recordingId: string;
-  files: RecordingFile[];
-}
-
-const props = defineProps<Props>();
+const props = withDefaults(
+  defineProps<{
+    recordingId: string;
+    files: RecordingFile[];
+    /** Files Jeffrey never initializes, such as a bundle's logs and crash files. */
+    downloadOnly?: boolean;
+  }>(),
+  {
+    downloadOnly: false
+  }
+);
 
 const emit = defineEmits<{
   (e: 'download', recordingId: string, fileId: string): void;
 }>();
 
-// --- Type grouping constants ---
-type ArtifactTypeGroup =
-  | 'JFR_RECORDING'
-  | 'HEAP_DUMP'
-  | 'PERF_COUNTERS'
-  | 'JVM_LOG'
-  | 'APP_LOG'
-  | 'HS_JVM_ERROR_LOG'
-  | 'UNKNOWN';
+const sessionFiles = computed(() => props.files.map(fromRecordingFile));
+const panels = computed(() => fileGroupPanels(sessionFiles.value));
+const standalone = computed(() => standaloneFiles(sessionFiles.value));
 
-const TYPE_GROUP_ORDER: ArtifactTypeGroup[] = [
-  'JFR_RECORDING',
-  'HEAP_DUMP',
-  'PERF_COUNTERS',
-  'JVM_LOG',
-  'APP_LOG',
-  'HS_JVM_ERROR_LOG',
-  'UNKNOWN'
-];
+const openPanels = ref<Set<ArtifactTypeGroup>>(new Set());
 
-const FILE_TYPE_TO_GROUP: Record<string, ArtifactTypeGroup> = {
-  [RecordingFileType.JFR]: 'JFR_RECORDING',
-  [RecordingFileType.JFR_LZ4]: 'JFR_RECORDING',
-  [RecordingFileType.ASPROF]: 'JFR_RECORDING',
-  [RecordingFileType.HEAP_DUMP]: 'HEAP_DUMP',
-  [RecordingFileType.HEAP_DUMP_GZ]: 'HEAP_DUMP',
-  [RecordingFileType.PERF_COUNTERS]: 'PERF_COUNTERS',
-  [RecordingFileType.JVM_LOG]: 'JVM_LOG',
-  [RecordingFileType.APP_LOG]: 'APP_LOG',
-  [RecordingFileType.HS_JVM_ERROR_LOG]: 'HS_JVM_ERROR_LOG',
-  [RecordingFileType.UNKNOWN]: 'UNKNOWN'
-};
-
-const TYPE_GROUP_DISPLAY: Record<
-  ArtifactTypeGroup,
-  { name: string; variant: Variant; fileType: string }
-> = {
-  JFR_RECORDING: { name: 'JFR Recordings', variant: 'primary', fileType: 'JFR' },
-  HEAP_DUMP: { name: 'Heap Dumps', variant: 'purple', fileType: 'HEAP_DUMP' },
-  PERF_COUNTERS: { name: 'Perf Counters', variant: 'blue', fileType: 'PERF_COUNTERS' },
-  JVM_LOG: { name: 'JVM Logs', variant: 'green', fileType: 'JVM_LOG' },
-  APP_LOG: { name: 'Application Logs', variant: 'brown', fileType: 'APP_LOG' },
-  HS_JVM_ERROR_LOG: { name: 'HotSpot Error Logs', variant: 'red', fileType: 'HS_JVM_ERROR_LOG' },
-  UNKNOWN: { name: 'Other Files', variant: 'grey', fileType: 'UNKNOWN' }
-};
-
-interface TypeGroupPanel {
-  groupKey: ArtifactTypeGroup;
-  display: { name: string; variant: string; fileType: string };
-  files: RecordingFile[];
-  fileCount: number;
-  totalSize: number;
-}
-
-// --- Expansion state ---
-const expandedTypePanels = ref<{ [key: string]: boolean }>({});
-
-const toggleTypePanel = (groupKey: ArtifactTypeGroup) => {
-  const key = `${props.recordingId}:${groupKey}`;
-  expandedTypePanels.value[key] = !expandedTypePanels.value[key];
-};
-
-const isTypePanelExpanded = (groupKey: ArtifactTypeGroup): boolean => {
-  return !!expandedTypePanels.value[`${props.recordingId}:${groupKey}`];
-};
-
-// Groups that always show as a panel, even with a single file
-const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
-
-// --- Grouping logic ---
-const getGroupMap = (files: RecordingFile[]): Map<ArtifactTypeGroup, RecordingFile[]> => {
-  const groupMap = new Map<ArtifactTypeGroup, RecordingFile[]>();
-  for (const file of files) {
-    const groupKey = FILE_TYPE_TO_GROUP[file.type] || 'UNKNOWN';
-    if (!groupMap.has(groupKey)) {groupMap.set(groupKey, []);}
-    groupMap.get(groupKey)!.push(file);
+const togglePanel = (groupKey: ArtifactTypeGroup) => {
+  const next = new Set(openPanels.value);
+  if (next.has(groupKey)) {
+    next.delete(groupKey);
+  } else {
+    next.add(groupKey);
   }
-  return groupMap;
+  openPanels.value = next;
 };
 
-const getTypeGroupPanels = (files: RecordingFile[]): TypeGroupPanel[] => {
-  const groupMap = getGroupMap(files);
-  const panels: TypeGroupPanel[] = [];
-  for (const groupKey of TYPE_GROUP_ORDER) {
-    const groupFiles = groupMap.get(groupKey);
-    if (!groupFiles) {continue;}
-    if (groupFiles.length <= 1 && !ALWAYS_GROUPED.has(groupKey)) {continue;}
-    panels.push({
-      groupKey,
-      display: TYPE_GROUP_DISPLAY[groupKey],
-      files: groupFiles,
-      fileCount: groupFiles.length,
-      totalSize: groupFiles.reduce((sum, f) => sum + f.sizeInBytes, 0)
-    });
-  }
-  return panels;
-};
-
-const getStandaloneFiles = (files: RecordingFile[]): RecordingFile[] => {
-  const groupMap = getGroupMap(files);
-  const standalone: RecordingFile[] = [];
-  for (const groupKey of TYPE_GROUP_ORDER) {
-    const groupFiles = groupMap.get(groupKey);
-    if (groupFiles && groupFiles.length === 1 && !ALWAYS_GROUPED.has(groupKey)) {
-      standalone.push(groupFiles[0]);
-    }
-  }
-  return standalone;
-};
+const download = (fileId: string) => emit('download', props.recordingId, fileId);
 </script>
 
 <template>
-  <!-- Type Group Panels (2+ files of same type) -->
-  <div
-    v-for="panel in getTypeGroupPanels(props.files)"
-    :key="panel.groupKey"
-    class="type-panel mb-2"
-  >
-    <div class="type-panel-header-wrapper" @click="toggleTypePanel(panel.groupKey)">
+  <div class="file-group-list">
+    <div v-for="panel in panels" :key="panel.groupKey" class="file-group">
       <RecordingFileRow
+        class="file-group__header"
         :filename="panel.display.name"
-        :fileType="panel.display.fileType"
-        :sizeInBytes="panel.totalSize"
+        :file-type="panel.display.fileType"
+        :size-in-bytes="panel.totalSize"
+        :download-only="downloadOnly"
+        @click="togglePanel(panel.groupKey)"
       >
         <template #before>
-          <i
-            class="bi me-1 type-panel-chevron"
-            :class="isTypePanelExpanded(panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"
-          ></i>
+          <button
+            class="recording-file-chevron"
+            type="button"
+            :aria-expanded="openPanels.has(panel.groupKey)"
+            :aria-label="`Show the ${panel.display.name}`"
+            @click.stop="togglePanel(panel.groupKey)"
+          >
+            <i
+              class="bi"
+              :class="openPanels.has(panel.groupKey) ? 'bi-chevron-down' : 'bi-chevron-right'"
+            ></i>
+          </button>
         </template>
         <template #extra-badges>
           <span class="recording-file-size ms-2">
-            <i class="bi bi-files me-1"></i>{{ panel.fileCount }} file{{ panel.fileCount === 1 ? '' : 's' }}
+            <i class="bi bi-files me-1"></i>{{ panel.files.length }} file{{
+              panel.files.length === 1 ? '' : 's'
+            }}
           </span>
         </template>
       </RecordingFileRow>
+
+      <div v-if="openPanels.has(panel.groupKey)" class="recording-file-children">
+        <RecordingFileList
+          :files="panel.files"
+          :download-only="downloadOnly"
+          @download="download"
+        />
+      </div>
     </div>
 
-    <div v-if="isTypePanelExpanded(panel.groupKey)" class="type-panel-body">
-      <RecordingFileRow
-        v-for="file in panel.files"
-        :key="file.id"
-        :filename="file.filename"
-        :fileType="file.type"
-        :sizeInBytes="file.sizeInBytes"
-        :description="file.description"
-        class="mb-2"
-      >
-        <template #actions>
-          <button
-            class="btn btn-sm btn-outline-secondary download-file-btn"
-            @click="emit('download', props.recordingId, file.id)"
-            title="Download file"
-          >
-            <i class="bi bi-download"></i>
-          </button>
-        </template>
-      </RecordingFileRow>
-    </div>
+    <RecordingFileList
+      :files="standalone"
+      :download-only="downloadOnly"
+      align-with-groups
+      @download="download"
+    />
   </div>
-
-  <!-- Standalone Files (1 file per type) -->
-  <RecordingFileRow
-    v-for="file in getStandaloneFiles(props.files)"
-    :key="file.id"
-    :filename="file.filename"
-    :fileType="file.type"
-    :sizeInBytes="file.sizeInBytes"
-    :description="file.description"
-    class="mb-2"
-  >
-    <template #actions>
-      <button
-        class="btn btn-sm btn-outline-secondary download-file-btn"
-        @click="emit('download', props.recordingId, file.id)"
-        title="Download file"
-      >
-        <i class="bi bi-download"></i>
-      </button>
-    </template>
-  </RecordingFileRow>
 </template>
 
 <style scoped>
-.type-panel-header-wrapper {
+.file-group-list,
+.file-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.file-group__header {
   cursor: pointer;
   user-select: none;
-}
-
-.type-panel-chevron {
-  font-size: 0.65rem;
-  color: var(--color-text-muted);
-  width: 16px;
-  text-align: center;
-}
-
-.type-panel-body {
-  border-left: 1px solid var(--color-border);
-  margin-left: 32px;
-  padding-left: 20px;
-  padding-top: 6px;
-}
-
-.download-file-btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  opacity: 0.6;
-  transition: opacity 0.15s ease;
-}
-
-.download-file-btn:hover {
-  opacity: 1;
 }
 </style>

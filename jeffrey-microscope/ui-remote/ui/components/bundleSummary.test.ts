@@ -111,8 +111,8 @@ describe('memberBadges', () => {
       new Set(['perf'])
     );
 
-    expect(badges.map(badge => badge.label)).toEqual(['JFR', 'Heap', 'Perf']);
-    expect(badges.map(badge => badge.variant)).toEqual(['indigo', 'purple', 'pink']);
+    expect(badges.map(badge => badge.label)).toEqual(['JFR', 'Heap', 'Perf Counters']);
+    expect(badges.map(badge => badge.variant)).toEqual(['indigo', 'purple', 'blue']);
     expect(badges.map(badge => badge.state)).toEqual(['built', 'new', 'running']);
     expect(badges[1].title).toBe('Heap dump · not initialized');
   });

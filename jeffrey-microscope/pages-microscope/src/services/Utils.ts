@@ -116,6 +116,10 @@ export default class Utils {
         return 'HotSpot JVM Error Log';
       case 'APP_LOG':
         return 'Application Log';
+      case 'PPROF':
+        return 'pprof';
+      case 'OTLP_PROFILE':
+        return 'OpenTelemetry';
       default:
         return fileType;
     }
