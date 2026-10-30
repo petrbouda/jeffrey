@@ -47,17 +47,6 @@
             <i class="bi bi-arrow-return-left"></i>
             <span>Recordings</span>
           </button>
-
-          <!-- Back to Remote button (only shown on project pages) -->
-          <button
-            v-if="isProjectPage"
-            class="topbar-back-btn"
-            title="Back to the remote"
-            @click="$router.push('/remote')"
-          >
-            <i class="bi bi-arrow-return-left"></i>
-            <span>Remote</span>
-          </button>
         </div>
       </div>
     </div>
@@ -75,10 +64,6 @@ const version = ref('');
 const versionClient = new VersionClient();
 
 const isProfilePage = computed(() => route.meta.layout === 'profile');
-
-const isProjectPage = computed(() => {
-  return route.meta.layout === 'project' || route.path.includes('/projects/');
-});
 
 onMounted(async () => {
   try {

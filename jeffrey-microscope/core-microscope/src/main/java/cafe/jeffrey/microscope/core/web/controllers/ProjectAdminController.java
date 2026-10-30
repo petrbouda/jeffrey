@@ -29,7 +29,7 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 /**
  * Microscope-only WorkspaceBrowser endpoint: deleting a project. Deployments that are
  * read-only against their remote do not have them, so these live outside the shared
- * {@code ProjectController}.
+ * remote controllers.
  */
 @RestController
 @RequestMapping("/api/internal/remote/workspaces/{workspaceId}/projects/{projectId}")

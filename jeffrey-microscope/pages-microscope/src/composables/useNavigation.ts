@@ -15,106 +15,25 @@
  * limitations under the License.
  */
 
-import { useRoute, useRouter } from 'vue-router';
-import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { profileStore } from '@/stores/profileStore';
-import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
+const RECORDINGS_PATH = '/recordings';
+
+/**
+ * Navigation from a profile's pages: the workspace and project the open profile came from, and the
+ * way back to the Recordings page, where every profile is listed.
+ */
 export function useNavigation() {
-  const route = useRoute();
   const router = useRouter();
 
-  // Route params (with profileStore fallback for the simplified profile URL pattern)
-  const workspaceId = computed(
-    () => (route.params.workspaceId as string) || profileStore.workspaceId.value
-  );
-  const projectId = computed(
-    () => (route.params.projectId as string) || profileStore.projectId.value
-  );
-  const profileId = computed(() => route.params.profileId as string);
-  const instanceId = computed(() => route.params.instanceId as string);
-
-  /**
-   * Check if we're using the simplified profile URL pattern (/profiles/:profileId/...)
-   */
-  const isSimplifiedProfileUrl = computed(
-    () => route.path.startsWith('/profiles/') && !route.params.workspaceId
-  );
-
-  const projectRoot = (wId: string, pId: string) => `/remote/workspaces/${wId}/projects/${pId}`;
-
-  const navigateToProject = (pId: string, wId?: string) => {
-    const targetWorkspaceId = wId || workspaceId.value;
-    router.push(projectRoot(targetWorkspaceId, pId));
-  };
-
-  /**
-   * Navigate to a profile using simplified URL pattern.
-   */
-  const navigateToProfile = (prId: string, eventSource?: string | null) => {
-    router.push(profileLandingRoute(prId, eventSource));
-  };
-
-  /**
-   * Navigate back to the project's recordings list.
-   * Uses workspaceId/projectId from profileStore when using simplified URLs.
-   */
-  const navigateToProjectRecordings = (wId?: string, pId?: string) => {
-    const targetWorkspaceId = wId || workspaceId.value;
-    const targetProjectId = pId || projectId.value;
-    router.push(`${projectRoot(targetWorkspaceId, targetProjectId)}/recordings`);
-  };
-
-  const generateProjectUrl = (path: string, pId?: string, wId?: string) => {
-    const targetWorkspaceId = wId || workspaceId.value;
-    const targetProjectId = pId || projectId.value;
-    return `${projectRoot(targetWorkspaceId, targetProjectId)}/${path}`;
-  };
-
-  /**
-   * Generate a profile URL using simplified pattern.
-   */
-  const generateProfileUrl = (path: string, prId?: string) => {
-    const targetProfileId = prId || profileId.value;
-    return `/profiles/${targetProfileId}/${path}`;
-  };
-
-  /**
-   * Generate an instance URL within a project.
-   */
-  const generateInstanceUrl = (instId: string, path?: string, pId?: string, wId?: string) => {
-    const targetWorkspaceId = wId || workspaceId.value;
-    const targetProjectId = pId || projectId.value;
-    const basePath = `${projectRoot(targetWorkspaceId, targetProjectId)}/instances/${instId}`;
-    return path ? `${basePath}/${path}` : basePath;
-  };
-
-  /**
-   * Navigate to an instance detail page.
-   */
-  const navigateToInstance = (instId: string, pId?: string, wId?: string) => {
-    router.push(generateInstanceUrl(instId, undefined, pId, wId));
+  const navigateToRecordings = () => {
+    router.push(RECORDINGS_PATH);
   };
 
   return {
-    // Route params (with profileStore fallback)
-    workspaceId,
-    projectId,
-    profileId,
-    instanceId,
-
-    // URL pattern detection
-    isSimplifiedProfileUrl,
-
-    // Navigation functions
-    navigateToProject,
-    navigateToProfile,
-    navigateToProjectRecordings,
-    navigateToInstance,
-
-    // URL generators
-    generateProjectUrl,
-    generateProfileUrl,
-    generateInstanceUrl
+    workspaceId: profileStore.workspaceId,
+    projectId: profileStore.projectId,
+    navigateToRecordings
   };
 }

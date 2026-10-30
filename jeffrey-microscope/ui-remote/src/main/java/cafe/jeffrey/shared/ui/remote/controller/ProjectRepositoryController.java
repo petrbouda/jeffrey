@@ -30,9 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import cafe.jeffrey.microscope.remote.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.remote.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 
@@ -61,18 +59,8 @@ public class ProjectRepositoryController {
         this.projectAccess = projectAccess;
     }
 
-    @GetMapping("/statistics")
-    public RepositoryStatisticsResponse getRepositoryStatistics(
-            @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId) {
-        LOG.debug("Fetching repository statistics: projectId={}", projectId);
-        RepositoryStatistics stats = projectAccess.repositoryManager(workspaceId, projectId)
-                .repositoryStatistics();
-        return RepositoryStatisticsResponse.from(stats);
-    }
-
     /**
-     * One session with its files — what the session list fetches when a session is expanded, so
+     * One session with its files — what the session drawer fetches when a session is opened, so
      * the listing itself never carries every file of every session.
      */
     @GetMapping("/sessions/{sessionId}")

@@ -25,7 +25,6 @@ import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteBrowserAccess;
 import cafe.jeffrey.shared.ui.remote.controller.RemoteController;
-import cafe.jeffrey.shared.ui.remote.controller.ProjectController;
 import cafe.jeffrey.shared.ui.remote.controller.ProjectDownloadTaskController;
 import cafe.jeffrey.shared.ui.remote.controller.ProjectInstancesController;
 import cafe.jeffrey.shared.ui.remote.controller.ProjectRepositoryController;
@@ -80,11 +79,6 @@ public class RemoteFeatureConfiguration {
     @Bean
     public WorkspacesController remoteFeatureWorkspacesController(RemoteBrowserAccess remoteBrowserAccess) {
         return new WorkspacesController(remoteBrowserAccess);
-    }
-
-    @Bean
-    public ProjectController remoteFeatureProjectController(RemoteBrowserAccess remoteBrowserAccess) {
-        return new ProjectController(remoteBrowserAccess);
     }
 
     @Bean

@@ -18,7 +18,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
-import DocsFeatureItem from '@/components/docs/DocsFeatureItem.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -28,7 +27,8 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'instance-sessions', text: 'Instances and Sessions', level: 2 },
-  { id: 'instances-tab', text: 'Instances Tab', level: 2 }
+  { id: 'instances-column', text: 'Instances and Sessions Columns', level: 2 },
+  { id: 'session-drawer', text: 'The Session Drawer', level: 2 }
 ];
 
 onMounted(() => {
@@ -47,13 +47,7 @@ onMounted(() => {
         <p><strong>Instances</strong> represent individual JVM processes connected to a project. When an application starts through the Jeffrey Provisioner it gets an instance folder in the project &mdash; named by <code>instance-name</code>, <code>HOSTNAME</code> by default, and that folder name is the instance's id &mdash; and starts producing recording sessions.</p>
 
         <h2 id="overview">Overview</h2>
-        <p>The project page opens on its <strong>Instances</strong> tab:</p>
-
-        <div class="docs-feature-list">
-          <DocsFeatureItem icon="bi bi-grid" title="Instances">
-            All instances registered in the project in one table, with the project's storage size — the bytes every session of the project occupies on the remote. Only the Jeffrey Hub&rsquo;s retention pass measures that figure, and Microscope does not connect to the hub, so on the Azure file share the size reads as not measured; the hub&rsquo;s own <router-link to="/docs/hub/architecture#web-ui">Storage page</router-link> shows it.
-          </DocsFeatureItem>
-        </div>
+        <p>Instances are browsed on the <strong>Remote</strong> page: pick a project in the Projects column and its instances fill the <strong>Instances</strong> column, the newest one picked, with its recording sessions in the <strong>Sessions</strong> column beside it. Opening a session slides in the <a href="#session-drawer">session drawer</a>.</p>
 
         <DocsCallout type="info">
           <strong>Remote workspaces only:</strong> Instances appear only for projects inside the workspaces of the configured remote. Locally-uploaded JFR files have no instance concept — they live on the global Recordings page instead.
@@ -64,17 +58,22 @@ onMounted(() => {
 
         <p>When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
 
-        <h2 id="instances-tab">Instances Tab</h2>
-        <p>Instances are listed in a table with two columns, <strong>Instance</strong> (its name, the instance's folder) and <strong>Started</strong> (when the instance's folder was created, as the share lists it — blank on an NFS share, which lists no times), newest first. Microscope shows no counts or aggregates here: no session count and no last data. Use the search box to filter by name; click a row to open the instance's page with its sessions.</p>
-        <p>The right end of the tab row carries a one-line summary of the project: its instances and, when measured, its storage size. Click it to open the full breakdown:</p>
+        <h2 id="instances-column">Instances and Sessions Columns</h2>
+        <p>The <strong>Instances</strong> column lists each instance by its name (the instance's folder) and when it started (when the folder was created, as the share lists it &mdash; not listed on an NFS share, which lists no times), newest first. Microscope shows no counts or aggregates here: no session count, no last data and no storage size. Use the filter box to narrow the list by name; pick an instance to list its sessions.</p>
+        <p>The <strong>Sessions</strong> column names an instance's sessions without reading them, ten at a time: its ten newest sessions, and <strong>Load more</strong> under the list reads the next ten older ones. Each entry shows the session's id and start, both from its UUIDv7 folder name, and a <strong>latest</strong> badge on the instance's newest session. A session is a visible folder named with a UUIDv7 &mdash; anything else under the instance is ignored.</p>
+        <p>Every column loads one level of the remote's tree when its parent is picked: the instance list carries no sessions, and the session list reads that instance and a page of its sessions by name only. Nothing reloads on its own &mdash; on the Azure file share every read is a round-trip to the share &mdash; until the refresh button in the page header reads the picked path again.</p>
+        <p>There are no description files to read: the provisioner writes no marker anywhere on the volume, so every id Microscope shows is a folder name and the page asks the share only for folder listings and sizes. The reads of one listing go out up to eight at a time.</p>
+
+        <h2 id="session-drawer">The Session Drawer</h2>
+        <p>Click a session to open it in a drawer over the Instances and Sessions columns; the Workspaces and Projects columns stay in view and clickable beside it. The drawer reads the session on its own, once, when it opens:</p>
         <ul>
-          <li><strong>Instances</strong> — total instances and the first instance.</li>
-          <li><strong>Storage</strong> — the bytes the project occupies on the remote. Opening the tab never walks the project's files for it, and only the Jeffrey Hub's retention pass measures it, so on the Azure file share the breakdown says the project is not measured; see the hub's Storage page for the figure.</li>
+          <li><strong>Header</strong> &mdash; the session's id, whether it is the instance's newest (and so may still grow), and its path on the share. The up and down arrows step to the instance's newer and older sessions; <strong>&times;</strong> or <kbd>Esc</kbd> closes the drawer.</li>
+          <li><strong>Figures</strong> &mdash; when it started, its last data and its duration, plus its file count and size.</li>
+          <li><strong>Files</strong> &mdash; the JFR recordings, newest chunk first, with rotated files folded under their chunk, then heap dumps, logs and other artifacts by type. Each file downloads on its own.</li>
+          <li><strong>Download session</strong> &mdash; hands the whole session to the download assistant. <strong>Select files</strong> picks some files instead; the chunks picked must be an unbroken run, and a gap greys out <strong>Download selected</strong> and says which chunk is missing.</li>
+          <li><strong>Delete</strong> &mdash; removes the session, after a confirmation. The newest session of an instance may still grow, so it cannot be deleted, and a read-only remote offers no delete at all.</li>
         </ul>
-        <p>Every view here loads one level of the remote's tree: the instance list carries no sessions, and an instance's page reads that instance and a page of its sessions by name only.</p>
-        <p>Nothing reloads on its own. On the Azure file share every read is a round-trip to the share, so an instance's page reads the instance once when it opens, every session starts collapsed, and a recording session's sizes stay as they were read until <strong>Refresh</strong> in the page header reads them again.</p>
-        <p>An instance's page lists its sessions by name only, ten at a time: its ten newest sessions, and <strong>Load more</strong> under the list reads the next ten older ones. Each session card shows the session's id and start, both from its UUIDv7 folder name, and whether it is the instance's newest session; its files, size, last data and duration load when the card is expanded. A session is a visible folder named with a UUIDv7 &mdash; anything else under the instance is ignored. There is no failed-session band on the page.</p>
-        <p>There are no description files to read: the provisioner writes no marker anywhere on the volume, so every id Microscope shows is a folder name and a page asks the share only for folder listings and sizes. The reads of one page go out up to eight at a time.</p>
+        <p>A session that a newer one ended before it wrote any data says so instead of listing files: usually a JVM that failed to start or a restarted container. Its sizes stay as they were read until the drawer's refresh button reads the session again.</p>
       </div>
 
       <DocsNavFooter />

@@ -46,12 +46,6 @@ public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {
     }
 
     @Override
-    public WorkspaceResponse workspace(String workspaceId) {
-        // Resolving it looked at the workspace just now: its directory is all there is to it
-        return Mappers.toResponse(resolver.resolveWorkspace(workspaceId).localInfo());
-    }
-
-    @Override
     public void deleteWorkspace(String workspaceId) {
         resolver.resolveWorkspace(workspaceId).delete();
     }
@@ -62,11 +56,5 @@ public class MicroscopeRemoteBrowserAccess implements RemoteBrowserAccess {
                 .map(ProjectManager::info)
                 .map(Mappers::toProjectResponse)
                 .toList();
-    }
-
-    @Override
-    public ProjectResponse project(String workspaceId, String projectId) {
-        ProjectManager pm = resolver.resolve(workspaceId, projectId);
-        return Mappers.toProjectResponse(pm.info());
     }
 }

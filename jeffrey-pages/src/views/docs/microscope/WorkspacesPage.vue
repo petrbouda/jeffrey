@@ -101,7 +101,8 @@ onMounted(() => {
       <p>
         The <router-link to="/docs/microscope/configuration/application-properties#remote-azure-files">configuration reference</router-link>
         lists the rest (root path, protocol). Open the <strong>Remote</strong> page from the sidebar:
-        it shows the remote's name with a <a href="#status">status</a> dot, and its workspaces beneath.
+        it shows the remote's name with a <a href="#status">status</a> dot, and browses it in columns
+        that follow the share's folders: workspaces, projects, instances and recording sessions.
         With nothing declared the page says so and names the properties to set. Microscope holds
         exactly one remote, and the UI never connects, changes or removes it — to point Microscope at
         another share, change the configuration and restart.
@@ -121,11 +122,11 @@ onMounted(() => {
         which is also its id and its name &mdash; there is no separate display name. That reference
         id is the provisioner's <code>project.workspace-ref-id</code> (3-64 characters, letters,
         digits and dashes, not starting or ending with a dash), and the folder appears when the
-        provisioner first provisions a project into it. Its
-        <strong>Workspace Info</strong> drawer shows the Reference ID (with a copy button) and its
+        provisioner first provisions a project into it. The picked workspace's info button opens its
+        <strong>Workspace Info</strong> drawer, with the Reference ID (with a copy button) and its
         project count. A project is any visible (non-dot) folder in a workspace, its
-        name being its id, and a project card shows that name and the folder's creation date when the
-        share lists one. Beyond that project count Microscope shows no counts or aggregates: no
+        name being its id, and the Projects column shows that name and the folder's creation date when
+        the share lists one. Beyond that project count Microscope shows no counts or aggregates: no
         session count or last data on a project.
       </p>
       <p>

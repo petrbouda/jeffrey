@@ -26,7 +26,6 @@ import cafe.jeffrey.microscope.remote.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.remote.controller.ProjectRepositoryController;
 
@@ -65,26 +64,13 @@ class ProjectRepositoryControllerTest {
     }
 
     @Test
-    void statisticsAreTheMeasuredFigureOrNoneYet() {
-        when(projectAccess.repositoryManager("ws-1", "p-1")).thenReturn(repositoryManager);
-        when(repositoryManager.repositoryStatistics()).thenReturn(RepositoryStatistics.NOT_YET_MEASURED);
-
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess));
-
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/p-1/repository/statistics"))
-                .hasStatusOk()
-                .bodyJson()
-                .extractingPath("$.totalSize").isNull();
-    }
-
-    @Test
     void projectNotFoundReturns404() {
         when(projectAccess.repositoryManager("ws-1", "ghost"))
                 .thenThrow(Exceptions.projectNotFound("ghost"));
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectRepositoryController(projectAccess));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/ghost/repository/statistics"))
+        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/ghost/repository/sessions/s-1"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

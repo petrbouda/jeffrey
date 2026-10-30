@@ -66,59 +66,29 @@ const router = createRouter({
         }
       ]
     },
-    // Workspace-based routes of the configured remote; a workspace itself is a selection in the
-    // remote browser, so its bare paths open the browser with that workspace preselected
+    // The remote is browsed on one page, /remote, its picks held in the query. The paths of the
+    // former project pages still open: they redirect to the browser at the same project or instance
     {
-      path: '/remote/workspaces/:workspaceId',
-      component: () => import('@/layout/WorkspaceLayout.vue'),
-      children: [
-        {
-          path: '',
-          redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
-        },
-        {
-          path: 'projects',
-          redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
-        },
-        {
-          path: 'projects/:projectId',
-          component: AppLayout,
-          children: [
-            {
-              path: '',
-              name: 'project',
-              component: () => import('@/views/projects/ProjectDetail.vue'),
-              meta: { layout: 'project' },
-              children: [
-                {
-                  path: '',
-                  name: 'project-default',
-                  redirect: to =>
-                    `/remote/workspaces/${to.params.workspaceId}/projects/${to.params.projectId}/instances`
-                },
-                {
-                  path: 'settings',
-                  name: 'project-settings',
-                  component: () => import('@/views/projects/ProjectSettingsView.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'instances',
-                  name: 'project-instances-overview',
-                  component: () => import('@/views/projects/instances/InstancesOverview.vue'),
-                  meta: { layout: 'project' }
-                },
-                {
-                  path: 'instances/:instanceId',
-                  name: 'project-instance-detail',
-                  component: () => import('@/views/projects/instances/InstanceDetail.vue'),
-                  meta: { layout: 'project' }
-                }
-              ]
-            }
-          ]
+      path: '/remote/workspaces/:workspaceId/projects/:projectId/instances/:instanceId',
+      redirect: to => ({
+        path: '/remote',
+        query: {
+          workspaceId: to.params.workspaceId,
+          projectId: to.params.projectId,
+          instanceId: to.params.instanceId
         }
-      ]
+      })
+    },
+    {
+      path: '/remote/workspaces/:workspaceId/projects/:projectId/:rest(.*)*',
+      redirect: to => ({
+        path: '/remote',
+        query: { workspaceId: to.params.workspaceId, projectId: to.params.projectId }
+      })
+    },
+    {
+      path: '/remote/workspaces/:workspaceId/:rest(.*)*',
+      redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
     },
     {
       path: '/:pathMatch(.*)*',

@@ -15,33 +15,39 @@
   - limitations under the License.
   -->
 
+<!--
+  The quiet line a BrowserColumn shows instead of entries: nothing picked above it yet, or a
+  listing that came back empty. Sized for a narrow column, where an EmptyState would not fit.
+-->
+
 <template>
-  <div class="field-group">
-    <label class="field-label">
-      {{ label }}
-      <span v-if="required" class="field-required">*</span>
-    </label>
-    <div class="field-wrap" :class="{ 'is-disabled': disabled, 'is-invalid': !!error }">
-      <slot></slot>
-    </div>
-    <div v-if="error" class="field-error">
-      <i class="bi bi-exclamation-circle"></i>
-      <span>{{ error }}</span>
-    </div>
-    <div v-else-if="hint || $slots.hint" class="field-hint">
-      <slot name="hint">{{ hint }}</slot>
-    </div>
+  <div class="column-note">
+    <i :class="['bi', icon]"></i>
+    <span><slot></slot></span>
   </div>
 </template>
 
 <script setup lang="ts">
-import '@shared/styles/shared-components.css';
-
 defineProps<{
-  label: string;
-  required?: boolean;
-  hint?: string;
-  error?: string;
-  disabled?: boolean;
+  /** A Bootstrap icon class, e.g. `bi-folder`. */
+  icon: string;
 }>();
 </script>
+
+<style scoped>
+.column-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-5) var(--spacing-3);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.column-note i {
+  font-size: 1.4rem;
+  color: var(--color-text-light);
+}
+</style>

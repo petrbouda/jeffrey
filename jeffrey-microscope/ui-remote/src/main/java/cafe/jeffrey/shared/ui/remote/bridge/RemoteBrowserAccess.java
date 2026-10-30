@@ -31,11 +31,7 @@ public interface RemoteBrowserAccess {
 
     List<WorkspaceResponse> workspaces();
 
-    WorkspaceResponse workspace(String workspaceId);
-
     void deleteWorkspace(String workspaceId);
 
     List<ProjectResponse> projects(String workspaceId);
-
-    ProjectResponse project(String workspaceId, String projectId);
 }

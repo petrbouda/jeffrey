@@ -32,10 +32,6 @@ export default class WorkspaceClient extends BasePlatformClient {
     return super.get<Workspace[]>('', undefined, options);
   }
 
-  async getById(workspaceId: string): Promise<Workspace> {
-    return super.get<Workspace>(`/${workspaceId}`);
-  }
-
   async delete(workspaceId: string): Promise<void> {
     return super.del<void>(`/${workspaceId}`);
   }
