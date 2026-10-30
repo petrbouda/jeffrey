@@ -183,7 +183,7 @@ describe('splitColumns', () => {
     expect(keys(columns.recordings)).toEqual(['logs']);
   });
 
-  it('shows a bundle of a single item and no files as that item alone', () => {
+  it('keeps a remote download of a single item and no files in its bundle', () => {
     const jfr = recording('jfr', 'JDK', { bundleId: 'single', uploadedAt: 5 });
 
     const columns = splitColumns({
@@ -192,7 +192,9 @@ describe('splitColumns', () => {
       shows: null
     });
 
-    expect(columns.recordings).toEqual([{ kind: 'recording', key: 'jfr', recording: jfr }]);
+    expect(columns.recordings).toEqual([
+      { kind: 'bundle', key: 'single', bundle: bundle('single', 5), members: [jfr], listed: [jfr] }
+    ]);
   });
 
   it('keeps the bundle around a single item that came with download-only files', () => {
