@@ -36,26 +36,25 @@
       <StatsTable :metrics="headlineMetrics" class="mb-4" />
 
       <SectionHeaderBar text="JVM" />
-      <div class="info-rows mb-4">
-        <InfoRow label="VM">{{ text(overview.jvm.vmName) }}</InfoRow>
-        <InfoRow label="VM version">{{ text(overview.jvm.vmVersion) }}</InfoRow>
-        <InfoRow label="Vendor">{{ text(overview.jvm.vmVendor) }}</InfoRow>
-        <InfoRow label="Java version">{{ text(overview.jvm.javaVersion) }}</InfoRow>
-        <InfoRow label="GC policy">{{ text(overview.jvm.gcPolicy) }}</InfoRow>
-        <InfoRow label="Started">
-          {{ timestamp(overview.runtime.startedAtEpochMs) }}
-        </InfoRow>
-        <InfoRow label="Command" mono>
-          <span class="info-row-text" :title="overview.jvm.command ?? ''">
-            {{ text(overview.jvm.command) }}
-          </span>
-        </InfoRow>
-        <InfoRow label="VM arguments" mono>
-          <span class="info-row-text" :title="overview.jvm.vmArgs ?? ''">
-            {{ text(overview.jvm.vmArgs) }}
-          </span>
-        </InfoRow>
-      </div>
+      <DataTable class="mb-4">
+        <tbody>
+          <tr v-for="row in jvmRows" :key="row.label">
+            <td class="jvm-label">{{ row.label }}</td>
+            <td>{{ row.value }}</td>
+          </tr>
+          <tr>
+            <td class="jvm-label">Command</td>
+            <td class="jvm-mono">{{ text(overview.jvm.command) }}</td>
+          </tr>
+          <tr>
+            <td class="jvm-label">VM arguments</td>
+            <td class="jvm-mono">
+              <div v-for="(argument, index) in vmArguments" :key="index">{{ argument }}</div>
+              <template v-if="vmArguments.length === 0">{{ NO_VALUE }}</template>
+            </td>
+          </tr>
+        </tbody>
+      </DataTable>
 
       <SectionHeaderBar text="Garbage Collectors" />
       <DataTable v-if="overview.gc.collectors.length > 0" class="mb-4">
@@ -124,7 +123,6 @@ import PageHeader from '@shared/components/layout/PageHeader.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
 import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
-import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
@@ -139,6 +137,8 @@ import '@shared/styles/shared-components.css';
 const NO_VALUE = '—';
 /** Above a tenth of the run spent collecting, the GC tile is drawn as a warning. */
 const GC_SHARE_WARNING = 0.1;
+/** The JVM joins its arguments with spaces; a break before each flag keeps a spaced value whole. */
+const ARGUMENT_BOUNDARY = /\s+(?=-)/;
 
 const route = useRoute();
 const loading = ref(true);
@@ -171,6 +171,29 @@ const averagePause = (collector: PerfCountersCollector): string =>
   collector.timeNanos == null || !collector.invocations
     ? NO_VALUE
     : FormattingService.formatDuration2Units(collector.timeNanos / collector.invocations);
+
+const jvmRows = computed(() => {
+  const o = overview.value;
+  if (!o) {
+    return [];
+  }
+  return [
+    { label: 'VM', value: text(o.jvm.vmName) },
+    { label: 'VM version', value: text(o.jvm.vmVersion) },
+    { label: 'Vendor', value: text(o.jvm.vmVendor) },
+    { label: 'Java version', value: text(o.jvm.javaVersion) },
+    { label: 'GC policy', value: text(o.jvm.gcPolicy) },
+    { label: 'Started', value: timestamp(o.runtime.startedAtEpochMs) }
+  ];
+});
+
+/** One flag per line: the arguments of a profiled JVM run far past any single line. */
+const vmArguments = computed(() =>
+  (overview.value?.jvm.vmArgs ?? '')
+    .trim()
+    .split(ARGUMENT_BOUNDARY)
+    .filter(argument => argument.length > 0)
+);
 
 /** Young and old together: what the heap holds, out of what it has reserved so far. */
 const heapTotals = computed(() => {
@@ -307,3 +330,18 @@ onMounted(async () => {
   }
 });
 </script>
+
+<style scoped>
+.jvm-label {
+  width: 160px;
+  white-space: nowrap;
+  vertical-align: top;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.jvm-mono {
+  font-family: var(--font-family-monospace);
+  overflow-wrap: anywhere;
+}
+</style>

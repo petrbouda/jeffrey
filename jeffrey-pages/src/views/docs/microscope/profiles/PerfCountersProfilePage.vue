@@ -113,7 +113,7 @@ onMounted(() => {
       </div>
 
       <h3 id="jvm">JVM</h3>
-      <p>Who the snapshot is from: the <strong>VM</strong> name, <strong>VM version</strong>, <strong>Vendor</strong>, <strong>Java version</strong>, <strong>GC policy</strong>, when the JVM <strong>Started</strong>, the <strong>Command</strong> it ran and its <strong>VM arguments</strong>. The last two are shown in full on hover.</p>
+      <p>Who the snapshot is from: the <strong>VM</strong> name, <strong>VM version</strong>, <strong>Vendor</strong>, <strong>Java version</strong>, <strong>GC policy</strong>, when the JVM <strong>Started</strong>, the <strong>Command</strong> it ran and its <strong>VM arguments</strong>. The command wraps rather than cutting off, and the VM arguments are listed one flag per line.</p>
 
       <h3 id="collectors-generations">Garbage Collectors &amp; Heap Generations</h3>
       <p>The <strong>Garbage Collectors</strong> table has one row per collector the JVM wrote counters for &mdash; invocations, total time, the average pause and its share of uptime. Collectors are found by the counters present rather than by the policy&rsquo;s own count, so G1, which declares one collector and writes three, shows all three. The <strong>Heap Generations</strong> table lists each generation with its used, capacity and maximum capacity, and the share of capacity in use.</p>
