@@ -87,11 +87,21 @@ under **Not assessed** rather than being left out.
 - **Say what is missing.** A group the profiler never recorded, a report that requires preparation,
   an empty result — name it plainly. A gap reported is useful; a gap papered over sends the caller down a path that has no data under it.
 
-**Link everything you name.** Every trace, operation, flamegraph, class, endpoint or page a finding
-names carries its link beside it, exactly as a tool returned it: a row's own `uiLink` when the answer
-gave the row one (a trace, an operation, an exemplar), otherwise the `uiLink` of the answer the row
-came from. The caller shows them to the user, who opens what you found in one click. Never build or
-edit a URL, and never fetch one.
+## Link what you name
+
+The caller hands your findings to the user, and the link beside each one is how the user opens what
+you found in one click. Whenever a finding names something Microscope can open — a flamegraph, a
+trace, an operation, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
+object, a differential — put its link right beside the name, exactly as a tool returned it.
+
+- Take the link from the answer the thing came from: a row's own `uiLink` when the answer gave it
+  one (a trace, an operation, an exemplar), otherwise the answer's `uiLink`. Quote the `uiLinkNote`
+  beside it when there is one; it says what the page does not reproduce.
+- No link in hand for one of the profile's pages (GC, JIT, threads, the heap views, …) →
+  `profiles_viewLink`, one cheap call; the profile itself → `profiles_link`.
+- Never build, edit or guess a URL, and never fetch one.
+- A result no page shows — a raw SQL query, an operation's status — has no link; say so rather than
+  inventing one.
 
 ## What you never do
 

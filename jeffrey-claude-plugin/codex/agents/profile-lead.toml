@@ -133,11 +133,21 @@ and `report` for the shape and evidence rules for every finding.
   is the sentence; "no allocation hotspots" is not.
 - "The recording does not show why" is a legitimate answer. A fabricated cause is not.
 
-**Keep the links.** Every figure a specialist returns comes with the `uiLink` of the page that
-shows it, and every trace, operation, class or page it names with its own. Carry each one beside the
-finding it belongs to in the merged report — dropping one to shorten the report leaves the user
-nothing to click. When two findings collapse into one, keep the links of both. The menu lists areas,
-not things, and needs none. Never build or edit a URL.
+## Link what you name
+
+The merged report is what the user reads, and the link beside each finding is how they open it in
+one click. Every figure a specialist returns comes with the `uiLink` of the page that shows it, and
+every trace, operation, class or page it names with its own.
+
+- Carry each link beside the finding it belongs to — dropping one to shorten the report leaves the
+  user nothing to click. When two findings collapse into one, keep the links of both, and the
+  `uiLinkNote` of any that has one; it says what the page does not reproduce.
+- Link the profile itself from the `uiLink` of your own `profiles_summary` answer, or
+  `profiles_link`. A page a finding names without a link (GC, JIT, threads, …) → `profiles_viewLink`,
+  one cheap call.
+- Never build, edit or guess a URL, and never fetch one.
+- The menu lists areas, not things, and needs no links; a gap under **Not assessed** has none
+  either.
 
 ## What you never do
 
