@@ -881,62 +881,6 @@
   font-size: 0.85rem;
 }
 
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 0.78rem;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-dark);
-  margin: 0;
-}
-
-.field-required {
-  color: var(--color-danger);
-  margin-left: 2px;
-}
-
-.field-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  height: 46px;
-  background: var(--color-neutral-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
-}
-
-.field-wrap:hover:not(.is-disabled) {
-  border-color: var(--color-primary-border, var(--color-primary-light));
-  background: var(--color-white);
-}
-
-.field-wrap:focus-within {
-  background: var(--color-white);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-
-.field-wrap.is-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.field-wrap.is-invalid {
-  border-color: var(--color-danger);
-  background: var(--color-white);
-}
-
-.field-wrap.is-invalid:focus-within {
-  border-color: var(--color-danger);
-  box-shadow: 0 0 0 3px var(--color-danger-light);
-}
-
 .field-error {
   display: flex;
   align-items: flex-start;
@@ -950,59 +894,6 @@
   font-size: 0.85rem;
   margin-top: 1px;
   flex-shrink: 0;
-}
-
-.field-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: var(--font-size-base);
-  color: var(--color-dark);
-  padding: 0;
-  height: 100%;
-  min-width: 0;
-}
-
-.field-input::placeholder {
-  color: var(--color-text-light);
-}
-
-.field-input.is-mono {
-  font-family: 'SF Mono', Monaco, Menlo, Consolas, monospace;
-  font-size: var(--font-size-sm);
-}
-
-.field-input[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
-}
-
-.field-input[type='number']::-webkit-inner-spin-button,
-.field-input[type='number']::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 80px;
-  gap: var(--spacing-3);
-}
-
-.field-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  line-height: 1.5;
-}
-
-.field-hint code {
-  background: var(--color-light);
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  font-size: 0.72rem;
-  color: var(--color-primary);
-  border: 1px solid var(--color-border-light);
 }
 
 /* ----- Server context card (read-only server display) ----- */

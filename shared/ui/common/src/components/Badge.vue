@@ -274,7 +274,7 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
   color: var(--color-text-muted);
 }
 
-/* Badge variants - matching MetricsList styles */
+/* Badge variants */
 .badge-primary {
   background: var(--color-primary-bg);
   border: 1px solid var(--color-primary-border);
@@ -323,7 +323,7 @@ const uppercaseClass = computed(() => (props.uppercase ? '' : 'badge-no-uppercas
   color: var(--color-danger);
 }
 
-/* Key-value badge styling - matching original MetricsList */
+/* Key-value badge styling */
 .badge-key {
   color: var(--color-text-muted);
   font-weight: 500;

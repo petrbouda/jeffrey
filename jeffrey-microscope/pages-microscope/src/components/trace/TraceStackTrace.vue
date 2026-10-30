@@ -390,9 +390,9 @@ async function copy(): Promise<void> {
 
 /*
  * A frame is read in three parts and each one gets its own tier, on every row: the package it
- * lives in, the class, and the method that ran. The hues are the ones JsonHighlight.vue already
- * paints code with in this app -- a key in --color-primary-hover, a string value in --color-teal --
- * because a frame has the same shape: the class is the key, the method is what it holds.
+ * lives in, the class, and the method that ran. The hues are the app's code colours -- a key in
+ * --color-primary-hover, a string value in --color-teal -- because a frame has the same shape: the
+ * class is the key, the method is what it holds.
  *
  * Weight says which tier leads and colour agrees with it. The class is the heaviest at 700: in a
  * 253-frame stack a reader scans for OgnlParser before they scan for jjMoveStringLiteralDfa3_0.
