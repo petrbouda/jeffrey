@@ -21136,7 +21136,7 @@
                     "WALL_CLOCK",
                     "ALLOCATION",
                     "HOT_WINDOWS",
-                    "SLOW_ENDPOINTS",
+                    "REQUESTS_AND_CALLS",
                     "DATABASE",
                     "IO_WAITING",
                     "LOCK_CONTENTION",
@@ -21146,13 +21146,25 @@
                     "NATIVE_MEMORY",
                     "RULE_FINDINGS",
                     "CONTAINER_AND_FLAGS",
-                    "LEAK_CANDIDATES"
+                    "LEAK_CANDIDATES",
+                    "EXCEPTIONS",
+                    "HEAP_OVERVIEW",
+                    "CLASS_HISTOGRAM",
+                    "TOP_CONSUMERS",
+                    "BIGGEST_OBJECTS",
+                    "LEAK_SUSPECTS",
+                    "DOMINATORS",
+                    "CLASSLOADER_LEAKS",
+                    "GC_ROOTS",
+                    "STRING_WASTE",
+                    "COLLECTION_WASTE"
                   ],
                   "type": "string"
                 },
                 "availability": {
                   "enum": [
                     "AVAILABLE",
+                    "NEEDS_PREPARATION",
                     "NOT_RECORDED"
                   ],
                   "type": "string"
@@ -21174,7 +21186,10 @@
                     "CODE",
                     "WAITING",
                     "JVM",
-                    "OVERALL"
+                    "OVERALL",
+                    "HEAP_CONTENTS",
+                    "HEAP_RETENTION",
+                    "HEAP_WASTE"
                   ],
                   "type": "string"
                 },

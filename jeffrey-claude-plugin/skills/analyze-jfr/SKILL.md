@@ -67,15 +67,20 @@ calls whose findings mostly go unread. So the user decides what is worth that, n
 ### The menu is `investigationAreas`
 
 Jeffrey builds the menu, so do not assemble one yourself. Each entry has an `area`, its `group`
-(`CODE`, `WAITING`, `JVM`, `OVERALL`), a `title`, the `question` it answers, and its `availability`:
+(`CODE`, `WAITING`, `JVM`, `OVERALL` for a recording), a `title`, the `question` it answers, and its
+`availability`:
 
 - **`AVAILABLE`** — offer it, with its `weight` and, when `suggested` is true, its `evidence` (the
   rule that fired, or the share of samples that points there). `nextTools` are the calls that open
   it, ready to send.
+- **`NEEDS_PREPARATION`** — its data is there but has to be built first; its `nextTools` are that
+  build (`heap_prepare`, slow). Only a heap dump's areas are ever in this state.
 - **`NOT_RECORDED`** — do not offer it. Name these in one line beneath the menu, with their `remedy`
   (`event=cpu`, `wall=10ms`, `alloc=512k`, `lock=10ms`, …) so the next recording can capture them.
 
-An empty `investigationAreas` means a heap dump: switch to `analyze-heap`.
+A menu of the heap groups (`HEAP_CONTENTS`, `HEAP_RETENTION`, `HEAP_WASTE`) means a heap dump: switch
+to `analyze-heap`, which puts that menu the same way. An empty `investigationAreas` means a
+perf-counters snapshot, which no tool reads yet: give the user its `uiLink`.
 
 **Put it as a structured question when your client has one.** In Claude Code that is
 `AskUserQuestion`: one multi-select question per group that has an `AVAILABLE` area, in group order,

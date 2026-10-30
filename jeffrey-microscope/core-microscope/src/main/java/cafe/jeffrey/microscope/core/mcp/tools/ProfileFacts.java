@@ -16,15 +16,21 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections.SectionAvailability;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * What {@code profiles_summary} already knows about a profile, gathered once so the investigation menu
@@ -38,6 +44,7 @@ import java.util.Set;
  * @param jvmSections        every jvm_ section with whether its events were recorded
  * @param autoAnalysis       whether the rules ran
  * @param flagged            the rules that flagged something, most severe first
+ * @param heap               how far a heap dump is prepared; {@link HeapState#NOT_A_HEAP_DUMP} for any other profile
  */
 record ProfileFacts(
         String profileId,
@@ -47,7 +54,8 @@ record ProfileFacts(
         List<Sampled> panels,
         List<SectionAvailability> jvmSections,
         AutoAnalysisStatus autoAnalysis,
-        List<McpFinding> flagged) {
+        List<McpFinding> flagged,
+        HeapState heap) {
 
     /**
      * One flamegraph panel: what it measures, its event type, and how many samples it holds (zero for
@@ -66,6 +74,62 @@ record ProfileFacts(
         panels = List.copyOf(panels);
         jvmSections = List.copyOf(jvmSections);
         flagged = List.copyOf(flagged);
+        if (heap == null) {
+            throw new IllegalArgumentException("a profile's heap state is NOT_A_HEAP_DUMP rather than null");
+        }
+    }
+
+    /**
+     * How far a heap dump is prepared: whether its file is still there, whether its index is built, and
+     * which of the reports {@code heap_prepare} computes on their own are stored. Each is a look at what
+     * is on disk, never a computation.
+     *
+     * @param present  whether the profile still has its copy of the dump
+     * @param indexed  whether the index every heap_ reader needs is built
+     * @param computed the stored reports
+     */
+    record HeapState(boolean present, boolean indexed, Set<HeapReport> computed) {
+
+        static final HeapState NOT_A_HEAP_DUMP = new HeapState(false, false, Set.of());
+
+        /** The stored-report check behind each report; the dominator tree has none, it is built on demand. */
+        private static final Map<HeapReport, Predicate<HeapDumpManager>> STORED = Map.of(
+                HeapReport.STRINGS, HeapDumpManager::stringAnalysisExists,
+                HeapReport.THREADS, HeapDumpManager::threadAnalysisExists,
+                HeapReport.BIGGEST, HeapDumpManager::biggestObjectsExists,
+                HeapReport.COLLECTIONS, HeapDumpManager::collectionAnalysisExists,
+                HeapReport.LEAKS, HeapDumpManager::leakSuspectsExists,
+                HeapReport.CLASSLOADERS, HeapDumpManager::classLoaderAnalysisExists,
+                HeapReport.BIGGEST_COLLECTIONS, HeapDumpManager::biggestCollectionsExists,
+                HeapReport.CONSUMERS, HeapDumpManager::consumerReportExists,
+                HeapReport.DUPLICATES, HeapDumpManager::duplicateDataExists);
+
+        HeapState {
+            computed = computed.isEmpty() ? Set.of() : Set.copyOf(EnumSet.copyOf(computed));
+            if (indexed && !present) {
+                throw new IllegalArgumentException("a heap dump without its file has no index to read");
+            }
+        }
+
+        /** What is on disk for one heap dump profile. */
+        static HeapState of(HeapDumpManager manager) {
+            if (!manager.heapDumpExists()) {
+                return new HeapState(false, false, Set.of());
+            }
+            if (!manager.isCacheReady()) {
+                return new HeapState(true, false, Set.of());
+            }
+            Set<HeapReport> stored = STORED.entrySet().stream()
+                    .filter(entry -> entry.getValue().test(manager))
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toSet());
+            return new HeapState(true, true, stored);
+        }
+
+        /** Whether a reader that needs the report — or only the index, for none — can answer now. */
+        boolean ready(HeapReport report) {
+            return indexed && (report == null || computed.contains(report));
+        }
     }
 
     boolean enabled(FeatureType feature) {

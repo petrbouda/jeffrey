@@ -17,8 +17,10 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ExceptionsSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JitSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.NativeMemorySection;
@@ -31,8 +33,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * One thing a user can choose to investigate in a recording — the lines of the menu an open question
- * is answered with. Each area knows its group, what it answers, where its data comes from and so
+ * One thing a user can choose to investigate in a recording or a heap dump — the lines of the menu an
+ * open question is answered with. Each area knows its group, what it answers, where its data comes from and so
  * whether a profile can answer it, the calls that open it, the families those calls belong to, and the
  * auto-analysis topics whose fired rules point at it.
  */
@@ -62,10 +64,14 @@ enum InvestigationArea {
             Set.of(AdvertisedFamilies.TIMELINE),
             Set.of()),
 
-    SLOW_ENDPOINTS(InvestigationGroup.WAITING, "Slow endpoints", "Which requests took the time",
-            new AreaSource.Features(List.of(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD)),
-            OpeningCalls::endpoints,
-            Set.of(AdvertisedFamilies.TRACES, AdvertisedFamilies.HTTP),
+    REQUESTS_AND_CALLS(InvestigationGroup.WAITING, "Requests and calls",
+            "Which requests and outbound calls took the time",
+            new AreaSource.Features(List.of(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD,
+                    FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD,
+                    FeatureType.GRPC_CLIENT_DASHBOARD, FeatureType.METHOD_TRACING_DASHBOARD)),
+            OpeningCalls::requestsAndCalls,
+            Set.of(AdvertisedFamilies.TRACES, AdvertisedFamilies.HTTP, AdvertisedFamilies.GRPC,
+                    AdvertisedFamilies.METHOD_TRACING),
             Set.of()),
 
     DATABASE(InvestigationGroup.WAITING, "Database", "Which statements ran, and whether the pool made requests wait",
@@ -127,7 +133,76 @@ enum InvestigationArea {
             new AreaSource.EventTypes(Events.OLD_OBJECTS, Remedies.LEAKS),
             OpeningCalls.leaks(),
             Set.of(AdvertisedFamilies.MEMORY),
-            Set.of("memoryleak"));
+            Set.of("memoryleak")),
+
+    EXCEPTIONS(InvestigationGroup.OVERALL, "Exceptions", "What the application threw, and from where",
+            new AreaSource.JvmSectionsOf(Set.of(ExceptionsSection.ID)),
+            OpeningCalls.exceptions(),
+            Set.of(AdvertisedFamilies.JVM),
+            Set.of("exceptions")),
+
+    HEAP_OVERVIEW(InvestigationGroup.HEAP_CONTENTS, "Heap overview", "How big the heap is, and how the dump was taken",
+            AreaSource.HeapReports.indexOnly(),
+            OpeningCalls.heapOverview(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    CLASS_HISTOGRAM(InvestigationGroup.HEAP_CONTENTS, "Class histogram",
+            "Which classes hold the most instances and bytes",
+            AreaSource.HeapReports.indexOnly(),
+            OpeningCalls.classHistogram(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    TOP_CONSUMERS(InvestigationGroup.HEAP_CONTENTS, "Top consumers", "Which packages and class loaders own the memory",
+            new AreaSource.HeapReports(HeapReport.CONSUMERS),
+            OpeningCalls.topConsumers(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    BIGGEST_OBJECTS(InvestigationGroup.HEAP_CONTENTS, "Biggest objects", "Which single objects retain the most",
+            new AreaSource.HeapReports(HeapReport.BIGGEST),
+            OpeningCalls.biggestObjects(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    LEAK_SUSPECTS(InvestigationGroup.HEAP_RETENTION, "Leak suspects", "What looks like a leak, and what holds it",
+            new AreaSource.HeapReports(HeapReport.LEAKS),
+            OpeningCalls.leakSuspects(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    DOMINATORS(InvestigationGroup.HEAP_RETENTION, "Dominator tree", "Which objects keep the most memory alive",
+            AreaSource.HeapReports.indexOnly(),
+            OpeningCalls.dominators(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    CLASSLOADER_LEAKS(InvestigationGroup.HEAP_RETENTION, "Class loader leaks", "Which class loaders outlived their use",
+            new AreaSource.HeapReports(HeapReport.CLASSLOADERS),
+            OpeningCalls.classLoaderLeaks(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    GC_ROOTS(InvestigationGroup.HEAP_RETENTION, "GC roots and threads",
+            "What anchors the heap, and what each thread holds",
+            AreaSource.HeapReports.indexOnly(),
+            OpeningCalls.gcRoots(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    STRING_WASTE(InvestigationGroup.HEAP_WASTE, "Duplicate strings", "Which strings are stored many times over",
+            new AreaSource.HeapReports(HeapReport.STRINGS),
+            OpeningCalls.stringWaste(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of()),
+
+    COLLECTION_WASTE(InvestigationGroup.HEAP_WASTE, "Wasteful collections",
+            "Which collections sit empty, near-empty or oversized",
+            new AreaSource.HeapReports(HeapReport.COLLECTIONS),
+            OpeningCalls.collectionWaste(),
+            Set.of(AdvertisedFamilies.HEAP),
+            Set.of());
 
     /**
      * Event types the areas read, in a holder of their own: an enum's constants are built before its

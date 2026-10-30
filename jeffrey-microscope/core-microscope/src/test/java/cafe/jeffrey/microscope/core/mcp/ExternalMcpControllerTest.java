@@ -424,10 +424,10 @@ class ExternalMcpControllerTest {
         }
 
         @Test
-        void listsTheElevenPluginSkills() throws Exception {
+        void listsTheTwelvePluginSkills() throws Exception {
             JsonNode skills = result(request("skills/list")).path("skills");
 
-            assertThat(skills.size()).isEqualTo(11);
+            assertThat(skills.size()).isEqualTo(12);
             assertThat(skills.get(0).path("uri").asString()).isEqualTo("skill://advise-jfr/SKILL.md");
             assertThat(skills.get(0).path("frontmatter").path("name").asString()).isEqualTo("advise-jfr");
             verifyNoInteractions(assembler);
@@ -505,7 +505,7 @@ class ExternalMcpControllerTest {
         void servesTheSameSkillsAsPrompts() throws Exception {
             JsonNode prompts = result(request("prompts/list")).path("prompts");
 
-            assertThat(prompts.size()).isEqualTo(11);
+            assertThat(prompts.size()).isEqualTo(12);
         }
     }
 

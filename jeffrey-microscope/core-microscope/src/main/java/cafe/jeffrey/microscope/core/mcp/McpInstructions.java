@@ -298,11 +298,11 @@ final class McpInstructions {
             + "answer: heap_prepare builds it, heap_status reports on it.";
 
     private static final String PROMPTS = """
-            Fuller guidance is served as prompts and as skills. prompts/list names eleven, one per \
-            workflow — analyze-jfr, analyze-heap, analyze-remote, analyze-exceptions, compare-jfr, \
-            advise-jfr, profile-run, regression-check, jfr-sql, heap-sql, and report, which is the \
-            evidence discipline the others write to. skills/list (the io.modelcontextprotocol/skills \
-            extension) serves the same eleven to any client that asks, and their files are read with \
+            Fuller guidance is served as prompts and as skills. prompts/list names twelve: help, the \
+            orientation to what can be investigated, and one per workflow — analyze-jfr, analyze-heap, \
+            analyze-remote, analyze-exceptions, compare-jfr, advise-jfr, profile-run, regression-check, \
+            jfr-sql, heap-sql, and report, which is the evidence discipline the others write to. skills/list (the io.modelcontextprotocol/skills \
+            extension) serves the same twelve to any client that asks, and their files are read with \
             resources/read. Read the one that matches the question before a long investigation. \
             The jeffrey://server resource reports which families this installation actually advertises.""";
 

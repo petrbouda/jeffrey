@@ -200,6 +200,8 @@ both) and not the case for a Jeffrey in a container or on another host.
 `/microscope:analyze-jfr` in Claude Code, `$analyze-jfr` in Codex, and by name in Gemini CLI, which
 loads a skill when the question calls for it:
 
+- `help` — what Jeffrey can investigate before any profile is chosen: the areas a recording or a heap
+  dump can answer, what each needs recorded, which skill takes it, and what is here now
 - `analyze-jfr` — where to start and which family answers which question
 - `profile-run` — a workload that has not been recorded yet: what to run it under, for how long, and
   where the file has to land
@@ -276,7 +278,7 @@ any key it does not define, and the plugin's own agents carry Claude Code's `dis
 dispatch another subagent, and dispatching the other two is that agent's whole job — so lead an
 open-ended investigation from the main conversation there.
 
-**Prompts, skills and resources.** The server also serves the eleven skills over the protocol itself,
+**Prompts, skills and resources.** The server also serves the twelve skills over the protocol itself,
 as MCP prompts and over the MCP skills extension — the same files the plugin ships, copied onto the
 server's classpath when it is built, so the two cannot drift. A client that cannot install a plugin
 (Cursor, VS Code, Kiro, anything registered by hand) gets them through `skills/list` when it speaks
@@ -379,7 +381,7 @@ jeffrey-claude-plugin/
 │   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
 ├── gemini-extension.json     Gemini CLI extension manifest — the same server, skills and agents
 ├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code and Gemini)
-├── skills/                   Eleven skills, read by all three formats
+├── skills/                   Twelve skills, read by all three formats
 ├── agents/
 │   ├── profile-analyst.md    Claude Code subagent
 │   ├── heap-triage.md        …the heap specialist

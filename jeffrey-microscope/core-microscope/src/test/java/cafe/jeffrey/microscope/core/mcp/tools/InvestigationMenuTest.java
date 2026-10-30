@@ -18,6 +18,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.InvestigationOption.Availability;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfileFacts.HeapState;
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections.SectionAvailability;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
@@ -56,7 +58,9 @@ class InvestigationMenuTest {
     private static final String ALLOCATION = "jdk.ObjectAllocationSample";
     private static final String MONITOR = "jdk.JavaMonitorEnter";
     private static final List<String> JVM_SECTION_IDS =
-            List.of("gc", "safepoints", "jit", "threads", "nativeMemory", "container", "configuration");
+            List.of("gc", "safepoints", "jit", "threads", "nativeMemory", "container", "configuration", "exceptions");
+    private static final Set<HeapReport> EVERY_STORED_REPORT = Set.of(HeapReport.CONSUMERS, HeapReport.BIGGEST,
+            HeapReport.LEAKS, HeapReport.CLASSLOADERS, HeapReport.STRINGS, HeapReport.COLLECTIONS);
 
     /** A recording with every kind of data, built up and narrowed by each test. */
     private static final class Facts {
@@ -69,6 +73,7 @@ class InvestigationMenuTest {
         private final Set<String> missingSections = new HashSet<>();
         private AutoAnalysisStatus status = AutoAnalysisStatus.COMPUTED;
         private final List<McpFinding> flagged = new ArrayList<>();
+        private HeapState heap = HeapState.NOT_A_HEAP_DUMP;
 
         Facts samples(String eventType, long count) {
             samples.put(eventType, count);
@@ -100,6 +105,12 @@ class InvestigationMenuTest {
             return this;
         }
 
+        Facts heapDump(HeapState heap) {
+            this.source = RecordingEventSource.HEAP_DUMP;
+            this.heap = heap;
+            return this;
+        }
+
         Facts flagged(String topic, McpFinding.Severity severity) {
             flagged.add(McpFinding.of(topic, topic + "-rule").severity(severity).title(topic + " rule").build());
             return this;
@@ -121,7 +132,7 @@ class InvestigationMenuTest {
                     .map(id -> new SectionAvailability(id, id, "jvm_" + id, !missingSections.contains(id),
                             List.of("jdk." + id)))
                     .toList();
-            return new ProfileFacts(PROFILE_ID, source, disabled, recorded, panels, sections, status, flagged);
+            return new ProfileFacts(PROFILE_ID, source, disabled, recorded, panels, sections, status, flagged, heap);
         }
     }
 
@@ -141,6 +152,16 @@ class InvestigationMenuTest {
         return option.nextTools().stream().map(McpNextTool::tool).toList();
     }
 
+    private static String argument(McpNextTool call, String name) {
+        return Json.toTree(call.arguments()).get(name).asString();
+    }
+
+    private static Set<InvestigationArea> areasOf(MenuSubject subject) {
+        return Arrays.stream(InvestigationArea.values())
+                .filter(area -> area.group().subject() == subject)
+                .collect(Collectors.toSet());
+    }
+
     @Nested
     class Catalogue {
 
@@ -152,6 +173,16 @@ class InvestigationMenuTest {
 
             assertEquals(Set.of(InvestigationGroup.values()), sizes.keySet());
             sizes.forEach((group, size) -> assertTrue(size <= 4, group + " holds " + size));
+        }
+
+        /** A profile is offered its own subject's groups only, so it is asked at most four questions. */
+        @Test
+        void everySubjectHoldsAtMostFourGroups() {
+            Map<MenuSubject, Long> groups = Arrays.stream(InvestigationGroup.values())
+                    .collect(Collectors.groupingBy(InvestigationGroup::subject, Collectors.counting()));
+
+            assertEquals(Set.of(MenuSubject.values()), groups.keySet());
+            groups.forEach((subject, size) -> assertTrue(size <= 4, subject + " holds " + size));
         }
 
         @Test
@@ -175,6 +206,7 @@ class InvestigationMenuTest {
         void aTopicNoAreaClaimsPointsAtTheRuleFindings() {
             assertEquals(InvestigationArea.RULE_FINDINGS, InvestigationArea.forTopic("constant_pools"));
             assertEquals(InvestigationArea.GC_PAUSES, InvestigationArea.forTopic("garbage_collection"));
+            assertEquals(InvestigationArea.EXCEPTIONS, InvestigationArea.forTopic("exceptions"));
         }
     }
 
@@ -182,10 +214,10 @@ class InvestigationMenuTest {
     class Areas {
 
         @Test
-        void aFullRecordingOffersEveryArea() {
+        void aFullRecordingOffersEveryRecordingArea() {
             Map<InvestigationArea, InvestigationOption> menu = menu(new Facts());
 
-            assertEquals(Set.of(InvestigationArea.values()), menu.keySet());
+            assertEquals(areasOf(MenuSubject.RECORDING), menu.keySet());
             menu.values().forEach(option -> assertEquals(Availability.AVAILABLE, option.availability(), option.title()));
         }
 
@@ -200,7 +232,8 @@ class InvestigationMenuTest {
             assertEquals(List.of("jvm_gc", "jvm_safepoints"), tools(menu.get(InvestigationArea.GC_PAUSES)));
             assertEquals(List.of("jdbc_overview", "jdbc_pools"), tools(menu.get(InvestigationArea.DATABASE)));
             assertEquals(List.of("io_overview", "io_overview"), tools(menu.get(InvestigationArea.IO_WAITING)));
-            assertEquals(List.of("traces_overview"), tools(menu.get(InvestigationArea.SLOW_ENDPOINTS)));
+            assertEquals(List.of("traces_overview"), tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)));
+            assertEquals(List.of("jvm_exceptions"), tools(menu.get(InvestigationArea.EXCEPTIONS)));
             McpNextTool timeline = menu.get(InvestigationArea.HOT_WINDOWS).nextTools().getFirst();
             assertEquals(WALL, Json.toTree(timeline.arguments()).get("eventType").asString());
         }
@@ -234,21 +267,45 @@ class InvestigationMenuTest {
         }
 
         @Test
-        void endpointsFallBackToHttpWithoutTraces() {
-            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts().disable(FeatureType.TRACES));
+        void requestsFallBackToEveryRecordedDashboardWithoutTraces() {
+            List<McpNextTool> calls = menu(new Facts().disable(FeatureType.TRACES))
+                    .get(InvestigationArea.REQUESTS_AND_CALLS).nextTools();
 
-            McpNextTool http = menu.get(InvestigationArea.SLOW_ENDPOINTS).nextTools().getFirst();
-            assertEquals("http_overview", http.tool());
-            assertEquals("SERVER", Json.toTree(http.arguments()).get("direction").asString());
+            assertEquals(List.of("http_overview", "grpc_overview", "http_overview", "grpc_overview",
+                    "methodtracing_overview"), calls.stream().map(McpNextTool::tool).toList());
+            assertEquals("SERVER", argument(calls.get(0), "direction"));
+            assertEquals("SERVER", argument(calls.get(1), "direction"));
+            assertEquals("CLIENT", argument(calls.get(2), "direction"));
+            assertEquals("CLIENT", argument(calls.get(3), "direction"));
         }
 
         @Test
-        void endpointsWithNeitherTracesNorServedRequestsAreAGap() {
-            InvestigationOption endpoints = menu(new Facts().disable(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD))
-                    .get(InvestigationArea.SLOW_ENDPOINTS);
+        void outboundCallsAloneMakeTheAreaAvailable() {
+            InvestigationOption calls = menu(new Facts().disable(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD,
+                    FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD))
+                    .get(InvestigationArea.REQUESTS_AND_CALLS);
 
-            assertEquals(Availability.NOT_RECORDED, endpoints.availability());
-            assertTrue(endpoints.gap().contains("no traces"), endpoints.gap());
+            assertEquals(Availability.AVAILABLE, calls.availability());
+            assertEquals(List.of("grpc_overview", "methodtracing_overview"), tools(calls));
+        }
+
+        @Test
+        void requestsWithNoTracesAndNoDashboardAreAGap() {
+            InvestigationOption requests = menu(new Facts().disable(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD,
+                    FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD,
+                    FeatureType.GRPC_CLIENT_DASHBOARD, FeatureType.METHOD_TRACING_DASHBOARD))
+                    .get(InvestigationArea.REQUESTS_AND_CALLS);
+
+            assertEquals(Availability.NOT_RECORDED, requests.availability());
+            assertTrue(requests.gap().contains("no traces"), requests.gap());
+        }
+
+        @Test
+        void exceptionsWithoutTheirEventsAreAGap() {
+            InvestigationOption exceptions = menu(new Facts().noSection("exceptions")).get(InvestigationArea.EXCEPTIONS);
+
+            assertEquals(Availability.NOT_RECORDED, exceptions.availability());
+            assertTrue(exceptions.gap().contains("jvm_exceptions"), exceptions.gap());
         }
 
         @Test
@@ -296,12 +353,6 @@ class InvestigationMenuTest {
         }
 
         @Test
-        void aHeapDumpHasNoMenu() {
-            assertTrue(InvestigationMenu.of(new Facts().source(RecordingEventSource.HEAP_DUMP).build(), EVERY_FAMILY)
-                    .isEmpty());
-        }
-
-        @Test
         void aPerfCountersSnapshotHasNoMenu() {
             assertTrue(InvestigationMenu.of(new Facts().source(RecordingEventSource.PERF_COUNTERS).build(), EVERY_FAMILY)
                     .isEmpty());
@@ -309,7 +360,77 @@ class InvestigationMenuTest {
     }
 
     @Nested
+    class HeapDumps {
+
+        @Test
+        void aPreparedDumpOffersEveryHeapAreaAndNoRecordingArea() {
+            Map<InvestigationArea, InvestigationOption> menu =
+                    menu(new Facts().heapDump(new HeapState(true, true, EVERY_STORED_REPORT)));
+
+            assertEquals(areasOf(MenuSubject.HEAP_DUMP), menu.keySet());
+            menu.values().forEach(option -> assertEquals(Availability.AVAILABLE, option.availability(), option.title()));
+            assertEquals(List.of("heap_getGCRootSummary", "heap_getThreads"), tools(menu.get(InvestigationArea.GC_ROOTS)));
+            assertEquals(List.of("heap_getLeakSuspects"), tools(menu.get(InvestigationArea.LEAK_SUSPECTS)));
+        }
+
+        @Test
+        void anUnindexedDumpOffersTheWholePreparationForEveryArea() {
+            Map<InvestigationArea, InvestigationOption> menu =
+                    menu(new Facts().heapDump(new HeapState(true, false, Set.of())));
+
+            assertEquals(areasOf(MenuSubject.HEAP_DUMP), menu.keySet());
+            for (InvestigationOption option : menu.values()) {
+                assertEquals(Availability.NEEDS_PREPARATION, option.availability(), option.title());
+                assertEquals(List.of("heap_prepare"), tools(option));
+                assertFalse(Json.toTree(option.nextTools().getFirst().arguments()).has("report"), option.title());
+                assertTrue(option.gap().contains("index"), option.gap());
+            }
+        }
+
+        @Test
+        void anIndexedDumpPreparesOnlyTheReportAnAreaReads() {
+            Map<InvestigationArea, InvestigationOption> menu =
+                    menu(new Facts().heapDump(new HeapState(true, true, Set.of(HeapReport.LEAKS))));
+
+            assertEquals(Availability.AVAILABLE, menu.get(InvestigationArea.CLASS_HISTOGRAM).availability());
+            assertEquals(Availability.AVAILABLE, menu.get(InvestigationArea.LEAK_SUSPECTS).availability());
+            InvestigationOption strings = menu.get(InvestigationArea.STRING_WASTE);
+            assertEquals(Availability.NEEDS_PREPARATION, strings.availability());
+            assertEquals("STRINGS", argument(strings.nextTools().getFirst(), "report"));
+            assertTrue(strings.remedy().contains("heap_prepare"), strings.remedy());
+        }
+
+        @Test
+        void aDumpThatLostItsFileIsAGapEverywhere() {
+            Map<InvestigationArea, InvestigationOption> menu =
+                    menu(new Facts().heapDump(new HeapState(false, false, Set.of())));
+
+            menu.values().forEach(option -> assertEquals(Availability.NOT_RECORDED, option.availability(), option.title()));
+        }
+
+        @Test
+        void noHeapAreaWithoutTheHeapFamily() {
+            Set<String> families = new HashSet<>(EVERY_FAMILY.families());
+            families.remove(AdvertisedFamilies.HEAP);
+
+            assertTrue(menu(new Facts().heapDump(new HeapState(true, true, EVERY_STORED_REPORT)),
+                    new AdvertisedFamilies(families)).isEmpty());
+        }
+
+        @Test
+        void refusesAnIndexWithoutTheDump() {
+            assertThrows(IllegalArgumentException.class, () -> new HeapState(false, true, Set.of()));
+        }
+    }
+
+    @Nested
     class Suggestions {
+
+        @Test
+        void aFiredExceptionsRulePointsAtTheExceptions() {
+            assertTrue(menu(new Facts().flagged("exceptions", McpFinding.Severity.WARNING))
+                    .get(InvestigationArea.EXCEPTIONS).suggested());
+        }
 
         @Test
         void aWarningRulePointsAtItsTopicsArea() {
@@ -383,7 +504,11 @@ class InvestigationMenuTest {
 
         @Test
         void conformsToItsGeneratedSchema() {
-            for (InvestigationOption option : InvestigationMenu.of(new Facts().samples(EXECUTION, 0).build(), EVERY_FAMILY)) {
+            List<InvestigationOption> options = new ArrayList<>(
+                    InvestigationMenu.of(new Facts().samples(EXECUTION, 0).build(), EVERY_FAMILY));
+            options.addAll(InvestigationMenu.of(
+                    new Facts().heapDump(new HeapState(true, true, Set.of(HeapReport.LEAKS))).build(), EVERY_FAMILY));
+            for (InvestigationOption option : options) {
                 McpSchemaConformance.assertConforms(Json.toTree(option), McpSchemaGenerator.schemaOf(InvestigationOption.class));
             }
         }

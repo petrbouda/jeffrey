@@ -69,7 +69,7 @@ class McpSkillCatalogueTest {
     /** Where the plugin keeps its skills, from this module's directory (the test's working directory). */
     private static final Path PLUGIN_SKILLS = Path.of("../../jeffrey-claude-plugin/skills");
 
-    private static final int PLUGIN_SKILL_COUNT = 11;
+    private static final int PLUGIN_SKILL_COUNT = 12;
 
     private static final String GOOD = "---\nname: good\ndescription: A skill that loads.\n---\n\n# Good\n\nBody.\n";
 
@@ -151,7 +151,7 @@ class McpSkillCatalogueTest {
         private final McpSkillCatalogue catalogue = McpSkillCatalogue.fromClasspath();
 
         @Test
-        void servesTheTenPluginSkills() {
+        void servesTheTwelvePluginSkills() {
             Set<String> directories = pluginFiles().keySet().stream()
                     .map(path -> path.substring(0, path.indexOf('/')))
                     .collect(Collectors.toCollection(TreeSet::new));
