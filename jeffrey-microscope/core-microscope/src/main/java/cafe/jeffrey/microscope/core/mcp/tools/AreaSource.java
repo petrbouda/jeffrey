@@ -17,11 +17,14 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileCapabilityGaps.CapabilityGap;
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections.SectionAvailability;
 import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.profile.mcp.McpNextTool;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +44,32 @@ sealed interface AreaSource {
 
     /** What would capture it next time; null when nothing short of different instrumentation would. */
     String remedy();
+
+    /**
+     * What has to be built before an available area can be read, and the call that builds it; empty
+     * when the data is readable as it is. Only data computed on demand from what the profile holds —
+     * a heap dump's index and reports — ever needs it.
+     */
+    default Optional<Preparation> preparation(ProfileFacts facts) {
+        return Optional.empty();
+    }
+
+    /**
+     * An area whose data is there but not built yet.
+     *
+     * @param gap    what is not built, in one sentence
+     * @param remedy how it gets built
+     * @param calls  the calls that build it, ready to send
+     */
+    record Preparation(String gap, String remedy, List<McpNextTool> calls) {
+
+        public Preparation {
+            if (calls.isEmpty()) {
+                throw new IllegalArgumentException("a preparation needs the call that builds it");
+            }
+            calls = List.copyOf(calls);
+        }
+    }
 
     /**
      * Stack samples of some kinds — a flamegraph group.
@@ -207,6 +236,53 @@ sealed interface AreaSource {
         @Override
         public String remedy() {
             return ProfileCapabilityGaps.featureGap(FeatureType.TIMESERIES).remedy();
+        }
+    }
+
+    /**
+     * A heap dump's index, and one report stored beside it. Available while the profile still has its
+     * dump; readable once the index is built and the report is stored, prepared by heap_prepare until
+     * then — the whole pipeline for an unindexed dump, the one report otherwise.
+     *
+     * @param report the stored report the area reads; null for an area that needs only the index
+     */
+    record HeapReports(HeapReport report) implements AreaSource {
+
+        private static final String REPORT_GAP = "The %s report has not been computed for this heap dump yet.";
+        private static final String REPORT_REMEDY = "heap_prepare with report %s computes it; heap_status says "
+                + "when it is done.";
+
+        static HeapReports indexOnly() {
+            return new HeapReports(null);
+        }
+
+        @Override
+        public boolean available(ProfileFacts facts) {
+            return facts.heap().present();
+        }
+
+        @Override
+        public String gap(ProfileFacts facts) {
+            return ProfileCapabilityGaps.HEAP_DUMP_MISSING_GAP;
+        }
+
+        @Override
+        public String remedy() {
+            return ProfileCapabilityGaps.HEAP_DUMP_MISSING_REMEDY;
+        }
+
+        @Override
+        public Optional<Preparation> preparation(ProfileFacts facts) {
+            ProfileFacts.HeapState heap = facts.heap();
+            if (heap.ready(report)) {
+                return Optional.empty();
+            }
+            if (!heap.indexed()) {
+                return Optional.of(new Preparation(ProfileCapabilityGaps.HEAP_DUMP_UNINDEXED_GAP,
+                        ProfileCapabilityGaps.HEAP_DUMP_UNINDEXED_REMEDY, OpeningCalls.prepareHeap(facts, null)));
+            }
+            return Optional.of(new Preparation(REPORT_GAP.formatted(report), REPORT_REMEDY.formatted(report),
+                    OpeningCalls.prepareHeap(facts, report)));
         }
     }
 

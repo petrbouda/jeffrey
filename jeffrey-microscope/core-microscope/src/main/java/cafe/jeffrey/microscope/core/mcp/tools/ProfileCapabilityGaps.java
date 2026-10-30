@@ -105,13 +105,13 @@ final class ProfileCapabilityGaps {
             "A heap dump downloaded with this recording is another item of its bundle: remote_download lists "
                     + "the items with their recordingIds, and recordings_analyzeRecording builds its profile. Otherwise "
                     + "capture one (jcmd <pid> GC.heap_dump) and analyse it with recordings_analyzeFile.";
-    private static final String HEAP_DUMP_MISSING_GAP =
+    static final String HEAP_DUMP_MISSING_GAP =
             "This heap dump profile has lost its copy of the dump, so every heap_ tool answers empty.";
-    private static final String HEAP_DUMP_MISSING_REMEDY =
+    static final String HEAP_DUMP_MISSING_REMEDY =
             "recordings_analyzeRecording on its recording builds the profile again from the stored dump.";
-    private static final String HEAP_DUMP_UNINDEXED_GAP =
+    static final String HEAP_DUMP_UNINDEXED_GAP =
             "The heap dump's index has not been built, so every heap_ tool answers empty until it is.";
-    private static final String HEAP_DUMP_UNINDEXED_REMEDY =
+    static final String HEAP_DUMP_UNINDEXED_REMEDY =
             "heap_prepare builds it; heap_status says when it is done.";
 
     private static final String FLAMEGRAPH_GROUP_GAP =

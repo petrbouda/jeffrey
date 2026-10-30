@@ -30,6 +30,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
@@ -372,7 +373,10 @@ public class ProfileMcpTools {
                         .toList(),
                 sections.availability(),
                 status,
-                flagged);
+                flagged,
+                info.eventSource().kind() == ProfileKind.HEAP_DUMP
+                        ? ProfileFacts.HeapState.of(profileManager.heapDumpManager())
+                        : ProfileFacts.HeapState.NOT_A_HEAP_DUMP);
     }
 
     /**
@@ -416,7 +420,8 @@ public class ProfileMcpTools {
             List<CapabilityGap> capabilityGaps,
             @McpDescription("The menu for an open question: every area this profile can be investigated in, "
                     + "with its weight, the evidence when suggested and the calls that open it, and the areas "
-                    + "it cannot answer with what is missing. Empty for a heap dump")
+                    + "it cannot answer with what is missing - a heap dump's own areas for a heap dump, those "
+                    + "needing heap_prepare first marked NEEDS_PREPARATION. Empty for perf counters")
             List<InvestigationOption> investigationAreas,
             McpFollowUp followUp,
             @McpDescription("The profile's page in the Microscope UI, for the user")

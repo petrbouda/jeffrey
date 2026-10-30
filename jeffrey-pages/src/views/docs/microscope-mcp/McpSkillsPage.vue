@@ -27,6 +27,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'which-skill', text: 'Which Skill Answers Your Question', level: 2 },
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
+  { id: 'help', text: 'help', level: 2 },
   { id: 'analyze-jfr', text: 'analyze-jfr', level: 2 },
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
   { id: 'analyze-remote', text: 'analyze-remote', level: 2 },
@@ -48,6 +49,7 @@ onMounted(() => {
 });
 
 const askExamples = `# each of these loads a skill on its own - no slash command needed
+"what can Jeffrey investigate?"                          -> help
 "why is the checkout endpoint slow?"                     -> analyze-jfr
 "analyze target/run.jfr and tell me where the time goes" -> analyze-jfr
 "what is holding memory in this heap dump?"              -> analyze-heap
@@ -62,6 +64,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "write up what you found"                                -> report`;
 
 const invoke = `# Claude Code
+/microscope:help
 /microscope:analyze-jfr
 /microscope:analyze-heap
 /microscope:analyze-remote
@@ -75,6 +78,7 @@ const invoke = `# Claude Code
 /microscope:report
 
 # Codex
+$help
 $analyze-jfr
 $analyze-heap
 $analyze-remote
@@ -114,9 +118,9 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships eleven skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all eleven from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
+      <p>The plugin ships twelve skills and <router-link to="/docs/microscope-mcp/agent">three agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all twelve from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
 
-      <p>The eleven are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
+      <p>The twelve are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
       <p>The front matter only pre-approves those tools for the turn a skill runs in; it does not hide the others. <code>advise-jfr</code> lists Jeffrey's tools with <code>Read</code>, <code>Grep</code>, <code>Glob</code> and <code>git rev-parse</code> &mdash; the reading it does in your checkout &mdash; and leaves an edit or a build to ask as usual. A skill names each tool without the prefix your client puts in front of it, and says in one sentence what the three prefixes are &mdash; <code>mcp__plugin_microscope_jeffrey__</code> in Claude Code with the plugin, <code>mcp__jeffrey__</code> in Codex or wherever the server is registered by hand, <code>mcp_jeffrey_</code> in Gemini CLI. Each skill is self-contained: nothing in one points into another skill&rsquo;s directory, because a client that loads skills from the server reads only the files a skill lists as its own.</p>
@@ -124,7 +128,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the eleven cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the twelve cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>
@@ -134,6 +138,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td>&ldquo;What can Jeffrey investigate?&rdquo; &middot; &ldquo;What should I record?&rdquo; &middot; &ldquo;Where do I start?&rdquo;</td>
+            <td><a href="#help"><code>help</code></a></td>
+            <td>Nothing</td>
+          </tr>
           <tr>
             <td>&ldquo;Why is this slow?&rdquo; &middot; &ldquo;Where does the time go?&rdquo; &middot; &ldquo;What is allocating?&rdquo;</td>
             <td><a href="#analyze-jfr"><code>analyze-jfr</code></a></td>
@@ -202,6 +211,30 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <li><strong>The two database schemas.</strong> Nothing in a tool list says what the <code>events</code> table&rsquo;s JSON <code>fields</code> column holds per event type, or which heap-index tables join on what. Without a skill an external client would be guessing at column names.</li>
       </ul>
 
+      <h2 id="help">help</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;What can Jeffrey investigate?&rdquo;</p>
+          <span class="skill-role">The orientation</span>
+        </div>
+
+        <p>The skill for the moment before any profile is chosen. It says what Jeffrey reads, which areas a recording or a heap dump can answer and what each needs recorded, which skill takes each one, and what is here now &mdash; then hands over to the skill that does the work. It runs nothing slow and builds nothing.</p>
+
+        <section class="skill-block">
+          <h4>What it shows</h4>
+          <ul>
+            <li>The areas in general: for a recording, CPU, wall-clock, allocation, when it happened, requests and outbound calls, the database, I/O, locks, GC and pauses, JIT, threads, native memory, rule findings, the container and flags, leak candidates and exceptions &mdash; each with the profiler option or JFR events that record it; for a heap dump, its contents, retention and waste.</li>
+            <li>What is here now: <code>profiles_list</code>, and <code>remote_status</code> when the remote tools are served.</li>
+            <li>For a profile the user names, that profile&rsquo;s own menu &mdash; <code>profiles_summary</code>&rsquo;s <router-link to="/docs/microscope-mcp/tools#investigation-areas"><code>investigationAreas</code></router-link>, put as one question per group, with what was not recorded named beneath.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>The general table is what is possible, not what a given recording holds. Which areas one profile can answer is server data &mdash; the menu is taken from <code>profiles_summary</code>, never from the table.</p>
+        </aside>
+      </div>
+
       <h2 id="analyze-jfr">analyze-jfr</h2>
       <div class="skill-card">
         <div class="skill-head">
@@ -269,6 +302,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
             <li><strong>Six reports have to be built before they can be read.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are cached results, and until something computes one its tool says so. The skill maps each to the <code>heap_prepare</code> report that builds it, so the model prepares the dump and carries on rather than sending you to the browser &mdash; and knows to fall back to the UI when the installation has compute switched off.</li>
             <li>That the same question has an on-demand route which does not wait on the UI: the dominator tree into <code>heap_getPathToGCRoot</code>.</li>
+            <li><strong>An open question gets the heap&rsquo;s own menu.</strong> &ldquo;Analyse this dump&rdquo; gets <code>profiles_summary</code>&rsquo;s <router-link to="/docs/microscope-mcp/tools#investigation-areas"><code>investigationAreas</code></router-link> for a heap dump &mdash; contents, retention and waste &mdash; with the areas still waiting for <code>heap_prepare</code> marked <code>NEEDS_PREPARATION</code> and prepared only when you choose them.</li>
           </ul>
         </section>
 

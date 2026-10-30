@@ -110,15 +110,16 @@ class McpInstructionsTest {
         }
 
         /**
-         * The same eleven files are served two ways, and {@code skills/*} answer every client, declared or
+         * The same twelve files are served two ways, and {@code skills/*} answer every client, declared or
          * not; the text names both paths and never implies the skills are gated on a declaration.
          */
         @Test
         void offersTheGuidanceAsPromptsAndAsSkills() {
             assertTrue(text.contains("Fuller guidance is served as prompts and as skills."), text);
-            assertTrue(text.contains("prompts/list names eleven, one per workflow"), text);
+            assertTrue(text.contains("prompts/list names twelve: help, the orientation to what can be investigated, "
+                    + "and one per workflow"), text);
             assertTrue(text.contains("skills/list (the io.modelcontextprotocol/skills extension) serves "
-                    + "the same eleven to any client that asks"), text);
+                    + "the same twelve to any client that asks"), text);
             assertTrue(text.contains("their files are read with resources/read"), text);
             assertFalse(text.contains("declared the MCP skills extension"), text);
         }

@@ -160,7 +160,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The variable is the one the plugin&rsquo;s session-start check reads as well, so both agree. It names the variable rather than holding the secret, so the file can be shared; a Jeffrey without a token ignores the header.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>The endpoint already configured and the <router-link to="/docs/microscope-mcp/clients#the-skills">eleven skills</router-link>, which Codex picks up on its own and which you can also invoke directly with <code>$</code>, as <code>$analyze-jfr</code>; <code>/skills</code> lists what the session actually loaded. No startup check: hooks are not part of the Agent Plugins format, so a Codex session finds out that Jeffrey is down the way it always did.</p>
+      <p>The endpoint already configured and the <router-link to="/docs/microscope-mcp/clients#the-skills">twelve skills</router-link>, which Codex picks up on its own and which you can also invoke directly with <code>$</code>, as <code>$analyze-jfr</code>; <code>/skills</code> lists what the session actually loaded. No startup check: hooks are not part of the Agent Plugins format, so a Codex session finds out that Jeffrey is down the way it always did.</p>
 
       <h2 id="the-analyst-agent">The Agents</h2>
       <p><strong>A Codex plugin cannot carry the <router-link to="/docs/microscope-mcp/clients#the-agents">three agents</router-link>.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships all three as files to copy:</p>
@@ -203,7 +203,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p>Or write the <code>[mcp_servers.jeffrey]</code> block from <a href="#pointing-it-elsewhere">above</a> straight into <code>~/.codex/config.toml</code>. Use the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.</p>
 
-      <p>What you give up is the skills: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. A client that speaks MCP <code>2026-07-28</code> with the skills extension gets all eleven from the server instead &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> shows how they are served.</p>
+      <p>What you give up is the skills: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first. A client that speaks MCP <code>2026-07-28</code> with the skills extension gets all twelve from the server instead &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> shows how they are served.</p>
 
       <h2 id="what-differs-from-claude-code">What Differs from Claude Code</h2>
       <p>The tools and the skills are identical. Everything below is a property of the plugin formats, not of Jeffrey.</p>
@@ -240,7 +240,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
           <tr>
             <th scope="row">Skills</th>
             <td class="is-baseline" data-client="Claude Code">Ten, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
-            <td class="is-primary" data-client="Codex">The same eleven, invoked <span class="docs-compare-value">$analyze-jfr</span></td>
+            <td class="is-primary" data-client="Codex">The same twelve, invoked <span class="docs-compare-value">$analyze-jfr</span></td>
           </tr>
           <tr>
             <th scope="row">Endpoint</th>

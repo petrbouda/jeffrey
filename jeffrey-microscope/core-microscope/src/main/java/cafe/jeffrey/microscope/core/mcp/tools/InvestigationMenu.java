@@ -17,7 +17,6 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
-import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
@@ -60,22 +59,22 @@ final class InvestigationMenu {
     private static final String SHARE_EVIDENCE = "%s holds %.0f%% of the stack samples (%,d of %,d)";
     private static final String EVENT_TYPE_SEPARATOR = " + ";
     private static final double PERCENT = 100.0;
-    private static final Set<ProfileKind> NO_MENU_KINDS = Set.of(ProfileKind.HEAP_DUMP, ProfileKind.PERF_COUNTERS);
 
     private InvestigationMenu() {
     }
 
     /**
-     * The menu for one profile. A heap dump and a perf-counters snapshot have none: they hold no
-     * events, and fifteen lines of recording areas they cannot answer would bury what they are.
+     * The menu for one profile: the areas of its own subject only — a recording's for a recording, a
+     * heap dump's for a heap dump. A perf-counters snapshot has none; no tool reads its counters yet.
      */
     static List<InvestigationOption> of(ProfileFacts facts, AdvertisedFamilies advertised) {
-        if (NO_MENU_KINDS.contains(facts.eventSource().kind())) {
+        Optional<MenuSubject> subject = MenuSubject.of(facts.eventSource().kind());
+        if (subject.isEmpty()) {
             return List.of();
         }
         Map<InvestigationArea, InvestigationOption> options = new EnumMap<>(InvestigationArea.class);
         for (InvestigationArea area : InvestigationArea.values()) {
-            if (area.servedBy(advertised)) {
+            if (area.group().subject() == subject.get() && area.servedBy(advertised)) {
                 option(area, facts, advertised).ifPresent(option -> options.put(area, option));
             }
         }
@@ -90,11 +89,19 @@ final class InvestigationMenu {
         if (!source.available(facts)) {
             return Optional.of(InvestigationOption.notRecorded(area, source.gap(facts), source.remedy()));
         }
-        List<McpNextTool> calls = area.calls().calls(facts, advertised).stream()
-                .filter(call -> advertised.servesTool(call.tool()))
-                .toList();
+        Optional<AreaSource.Preparation> preparation = source.preparation(facts);
+        if (preparation.isPresent()) {
+            return served(preparation.get().calls(), advertised).isEmpty()
+                    ? Optional.empty()
+                    : Optional.of(InvestigationOption.needsPreparation(area, preparation.get()));
+        }
+        List<McpNextTool> calls = served(area.calls().calls(facts, advertised), advertised);
         // Its data is there but no call to it is served: not something this installation can offer.
         return calls.isEmpty() ? Optional.empty() : Optional.of(InvestigationOption.available(area, calls));
+    }
+
+    private static List<McpNextTool> served(List<McpNextTool> calls, AdvertisedFamilies advertised) {
+        return calls.stream().filter(call -> advertised.servesTool(call.tool())).toList();
     }
 
     /** Fired rules first, most severe first, then the dominant kind of sample; at most two in all. */

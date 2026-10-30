@@ -102,6 +102,24 @@ depth. Every answer carries a `uiLink` to the same page in Microscope: give it t
 
 ## 5. Pick the route
 
+**The question is open** — "analyse this dump", "what is wrong with the heap" — call
+`profiles_summary` and put its `investigationAreas` to the user, then stop and wait for the choice.
+A heap dump's menu is Jeffrey's, not assembled here: the groups `HEAP_CONTENTS`, `HEAP_RETENTION`
+and `HEAP_WASTE`, each area with a `title`, the `question` it answers, its `weight` and its
+`availability`. In Claude Code put it as `AskUserQuestion`: one multi-select question per group
+(headers Contents, Retention, Waste), the `title` as each option's label and `weight · question` as
+its description; a group with a single area joins another group's question. Without a structured
+question tool, a table grouped the same way.
+
+- **`AVAILABLE`** — its `nextTools` read the area now; send them unchanged when it is chosen.
+- **`NEEDS_PREPARATION`** — offer it with "needs heap_prepare (slow)" and its `gap`. Its `nextTools`
+  are the preparation: the whole pipeline for a dump with no index yet, the one report otherwise.
+  Run it only when the area is chosen, follow it with `heap_status` (or its `operationId`), then read
+  the area with the reader the table below names.
+- **`NOT_RECORDED`** — the profile has lost its dump; say so with the `remedy`.
+
+A question that names its area goes straight to the table below, without the menu.
+
 | Question | Sequence | Without the report |
 |---|---|---|
 | What is using the heap at all | `heap_getClassHistogram`, then `heap_getTopConsumers` for the same picture by package and class loader | The histogram alone |

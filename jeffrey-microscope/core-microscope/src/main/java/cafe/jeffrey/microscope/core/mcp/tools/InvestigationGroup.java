@@ -17,20 +17,40 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 /**
- * The four groups the investigation areas are offered in — at most four areas each, so a host that
- * asks one question per group with up to four options can put the whole menu to the user at once.
+ * The groups the investigation areas are offered in — at most four areas each, and at most four groups
+ * per {@link MenuSubject}, so a host that asks one question per group with up to four options can put a
+ * profile's whole menu to the user at once.
  */
 enum InvestigationGroup {
 
     /** Where the samples land in the code, and when. */
-    CODE,
+    CODE(MenuSubject.RECORDING),
 
-    /** What the application waited on: requests, the database, I/O, locks. */
-    WAITING,
+    /** What the application waited on: requests and calls, the database, I/O, locks. */
+    WAITING(MenuSubject.RECORDING),
 
     /** The runtime underneath: collections, compilation, threads, native memory. */
-    JVM,
+    JVM(MenuSubject.RECORDING),
 
-    /** Whole-recording judgements and the setup the JVM ran with. */
-    OVERALL
+    /** Whole-recording judgements, what was thrown, and the setup the JVM ran with. */
+    OVERALL(MenuSubject.RECORDING),
+
+    /** What fills the heap: its totals, the classes and packages, the biggest objects. */
+    HEAP_CONTENTS(MenuSubject.HEAP_DUMP),
+
+    /** What keeps it alive: leak suspects, the dominator tree, class loaders, GC roots. */
+    HEAP_RETENTION(MenuSubject.HEAP_DUMP),
+
+    /** Memory spent on nothing: duplicated strings and empty or oversized collections. */
+    HEAP_WASTE(MenuSubject.HEAP_DUMP);
+
+    private final MenuSubject subject;
+
+    InvestigationGroup(MenuSubject subject) {
+        this.subject = subject;
+    }
+
+    MenuSubject subject() {
+        return subject;
+    }
 }

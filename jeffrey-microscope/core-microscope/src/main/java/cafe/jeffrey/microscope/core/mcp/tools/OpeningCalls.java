@@ -17,6 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SafepointsSection;
@@ -40,6 +41,10 @@ final class OpeningCalls {
     private static final String HOT_WINDOWS_WHY = "when the samples landed: steady, ramp or spike";
     private static final String TRACES_WHY = "the slowest operations and how their latency splits";
     private static final String HTTP_WHY = "the served endpoints ranked by latency";
+    private static final String GRPC_WHY = "the served gRPC methods ranked by latency";
+    private static final String HTTP_CLIENT_WHY = "the outbound HTTP calls ranked by latency";
+    private static final String GRPC_CLIENT_WHY = "the outbound gRPC calls ranked by latency";
+    private static final String METHOD_TRACING_WHY = "the traced methods ranked by time";
     private static final String JDBC_WHY = "the statements the application ran, ranked by time";
     private static final String POOLS_WHY = "whether requests waited for a connection";
     private static final String SOCKET_WHY = "which remote endpoints the application waited on";
@@ -53,6 +58,22 @@ final class OpeningCalls {
     private static final String CONTAINER_WHY = "whether the container throttled the process";
     private static final String FLAGS_WHY = "the flags the JVM really ran with";
     private static final String LEAKS_WHY = "objects that survived collections, with their allocation sites";
+    private static final String EXCEPTIONS_WHY = "what was thrown, how often, and the classes behind it";
+    private static final String HEAP_SUMMARY_WHY = "live bytes, instances, classes and GC roots";
+    private static final String HEAP_METADATA_WHY = "how the dump was written, and any warnings about it";
+    private static final String HISTOGRAM_WHY = "the classes ranked by the bytes they hold";
+    private static final String CONSUMERS_WHY = "the packages and class loaders ranked by the bytes they hold";
+    private static final String BIGGEST_WHY = "the single objects that retain the most";
+    private static final String LEAK_SUSPECTS_WHY = "the leak heuristics' suspects, with what holds them";
+    private static final String DOMINATORS_WHY = "the objects that keep the most memory alive";
+    private static final String CLASSLOADERS_WHY = "class loaders that outlived their use, with their root chains";
+    private static final String GC_ROOTS_WHY = "the GC roots by type";
+    private static final String HEAP_THREADS_WHY = "the threads and what each one retains";
+    private static final String STRINGS_WHY = "strings stored many times over, and the bytes they waste";
+    private static final String COLLECTIONS_WHY = "empty, near-empty and oversized collections";
+    private static final String PREPARE_HEAP_WHY =
+            "builds the heap dump's index and every report; slow, it reads the whole dump";
+    private static final String PREPARE_REPORT_WHY = "computes the one report this area reads; slow, it walks the heap";
     private static final String RULES_WHY = "the rules' verdicts over the whole recording";
     private static final String RULES_COMPUTE_WHY = "runs the rules; slow, it reads the whole recording";
 
@@ -62,12 +83,28 @@ final class OpeningCalls {
     private static final String JVM_GC = "jvm_gc";
     private static final String JVM_SAFEPOINTS = "jvm_safepoints";
     private static final String JVM_JIT = "jvm_jit";
+    private static final String JVM_EXCEPTIONS = "jvm_exceptions";
     private static final String JVM_THREADS = "jvm_threads";
     private static final String JVM_NATIVE_MEMORY = "jvm_nativeMemory";
     private static final String JVM_CONTAINER = "jvm_container";
     private static final String JVM_FLAGS = "jvm_flags";
     private static final String JVM_AUTO_ANALYSIS = "jvm_autoAnalysis";
+    private static final String HEAP_SUMMARY = "heap_getHeapSummary";
+    private static final String HEAP_METADATA = "heap_getDumpMetadata";
+    private static final String HEAP_HISTOGRAM = "heap_getClassHistogram";
+    private static final String HEAP_CONSUMERS = "heap_getTopConsumers";
+    private static final String HEAP_BIGGEST = "heap_getBiggestObjects";
+    private static final String HEAP_LEAK_SUSPECTS = "heap_getLeakSuspects";
+    private static final String HEAP_DOMINATOR_ROOTS = "heap_getDominatorTreeRoots";
+    private static final String HEAP_CLASSLOADERS = "heap_getClassLoaderLeakChains";
+    private static final String HEAP_GC_ROOTS = "heap_getGCRootSummary";
+    private static final String HEAP_THREADS = "heap_getThreads";
+    private static final String HEAP_STRINGS = "heap_getStringAnalysis";
+    private static final String HEAP_COLLECTIONS = "heap_getCollectionAnalysis";
+    private static final String HEAP_PREPARE = "heap_prepare";
+    private static final String REPORT = "report";
     private static final String SERVER = "SERVER";
+    private static final String CLIENT = "CLIENT";
     private static final String SOCKET = "SOCKET";
     private static final String FILE = "FILE";
 
@@ -106,9 +143,73 @@ final class OpeningCalls {
         return one(MEMORY_LEAK_CANDIDATES, LEAKS_WHY);
     }
 
+    static AreaCalls exceptions() {
+        return one(JVM_EXCEPTIONS, EXCEPTIONS_WHY);
+    }
+
+    static AreaCalls heapOverview() {
+        return two(HEAP_SUMMARY, HEAP_SUMMARY_WHY, HEAP_METADATA, HEAP_METADATA_WHY);
+    }
+
+    static AreaCalls classHistogram() {
+        return one(HEAP_HISTOGRAM, HISTOGRAM_WHY);
+    }
+
+    static AreaCalls topConsumers() {
+        return one(HEAP_CONSUMERS, CONSUMERS_WHY);
+    }
+
+    static AreaCalls biggestObjects() {
+        return one(HEAP_BIGGEST, BIGGEST_WHY);
+    }
+
+    static AreaCalls leakSuspects() {
+        return one(HEAP_LEAK_SUSPECTS, LEAK_SUSPECTS_WHY);
+    }
+
+    static AreaCalls dominators() {
+        return one(HEAP_DOMINATOR_ROOTS, DOMINATORS_WHY);
+    }
+
+    static AreaCalls classLoaderLeaks() {
+        return one(HEAP_CLASSLOADERS, CLASSLOADERS_WHY);
+    }
+
+    static AreaCalls gcRoots() {
+        return two(HEAP_GC_ROOTS, GC_ROOTS_WHY, HEAP_THREADS, HEAP_THREADS_WHY);
+    }
+
+    static AreaCalls stringWaste() {
+        return one(HEAP_STRINGS, STRINGS_WHY);
+    }
+
+    static AreaCalls collectionWaste() {
+        return one(HEAP_COLLECTIONS, COLLECTIONS_WHY);
+    }
+
+    /**
+     * What builds a heap dump's data before an area can read it: the whole pipeline for a dump with no
+     * index yet, the one report otherwise — offered only because there is nothing to read until it runs.
+     *
+     * @param report the report the area reads; null to build the index and every report
+     */
+    static List<McpNextTool> prepareHeap(ProfileFacts facts, HeapReport report) {
+        if (report == null) {
+            return List.of(onProfile(facts, HEAP_PREPARE).why(PREPARE_HEAP_WHY));
+        }
+        return List.of(onProfile(facts, HEAP_PREPARE).with(REPORT, report).why(PREPARE_REPORT_WHY));
+    }
+
     /** One call on the profile and nothing else. */
     private static AreaCalls one(String tool, String why) {
         return (facts, advertised) -> List.of(onProfile(facts, tool).why(why));
+    }
+
+    /** Two calls on the profile, in the order they are best read. */
+    private static AreaCalls two(String first, String firstWhy, String second, String secondWhy) {
+        return (facts, advertised) -> List.of(
+                onProfile(facts, first).why(firstWhy),
+                onProfile(facts, second).why(secondWhy));
     }
 
     /** The flamegraph of the first recorded event type of the kind. */
@@ -128,14 +229,35 @@ final class OpeningCalls {
                 .orElse(List.of());
     }
 
-    /** The traces when the profile has them and they are served; the served endpoints otherwise. */
-    static List<McpNextTool> endpoints(ProfileFacts facts, AdvertisedFamilies advertised) {
+    /**
+     * The traces when the profile has them and they are served; otherwise each dashboard the profile
+     * recorded — the served endpoints first, then the calls it made, then the traced methods.
+     */
+    static List<McpNextTool> requestsAndCalls(ProfileFacts facts, AdvertisedFamilies advertised) {
         if (facts.enabled(FeatureType.TRACES) && advertised.servesTool(TRACES_OVERVIEW)) {
             return List.of(onProfile(facts, TRACES_OVERVIEW).why(TRACES_WHY));
         }
-        return List.of(onProfile(facts, FollowUpCalls.HTTP_OVERVIEW)
-                .with(FollowUpCalls.DIRECTION, SERVER)
-                .why(HTTP_WHY));
+        List<McpNextTool> calls = new ArrayList<>();
+        if (facts.enabled(FeatureType.HTTP_SERVER_DASHBOARD)) {
+            calls.add(onProfile(facts, FollowUpCalls.HTTP_OVERVIEW).with(FollowUpCalls.DIRECTION, SERVER)
+                    .why(HTTP_WHY));
+        }
+        if (facts.enabled(FeatureType.GRPC_SERVER_DASHBOARD)) {
+            calls.add(onProfile(facts, FollowUpCalls.GRPC_OVERVIEW).with(FollowUpCalls.DIRECTION, SERVER)
+                    .why(GRPC_WHY));
+        }
+        if (facts.enabled(FeatureType.HTTP_CLIENT_DASHBOARD)) {
+            calls.add(onProfile(facts, FollowUpCalls.HTTP_OVERVIEW).with(FollowUpCalls.DIRECTION, CLIENT)
+                    .why(HTTP_CLIENT_WHY));
+        }
+        if (facts.enabled(FeatureType.GRPC_CLIENT_DASHBOARD)) {
+            calls.add(onProfile(facts, FollowUpCalls.GRPC_OVERVIEW).with(FollowUpCalls.DIRECTION, CLIENT)
+                    .why(GRPC_CLIENT_WHY));
+        }
+        if (facts.enabled(FeatureType.METHOD_TRACING_DASHBOARD)) {
+            calls.add(onProfile(facts, FollowUpCalls.METHOD_TRACING_OVERVIEW).why(METHOD_TRACING_WHY));
+        }
+        return calls;
     }
 
     static List<McpNextTool> database(ProfileFacts facts, AdvertisedFamilies advertised) {

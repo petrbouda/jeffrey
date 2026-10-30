@@ -136,7 +136,7 @@ class McpPromptRegistryTest {
 
         @Test
         void declaresNoArgumentsForASkillThatTakesNone() {
-            for (String name : List.of("analyze-remote", "profile-run", "regression-check", "report")) {
+            for (String name : List.of("analyze-remote", "profile-run", "regression-check", "report", "help")) {
                 assertTrue(prompt(name, "b").arguments().isEmpty(), name);
             }
         }
@@ -270,7 +270,7 @@ class McpPromptRegistryTest {
         void servesOnePromptPerCatalogueSkill() {
             List<String> skills = McpSkillCatalogue.fromClasspath().skills().stream().map(McpSkill::name).toList();
 
-            assertEquals(11, registry.prompts().size());
+            assertEquals(12, registry.prompts().size());
             assertEquals(skills, registry.prompts().stream().map(McpPrompt::name).toList());
         }
 

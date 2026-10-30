@@ -77,11 +77,12 @@ public class McpPromptRegistry implements McpPromptProvider {
             Map.entry("analyze-remote", NO_ARGUMENTS),
             Map.entry("profile-run", NO_ARGUMENTS),
             Map.entry("regression-check", NO_ARGUMENTS),
-            Map.entry("report", NO_ARGUMENTS));
+            Map.entry("report", NO_ARGUMENTS),
+            Map.entry("help", NO_ARGUMENTS));
 
     /**
      * The menu title for each skill. A small, explicit map rather than {@link #title(String)}'s
-     * word-split for the eleven skills this server actually ships, because splitting on {@code -} alone
+     * word-split for the twelve skills this server actually ships, because splitting on {@code -} alone
      * reads {@code jfr} and {@code sql} as ordinary words ("Analyze Jfr", "Jfr Sql") instead of the
      * acronyms they are.
      */
@@ -96,7 +97,8 @@ public class McpPromptRegistry implements McpPromptProvider {
             Map.entry("heap-sql", "Query a Heap Dump with SQL"),
             Map.entry("profile-run", "Profile a Run"),
             Map.entry("regression-check", "Check for a Regression"),
-            Map.entry("report", "Report a Finding"));
+            Map.entry("report", "Report a Finding"),
+            Map.entry("help", "What Jeffrey Can Investigate"));
 
     private final Map<String, McpPrompt> promptsByName;
 

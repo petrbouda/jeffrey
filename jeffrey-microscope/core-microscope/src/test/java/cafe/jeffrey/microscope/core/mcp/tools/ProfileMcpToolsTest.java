@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -614,18 +615,53 @@ class ProfileMcpToolsTest {
                     CatalogueSpecs.profileScoped(TimelineMcpTools.class, "timeline"),
                     CatalogueSpecs.profileScoped(TracesMcpTools.class, "traces"),
                     CatalogueSpecs.profileScoped(HttpMcpTools.class, "http"),
+                    CatalogueSpecs.profileScoped(GrpcMcpTools.class, "grpc"),
+                    CatalogueSpecs.profileScoped(MethodTracingMcpTools.class, "methodtracing"),
                     CatalogueSpecs.profileScoped(JdbcMcpTools.class, "jdbc"),
                     CatalogueSpecs.profileScoped(IoMcpTools.class, "io"),
                     CatalogueSpecs.profileScoped(BlockingMcpTools.class, "blocking"))) > 0);
         }
 
+        /** An unindexed heap dump is offered its own areas, each opened by the preparation it waits for. */
         @Test
-        void aHeapDumpSummaryHasNoMenu() {
+        void anUnindexedHeapDumpSummaryOffersItsAreasBehindThePreparation() {
             stubProfile(RecordingEventSource.HEAP_DUMP);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(false);
 
-            JsonNode summary = conforming("summary", tools().summary());
+            JsonNode areas = conforming("summary", tools().summary()).get("investigationAreas");
 
-            assertTrue(summary.get("investigationAreas").isEmpty());
+            assertFalse(areas.isEmpty());
+            for (JsonNode area : areas) {
+                assertEquals("NEEDS_PREPARATION", area.get("availability").asString(), area.toString());
+                assertEquals("heap_prepare", area.get("nextTools").get(0).get("tool").asString());
+            }
+            assertTrue(McpNextToolConformance.assertFollowable(areas, CatalogueSpecs.of(
+                    CatalogueSpecs.profileScoped(HeapComputeMcpTools.class, AdvertisedFamilies.HEAP))) > 0);
+        }
+
+        @Test
+        void aPreparedHeapDumpSummaryOpensItsAreasWithTheirReaders() {
+            stubProfile(RecordingEventSource.HEAP_DUMP);
+            when(heapDumpManager.heapDumpExists()).thenReturn(true);
+            when(heapDumpManager.isCacheReady()).thenReturn(true);
+            when(heapDumpManager.leakSuspectsExists()).thenReturn(true);
+
+            JsonNode areas = conforming("summary", tools().summary()).get("investigationAreas");
+
+            JsonNode leaks = null;
+            for (JsonNode area : areas) {
+                assertNotEquals("CPU_HOTSPOTS", area.get("area").asString());
+                if ("LEAK_SUSPECTS".equals(area.get("area").asString())) {
+                    leaks = area;
+                }
+            }
+            assertNotNull(leaks, areas.toString());
+            assertEquals("AVAILABLE", leaks.get("availability").asString());
+            assertEquals("heap_getLeakSuspects", leaks.get("nextTools").get(0).get("tool").asString());
+            assertTrue(McpNextToolConformance.assertFollowable(areas, CatalogueSpecs.of(
+                    CatalogueSpecs.profileScoped(HeapDumpMcpTools.class, AdvertisedFamilies.HEAP),
+                    CatalogueSpecs.profileScoped(HeapComputeMcpTools.class, AdvertisedFamilies.HEAP))) > 0);
         }
 
         @Test
