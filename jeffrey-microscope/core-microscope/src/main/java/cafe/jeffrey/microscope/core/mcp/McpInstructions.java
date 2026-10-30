@@ -121,7 +121,7 @@ final class McpInstructions {
             new FamilyGuide(HEAP, "heap_ heap dumps, their dominator tree and GC-root paths"),
             new FamilyGuide(JFR, "jfr_ DuckDB SQL over the profile database when no dashboard answers"),
             new FamilyGuide(RECORDINGS, "recordings_ turning a file into a profile"),
-            new FamilyGuide(REMOTE, "remote_ recordings and the files beside them held on another machine"),
+            new FamilyGuide(REMOTE, "remote_ recordings and the files beside them on the remote recording volume"),
             new FamilyGuide(IDE, "ide_ where a frame lives in the developer's editor"),
             new FamilyGuide(OPERATIONS, "operations_ the work the writers start"));
 

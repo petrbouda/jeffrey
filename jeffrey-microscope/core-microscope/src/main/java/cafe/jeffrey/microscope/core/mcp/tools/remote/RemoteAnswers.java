@@ -65,7 +65,7 @@ public final class RemoteAnswers {
             String address,
             @McpNullable
             @McpDescription("True for a remote declared read-only: its sessions list and download as usual, but "
-                    + "nothing on it can be deleted or pinned; null when none is configured")
+                    + "nothing on it can be deleted; null when none is configured")
             Boolean readOnly,
             @McpNullable
             @McpDescription("The version the remote reported; null when it did not answer or none is configured")

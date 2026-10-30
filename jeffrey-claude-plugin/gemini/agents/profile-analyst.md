@@ -11,10 +11,11 @@
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off the
 # three recordings_ writers (recordings_analyzeFile, recordings_analyzeRecording, recordings_delete —
-# recordings_list only reads and stays allowed), the two remote_ tools that write (remote_download,
-# remote_fetchFile), heap_prepare, operations_cancel and the two ide_ tools. The other two of the eleven
-# writers, jvm_autoAnalysis with compute and heap_oql with includeRetainedSize, stay allowed: they
-# only fill a cache and are bounded (45 s, then an operationId). To make it a wall, name the nine
+# recordings_list only reads and stays allowed), the whole remote_ family (remote_status,
+# remote_sessions, remote_files and the two that write, remote_download and remote_fetchFile — the
+# remote is the caller's), heap_prepare, operations_cancel and the two ide_ tools. The other two of the
+# eleven writers, jvm_autoAnalysis with compute and heap_oql with includeRetainedSize, stay allowed: they
+# only fill a cache and are bounded (45 s, then an operationId). To make it a wall, name the twelve
 # denied tools in excludeTools on the server entry in settings.json.
 name: profile-analyst
 description: Reads one Jeffrey Microscope export end to end and returns only the findings — the hottest frames with their shares, or the retaining objects with their GC-root paths. Delegate to it whenever a flamegraph, trace or heap report has to be read but the raw document is not wanted in the main conversation, and when several event types or heap questions can be worked at the same time. It reports figures; it never maps them to source, edits anything or creates a profile.

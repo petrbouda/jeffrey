@@ -540,7 +540,7 @@ class RemoteMcpToolsTest {
             assertTrue(StructuredAnswers.guidance(answer).contains("did not answer"), answer.toString());
         }
 
-        /** A file share is a remote like a hub, and says when nothing can be deleted or pinned on it. */
+        /** The file share says when nothing can be deleted on it. */
         @Test
         void marksAReadOnlyAzureFileShare() {
             RemoteConnection share = reachableRemote("prodshare", "checkout", repositoryWith());

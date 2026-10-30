@@ -35,7 +35,8 @@ rather than changing them, `recordings_delete`, the one destructive tool, which 
 profile built from it, `heap_prepare`, which writes only a cache, `heap_oql` with `includeRetainedSize`
 and `jvm_autoAnalysis` with `compute`, which fill the dominator tree and the Auto Analysis cache and run as
 operations for that reason, `remote_download`, which pulls a session or a
-window of it off another machine, `remote_fetchFile`, which pulls one of a session's artifacts off it the same way,
+window of it off the remote (the recording volume on an Azure file share), `remote_fetchFile`, which pulls one of a
+session's artifacts off it the same way,
 `operations_cancel`, which asks background work to stop, and `ide_link` and `ide_open`, which act on the
 editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members
 of those same families - `recordings_list`, `recordings_status`, `heap_status`, `remote_files`,
@@ -312,7 +313,7 @@ with the two per-family switches above.
 
 Every client asks before each tool the first time. Every Jeffrey tool reads except the eleven named
 above, so approving a family once is usually what you want — `remote_` and `ide_` are the two worth
-reading twice, since one moves data off another machine and the other acts on your editor.
+reading twice, since one moves data off the remote and the other acts on your editor.
 
 Claude Code, from the prompt or up front with `/permissions`:
 

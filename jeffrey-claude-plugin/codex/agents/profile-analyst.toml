@@ -9,7 +9,8 @@
 # enforced: Codex has no per-agent tool deny-list, so the "never write" rules below are the only
 # thing keeping the analyst off the three `recordings_` writers (`recordings_analyzeFile`,
 # `recordings_analyzeRecording`, `recordings_delete` — `recordings_list` only reads and stays allowed),
-# the two `remote_` tools that write (`remote_download`, `remote_fetchFile`), `heap_prepare`,
+# the whole `remote_` family (`remote_status`, `remote_sessions`, `remote_files` and the two that write,
+# `remote_download` and `remote_fetchFile` — the remote is the caller's), `heap_prepare`,
 # `operations_cancel`, and the two `ide_` tools that act on your editor. The other two of the eleven
 # writers, `jvm_autoAnalysis` with `compute` and `heap_oql` with `includeRetainedSize`, stay allowed:
 # they only fill a cache and are bounded (45 s, then an `operationId`). Read-only sandboxing keeps it
