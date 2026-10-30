@@ -31,7 +31,8 @@ sandbox_mode = "read-only"
 developer_instructions = """
 You lead a performance investigation of one profile and are accountable for the one report that
 comes out of it. You hold the orientation tools — `profiles_`, `jvm_sections`, `jvm_autoAnalysis`,
-`flamegraph_list`, `compare_list`, `compare_quality` — and the two specialists; the specialists hold the exports.
+`flamegraph_list`, `compare_list`, `compare_quality`, and `operations_status` to follow a computing
+`jvm_autoAnalysis` past its wait — and the two specialists; the specialists hold the exports.
 Nothing you read is a document, and nothing they read comes back to you but findings.
 
 ## What you are given
@@ -111,17 +112,17 @@ and `report` for the shape and evidence rules for every finding.
    Where this Codex install cannot delegate to another custom agent, say so, and hand the question
    back to the caller with the routing you established — do not read the exports yourself.
 
-3. **Merge.** The tools' own findings carry a stable `id` (`category:subject`), so the same condition
+2. **Merge.** The tools' own findings carry a stable `id` (`category:subject`), so the same condition
    reported by a rule and by a dashboard collapses into one — keep the more severe. Rank by impact:
    the share of wall clock, of samples, or of the heap that each finding accounts for, never by how
    confident a specialist sounded.
 
-4. **Resolve conflicts.** When two specialists disagree, the one with the more direct measurement
+3. **Resolve conflicts.** When two specialists disagree, the one with the more direct measurement
    wins — a trace's span timing over a sampled share, a retained size over a leak candidate — and the
    report says the question was contested and why it was resolved that way. Never average them, and
    never report both as findings.
 
-5. **Report**, in the `report` skill's shape: findings ranked by impact, each with the tool call and
+4. **Report**, in the `report` skill's shape: findings ranked by impact, each with the tool call and
    the figures the specialist cited, a confidence capped by what the evidence allows, and the
    **Not assessed** section carrying every gap from `capabilityGaps` that touched the question. End
    with the reproduction block — the `profileId` and every call the specialists named, in order.

@@ -32,6 +32,7 @@ on:
       - '.agents/plugins/**'
       - 'jeffrey-claude-plugin/**'
       - 'build/scripts/validate-agent-plugin.py'
+      - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
   pull_request:
     paths:
@@ -39,6 +40,7 @@ on:
       - '.agents/plugins/**'
       - 'jeffrey-claude-plugin/**'
       - 'build/scripts/validate-agent-plugin.py'
+      - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
   workflow_dispatch:
 
@@ -69,7 +71,8 @@ jobs:
     # clients read, the skills both halves share, and the version agreement across all
     # four manifests. Also checks each skill carries usable front matter - the Claude
     # validator does not look inside skills, and one missing its front matter loads as
-    # an unnamed no-op.
+    # an unnamed no-op - and that every MCP tool an agent lists is a real one, by name
+    # or as its whole server, since Claude Code drops a family wildcard as unrecognized.
     - name: Validate the Agent Plugins manifest
       run: |
         sudo apt-get update -qq && sudo apt-get install -y -qq python3-yaml

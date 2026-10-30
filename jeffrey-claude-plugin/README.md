@@ -162,7 +162,8 @@ A Jeffrey reachable from more than your machine can require a bearer token:
 
 The session-start check sends the token the tools send — under Claude Code only the plugin's
 setting, elsewhere `JEFFREY_MCP_TOKEN` — and says which of three things is wrong when a session
-opens: nothing answering, a missing or mismatched token (HTTP 401 — it names where this client takes
+opens in a JVM project (a Maven, Gradle, sbt or Mill build file at its root, or a recording or heap
+dump near it — anywhere else it stays silent): nothing answering, a missing or mismatched token (HTTP 401 — it names where this client takes
 the token from), or a refused host or origin (HTTP 403 — it quotes Jeffrey's own reason, which names
 the property to change).
 
@@ -259,8 +260,11 @@ tool of its own. Its `Agent` tool is the plain one: Claude Code ignores a type l
 dispatches to the two specialists and nothing else is a rule in its instructions.
 
 Claude Code gets them from the plugin as `microscope:profile-analyst`, `microscope:heap-triage` and
-`microscope:profile-lead`, restricted to the reading tools so they cannot touch your files, import
-a recording, pull one off the remote, move your editor or propose an edit. **Agent Plugins defines only
+`microscope:profile-lead`, with no file tools and no writer that leaves Jeffrey's caches, so they
+cannot touch your files, import a recording, pull one off the remote, move your editor or propose
+an edit. They are not strictly read-only: `jvm_autoAnalysis` with `compute` and `heap_oql` with
+`includeRetainedSize` fill a cache, and `heap-triage` also runs `heap_prepare` to build a missing
+report — `profile-analyst` is denied that one. **Agent Plugins defines only
 skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
 [`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml),
 [`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) and
@@ -293,7 +297,7 @@ a tool call on it.
 
 **How an answer reads.** Every tool but `ide_source` declares an `outputSchema` and answers a typed
 record in `structuredContent`: times are UTC epoch milliseconds (`…EpochMs`), enum values are upper
-case in answers and arguments alike, a heap `objectId` is a decimal string, "no data" is a `status`
+case in answers and arguments alike (bar `profiles_viewLink`'s `view`, a Microscope page path), a heap `objectId` is a decimal string, "no data" is a `status`
 with a `reason` rather than an error, a list that continues returns `hasMore` and a `nextCursor` to pass
 back as `cursor`, and `followUp.nextTools` are the next calls with their arguments filled in. An answer
 whose subject has a page in Microscope carries a `uiLink` to it — the skills hand it to the user with

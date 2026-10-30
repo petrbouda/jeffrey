@@ -204,8 +204,8 @@ with its `recordingId`, `eventSource` (`JDK` or `ASYNC_PROFILER` for the recordi
 `PERF_COUNTERS`), `name` and `profileId` once it has one; when there are heap dumps the answer's
 guidance names them. A part of a session reports `coveredStartEpochMs` / `coveredEndEpochMs`, the span
 its files cover. A part is a bundle of its own: it is never answered from a whole-session copy that
-is already here, and the Recordings list marks it as a part (its span is in the `origin.window`
-tag), so it never reads as the whole session. A whole session is answered from the copy already here only when that copy was taken after a
+is already here, and Microscope's Recordings page marks it as a part, with its span, so it never reads as the whole
+session. A whole session is answered from the copy already here only when that copy was taken after a
 newer session ended it; a copy of the instance's newest session is downloaded again as a new bundle.
 
 It does **not** build a profile; `recordings_analyzeRecording(recordingId)` does that, one item at a
@@ -221,9 +221,13 @@ one.
 
 Downloading the same whole session twice is wasteful and never necessary — `remote_download` returns
 the recording it already has rather than fetching it again, but you should have read the row's
-`recordingId`/`profileId` in step 1 instead of relying on that. Those speak only of the whole session: a window
-pulled earlier is in `recordings_list`, tagged `origin.window`, and is where to look before pulling
-the same hour a second time.
+`recordingId`/`profileId` in step 1 instead of relying on that. Those speak only of the whole session. A window
+pulled earlier is in `recordings_list` under the name `<project>_<session start>_part` — the name says
+it is a part but not which span — so before pulling the same hour a second time, repeat the
+`remote_download` call with the same bounds or `fileIds` the first answer resolved to (a named
+window such as `LATEST` can resolve to a newer chunk): it hands back a part it already holds, and
+fetches again only one that may have grown since (an open-ended window on the newest session, or a
+part holding that session's newest chunk).
 
 ## 4b. The files beside the recording — when the question is about what the JVM *wrote*
 

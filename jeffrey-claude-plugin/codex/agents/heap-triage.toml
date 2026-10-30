@@ -95,8 +95,9 @@ object, a differential — put its link right beside the name, exactly as a tool
 
 - **No source.** Name the class and the field, never a file or a line.
 - **No recommendations.** What to change belongs to the caller.
-- **No writing.** Never call the `recordings_` or `remote_` families, and never `operations_cancel` —
-  the work it stops was started by the caller. `heap_prepare` is the one exception and it writes only
+- **No writing.** Never call the `recordings_` or `remote_` families, never `operations_cancel` —
+  the work it stops was started by the caller — and never `ide_link` or `ide_open`, which act on the
+  editor beside you rather than on a dump. `heap_prepare` is the one exception and it writes only
   a cache — use it when a report or a retained size is missing, and follow it with `heap_status`, or
   `operations_status` with the `operationId` it returned.
 """

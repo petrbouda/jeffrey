@@ -141,7 +141,7 @@ Two agents can take a heap route and return only the findings — class, retaine
 with everything they read left in their own context. **`heap-triage`** is the one built for this: it
 carries this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
 missing rather than reporting an empty result. **`profile-analyst`** does the same reading but never
-builds anything, which suits a dump that is already prepared. The Claude Code plugin ships both; in
+runs `heap_prepare`, which suits a dump that is already prepared. The Claude Code plugin ships both; in
 Codex they are the custom agents under `codex/agents/`. Without one, read here.
 
 Delegate a whole route from step 5 — give it the `profileId` and the question — and send independent
@@ -157,13 +157,12 @@ every question to the user, stays here either way.
   makes a claim checkable.
 - Object ids are stable within one dump and meaningless across dumps. Carry the class name and
   the path between dumps, never an id.
-- **Two dumps settle it.** `heap_diff` compares this dump against an earlier one class by class, ranked
-by growth: it is the one tool that separates a leak from a large working set, which no single-dump
-report can do. Pass the earlier dump as the baseline — backwards, every growth reads as a shrink.
-Both dumps have to be indexed first, and the tool says which one is not.
-
-A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
+- A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
   say which of the two you are claiming, and ask for a second dump taken later when it matters.
+- **Two dumps settle it.** `heap_diff` compares this dump against an earlier one class by class,
+  ranked by growth: it is the one tool that separates a leak from a large working set, which no
+  single-dump report can do. Pass the earlier dump as the baseline — backwards, every growth reads
+  as a shrink. Both dumps have to be indexed first, and the tool says which one is not.
 - If the repository is open alongside, read the real source of the retaining field before naming
   a cause. Do not infer a code path from a class name.
 - Write it up in the `report` skill's shape: class name, retained bytes and the GC-root path

@@ -90,7 +90,9 @@ precise either way.
 `compare_movements` with the `eventType` from `compare_list`. This is the main tool. It returns the
 methods that grew and the ones that shrank, ranked by how much work moved with them.
 
-- on-CPU time → `jdk.ExecutionSample`
+- on-CPU time → `jdk.ExecutionSample`, or `jdk.CPUTimeSample` for a recording made with JDK 25's
+  CPU-time sampler, which writes no `ExecutionSample` at all — take whichever `compare_list` reports
+  in common
 - allocation → `jdk.ObjectAllocationSample` with `useWeight: true`, so the ranking is by bytes
   rather than by allocation count
 - lock contention → `jdk.JavaMonitorEnter` with `useWeight: true` (weight is nanoseconds blocked)

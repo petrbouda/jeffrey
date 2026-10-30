@@ -2,11 +2,71 @@
 name: heap-triage
 description: Works a heap dump end to end and returns only the findings — what is holding the memory, with class names, retained bytes and the GC-root paths that make each claim checkable. Delegate a whole heap question to it rather than reading histograms and dominator trees in the main conversation. It reports figures; it never maps them to source, edits anything, or decides what to change.
 tools:
-  - mcp__plugin_microscope_jeffrey__heap_*
-  - mcp__plugin_microscope_jeffrey__profiles_*
+  - mcp__plugin_microscope_jeffrey__heap_browseClassInstances
+  - mcp__plugin_microscope_jeffrey__heap_describeTable
+  - mcp__plugin_microscope_jeffrey__heap_diff
+  - mcp__plugin_microscope_jeffrey__heap_executeQuery
+  - mcp__plugin_microscope_jeffrey__heap_getBiggestObjects
+  - mcp__plugin_microscope_jeffrey__heap_getClassHistogram
+  - mcp__plugin_microscope_jeffrey__heap_getClassLoaderLeakChains
+  - mcp__plugin_microscope_jeffrey__heap_getCollectionAnalysis
+  - mcp__plugin_microscope_jeffrey__heap_getDominatorTreeChildren
+  - mcp__plugin_microscope_jeffrey__heap_getDominatorTreeRoots
+  - mcp__plugin_microscope_jeffrey__heap_getDumpMetadata
+  - mcp__plugin_microscope_jeffrey__heap_getGCRootSummary
+  - mcp__plugin_microscope_jeffrey__heap_getHeapSummary
+  - mcp__plugin_microscope_jeffrey__heap_getInstanceDetail
+  - mcp__plugin_microscope_jeffrey__heap_getLeakSuspects
+  - mcp__plugin_microscope_jeffrey__heap_getPathToGCRoot
+  - mcp__plugin_microscope_jeffrey__heap_getReferrers
+  - mcp__plugin_microscope_jeffrey__heap_getStringAnalysis
+  - mcp__plugin_microscope_jeffrey__heap_getThreads
+  - mcp__plugin_microscope_jeffrey__heap_getTopConsumers
+  - mcp__plugin_microscope_jeffrey__heap_listTables
+  - mcp__plugin_microscope_jeffrey__heap_oql
+  - mcp__plugin_microscope_jeffrey__heap_prepare
+  - mcp__plugin_microscope_jeffrey__heap_status
+  - mcp__plugin_microscope_jeffrey__profiles_evidence
+  - mcp__plugin_microscope_jeffrey__profiles_features
+  - mcp__plugin_microscope_jeffrey__profiles_get
+  - mcp__plugin_microscope_jeffrey__profiles_link
+  - mcp__plugin_microscope_jeffrey__profiles_list
+  - mcp__plugin_microscope_jeffrey__profiles_samplerHealth
+  - mcp__plugin_microscope_jeffrey__profiles_summary
+  - mcp__plugin_microscope_jeffrey__profiles_viewLink
   - mcp__plugin_microscope_jeffrey__operations_status
-  - mcp__jeffrey__heap_*
-  - mcp__jeffrey__profiles_*
+  - mcp__jeffrey__heap_browseClassInstances
+  - mcp__jeffrey__heap_describeTable
+  - mcp__jeffrey__heap_diff
+  - mcp__jeffrey__heap_executeQuery
+  - mcp__jeffrey__heap_getBiggestObjects
+  - mcp__jeffrey__heap_getClassHistogram
+  - mcp__jeffrey__heap_getClassLoaderLeakChains
+  - mcp__jeffrey__heap_getCollectionAnalysis
+  - mcp__jeffrey__heap_getDominatorTreeChildren
+  - mcp__jeffrey__heap_getDominatorTreeRoots
+  - mcp__jeffrey__heap_getDumpMetadata
+  - mcp__jeffrey__heap_getGCRootSummary
+  - mcp__jeffrey__heap_getHeapSummary
+  - mcp__jeffrey__heap_getInstanceDetail
+  - mcp__jeffrey__heap_getLeakSuspects
+  - mcp__jeffrey__heap_getPathToGCRoot
+  - mcp__jeffrey__heap_getReferrers
+  - mcp__jeffrey__heap_getStringAnalysis
+  - mcp__jeffrey__heap_getThreads
+  - mcp__jeffrey__heap_getTopConsumers
+  - mcp__jeffrey__heap_listTables
+  - mcp__jeffrey__heap_oql
+  - mcp__jeffrey__heap_prepare
+  - mcp__jeffrey__heap_status
+  - mcp__jeffrey__profiles_evidence
+  - mcp__jeffrey__profiles_features
+  - mcp__jeffrey__profiles_get
+  - mcp__jeffrey__profiles_link
+  - mcp__jeffrey__profiles_list
+  - mcp__jeffrey__profiles_samplerHealth
+  - mcp__jeffrey__profiles_summary
+  - mcp__jeffrey__profiles_viewLink
   - mcp__jeffrey__operations_status
 model: inherit
 skills:

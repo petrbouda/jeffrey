@@ -74,8 +74,10 @@ One call. Read, in this order:
 
 - `exceptionThrowsRecorded` — **false means the recording cannot name the throws**, whatever
   `totalThrowables` says. Stop here: say how many throwables were counted, that their types were not
-  recorded, and give the remedy — record with JFR's `profile` settings, or enable
-  `jdk.JavaExceptionThrow` (async-profiler: `jfrsync=profile`). Do not guess types from the total.
+  recorded, and give the remedy — enable `jdk.JavaExceptionThrow`, which the JDK's own `default`
+  and `profile` settings both leave off: `-XX:StartFlightRecording=settings=profile,jdk.JavaExceptionThrow#enabled=true,…`
+  (JDK 17 or later), or a custom `.jfc` with the event on (async-profiler: `jfrsync=<that .jfc>`).
+  Do not guess types from the total.
 - `applicationThrows` against `jvmInternalThrows`. The JVM-internal ones are the JDK resolving and
   linking — `ClassNotFoundException` while a library probes the classpath, `NoSuchMethodException`
   from reflection, `java.lang.invoke` linking a call site, a class loader failing to find a resource

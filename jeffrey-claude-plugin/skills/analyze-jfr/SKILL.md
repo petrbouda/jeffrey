@@ -202,7 +202,8 @@ JSON, or the Markdown document with a footer), and every one reads the same way:
 - **`followUp.nextTools`** are the next calls with this answer's ids, windows and cursors filled
   in — send them as they are; **`followUp.guidance`** is advice that is not a call.
 - **`hasMore` + `nextCursor`** continue a list: pass `nextCursor` back as `cursor` with the same
-  arguments. Enum values are upper case (`SUMMARY`, `SERVER`), in answers and arguments alike.
+  arguments. Enum values are upper case (`SUMMARY`, `SERVER`), in answers and arguments alike — except
+  `profiles_viewLink`'s `view`, which takes Microscope's own lowercase page paths.
 - **`uiLink`** opens the same view in Microscope, and a row that names its own thing — a trace, an
   operation, an exemplar — carries its own. Put each beside the name it opens (*Link what you name*
   below); never fetch it or read it back. Nothing is exported to a file.
@@ -249,7 +250,7 @@ other half is usually in another family.
 
 | Tool | The question it answers |
 |---|---|
-| `jvm_autoAnalysis` | Jeffrey's rule set over the whole recording — findings with a severity and a suggested fix. The cheapest first question about any profile. |
+| `jvm_autoAnalysis` | Jeffrey's rule set over the whole recording — findings with a severity and a suggested fix. Reading it is cheap once computed (`topFindings` in `profiles_summary` already carries them); computing it is slow — see below. |
 | `jvm_gc` | The stop-the-world budget, collections by generation and cause, what was freed, the longest collections |
 | `jvm_safepoints` | The pauses that are **not** GC, and the threads that were slow to reach them |
 | `jvm_jit` | Compiler totals, the slowest compilations, code cache, deoptimisation by method and reason |
@@ -267,7 +268,7 @@ other half is usually in another family.
 | `jvm_system` | The machine underneath: machine CPU against this JVM's own, and what the difference leaves for everything else on the box |
 | `jvm_security` | TLS handshakes, the protocols and ciphers negotiated, certificates expiring or weakly signed, what was deserialized |
 
-Four things the tools know and a hand-written query does not:
+What the tools know and a hand-written query does not:
 
 - **The cause of GC is allocation.** Pauses are the symptom; no GC event names the code that
   produced the garbage. Once `jvm_gc` shows the budget matters, the allocation flamegraph —
@@ -470,7 +471,7 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 ## When something fails
 
-- `Profile … has no heap dump` → it is a JFR recording; stay with `jfr_`, `flamegraph_`, `traces_`.
+- `Profile … is not a heap dump` → it is a JFR recording; stay with `jfr_`, `flamegraph_`, `traces_`.
 - `The recording path must be absolute` → pass the full path, not a repository-relative one.
 - `No such recording file` but the file is right there → Jeffrey is looking on *its own*
   filesystem. Copy or mount the recording where Jeffrey can reach it, or upload it in the UI.

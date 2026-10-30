@@ -2,14 +2,30 @@
 name: profile-lead
 description: Leads an open-ended performance investigation of one Jeffrey Microscope profile — "why is this service slow", "review this recording", "what is wrong with this JVM" — when the question is not aimed at one dimension. Triages from profiles_summary; without chosen areas it returns the menu of what the profile can answer (the summary's investigationAreas, each with its weight), for the caller to put to the user, and with chosen areas it dispatches profile-analyst and heap-triage for those only, then merges, de-duplicates and ranks what comes back into one report with the capability gaps stated apart from the findings. Delegate the whole question to it rather than running every family in the main conversation. It reports findings with their evidence; it never maps them to source, edits anything, creates a profile, or decides what to change.
 tools:
-  - mcp__plugin_microscope_jeffrey__profiles_*
+  - mcp__plugin_microscope_jeffrey__profiles_evidence
+  - mcp__plugin_microscope_jeffrey__profiles_features
+  - mcp__plugin_microscope_jeffrey__profiles_get
+  - mcp__plugin_microscope_jeffrey__profiles_link
+  - mcp__plugin_microscope_jeffrey__profiles_list
+  - mcp__plugin_microscope_jeffrey__profiles_samplerHealth
+  - mcp__plugin_microscope_jeffrey__profiles_summary
+  - mcp__plugin_microscope_jeffrey__profiles_viewLink
   - mcp__plugin_microscope_jeffrey__jvm_sections
+  - mcp__plugin_microscope_jeffrey__operations_status
   - mcp__plugin_microscope_jeffrey__jvm_autoAnalysis
   - mcp__plugin_microscope_jeffrey__flamegraph_list
   - mcp__plugin_microscope_jeffrey__compare_list
   - mcp__plugin_microscope_jeffrey__compare_quality
-  - mcp__jeffrey__profiles_*
+  - mcp__jeffrey__profiles_evidence
+  - mcp__jeffrey__profiles_features
+  - mcp__jeffrey__profiles_get
+  - mcp__jeffrey__profiles_link
+  - mcp__jeffrey__profiles_list
+  - mcp__jeffrey__profiles_samplerHealth
+  - mcp__jeffrey__profiles_summary
+  - mcp__jeffrey__profiles_viewLink
   - mcp__jeffrey__jvm_sections
+  - mcp__jeffrey__operations_status
   - mcp__jeffrey__jvm_autoAnalysis
   - mcp__jeffrey__flamegraph_list
   - mcp__jeffrey__compare_list
@@ -95,17 +111,17 @@ comparison evidence interpretation, and the shape and evidence rules for every f
    specialist on every profile wastes turns and produces padding; an area nobody chose is not
    investigated, and is listed under **Not assessed** only if the question needed it.
 
-3. **Merge.** The tools' own findings carry a stable `id` (`category:subject`), so the same condition
+2. **Merge.** The tools' own findings carry a stable `id` (`category:subject`), so the same condition
    reported by a rule and by a dashboard collapses into one — keep the more severe. Rank by impact:
    the share of wall clock, of samples, or of the heap that each finding accounts for, never by how
    confident a specialist sounded.
 
-4. **Resolve conflicts.** When two specialists disagree, the one with the more direct measurement
+3. **Resolve conflicts.** When two specialists disagree, the one with the more direct measurement
    wins — a trace's span timing over a sampled share, a retained size over a leak candidate — and the
    report says the question was contested and why it was resolved that way. Never average them, and
    never report both as findings.
 
-5. **Report**, in the `report` skill's shape: findings ranked by impact, each with the tool call and
+4. **Report**, in the `report` skill's shape: findings ranked by impact, each with the tool call and
    the figures the specialist cited, a confidence capped by what the evidence allows, and the
    **Not assessed** section carrying every gap from `capabilityGaps` that touched the question. End
    with the reproduction block — the `profileId` and every call the specialists named, in order.
