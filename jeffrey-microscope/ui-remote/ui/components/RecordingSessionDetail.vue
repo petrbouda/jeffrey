@@ -331,7 +331,7 @@
             </div>
           </div>
 
-          <!-- Artifact types with a panel of their own -->
+          <!-- Every other file type: a folder of its own, even for a single file -->
           <div v-for="panel in panels" :key="panel.groupKey" class="type-panel">
             <div class="type-panel-header" @click="togglePanel(panel.groupKey)">
               <RecordingFileRow
@@ -376,7 +376,10 @@
                   :timestamp="file.createdAt"
                 >
                   <template #before>
-                    <div v-if="selecting && isDownloadable(file)" class="form-check file-form-check me-2">
+                    <div
+                      v-if="selecting && isDownloadable(file)"
+                      class="form-check file-form-check me-2"
+                    >
                       <input
                         :id="'source-' + file.id"
                         class="form-check-input file-checkbox"
@@ -412,45 +415,6 @@
                 </button>
               </div>
             </div>
-          </div>
-
-          <!-- Artifact types with a single file -->
-          <div
-            v-for="file in standalone"
-            :key="file.id"
-            class="file-wrapper"
-            :class="{ 'file-selected': selected[file.id] }"
-          >
-            <RecordingFileRow
-              :filename="file.name"
-              :fileType="file.fileType"
-              :sizeInBytes="file.size"
-              :timestamp="file.createdAt"
-            >
-              <template #before>
-                <div v-if="selecting && isDownloadable(file)" class="form-check file-form-check me-2">
-                  <input
-                    :id="'source-' + file.id"
-                    class="form-check-input file-checkbox"
-                    type="checkbox"
-                    :checked="selected[file.id]"
-                    @change="toggleFile(file.id)"
-                    @click.stop
-                  />
-                </div>
-              </template>
-              <template #actions>
-                <button
-                  v-if="isDownloadable(file)"
-                  class="btn btn-sm btn-outline-secondary download-file-btn"
-                  type="button"
-                  title="Download file"
-                  @click.stop="downloadFile(file)"
-                >
-                  <i class="bi bi-download"></i>
-                </button>
-              </template>
-            </RecordingFileRow>
           </div>
         </template>
       </template>
@@ -501,7 +465,6 @@ import {
   TYPE_GROUP_DISPLAY,
   groupRotatedFiles,
   recordingFiles,
-  standaloneArtifacts,
   totalSize,
   typeGroupPanels
 } from '@remote/services/sessionFiles.ts';
@@ -576,7 +539,6 @@ const recordings = computed(() => recordingFiles(files.value));
 const recordingGroups = computed(() => groupRotatedFiles(recordings.value));
 const visibleRecordingGroups = computed(() => recordingGroups.value.slice(0, recordingLimit.value));
 const panels = computed(() => typeGroupPanels(files.value));
-const standalone = computed(() => standaloneArtifacts(files.value));
 
 const selectedCount = computed(() => Object.values(selected.value).filter(Boolean).length);
 
@@ -605,7 +567,9 @@ const visiblePanelFiles = (panel: TypeGroupPanel): RepositoryFile[] =>
 const load = async (): Promise<RepositoryFile[]> => {
   const fresh = await read(props.session.id);
   const previous = selected.value;
-  selected.value = Object.fromEntries(fresh.files.map(file => [file.id, previous[file.id] ?? false]));
+  selected.value = Object.fromEntries(
+    fresh.files.map(file => [file.id, previous[file.id] ?? false])
+  );
   return fresh.files;
 };
 

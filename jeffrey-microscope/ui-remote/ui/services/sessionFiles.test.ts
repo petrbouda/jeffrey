@@ -25,8 +25,6 @@ import {
   groupRotatedFiles,
   recordingFiles,
   sortSessionFiles,
-  standaloneArtifacts,
-  standaloneFiles,
   totalSize,
   typeGroupOf,
   typeGroupPanels
@@ -100,7 +98,7 @@ describe('groupRotatedFiles', () => {
   });
 });
 
-describe('typeGroupPanels and standaloneArtifacts', () => {
+describe('typeGroupPanels', () => {
   const files = [
     chunk('recording-0900.jfr.lz4', 0),
     file('heap-1.hprof.gz', RecordingFileType.HEAP_DUMP_GZ, 1, 40),
@@ -109,31 +107,27 @@ describe('typeGroupPanels and standaloneArtifacts', () => {
     file('hs_err_pid1.log', RecordingFileType.HS_JVM_ERROR_LOG, 4, 3)
   ];
 
-  it('folds types with several files, and logs even when single, into panels', () => {
+  it('gives every artifact type a folder, a type with a single file included', () => {
     const panels = typeGroupPanels(files);
-    expect(panels.map(p => p.groupKey)).toEqual(['HEAP_DUMP', 'JVM_LOG']);
+    expect(panels.map(p => p.groupKey)).toEqual(['HEAP_DUMP', 'JVM_LOG', 'HS_JVM_ERROR_LOG']);
     expect(panels[0].totalSize).toBe(100);
-    expect(panels[1].files.map(f => f.name)).toEqual(['jvm.log']);
+    expect(panels[2].display.name).toBe('HotSpot Error Logs');
+    expect(panels[2].files.map(f => f.name)).toEqual(['hs_err_pid1.log']);
   });
 
-  it('leaves the single file of any other type standing alone', () => {
-    expect(standaloneArtifacts(files).map(f => f.name)).toEqual(['hs_err_pid1.log']);
-  });
-
-  it('never puts recordings in either', () => {
-    const names = [
-      ...typeGroupPanels(files).flatMap(p => p.files),
-      ...standaloneArtifacts(files)
-    ].map(f => f.name);
+  it('never puts recordings in a folder of artifacts', () => {
+    const names = typeGroupPanels(files)
+      .flatMap(p => p.files)
+      .map(f => f.name);
     expect(names).not.toContain('recording-0900.jfr.lz4');
   });
 });
 
-describe('fileGroupPanels and standaloneFiles', () => {
+describe('fileGroupPanels', () => {
   const recordingFile = (name: string, type: RecordingFileType, size: number = 10) =>
     fromRecordingFile(new RecordingFile(name, name, size, type, ''));
 
-  it("folds a recording's chunks into a panel of their own, unlike the artifact layout", () => {
+  it("folds a recording's chunks into a folder of their own, unlike the artifact layout", () => {
     const files = [
       recordingFile('part-1.jfr', RecordingFileType.JFR, 10),
       recordingFile('part-2.jfr', RecordingFileType.JFR, 20)
@@ -145,13 +139,15 @@ describe('fileGroupPanels and standaloneFiles', () => {
     expect(typeGroupPanels(files)).toEqual([]);
   });
 
-  it('keeps a single file of a type alone and logs in a panel', () => {
+  it('gives a single perf-counters file a folder of its own, in display order', () => {
     const files = [
-      recordingFile('perf-counters.hsperfdata', RecordingFileType.PERF_COUNTERS),
-      recordingFile('gc.jvm-log', RecordingFileType.JVM_LOG)
+      recordingFile('gc.jvm-log', RecordingFileType.JVM_LOG),
+      recordingFile('perf-counters.hsperfdata', RecordingFileType.PERF_COUNTERS)
     ];
-    expect(standaloneFiles(files).map(f => f.name)).toEqual(['perf-counters.hsperfdata']);
-    expect(fileGroupPanels(files).map(p => p.groupKey)).toEqual(['JVM_LOG']);
+    const panels = fileGroupPanels(files);
+    expect(panels.map(p => p.groupKey)).toEqual(['PERF_COUNTERS', 'JVM_LOG']);
+    expect(panels[0].display.name).toBe('Perf Counters');
+    expect(panels[0].files.map(f => f.name)).toEqual(['perf-counters.hsperfdata']);
   });
 });
 
@@ -165,8 +161,7 @@ describe('fromRecordingFile', () => {
       name: 'chunk.jfr.lz4',
       size: 42,
       fileType: RecordingFileType.JFR_LZ4,
-      isRecording: true,
-      description: 'first chunk'
+      isRecording: true
     });
   });
 

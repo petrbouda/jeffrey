@@ -21,9 +21,9 @@ import type RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 import type { Variant } from '@shared/types/ui';
 
 /**
- * How a session's files are laid out on screen: its recordings in one panel, with a rotated
- * `.jfr.N` sibling folded under the chunk it belongs to, and every other artifact type in a panel
- * of its own — or alone, when a type has a single file. The Recordings page lays out a bundle's
+ * How a session's files are laid out on screen: one folder per file type, named after the type and
+ * opened to list its files, a single file included, so every type reads the same; a rotated
+ * `.jfr.N` sibling folds under the chunk it belongs to. The Recordings page lays out a bundle's
  * files and a recording's own files by the same rules, so a type is named and grouped the same in
  * both places.
  */
@@ -40,11 +40,6 @@ export interface SessionFile {
   isRecording: boolean;
   /** Epoch millis; absent where the file's own time is not known. */
   createdAt?: number;
-}
-
-/** A recording's file as the layout reads it, its description kept for the row. */
-export interface RecordingSessionFile extends SessionFile {
-  description: string;
 }
 
 export type ArtifactTypeGroup =
@@ -119,9 +114,6 @@ export const TYPE_GROUP_DISPLAY: Record<ArtifactTypeGroup, TypeGroupDisplay> = {
   UNKNOWN: { name: 'Other Files', variant: 'grey', fileType: 'UNKNOWN' }
 };
 
-/** Types that always show as a panel, even with a single file. */
-const ALWAYS_GROUPED: Set<ArtifactTypeGroup> = new Set(['JVM_LOG', 'APP_LOG']);
-
 /** The file types a recording's chunks come in; every other type is an artifact beside them. */
 const RECORDING_FILE_TYPES: Set<string> = new Set([
   RecordingFileType.JFR,
@@ -131,14 +123,13 @@ const RECORDING_FILE_TYPES: Set<string> = new Set([
 const ROTATED_FILENAME = /^(.+)\.(\d+)$/;
 
 /** A recording's file in the layout's terms; a recording's files carry no time of their own. */
-export function fromRecordingFile(file: RecordingFile): RecordingSessionFile {
+export function fromRecordingFile(file: RecordingFile): SessionFile {
   return {
     id: file.id,
     name: file.filename,
     size: file.sizeInBytes,
     fileType: file.type,
-    isRecording: RECORDING_FILE_TYPES.has(file.type),
-    description: file.description
+    isRecording: RECORDING_FILE_TYPES.has(file.type)
   };
 }
 
@@ -243,23 +234,19 @@ function filesByGroup<F extends SessionFile>(files: F[]): Map<ArtifactTypeGroup,
   return groups;
 }
 
-function isPanel(groupKey: ArtifactTypeGroup, files: SessionFile[]): boolean {
-  return files.length > 1 || ALWAYS_GROUPED.has(groupKey);
-}
-
 function artifactsOnly<F extends SessionFile>(files: F[]): F[] {
   return files.filter(
     file => !isRecordingOrTempFile(file) && typeGroupOf(file.fileType) !== RECORDING_GROUP
   );
 }
 
-/** Every type that folds into a panel, recordings included, in display order. */
+/** One folder per file type, recordings included, in display order. */
 export function fileGroupPanels<F extends SessionFile>(files: F[]): TypeGroupPanel<F>[] {
   const groups = filesByGroup(files);
   const panels: TypeGroupPanel<F>[] = [];
   for (const groupKey of TYPE_GROUP_ORDER) {
     const grouped = groups.get(groupKey);
-    if (!grouped || !isPanel(groupKey, grouped)) {
+    if (!grouped) {
       continue;
     }
     panels.push({
@@ -272,33 +259,9 @@ export function fileGroupPanels<F extends SessionFile>(files: F[]): TypeGroupPan
   return panels;
 }
 
-/**
- * The files that stand alone, recordings included: the single file of a type that does not always
- * fold.
- */
-export function standaloneFiles<F extends SessionFile>(files: F[]): F[] {
-  const groups = filesByGroup(files);
-  const standalone: F[] = [];
-  for (const groupKey of TYPE_GROUP_ORDER) {
-    const grouped = groups.get(groupKey);
-    if (grouped && !isPanel(groupKey, grouped)) {
-      standalone.push(grouped[0]);
-    }
-  }
-  return standalone;
-}
-
-/**
- * The artifact types that fold into a panel, in display order; the recordings have a panel of
- * their own.
- */
+/** One folder per artifact type, in display order; the recordings have a folder of their own. */
 export function typeGroupPanels<F extends SessionFile>(files: F[]): TypeGroupPanel<F>[] {
   return fileGroupPanels(artifactsOnly(files));
-}
-
-/** The artifacts that stand alone: the single file of a type that does not always fold. */
-export function standaloneArtifacts<F extends SessionFile>(files: F[]): F[] {
-  return standaloneFiles(artifactsOnly(files));
 }
 
 export function totalSize(files: SessionFile[]): number {

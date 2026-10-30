@@ -251,52 +251,29 @@
                 @delete-bundle="deletingBundle = item.bundle"
                 @download-file="fileId => downloadBundleFile(item.bundle.id, fileId)"
                 @download-member-file="downloadFile"
-                @member-click="handleRecordingClick"
+                @member-open-profile="
+                  (member, profileId) => openProfile(profileId, member.eventSource)
+                "
                 @member-create-profile="member => analyzeRecording(member.id)"
                 @member-initialize-again="member => initializeAgain(member.id)"
                 @member-delete-recording="member => deleteRecording(member.id)"
                 @member-toggle-expand="member => toggleRecordingFiles(member.id)"
                 @dragend="onDragEnd"
               />
-              <RecordingCard
+              <SingleRecordingRow
                 v-else
-                role="recording"
-                :recording-id="item.recording.id"
-                :name="item.recording.filename"
-                :size-in-bytes="item.recording.sizeInBytes"
-                :duration-in-millis="item.recording.durationInMillis"
-                :uploaded-at="item.recording.uploadedAt"
-                :source-type="item.recording.eventSource"
-                :profile-id="item.recording.profileId"
-                :profile-count="builtProfiles(item.recording).length"
+                :recording="item.recording"
                 :analyzing="analyzingRecordings.has(item.recording.id)"
-                :init-progress="item.recording.initProgress"
                 :tick-now="tickNow"
-                :draggable="true"
                 :origin="buildOrigin(item.recording.tags)"
-                :file-count="item.recording.files?.length ?? 0"
-                :expandable="(item.recording.files?.length ?? 0) > 1"
-                :expanded="expandedRecordings.has(item.recording.id)"
-                @click="handleRecordingClick(item.recording)"
+                :draggable="true"
                 @create-profile="analyzeRecording(item.recording.id)"
+                @open-profile="profileId => openProfile(profileId, item.recording.eventSource)"
                 @initialize-again="initializeAgain(item.recording.id)"
                 @delete-recording="deleteRecording(item.recording.id)"
-                @toggle-expand="toggleRecordingFiles(item.recording.id)"
+                @download="fileId => downloadFile(item.recording.id, fileId)"
                 @dragend="onDragEnd"
-              >
-                <template #expanded-content>
-                  <RecordingFileGroupList
-                    v-if="item.recording.files && item.recording.files.length > 0"
-                    :recording-id="item.recording.id"
-                    :files="item.recording.files"
-                    @download="downloadFile"
-                  />
-                  <div v-else class="small py-1 text-muted">
-                    <i class="bi bi-exclamation-circle me-1"></i>
-                    No recording files available
-                  </div>
-                </template>
-              </RecordingCard>
+              />
             </template>
           </div>
           <div v-else class="rec-col__empty">
@@ -363,16 +340,6 @@
       @close="editingProfile = null"
     />
 
-    <!-- A recording that already has profiles: open one, or initialize it again -->
-    <InitializedRecordingModal
-      v-if="confirmingRecording"
-      :recording="confirmingRecording"
-      :profiles="builtProfiles(confirmingRecording)"
-      @open="openConfirmedProfile"
-      @initialize-again="initializeConfirmedAgain"
-      @close="confirmingRecording = null"
-    />
-
     <!-- Delete Bundle confirmation -->
     <ConfirmationDialog
       :show="!!deletingBundle"
@@ -409,19 +376,17 @@ import RecordingBundleCard from '@remote/components/RecordingBundleCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import RecordingFileGroupList from '@remote/components/RecordingFileGroupList.vue';
+import SingleRecordingRow from '@remote/components/SingleRecordingRow.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@remote/services/api/model/RecordingGroup';
 import type Recording from '@remote/services/api/model/Recording';
-import type { RecordingProfile, RecordingTag } from '@remote/services/api/model/Recording';
+import type { RecordingTag } from '@remote/services/api/model/Recording';
 import type { RecordingOrigin } from '@remote/components/RecordingOriginChip.vue';
 import type Bundle from '@remote/services/api/model/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@remote/components/recordingKinds';
 import { BUNDLE_DRAG_PREFIX, compareMembers } from '@remote/components/bundleSummary';
-import InitializedRecordingModal from '@remote/components/InitializedRecordingModal.vue';
 import {
-  builtProfiles,
   splitColumns,
   type BundleWithMembers,
   type ProfileItem,
@@ -566,7 +531,6 @@ const deletingGroupId = ref<string | null>(null);
 const editingProfile = ref<ProfileItem | null>(null);
 const editProfileName = ref('');
 // A recording with profiles that was clicked: the dialog asks whether to open one or build another
-const confirmingRecording = ref<Recording | null>(null);
 
 watch(showCreateGroupModal, val => {
   if (val) {
@@ -1078,37 +1042,6 @@ const analyzeRecording = (recordingId: string) =>
 /** Another profile from a recording that already has some; those stay as they are. */
 const initializeAgain = (recordingId: string) =>
   runInitialization(recordingId, () => recordingsClient.initializeAgain(recordingId));
-
-/**
- * A recording never initialized is initialized at once, and a failed run is retried. One that already
- * has profiles asks first: open one of them, or build another beside them.
- */
-const handleRecordingClick = (recording: Recording) => {
-  if (analyzingRecordings.value.has(recording.id)) {
-    return;
-  }
-  if (builtProfiles(recording).length > 0) {
-    confirmingRecording.value = recording;
-  } else {
-    analyzeRecording(recording.id);
-  }
-};
-
-const openConfirmedProfile = (profile: RecordingProfile) => {
-  const recording = confirmingRecording.value;
-  confirmingRecording.value = null;
-  if (recording) {
-    openProfile(profile.profileId, recording.eventSource);
-  }
-};
-
-const initializeConfirmedAgain = () => {
-  const recording = confirmingRecording.value;
-  confirmingRecording.value = null;
-  if (recording) {
-    initializeAgain(recording.id);
-  }
-};
 
 /**
  * Drops a heap dump's index and builds it again, compressed oops auto-detected. The run shows on the

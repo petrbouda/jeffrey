@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest';
 import type Recording from '../services/api/model/Recording';
 import RecordingFile from '../services/api/model/RecordingFile';
 import RecordingFileType from '../services/api/model/RecordingFileType';
-import { memberRowLook } from './bundleMemberRow';
+import { memberAction, memberRowLook } from './bundleMemberRow';
 
 function member(eventSource: string, files: RecordingFile[]): Recording {
   return {
@@ -33,39 +33,56 @@ function member(eventSource: string, files: RecordingFile[]): Recording {
 const file = (name: string, type: RecordingFileType) => new RecordingFile(name, name, 10, type, '');
 
 describe('memberRowLook', () => {
-  it('names an item read from several files after their type, and lets it open', () => {
+  it('names an item read from several files after their type', () => {
     const look = memberRowLook(
       member('JDK', [
         file('chunk-1.jfr.lz4', RecordingFileType.JFR_LZ4),
         file('chunk-2.jfr.lz4', RecordingFileType.JFR_LZ4)
       ])
     );
-    expect(look).toEqual({
-      title: 'JFR Recordings',
-      fileType: 'JFR',
-      grouped: true,
-      fileCount: 2
-    });
+    expect(look).toEqual({ title: 'JFR Recordings', fileType: 'JFR', fileCount: 2 });
   });
 
-  it('names an item read from one file after the file, with its own type', () => {
+  it('makes a folder of an item read from one file too', () => {
     const look = memberRowLook(
-      member('PERF_COUNTERS', [
-        file('checkout_part_perf-counters.hsperfdata', RecordingFileType.PERF_COUNTERS)
-      ])
+      member('PERF_COUNTERS', [file('perf-counters.hsperfdata', RecordingFileType.PERF_COUNTERS)])
     );
     expect(look).toEqual({
-      title: 'checkout_part_perf-counters.hsperfdata',
+      title: 'Perf Counters',
       fileType: RecordingFileType.PERF_COUNTERS,
-      grouped: false,
       fileCount: 1
     });
   });
 
-  it('falls back to the recording name and its kind for an item listing no file', () => {
-    const look = memberRowLook(member('HEAP_DUMP', []));
-    expect(look.title).toBe('checkout_2026-03-01T12-00-00Z');
+  it('lists both heap dump types under one heap dump folder', () => {
+    const look = memberRowLook(
+      member('HEAP_DUMP', [file('heap.hprof.gz', RecordingFileType.HEAP_DUMP_GZ)])
+    );
+    expect(look.title).toBe('Heap Dumps');
     expect(look.fileType).toBe(RecordingFileType.HEAP_DUMP);
-    expect(look.grouped).toBe(false);
+  });
+
+  it("names an item listing no file after its kind's folder", () => {
+    const look = memberRowLook(member('HEAP_DUMP', []));
+    expect(look).toEqual({ title: 'Heap Dumps', fileType: 'HEAP_DUMP', fileCount: 0 });
+  });
+});
+
+describe('memberAction', () => {
+  it('offers to initialize an item never initialized', () => {
+    expect(memberAction('new')).toMatchObject({ kind: 'initialize', disabled: false });
+  });
+
+  it('opens the profile of an initialized item, in the success tone', () => {
+    expect(memberAction('built')).toMatchObject({
+      kind: 'open',
+      label: 'Open profile',
+      tone: 'success'
+    });
+  });
+
+  it('retries a failed run and waits out a running one', () => {
+    expect(memberAction('failed')).toMatchObject({ kind: 'retry', tone: 'danger' });
+    expect(memberAction('running')).toMatchObject({ kind: 'running', disabled: true });
   });
 });
