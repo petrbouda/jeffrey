@@ -440,7 +440,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
             <div class="feature-icon"><i class="bi bi-memory"></i></div>
             <h4>Heap Dump</h4>
             <p>Automatic heap dumps on OutOfMemoryError or JVM crash. Compressed with gzip for efficient storage.</p>
-            <code>heap-dump { enabled = true; type = "crash" }</code>
+            <code>heap-dump { enabled = true, type = "crash" }</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-gear-wide-connected"></i></div>

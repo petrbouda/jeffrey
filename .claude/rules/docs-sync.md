@@ -18,7 +18,7 @@ Paths below are relative to `jeffrey-pages/src/views/docs/`.
 | MCP server (`jeffrey-microscope/mcp-protocol`, `jeffrey-microscope/profiles/mcp-server`, `core-microscope/**/mcp/**`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling, every client, Claude Code / Codex / Gemini, tool reference, skills, agents, recipes |
 | IntelliJ plugin | `docs/intellij-plugin/` |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
-| Install/onboarding | `docs/getting-started/` |
+| Install/onboarding | `docs/microscope/MicroscopeQuickStartPage.vue`, `docs/DocsIndexPage.vue` |
 
 ### Registering a page
 - A new page needs **two** registrations: a route in `jeffrey-pages/src/router/index.ts` and a sidebar entry in the product's `DocSection[]` in `jeffrey-pages/src/composables/useDocsNavigation.ts`. Route-only pages are invisible in sidebar, breadcrumbs and prev/next (all derived from that array).

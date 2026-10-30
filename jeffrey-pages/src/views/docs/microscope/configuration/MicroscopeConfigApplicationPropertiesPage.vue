@@ -296,6 +296,13 @@ onMounted(() => {
 
       <DocsCodeBlock language="bash" :code="remoteEnvExample" />
 
+      <p>
+        Or keep the declaration out of <code>application.properties</code> altogether: Microscope
+        also reads an optional <code>secrets.properties</code> on its classpath
+        (<code>spring.config.import=optional:classpath:secrets.properties</code>), which the
+        repository ignores &mdash; the place for a SAS token on a development machine.
+      </p>
+
       <DocsCallout type="info">
         <strong>Configuration is the only place the remote is declared.</strong> It is read at
         startup and never stored; the Remote page shows it but cannot connect, change or disconnect
