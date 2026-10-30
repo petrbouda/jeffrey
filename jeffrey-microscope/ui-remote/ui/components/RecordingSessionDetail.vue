@@ -177,7 +177,7 @@
             <span>{{ gapMessage }}</span>
           </div>
 
-          <!-- JFR Recordings: the session's own chunks, open by default -->
+          <!-- JFR Recordings: the session's own chunks, folded like every other type until opened -->
           <div v-if="recordings.length > 0" class="type-panel">
             <div class="type-panel-header" @click="recordingPanelOpen = !recordingPanelOpen">
               <RecordingFileRow
@@ -564,7 +564,7 @@ const sizesUnreported = computed(() => hasUnreportedSizes(detail.value));
 // --- What is open and selected ---
 const selecting = ref(false);
 const selected = ref<Record<string, boolean>>({});
-const recordingPanelOpen = ref(true);
+const recordingPanelOpen = ref(false);
 const recordingLimit = ref(DEFAULT_FILES_LIMIT);
 const openPanels = ref<Partial<Record<ArtifactTypeGroup, boolean>>>({});
 const panelLimits = ref<Partial<Record<ArtifactTypeGroup, number>>>({});
