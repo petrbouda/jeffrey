@@ -17,8 +17,8 @@
 
 <!--
   A recording's or a bundle's files, laid out by the same rules as a remote session's detail
-  (sessionFiles.ts): a type with several files, and the logs always, fold into one row named after
-  the type, opened with its chevron; a type with a single file is a row under the file's own name.
+  (sessionFiles.ts): one folder row per file type, named after the type and opened with its
+  chevron to list the files under their own names, each with its download button.
 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue';
@@ -28,8 +28,7 @@ import type RecordingFile from '@remote/services/api/model/RecordingFile';
 import {
   type ArtifactTypeGroup,
   fileGroupPanels,
-  fromRecordingFile,
-  standaloneFiles
+  fromRecordingFile
 } from '@remote/services/sessionFiles';
 
 const props = withDefaults(
@@ -50,7 +49,6 @@ const emit = defineEmits<{
 
 const sessionFiles = computed(() => props.files.map(fromRecordingFile));
 const panels = computed(() => fileGroupPanels(sessionFiles.value));
-const standalone = computed(() => standaloneFiles(sessionFiles.value));
 
 const openPanels = ref<Set<ArtifactTypeGroup>>(new Set());
 
@@ -109,13 +107,6 @@ const download = (fileId: string) => emit('download', props.recordingId, fileId)
         />
       </div>
     </div>
-
-    <RecordingFileList
-      :files="standalone"
-      :download-only="downloadOnly"
-      align-with-groups
-      @download="download"
-    />
   </div>
 </template>
 

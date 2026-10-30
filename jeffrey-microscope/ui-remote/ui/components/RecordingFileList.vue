@@ -16,22 +16,19 @@
   -->
 
 <!--
-  Files of a recording or a bundle, one row each under its own name, each with its download button.
+  The files of an opened folder, one row each under its own name, each with its download button.
 -->
 <script setup lang="ts">
 import RecordingFileRow from '@remote/components/RecordingFileRow.vue';
-import type { RecordingSessionFile } from '@remote/services/sessionFiles';
+import type { SessionFile } from '@remote/services/sessionFiles';
 
 withDefaults(
   defineProps<{
-    files: RecordingSessionFile[];
+    files: SessionFile[];
     downloadOnly?: boolean;
-    /** Leaves the space of a group's chevron in front of each row, so the icons line up with it. */
-    alignWithGroups?: boolean;
   }>(),
   {
-    downloadOnly: false,
-    alignWithGroups: false
+    downloadOnly: false
   }
 );
 
@@ -47,12 +44,8 @@ const emit = defineEmits<{
     :filename="file.name"
     :file-type="file.fileType"
     :size-in-bytes="file.size"
-    :description="file.description"
     :download-only="downloadOnly"
   >
-    <template v-if="alignWithGroups" #before>
-      <span class="recording-file-chevron" aria-hidden="true"></span>
-    </template>
     <template #actions>
       <button
         class="btn btn-sm btn-outline-secondary file-download-btn"

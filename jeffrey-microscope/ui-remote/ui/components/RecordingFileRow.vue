@@ -18,7 +18,7 @@
 <!--
   One row of a file listing, shared by a remote session's detail and a bundle on the Recordings page:
   the file type's colour on the row, its icon and badge, then the name, size and time. A row stands
-  for one file, or for a group of files of one type when the caller names it after the group. A
+  for one file, or for a folder of the files of one type when the caller names it after the type. A
   download-only row (a log, a crash file: nothing Jeffrey initializes) keeps its solid left edge and
   draws the rest of its border dashed.
 -->
@@ -296,6 +296,11 @@ const style = computed(() => FILE_TYPE_STYLES[props.fileType] ?? UNKNOWN_STYLE);
   font-size: 0.65rem;
   color: var(--color-text-muted);
   cursor: pointer;
+}
+
+.recording-file-chevron:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .recording-file-name {

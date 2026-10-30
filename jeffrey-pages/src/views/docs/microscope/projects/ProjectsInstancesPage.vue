@@ -69,7 +69,7 @@ onMounted(() => {
         <ul>
           <li><strong>Header</strong> &mdash; the session's id, whether it is the instance's newest (and so may still grow), and its path on the share. The up and down arrows step to the instance's newer and older sessions; <strong>&times;</strong> or <kbd>Esc</kbd> closes the drawer.</li>
           <li><strong>Figures</strong> &mdash; when it started, its last data and its duration, plus its file count and size.</li>
-          <li><strong>Files</strong> &mdash; the JFR recordings, newest chunk first, with rotated files folded under their chunk, then heap dumps, logs and other artifacts by type. Each file downloads on its own.</li>
+          <li><strong>Files</strong> &mdash; one folder per file type, even for a single file: <strong>JFR Recordings</strong> first, newest chunk first, with rotated files folded under their chunk, then heap dumps, perf counters, logs and other artifacts. Open a folder to see its files under their own names; each file downloads on its own.</li>
           <li><strong>Download session</strong> &mdash; hands the whole session to the download assistant. <strong>Select files</strong> picks some files instead; the chunks picked must be an unbroken run, and a gap greys out <strong>Download selected</strong> and says which chunk is missing.</li>
           <li><strong>Delete</strong> &mdash; removes the session, after a confirmation. The newest session of an instance may still grow, so it cannot be deleted, and a read-only remote offers no delete at all.</li>
         </ul>

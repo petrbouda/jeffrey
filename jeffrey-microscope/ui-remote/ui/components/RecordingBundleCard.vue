@@ -67,7 +67,7 @@ const emit = defineEmits<{
   (e: 'delete-bundle'): void;
   (e: 'download-file', fileId: string): void;
   (e: 'download-member-file', recordingId: string, fileId: string): void;
-  (e: 'member-click', recording: Recording): void;
+  (e: 'member-open-profile', recording: Recording, profileId: string): void;
   (e: 'member-create-profile', recording: Recording): void;
   (e: 'member-initialize-again', recording: Recording): void;
   (e: 'member-delete-recording', recording: Recording): void;
@@ -161,7 +161,7 @@ const onDragStart = (event: DragEvent) => {
         :analyzing="analyzingMembers.has(member.id)"
         :tick-now="tickNow"
         :expanded="expandedMembers.has(member.id)"
-        @click="emit('member-click', member)"
+        @open-profile="profileId => emit('member-open-profile', member, profileId)"
         @create-profile="emit('member-create-profile', member)"
         @initialize-again="emit('member-initialize-again', member)"
         @delete-recording="emit('member-delete-recording', member)"

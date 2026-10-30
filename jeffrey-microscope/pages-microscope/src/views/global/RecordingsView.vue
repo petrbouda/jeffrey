@@ -251,7 +251,9 @@
                 @delete-bundle="deletingBundle = item.bundle"
                 @download-file="fileId => downloadBundleFile(item.bundle.id, fileId)"
                 @download-member-file="downloadFile"
-                @member-click="handleRecordingClick"
+                @member-open-profile="
+                  (member, profileId) => openProfile(profileId, member.eventSource)
+                "
                 @member-create-profile="member => analyzeRecording(member.id)"
                 @member-initialize-again="member => initializeAgain(member.id)"
                 @member-delete-recording="member => deleteRecording(member.id)"
