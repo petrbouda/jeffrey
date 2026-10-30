@@ -23,7 +23,8 @@ import { hasFailed, isInitializing } from './profileInitChips';
 /**
  * How the recordings list splits into its two columns. The left one holds every recording, always:
  * standalone ones and bundles with all of their items, initialized or not, so the card you clicked
- * never leaves it. The right one holds the profiles: one row per profile built from a recording, a
+ * never leaves it; a bundle of a single item and no files is shown as that item alone. The right one
+ * holds the profiles: one row per profile built from a recording, a
  * bundle's items among them, with no bundle around them. A recording initialized twice has two rows
  * there.
  */
@@ -79,6 +80,20 @@ export function builtProfiles(recording: Recording): RecordingProfile[] {
   return (recording.profiles ?? []).filter(isBuilt);
 }
 
+/**
+ * A bundle that brought a single item and no download-only files has nothing to group: it is shown as
+ * that item's own row, the way a recording uploaded by hand is. Dragging the row moves the bundle.
+ */
+export function standsAlone(bundle: Bundle, members: Recording[]): boolean {
+  return members.length === 1 && bundle.files.length === 0;
+}
+
+const recordingItem = (recording: Recording): RecordingItem => ({
+  kind: 'recording',
+  key: recording.id,
+  recording
+});
+
 const uploadedAtOf = (item: RecordingItem): number =>
   item.kind === 'recording' ? item.recording.uploadedAt : item.bundle.createdAt;
 
@@ -99,12 +114,16 @@ export function splitColumns(selection: ColumnSelection): RecordingColumns {
   const recordings: RecordingItem[] = [];
   const profiles: ProfileItem[] = [];
   for (const recording of selection.recordings.filter(shows)) {
-    recordings.push({ kind: 'recording', key: recording.id, recording });
+    recordings.push(recordingItem(recording));
     profiles.push(...profileItems(recording));
   }
   for (const { bundle, members } of selection.bundles) {
     const listed = members.filter(shows);
     profiles.push(...listed.flatMap(profileItems));
+    if (standsAlone(bundle, members)) {
+      recordings.push(...listed.map(recordingItem));
+      continue;
+    }
     const filesShown = bundle.files.length > 0 && selection.shows === null;
     if (listed.length > 0 || filesShown) {
       recordings.push({

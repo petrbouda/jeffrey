@@ -183,13 +183,47 @@ describe('splitColumns', () => {
     expect(keys(columns.recordings)).toEqual(['logs']);
   });
 
+  it('shows a bundle of a single item and no files as that item alone', () => {
+    const jfr = recording('jfr', 'JDK', { bundleId: 'single', uploadedAt: 5 });
+
+    const columns = splitColumns({
+      recordings: [],
+      bundles: [{ bundle: bundle('single', 5), members: [jfr] }],
+      shows: null
+    });
+
+    expect(columns.recordings).toEqual([{ kind: 'recording', key: 'jfr', recording: jfr }]);
+  });
+
+  it('keeps the bundle around a single item that came with download-only files', () => {
+    const columns = splitColumns({
+      recordings: [],
+      bundles: [{ bundle: bundle('with-logs', 0, 2), members: [recording('jfr', 'JDK')] }],
+      shows: null
+    });
+
+    expect(columns.recordings.map(item => item.kind)).toEqual(['bundle']);
+  });
+
+  it('drops a single-item bundle the type filter hides', () => {
+    const columns = splitColumns({
+      recordings: [],
+      bundles: [{ bundle: bundle('single', 0), members: [recording('jfr', 'JDK')] }],
+      shows: member => member.eventSource === 'HEAP_DUMP'
+    });
+
+    expect(columns.recordings).toEqual([]);
+  });
+
   it('puts the newest upload first on the left', () => {
     const columns = splitColumns({
       recordings: [
         recording('old', 'JDK', { uploadedAt: 1 }),
         recording('new', 'JDK', { uploadedAt: 3 })
       ],
-      bundles: [{ bundle: bundle('b1', 2), members: [recording('m', 'JDK')] }],
+      bundles: [
+        { bundle: bundle('b1', 2), members: [recording('m', 'JDK'), recording('h', 'HEAP_DUMP')] }
+      ],
       shows: null
     });
 

@@ -1319,6 +1319,11 @@ const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
   if (!recording) {
     return;
   }
+  // A bundle of one item is shown as that item's row; the bundle, not the item, sits in a group.
+  if (recording.bundleId) {
+    await moveBundle(recording.bundleId, targetGroupId);
+    return;
+  }
   if ((recording.groupId || null) === targetGroupId) {
     return;
   }
