@@ -35,16 +35,4 @@ describe("useSessionReads", () => {
     expect(reads.sessions.value["s-1"]?.id).toBe("s-1");
     expect(reads.failed.value["s-1"]).toBe(false);
   });
-
-  it("forgets a read session the refreshed listing no longer holds", async () => {
-    const client = new ProjectRepositoryClient("ws", "project");
-    vi.spyOn(client, "getRecordingSession").mockImplementation((id) => Promise.resolve(session(id)));
-    const reads = useSessionReads(() => client);
-    await reads.read("s-1");
-    await reads.read("s-2");
-
-    reads.retainOnly(new Set(["s-2"]));
-
-    expect(Object.keys(reads.sessions.value)).toEqual(["s-2"]);
-  });
 });

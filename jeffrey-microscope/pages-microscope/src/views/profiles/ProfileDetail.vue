@@ -242,7 +242,7 @@ import {
 import { profileKindOf } from '@/services/ProfileKind';
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId, navigateToProjectRecordings } = useNavigation();
+const { workspaceId, projectId, navigateToRecordings } = useNavigation();
 const profileId = route.params.profileId as string;
 
 const profile = ref<Profile | null>(null);
@@ -518,7 +518,7 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load profile:', error);
     ToastService.error('Failed to load profile', 'Error occurred while loading profile details');
-    navigateToProjectRecordings();
+    navigateToRecordings();
   } finally {
     loading.value = false;
   }

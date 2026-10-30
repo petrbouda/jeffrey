@@ -18,20 +18,15 @@
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import HttpUtils from '@shared/services/HttpUtils';
 import RecordingSession from '@remote/services/api/model/RecordingSession.ts';
-import RepositoryStatistics from '@remote/services/api/model/RepositoryStatistics.ts';
 
 export default class ProjectRepositoryClient extends BasePlatformClient {
   constructor(workspaceId: string, projectId: string) {
     super(`/remote/workspaces/${workspaceId}/projects/${projectId}/repository`);
   }
 
-  /** One session with its files — what a session row fetches when it is expanded. */
+  /** One session with its files — what the session drawer fetches when it opens. */
   getRecordingSession(sessionId: string): Promise<RecordingSession> {
     return super.get<RecordingSession>('/sessions/' + sessionId);
-  }
-
-  getRepositoryStatistics(): Promise<RepositoryStatistics> {
-    return super.get<RepositoryStatistics>('/statistics');
   }
 
   deleteRecordingSession(sessionId: string): Promise<void> {

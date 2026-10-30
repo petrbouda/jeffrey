@@ -16,15 +16,10 @@
  */
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import Project from '@remote/services/api/model/Project';
 
 export default class ProjectClient extends BasePlatformClient {
   constructor(workspaceId: string, projectId: string) {
     super(`/remote/workspaces/${workspaceId}/projects/${projectId}`);
-  }
-
-  async fetch(): Promise<Project> {
-    return super.get<Project>();
   }
 
   async delete(): Promise<void> {

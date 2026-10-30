@@ -53,13 +53,6 @@ public class WorkspacesController {
         return result;
     }
 
-    @GetMapping("/{workspaceId}")
-    public WorkspaceResponse workspace(
-            @PathVariable("workspaceId") String workspaceId) {
-
-        return access.workspace(workspaceId);
-    }
-
     @DeleteMapping("/{workspaceId}")
     public ResponseEntity<Void> delete(
             @PathVariable("workspaceId") String workspaceId) {

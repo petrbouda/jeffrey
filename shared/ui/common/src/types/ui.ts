@@ -26,6 +26,12 @@ export interface NavItem {
   exact?: boolean;
 }
 
+/**
+ * Where an entry of a column browser stands on the browser's path: `path` for a picked entry whose
+ * children are open in the next column, `active` for the entry the path ends on.
+ */
+export type BrowserItemState = 'none' | 'path' | 'active';
+
 export type Size = 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
 export type Variant =
   | 'primary'

@@ -26,8 +26,8 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'what-are-projects', text: 'What are Projects?', level: 2 },
-  { id: 'project-page', text: 'The Project Page', level: 2 },
-  { id: 'project-settings', text: 'Project Settings', level: 2 },
+  { id: 'browsing-projects', text: 'Browsing a Project', level: 2 },
+  { id: 'deleting-projects', text: 'Deleting a Project', level: 2 },
   { id: 'creating-projects', text: 'Creating Projects', level: 2 }
 ];
 
@@ -60,37 +60,41 @@ onMounted(() => {
         Projects are for staying connected to live applications through the remote (the Azure file share that holds the recording volume).
       </DocsCallout>
 
-      <h2 id="project-page">The Project Page</h2>
-      <p>Open a project and the page is organised into two tabs; it opens on Instances.</p>
-
-      <div class="tab-grid">
-        <router-link to="/docs/microscope/projects/instances" class="tab-card">
-          <div class="tab-icon"><i class="bi bi-grid"></i></div>
-          <h4>Instances</h4>
-          <p>JVM processes connected to the project, with their start, their sessions and the project's storage.</p>
-        </router-link>
-        <a href="#project-settings" class="tab-card">
-          <div class="tab-icon"><i class="bi bi-sliders"></i></div>
-          <h4>Settings</h4>
-          <p>The project's name, read-only, and deleting the project.</p>
-        </a>
-      </div>
+      <h2 id="browsing-projects">Browsing a Project</h2>
+      <p>
+        A project has no page of its own: it is browsed on the
+        <router-link to="/docs/microscope/workspaces">Remote</router-link> page, whose columns follow
+        the share's folders &mdash; <strong>Workspaces</strong>, <strong>Projects</strong>,
+        <strong>Instances</strong>, <strong>Sessions</strong>. Pick a workspace and its projects are
+        listed with their names and the folder's creation date; a workspace holding a single project
+        opens it straight away. Pick a project and its
+        <router-link to="/docs/microscope/projects/instances">instances</router-link> are listed, with
+        the newest one picked and its sessions listed beside it. The Recordings and Profiler Builder
+        tabs stay in reach the whole time.
+      </p>
+      <p>
+        The page's address follows what is picked
+        (<code>/remote?workspaceId=…&amp;projectId=…&amp;instanceId=…&amp;sessionId=…</code>), so a link
+        opens the same project, instance or session. The address of the former project pages
+        (<code>/remote/workspaces/&lt;workspace&gt;/projects/&lt;project&gt;/…</code>) still works and
+        leads to the same place on the Remote page.
+      </p>
 
       <DocsCallout type="info">
         <strong>Where did "Profiles", "Recordings", and "Repository" go?</strong>
-        Profiles and recordings now live globally on the
+        Profiles and recordings live globally on the
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page, regardless of project.
-        The repository's storage size is now a stat card on the
-        <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab.
+        A session's files and sizes are shown when the session is opened; see
+        <router-link to="/docs/microscope/projects/instances">Instances</router-link>.
       </DocsCallout>
 
-      <h2 id="project-settings">Project Settings</h2>
+      <h2 id="deleting-projects">Deleting a Project</h2>
       <p>
-        The <strong>Settings</strong> tab is intentionally minimal. It shows the project's
-        <strong>name</strong>, read-only: the name is the project's folder on the share, given by the
-        provisioner, and it is also the project's id, so a project cannot be renamed. It also lets you
-        <strong>delete</strong> the project (a confirmation step protects against accidents). Deleting is final: the remote removes the
-        project's directory on the workspace volume, and there is no restore.
+        A project's name is its folder on the share, given by the provisioner, and it is also the
+        project's id, so a project cannot be renamed. The picked project carries a
+        <strong>delete</strong> button in the Projects column; a confirmation step protects against
+        accidents. Deleting is final: the remote removes the project's directory on the workspace
+        volume, and there is no restore. A read-only remote shows no delete button.
       </p>
 
       <h2 id="creating-projects">Creating Projects</h2>
@@ -111,66 +115,4 @@ onMounted(() => {
 <style scoped>
 @import '@/views/docs/docs-page.css';
 
-.tab-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.85rem;
-  margin: 1.25rem 0 1.5rem;
-}
-
-.tab-grid .tab-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 1rem 1rem 0.95rem;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  text-decoration: none;
-  color: inherit;
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
-}
-
-.tab-grid .tab-card:hover {
-  transform: translateY(-2px);
-  border-color: #c7d2fe;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
-  text-decoration: none;
-  color: inherit;
-}
-
-.tab-grid .tab-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: #ede9fe;
-  color: #5e64ff;
-  font-size: 1rem;
-}
-
-.tab-grid h4 {
-  margin: 0.4rem 0 0.1rem;
-  font-size: 0.95rem;
-  font-weight: 650;
-  color: #0f172a;
-  letter-spacing: -0.01em;
-}
-
-.tab-grid p {
-  margin: 0;
-  font-size: 0.83rem;
-  line-height: 1.45;
-  color: #475569;
-}
-
-@media (max-width: 992px) {
-  .tab-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 576px) {
-  .tab-grid { grid-template-columns: 1fr; }
-}
 </style>

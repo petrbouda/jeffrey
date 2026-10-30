@@ -14,33 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  -->
-
 <template>
-  <RemoteBrowser :initial-workspace-id="initialWorkspaceId">
-    <template #project="{ project, workspaceId }">
-      <ProjectCard
-        :project="project"
-        :workspace-id="workspaceId"
-        @open="t => navigateToProject(t.projectId, t.workspaceId)"
-      />
-    </template>
-  </RemoteBrowser>
+  <RemoteBrowser :initial-selection="initialSelection" @update:selection="syncQuery" />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import RemoteBrowser from '@remote/components/projects/RemoteBrowser.vue';
-import ProjectCard from '@shared/components/projects/ProjectCard.vue';
-import { useNavigation } from '@/composables/useNavigation';
+import {
+  queryFromSelection,
+  selectionFromQuery,
+  type RemoteSelection
+} from '@remote/services/remoteSelection';
 
-const { navigateToProject } = useNavigation();
-
-// Optional deep-link from a breadcrumb (`/remote?workspaceId=…`) so the browser opens with that
-// workspace preselected instead of the first one.
 const route = useRoute();
-const initialWorkspaceId = computed(() => {
-  const value = route.query.workspaceId;
-  return typeof value === 'string' ? value : null;
-});
+const router = useRouter();
+
+// The browser opens where the link points (`/remote?workspaceId=…&projectId=…&instanceId=…&sessionId=…`),
+// and every pick is written back so the address always names what is on screen.
+const initialSelection = selectionFromQuery(route.query);
+
+const REMOTE_PATH = '/remote';
+
+const syncQuery = (selection: RemoteSelection) => {
+  // A listing that lands after the reader has left the page must not rewrite the next page's address
+  if (route.path !== REMOTE_PATH) {
+    return;
+  }
+  router.replace({ path: REMOTE_PATH, query: queryFromSelection(selection) });
+};
 </script>

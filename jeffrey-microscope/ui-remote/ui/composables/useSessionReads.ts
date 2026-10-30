@@ -21,8 +21,8 @@ import RecordingSession from "@remote/services/api/model/RecordingSession";
 
 /**
  * Sessions read one at a time, files included, as they are opened. A listing names its sessions
- * without reading them, so a view fetches a session when the reader opens it and keeps the
- * answer here.
+ * without reading them, so the session drawer fetches a session when the reader opens it and keeps
+ * the answer here.
  *
  * A read already in flight is shared rather than repeated, so a refresh that lands while the
  * reader is opening the same session costs one request, and an older answer can never
@@ -60,16 +60,5 @@ export function useSessionReads(client: () => ProjectRepositoryClient) {
     return request;
   }
 
-  /** Forgets every session but these — the ones a refreshed listing still holds. */
-  function retainOnly(sessionIds: Set<string>): void {
-    for (const state of [sessions.value, loading.value, failed.value]) {
-      for (const id of Object.keys(state)) {
-        if (!sessionIds.has(id)) {
-          delete state[id];
-        }
-      }
-    }
-  }
-
-  return { sessions, loading, failed, read, retainOnly };
+  return { sessions, loading, failed, read };
 }

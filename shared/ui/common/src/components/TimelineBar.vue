@@ -40,7 +40,7 @@
       <template v-if="lastDataAt">
         <span class="tl-main">{{ FormattingService.formatRelativeTime(lastDataAt) }}</span>
       </template>
-      <span v-else class="tl-main tl-empty">{{ unread ? UNREAD : 'No data yet' }}</span>
+      <span v-else class="tl-main tl-empty">No data yet</span>
     </div>
     <div class="tl-item">
       <span class="tl-icon-badge tl-icon-badge--primary">
@@ -52,7 +52,7 @@
       <span v-if="duration != null" class="tl-main">{{
         FormattingService.formatDurationInMillis2Units(duration)
       }}</span>
-      <span v-else class="tl-main tl-empty">{{ unread ? UNREAD : '—' }}</span>
+      <span v-else class="tl-main tl-empty">—</span>
     </div>
   </div>
 </template>
@@ -66,11 +66,7 @@ interface Props {
   lastDataAt?: number | null;
   /** Absent while there is no recording. */
   duration?: number | null;
-  /** What it holds is not read yet: Last data and Duration come when it is opened. */
-  unread?: boolean;
 }
-
-const UNREAD = 'When opened';
 
 defineProps<Props>();
 </script>
