@@ -165,6 +165,7 @@ public enum StatementLabel {
      * {@link GroupLabel#SINGLE_PROJECT}
      */
     FIND_ALL_PROFILES,
+    FIND_PROFILES_BY_RECORDING,
     UPDATE_PROJECT_NAME,
 
     /**

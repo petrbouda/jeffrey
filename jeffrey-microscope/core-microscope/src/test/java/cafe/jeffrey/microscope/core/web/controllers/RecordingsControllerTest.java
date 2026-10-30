@@ -62,7 +62,7 @@ class RecordingsControllerTest {
 
     /** The recordings here have no profile to report. */
     private static final RecordingProfileInfoProvider NO_PROFILES =
-            recording -> RecordingProfileInfoProvider.ProfileInfo.NONE;
+            recording -> List.of();
 
     @Mock
     RecordingsManager recordingsManager;

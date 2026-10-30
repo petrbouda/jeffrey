@@ -123,7 +123,7 @@ class PerfCountersProfileBuilderTest {
                             "sun.rt.safepointTime", 10 * SECOND))));
             when(repositories.newProfileRepository(anyString())).thenReturn(profileRepository);
 
-            String profileId = builder.build(snapshot(null));
+            String profileId = builder.build(snapshot(null), FILENAME);
 
             verify(perfCountersManager).ingest(RecordingStorageLayout.storagePath(recordingsDir, RECORDING_ID, FILENAME));
             ArgumentCaptor<ProfileRepository.InsertProfile> insert = ArgumentCaptor.forClass(ProfileRepository.InsertProfile.class);
@@ -147,7 +147,7 @@ class PerfCountersProfileBuilderTest {
                 throw new IllegalArgumentException("Not a perf-data file");
             });
 
-            assertThrows(IllegalArgumentException.class, () -> builder.build(snapshot(null)));
+            assertThrows(IllegalArgumentException.class, () -> builder.build(snapshot(null), FILENAME));
 
             assertFalse(Files.exists(jeffreyDirs.profileDir(started.getValue().id())));
             verify(repositories, never()).newProfileRepository(anyString());

@@ -40,10 +40,22 @@ import java.util.stream.Collectors;
 
 public class JdbcRecordingRepository implements RecordingRepository {
 
+    /**
+     * A recording can be initialized more than once, each time into a profile of its own. A recording
+     * row carries the newest of them, so a caller that wants "the recording's profile" gets the
+     * latest initialization and the listing keeps one row per recording.
+     */
+    //language=sql
+    private static final String NEWEST_PROFILE_PER_RECORDING = """
+            (SELECT profile_id, profile_name, recording_id,
+                    ROW_NUMBER() OVER (PARTITION BY recording_id ORDER BY created_at DESC, profile_id DESC) AS newest_rank
+             FROM profiles)""";
+
     //language=sql
     private static final String SELECT_RECORDINGS_WITH_PROFILE = """
             SELECT r.*, p.profile_id, p.profile_name, (p.profile_id IS NOT NULL) AS has_profile
-            FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id
+            FROM recordings r LEFT JOIN """ + NEWEST_PROFILE_PER_RECORDING + """
+             p ON p.recording_id = r.id AND p.newest_rank = 1
             WHERE r.""";
 
     /**
@@ -64,7 +76,8 @@ public class JdbcRecordingRepository implements RecordingRepository {
      */
     //language=sql
     private static final String FIND_RECORDING_ID_BY_FILE_NAME_AND_SIZE =
-            "SELECT r.id FROM recordings r LEFT JOIN profiles p ON p.recording_id = r.id WHERE r." + NO_PROJECT + """
+            "SELECT r.id FROM recordings r LEFT JOIN " + NEWEST_PROFILE_PER_RECORDING
+                    + " p ON p.recording_id = r.id AND p.newest_rank = 1 WHERE r." + NO_PROJECT + """
               AND (SELECT count(*) FROM recording_files f WHERE f.recording_id = r.id) = 1
               AND EXISTS (SELECT 1 FROM recording_files f WHERE f.recording_id = r.id AND f.filename = :filename AND f.size_in_bytes = :size_in_bytes)
             ORDER BY (p.profile_id IS NULL), r.created_at DESC LIMIT 1""";

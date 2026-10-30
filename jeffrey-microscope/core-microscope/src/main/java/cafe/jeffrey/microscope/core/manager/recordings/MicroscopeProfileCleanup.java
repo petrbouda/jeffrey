@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -34,8 +35,8 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 /**
- * Microscope's profile-aware {@link RecordingProfileCleanup}: when a recording that has an analysis
- * profile is deleted, its profile database and on-disk directory are removed too. Also exposes
+ * Microscope's profile-aware {@link RecordingProfileCleanup}: when a recording is deleted, the database
+ * and on-disk directory of every profile built from it are removed too. Also exposes
  * {@link #deleteProfile(String)} for the standalone "delete profile, keep recording" operation.
  */
 public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
@@ -67,10 +68,11 @@ public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
         this.contextInvalidator = contextInvalidator;
     }
 
+    /** Every profile the recording was initialized into goes with it, not only the newest. */
     @Override
     public void onRecordingDeleted(Recording recording) {
-        if (recording.hasProfile()) {
-            deleteProfile(recording.profileId(), recording.id());
+        for (ProfileInfo profile : localCoreRepositories.findProfilesByRecording(recording.id())) {
+            deleteProfile(profile.id(), recording.id());
         }
     }
 

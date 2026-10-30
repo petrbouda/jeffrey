@@ -106,7 +106,7 @@ public final class HeapDumpProfileBuilder implements ProfileBuilder {
     }
 
     @Override
-    public String build(Recording recording) {
+    public String build(Recording recording, String profileName) {
         RecordingFile file = recording.files().getFirst();
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
@@ -122,10 +122,6 @@ public final class HeapDumpProfileBuilder implements ProfileBuilder {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to copy heap dump to analysis directory", e);
         }
-
-        // Named after the recording, like every other profile: an upload's recording is its file's
-        // name, and a bundle's heap-dump item says whose session the dump is from.
-        String profileName = recording.recordingName();
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, null, null, profileName,

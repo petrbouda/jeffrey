@@ -72,6 +72,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -386,6 +387,82 @@ class ProfileRecordingsManagerAnalyzeTest {
             } finally {
                 release.countDown();
             }
+        }
+    }
+
+    /**
+     * Initializing a recording again builds another profile beside the ones it has. Nothing is
+     * replaced, and the new profile is numbered so the two can be told apart in the Profiles column.
+     */
+    @Nested
+    class InitializingAgain {
+
+        private static final String EXISTING_PROFILE_ID = "existing-profile";
+
+        @BeforeEach
+        void recordingAlreadyInitialized() {
+            when(recordingRepository.findRecording(RECORDING_ID))
+                    .thenReturn(Optional.of(recordingWithProfile(EXISTING_PROFILE_ID)));
+            when(profileRepository.find()).thenReturn(Optional.of(profileInfo(EXISTING_PROFILE_ID, true)));
+            when(localCoreRepositories.findProfilesByRecording(RECORDING_ID))
+                    .thenReturn(List.of(profileInfo(EXISTING_PROFILE_ID, true)));
+        }
+
+        @Test
+        void buildsAnotherProfileBesideTheExistingOne() {
+            String profileId = manager.initializeAgain(RECORDING_ID);
+
+            assertNotEquals(EXISTING_PROFILE_ID, profileId);
+            verify(localCoreRepositories).newProfileRepository(profileId);
+            verify(profileInitializer).initialize(any(), any());
+            verify(profileCleanup, never()).deleteProfile(any());
+        }
+
+        @Test
+        void numbersTheNewProfileAfterTheRecording() {
+            manager.initializeAgain(RECORDING_ID);
+
+            ArgumentCaptor<ProfileRepository.InsertProfile> insert =
+                    ArgumentCaptor.forClass(ProfileRepository.InsertProfile.class);
+            verify(profileRepository).insert(insert.capture());
+            assertEquals(FILENAME + " #2", insert.getValue().profileName());
+        }
+
+        @Test
+        void joinsARunOfTheRecordingThatIsStillInProgress() {
+            CountDownLatch release = new CountDownLatch(1);
+            runRegistry.start(PipelineRunRequest.of(EXISTING_PROFILE_ID, run -> awaitQuietly(release)));
+            await().atMost(5, SECONDS).until(() -> runRegistry.isRunning(EXISTING_PROFILE_ID));
+
+            try {
+                assertEquals(EXISTING_PROFILE_ID, manager.initializeAgain(RECORDING_ID));
+                verify(profileInitializer, never()).initialize(any(), any());
+            } finally {
+                release.countDown();
+            }
+        }
+    }
+
+    @Nested
+    class DeletingAProfile {
+
+        @Test
+        void deletesOneOfTheRecordingsProfiles() {
+            when(profileRepository.find()).thenReturn(Optional.of(profileInfo("profile-2", true)));
+
+            manager.deleteProfile(RECORDING_ID, "profile-2");
+
+            verify(profileCleanup).deleteProfile("profile-2");
+        }
+
+        @Test
+        void refusesAProfileOfAnotherRecording() {
+            when(profileRepository.find()).thenReturn(Optional.of(new ProfileInfo(
+                    "foreign-profile", null, null, FILENAME, RecordingEventSource.JDK,
+                    NOW, NOW, NOW, true, false, "another-recording")));
+
+            assertThrows(RuntimeException.class, () -> manager.deleteProfile(RECORDING_ID, "foreign-profile"));
+            verify(profileCleanup, never()).deleteProfile(any());
         }
     }
 

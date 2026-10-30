@@ -174,7 +174,7 @@ public class RecordingsController {
         return recordings.stream()
                 .map(rec -> RecordingResponse.from(
                         rec,
-                        profileInfoProvider.profileInfo(rec),
+                        profileInfoProvider.profiles(rec),
                         tagsByRecording.getOrDefault(rec.id(), List.of())))
                 .toList();
     }

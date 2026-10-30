@@ -19,37 +19,37 @@ package cafe.jeffrey.shared.ui.remote.bridge;
 
 import cafe.jeffrey.storage.recording.api.file.Recording;
 
+import java.util.List;
+
 /**
- * Enrichment SPI for the shared recordings list: supplies the per-recording profile fields
- * ({@code profileSizeInBytes} / {@code profileModified}) that only Microscope's profile managers can
- * compute, so this module stays free of the profile pipeline's types.
+ * Enrichment SPI for the shared recordings list: supplies the profiles built from each recording, with
+ * the fields ({@code sizeInBytes} / {@code modified} / init progress) that only Microscope's profile
+ * managers can compute, so this module stays free of the profile pipeline's types.
  */
 @FunctionalInterface
 public interface RecordingProfileInfoProvider {
 
     /**
-     * Resolves the profile size/modified info for a recording. Implementations should return
-     * {@link ProfileInfo#NONE} when the recording has no associated profile.
+     * Every profile built from the recording, newest first: a recording can be initialized again, and
+     * each initialization is a profile of its own. Empty for a recording never initialized.
      */
-    ProfileInfo profileInfo(Recording recording);
+    List<RecordingProfile> profiles(Recording recording);
 
     /**
-     * @param profileCreatedAt when the profile was created (analyzed), as epoch millis; {@code 0} when the
-     *                         recording has no profile. Lets the UI sort initialized recordings by analysis
-     *                         time rather than upload time.
-     * @param initProgress     how far initialization has got, so the list can show a profile being
-     *                         built rather than only a profile that exists
+     * @param createdAt    when the profile was created (analyzed), as epoch millis. Lets the UI sort
+     *                     profiles by analysis time rather than upload time.
+     * @param initProgress how far initialization has got, so the list can show a profile being built
+     *                     rather than only a profile that exists
      */
-    record ProfileInfo(
-            long profileSizeInBytes,
-            boolean profileModified,
-            long profileCreatedAt,
+    record RecordingProfile(
+            String profileId,
+            String profileName,
+            long sizeInBytes,
+            boolean modified,
+            long createdAt,
             ProfileInitProgress initProgress) {
 
-        public static final ProfileInfo NONE =
-                new ProfileInfo(0L, false, 0L, ProfileInitProgress.NONE);
-
-        public ProfileInfo {
+        public RecordingProfile {
             initProgress = initProgress == null ? ProfileInitProgress.NONE : initProgress;
         }
     }

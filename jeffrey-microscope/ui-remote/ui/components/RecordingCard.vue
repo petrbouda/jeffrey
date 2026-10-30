@@ -20,12 +20,21 @@ import '@shared/styles/shared-components.css';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import StageChips from '@shared/components/StageChips.vue';
+import Badge from '@shared/components/Badge.vue';
 import type { ProfileInitProgress } from '../services/api/model/Recording';
 import { failedStageLabel, hasFailed, isInitializing, toTimelineSteps } from './profileInitChips';
 import { recordingKindOf } from './recordingKinds';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 
+/**
+ * Where the card sits. A recording, on the left, is clicked to initialize it and shows how many
+ * profiles it already has; a profile, on the right, is clicked to open it and carries only the
+ * profile's own actions.
+ */
+export type CardRole = 'recording' | 'profile';
+
 interface Props {
+  role?: CardRole;
   recordingId: string;
   name: string;
   sizeInBytes: number;
@@ -33,7 +42,6 @@ interface Props {
   uploadedAt: number;
   sourceType?: string;
   fileCount?: number;
-  hasProfile: boolean;
   profileId?: string | null;
   /** How far initialization has got. Absent for a recording that has never been analysed. */
   initProgress?: ProfileInitProgress;
@@ -42,6 +50,8 @@ interface Props {
   profileSizeInBytes?: number;
   profileCreatedAt?: number;
   profileModified?: boolean;
+  /** How many of the recording's profiles can be opened; a recording card shows it as a badge. */
+  profileCount?: number;
   analyzing?: boolean;
   creatingProfile?: boolean;
   deletingProfile?: boolean;
@@ -52,8 +62,10 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  role: 'recording',
   tickNow: 0,
   profileModified: false,
+  profileCount: 0,
   analyzing: false,
   creatingProfile: false,
   deletingProfile: false,
@@ -68,6 +80,7 @@ const emit = defineEmits<{
   (e: 'edit-profile'): void;
   (e: 'delete-profile'): void;
   (e: 'delete-recording'): void;
+  (e: 'initialize-again'): void;
   (e: 'reinitialize'): void;
   (e: 'toggle-expand'): void;
   (e: 'dragend'): void;
@@ -75,9 +88,17 @@ const emit = defineEmits<{
 
 const SOURCE_HEAP_DUMP = 'HEAP_DUMP';
 
-// Initialized recordings show when their profile was built; everything else shows the upload time.
+const isProfileRow = computed(() => props.role === 'profile');
+
+/** A recording that has been initialized before: clicking it asks first, rather than building again. */
+const isInitialized = computed(() => !isProfileRow.value && props.profileCount > 0);
+const initializedLabel = computed(() =>
+  props.profileCount > 1 ? `Initialized ×${props.profileCount}` : 'Initialized'
+);
+
+// A profile shows when it was built; a recording shows when it was uploaded.
 const showsInitializedTime = computed(
-  () => props.hasProfile && props.profileCreatedAt != null && props.profileCreatedAt > 0
+  () => isProfileRow.value && props.profileCreatedAt != null && props.profileCreatedAt > 0
 );
 const displayedTime = computed(() =>
   showsInitializedTime.value ? props.profileCreatedAt! : props.uploadedAt
@@ -123,7 +144,8 @@ const formatRelativeTime = (timestamp: number) => {
 };
 
 // In-card action bar (no popover — sidesteps overflow/positioning issues)
-type MenuAction = 'edit-profile' | 'reinitialize' | 'delete-profile' | 'delete-recording';
+type MenuAction =
+  'edit-profile' | 'reinitialize' | 'delete-profile' | 'initialize-again' | 'delete-recording';
 const cardRef = ref<HTMLElement | null>(null);
 const menuOpen = ref(false);
 
@@ -131,17 +153,17 @@ const toggleMenu = () => {
   menuOpen.value = !menuOpen.value;
 };
 
+const MENU_ACTIONS: Record<MenuAction, () => void> = {
+  'edit-profile': () => emit('edit-profile'),
+  reinitialize: () => emit('reinitialize'),
+  'delete-profile': () => emit('delete-profile'),
+  'initialize-again': () => emit('initialize-again'),
+  'delete-recording': () => emit('delete-recording')
+};
+
 const menuAction = (action: MenuAction) => {
   menuOpen.value = false;
-  if (action === 'edit-profile') {
-    emit('edit-profile');
-  } else if (action === 'reinitialize') {
-    emit('reinitialize');
-  } else if (action === 'delete-profile') {
-    emit('delete-profile');
-  } else {
-    emit('delete-recording');
-  }
+  MENU_ACTIONS[action]();
 };
 
 const handleDocumentClick = (event: MouseEvent) => {
@@ -169,7 +191,7 @@ onBeforeUnmount(() => {
     class="rec-card"
     :class="[
       {
-        'rec-card--analyzed': hasProfile && !initializing && !initFailed && !deletingProfile,
+        'rec-card--analyzed': isProfileRow && !deletingProfile,
         'rec-card--analyzing': analyzing || creatingProfile || (initializing && !deletingProfile),
         'rec-card--failed': initFailed && !deletingProfile,
         'rec-card--deleting': deletingProfile,
@@ -187,6 +209,15 @@ onBeforeUnmount(() => {
           <i class="rec-card__icon" :class="kind.icon"></i>
           <span class="rec-card__type" :class="kind.tagClass">{{ kind.label }}</span>
           <span class="rec-card__name">{{ name }}</span>
+          <Badge
+            v-if="isInitialized"
+            class="rec-card__initialized"
+            :value="initializedLabel"
+            variant="success"
+            size="xs"
+            icon="bi bi-check-circle-fill"
+            :uppercase="false"
+          />
           <RecordingOriginChip v-if="origin" :origin="origin" />
         </div>
         <div class="rec-card__line2">
@@ -206,14 +237,14 @@ onBeforeUnmount(() => {
             "
             >{{ formatRelativeTime(displayedTime) }}</span
           >
-          <template v-if="hasProfile && profileSizeInBytes && profileSizeInBytes > 0">
+          <template v-if="isProfileRow && profileSizeInBytes && profileSizeInBytes > 0">
             <span class="rec-card__sep">&middot;</span>
             <span class="rec-card__profile-info">
               <i class="bi bi-check-circle-fill"></i>
               Profile: {{ FormattingService.formatBytes(profileSizeInBytes) }}
             </span>
           </template>
-          <template v-if="hasProfile && profileModified">
+          <template v-if="isProfileRow && profileModified">
             <span class="rec-card__sep">&middot;</span>
             <span class="rec-card__modified">
               <i class="bi bi-exclamation-triangle-fill"></i>
@@ -224,13 +255,14 @@ onBeforeUnmount(() => {
             v-if="!isTransitional() && !initFailed"
             class="rec-card__hint"
             :class="{
-              'rec-card__hint--analyze': !hasProfile,
-              'rec-card__hint--open': hasProfile && sourceType !== 'HEAP_DUMP',
-              'rec-card__hint--open-heap': hasProfile && sourceType === 'HEAP_DUMP'
+              'rec-card__hint--analyze': !isProfileRow && !isInitialized,
+              'rec-card__hint--open': isInitialized || (isProfileRow && sourceType !== 'HEAP_DUMP'),
+              'rec-card__hint--open-heap': isProfileRow && sourceType === 'HEAP_DUMP'
             }"
           >
-            <template v-if="!hasProfile">Click to initialize</template>
-            <template v-else>Open profile</template>
+            <template v-if="isProfileRow">Open profile</template>
+            <template v-else-if="isInitialized">Click to open or initialize again</template>
+            <template v-else>Click to initialize</template>
           </span>
         </div>
 
@@ -316,7 +348,7 @@ onBeforeUnmount(() => {
 
     <!-- In-card action bar -->
     <div v-if="menuOpen" class="rec-card__action-bar" @click.stop>
-      <template v-if="hasProfile">
+      <template v-if="isProfileRow">
         <button class="rec-card__action" @click="menuAction('edit-profile')">
           <i class="bi bi-pencil"></i>
           Edit profile name
@@ -337,13 +369,23 @@ onBeforeUnmount(() => {
           Delete profile
         </button>
       </template>
-      <button
-        class="rec-card__action rec-card__action--danger"
-        @click="menuAction('delete-recording')"
-      >
-        <i class="bi bi-trash"></i>
-        Delete recording
-      </button>
+      <template v-else>
+        <button
+          v-if="isInitialized"
+          class="rec-card__action"
+          @click="menuAction('initialize-again')"
+        >
+          <i class="bi bi-arrow-repeat"></i>
+          Initialize again
+        </button>
+        <button
+          class="rec-card__action rec-card__action--danger"
+          @click="menuAction('delete-recording')"
+        >
+          <i class="bi bi-trash"></i>
+          Delete recording
+        </button>
+      </template>
     </div>
 
     <!-- Expanded content slot -->
@@ -588,6 +630,10 @@ onBeforeUnmount(() => {
 
 .rec-card--perf.rec-card--analyzed .rec-card__profile-info {
   color: var(--color-pink-text);
+}
+
+.rec-card__initialized {
+  flex: none;
 }
 
 /* Format type tag (JFR / pprof / OTLP / Heap / Perf) */

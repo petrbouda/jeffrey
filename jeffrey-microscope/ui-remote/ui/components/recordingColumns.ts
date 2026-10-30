@@ -17,13 +17,16 @@
 
 import type Bundle from '../services/api/model/Bundle';
 import type Recording from '../services/api/model/Recording';
-import { isInitializing } from './profileInitChips';
+import type { RecordingProfile } from '../services/api/model/Recording';
+import { hasFailed, isInitializing } from './profileInitChips';
 
 /**
- * How the recordings list splits into its two columns. The left one holds what still has work in it:
- * recordings not initialized yet (or initializing), and bundles that have such items or files to
- * download. The right one holds only profiles: one row per initialized recording, a bundle's items
- * among them, with no bundle around them.
+ * How the recordings list splits into its two columns. The left one holds every recording, always:
+ * standalone ones and bundles with all of their items, initialized or not, so the card you clicked
+ * never leaves it; a bundle of a single item and no files is shown as that item alone. The right one
+ * holds the profiles: one row per profile built from a recording, a
+ * bundle's items among them, with no bundle around them. A recording initialized twice has two rows
+ * there.
  */
 
 /** A bundle with all of its items, as the group and search selection found it. */
@@ -32,8 +35,8 @@ export interface BundleWithMembers {
   members: Recording[];
 }
 
-/** One row of a column: a recording on its own, or a bundle with the items still left to initialize. */
-export type ListItem =
+/** One row of the Recordings column: a recording on its own, or a bundle with its items. */
+export type RecordingItem =
   | { kind: 'recording'; key: string; recording: Recording }
   | {
       kind: 'bundle';
@@ -41,13 +44,20 @@ export type ListItem =
       bundle: Bundle;
       /** Every item, for the bundle's summary. */
       members: Recording[];
-      /** The items listed in the bundle: those not initialized yet. */
-      pending: Recording[];
+      /** The items listed in the bundle: those the type filter shows. */
+      listed: Recording[];
     };
 
+/** One row of the Profiles column: a profile with the recording it was built from. */
+export interface ProfileItem {
+  key: string;
+  recording: Recording;
+  profile: RecordingProfile;
+}
+
 export interface RecordingColumns {
-  pending: ListItem[];
-  initialized: ListItem[];
+  recordings: RecordingItem[];
+  profiles: ProfileItem[];
 }
 
 export interface ColumnSelection {
@@ -58,47 +68,74 @@ export interface ColumnSelection {
 }
 
 /**
- * A recording whose profile row exists only because its initialization is running stays on the left
- * with its stage chips, not on the right among the profiles you can open.
+ * A profile whose initialization is still running, or ended badly, has nothing to open yet: its
+ * stage chips and its error stay on the recording's card on the left.
  */
-export function isBuilt(recording: Recording): boolean {
-  return recording.hasProfile && !isInitializing(recording.initProgress);
+export function isBuilt(profile: RecordingProfile): boolean {
+  return !isInitializing(profile.initProgress) && !hasFailed(profile.initProgress);
 }
 
-const recordingItem = (recording: Recording): ListItem => ({
+/** The profiles built from the recording that can be opened, newest first. */
+export function builtProfiles(recording: Recording): RecordingProfile[] {
+  return (recording.profiles ?? []).filter(isBuilt);
+}
+
+/**
+ * A bundle that brought a single item and no download-only files has nothing to group: it is shown as
+ * that item's own row, the way a recording uploaded by hand is. Dragging the row moves the bundle.
+ */
+export function standsAlone(bundle: Bundle, members: Recording[]): boolean {
+  return members.length === 1 && bundle.files.length === 0;
+}
+
+const recordingItem = (recording: Recording): RecordingItem => ({
   kind: 'recording',
   key: recording.id,
   recording
 });
 
-const uploadedAtOf = (item: ListItem): number =>
+const uploadedAtOf = (item: RecordingItem): number =>
   item.kind === 'recording' ? item.recording.uploadedAt : item.bundle.createdAt;
 
-const initializedAtOf = (item: ListItem): number =>
-  item.kind === 'recording' ? item.recording.profileCreatedAt || item.recording.uploadedAt : 0;
+const profileItems = (recording: Recording): ProfileItem[] =>
+  builtProfiles(recording).map(profile => ({
+    key: profile.profileId,
+    recording,
+    profile
+  }));
 
 /**
  * Left: newest upload first. Right: most recently initialized first, so a profile you just built
- * surfaces at the top instead of sinking to its upload slot. A bundle's files keep it on the left only
- * while no type filter is set, as they have no type.
+ * surfaces at the top. A bundle's files keep a bundle whose items the type filter hides on the left
+ * only while no type filter is set, as they have no type.
  */
 export function splitColumns(selection: ColumnSelection): RecordingColumns {
   const shows = selection.shows ?? (() => true);
-  const pending: ListItem[] = [];
-  const initialized: ListItem[] = [];
+  const recordings: RecordingItem[] = [];
+  const profiles: ProfileItem[] = [];
   for (const recording of selection.recordings.filter(shows)) {
-    (isBuilt(recording) ? initialized : pending).push(recordingItem(recording));
+    recordings.push(recordingItem(recording));
+    profiles.push(...profileItems(recording));
   }
   for (const { bundle, members } of selection.bundles) {
-    const shown = members.filter(shows);
-    initialized.push(...shown.filter(isBuilt).map(recordingItem));
-    const waiting = shown.filter(member => !isBuilt(member));
+    const listed = members.filter(shows);
+    profiles.push(...listed.flatMap(profileItems));
+    if (standsAlone(bundle, members)) {
+      recordings.push(...listed.map(recordingItem));
+      continue;
+    }
     const filesShown = bundle.files.length > 0 && selection.shows === null;
-    if (waiting.length > 0 || filesShown) {
-      pending.push({ kind: 'bundle', key: bundle.id, bundle, members, pending: waiting });
+    if (listed.length > 0 || filesShown) {
+      recordings.push({
+        kind: 'bundle',
+        key: bundle.id,
+        bundle,
+        members,
+        listed
+      });
     }
   }
-  pending.sort((a, b) => uploadedAtOf(b) - uploadedAtOf(a));
-  initialized.sort((a, b) => initializedAtOf(b) - initializedAtOf(a));
-  return { pending, initialized };
+  recordings.sort((a, b) => uploadedAtOf(b) - uploadedAtOf(a));
+  profiles.sort((a, b) => b.profile.createdAt - a.profile.createdAt);
+  return { recordings, profiles };
 }

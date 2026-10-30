@@ -227,24 +227,20 @@
         title="No recordings match the current filter"
       />
       <div v-else class="recordings-split">
-        <section
-          v-for="column in recordingColumns"
-          :key="column.key"
-          class="rec-col"
-          :class="`rec-col--${column.key}`"
-        >
+        <!-- Left: every recording, initialized or not; a recording never leaves this column. -->
+        <section class="rec-col rec-col--recordings">
           <div class="rec-col__head">
-            <span class="rec-col__dot" :class="`rec-col__dot--${column.key}`"></span>
-            {{ column.label }}
-            <span class="rec-col__count">{{ column.items.length }}</span>
+            <span class="rec-col__dot rec-col__dot--recordings"></span>
+            Recordings
+            <span class="rec-col__count">{{ columns.recordings.length }}</span>
           </div>
-          <div v-if="column.items.length > 0" class="card-stack recordings-list">
-            <template v-for="item in column.items" :key="item.key">
+          <div v-if="columns.recordings.length > 0" class="card-stack recordings-list">
+            <template v-for="item in columns.recordings" :key="item.key">
               <RecordingBundleCard
                 v-if="item.kind === 'bundle'"
                 :bundle="item.bundle"
                 :members="item.members"
-                :listed-members="item.pending"
+                :listed-members="item.listed"
                 :origin="buildOrigin(item.bundle.tags)"
                 :tick-now="tickNow"
                 :expanded="expandedBundles.has(item.bundle.id)"
@@ -255,42 +251,36 @@
                 @delete-bundle="deletingBundle = item.bundle"
                 @download-file="fileId => downloadBundleFile(item.bundle.id, fileId)"
                 @download-member-file="downloadFile"
-                @member-click="handleCardClick"
+                @member-click="handleRecordingClick"
                 @member-create-profile="member => analyzeRecording(member.id)"
-                @member-edit-profile="startEditProfile"
-                @member-delete-profile="member => deleteProfileFromRecording(member.id)"
+                @member-initialize-again="member => initializeAgain(member.id)"
                 @member-delete-recording="member => deleteRecording(member.id)"
-                @member-reinitialize="reinitializeHeapDump"
                 @member-toggle-expand="member => toggleRecordingFiles(member.id)"
                 @dragend="onDragEnd"
               />
               <RecordingCard
                 v-else
+                role="recording"
                 :recording-id="item.recording.id"
-                :name="item.recording.profileName ?? item.recording.filename"
+                :name="item.recording.filename"
                 :size-in-bytes="item.recording.sizeInBytes"
                 :duration-in-millis="item.recording.durationInMillis"
                 :uploaded-at="item.recording.uploadedAt"
                 :source-type="item.recording.eventSource"
-                :has-profile="item.recording.hasProfile"
                 :profile-id="item.recording.profileId"
-                :profile-size-in-bytes="item.recording.profileSizeInBytes"
-                :profile-created-at="item.recording.profileCreatedAt"
-                :profile-modified="item.recording.profileModified"
+                :profile-count="builtProfiles(item.recording).length"
                 :analyzing="analyzingRecordings.has(item.recording.id)"
                 :init-progress="item.recording.initProgress"
                 :tick-now="tickNow"
-                :draggable="!item.recording.bundleId"
+                :draggable="true"
                 :origin="buildOrigin(item.recording.tags)"
                 :file-count="item.recording.files?.length ?? 0"
                 :expandable="(item.recording.files?.length ?? 0) > 1"
                 :expanded="expandedRecordings.has(item.recording.id)"
-                @click="handleCardClick(item.recording)"
+                @click="handleRecordingClick(item.recording)"
                 @create-profile="analyzeRecording(item.recording.id)"
-                @edit-profile="startEditProfile(item.recording)"
-                @delete-profile="deleteProfileFromRecording(item.recording.id)"
+                @initialize-again="initializeAgain(item.recording.id)"
                 @delete-recording="deleteRecording(item.recording.id)"
-                @reinitialize="reinitializeHeapDump(item.recording)"
                 @toggle-expand="toggleRecordingFiles(item.recording.id)"
                 @dragend="onDragEnd"
               >
@@ -310,8 +300,45 @@
             </template>
           </div>
           <div v-else class="rec-col__empty">
-            <i class="bi" :class="column.emptyIcon"></i>
-            <span>{{ column.emptyText }}</span>
+            <i class="bi bi-inbox"></i>
+            <span>No recordings yet — drop a file above</span>
+          </div>
+        </section>
+
+        <!-- Right: one row per profile, i.e. per initialization of a recording. -->
+        <section class="rec-col rec-col--profiles">
+          <div class="rec-col__head">
+            <span class="rec-col__dot rec-col__dot--profiles"></span>
+            Profiles
+            <span class="rec-col__count">{{ columns.profiles.length }}</span>
+          </div>
+          <div v-if="columns.profiles.length > 0" class="card-stack recordings-list">
+            <RecordingCard
+              v-for="item in columns.profiles"
+              :key="item.key"
+              role="profile"
+              :recording-id="item.recording.id"
+              :name="item.profile.profileName"
+              :size-in-bytes="item.recording.sizeInBytes"
+              :duration-in-millis="item.recording.durationInMillis"
+              :uploaded-at="item.recording.uploadedAt"
+              :source-type="item.recording.eventSource"
+              :profile-id="item.profile.profileId"
+              :profile-size-in-bytes="item.profile.sizeInBytes"
+              :profile-created-at="item.profile.createdAt"
+              :profile-modified="item.profile.modified"
+              :init-progress="item.profile.initProgress"
+              :tick-now="tickNow"
+              :origin="buildOrigin(item.recording.tags)"
+              @click="openProfile(item.profile.profileId, item.recording.eventSource)"
+              @edit-profile="startEditProfile(item)"
+              @delete-profile="deleteProfile(item)"
+              @reinitialize="reinitializeHeapDump(item.profile.profileId)"
+            />
+          </div>
+          <div v-else class="rec-col__empty">
+            <i class="bi bi-hourglass-split"></i>
+            <span>No profiles yet — click a recording on the left to initialize it</span>
           </div>
         </section>
       </div>
@@ -330,10 +357,20 @@
 
     <!-- Edit Profile modal -->
     <EditNameModal
-      v-if="editingRecording"
+      v-if="editingProfile"
       v-model="editProfileName"
       @submit="updateProfileName"
-      @close="editingRecording = null"
+      @close="editingProfile = null"
+    />
+
+    <!-- A recording that already has profiles: open one, or initialize it again -->
+    <InitializedRecordingModal
+      v-if="confirmingRecording"
+      :recording="confirmingRecording"
+      :profiles="builtProfiles(confirmingRecording)"
+      @open="openConfirmedProfile"
+      @initialize-again="initializeConfirmedAgain"
+      @close="confirmingRecording = null"
     />
 
     <!-- Delete Bundle confirmation -->
@@ -377,17 +414,19 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@remote/services/api/model/RecordingGroup';
 import type Recording from '@remote/services/api/model/Recording';
-import type { RecordingTag } from '@remote/services/api/model/Recording';
+import type { RecordingProfile, RecordingTag } from '@remote/services/api/model/Recording';
 import type { RecordingOrigin } from '@remote/components/RecordingOriginChip.vue';
 import type Bundle from '@remote/services/api/model/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@remote/components/recordingKinds';
 import { BUNDLE_DRAG_PREFIX, compareMembers } from '@remote/components/bundleSummary';
+import InitializedRecordingModal from '@remote/components/InitializedRecordingModal.vue';
 import {
+  builtProfiles,
   splitColumns,
   type BundleWithMembers,
-  type ListItem
+  type ProfileItem,
+  type RecordingColumns
 } from '@remote/components/recordingColumns';
-import { hasFailed } from '@remote/components/profileInitChips';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
@@ -524,8 +563,10 @@ const newGroupName = ref('');
 // Group deletion
 const deletingGroupId = ref<string | null>(null);
 // Profile editing
-const editingRecording = ref<Recording | null>(null);
+const editingProfile = ref<ProfileItem | null>(null);
 const editProfileName = ref('');
+// A recording with profiles that was clicked: the dialog asks whether to open one or build another
+const confirmingRecording = ref<Recording | null>(null);
 
 watch(showCreateGroupModal, val => {
   if (val) {
@@ -746,41 +787,14 @@ const typeCounts = computed<Record<RecordingType, number>>(() => {
   return counts;
 });
 
-// The list is split into two columns: what is left to initialize on the left (recordings, and bundles
-// with their remaining items and files), the initialized profiles on the right, one row each.
-interface RecordingColumn {
-  key: 'raw' | 'initialized';
-  label: string;
-  items: ListItem[];
-  emptyIcon: string;
-  emptyText: string;
-}
-
-const recordingColumns = computed<RecordingColumn[]>(() => {
+// The list is split into two columns: every recording on the left (standalone ones, and bundles with
+// all their items and files), every profile built from them on the right, one row each.
+const columns = computed<RecordingColumns>(() => {
   const type = typeFilter.value;
-  const { pending, initialized } = splitColumns({
+  return splitColumns({
     ...selection.value,
     shows: type === 'all' ? null : recording => recordingType(recording) === type
   });
-  const nothingShown = pending.length === 0 && initialized.length === 0;
-  return [
-    {
-      key: 'raw',
-      label: 'Not initialized',
-      items: pending,
-      emptyIcon: nothingShown ? 'bi-inbox' : 'bi-check2-all',
-      emptyText: nothingShown
-        ? 'No recordings yet — drop a file above'
-        : 'All recordings here are initialized'
-    },
-    {
-      key: 'initialized',
-      label: 'Initialized',
-      items: initialized,
-      emptyIcon: 'bi-hourglass-split',
-      emptyText: 'No profiles yet — initialize a recording on the left'
-    }
-  ];
 });
 
 // Type filters wear the drop zone's format icons, so a format looks the same wherever it appears.
@@ -1042,10 +1056,14 @@ const uploadRecordings = async () => {
 
 // --- Recording actions ---
 
-const analyzeRecording = async (recordingId: string) => {
+/**
+ * Runs one initialization of a recording. The request does not return until the pipeline is done, so
+ * the card is marked as analyzing meanwhile; the list refresh picks up the run's stages.
+ */
+const runInitialization = async (recordingId: string, request: () => Promise<string>) => {
   analyzingRecordings.value.add(recordingId);
   try {
-    await recordingsClient.analyzeRecording(recordingId);
+    await request();
     analyzingRecordings.value.delete(recordingId);
     await loadData();
   } catch {
@@ -1053,15 +1071,42 @@ const analyzeRecording = async (recordingId: string) => {
   }
 };
 
-const handleCardClick = (recording: Recording) => {
+/** A recording's first initialization, and the retry of a failed one. */
+const analyzeRecording = (recordingId: string) =>
+  runInitialization(recordingId, () => recordingsClient.analyzeRecording(recordingId));
+
+/** Another profile from a recording that already has some; those stay as they are. */
+const initializeAgain = (recordingId: string) =>
+  runInitialization(recordingId, () => recordingsClient.initializeAgain(recordingId));
+
+/**
+ * A recording never initialized is initialized at once, and a failed run is retried. One that already
+ * has profiles asks first: open one of them, or build another beside them.
+ */
+const handleRecordingClick = (recording: Recording) => {
   if (analyzingRecordings.value.has(recording.id)) {
     return;
   }
-  // A failed run is retried rather than opened: its profile has nothing in it to show.
-  if (recording.hasProfile && !hasFailed(recording.initProgress)) {
-    openProfile(recording);
+  if (builtProfiles(recording).length > 0) {
+    confirmingRecording.value = recording;
   } else {
     analyzeRecording(recording.id);
+  }
+};
+
+const openConfirmedProfile = (profile: RecordingProfile) => {
+  const recording = confirmingRecording.value;
+  confirmingRecording.value = null;
+  if (recording) {
+    openProfile(profile.profileId, recording.eventSource);
+  }
+};
+
+const initializeConfirmedAgain = () => {
+  const recording = confirmingRecording.value;
+  confirmingRecording.value = null;
+  if (recording) {
+    initializeAgain(recording.id);
   }
 };
 
@@ -1069,23 +1114,17 @@ const handleCardClick = (recording: Recording) => {
  * Drops a heap dump's index and builds it again, compressed oops auto-detected. The run shows on the
  * card like the first one; forcing compressed oops is the Heap Dump Overview's own re-initialize.
  */
-const reinitializeHeapDump = async (recording: Recording) => {
-  if (!recording.profileId) {
-    return;
-  }
+const reinitializeHeapDump = async (profileId: string) => {
   try {
-    await new HeapDumpClient(recording.profileId).reinitialize();
+    await new HeapDumpClient(profileId).reinitialize();
     await loadData();
   } catch {
     // Toast shown by HttpInterceptor
   }
 };
 
-const openProfile = async (recording: Recording) => {
-  if (!recording.profileId) {
-    return;
-  }
-  await router.push(profileLandingRoute(recording.profileId, recording.eventSource));
+const openProfile = async (profileId: string, eventSource: string) => {
+  await router.push(profileLandingRoute(profileId, eventSource));
 };
 
 // --- Group CRUD ---
@@ -1130,30 +1169,33 @@ const deleteGroup = async () => {
 
 // --- Profile edit ---
 
-const startEditProfile = (recording: Recording) => {
-  editingRecording.value = recording;
-  editProfileName.value = recording.profileName ?? recording.filename;
+const startEditProfile = (item: ProfileItem) => {
+  editingProfile.value = item;
+  editProfileName.value = item.profile.profileName;
 };
 
 const updateProfileName = async () => {
-  if (!editingRecording.value || !editProfileName.value.trim()) {
+  const item = editingProfile.value;
+  if (!item || !editProfileName.value.trim()) {
     return;
   }
   try {
     await recordingsClient.updateProfileName(
-      editingRecording.value.id,
+      item.recording.id,
+      item.profile.profileId,
       editProfileName.value.trim()
     );
-    editingRecording.value = null;
+    editingProfile.value = null;
     await loadData();
   } catch {
     // Toast shown by HttpInterceptor
   }
 };
 
-const deleteProfileFromRecording = async (recordingId: string) => {
+/** Deletes one profile; its recording stays on the left with its other profiles. */
+const deleteProfile = async (item: ProfileItem) => {
   try {
-    await recordingsClient.deleteProfile(recordingId);
+    await recordingsClient.deleteProfile(item.recording.id, item.profile.profileId);
     await loadData();
   } catch {
     // Toast shown by HttpInterceptor
@@ -1275,6 +1317,11 @@ const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
   }
   const recording = allRecordings.value.find(r => r.id === recordingId);
   if (!recording) {
+    return;
+  }
+  // A bundle of one item is shown as that item's row; the bundle, not the item, sits in a group.
+  if (recording.bundleId) {
+    await moveBundle(recording.bundleId, targetGroupId);
     return;
   }
   if ((recording.groupId || null) === targetGroupId) {
@@ -1960,7 +2007,7 @@ const onDragEnd = () => {
   margin-top: 4px;
 }
 
-/* Two-column split: not-initialized (left) | initialized (right). */
+/* Two-column split: recordings (left) | profiles (right). */
 .recordings-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1992,11 +2039,11 @@ const onDragEnd = () => {
   flex-shrink: 0;
 }
 
-.rec-col__dot--raw {
+.rec-col__dot--recordings {
   background: var(--color-amber);
 }
 
-.rec-col__dot--initialized {
+.rec-col__dot--profiles {
   background: var(--color-success);
 }
 
