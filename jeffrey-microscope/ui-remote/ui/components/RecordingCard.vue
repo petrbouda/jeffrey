@@ -24,6 +24,7 @@ import Badge from '@shared/components/Badge.vue';
 import type { ProfileInitProgress } from '../services/api/model/Recording';
 import { failedStageLabel, hasFailed, isInitializing, toTimelineSteps } from './profileInitChips';
 import { recordingKindOf } from './recordingKinds';
+import InitFailedNote from './InitFailedNote.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 
 /**
@@ -273,11 +274,7 @@ onBeforeUnmount(() => {
           :steps="initSteps"
           :tick-now="tickNow"
         />
-        <div v-if="initFailed" class="rec-card__init-error">
-          <i class="bi bi-exclamation-octagon-fill"></i>
-          <span v-if="failedStage">Initialization failed during {{ failedStage }}.</span>
-          <span v-else>Initialization failed.</span>
-        </div>
+        <InitFailedNote v-if="initFailed" class="rec-card__init-error" :stage="failedStage" />
       </div>
 
       <!-- Right: actions spanning both lines -->
@@ -586,57 +583,57 @@ onBeforeUnmount(() => {
 }
 
 .rec-card--perf {
-  border-left: 3px dashed color-mix(in srgb, var(--color-pink-text) 40%, transparent);
+  border-left: 3px dashed color-mix(in srgb, var(--color-sky) 40%, transparent);
 }
 
 .rec-card--perf:hover {
-  border-color: color-mix(in srgb, var(--color-pink-text) 30%, transparent);
-  border-left-color: var(--color-pink-text);
+  border-color: color-mix(in srgb, var(--color-sky) 30%, transparent);
+  border-left-color: var(--color-sky);
   border-left-style: solid;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--color-pink-text) 4%, transparent),
-    color-mix(in srgb, var(--color-pink-text) 2%, transparent)
+    color-mix(in srgb, var(--color-sky) 4%, transparent),
+    color-mix(in srgb, var(--color-sky) 2%, transparent)
   );
   box-shadow: var(--shadow-sm);
 }
 
 /* Perf counters: analyzed */
 .rec-card--perf.rec-card--analyzed {
-  border-left: 3px solid var(--color-pink-text);
+  border-left: 3px solid var(--color-sky);
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--color-pink-text) 3%, transparent),
+    color-mix(in srgb, var(--color-sky) 3%, transparent),
     var(--color-white)
   );
 }
 
 .rec-card--perf.rec-card--analyzed:hover {
-  border-color: color-mix(in srgb, var(--color-pink-text) 30%, transparent);
-  border-left-color: var(--color-pink-text);
+  border-color: color-mix(in srgb, var(--color-sky) 30%, transparent);
+  border-left-color: var(--color-sky);
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--color-pink-text) 8%, transparent),
-    color-mix(in srgb, var(--color-pink-text) 4%, transparent)
+    color-mix(in srgb, var(--color-sky) 8%, transparent),
+    color-mix(in srgb, var(--color-sky) 4%, transparent)
   );
   box-shadow: var(--shadow-sm);
 }
 
 .rec-card--perf .rec-card__icon,
 .rec-card--perf.rec-card--analyzed .rec-card__icon {
-  color: var(--color-pink-text);
-  background: var(--color-pink-bg);
+  color: var(--color-sky);
+  background: var(--color-sky-bg);
 }
 
 .rec-card--perf.rec-card--analyzed .rec-card__profile-info {
-  color: var(--color-pink-text);
+  color: var(--color-info-text);
 }
 
 .rec-card__initialized {
   flex: none;
 }
 
-/* Format type tag (JFR / pprof / OTLP / Heap / Perf) */
+/* Format type tag (JFR / pprof / OTLP / Heap / Perf Counters) */
 .rec-card__type {
   flex: none;
   font-size: 0.625rem;
@@ -668,8 +665,8 @@ onBeforeUnmount(() => {
 }
 
 .rec-card__type--perf {
-  background: var(--color-pink-bg);
-  color: var(--color-pink-text);
+  background: var(--color-sky-bg);
+  color: var(--color-info-text);
 }
 
 @keyframes rec-card-pulse {
@@ -1024,11 +1021,6 @@ onBeforeUnmount(() => {
 }
 
 .rec-card__init-error {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-1);
   margin-top: var(--spacing-1);
-  font-size: 0.7rem;
-  color: var(--color-danger);
 }
 </style>

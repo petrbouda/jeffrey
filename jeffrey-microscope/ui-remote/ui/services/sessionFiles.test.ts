@@ -16,14 +16,19 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import RecordingFile from '@remote/services/api/model/RecordingFile.ts';
 import RecordingFileType from '@remote/services/api/model/RecordingFileType.ts';
 import RepositoryFile from '@remote/services/api/model/RepositoryFile.ts';
 import {
+  fileGroupPanels,
+  fromRecordingFile,
   groupRotatedFiles,
   recordingFiles,
   sortSessionFiles,
   standaloneArtifacts,
+  standaloneFiles,
   totalSize,
+  typeGroupOf,
   typeGroupPanels
 } from '@remote/services/sessionFiles.ts';
 
@@ -121,6 +126,66 @@ describe('typeGroupPanels and standaloneArtifacts', () => {
       ...standaloneArtifacts(files)
     ].map(f => f.name);
     expect(names).not.toContain('recording-0900.jfr.lz4');
+  });
+});
+
+describe('fileGroupPanels and standaloneFiles', () => {
+  const recordingFile = (name: string, type: RecordingFileType, size: number = 10) =>
+    fromRecordingFile(new RecordingFile(name, name, size, type, ''));
+
+  it("folds a recording's chunks into a panel of their own, unlike the artifact layout", () => {
+    const files = [
+      recordingFile('part-1.jfr', RecordingFileType.JFR, 10),
+      recordingFile('part-2.jfr', RecordingFileType.JFR, 20)
+    ];
+    const panels = fileGroupPanels(files);
+    expect(panels.map(p => p.groupKey)).toEqual(['JFR_RECORDING']);
+    expect(panels[0].display.name).toBe('JFR Recordings');
+    expect(panels[0].totalSize).toBe(30);
+    expect(typeGroupPanels(files)).toEqual([]);
+  });
+
+  it('keeps a single file of a type alone and logs in a panel', () => {
+    const files = [
+      recordingFile('perf-counters.hsperfdata', RecordingFileType.PERF_COUNTERS),
+      recordingFile('gc.jvm-log', RecordingFileType.JVM_LOG)
+    ];
+    expect(standaloneFiles(files).map(f => f.name)).toEqual(['perf-counters.hsperfdata']);
+    expect(fileGroupPanels(files).map(p => p.groupKey)).toEqual(['JVM_LOG']);
+  });
+});
+
+describe('fromRecordingFile', () => {
+  it("reads a recording file in the layout's terms, with no time of its own", () => {
+    const file = fromRecordingFile(
+      new RecordingFile('f1', 'chunk.jfr.lz4', 42, RecordingFileType.JFR_LZ4, 'first chunk')
+    );
+    expect(file).toEqual({
+      id: 'f1',
+      name: 'chunk.jfr.lz4',
+      size: 42,
+      fileType: RecordingFileType.JFR_LZ4,
+      isRecording: true,
+      description: 'first chunk'
+    });
+  });
+
+  it('marks every other type as an artifact', () => {
+    const file = fromRecordingFile(
+      new RecordingFile('f2', 'app.log', 1, RecordingFileType.APP_LOG, '')
+    );
+    expect(file.isRecording).toBe(false);
+  });
+});
+
+describe('typeGroupOf', () => {
+  it('lists both heap dump types under heap dumps', () => {
+    expect(typeGroupOf(RecordingFileType.HEAP_DUMP)).toBe('HEAP_DUMP');
+    expect(typeGroupOf(RecordingFileType.HEAP_DUMP_GZ)).toBe('HEAP_DUMP');
+  });
+
+  it('lists an unknown type under the other files', () => {
+    expect(typeGroupOf('SOMETHING_NEW')).toBe('UNKNOWN');
   });
 });
 

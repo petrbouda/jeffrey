@@ -17,6 +17,7 @@
 
 import type { StageChipGroup } from '@shared/components/StageChips.vue';
 import type { Variant } from '@shared/types/ui';
+import RecordingFileType from '../services/api/model/RecordingFileType';
 import { HEAP_DUMP_INIT_CHIPS, PROFILE_INIT_CHIPS } from './profileInitChips';
 
 /** The filter key a kind is counted and selected under in the recordings list. */
@@ -39,6 +40,8 @@ export interface RecordingKind {
   cardClass: string | null;
   /** The kind's badge colour, where a bundle lists the kinds it holds. */
   badgeVariant: Variant;
+  /** The type of the file a recording of this kind is read from, for a row that lists no file. */
+  fileType: RecordingFileType;
   /** The stages its initialization shows; none for a kind built within the request. */
   chips: StageChipGroup[];
 }
@@ -51,6 +54,7 @@ const JFR_KIND: RecordingKind = {
   tagClass: 'rec-card__type--jfr',
   cardClass: null,
   badgeVariant: 'indigo',
+  fileType: RecordingFileType.JFR,
   chips: PROFILE_INIT_CHIPS
 };
 
@@ -63,6 +67,7 @@ const KINDS_BY_SOURCE: Record<string, RecordingKind> = {
     tagClass: 'rec-card__type--heap',
     cardClass: 'rec-card--heap-dump',
     badgeVariant: 'purple',
+    fileType: RecordingFileType.HEAP_DUMP,
     chips: HEAP_DUMP_INIT_CHIPS
   },
   PPROF: {
@@ -73,6 +78,7 @@ const KINDS_BY_SOURCE: Record<string, RecordingKind> = {
     tagClass: 'rec-card__type--pprof',
     cardClass: 'rec-card--pprof',
     badgeVariant: 'teal',
+    fileType: RecordingFileType.PPROF,
     chips: PROFILE_INIT_CHIPS
   },
   OPEN_TELEMETRY: {
@@ -83,16 +89,18 @@ const KINDS_BY_SOURCE: Record<string, RecordingKind> = {
     tagClass: 'rec-card__type--otel',
     cardClass: 'rec-card--otel',
     badgeVariant: 'orange',
+    fileType: RecordingFileType.OTLP_PROFILE,
     chips: PROFILE_INIT_CHIPS
   },
   PERF_COUNTERS: {
     key: 'PERF',
-    label: 'Perf',
+    label: 'Perf Counters',
     name: 'Perf counters',
     icon: 'bi bi-speedometer2',
     tagClass: 'rec-card__type--perf',
     cardClass: 'rec-card--perf',
-    badgeVariant: 'pink',
+    badgeVariant: 'blue',
+    fileType: RecordingFileType.PERF_COUNTERS,
     chips: []
   }
 };
