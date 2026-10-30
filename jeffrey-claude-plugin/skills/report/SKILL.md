@@ -53,7 +53,7 @@ A claim drawn from a file rather than a tool — an application log, a GC log or
 the same line:
 
 > The JVM died of `SIGSEGV` in `libzip.so` while `main` was inside `Inflater.inflateBytes`.
-> Evidence: `hs-jvm-err.log`, fetched from session `instance-1` by `remote_fetchFile` to
+> Evidence: `hs-jvm-err.log`, fetched from session `0199a3f2…` of instance `checkout-7d9f` by `remote_fetchFile` to
 > `~/.jeffrey-microscope/artifacts/…/hs-jvm-err.log`, lines 1–12 and the `Java frames:` block
 > at lines 38–46.
 

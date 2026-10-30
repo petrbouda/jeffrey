@@ -1,6 +1,6 @@
 ---
 name: analyze-remote
-description: "Finds and analyses JVM recordings that live on the remote (the recording volume on an Azure file share) rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service or pod, \"the last hour\", \"since the deploy\", \"what the remote has\", \"why was prod slow this morning\", \"why did the pod's JVM die\", \"the exceptions in the service log\". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly."
+description: "Finds and analyses JVM recordings that live on the remote (the recording volume on an Azure file share) rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service, \"the last hour\", \"since the deploy\", \"what the remote has\", \"why was prod slow this morning\", \"why did the pod's JVM die\", \"the exceptions in the service log\". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
@@ -82,7 +82,10 @@ The fields to read before doing anything else — each row of `sessions` in the 
   recording yet) — the span there is to choose an interval from, and how much data is behind it;
   with **`sizeBytes`**, what pulling all of it would cost.
 - **`newest`** — it is its instance's newest session, so it may still grow. That is fine to
-  download; you get the chunks it holds so far, each a whole file.
+  download; you get the chunks it holds so far, each a whole file. Its newest chunk (the
+  `remote_files` row with `newestRecording: true`) is the one the profiler may be writing into
+  place at that moment: a download that catches it mid-write is refused as *arrived incomplete*.
+  That is a moment's timing, not a broken session — make the same call again shortly.
 - **`sessionRef`** — what `remote_download` and `remote_files` take. Copy it exactly.
 
 `remote_sessions` never offers a download as a next call: which part of a session to bring is the
@@ -144,7 +147,10 @@ session's own end, its own chunks — rather than working out times yourself:
 Two times of their own ("from 09:00 to 10:30", "yesterday") are `startEpochMs` / `endEpochMs` in
 UTC epoch milliseconds, with no `window`. One bound alone is fine — `startEpochMs` alone reads to the
 session's end, `endEpochMs` alone back to its start. A named window is a decision: Jeffrey does not
-ask the user again about the part to bring.
+ask the user again about the part to bring. A call that names no part at all may be asked about by
+Jeffrey itself, on a client that supports form elicitation, when the session is long or large: the
+user picks the window in the client's own form. Declining it answers `status: NOT_DOWNLOADED` —
+nothing was transferred; ask the user what they want instead of retrying.
 
 `STARTUP_NOT_RETAINED` means retention has already removed the session's first chunk; the
 answer names the oldest chunk still there. Nothing was downloaded and nothing was substituted — say
@@ -179,8 +185,9 @@ does it record `jdk.ObjectAllocationSample`, when is it busy — take a narrow w
 two chunks, and answer it with the ordinary tools: `profiles_summary`, the timeline, `jfr_*`. Then
 widen, or stop. A window is not the session: figures hold for that window only, a rate measured
 in it must never be extrapolated across the whole recording, and a finding worth reporting is
-confirmed on the window that matters. A single chunk may equally go `remote_fetchFile` →
-`recordings_analyzeFile`; the result is the same kind of profile.
+confirmed on the window that matters. A single chunk is a window too — `window=LATEST` or `PEAK`,
+or `fileIds=["<its fileId>"]` — never `remote_fetchFile`, which refuses a recording chunk and points
+back at `remote_download`.
 
 ## 4. Pull it in
 
@@ -327,9 +334,9 @@ returns a status saying the transfer continues, and an `operationId`, rather tha
 transfer lands, and the exact retry instructions when it failed — rather than calling
 `remote_download` again; a second call answers from the local store and is harmless, but it is the
 poll that says what is happening. `operations_cancel(operationId)` asks a transfer to stop, best
-effort, and rolls back nothing already written. A failed transfer is remembered for an hour, and
-during that hour `remote_download` reports the failure rather than starting again unless it is called
-with `retry=true`.
+effort, and rolls back nothing already written. A failed or cancelled transfer is remembered for an
+hour — `remote_download` answers `status: FAILED` or `CANCELLED` with its `reason` — and during that
+hour it reports that outcome rather than starting again unless it is called with `retry=true`.
 
 The same applies one step later: `recordings_analyzeRecording` on a large recording returns a status
 of `RUNNING` with its own `operationId`, and `operations_status` says when the profile is ready.
