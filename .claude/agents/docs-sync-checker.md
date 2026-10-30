@@ -37,7 +37,7 @@ side of each finding.
    | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `microscope-mcp/` |
    | IntelliJ plugin | `intellij-plugin/` |
    | Architecture changes | `architecture/ArchitectureOverviewPage.vue` |
-   | Install/onboarding changes | `getting-started/` |
+   | Install/onboarding changes | `microscope/MicroscopeQuickStartPage.vue`, `DocsIndexPage.vue` |
 
 4. **Check the MCP section with particular care** — its numbers are repeated in prose that nothing compiles:
    - count `@Tool(` across `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/**` and compare with every tool count, family count and per-family count the docs state (`McpOverviewPage.vue`, `McpToolsPage.vue`, `McpClaudeCodePage.vue`, `McpCodexPage.vue`, `McpGeminiPage.vue`, `McpOtherClientsPage.vue`, `DocsIndexPage.vue`); `McpToolsetAssemblerTest` pins the authoritative total

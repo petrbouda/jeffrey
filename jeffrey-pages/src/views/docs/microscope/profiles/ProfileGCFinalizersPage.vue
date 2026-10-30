@@ -40,6 +40,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <p>This page reports per-class finalization activity from the periodic <code>jdk.FinalizerStatistics</code> event (one record per class that overrides <code>finalize()</code>). Finalization is deprecated and a well-known source of stalls and retained memory: objects with finalizers survive an extra GC cycle and are processed serially by a single finalizer thread. The page shows an empty state when no class uses finalizers.</p>
+      <p>No longer a Garbage Collection page: it lives under <strong>Application &rarr; Memory Issues &rarr; Finalizers</strong>. The old <code>garbage-collection/finalizers</code> address still redirects there.</p>
 
       <h2 id="overview">Overview</h2>
       <p>A header strip shows the number of finalizable classes, the total pending finalizable objects, and the total finalizers run across the recording.</p>

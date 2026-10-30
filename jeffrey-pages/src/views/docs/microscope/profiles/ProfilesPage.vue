@@ -199,6 +199,16 @@ const folderStructure = `$JEFFREY_HOME/
           description="Parses periodic jstack-style jdk.ThreadDump snapshots into a thread-state timeline, hot-frame activity, deadlock detection, lock contention, stuck-thread detection, and a per-thread state heatmap — see the thread dumps reference page."
         />
         <DocsFeatureCard
+          icon="bi bi-pin-angle"
+          title="Virtual Threads"
+          description="A Project Loom dashboard: carrier pinning with its duration and the virtual threads that pin most, submit failures, and (when recorded) the virtual-thread lifecycle. See the Virtual Threads reference."
+        />
+        <DocsFeatureCard
+          icon="bi bi-shield-lock"
+          title="Security & TLS"
+          description="TLS handshakes by protocol, cipher suite and peer, every X.509 certificate seen with weak-key, weak-signature and expiry flags, and deserialization events. See the Security & TLS reference."
+        />
+        <DocsFeatureCard
           icon="bi bi-bar-chart-line"
           title="Memory & Garbage Collection"
           description="Pause distribution, throughput / overhead, longest-pause table with cause attribution, concurrent cycles, and a searchable reference for every GC pause type — plus collector-specific G1 and ZGC deep-dive pages."
