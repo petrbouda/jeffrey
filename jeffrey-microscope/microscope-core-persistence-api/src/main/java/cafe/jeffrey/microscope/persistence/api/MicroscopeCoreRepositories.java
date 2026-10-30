@@ -49,4 +49,10 @@ public interface MicroscopeCoreRepositories {
      * and a Quick Analysis profile stores a null there, which no equality comparison matches.
      */
     List<ProfileInfo> findAllProfiles();
+
+    /**
+     * Every profile built from one recording, newest first. A recording can be initialized again,
+     * and each initialization is a profile of its own; deleting the recording takes all of them.
+     */
+    List<ProfileInfo> findProfilesByRecording(String recordingId);
 }

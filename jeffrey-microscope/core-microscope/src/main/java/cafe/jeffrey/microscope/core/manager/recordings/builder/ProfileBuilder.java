@@ -41,9 +41,11 @@ public sealed interface ProfileBuilder
     /**
      * Builds a fresh profile for the recording.
      *
+     * @param profileName the name the new profile is listed under: the recording's own name for its
+     *                    first profile, numbered for a later one
      * @return the new profile's id
      */
-    String build(Recording recording);
+    String build(Recording recording, String profileName);
 
     /** How far the profile's initialization has got, as the recordings list shows it. */
     PipelineProgress progress(String profileId);

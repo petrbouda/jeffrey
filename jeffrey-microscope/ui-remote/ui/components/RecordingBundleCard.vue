@@ -17,9 +17,9 @@
 
 <!--
   A bundle: the items a remote session download brought in together, as one row of the recordings list.
-  Collapsed, it names the bundle and shows a badge per item with its state; expanded, it lists the items
-  still to initialize as ordinary recording cards, followed by the bundle's download-only files (logs,
-  crash files). An initialized item is a profile row of its own in the recordings list, outside the
+  Collapsed, it names the bundle and shows a badge per item with its state; expanded, it lists its items
+  as ordinary recording cards, initialized or not, followed by the bundle's download-only files (logs,
+  crash files). Each profile built from an item is a row of its own in the Profiles column, outside the
   bundle.
 -->
 <script setup lang="ts">
@@ -33,6 +33,7 @@ import RecordingCard from './RecordingCard.vue';
 import RecordingFileGroupList from './RecordingFileGroupList.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 import { BUNDLE_DRAG_PREFIX, bundleItemsLabel, bundleSize, memberBadges } from './bundleSummary';
+import { builtProfiles } from './recordingColumns';
 
 const props = withDefaults(
   defineProps<{
@@ -68,10 +69,8 @@ const emit = defineEmits<{
   (e: 'download-member-file', recordingId: string, fileId: string): void;
   (e: 'member-click', recording: Recording): void;
   (e: 'member-create-profile', recording: Recording): void;
-  (e: 'member-edit-profile', recording: Recording): void;
-  (e: 'member-delete-profile', recording: Recording): void;
+  (e: 'member-initialize-again', recording: Recording): void;
   (e: 'member-delete-recording', recording: Recording): void;
-  (e: 'member-reinitialize', recording: Recording): void;
   (e: 'member-toggle-expand', recording: Recording): void;
   (e: 'dragend'): void;
 }>();
@@ -159,16 +158,16 @@ const onDragStart = (event: DragEvent) => {
         v-for="member in listed"
         :key="member.id"
         :recording-id="member.id"
-        :name="member.profileName ?? member.filename"
+        :name="member.filename"
         :size-in-bytes="member.sizeInBytes"
         :duration-in-millis="member.durationInMillis"
         :uploaded-at="member.uploadedAt"
         :source-type="member.eventSource"
-        :has-profile="member.hasProfile"
         :profile-id="member.profileId"
         :profile-size-in-bytes="member.profileSizeInBytes"
         :profile-created-at="member.profileCreatedAt"
         :profile-modified="member.profileModified"
+        :profile-count="builtProfiles(member).length"
         :analyzing="analyzingMembers.has(member.id)"
         :init-progress="member.initProgress"
         :tick-now="tickNow"
@@ -177,10 +176,8 @@ const onDragStart = (event: DragEvent) => {
         :expanded="expandedMembers.has(member.id)"
         @click="emit('member-click', member)"
         @create-profile="emit('member-create-profile', member)"
-        @edit-profile="emit('member-edit-profile', member)"
-        @delete-profile="emit('member-delete-profile', member)"
+        @initialize-again="emit('member-initialize-again', member)"
         @delete-recording="emit('member-delete-recording', member)"
-        @reinitialize="emit('member-reinitialize', member)"
         @toggle-expand="emit('member-toggle-expand', member)"
       >
         <template #expanded-content>

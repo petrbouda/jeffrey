@@ -38,6 +38,10 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     private static final String SELECT_EVERY_PROFILE =
             "SELECT * FROM profiles ORDER BY created_at DESC";
 
+    //language=SQL
+    private static final String SELECT_PROFILES_BY_RECORDING =
+            "SELECT * FROM profiles WHERE recording_id = :recording_id ORDER BY created_at DESC, profile_id DESC";
+
     private final DatabaseClientProvider databaseClientProvider;
     private final DatabaseClient profilesDatabaseClient;
     private final RecordingTagsRepository recordingTagsRepository;
@@ -85,5 +89,15 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     public List<ProfileInfo> findAllProfiles() {
         return profilesDatabaseClient.query(
                 StatementLabel.FIND_ALL_PROFILES, SELECT_EVERY_PROFILE, Mappers.profileInfoMapper());
+    }
+
+    @Override
+    public List<ProfileInfo> findProfilesByRecording(String recordingId) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("recording_id", recordingId);
+
+        return profilesDatabaseClient.query(
+                StatementLabel.FIND_PROFILES_BY_RECORDING, SELECT_PROFILES_BY_RECORDING, paramSource,
+                Mappers.profileInfoMapper());
     }
 }

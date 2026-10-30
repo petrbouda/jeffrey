@@ -18,8 +18,14 @@
 import { describe, expect, it } from 'vitest';
 import type Bundle from '../services/api/model/Bundle';
 import type Recording from '../services/api/model/Recording';
+import type { RecordingProfile } from '../services/api/model/Recording';
 import type RecordingFile from '../services/api/model/RecordingFile';
-import { splitColumns, type ListItem } from './recordingColumns';
+import {
+  builtProfiles,
+  splitColumns,
+  type ProfileItem,
+  type RecordingItem
+} from './recordingColumns';
 
 const recording = (
   id: string,
@@ -40,18 +46,34 @@ const recording = (
   profileCreatedAt: 0,
   profileName: null,
   initProgress: { state: null, stages: [] },
+  profiles: [],
   files: [],
   tags: [],
   bundleId: null,
   ...overrides
 });
 
-const built = (id: string, eventSource: string, profileCreatedAt: number): Recording =>
+const profile = (
+  profileId: string,
+  createdAt: number,
+  state: RecordingProfile['initProgress']['state'] = 'completed'
+): RecordingProfile => ({
+  profileId,
+  profileName: profileId,
+  sizeInBytes: 10_000,
+  modified: false,
+  createdAt,
+  initProgress: { state, stages: [] }
+});
+
+/** A recording initialized into the given profiles, newest first. */
+const initialized = (id: string, eventSource: string, ...profiles: RecordingProfile[]): Recording =>
   recording(id, eventSource, {
     hasProfile: true,
-    profileId: `p-${id}`,
-    profileCreatedAt,
-    initProgress: { state: 'completed', stages: [] }
+    profileId: profiles[0].profileId,
+    profileCreatedAt: profiles[0].createdAt,
+    initProgress: profiles[0].initProgress,
+    profiles
   });
 
 const bundle = (id: string, createdAt: number, fileCount = 0): Bundle => ({
@@ -63,80 +85,102 @@ const bundle = (id: string, createdAt: number, fileCount = 0): Bundle => ({
   tags: []
 });
 
-const keys = (items: ListItem[]): string[] => items.map(item => item.key);
+const keys = (items: (RecordingItem | ProfileItem)[]): string[] => items.map(item => item.key);
 
 describe('splitColumns', () => {
-  it('lists every initialized item as a row of its own, outside its bundle', () => {
-    const jfr = built('jfr', 'JDK', 300);
-    const heap = built('heap', 'HEAP_DUMP', 100);
+  it('keeps every recording on the left, initialized or not', () => {
+    const fresh = recording('fresh', 'JDK', { uploadedAt: 2 });
+    const done = initialized('done', 'JDK', profile('p-done', 100));
+
+    const columns = splitColumns({
+      recordings: [fresh, done],
+      bundles: [],
+      shows: null
+    });
+
+    expect(keys(columns.recordings)).toEqual(['fresh', 'done']);
+    expect(keys(columns.profiles)).toEqual(['p-done']);
+  });
+
+  it('lists every profile of a recording initialized more than once, newest first', () => {
+    const twice = initialized('twice', 'JDK', profile('p-new', 300), profile('p-old', 100));
+    const other = initialized('other', 'PPROF', profile('p-other', 200));
+
+    const columns = splitColumns({
+      recordings: [twice, other],
+      bundles: [],
+      shows: null
+    });
+
+    expect(keys(columns.profiles)).toEqual(['p-new', 'p-other', 'p-old']);
+    expect(columns.profiles[0].recording.id).toBe('twice');
+  });
+
+  it('lists every item of a bundle, and its profiles as rows of their own', () => {
+    const jfr = initialized('jfr', 'JDK', profile('p-jfr', 300));
     const perf = recording('perf', 'PERF_COUNTERS');
-    const solo = built('solo', 'PPROF', 200);
-
-    const columns = splitColumns({
-      recordings: [solo],
-      bundles: [{ bundle: bundle('b1', 50), members: [jfr, perf, heap] }],
-      shows: null
-    });
-
-    expect(keys(columns.initialized)).toEqual(['jfr', 'solo', 'heap']);
-    expect(columns.initialized.every(item => item.kind === 'recording')).toBe(true);
-    expect(keys(columns.pending)).toEqual(['b1']);
-    const left = columns.pending[0];
-    expect(left.kind === 'bundle' && left.pending.map(member => member.id)).toEqual(['perf']);
-    expect(left.kind === 'bundle' && left.members).toHaveLength(3);
-  });
-
-  it('keeps a fully initialized bundle on the left only while it has files to download', () => {
-    const withFiles = bundle('logs', 10, 2);
-    const withoutFiles = bundle('bare', 20);
 
     const columns = splitColumns({
       recordings: [],
-      bundles: [
-        { bundle: withFiles, members: [built('a', 'JDK', 1)] },
-        { bundle: withoutFiles, members: [built('b', 'JDK', 2)] }
-      ],
+      bundles: [{ bundle: bundle('b1', 50), members: [jfr, perf] }],
       shows: null
     });
 
-    expect(keys(columns.pending)).toEqual(['logs']);
-    expect(keys(columns.initialized)).toEqual(['b', 'a']);
+    expect(keys(columns.recordings)).toEqual(['b1']);
+    const left = columns.recordings[0];
+    expect(left.kind === 'bundle' && left.listed.map(member => member.id)).toEqual(['jfr', 'perf']);
+    expect(keys(columns.profiles)).toEqual(['p-jfr']);
   });
 
-  it('keeps an item that is still initializing on the left with its bundle', () => {
-    const running = recording('jfr', 'JDK', {
-      hasProfile: true,
-      initProgress: {
-        state: 'running',
-        stages: [{ id: 'parse', status: 'in_progress', durationMs: null, elapsedMs: 10 }]
-      }
-    });
+  it('keeps a profile that is still initializing, or failed, off the right', () => {
+    const running = initialized('running', 'JDK', profile('p-running', 300, 'running'));
+    const failed = initialized(
+      'failed',
+      'JDK',
+      profile('p-failed', 200, 'failed'),
+      profile('p-ok', 100)
+    );
 
     const columns = splitColumns({
-      recordings: [],
-      bundles: [{ bundle: bundle('b1', 0), members: [running] }],
+      recordings: [running, failed],
+      bundles: [],
       shows: null
     });
 
-    expect(keys(columns.pending)).toEqual(['b1']);
-    expect(columns.initialized).toEqual([]);
+    expect(keys(columns.recordings)).toEqual(['running', 'failed']);
+    expect(keys(columns.profiles)).toEqual(['p-ok']);
   });
 
   it('applies the type filter to items, and drops a bundle that only has files left', () => {
     const heap = recording('heap', 'HEAP_DUMP');
-    const jfr = built('jfr', 'JDK', 1);
+    const jfr = initialized('jfr', 'JDK', profile('p-jfr', 1));
 
     const columns = splitColumns({
       recordings: [recording('solo', 'JDK')],
       bundles: [
         { bundle: bundle('b1', 0, 1), members: [jfr, heap] },
-        { bundle: bundle('b2', 0, 1), members: [built('other', 'JDK', 2)] }
+        {
+          bundle: bundle('b2', 0, 1),
+          members: [initialized('other', 'JDK', profile('p-other', 2))]
+        }
       ],
       shows: member => member.eventSource === 'HEAP_DUMP'
     });
 
-    expect(keys(columns.pending)).toEqual(['b1']);
-    expect(columns.initialized).toEqual([]);
+    expect(keys(columns.recordings)).toEqual(['b1']);
+    const left = columns.recordings[0];
+    expect(left.kind === 'bundle' && left.listed.map(member => member.id)).toEqual(['heap']);
+    expect(columns.profiles).toEqual([]);
+  });
+
+  it('keeps a bundle whose items are filtered out while its files are shown', () => {
+    const columns = splitColumns({
+      recordings: [],
+      bundles: [{ bundle: bundle('logs', 0, 2), members: [] }],
+      shows: null
+    });
+
+    expect(keys(columns.recordings)).toEqual(['logs']);
   });
 
   it('puts the newest upload first on the left', () => {
@@ -149,6 +193,20 @@ describe('splitColumns', () => {
       shows: null
     });
 
-    expect(keys(columns.pending)).toEqual(['new', 'b1', 'old']);
+    expect(keys(columns.recordings)).toEqual(['new', 'b1', 'old']);
+  });
+});
+
+describe('builtProfiles', () => {
+  it('counts only the profiles that can be opened', () => {
+    const rec = initialized(
+      'rec',
+      'JDK',
+      profile('p-running', 3, 'running'),
+      profile('p-ok', 2),
+      profile('p-failed', 1, 'failed')
+    );
+
+    expect(builtProfiles(rec).map(p => p.profileId)).toEqual(['p-ok']);
   });
 });

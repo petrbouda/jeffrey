@@ -21,11 +21,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -38,18 +40,23 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Microscope's profile-aware {@link RecordingsManager}. Delegates all deployment-agnostic recording
  * store operations to the shared {@link RecordingsCoreManager} and adds the profile-creation /
  * profile-lifecycle operations that are specific to the full microscope deployment.
  * <p>
- * A recording becomes at most one profile, built by the {@link ProfileBuilder} of its kind.
+ * A recording's profiles are built by the {@link ProfileBuilder} of its kind. Analyze builds its first
+ * profile and hands back the newest one after that; initializing it again builds another one beside
+ * those it already has.
  */
 public class ProfileRecordingsManager implements RecordingsManager {
 
@@ -183,6 +190,19 @@ public class ProfileRecordingsManager implements RecordingsManager {
 
     @Override
     public String analyzeRecording(String recordingId) {
+        return once(recordingId, () -> analyzeRecordingOnce(recordingId));
+    }
+
+    @Override
+    public String initializeAgain(String recordingId) {
+        return once(recordingId, () -> initializeAgainOnce(recordingId));
+    }
+
+    /**
+     * Runs one attempt per recording at a time: a second request for the same recording while one
+     * runs joins it and gets its profile, rather than starting a second build beside it.
+     */
+    private String once(String recordingId, Supplier<String> attempt) {
         AtomicBoolean started = new AtomicBoolean();
         CompletableFuture<String> analysis = analyses.computeIfAbsent(recordingId, _ -> {
             started.set(true);
@@ -194,7 +214,7 @@ public class ProfileRecordingsManager implements RecordingsManager {
         }
 
         try {
-            String profileId = analyzeRecordingOnce(recordingId);
+            String profileId = attempt.get();
             analysis.complete(profileId);
             return profileId;
         } catch (RuntimeException | Error e) {
@@ -219,10 +239,37 @@ public class ProfileRecordingsManager implements RecordingsManager {
             }
         }
 
-        String profileId = builder.build(recording);
+        String profileId = builder.build(recording, nextProfileName(recording));
         LOG.info("Quick analysis recording analyzed: recordingId={} profileId={} eventSource={}",
                 recordingId, profileId, recording.eventSource());
         return profileId;
+    }
+
+    /**
+     * Builds another profile beside the ones the recording has, which stay as they are. Only a run
+     * still going is joined instead: it is the profile this request would build.
+     */
+    private String initializeAgainOnce(String recordingId) {
+        Recording recording = recordingRepository.findRecording(recordingId)
+                .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
+
+        ProfileBuilder builder = builders.of(recording.eventSource());
+        if (recording.hasProfile()
+                && builder.progress(recording.profileId()).state() == PipelineState.RUNNING) {
+            return recording.profileId();
+        }
+
+        String profileId = builder.build(recording, nextProfileName(recording));
+        LOG.info("Quick analysis recording initialized again: recordingId={} profileId={} eventSource={}",
+                recordingId, profileId, recording.eventSource());
+        return profileId;
+    }
+
+    private String nextProfileName(Recording recording) {
+        Set<String> takenNames = localCoreRepositories.findProfilesByRecording(recording.id()).stream()
+                .map(ProfileInfo::name)
+                .collect(Collectors.toSet());
+        return ProfileNames.next(recording.recordingName(), takenNames);
     }
 
     private static String join(CompletableFuture<String> analysis) {
@@ -241,28 +288,37 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     @Override
+    public List<ProfileInfo> profiles(String recordingId) {
+        return localCoreRepositories.findProfilesByRecording(recordingId);
+    }
+
+    @Override
+    public void deleteProfile(String recordingId, String profileId) {
+        requireProfileOf(recordingId, profileId);
+        profileCleanup.deleteProfile(profileId);
+
+        LOG.info("Quick analysis profile deleted: recordingId={} profileId={}", recordingId, profileId);
+    }
+
+    @Override
     public void updateProfileName(String profileId, String profileName) {
         localCoreRepositories.newProfileRepository(profileId).update(profileName);
         LOG.info("Quick analysis profile renamed: profileId={} newName={}", profileId, profileName);
     }
 
-    @Override
-    public void deleteProfile(String recordingId) {
-        Recording recording = recordingRepository.findRecording(recordingId)
-                .orElseThrow(() -> Exceptions.recordingNotFound(recordingId));
-
-        if (!recording.hasProfile()) {
-            throw Exceptions.invalidRequest("Recording has no profile: %s".formatted(recordingId));
+    private void requireProfileOf(String recordingId, String profileId) {
+        boolean ownsProfile = localCoreRepositories.newProfileRepository(profileId).find()
+                .map(profile -> recordingId.equals(profile.recordingId()))
+                .orElse(false);
+        if (!ownsProfile) {
+            throw Exceptions.invalidRequest(
+                    "Recording has no such profile: recordingId=%s profileId=%s".formatted(recordingId, profileId));
         }
-
-        profileCleanup.deleteProfile(recording.profileId());
-
-        LOG.info("Quick analysis profile deleted: recordingId={} profileId={}", recordingId, recording.profileId());
     }
 
     @Override
-    public PipelineProgress initProgress(Recording recording) {
-        return builders.of(recording.eventSource()).progress(recording.profileId());
+    public PipelineProgress initProgress(Recording recording, String profileId) {
+        return builders.of(recording.eventSource()).progress(profileId);
     }
 
     @Override

@@ -46,6 +46,7 @@ const member = (
   profileCreatedAt: 0,
   profileName: null,
   initProgress: { state: null, stages: [] },
+  profiles: [],
   files: [],
   tags: [],
   bundleId: 'bundle-1',

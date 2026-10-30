@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
@@ -325,6 +326,63 @@ class JdbcRecordingRepositoryTest {
                  PreparedStatement statement = connection.prepareStatement(INSERT_PROFILE)) {
                 statement.setString(1, profileId);
                 statement.setString(2, recordingId);
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    /**
+     * A recording can be initialized more than once. It stays one row in every listing, carrying the
+     * newest of its profiles, and the repositories list all of them for the recording.
+     */
+    @Nested
+    class RecordingWithSeveralProfiles {
+
+        private static final String RECORDING_ID = "rec-multi";
+        private static final String INSERT_PROFILE = "INSERT INTO profiles (profile_id, profile_name, event_source, "
+                + "created_at, recording_id) VALUES (?, ?, 'JDK', ?, ?)";
+
+        @Test
+        void isListedOnceWithItsNewestProfile(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = initializedTwice(dataSource);
+
+            List<Recording> recordings = repository.findAllRecordings();
+
+            assertEquals(1, recordings.size());
+            assertEquals("prof-newer", recordings.getFirst().profileId());
+            assertEquals("app.jfr #2", recordings.getFirst().profileName());
+            assertEquals("prof-newer", repository.findRecording(RECORDING_ID).orElseThrow().profileId());
+        }
+
+        @Test
+        void listsEveryProfileOfTheRecordingNewestFirst(DataSource dataSource) throws SQLException {
+            initializedTwice(dataSource);
+            var repositories = new JdbcMicroscopeCoreRepositories(new DatabaseClientProvider(dataSource), CLOCK);
+
+            assertEquals(List.of("prof-newer", "prof-older"), repositories.findProfilesByRecording(RECORDING_ID)
+                    .stream().map(ProfileInfo::id).toList());
+            assertTrue(repositories.findProfilesByRecording("another-recording").isEmpty());
+        }
+
+        private static JdbcRecordingRepository initializedTwice(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            repository.insertRecording(
+                    new Recording(RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK, FIXED_TIME,
+                            FIXED_TIME, FIXED_TIME, false, null, null, List.of()),
+                    new RecordingFile("file-multi", RECORDING_ID, "app.jfr", ManagedFile.JFR, FIXED_TIME, 1024));
+            insertProfile(dataSource, "prof-older", "app.jfr", FIXED_TIME);
+            insertProfile(dataSource, "prof-newer", "app.jfr #2", FIXED_TIME.plusSeconds(60));
+            return repository;
+        }
+
+        private static void insertProfile(DataSource dataSource, String profileId, String name, Instant createdAt)
+                throws SQLException {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(INSERT_PROFILE)) {
+                statement.setString(1, profileId);
+                statement.setString(2, name);
+                statement.setObject(3, createdAt.atOffset(ZoneOffset.UTC));
+                statement.setString(4, RECORDING_ID);
                 statement.executeUpdate();
             }
         }

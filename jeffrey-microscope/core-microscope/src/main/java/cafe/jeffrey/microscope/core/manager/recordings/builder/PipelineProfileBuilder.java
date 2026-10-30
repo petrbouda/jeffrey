@@ -104,7 +104,7 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
     }
 
     @Override
-    public String build(Recording recording) {
+    public String build(Recording recording, String profileName) {
         // Every file of the recording, which for a session is every chunk it rolled: taking the first
         // of them would analyse a few minutes of a run that lasted hours, with nothing anywhere saying
         // the rest was dropped.
@@ -131,10 +131,6 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
         Instant createdAt = clock.instant();
 
         RecordingInformation recordingInfo = resolveRecordingInformation(recording, sources);
-
-        // Named after the recording rather than after one of its files: a session's files are
-        // chunk-<timestamp>.jfr.lz4 and naming the profile after the first of them says nothing.
-        String profileName = recording.recordingName();
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, null, null, profileName,

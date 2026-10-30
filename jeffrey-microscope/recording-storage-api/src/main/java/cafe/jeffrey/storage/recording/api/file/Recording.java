@@ -25,7 +25,8 @@ import java.util.List;
 
 /**
  * One initializable item: a JFR recording (all its chunk files), a heap dump, a pprof or OTLP profile,
- * a perf-counters snapshot. It becomes at most one profile.
+ * a perf-counters snapshot. It can be initialized more than once, each time into a profile of its own;
+ * {@code hasProfile}, {@code profileId} and {@code profileName} describe the newest of them.
  *
  * @param bundleId the bundle this recording belongs to, or {@code null} for a standalone upload or
  *                 import. A bundle groups the items a multi-file download brought in together.

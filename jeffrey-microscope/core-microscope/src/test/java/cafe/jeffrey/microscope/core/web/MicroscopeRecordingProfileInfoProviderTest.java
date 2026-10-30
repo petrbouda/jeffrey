@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.common.pipeline.PipelineDefinition;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
@@ -30,7 +31,7 @@ import cafe.jeffrey.profile.common.pipeline.StageStatus;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.ui.remote.bridge.ProfileInitProgress;
-import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider.ProfileInfo;
+import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider.RecordingProfile;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +52,9 @@ class MicroscopeRecordingProfileInfoProviderTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC);
 
+    private static final String RECORDING_ID = "recording-1";
     private static final String PROFILE_ID = "profile-1";
+    private static final String NEWER_PROFILE_ID = "profile-2";
 
     private static final PipelineDefinition DEFINITION =
             new PipelineDefinition("profile-init", List.of("parse", "flush"));
@@ -64,15 +67,36 @@ class MicroscopeRecordingProfileInfoProviderTest {
     private MicroscopeRecordingProfileInfoProvider provider() {
         // The manager answers from the pipeline of the recording's kind; here that is the registry,
         // unless a test answers for a heap dump itself.
-        when(recordingsManager.initProgress(any())).thenAnswer(_ -> registry.progress(PROFILE_ID));
+        when(recordingsManager.initProgress(any(), any()))
+                .thenAnswer(invocation -> registry.progress(invocation.getArgument(1)));
         return new MicroscopeRecordingProfileInfoProvider(recordingsManager);
     }
 
-    private static Recording recordingWithProfile() {
+    private Recording recordingWithProfile() {
+        return recordingWithProfiles(PROFILE_ID);
+    }
+
+    /** A recording initialized into the given profiles, newest first. */
+    private Recording recordingWithProfiles(String... profileIds) {
         Recording recording = mock(Recording.class);
+        when(recording.id()).thenReturn(RECORDING_ID);
         when(recording.hasProfile()).thenReturn(true);
-        when(recording.profileId()).thenReturn(PROFILE_ID);
+        when(recording.profileId()).thenReturn(profileIds[0]);
+        when(recordingsManager.profiles(RECORDING_ID)).thenReturn(List.of(profileIds).stream()
+                .map(MicroscopeRecordingProfileInfoProviderTest::profileRow)
+                .toList());
         return recording;
+    }
+
+    private static ProfileInfo profileRow(String profileId) {
+        return new ProfileInfo(profileId, null, null, "name-" + profileId, RecordingEventSource.JDK,
+                null, null, CLOCK.instant(), false, false, RECORDING_ID);
+    }
+
+    private RecordingProfile onlyProfile(Recording recording) {
+        List<RecordingProfile> profiles = provider().profiles(recording);
+        assertEquals(1, profiles.size());
+        return profiles.getFirst();
     }
 
     @Test
@@ -81,10 +105,19 @@ class MicroscopeRecordingProfileInfoProviderTest {
         Recording recording = mock(Recording.class);
         when(recording.hasProfile()).thenReturn(false);
 
-        ProfileInfo info = provider().profileInfo(recording);
+        assertTrue(provider().profiles(recording).isEmpty());
+    }
 
-        assertEquals(ProfileInfo.NONE, info);
-        assertNull(info.initProgress().state());
+    @Test
+    @DisplayName("a recording initialized more than once lists every profile, newest first")
+    void listsEveryProfileOfTheRecording() {
+        when(recordingsManager.profile(any())).thenReturn(Optional.empty());
+
+        List<RecordingProfile> profiles = provider().profiles(recordingWithProfiles(NEWER_PROFILE_ID, PROFILE_ID));
+
+        assertEquals(List.of(NEWER_PROFILE_ID, PROFILE_ID),
+                profiles.stream().map(RecordingProfile::profileId).toList());
+        assertEquals("name-" + NEWER_PROFILE_ID, profiles.getFirst().profileName());
     }
 
     @Test
@@ -92,7 +125,7 @@ class MicroscopeRecordingProfileInfoProviderTest {
     void profileWithoutRunHasNoProgress() {
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.empty());
 
-        ProfileInfo info = provider().profileInfo(recordingWithProfile());
+        RecordingProfile info = onlyProfile(recordingWithProfile());
 
         assertNull(info.initProgress().state());
         assertTrue(info.initProgress().stages().isEmpty());
@@ -113,7 +146,7 @@ class MicroscopeRecordingProfileInfoProviderTest {
             run.skipStage("flush");
         }));
 
-        ProfileInitProgress progress = provider().profileInfo(recordingWithProfile()).initProgress();
+        ProfileInitProgress progress = onlyProfile(recordingWithProfile()).initProgress();
 
         assertEquals("completed", progress.state());
         assertEquals(2, progress.stages().size());
@@ -135,7 +168,7 @@ class MicroscopeRecordingProfileInfoProviderTest {
             // The caller sees the failure; what matters here is what the list reports afterwards.
         }
 
-        ProfileInitProgress progress = provider().profileInfo(recordingWithProfile()).initProgress();
+        ProfileInitProgress progress = onlyProfile(recordingWithProfile()).initProgress();
 
         assertEquals("failed", progress.state());
         assertEquals("failed", progress.stages().getFirst().status());
@@ -152,12 +185,12 @@ class MicroscopeRecordingProfileInfoProviderTest {
         Recording recording = recordingWithProfile();
         when(recording.eventSource()).thenReturn(RecordingEventSource.HEAP_DUMP);
         MicroscopeRecordingProfileInfoProvider provider = provider();
-        when(recordingsManager.initProgress(recording)).thenReturn(new PipelineProgress(
+        when(recordingsManager.initProgress(recording, PROFILE_ID)).thenReturn(new PipelineProgress(
                 HeapDumpStages.PIPELINE_ID, "", PipelineState.RUNNING, null, null, List.of(
                         new StageProgress(HeapDumpStages.LOAD, StageStatus.COMPLETED, 1_200L, null, null),
                         new StageProgress(HeapDumpStages.PARSE, StageStatus.IN_PROGRESS, null, 800L, null))));
 
-        ProfileInitProgress progress = provider.profileInfo(recording).initProgress();
+        ProfileInitProgress progress = provider.profiles(recording).getFirst().initProgress();
 
         assertEquals("running", progress.state());
         assertEquals(HeapDumpStages.LOAD, progress.stages().getFirst().id());

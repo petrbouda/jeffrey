@@ -43,6 +43,21 @@ export interface ProfileInitProgress {
   stages: ProfileInitStage[];
 }
 
+/** One profile built from a recording. A recording can be initialized again, into another profile. */
+export interface RecordingProfile {
+  profileId: string;
+  profileName: string;
+  sizeInBytes: number;
+  modified: boolean;
+  /** When the profile was created, as UTC epoch millis. */
+  createdAt: number;
+  initProgress: ProfileInitProgress;
+}
+
+/**
+ * A recording with every profile built from it (`profiles`, newest first). The flat `profile*`
+ * fields and `initProgress` describe the newest of them.
+ */
 export default interface Recording {
   id: string;
   filename: string;
@@ -58,6 +73,7 @@ export default interface Recording {
   profileCreatedAt: number;
   profileName: string | null;
   initProgress: ProfileInitProgress;
+  profiles: RecordingProfile[];
   files: RecordingFile[];
   tags: RecordingTag[];
   /** The bundle the recording came in with, or null for one uploaded or imported alone. */

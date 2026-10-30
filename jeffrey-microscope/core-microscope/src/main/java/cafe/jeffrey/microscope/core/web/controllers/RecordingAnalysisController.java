@@ -32,7 +32,6 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.web.dto.response.AnalyzeResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.nio.file.Path;
 
@@ -86,30 +85,42 @@ public class RecordingAnalysisController {
         return new AnalyzeResponse(profileId);
     }
 
-    @PutMapping(value = "/recordings/{recordingId}/profile", consumes = MediaType.APPLICATION_JSON_VALUE)
+    /**
+     * Builds another profile from the recording beside the ones it already has. A recording's first
+     * initialization, and a retry of a failed one, go through {@code /analyze} instead.
+     */
+    @PostMapping(value = "/recordings/{recordingId}/profiles", produces = MediaType.APPLICATION_JSON_VALUE)
+    public AnalyzeResponse initializeAgain(@PathVariable("recordingId") String recordingId) {
+        String profileId = recordingsManager.initializeAgain(recordingId);
+        return new AnalyzeResponse(profileId);
+    }
+
+    @PutMapping(value = "/recordings/{recordingId}/profiles/{profileId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public void updateProfile(
             @PathVariable("recordingId") String recordingId,
+            @PathVariable("profileId") String profileId,
             @RequestBody UpdateProfileRequest request) {
 
         if (request == null || request.name() == null || request.name().isBlank()) {
             throw Exceptions.invalidRequest("Profile name is required");
         }
 
-        Recording recording = recordingsManager.listRecordings().stream()
-                .filter(r -> r.id().equals(recordingId))
-                .findFirst()
-                .orElseThrow(() -> Exceptions.invalidRequest("Recording not found: " + recordingId));
-
-        if (!recording.hasProfile()) {
-            throw Exceptions.invalidRequest("Recording has no profile: " + recordingId);
+        boolean ownsProfile = recordingsManager.profiles(recordingId).stream()
+                .anyMatch(profile -> profile.id().equals(profileId));
+        if (!ownsProfile) {
+            throw Exceptions.invalidRequest(
+                    "Recording has no such profile: recordingId=%s profileId=%s".formatted(recordingId, profileId));
         }
 
-        recordingsManager.updateProfileName(recording.profileId(), request.name().trim());
+        recordingsManager.updateProfileName(profileId, request.name().trim());
     }
 
-    @DeleteMapping("/recordings/{recordingId}/profile")
-    public void deleteProfile(@PathVariable("recordingId") String recordingId) {
-        recordingsManager.deleteProfile(recordingId);
+    @DeleteMapping("/recordings/{recordingId}/profiles/{profileId}")
+    public void deleteProfile(
+            @PathVariable("recordingId") String recordingId,
+            @PathVariable("profileId") String profileId) {
+
+        recordingsManager.deleteProfile(recordingId, profileId);
     }
 
     public record UpdateProfileRequest(String name) {

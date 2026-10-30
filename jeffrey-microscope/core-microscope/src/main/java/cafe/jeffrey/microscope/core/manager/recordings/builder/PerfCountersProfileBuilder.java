@@ -98,12 +98,11 @@ public final class PerfCountersProfileBuilder implements ProfileBuilder {
      * row records comes from them; a snapshot that cannot be read leaves nothing behind.
      */
     @Override
-    public String build(Recording recording) {
+    public String build(Recording recording, String profileName) {
         RecordingFile file = recording.files().getFirst();
         Path snapshot = RecordingStorageLayout.storagePath(recordingsDir, file.recordingId(), file.filename());
         String profileId = IDGenerator.generate();
         Instant createdAt = clock.instant();
-        String profileName = recording.recordingName();
 
         ProfileInfo profileInfo = new ProfileInfo(
                 profileId, null, null, profileName, RecordingEventSource.PERF_COUNTERS,

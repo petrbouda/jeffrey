@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
@@ -27,9 +28,9 @@ import java.util.List;
 import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
 
 /**
- * Microscope's {@link RecordingProfileInfoProvider}: resolves the profile size/modified info for a
- * recording that has an associated analysis profile, via the microscope {@link RecordingsManager},
- * and how far its initialization has got, from the pipeline of the recording's kind
+ * Microscope's {@link RecordingProfileInfoProvider}: resolves the size/modified info of every profile
+ * built from a recording, via the microscope {@link RecordingsManager}, and how far each one's
+ * initialization has got, from the pipeline of the recording's kind
  * ({@link RecordingsManager#initProgress}). The stage ids differ by kind, and the frontend groups each
  * set into its own chips.
  * <p>
@@ -48,20 +49,28 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
     }
 
     @Override
-    public ProfileInfo profileInfo(Recording recording) {
+    public List<RecordingProfile> profiles(Recording recording) {
         if (!recording.hasProfile()) {
-            return ProfileInfo.NONE;
+            return List.of();
         }
-        ProfileInitProgress initProgress = initProgress(recordingsManager.initProgress(recording));
+        return recordingsManager.profiles(recording.id()).stream()
+                .map(profile -> recordingProfile(recording, profile))
+                .toList();
+    }
 
-        ProfileManager profileManager = recordingsManager.profile(recording.profileId()).orElse(null);
+    private RecordingProfile recordingProfile(Recording recording, ProfileInfo profile) {
+        ProfileInitProgress initProgress = initProgress(recordingsManager.initProgress(recording, profile.id()));
+
+        ProfileManager profileManager = recordingsManager.profile(profile.id()).orElse(null);
         if (profileManager == null) {
             // The profile row exists but nothing can be read from it yet -- the state a recording is
             // in while its very first stages run. The progress is still worth reporting: it is the
             // only thing that distinguishes this from a profile that failed to build at all.
-            return new ProfileInfo(0L, false, 0L, initProgress);
+            return new RecordingProfile(profile.id(), profile.name(), 0L, false, 0L, initProgress);
         }
-        return new ProfileInfo(
+        return new RecordingProfile(
+                profile.id(),
+                profileManager.info().name(),
                 profileManager.sizeInBytes(),
                 profileManager.info().modified(),
                 profileManager.info().createdAt().toEpochMilli(),

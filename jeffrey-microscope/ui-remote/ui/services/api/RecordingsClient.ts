@@ -106,12 +106,21 @@ export default class RecordingsClient extends BasePlatformClient {
       .then(r => r.profileId);
   }
 
-  async updateProfileName(recordingId: string, name: string): Promise<void> {
-    return super.put<void>(`/recordings/${recordingId}/profile`, { name });
+  /** Builds another profile from the recording, beside the ones it already has. */
+  async initializeAgain(recordingId: string): Promise<string> {
+    return super
+      .post<{ profileId: string }>(`/recordings/${recordingId}/profiles`, undefined)
+      .then(r => r.profileId);
   }
 
-  async deleteProfile(recordingId: string): Promise<void> {
-    return super.del<void>(`/recordings/${recordingId}/profile`);
+  async updateProfileName(recordingId: string, profileId: string, name: string): Promise<void> {
+    return super.put<void>(`/recordings/${recordingId}/profiles/${profileId}`, {
+      name
+    });
+  }
+
+  async deleteProfile(recordingId: string, profileId: string): Promise<void> {
+    return super.del<void>(`/recordings/${recordingId}/profiles/${profileId}`);
   }
 
   // --- Bundles ---
