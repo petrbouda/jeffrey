@@ -206,3 +206,15 @@ The main conversation already went `profiles_list` → `profiles_summary` → `f
 the change, routing from the summary as `analyze-jfr` says, so its chain is at its minimum: the name
 lookup, the summary the route depends on, and the export. The analysts drop the list call. The
 baselines above this section were measured on the earlier recording.
+
+**The heap answers name the real leak** (server fix, mocks re-recorded). The dominator tree was
+built wrong on any dump past one DuckDB row group: the node array was filled in the order a prepared
+`ORDER BY` streamed, which the driver does not keep while `preserve_insertion_order` is off, so the
+recorded heap answers — leak suspects, biggest objects, the dominator tree, retained sizes — described
+a scrambled graph (a `java.lang.Long` with no references "retaining" thousands of objects). The leak
+suspects also listed each link of one dominator chain as a suspect of its own. Measured on 2026-10-31,
+three runs:
+
+| Case | Score | What the answer names | Cost per answer |
+|---|---|---|---|
+| `heap-dump-what-holds-memory` (`heap-triage`) | 1.00 → 1.00 | `Checkout$AuditLog`, 45.5% of the heap, held by a Java frame, through its `ArrayList` and `Object[]` to the `Checkout$Order` elements — one suspect; the old mocks offered two `java.lang.Long` and a `byte[]`, "analyzing" 20.3 MiB of a 10.6 MiB heap | $0.25 → $0.24 |

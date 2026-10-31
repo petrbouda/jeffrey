@@ -109,6 +109,7 @@ public final class HeapReportAnswers {
             long retainedBytes,
             @McpDescription("Share of the heap retained, 0-100")
             double heapPercent,
+            @McpDescription("Instances of the suspect's class in the dump, not the objects the suspect retains")
             int instanceCount,
             @McpNullable
             String reason,

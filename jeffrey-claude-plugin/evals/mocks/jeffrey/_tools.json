@@ -18504,7 +18504,8 @@
          "description": "Share of the heap retained, 0-100"
         },
         "instanceCount": {
-         "type": "integer"
+         "type": "integer",
+         "description": "Instances of the suspect's class in the dump, not the objects the suspect retains"
         },
         "reason": {
          "type": [

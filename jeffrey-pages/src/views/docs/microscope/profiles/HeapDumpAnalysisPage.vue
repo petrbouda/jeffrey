@@ -110,7 +110,7 @@ onMounted(() => {
         <DocsFeatureCard
           icon="bi bi-search"
           title="Leak Suspects"
-          description="Automated leak detection from retained-size analysis and reference-chain patterns, surfacing the objects and structures most likely to be holding memory unnecessarily."
+          description="The objects retaining more than 5% of the heap that no other such object dominates, largest first — one suspect per retained cluster, so a holder, its list and the list's backing array count once. Follow a suspect into its GC-root path to see what keeps it alive."
         />
         <DocsFeatureCard
           icon="bi bi-box-seam-fill"

@@ -1,0 +1,19 @@
+Paths to GC Root for Object ID 30773608672:
+
+Path #1:
+  GC Root Type: Sticky class
+  -> <unknown>.? (ID: 30776541400)
+  -> jdk.jfr.internal.MetadataRepository.nativeControls (ID: 30777049032)
+  -> java.util.HashMap.table (ID: 30777059576)
+  -> java.util.HashMap$Node[].[234] (ID: 30777059640)
+  -> java.util.HashMap$Node.value (ID: 30777136840)
+  -> jdk.jfr.internal.EventControl.idName (ID: 30777136872)
+  -> java.lang.String (ID: 30773608672)
+
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19136-47ae-7e29-af6a-6f22a01af9c4/heap-dump/gc-root-path?objectId=30773608672
+Next:
+- heap_getReferrers {"profileId":"01a19136-47ae-7e29-af6a-6f22a01af9c4","objectId":"30773608672"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a19136-47ae-7e29-af6a-6f22a01af9c4","objectId":"30776541400"} [LIGHT]

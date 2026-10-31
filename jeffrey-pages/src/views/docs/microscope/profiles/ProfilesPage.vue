@@ -401,7 +401,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-search"
           title="Leak Suspects"
-          description="Automated memory leak detection based on retained size analysis and reference chain patterns."
+          description="The biggest retained clusters of the heap — objects holding more than 5% of it that no other such object dominates — ranked by retained size."
         />
         <DocsFeatureCard
           icon="bi bi-collection"

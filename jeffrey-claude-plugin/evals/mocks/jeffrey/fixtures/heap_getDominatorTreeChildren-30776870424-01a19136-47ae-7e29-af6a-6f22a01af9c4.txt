@@ -1,0 +1,15 @@
+Dominator Tree Children of Object ID 30776870424:
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+java.lang.ThreadLocal$ThreadLocalMap$Entry                    40 B         4.2 KiB          30776870760
+java.lang.ThreadLocal$ThreadLocalMap$Entry                    40 B           208 B          30776870568
+java.lang.ThreadLocal$ThreadLocalMap$Entry                    40 B            72 B          30776870504
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19136-47ae-7e29-af6a-6f22a01af9c4/heap-dump/dominator-tree
+Link note: The page opens at the dominator-tree roots; expand down to object 30776870424 there.
+Next:
+- heap_getDominatorTreeChildren {"profileId":"01a19136-47ae-7e29-af6a-6f22a01af9c4","objectId":"30776870760"} [MEDIUM]
+- heap_getPathToGCRoot {"profileId":"01a19136-47ae-7e29-af6a-6f22a01af9c4","objectId":"30776870424"} [MEDIUM]

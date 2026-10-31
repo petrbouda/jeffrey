@@ -1,0 +1,17 @@
+GC Root Summary:
+
+Total GC Roots: 2,243
+
+ROOT TYPE                                          COUNT
+---------------------------------------------------------
+Sticky class                                       2,021
+JNI global                                           123
+Java frame                                            90
+Thread object                                          8
+JNI local                                              1
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19136-47ae-7e29-af6a-6f22a01af9c4/heap-dump/gc-roots
+Next:
+- heap_getDominatorTreeRoots {"profileId":"01a19136-47ae-7e29-af6a-6f22a01af9c4"} [HEAVY]

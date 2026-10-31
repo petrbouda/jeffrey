@@ -13,4 +13,4 @@ No remote is configured for this installation. The remote is the recording volum
 Recordings can still be analysed from a local file with recordings_analyzeFile.
 
 ---
-Open in Microscope: http://localhost:8586/remote
+Open in Microscope: http://localhost:8585/remote

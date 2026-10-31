@@ -41,10 +41,21 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  * (typically lazy, on first access).
  *
  * Heuristic (basic): the top instances by retained size whose retained size
- * exceeds a configurable percentage of the total heap. This is the same
- * starting heuristic MAT uses; the existing NetBeans-backed analyzer in
- * Jeffrey has additional classloader-cluster and accumulation-point logic
- * that is not yet ported (see field-level limitations below).
+ * exceeds a configurable percentage of the total heap, and that no other such
+ * instance dominates. This is the same starting heuristic MAT uses; the
+ * existing NetBeans-backed analyzer in Jeffrey has additional classloader-cluster
+ * and accumulation-point logic that is not yet ported (see field-level
+ * limitations below).
+ *
+ * <p>One leak is one suspect. Retained size never grows down the dominator tree,
+ * so the objects a big retainer dominates on the way to its contents — a holder,
+ * its {@code ArrayList}, the list's {@code Object[]} — all clear the threshold
+ * too, and each would otherwise be listed as a suspect of its own, with the
+ * same bytes counted once per link. A candidate whose immediate dominator is an
+ * instance that also clears the threshold is that instance's chain, not a second
+ * suspect, so the suspects' retained sets are disjoint and their sum is a real
+ * share of the heap. A candidate dominated by a class object (a static field) is
+ * still a suspect: the class itself is never one.
  *
  * Limitations vs the existing NetBeans-backed version (documented in the
  * model-level fields they map to):
@@ -66,6 +77,31 @@ public final class LeakSuspectsAnalyzer {
     /** Default suspect threshold: retained size must exceed 5% of total heap. */
     public static final double DEFAULT_THRESHOLD_PERCENT = 5.0;
     public static final int DEFAULT_TOP_N = 10;
+
+    /**
+     * The top retainers above the threshold (bound twice) that no other retainer above it
+     * dominates, joined to their class, largest first, at most topN. A dominator that is not an
+     * instance — the virtual root, or a class object holding a static — never suppresses one.
+     */
+    private static final String SUSPECTS_SQL = """
+            SELECT r.instance_id, r.bytes, c.class_id, c.name, c.classloader_id
+            FROM retained_size r
+            JOIN instance i ON i.instance_id = r.instance_id
+            LEFT JOIN class c ON i.class_id = c.class_id
+            JOIN dominator d ON d.instance_id = r.instance_id
+            WHERE r.bytes >= ?
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM instance holder
+                  JOIN retained_size held ON held.instance_id = holder.instance_id
+                  WHERE holder.instance_id = d.dominator_id
+                    AND held.bytes >= ?)
+            ORDER BY r.bytes DESC
+            LIMIT ?
+            """;
+
+    private static final String REASON =
+            "One %s object retains %.1f%% of the heap, and no other suspect dominates it.";
 
     private LeakSuspectsAnalyzer() {
     }
@@ -91,24 +127,15 @@ public final class LeakSuspectsAnalyzer {
         long totalHeapSize = view.totalShallowSize();
         long thresholdBytes = (long) (totalHeapSize * (thresholdPercent / 100.0));
 
-        // Single SQL: top retainers above threshold, joined to class metadata.
-        // ORDER BY retained DESC, take topN.
-        String sql = "SELECT r.instance_id, r.bytes, c.class_id, c.name, c.classloader_id "
-                + "FROM retained_size r "
-                + "JOIN instance i ON i.instance_id = r.instance_id "
-                + "LEFT JOIN class c ON i.class_id = c.class_id "
-                + "WHERE r.bytes >= ? "
-                + "ORDER BY r.bytes DESC "
-                + "LIMIT ?";
-
         List<LeakSuspect> suspects = new ArrayList<>();
         long analyzedBytes = 0;
         Map<Long, LoaderAcc> byLoader = new HashMap<>();
         Map<Long, String> loaderNameCache = new HashMap<>();
 
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(SUSPECTS_SQL)) {
             stmt.setLong(1, thresholdBytes);
-            stmt.setInt(2, topN);
+            stmt.setLong(2, thresholdBytes);
+            stmt.setInt(3, topN);
             try (ResultSet rs = stmt.executeQuery()) {
                 int rank = 1;
                 while (rs.next()) {
@@ -184,9 +211,7 @@ public final class LeakSuspectsAnalyzer {
     }
 
     private static String buildReason(double percent, String className) {
-        return String.format(
-                "Single instance of %s retains %.1f%% of the heap. Likely a leak suspect.",
-                className, percent);
+        return String.format(REASON, className, percent);
     }
 
     private static final class LoaderAcc {
