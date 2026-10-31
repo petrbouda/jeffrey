@@ -202,9 +202,8 @@ If you did not locate the code, say so and give the frame rather than inventing 
 
 ## Where the report is written
 
-When a `profile-analyst`, `heap-triage` or `profile-lead` agent did the reading, it returns the
-findings with their evidence in this shape and stops there: it has no file tools and makes no
-recommendations. Mapping a frame onto the checkout, the recommendation, and every question put to
+When a `profile-analyst` or `heap-triage` agent did the reading, it returns the findings with their
+evidence in this shape and stops there: it has no file tools and makes no recommendations. Mapping a frame onto the checkout, the recommendation, and every question put to
 the user belong to the session that delegated — add them there, in the same shape, before the
 report goes to the reader.
 

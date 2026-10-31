@@ -200,7 +200,7 @@ onMounted(() => {
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
         <li><router-link to="/docs/microscope-mcp/clients">Every Client</router-link> &mdash; what the plugin brings to any coding agent: the skills, the agents, the eleven tools that write, and how a long call behaves</li>
-        <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; the v2 MCP runtime it needs, installing the plugin, pointing it at this Jeffrey, and the three subagents only that client can carry</li>
+        <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; the v2 MCP runtime it needs, installing the plugin, pointing it at this Jeffrey, and the two subagents only that client can carry</li>
         <li><router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; the version and feature flag it needs, then the same plugin through the portable Agent Plugins format, and what changes with it</li>
         <li><router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> &mdash; cannot connect until it supports MCP <code>2026-07-28</code>; the package as a Gemini extension, ready for when it does</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>

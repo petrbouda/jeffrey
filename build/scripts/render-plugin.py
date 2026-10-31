@@ -238,6 +238,14 @@ def rendered(root: Path) -> dict[Path, str]:
     return files
 
 
+def orphaned(root: Path, files: dict[Path, str]) -> list[Path]:
+    """Agent files in a rendered directory that no source renders — what a deleted agent leaves behind."""
+    plugin = root / PLUGIN_DIR
+    rendered_dirs = ((plugin / "agents", "*.md"), (plugin / "codex" / "agents", "*.toml"),
+                     (plugin / "gemini" / "agents", "*.md"))
+    return sorted(path for directory, pattern in rendered_dirs for path in directory.glob(pattern) if path not in files)
+
+
 def main() -> int:
     arguments = [argument for argument in sys.argv[1:] if argument != CHECK_FLAG]
     check = CHECK_FLAG in sys.argv[1:]
@@ -248,17 +256,24 @@ def main() -> int:
         print(f"::error::{error}")
         return 1
     stale = [path for path, text in files.items() if not path.exists() or path.read_text() != text]
+    orphans = orphaned(root, files)
     if check:
         for path in stale:
             print(f"::error::{path.relative_to(root)} is not what {SOURCE_DIR}/ renders - "
                   f"edit the source and run build/scripts/render-plugin.py")
-        if stale:
+        for path in orphans:
+            print(f"::error::{path.relative_to(root)} has no source in {SOURCE_DIR}/agents/ - "
+                  f"delete it, or add the agent's source")
+        if stale or orphans:
             return 1
         print(f"All {len(files)} generated plugin files match their sources in {SOURCE_DIR}/.")
         return 0
     for path in stale:
         path.write_text(files[path])
         print(f"wrote {path.relative_to(root)}")
+    for path in orphans:
+        path.unlink()
+        print(f"removed {path.relative_to(root)}, which no source renders")
     print(f"{len(stale)} of {len(files)} generated plugin files rewritten.")
     return 0
 
