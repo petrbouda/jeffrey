@@ -27,7 +27,6 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
-import cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.slf4j.Logger;
@@ -37,6 +36,8 @@ import tools.jackson.core.JacksonException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -72,6 +73,10 @@ public final class HeapDumpReportStore {
     /** Between a report's name and the version of the dominator tree it was computed from. */
     private static final String TREE_VERSION_MARK = ".tree-v";
 
+    private static final String ANALYSIS_VERSION_MARK = ".analysis-v";
+
+    private static final int LEGACY_ANALYSIS_VERSION = 1;
+
     private final Path analysisDir;
 
     public HeapDumpReportStore(Path analysisDir) {
@@ -80,21 +85,23 @@ public final class HeapDumpReportStore {
 
     // --- CachedAnalysis-typed operations --------------------------------
     //
-    // A report computed from the dominator tree is stored under the version of the tree it read
-    // (DominatorTreeBuilder.TREE_VERSION): one cached from an older tree is not found, so it reads as
-    // not built and its stage runs again, against the tree rebuilt beside it, rather than serving
-    // figures from a tree the current build would not produce.
+    // The writer passes the actual input tree version, captured under the session lock. Readers
+    // require both that tree and the current report algorithm, so changing a report does not force
+    // a tree rebuild, and an absent tree cannot be stamped as the running binary's tree version.
 
     public <T> boolean exists(CachedAnalysis<T> analysis) {
-        return Files.exists(analysisDir.resolve(storedName(analysis)));
+        return read(analysis).isPresent();
     }
 
     public <T> Optional<T> read(CachedAnalysis<T> analysis) {
         return read(storedName(analysis), analysis.type());
     }
 
-    public <T> void write(CachedAnalysis<T> analysis, T report) {
-        write(storedName(analysis), report, analysis.displayName());
+    public <T> void write(CachedAnalysis<T> analysis, HeapReportVersion version, T report) {
+        if (!HeapReportVersion.expected(analysis).equals(version)) {
+            throw new IllegalArgumentException("Report was not computed from the required versions: " + version);
+        }
+        write(storedName(analysis, version), report, analysis.displayName());
         for (String stale : staleNames(analysis)) {
             delete(stale, analysis.displayName());
         }
@@ -107,30 +114,42 @@ public final class HeapDumpReportStore {
         }
     }
 
-    /** The file the analysis is stored in: its own name, versioned by the tree when it reads one. */
+    /** A stored but obsolete or unreadable report can be refreshed; a never-requested report cannot. */
+    public boolean hasStoredCopy(CachedAnalysis<?> analysis) {
+        return Files.exists(analysisDir.resolve(storedName(analysis))) || !staleNames(analysis).isEmpty();
+    }
+
+    /** The expected report algorithm and, for retained figures, the tree it must have read. */
     static String storedName(CachedAnalysis<?> analysis) {
-        if (!analysis.dependsOnDominatorTree()) {
+        return storedName(analysis, HeapReportVersion.expected(analysis));
+    }
+
+    private static String storedName(CachedAnalysis<?> analysis, HeapReportVersion version) {
+        // Unchanged reports that never read a tree retain their compatible legacy names.
+        if (version.treeVersion() == null && version.analysisVersion() == LEGACY_ANALYSIS_VERSION) {
             return analysis.fileName();
         }
-        return baseName(analysis) + TREE_VERSION_MARK + DominatorTreeBuilder.TREE_VERSION + JSON_SUFFIX;
+        String tree = version.treeVersion() == null ? "" : TREE_VERSION_MARK + version.treeVersion();
+        return baseName(analysis) + ANALYSIS_VERSION_MARK + version.analysisVersion() + tree + JSON_SUFFIX;
     }
 
     /**
-     * The analysis's files from earlier trees: the unversioned name every report had before trees were
-     * versioned, and any other version. Only for an analysis that reads the tree.
+     * The analysis's files from earlier report algorithms or trees, including unversioned files.
      */
     private List<String> staleNames(CachedAnalysis<?> analysis) {
-        if (!analysis.dependsOnDominatorTree() || !Files.isDirectory(analysisDir)) {
+        if (!Files.isDirectory(analysisDir)) {
             return List.of();
         }
         String current = storedName(analysis);
         String versionedPrefix = baseName(analysis) + TREE_VERSION_MARK;
+        String analysisPrefix = baseName(analysis) + ANALYSIS_VERSION_MARK;
         List<String> stale = new ArrayList<>();
         try (Stream<Path> files = Files.list(analysisDir)) {
             files.map(path -> path.getFileName().toString())
                     .filter(name -> !name.equals(current))
                     .filter(name -> name.equals(analysis.fileName())
-                            || (name.startsWith(versionedPrefix) && name.endsWith(JSON_SUFFIX)))
+                            || ((name.startsWith(versionedPrefix) || name.startsWith(analysisPrefix))
+                            && name.endsWith(JSON_SUFFIX)))
                     .forEach(stale::add);
         } catch (IOException e) {
             LOG.warn("Could not list cached analyses: path={} message={}", analysisDir, e.getMessage());
@@ -155,7 +174,7 @@ public final class HeapDumpReportStore {
             return Optional.empty();
         }
         try {
-            return Optional.of(Json.mapper().readValue(filePath.toFile(), type));
+            return Optional.ofNullable(Json.mapper().readValue(filePath.toFile(), type));
         } catch (JacksonException e) {
             LOG.error("Failed to read analysis file: path={}", filePath, e);
             return Optional.empty();
@@ -163,14 +182,29 @@ public final class HeapDumpReportStore {
     }
 
     public void write(String fileName, Object payload, String displayName) {
+        Path temporary = null;
         try {
             ensureAnalysisDir();
             Path filePath = analysisDir.resolve(fileName);
-            Json.mapper().writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), payload);
+            temporary = Files.createTempFile(analysisDir, fileName + ".", ".tmp");
+            Json.mapper().writerWithDefaultPrettyPrinter().writeValue(temporary.toFile(), payload);
+            try {
+                Files.move(temporary, filePath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                Files.move(temporary, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
             LOG.info("{} saved: path={}", displayName, filePath);
         } catch (IOException | JacksonException e) {
             LOG.error("Failed to save {}: path={}", displayName, analysisDir, e);
             throw Exceptions.internal("Failed to save " + displayName + ": " + e.getMessage(), e);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException e) {
+                    LOG.warn("Could not remove temporary report: path={}", temporary, e);
+                }
+            }
         }
     }
 

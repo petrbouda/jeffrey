@@ -43,6 +43,7 @@ import cafe.jeffrey.profile.heapdump.parser.SyntheticHprof;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -289,6 +290,116 @@ class LeakSuspectsAnalyzerTest {
             assertEquals(2, path.steps().size(), "the root, then the suspect");
             assertEquals("next", path.steps().getFirst().fieldName());
             assertTrue(path.steps().getLast().isTarget());
+        }
+    }
+
+    @Test
+    void suppressesDescendantAcrossClassNodesButKeepsIndependentStaticRetainers(@TempDir Path tmp)
+            throws IOException, SQLException {
+        // holder -> ClassA -> ClassB -> nested; independently rooted ClassC -> independent.
+        // Class nodes are not suspect instances, but must not hide holder's dominance of nested.
+        long holderClass = 0xC001L, classA = 0xC002L, classB = 0xC003L, classC = 0xC004L;
+        long holder = 0x100L, nested = 0x200L, independent = 0x300L;
+        Path hprof = SyntheticHprof.create("1.0.2", 8, 0L)
+                .string(0xA001L, "Holder").string(0xA002L, "Statics").string(0xA003L, "next")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .loadClass(2, classA, 0, 0xA002L)
+                .loadClass(3, classB, 0, 0xA002L)
+                .loadClass(4, classC, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(holderClass, 0xA003L)
+                        .classDumpWithStatics(classA, 0, 0, 0,
+                                new SyntheticHprof.SubBuilder.StaticSpec[]{
+                                        new SyntheticHprof.SubBuilder.StaticSpec(0xA003L, HprofTag.BasicType.OBJECT, classB)})
+                        .classDumpWithStatics(classB, 0, 0, 0,
+                                new SyntheticHprof.SubBuilder.StaticSpec[]{
+                                        new SyntheticHprof.SubBuilder.StaticSpec(0xA003L, HprofTag.BasicType.OBJECT, nested)})
+                        .classDumpWithStatics(classC, 0, 0, 0,
+                                new SyntheticHprof.SubBuilder.StaticSpec[]{
+                                        new SyntheticHprof.SubBuilder.StaticSpec(0xA003L, HprofTag.BasicType.OBJECT, independent)})
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, classC)
+                        .instanceDump(holder, holderClass, idBytes(classA, 8))
+                        .instanceDump(nested, holderClass, idBytes(0, 8))
+                        .instanceDump(independent, holderClass, idBytes(0, 8)))
+                .heapDumpEnd().writeTo(tmp, "class-bridge.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            LeakSuspectsReport report = LeakSuspectsAnalyzer.analyze(view, 5, 10);
+            assertEquals(List.of(holder, independent), report.suspects().stream().map(LeakSuspect::objectId).toList());
+            assertEquals(88, report.analyzedBytes(), "three 24-byte instances and two 8-byte dominated static slots count once");
+            assertEquals(96, report.totalHeapSize(), "three 24-byte instances plus three 8-byte class static footprints");
+            assertTrue(report.analyzedBytes() <= report.totalHeapSize());
+            assertEquals(64.0 * 100 / 96, report.suspects().getFirst().heapPercentage(), 1e-9);
+            assertTrue(LeakSuspectsAnalyzer.analyze(view, 80, 10).suspects().isEmpty(),
+                    "the threshold uses the same graph-node total as the reported heap percentage");
+            assertEquals(List.of(holder), LeakSuspectsAnalyzer.analyze(view, 5, 1).suspects().stream()
+                    .map(LeakSuspect::objectId).toList(), "topN is applied after suppressing descendants");
+        }
+    }
+
+    @Test
+    void countsClassObjectAlreadyPresentAsInstanceOnlyOnce(@TempDir Path tmp)
+            throws IOException, SQLException {
+        long holderClass = 0xC001L, classObject = 0xC002L, payload = 0x200L;
+        Path hprof = SyntheticHprof.create("1.0.2", 8, 0L)
+                .string(0xA001L, "Holder").string(0xA002L, "Statics").string(0xA003L, "next")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .loadClass(2, classObject, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(holderClass, 0xA003L)
+                        .classDumpWithStatics(classObject, 0, 0, 0,
+                                new SyntheticHprof.SubBuilder.StaticSpec[]{
+                                        new SyntheticHprof.SubBuilder.StaticSpec(0xA003L, HprofTag.BasicType.OBJECT, payload)})
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, classObject)
+                        .instanceDump(classObject, holderClass, idBytes(0, 8))
+                        .instanceDump(payload, holderClass, idBytes(0, 8)))
+                .heapDumpEnd().writeTo(tmp, "class-is-instance.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            LeakSuspectsReport report = LeakSuspectsAnalyzer.analyze(view, 5, 10);
+            assertEquals(48, report.totalHeapSize(), "two 24-byte instances; the class static footprint is not added again");
+            assertEquals(48, report.analyzedBytes());
+            assertEquals(List.of(classObject), report.suspects().stream().map(LeakSuspect::objectId).toList());
+            assertEquals(100, report.suspects().getFirst().heapPercentage());
+        }
+    }
+
+    @Test
+    void leavesPathUnknownWhenStrongRootsAreBeyondSearchLimit(@TempDir Path tmp)
+            throws IOException, SQLException {
+        long clazz = 0xC001L, a = 0x100L, b = 0x200L, target = 0x1000L, payload = 0x2000L;
+        Path hprof = SyntheticHprof.create("1.0.2", 8, 0L)
+                .string(0xA001L, "Holder").string(0xA002L, "next").loadClass(1, clazz, 0, 0xA001L)
+                .heapDumpSegment(seg -> {
+                    seg.topLevelObjectClassDump(clazz, 0xA002L)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, b);
+                    for (int i = 0; i < 110; i++) {
+                        seg.instanceDump(a + i, clazz, idBytes(i == 109 ? target : a + i + 1, 8));
+                        seg.instanceDump(b + i, clazz, idBytes(i == 109 ? target : b + i + 1, 8));
+                    }
+                    seg.instanceDump(target, clazz, idBytes(payload, 8))
+                            .primitiveArrayDump(payload, HprofTag.BasicType.BYTE, new byte[100_000], 100_000);
+                }).heapDumpEnd().writeTo(tmp, "long-strong-path.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            LeakSuspect suspect = LeakSuspectsAnalyzer.analyze(view, 5, 10).suspects().getFirst();
+            assertEquals(target, suspect.objectId());
+            assertNull(suspect.gcRootPath(), "a bounded search can leave a fully strongly reachable suspect unknown");
+            assertTrue(suspect.retainedSize() > 100_000);
         }
     }
 

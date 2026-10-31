@@ -18,6 +18,11 @@
 package cafe.jeffrey.profile.manager.heapdump;
 
 import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Optional;
 
 /**
  * Runs a {@link CachedAnalysis} end-to-end: opens a heap-dump session,
@@ -37,12 +42,41 @@ public final class CachedAnalysisRunner {
 
     public <T> void run(CachedAnalysis<T> analysis) {
         sessions.execute(session -> {
-            if (analysis.needsDominatorTree()) {
-                session.buildDominatorTreeIfNeeded();
-            }
-            T result = analysis.compute(session.view());
-            reports.write(analysis, result);
+            compute(session, analysis);
             return null;
         });
+    }
+
+    /**
+     * Refresh an obsolete or unreadable stored report on access. A report never
+     * requested before remains unprepared; it is not an empty report to invent.
+     * The second check and computation share the session's per-dump lock, so
+     * concurrent readers join the first reader's migrated result.
+     */
+    public <T> Optional<T> read(CachedAnalysis<T> analysis) {
+        Optional<T> cached = reports.read(analysis);
+        if (cached.isPresent() || !reports.hasStoredCopy(analysis)) {
+            return cached;
+        }
+        return sessions.execute(session -> {
+            Optional<T> current = reports.read(analysis);
+            if (current.isPresent()) {
+                return current.get();
+            }
+            if (!reports.hasStoredCopy(analysis)) {
+                return null;
+            }
+            return compute(session, analysis);
+        });
+    }
+
+    private <T> T compute(HeapDumpSession session, CachedAnalysis<T> analysis) throws SQLException, IOException {
+        if (analysis.needsDominatorTree()) {
+            session.buildDominatorTreeIfNeeded();
+        }
+        HeapReportVersion version = HeapReportVersion.from(analysis, session.view());
+        T result = analysis.compute(session.view());
+        reports.write(analysis, version, result);
+        return result;
     }
 }

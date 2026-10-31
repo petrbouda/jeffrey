@@ -19,7 +19,6 @@ package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -50,11 +49,13 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  * so the objects a big retainer dominates on the way to its contents — a holder,
  * its {@code ArrayList}, the list's {@code Object[]} — all clear the threshold
  * too, and each would otherwise be listed as a suspect of its own, with the
- * same bytes counted once per link. A candidate whose immediate dominator is an
+ * same bytes counted once per link. A candidate with an ancestor that is an
  * instance that also clears the threshold is that instance's chain, not a second
  * suspect, so the suspects' retained sets are disjoint and their sum is a real
- * share of the heap. A candidate dominated by a class object (a static field) is
- * still a suspect: the class itself is never one.
+ * share of the graph. The report total uses the same shallow sizes as the dominator graph:
+ * instance sizes plus static-field footprints of class objects absent from the instance table.
+ * A candidate dominated by a class object (a static field) is
+ * still a suspect unless an instance above the class also qualifies: the class itself is never one.
  *
  * <p>Each suspect carries what a leak claim is checked by, so the answer that names it is enough to
  * make the claim: what keeps it alive ({@link PathToGCRootAnalyzer#selfRoot} for a suspect that is a
@@ -68,25 +69,50 @@ public final class LeakSuspectsAnalyzer {
     public static final int DEFAULT_TOP_N = 10;
 
     /**
-     * The top retainers above the threshold (bound twice) that no other retainer above it
-     * dominates, joined to their class, largest first, at most topN. A dominator that is not an
-     * instance — the virtual root, or a class object holding a static — never suppresses one.
+     * The top instance retainers with no qualifying instance ancestor. The ancestor walk stops at
+     * the nearest instance; retained sizes cannot grow down a dominator chain. Class nodes do not
+     * suppress a candidate, but are walked past so they cannot conceal a qualifying instance above.
      */
     private static final String SUSPECTS_SQL = """
+            WITH RECURSIVE candidates AS (
+                SELECT r.instance_id, r.bytes, i.class_id
+                FROM retained_size r
+                JOIN instance i ON i.instance_id = r.instance_id
+                JOIN dominator built ON built.instance_id = r.instance_id
+                WHERE r.bytes >= ?
+            ), ancestors(instance_id, dominator_id) AS (
+                SELECT c.instance_id, d.dominator_id
+                FROM candidates c
+                JOIN dominator d ON d.instance_id = c.instance_id
+                UNION ALL
+                SELECT a.instance_id, d.dominator_id
+                FROM ancestors a
+                JOIN dominator d ON d.instance_id = a.dominator_id
+                LEFT JOIN instance holder ON holder.instance_id = a.dominator_id
+                WHERE a.dominator_id <> 0 AND holder.instance_id IS NULL
+            )
             SELECT r.instance_id, r.bytes, c.class_id, c.name, c.classloader_id
-            FROM retained_size r
-            JOIN instance i ON i.instance_id = r.instance_id
-            LEFT JOIN class c ON i.class_id = c.class_id
-            JOIN dominator d ON d.instance_id = r.instance_id
-            WHERE r.bytes >= ?
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM instance holder
-                  JOIN retained_size held ON held.instance_id = holder.instance_id
-                  WHERE holder.instance_id = d.dominator_id
-                    AND held.bytes >= ?)
-            ORDER BY r.bytes DESC
+            FROM candidates r
+            LEFT JOIN class c ON r.class_id = c.class_id
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM ancestors a
+                JOIN instance holder ON holder.instance_id = a.dominator_id
+                JOIN retained_size held ON held.instance_id = holder.instance_id
+                WHERE a.instance_id = r.instance_id AND held.bytes >= ?)
+            ORDER BY r.bytes DESC, r.instance_id
             LIMIT ?
+            """;
+
+    /** Matches the dominator builder's node-set accounting, including class-only static footprints. */
+    private static final String TOTAL_GRAPH_SHALLOW_SQL = """
+            SELECT coalesce(sum(shallow), 0)
+            FROM (
+                SELECT CAST(shallow_size AS BIGINT) AS shallow FROM instance
+                UNION ALL
+                SELECT CAST(static_fields_size AS BIGINT) FROM class
+                WHERE class_id NOT IN (SELECT instance_id FROM instance)
+            ) nodes
             """;
 
     private static final String REASON =
@@ -129,7 +155,7 @@ public final class LeakSuspectsAnalyzer {
             throw new IllegalArgumentException("topN must be positive: topN=" + topN);
         }
 
-        long totalHeapSize = view.totalShallowSize();
+        long totalHeapSize = graphShallowSize(view);
         long thresholdBytes = (long) (totalHeapSize * (thresholdPercent / 100.0));
 
         List<LeakSuspect> suspects = new ArrayList<>();
@@ -202,6 +228,13 @@ public final class LeakSuspectsAnalyzer {
         return new LeakSuspectsReport(totalHeapSize, analyzedBytes, suspects, topLoaders);
     }
 
+    private static long graphShallowSize(HeapView view) throws SQLException {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(TOTAL_GRAPH_SHALLOW_SQL);
+             ResultSet rs = stmt.executeQuery()) {
+            return rs.next() ? rs.getLong(1) : 0L;
+        }
+    }
+
     private static String resolveLoaderName(
             HeapView view, long loaderInstanceId, Map<Long, String> cache) throws SQLException {
         String cached = cache.get(loaderInstanceId);
@@ -222,7 +255,7 @@ public final class LeakSuspectsAnalyzer {
 
     /**
      * What keeps the suspect alive: its own root, when it is one, else the shortest strong path from
-     * one; null when neither exists (it is reachable only through weak or soft references).
+     * one; null when no strong path is found within the search limit.
      */
     private static GCRootPath rootPath(HeapView view, long instanceId) throws SQLException {
         Optional<GCRootPath> self = PathToGCRootAnalyzer.selfRoot(view, instanceId);

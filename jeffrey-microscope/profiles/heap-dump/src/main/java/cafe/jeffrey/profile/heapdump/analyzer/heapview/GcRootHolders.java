@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.OptionalInt;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
 
@@ -33,7 +34,7 @@ import static cafe.jeffrey.profile.heapdump.view.JdbcNullable.nullableLong;
  * frame holding it. "Held by a Java frame" alone does not say which code to read; the frame does.
  *
  * <p>The frame comes from the root's {@code thread_serial} and {@code frame_index} through the
- * thread's stack trace; the thread's name from the thread object rooted under the same serial.
+ * thread root's explicit stack-trace serial; the thread's name from the thread object rooted under the same serial.
  */
 public final class GcRootHolders {
 
@@ -54,23 +55,29 @@ public final class GcRootHolders {
         }
     }
 
-    /**
-     * The root row for one instance (its lowest root kind, when it is several), the frame its thread
-     * serial and frame index name, and the thread object rooted under that serial.
-     */
+    /** The selected root and the thread root that identifies its holding stack trace. */
     private static final String HOLDER_SQL = """
-            SELECT g.root_kind, sf.class_name, sf.method_name, sf.source_file, sf.line_number,
-                   (SELECT t.instance_id FROM gc_root t
-                    WHERE t.thread_serial = g.thread_serial AND t.root_kind = %d
-                    LIMIT 1)
+            SELECT g.root_kind, g.thread_serial, g.frame_index, t.instance_id, t.file_offset
             FROM gc_root g
-            LEFT JOIN stack_trace_frame stf
-                   ON stf.thread_serial = g.thread_serial AND stf.frame_index = g.frame_index
-            LEFT JOIN stack_frame sf ON sf.frame_id = stf.frame_id
+            LEFT JOIN gc_root t ON t.thread_serial = g.thread_serial AND t.root_kind = %d
             WHERE g.instance_id = ?
-            ORDER BY g.root_kind
+            ORDER BY g.root_kind, t.instance_id
             LIMIT 1
             """.formatted(HprofTag.Sub.ROOT_THREAD_OBJECT);
+
+    private static final String FRAME_SQL = """
+            SELECT sf.class_name, sf.method_name, sf.source_file, sf.line_number
+            FROM stack_trace_frame stf
+            JOIN stack_frame sf ON sf.frame_id = stf.frame_id
+            WHERE stf.thread_serial = ? AND stf.frame_index = ? AND stf.trace_serial = ?
+            """;
+
+    /** Without raw root bytes, only an unambiguous recorded trace is safe to name. */
+    private static final String UNIQUE_TRACE_SQL = """
+            SELECT min(trace_serial) FROM stack_trace_frame
+            WHERE thread_serial = ?
+            HAVING count(DISTINCT trace_serial) = 1
+            """;
 
     /** HPROF's line-number sentinel for a native method. */
     private static final int LINE_NUMBER_NATIVE = -3;
@@ -91,10 +98,44 @@ public final class GcRootHolders {
                     return Optional.empty();
                 }
                 String rootType = HprofTag.Sub.rootKindName(rs.getInt(1));
-                String frame = frame(rs.getString(2), rs.getString(3), rs.getString(4), nullableInt(rs, 5));
-                Long threadId = nullableLong(rs, 6);
+                Integer threadSerial = nullableInt(rs, 2);
+                Integer frameIndex = nullableInt(rs, 3);
+                Long threadId = nullableLong(rs, 4);
+                Long threadRootOffset = nullableLong(rs, 5);
+                String frame = frameOf(view, threadSerial, frameIndex, threadRootOffset);
                 String threadName = threadId == null ? null : ThreadAnalyzer.nameOf(view, threadId).orElse(null);
                 return Optional.of(new Holder(rootType, threadName, frame));
+            }
+        }
+    }
+
+    private static String frameOf(HeapView view, Integer threadSerial, Integer frameIndex, Long threadRootOffset)
+            throws SQLException {
+        if (threadSerial == null || frameIndex == null || frameIndex < 0) {
+            return null;
+        }
+        OptionalInt trace = threadRootOffset == null ? OptionalInt.empty() : view.threadRootTraceSerial(threadRootOffset);
+        if (trace.isEmpty()) {
+            trace = uniqueTrace(view, threadSerial);
+        }
+        if (trace.isEmpty()) {
+            return null;
+        }
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(FRAME_SQL)) {
+            stmt.setInt(1, threadSerial);
+            stmt.setInt(2, frameIndex);
+            stmt.setInt(3, trace.getAsInt());
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? frame(rs.getString(1), rs.getString(2), rs.getString(3), nullableInt(rs, 4)) : null;
+            }
+        }
+    }
+
+    private static OptionalInt uniqueTrace(HeapView view, int threadSerial) throws SQLException {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(UNIQUE_TRACE_SQL)) {
+            stmt.setInt(1, threadSerial);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? OptionalInt.of(rs.getInt(1)) : OptionalInt.empty();
             }
         }
     }

@@ -458,7 +458,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>flamegraph_list</code></td>
             <td><code>profileId</code></td>
-            <td><code>available</code> &mdash; the event types this profile can be graphed by, each with its sample and weight totals and the argument defaults that type is normally graphed with &mdash; plus <code>notRecorded</code>, the standard groups the profiler did not capture. Call it first &mdash; asking for a type the profile did not record returns an empty tree, not an error</td>
+            <td><code>available</code> &mdash; the event types this profile can be graphed by, each with its sample and weight totals and the argument defaults that type is normally graphed with &mdash; plus <code>notRecorded</code>, the standard groups the profiler did not capture. Call it first &mdash; asking for a type the profile did not record returns <code>status: NOT_RECORDED</code> with the recorded alternatives</td>
           </tr>
           <tr>
             <td><code>flamegraph_export</code></td>
@@ -467,6 +467,8 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           </tr>
         </tbody>
       </table>
+
+      <p><code>flamegraph_export</code> also accepts recorded imported dimensions and custom JFR event types that the standard grid omits. A suggested alternative preserves the requested window, detail, threshold, weighting, thread mode, search and filters. Sleeping, parking and monitor waiting are distinct from lock contention and are never offered as substitutes for it.</p>
 
       <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>profiler.WallClockSample</code> for latency including off-CPU &mdash; async-profiler&rsquo;s event, so unlike its neighbours it carries no <code>jdk.</code> prefix. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path. Start with <code>detail: "SUMMARY"</code> when you do not yet know which path matters, and ask for the tree once you do.</p>
 
@@ -1047,7 +1049,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>heap_getLeakSuspects</code></td>
             <td><code>profileId</code></td>
-            <td>One suspect per retained cluster (5% of the heap or more, dominated by no other suspect), each with what keeps it alive (<code>gcRootPath</code>: the path from a GC root, or its own root's type, thread and frame), its accumulation point and the classes that point holds &mdash; once <code>heap_prepare</code> or the UI has built the report</td>
+            <td>One suspect per retained cluster (5% of the heap or more, dominated by no other suspect), each with what keeps it alive (<code>gcRootPath</code>: the path from a GC root, or its own root's type, thread and frame), its accumulation point and the classes that point holds. A null <code>gcRootPath</code> means no strong path was found within the bounded search; the result is inconclusive and does not prove that only weak or soft references reach the suspect. Available once <code>heap_prepare</code> or the UI has built the report</td>
           </tr>
           <tr>
             <td><code>heap_getClassLoaderLeakChains</code></td>
