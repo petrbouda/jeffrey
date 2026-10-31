@@ -10,7 +10,7 @@ order it says, finds what the recording holds, and writes it up by the `report` 
 ## Running them
 
 ```bash
-claude plugin eval ./jeffrey-claude-plugin --ablation none --keep-temp -j 4 --max-cost-usd 20 \
+claude plugin eval ./jeffrey-claude-plugin --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
   --json /tmp/microscope-evals.json
 python3 build/scripts/summarize-plugin-evals.py /tmp/microscope-evals.json
 ```
@@ -21,6 +21,7 @@ score every case zero and say nothing. With it, the `Skill` graders count toward
 
 Each case runs three times by default (`runs` in its `prompt.md`). A full pass costs a few dollars of
 model time at list price; `--max-cost-usd` stops it at a ceiling.
+The explicit `--threshold 1` requires every scored check to pass, including the recorded-call semantics guard.
 
 ## The cases
 
@@ -82,6 +83,51 @@ Reading the figures:
 - **An LLM judge is noisy at three runs**: one dissenting run in three moves a case's score by about
   0.1. Where a rule can be checked deterministically (a frame named, a denominator stated), a
   `regex` or `tool_used` grader is used instead.
+
+## Current replay and grading contract
+
+The optional-input guards and comparison verdict rubric changed after the measurements below.
+Those figures remain historical measurements of their original mocks and graders. A future
+comparison needs a fresh baseline and candidate evaluated with the **same current instrument**;
+this change includes no new paid eval run or new score, token, latency or cost claim.
+
+Fixed mocks address files with required arguments. Claude Code's fixed mock format cannot dispatch
+on an optional argument while accepting its omission: missing file-template segments are errors,
+and `expect` does not express “missing or this default”. We therefore keep that supported format
+and add a deterministic `recorded-call-semantics` grader to every case. It validates full captured
+inputs from `mocks/jeffrey/_inputs.json`, allowing known equivalent defaults. For example, omitting
+`useWeight` on an allocation flamegraph and setting it to `true` both pass; explicitly setting it to
+`false` fails. Different windows, frame prefixes, search terms, filters and other unrecorded options
+also fail. CPU and timeline weighting defaults are checked separately: timeline buckets default to
+sample counts. This is a **post-call grading failure**, not a conditional responder: the fixed mock
+may already have returned the first fixture before that grader rejects the run. Do not interpret
+an unsupported call's fixture as evidence. Unknown required-argument file addresses remain tool
+errors. The import responder additionally guards the one recorded dump path with `expect`.
+
+The checked-in input addresses were reconstructed mechanically from fixture names, recorder seeds
+and the response headers; answer contents and tool schemas were preserved. The recorder saves
+full inputs on future captures, retaining the first response and input together when required keys
+collide. It still captures only a bounded subset of calls; it is not a general server simulator.
+`recordings_analyzeFile` replays a snapshot of the recorded import (name/force do not simulate a
+second import). A slow future import retains its initial operation answer and records the terminal
+`operations_status` for that operation, so the model can poll to the same profile. No synthetic
+operation answer has been added to the current synchronous-import fixtures.
+
+The comparison uses an `honest-verdict` semantic judge again. “Confidence” or “comparable” alone
+cannot establish honest limits; the rubric rejects invented end-to-end slowdowns and unqualified
+comparability while accepting a qualified sampled-CPU finding. Offline tests check the rubric's
+contract and its explicit false-slowdown counterexample; only a future paid judge run can measure
+how consistently a model follows that rubric.
+
+Run the offline contract tests (Python 3.10+ with PyYAML and Node.js) with:
+
+```bash
+python3 build/scripts/test-plugin-eval-mocks.py
+```
+
+CI runs these along with the plugin validators. The tests exercise generated grader patterns with
+Node's JavaScript regex engine, including weighted/default inputs, windows, filters, frame prefixes,
+slow import completion and checked-in contract regeneration. They never call Jeffrey or a model.
 
 ## Baseline
 

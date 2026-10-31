@@ -35,6 +35,8 @@ on:
       - 'build/scripts/check-plugin-references.py'
       - 'build/scripts/render-plugin.py'
       - 'build/scripts/test-status-hook.py'
+      - 'build/scripts/record-plugin-eval-mocks.py'
+      - 'build/scripts/test-plugin-eval-mocks.py'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
@@ -47,6 +49,8 @@ on:
       - 'build/scripts/check-plugin-references.py'
       - 'build/scripts/render-plugin.py'
       - 'build/scripts/test-status-hook.py'
+      - 'build/scripts/record-plugin-eval-mocks.py'
+      - 'build/scripts/test-plugin-eval-mocks.py'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
@@ -104,3 +108,7 @@ jobs:
     # tools are about to fail. Against a local stand-in for Jeffrey; needs bash and curl.
     - name: Test the SessionStart hook
       run: python3 build/scripts/test-status-hook.py
+
+    # Offline: fixture semantics, async import replay and semantic-rubric shape. No model calls.
+    - name: Test recorded eval contracts
+      run: python3 build/scripts/test-plugin-eval-mocks.py
