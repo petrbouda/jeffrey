@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapObjectIds;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HistogramOrder;
@@ -311,22 +312,66 @@ class HeapDumpMcpToolsTest {
         @Test
         void summarisesTheHeapWithTheDumpTimeAsEpochMilliseconds() {
             when(delegate.getSummary()).thenReturn(new HeapSummary(1_024, 10, 3, 2, DUMPED_AT));
+            metadata("0", "false");
+            when(delegate.storedReports()).thenReturn(HeapReport.storedKinds());
 
-            JsonNode out = conforming("getHeapSummary", tools().getHeapSummary());
+            McpToolResult result = tools().getHeapSummary();
+            JsonNode out = conforming("getHeapSummary", result);
 
             assertEquals(1_024, out.get("totalLiveBytes").asLong());
             assertEquals(DUMPED_AT.toEpochMilli(), out.get("dumpTakenAtEpochMs").asLong());
             assertTrue(out.get("uiLink").asString().endsWith("/profiles/" + PROFILE_ID + "/heap-dump/overview"));
             assertTrue(nextTools(out).contains("heap_getClassHistogram"), out.toString());
+            assertEquals(0, out.get("warningCount").asLong());
+            assertFalse(out.get("truncated").asBoolean());
+            assertEquals(HeapReport.storedKinds().size(), out.get("reportsBuilt").size());
+            assertEquals(0, out.get("reportsNotBuilt").size());
+            assertFalse(nextTools(out).contains("heap_prepare"), "everything is built: " + out);
+            assertTrue(result.text().contains("the totals are complete"), result.text());
+            assertTrue(result.text().contains("Reports:               all built"), result.text());
+        }
+
+        /** The one orienting call says what heap_prepare would add, and offers it only then. */
+        @Test
+        void namesTheReportsNotBuiltAndTheWarningsThatMakeTotalsLowerBounds() {
+            when(delegate.getSummary()).thenReturn(new HeapSummary(1_024, 10, 3, 2, DUMPED_AT));
+            metadata("3", "true");
+            when(delegate.storedReports()).thenReturn(Set.of(HeapReport.STRINGS, HeapReport.THREADS));
+
+            McpToolResult result = tools().getHeapSummary();
+            JsonNode out = conforming("getHeapSummary", result);
+
+            assertEquals(3, out.get("warningCount").asLong());
+            assertTrue(out.get("truncated").asBoolean());
+            assertEquals("STRINGS", out.get("reportsBuilt").get(0).asString());
+            List<String> notBuilt = new ArrayList<>();
+            out.get("reportsNotBuilt").forEach(report -> notBuilt.add(report.asString()));
+            assertTrue(notBuilt.contains("LEAKS") && !notBuilt.contains("STRINGS"), notBuilt.toString());
+            assertFalse(notBuilt.contains("DOMINATOR"), "the tree is built by the first tool that needs it");
+            assertEquals("heap_prepare", out.get("followUp").get("nextTools").get(0).get("tool").asString(),
+                    "what is missing comes first");
+            assertTrue(result.text().contains("every total is a lower bound"), result.text());
+            assertTrue(result.text().contains("LEAKS"), result.text());
         }
 
         @Test
         void aDumpWithoutATimeSaysNullRatherThanUnknown() {
             when(delegate.getSummary()).thenReturn(new HeapSummary(1_024, 10, 3, 2, null));
+            when(delegate.executeSql(any(), anyInt())).thenReturn(new SqlQueryResult(List.of("id_size"), List.of(), false));
+            when(delegate.storedReports()).thenReturn(Set.of());
 
             JsonNode out = conforming("getHeapSummary", tools().getHeapSummary());
 
             assertTrue(out.get("dumpTakenAtEpochMs").isNull(), out.toString());
+            assertTrue(out.get("warningCount").isNull(), "no metadata: unknown, not zero");
+        }
+
+        private void metadata(String warnings, String truncated) {
+            when(delegate.executeSql(any(), anyInt())).thenReturn(new SqlQueryResult(
+                    List.of("id_size", "hprof_version", "compressed_oops", "bytes_parsed", "record_count",
+                            "warning_count", "truncated", "parser_version", "parsed_at_ms"),
+                    List.of(List.of("8", "JAVA PROFILE 1.0.2", "true", "1024", "10", warnings, truncated, "3",
+                            Long.toString(DUMPED_AT.toEpochMilli()))), false));
         }
 
         @Test

@@ -274,3 +274,24 @@ says. What moved is the answer. Before, all three stopped at "held by a Java sta
 live local variable"; now all three name thread `main` at `Checkout.main(Checkout.java:82)` — the
 dump records the frame of every Java-frame root, and the path tool used to leave it out.
 
+**One call orients a heap investigation** (server change; plugin 1.0.14). `heap_getHeapSummary`
+now carries the parser's `warningCount` and `truncated` and which stored reports are built
+(`reportsBuilt`, `reportsNotBuilt`), and offers `heap_prepare` only when one is missing; the
+handbook and `analyze-heap` orient with it alone. Two eval artifacts were fixed with it:
+- **The recorder never waited for an operation.** It read `state` from `operations_status`, whose
+  field is `status`, so `heap_prepare` was recorded while it ran: every case saw "RUNNING, every
+  stage pending" beside report mocks that were already built, and polled `heap_status`. It now waits
+  for a finished state and records the answer at rest ("already completed").
+- **`follows-a-gc-root-path` graded the route, not the outcome.** It required a
+  `heap_getPathToGCRoot` call, which a suspect that carries its own `gcRootPath` makes unnecessary. It
+  is now `names-what-keeps-it-alive`: the answer must name `Checkout.main`, the code holding the leak.
+
+Measured on 2026-10-31, three runs, against the change before it:
+
+| Case | Score | Heap calls per run | Tool calls | Tokens in (main / agent) | Cost |
+|---|---|---|---|---|---|
+| `heap-dump-what-holds-memory` | 1.00 → 1.00 | 13, 12, 12 → 4, 5, 6 | 15 → 8 | 29k / 119k → 29k / 120k | $0.24 → $0.17 |
+
+The agent's tokens stay where they were: most of its 120k is its own handbook and system prompt,
+read on each of its requests, so fewer requests cost less but the first ones still read it whole.
+

@@ -18098,7 +18098,7 @@
   {
    "name": "heap_getHeapSummary",
    "title": "Heap: Get Heap Summary",
-   "description": "Summarises the heap dump: total live bytes, total live instances, number of classes and number of GC roots, and when the dump was taken as UTC epoch milliseconds - the overall heap state.",
+   "description": "Summarises the heap dump: total live bytes, total live instances, number of classes and number of GC roots, when the dump was taken as UTC epoch milliseconds, whether the totals are complete (the parser's warningCount and truncated), and which reports heap_prepare stores are built (reportsBuilt) or not yet (reportsNotBuilt) - the overall heap state, and the one call that orients a heap investigation.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -18137,6 +18137,58 @@
        "null"
       ],
       "description": "When the dump was taken, as UTC epoch milliseconds; null when the dump does not say"
+     },
+     "warningCount": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "Records the parser skipped or cut short; non-zero means every total here is a lower bound. Null when the index has no metadata"
+     },
+     "truncated": {
+      "type": [
+       "boolean",
+       "null"
+      ],
+      "description": "Whether the dump ended before its last record; null when the index has no metadata"
+     },
+     "reportsBuilt": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "enum": [
+        "STRINGS",
+        "DOMINATOR",
+        "THREADS",
+        "BIGGEST",
+        "COLLECTIONS",
+        "LEAKS",
+        "CLASSLOADERS",
+        "BIGGEST_COLLECTIONS",
+        "CONSUMERS",
+        "DUPLICATES"
+       ]
+      },
+      "description": "The reports heap_prepare stores that are built: their tools answer at once"
+     },
+     "reportsNotBuilt": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "enum": [
+        "STRINGS",
+        "DOMINATOR",
+        "THREADS",
+        "BIGGEST",
+        "COLLECTIONS",
+        "LEAKS",
+        "CLASSLOADERS",
+        "BIGGEST_COLLECTIONS",
+        "CONSUMERS",
+        "DUPLICATES"
+       ]
+      },
+      "description": "The reports heap_prepare stores that are not built yet: their tools answer NOT_RUN_YET until heap_prepare builds them. The dominator tree is not listed; the first tool that needs it builds it"
      },
      "followUp": {
       "type": "object",
@@ -18205,6 +18257,10 @@
      "classCount",
      "gcRootCount",
      "dumpTakenAtEpochMs",
+     "warningCount",
+     "truncated",
+     "reportsBuilt",
+     "reportsNotBuilt",
      "followUp",
      "uiLink"
     ],

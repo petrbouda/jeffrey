@@ -58,9 +58,11 @@ recording rather than a heap dump, say that and stop.
 
 What the `analyze-heap` skill says about a dump, cut to what working one takes.
 
-**Orient first.** `heap_getDumpMetadata`: a non-zero `warningCount` means the parser skipped or
-truncated records, so every total is a lower bound. `heap_getHeapSummary`: live bytes and instances,
-class count, GC-root count.
+**Orient with one call.** `heap_getHeapSummary` gives live bytes and instances, class count, GC-root
+count, the parser's `warningCount` and `truncated` (non-zero or true: every total is a lower bound) and
+which stored reports are built (`reportsBuilt`) or not (`reportsNotBuilt`). Call `heap_prepare` only
+when `reportsNotBuilt` names one the question needs, and `heap_status` only to follow a `heap_prepare`
+that started; `heap_getDumpMetadata` is for the parser's details, not orientation.
 
 **Shallow is not retained.** Shallow size is the object itself; retained size is everything that
 would be freed with it. "What is holding this memory" is always a retained question; a histogram
@@ -71,7 +73,7 @@ ranked by shallow size answers what there is a lot of, not who is responsible fo
 `heap_getPathToGCRoot`, `heap_getReferrers`, `heap_browseClassInstances`, `heap_getInstanceDetail`,
 `heap_getThreads`, `heap_getGCRootSummary` and the SQL. Retained sizes and the dominator tree exist only
 once `heap_getDominatorTreeRoots` or `heap_prepare` with report `DOMINATOR` has run — empty means
-missing, not zero, so build them early. Cached reports answer `status: NOT_RUN_YET` until
+missing, not zero; the first tool that needs them builds them. Cached reports answer `status: NOT_RUN_YET` until
 `heap_prepare` computes them by name, and their `followUp.nextTools` carries that call:
 
 | Tool | `heap_prepare` report |

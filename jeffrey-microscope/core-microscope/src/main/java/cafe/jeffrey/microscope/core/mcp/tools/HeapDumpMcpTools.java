@@ -119,6 +119,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -240,6 +241,9 @@ public class HeapDumpMcpTools {
     private static final String WHY_REFERENCED = "opens the object its first reference field points to";
     private static final String WHY_ROOT = "opens the GC root that holds the path";
     private static final String WHY_ACCUMULATED = "lists the objects the accumulation point holds, one by one";
+    private static final String WHY_PREPARE_MISSING = "builds the reports this dump does not have yet";
+    private static final String ALL_BUILT =
+            "Every stored report is built: heap_prepare and heap_status have nothing to add.";
     private static final String SUSPECT_EVIDENCE =
             "One dump shows a state, not growth: heap_diff against an earlier dump separates a leak from a "
                     + "large working set.";
@@ -270,18 +274,31 @@ public class HeapDumpMcpTools {
     }
 
     @Tool(description = "Summarises the heap dump: total live bytes, total live instances, number of "
-            + "classes and number of GC roots, and when the dump was taken as UTC epoch milliseconds - the "
-            + "overall heap state.")
+            + "classes and number of GC roots, when the dump was taken as UTC epoch milliseconds, whether the "
+            + "totals are complete (the parser's warningCount and truncated), and which reports heap_prepare "
+            + "stores are built (reportsBuilt) or not yet (reportsNotBuilt) - the overall heap state, and the "
+            + "one call that orients a heap investigation.")
     @McpOutputSchema(Summary.class)
     @McpToolMeta(cost = McpToolCost.CHEAP, requires = McpToolRequirement.HEAP_DUMP_INDEXED)
     public McpToolResult getHeapSummary() {
         HeapSummary summary = read("heap summary", delegate::getSummary);
+        SqlQueryResult metadata = sql(DUMP_METADATA_SQL, DUMP_METADATA_ROW_CAP);
+        MetadataRow row = metadata.rows().isEmpty() ? null
+                : new MetadataRow(metadata.columns(), metadata.rows().getFirst());
+        Set<HeapReport> stored = read("stored reports", delegate::storedReports);
+        List<HeapReport> built = HeapReport.storedKinds().stream().filter(stored::contains).toList();
+        List<HeapReport> notBuilt = HeapReport.storedKinds().stream().filter(report -> !stored.contains(report))
+                .toList();
         Summary answer = new Summary(profileId, summary.totalBytes(), summary.totalInstances(), summary.classCount(),
                 summary.gcRootCount(), summary.timestamp() == null ? null : summary.timestamp().toEpochMilli(),
+                row == null ? null : row.number(WARNING_COUNT), row == null ? null : row.flag(TRUNCATED),
+                built, notBuilt,
                 steps()
+                        .nextWhen(!notBuilt.isEmpty(), onProfile(PREPARE_TOOL).why(WHY_PREPARE_MISSING))
+                        .next(onProfile(LEAK_SUSPECTS_TOOL).why(WHY_LEAK_SUSPECTS))
                         .next(onProfile(HISTOGRAM_TOOL).why(WHY_HISTOGRAM))
                         .next(onProfile(DOMINATOR_ROOTS_TOOL).why(WHY_DOMINATOR_ROOTS))
-                        .next(onProfile(LEAK_SUSPECTS_TOOL).why(WHY_LEAK_SUSPECTS))
+                        .guidanceWhen(notBuilt.isEmpty(), ALL_BUILT)
                         .followUp(),
                 link(MicroscopeView.HEAP_DUMP_OVERVIEW));
         return footed(HeapOverviewAnswers.text(answer), answer, answer.followUp(), answer.uiLink(), null);

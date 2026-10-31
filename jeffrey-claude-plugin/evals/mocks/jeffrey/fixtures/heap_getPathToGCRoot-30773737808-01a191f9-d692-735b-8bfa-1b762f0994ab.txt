@@ -1,0 +1,17 @@
+Paths to GC Root for Object ID 30773737808:
+
+Path #1:
+  GC Root Type: Sticky class
+  -> <unknown>.? (ID: 30773651744)
+  -> java.util.concurrent.CopyOnWriteArrayList.array (ID: 30773690440)
+  -> java.lang.Object[].[0] (ID: 30773690480)
+  -> java.time.zone.TzdbZoneRulesProvider.regionToRules (ID: 30773690504)
+  -> java.util.concurrent.ConcurrentHashMap (ID: 30773737808)
+
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191f9-d692-735b-8bfa-1b762f0994ab/heap-dump/gc-root-path?objectId=30773737808
+Next:
+- heap_getReferrers {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab","objectId":"30773737808"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab","objectId":"30773651744"} [LIGHT]

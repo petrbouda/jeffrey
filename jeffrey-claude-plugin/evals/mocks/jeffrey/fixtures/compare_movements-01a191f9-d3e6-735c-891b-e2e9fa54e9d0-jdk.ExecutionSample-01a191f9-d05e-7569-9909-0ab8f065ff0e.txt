@@ -1,0 +1,136 @@
+# How to read this comparison
+
+Two profiles of the same application, compared by Jeffrey. One is the **primary** — the
+run under examination — and the other is the **baseline** it is measured against. A
+positive delta means the primary spends *more* than the baseline did: a regression.
+
+## Read the comparability section first
+
+Everything below is arithmetic on two independent recordings. The arithmetic is always
+valid; the *comparison* is only valid if both recordings watched the same kind of work.
+Nothing in a JFR file proves that they did. If the comparability section lists warnings,
+weigh them before reporting any finding — a warned comparison can be worse than no
+comparison, because the numbers look equally precise either way.
+
+## Scaling
+
+A sampling profiler emits samples at a roughly fixed rate, so a recording that ran twice
+as long holds about twice as many samples of the same steady workload. Baseline values
+are therefore multiplied by `baseline_scale_factor` (= primary duration / baseline
+duration) before any delta is taken, and both the raw and the scaled figure are shown.
+When the header says `baseline_scale_factor: 1.000` and `scaled: no`, no correction could
+be made and the deltas compare raw counts.
+
+This correction assumes a steady workload measured over time. It is wrong for a
+fixed-size benchmark — N requests replayed in both runs — where the honest normaliser is
+per-request and Jeffrey cannot know it. On such a run, read the **share** column instead.
+
+## The columns
+
+- **primary self** / **baseline self** — work that stopped *at* this method, not in
+  anything it called. Self, not total, because a total-based delta charges a change to
+  every caller above it: one slow leaf would report `main`, the thread-pool runnable and
+  every framework frame in between as having regressed by the same amount. Self weight
+  moves only where the work moved.
+- **baseline self** shows `raw -> scaled` when a scale factor was applied.
+- **delta** — primary self minus scaled baseline self, in the unit named by `unit` (or
+  `weight_unit` on a weighted event type).
+- **change** — that delta as a percentage of the scaled baseline. `new` means the method
+  carried no work in the baseline at all: that is a different kind of finding from a
+  large percentage, not an infinite one.
+- **share delta** — percentage *points* of the whole profile this method gained or lost.
+  This is the column to trust when the comparability section is unhappy: it asks where
+  the profile went, not how big it was. A method can regress in share while the process
+  as a whole got faster, and vice versa.
+- **paths** — how many distinct call paths reached this method. Numbers are aggregated
+  per method across all of them, because a method that got slower usually got slower
+  everywhere it is called from.
+- **example path** — the single call path that contributed most to the movement, so the
+  method can be found in the source. Truncated to its last few frames.
+
+## Candidate renames
+
+The diff is built by matching method names level by level, so a renamed, moved or
+extracted method breaks the match and its work appears twice: once as entirely new, once
+as entirely gone. Pairs of similar size are listed as **candidate renames**. They are
+suspicions, not conclusions — weight alone cannot tell a rename from a coincidence. You
+have the source diff, which this document does not; check it before reporting either half
+of such a pair as a real change.
+
+## What this document cannot tell you
+
+- Whether the application got faster overall. This is one event type's distribution, not
+  a wall-clock benchmark. A CPU profile that shifted work into a shorter path may still
+  have regressed end-to-end latency, and vice versa.
+- Whether a difference is significant. There is no repetition here and no confidence
+  interval; a single pair of recordings cannot separate a real 5% move from run-to-run
+  variance. Small movements on thin profiles are noise.
+- Why something changed. Correlate the movements with the source diff; the profile says
+  where, never why.
+
+---
+
+event_type: jdk.ExecutionSample
+unit: samples
+measured_by: samples
+primary_duration: PT30.422359S
+baseline_duration: PT30.486476S
+scaled: yes
+baseline_scale_factor: 0.998
+primary_total: 3076
+baseline_total: 3160 (scaled: 3153)
+methods_compared: 62
+
+## Comparability
+
+No comparability problems detected: the two recordings are of similar length and carry comparable volumes of this event type. The deltas below can be read as stated — bearing in mind that a single pair of runs still cannot separate a small movement from run-to-run variance.
+
+## Regressed — the primary spends more here
+
+| method | primary self | baseline self | delta | change | share delta | paths | example path |
+|---|---|---|---|---|---|---|---|
+| java.util.HashMap#put | 188 | 0 -> 0 | +188 | new | +6.11 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice -> java.util.HashMap#put |
+| com.acme.checkout.Checkout$SessionCache#touch | 145 | 3 -> 3 | +142 | +4733.3% | +4.62 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor$Worker#run -> java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$SessionCache#touch |
+| com.acme.checkout.Checkout$SessionCache#busyWait | 2663 | 2583 -> 2578 | +85 | +3.3% | +4.83 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$SessionCache#touch -> com.acme.checkout.Checkout$SessionCache#busyWait |
+| java.util.HashMap#resize | 9 | 0 -> 0 | +9 | new | +0.29 pp | 1 | ... java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice -> java.util.HashMap#put -> java.util.HashMap#putVal -> java.util.HashMap#resize |
+| java.util.HashMap#putVal | 2 | 0 -> 0 | +2 | new | +0.07 pp | 1 | ... java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice -> java.util.HashMap#put -> java.util.HashMap#putVal |
+| jdk.internal.classfile.impl.StackMapGenerator#processMethod | 2 | 0 -> 0 | +2 | new | +0.07 pp | 2 | ... jdk.internal.classfile.impl.DirectCodeBuilder$4#tryGenerateStackMaps -> jdk.internal.classfile.impl.DirectCodeBuilder$4#generateStackMaps -> jdk.internal.classfile.impl.StackMapGenerator#of -> jdk.internal.classfile.impl.StackMapGenerator#<init> -> jdk.internal.classfile.impl.StackMapGenerator#generate -> jdk.internal.classfile.impl.StackMapGenerator#processMethod |
+| java.lang.Integer#parseInt | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$CouponParser#discount -> java.lang.Integer#parseInt |
+| jdk.internal.util.ArraysSupport#hashCodeOfUnsigned | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... java.util.HashMap#get -> java.util.HashMap#getNode -> java.util.HashMap#hash -> java.lang.String#hashCode -> java.lang.StringLatin1#hashCode -> jdk.internal.util.ArraysSupport#hashCodeOfUnsigned |
+| java.util.ResourceBundle#findBundleInCache | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... java.util.ResourceBundle#getBundleImpl -> java.util.ResourceBundle#getBundleImpl -> java.util.ResourceBundle#findBundle -> java.util.ResourceBundle#findBundle -> java.util.ResourceBundle#findBundle -> java.util.ResourceBundle#findBundleInCache |
+| com.sun.tools.javac.jvm.ClassReader#setParameters | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... com.sun.tools.javac.code.ClassFinder#fillIn -> com.sun.tools.javac.jvm.ClassReader#readClassFile -> com.sun.tools.javac.jvm.ClassReader#readClassBuffer -> com.sun.tools.javac.jvm.ClassReader#readClass -> com.sun.tools.javac.jvm.ClassReader#readMethod -> com.sun.tools.javac.jvm.ClassReader#setParameters |
+| java.lang.Long#valueOf | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$SessionCache#touch -> java.lang.Long#valueOf |
+| java.lang.invoke.MethodHandleNatives#findMethodHandleType | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... com.sun.tools.javac.main.JavaCompiler#initModules -> com.sun.tools.javac.comp.Modules#initModules -> com.sun.tools.javac.comp.Modules#enter -> com.sun.tools.javac.comp.Modules#lambda$initModules$0 -> com.sun.tools.javac.comp.Modules#setupAllModules -> java.lang.invoke.MethodHandleNatives#findMethodHandleType |
+| com.sun.tools.javac.comp.Check#checkDisjoint | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... com.sun.tools.javac.comp.MemberEnter#memberEnter -> com.sun.tools.javac.comp.MemberEnter#memberEnter -> com.sun.tools.javac.tree.JCTree$JCVariableDecl#accept -> com.sun.tools.javac.comp.MemberEnter#visitVarDef -> com.sun.tools.javac.comp.Check#checkFlags -> com.sun.tools.javac.comp.Check#checkDisjoint |
+| com.sun.tools.javac.comp.LambdaToMethod#apportionTypeAnnotations | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... com.sun.tools.javac.tree.TreeTranslator#visitApply -> com.sun.tools.javac.tree.TreeTranslator#translate -> com.sun.tools.javac.tree.TreeTranslator#translate -> com.sun.tools.javac.tree.JCTree$JCLambda#accept -> com.sun.tools.javac.comp.LambdaToMethod#visitLambda -> com.sun.tools.javac.comp.LambdaToMethod#apportionTypeAnnotations |
+| java.lang.StringLatin1#hashCode | 1 | 0 -> 0 | +1 | new | +0.03 pp | 1 | ... jdk.internal.event.ExceptionThrownEvent#commit -> jdk.jfr.internal.event.EventWriter#putString -> jdk.jfr.internal.StringPool#addString -> java.util.concurrent.ConcurrentHashMap#get -> java.lang.String#hashCode -> java.lang.StringLatin1#hashCode |
+
+## Improved — the primary spends less here
+
+| method | primary self | baseline self | delta | change | share delta | paths | example path |
+|---|---|---|---|---|---|---|---|
+| com.acme.checkout.Checkout$PriceCalculator#reprice | 17 | 214 -> 214 | -197 | -92.1% | -6.22 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor$Worker#run -> java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice |
+| java.time.Duration#toNanos | 22 | 180 -> 180 | -158 | -87.8% | -4.98 pp | 1 | ... java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$SessionCache#touch -> com.acme.checkout.Checkout$SessionCache#busyWait -> java.time.Duration#toNanos |
+| java.util.Formatter#parse | 0 | 27 -> 27 | -27 | -100.0% | -0.85 pp | 1 | ... com.acme.checkout.Checkout$PriceCalculator#reprice -> com.acme.checkout.Checkout$PriceCalculator#formatLine -> java.lang.String#format -> java.util.Formatter#format -> java.util.Formatter#format -> java.util.Formatter#parse |
+| jdk.internal.util.DecimalDigits#uncheckedGetCharsLatin1 | 0 | 19 -> 19 | -19 | -100.0% | -0.60 pp | 1 | ... java.util.Formatter$FormatSpecifier#print -> java.util.Formatter$FormatSpecifier#printInteger -> java.util.Formatter$FormatSpecifier#print -> java.lang.Long#toString -> java.lang.Long#toString -> jdk.internal.util.DecimalDigits#uncheckedGetCharsLatin1 |
+| java.util.Formatter#format | 0 | 17 -> 17 | -17 | -100.0% | -0.54 pp | 1 | ... com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice -> com.acme.checkout.Checkout$PriceCalculator#formatLine -> java.lang.String#format -> java.util.Formatter#format -> java.util.Formatter#format |
+| java.util.Formatter$FormatSpecifierParser#parseFlag | 0 | 16 -> 16 | -16 | -100.0% | -0.51 pp | 1 | ... java.lang.String#format -> java.util.Formatter#format -> java.util.Formatter#format -> java.util.Formatter#parse -> java.util.Formatter$FormatSpecifierParser#parse -> java.util.Formatter$FormatSpecifierParser#parseFlag |
+| java.lang.AbstractStringBuilder#needsNewBuffer | 0 | 14 -> 14 | -14 | -100.0% | -0.44 pp | 1 | ... java.util.Formatter$FormatSpecifier#printInteger -> java.util.Formatter$FormatSpecifier#print -> java.util.Formatter$FormatSpecifier#localizedMagnitude -> java.lang.StringBuilder#append -> java.lang.AbstractStringBuilder#append -> java.lang.AbstractStringBuilder#needsNewBuffer |
+| java.util.Arrays#copyOf | 0 | 12 -> 12 | -12 | -100.0% | -0.38 pp | 2 | ... java.util.Formatter#parse -> java.util.ArrayList#add -> java.util.ArrayList#add -> java.util.ArrayList#grow -> java.util.ArrayList#grow -> java.util.Arrays#copyOf |
+| java.lang.AbstractStringBuilder#ensureCapacityNewCoder | 0 | 8 -> 8 | -8 | -100.0% | -0.25 pp | 2 | ... java.lang.StringBuilder#append -> java.lang.AbstractStringBuilder#append -> java.lang.StringBuilder#append -> java.lang.StringBuilder#append -> java.lang.AbstractStringBuilder#append -> java.lang.AbstractStringBuilder#ensureCapacityNewCoder |
+| com.acme.checkout.Checkout$PriceCalculator#taxOf | 0 | 7 -> 7 | -7 | -100.0% | -0.22 pp | 1 | ... java.util.concurrent.ThreadPoolExecutor#runWorker -> java.util.concurrent.FutureTask#run -> java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice -> com.acme.checkout.Checkout$PriceCalculator#taxOf |
+| java.util.HashMap#getNode | 1 | 7 -> 7 | -6 | -85.7% | -0.19 pp | 2 | ... java.util.concurrent.Executors$RunnableAdapter#call -> com.acme.checkout.Checkout#lambda$main$1 -> com.acme.checkout.Checkout$PriceCalculator#reprice -> com.acme.checkout.Checkout$PriceCalculator#formatLine -> java.util.HashMap#get -> java.util.HashMap#getNode |
+| java.util.Formatter$FormatSpecifier#printInteger | 0 | 5 -> 5 | -5 | -100.0% | -0.16 pp | 1 | ... com.acme.checkout.Checkout$PriceCalculator#formatLine -> java.lang.String#format -> java.util.Formatter#format -> java.util.Formatter#format -> java.util.Formatter$FormatSpecifier#print -> java.util.Formatter$FormatSpecifier#printInteger |
+| java.lang.AbstractStringBuilder#append | 1 | 5 -> 5 | -4 | -80.0% | -0.13 pp | 4 | ... java.util.Formatter$FormatSpecifier#print -> java.util.Formatter$FormatSpecifier#appendJustified -> java.lang.StringBuilder#append -> java.lang.StringBuilder#append -> java.lang.AbstractStringBuilder#append -> java.lang.AbstractStringBuilder#append |
+| java.util.Formatter$Conversion#isText | 0 | 4 -> 4 | -4 | -100.0% | -0.13 pp | 1 | ... java.util.Formatter#format -> java.util.Formatter#parse -> java.util.Formatter$FormatSpecifierParser#parse -> java.util.Formatter$FormatSpecifier#<init> -> java.util.Formatter$FormatSpecifier#conversion -> java.util.Formatter$Conversion#isText |
+| java.util.Formatter$FormatSpecifier#checkInteger | 0 | 2 -> 2 | -2 | -100.0% | -0.06 pp | 1 | ... java.util.Formatter#format -> java.util.Formatter#parse -> java.util.Formatter$FormatSpecifierParser#parse -> java.util.Formatter$FormatSpecifier#<init> -> java.util.Formatter$FormatSpecifier#check -> java.util.Formatter$FormatSpecifier#checkInteger |
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191f9-d05e-7569-9909-0ab8f065ff0e/flamegraph-view?eventType=jdk.ExecutionSample&graphMode=DIFFERENTIAL&baseline=01a191f9-d3e6-735c-891b-e2e9fa54e9d0&startEpochMs=1793450369273&endEpochMs=1793450399695
+Link note: the page draws the differential flamegraph this ranking was read from; the ranking itself is this answer's own; the page compares the baseline over the primary's 30422 ms window only; this answer read 30486 ms of the baseline, to its own end
+Next:
+- compare_quality {"profileId":"01a191f9-d05e-7569-9909-0ab8f065ff0e","baselineProfileId":"01a191f9-d3e6-735c-891b-e2e9fa54e9d0"} [LIGHT]
+- compare_flamegraph {"profileId":"01a191f9-d05e-7569-9909-0ab8f065ff0e","baselineProfileId":"01a191f9-d3e6-735c-891b-e2e9fa54e9d0","eventType":"jdk.ExecutionSample"} [HEAVY]
+Guidance:
+- A method that appears on one side only may be a rename rather than a change. You have the source diff and the profile does not; check before reporting either half.

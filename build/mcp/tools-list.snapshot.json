@@ -5494,14 +5494,62 @@
           "profileId": {
             "type": "string"
           },
+          "reportsBuilt": {
+            "items": {
+              "enum": [
+                "STRINGS",
+                "DOMINATOR",
+                "THREADS",
+                "BIGGEST",
+                "COLLECTIONS",
+                "LEAKS",
+                "CLASSLOADERS",
+                "BIGGEST_COLLECTIONS",
+                "CONSUMERS",
+                "DUPLICATES"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reportsNotBuilt": {
+            "items": {
+              "enum": [
+                "STRINGS",
+                "DOMINATOR",
+                "THREADS",
+                "BIGGEST",
+                "COLLECTIONS",
+                "LEAKS",
+                "CLASSLOADERS",
+                "BIGGEST_COLLECTIONS",
+                "CONSUMERS",
+                "DUPLICATES"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
           "totalLiveBytes": {
             "type": "integer"
           },
           "totalLiveInstances": {
             "type": "integer"
           },
+          "truncated": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "uiLink": {
             "type": "string"
+          },
+          "warningCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -5510,9 +5558,13 @@
           "followUp",
           "gcRootCount",
           "profileId",
+          "reportsBuilt",
+          "reportsNotBuilt",
           "totalLiveBytes",
           "totalLiveInstances",
-          "uiLink"
+          "truncated",
+          "uiLink",
+          "warningCount"
         ],
         "type": "object"
       },

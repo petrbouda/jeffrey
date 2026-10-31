@@ -1,0 +1,8 @@
+status: NO_PATH
+No path from a GC root reaches object 30773608568 within 100 hops; weak references are not followed.
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191f9-d692-735b-8bfa-1b762f0994ab/heap-dump/gc-root-path?objectId=30773608568
+Next:
+- heap_getReferrers {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab","objectId":"30773608568"} [MEDIUM]

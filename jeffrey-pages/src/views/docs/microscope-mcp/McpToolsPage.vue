@@ -1027,7 +1027,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>heap_getHeapSummary</code></td>
             <td><code>profileId</code></td>
-            <td>Total live bytes and instances, and the shape of the heap</td>
+            <td>Total live bytes and instances, and the shape of the heap; whether the totals are complete (the parser's <code>warningCount</code>, <code>truncated</code>) and which stored reports are built &mdash; the one call that orients a heap investigation, offering <code>heap_prepare</code> only when a report is missing</td>
           </tr>
           <tr>
             <td><code>heap_getClassHistogram</code></td>

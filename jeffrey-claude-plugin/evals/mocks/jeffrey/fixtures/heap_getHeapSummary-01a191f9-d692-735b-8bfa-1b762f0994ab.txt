@@ -1,0 +1,19 @@
+Heap Summary:
+
+Total Live Bytes:      10.7 MiB (11,195,416 bytes)
+Total Live Instances:  309,290
+Number of Classes:     3,990
+Number of GC Roots:    2,243
+Heap Dump Time:        2026-10-31T12:40:30.415Z
+Parse Warnings:        0, truncated false - the totals are complete
+Reports:               all built
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191f9-d692-735b-8bfa-1b762f0994ab/heap-dump/overview
+Next:
+- heap_getLeakSuspects {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab"} [LIGHT]
+- heap_getClassHistogram {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab"} [MEDIUM]
+- heap_getDominatorTreeRoots {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab"} [HEAVY]
+Guidance:
+- Every stored report is built: heap_prepare and heap_status have nothing to add.

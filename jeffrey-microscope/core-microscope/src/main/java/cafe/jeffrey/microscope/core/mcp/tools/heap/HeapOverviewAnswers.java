@@ -26,6 +26,7 @@ import cafe.jeffrey.shared.common.BytesUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * The answers of the {@code heap_} tools that describe the dump as a whole: its summary, the class
@@ -53,6 +54,19 @@ public final class HeapOverviewAnswers {
             @McpNullable
             @McpDescription("When the dump was taken, as UTC epoch milliseconds; null when the dump does not say")
             Long dumpTakenAtEpochMs,
+            @McpNullable
+            @McpDescription("Records the parser skipped or cut short; non-zero means every total here is a lower "
+                    + "bound. Null when the index has no metadata")
+            Long warningCount,
+            @McpNullable
+            @McpDescription("Whether the dump ended before its last record; null when the index has no metadata")
+            Boolean truncated,
+            @McpDescription("The reports heap_prepare stores that are built: their tools answer at once")
+            List<HeapReport> reportsBuilt,
+            @McpDescription("The reports heap_prepare stores that are not built yet: their tools answer NOT_RUN_YET "
+                    + "until heap_prepare builds them. The dominator tree is not listed; the first tool that "
+                    + "needs it builds it")
+            List<HeapReport> reportsNotBuilt,
             @McpDescription(FOLLOW_UP)
             McpFollowUp followUp,
             @McpDescription(UI_LINK)
@@ -152,8 +166,35 @@ public final class HeapOverviewAnswers {
                 summary.gcRootCount(),
                 summary.dumpTakenAtEpochMs() == null
                         ? UNKNOWN_TIME
-                        : Instant.ofEpochMilli(summary.dumpTakenAtEpochMs()).toString());
+                        : Instant.ofEpochMilli(summary.dumpTakenAtEpochMs()).toString())
+                + parseLine(summary) + reportsLine(summary);
     }
+
+    /** Whether the totals are complete: the parser's warnings and truncation, when the index records them. */
+    private static String parseLine(Summary summary) {
+        if (summary.warningCount() == null) {
+            return PARSE_UNKNOWN;
+        }
+        boolean complete = summary.warningCount() == 0 && !Boolean.TRUE.equals(summary.truncated());
+        return PARSE_LINE.formatted(summary.warningCount(), Boolean.TRUE.equals(summary.truncated()),
+                complete ? TOTALS_COMPLETE : TOTALS_LOWER_BOUNDS);
+    }
+
+    /** Which stored reports read at once, and which wait for heap_prepare. */
+    private static String reportsLine(Summary summary) {
+        if (summary.reportsNotBuilt().isEmpty()) {
+            return REPORTS_ALL_BUILT;
+        }
+        return REPORTS_NOT_BUILT.formatted(summary.reportsNotBuilt().stream().map(Enum::name)
+                .collect(Collectors.joining(", ")));
+    }
+
+    private static final String PARSE_UNKNOWN = "Parse Warnings:        unknown (no metadata)\n";
+    private static final String PARSE_LINE = "Parse Warnings:        %,d, truncated %s - %s%n";
+    private static final String TOTALS_COMPLETE = "the totals are complete";
+    private static final String TOTALS_LOWER_BOUNDS = "every total is a lower bound";
+    private static final String REPORTS_ALL_BUILT = "Reports:               all built\n";
+    private static final String REPORTS_NOT_BUILT = "Reports Not Built:     %s - heap_prepare builds them%n";
 
     public static String text(Histogram histogram) {
         StringBuilder text = new StringBuilder()

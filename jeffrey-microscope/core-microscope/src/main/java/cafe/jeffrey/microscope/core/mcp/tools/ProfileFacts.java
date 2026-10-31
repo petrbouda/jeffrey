@@ -26,11 +26,8 @@ import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * What {@code profiles_summary} already knows about a profile, gathered once so the investigation menu
@@ -92,18 +89,6 @@ record ProfileFacts(
 
         static final HeapState NOT_A_HEAP_DUMP = new HeapState(false, false, Set.of());
 
-        /** The stored-report check behind each report; the dominator tree has none, it is built on demand. */
-        private static final Map<HeapReport, Predicate<HeapDumpManager>> STORED = Map.of(
-                HeapReport.STRINGS, HeapDumpManager::stringAnalysisExists,
-                HeapReport.THREADS, HeapDumpManager::threadAnalysisExists,
-                HeapReport.BIGGEST, HeapDumpManager::biggestObjectsExists,
-                HeapReport.COLLECTIONS, HeapDumpManager::collectionAnalysisExists,
-                HeapReport.LEAKS, HeapDumpManager::leakSuspectsExists,
-                HeapReport.CLASSLOADERS, HeapDumpManager::classLoaderAnalysisExists,
-                HeapReport.BIGGEST_COLLECTIONS, HeapDumpManager::biggestCollectionsExists,
-                HeapReport.CONSUMERS, HeapDumpManager::consumerReportExists,
-                HeapReport.DUPLICATES, HeapDumpManager::duplicateDataExists);
-
         HeapState {
             computed = computed.isEmpty() ? Set.of() : Set.copyOf(EnumSet.copyOf(computed));
             if (indexed && !present) {
@@ -119,11 +104,7 @@ record ProfileFacts(
             if (!manager.isCacheReady()) {
                 return new HeapState(true, false, Set.of());
             }
-            Set<HeapReport> stored = STORED.entrySet().stream()
-                    .filter(entry -> entry.getValue().test(manager))
-                    .map(Map.Entry::getKey)
-                    .collect(Collectors.toSet());
-            return new HeapState(true, true, stored);
+            return new HeapState(true, true, HeapReport.storedIn(manager));
         }
 
         /** Whether a reader that needs the report — or only the index, for none — can answer now. */

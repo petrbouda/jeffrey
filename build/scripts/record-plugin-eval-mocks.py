@@ -69,6 +69,7 @@ CLIENT_INFO = {"name": "plugin-eval-recorder", "version": "1"}
 JFR_OPTIONS = "settings=profile,jdk.JavaExceptionThrow#enabled=true,dumponexit=true"
 REQUEST_TIMEOUT_SECONDS = 180
 OPERATION_POLL_SECONDS = 2
+OPERATION_FINISHED = ("COMPLETED", "FAILED", "CANCELLED")
 OPERATION_BUDGET_SECONDS = 900
 MAX_CALLS = 1500
 # Breadth first, so the answers kept are the ones nearest the seeds: a heap walk offers a path, the
@@ -151,10 +152,13 @@ class Jeffrey:
         deadline = time.monotonic() + OPERATION_BUDGET_SECONDS
         while operation and time.monotonic() < deadline:
             status = self.call("operations_status", {OPERATION_ID: operation})
-            state = (status.get("structuredContent") or {}).get("state")
-            if state not in ("RUNNING", "QUEUED", "PENDING"):
+            # The snapshot names its state `status`; reading any other key returns at once, before the
+            # operation has finished.
+            if (status.get("structuredContent") or {}).get("status") in OPERATION_FINISHED:
                 return status
             time.sleep(OPERATION_POLL_SECONDS)
+        if operation:
+            raise RuntimeError(f"operation {operation} did not finish within {OPERATION_BUDGET_SECONDS} s")
         return answer
 
 
@@ -191,9 +195,12 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
             # The one import a case repeats: the heap case names this file, so its answer is the mock.
             recorded.fixed["recordings_analyzeFile"] = text_of(answer)
     profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"])
-    preparation = jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap})
-    recorded.answers["heap_prepare"][(profiles.heap,)] = text_of(preparation)
-    jeffrey.finished(preparation)
+    jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
+    # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
+    # so a heap_prepare recorded while it was still running would tell the model to poll a preparation
+    # that, in every other answer, has already finished.
+    recorded.answers["heap_prepare"][(profiles.heap,)] = text_of(
+        jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     return profiles
 
 

@@ -39,11 +39,14 @@ retry on the JFR profile.
 
 ## 2. Orient before analysing
 
-- `heap_getDumpMetadata` — under `metadata`: HPROF version, id size, compressed-oops flag, record
-  count and `warningCount`. A non-zero `warningCount` means the parser skipped or truncated records, so
-  every total below is a lower bound; read the `parse_warning` table (the `heap-sql` skill)
-  before concluding anything from odd numbers.
-- `heap_getHeapSummary` — live bytes and instances, class count, GC-root count.
+- `heap_getHeapSummary` — one call: live bytes and instances, class count, GC-root count, the parser's
+  `warningCount` and `truncated`, and which stored reports are built (`reportsBuilt`) or not
+  (`reportsNotBuilt`). A non-zero `warningCount` means the parser skipped or truncated records, so every
+  total below is a lower bound; read the `parse_warning` table (the `heap-sql` skill) before concluding
+  anything from odd numbers. Call `heap_prepare` only when `reportsNotBuilt` names a report the
+  question needs.
+- `heap_getDumpMetadata` — the parser's details (HPROF version, id size, compressed-oops flag, record
+  count), when they matter.
 
 ## 3. Shallow is not retained
 
