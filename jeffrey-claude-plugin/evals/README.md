@@ -96,20 +96,24 @@ recordings the mocks were taken from:
 | `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
 
 ```bash
+git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings /tmp/jeffrey-recordings
 java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffrey-live-home \
   -Dserver.port=8585 -jar build/build-microscope/target/microscope.jar &
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
-  --work-dir /tmp/jeffrey-eval --load
+  --work-dir /tmp/jeffrey-recordings/plugin-evals --load
 claude plugin eval ./jeffrey-claude-plugin --eval-dir evals-live --mocks off \
   --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp -j 3 \
   --json /tmp/microscope-live-evals.json
 ```
 
-Port 8585 is the plugin's default endpoint, which the runs connect to. `--load` imports the files a
-recording left in `--work-dir` — they are not in git: 23 MB, and the workload is random — and refuses
-them unless the figures the graders name (`figures` in `fixtures/recorded-profiles.json`, measured by
-the recorder's figure queries) are what this Jeffrey answers. A re-recording measures those figures anew
-and rewrites them in the graders, as it rewrites the profile ids.
+Port 8585 is the plugin's default endpoint, which the runs connect to. The recording the mocks were
+taken from is kept in [jeffrey-recordings](https://github.com/petrbouda/jeffrey-recordings)
+(`plugin-evals/`: the two JFR files and the dump gzipped, 8 MB), since the workload is random and no
+re-run reproduces it. `--load` unpacks the dump, imports the three files, and refuses them unless their
+checksums are the ones in `fixtures/recorded-profiles.json` and they answer the figures the graders
+name (`figures`, measured by the recorder's figure queries). A re-recording measures those figures and
+checksums anew and rewrites the figures in the graders, as it rewrites the profile ids — and its three
+files then replace the ones in `plugin-evals/`, or the live cases cannot be loaded anywhere else.
 
 **Why not a stand-in.** `claude plugin eval` can mock a tool with an agent — the judge model playing
 the server from a description — so the first version of these cases did that: each SQL tool was
@@ -621,4 +625,17 @@ What changed since 1.0.16, each measured where it applies:
   Jeffrey code (DuckDB v2.0.0: 3 rows of 1,000,000 out of order prepared, 103–217 with
   `jdbc_stream_results`, 0 for a plain statement, one thread or the setting on) — the check to run
   before a new driver is trusted with result order.
+
+**The analyst leaves `threadMode` off** (plugin 1.0.18). The 1.0.17 baseline's one real miss: in 2 of
+3 runs of `two-areas-delegated`, `profile-analyst` asked for the allocation export split per thread,
+which nothing in the plugin asked for — the split repeats every path once per thread — and which
+`recorded-call-semantics` fails, no fixture holding it. The handbook now leaves `threadMode` off
+unless the question is about threads. Three runs:
+
+| Case | Score | Per-thread exports | Agents' tokens in | Cost |
+|---|---|---|---|---|
+| `two-areas-delegated` | 0.92 → 1.00 | 2 of 6 → 0 of 6 | 213k → 164k | $0.37 → $0.35 |
+
+**The recording is kept.** The three files behind the mocks are in jeffrey-recordings
+(`plugin-evals/`), and `--load` checks them by checksum, so the live cases run on any machine.
 

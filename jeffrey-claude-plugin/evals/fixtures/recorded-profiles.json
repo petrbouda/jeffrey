@@ -6,5 +6,10 @@
  "figures": {
   "orders": 5775,
   "promoOrders": 1427
+ },
+ "files": {
+  "checkout-baseline.jfr": "136e632e83fc5603dd6880c8be0919f41ea03a8628df953df0bfe9037ac0e941",
+  "checkout-candidate.jfr": "7f72eed3ce87e00a1ab215defbe00807a6b97d1c005d4dd52f802cdd927e8c74",
+  "checkout.hprof": "a484be60bdada2925afb6aab41477eb26013c9738c7a8b3f45baf305b7b5acd8"
  }
 }
