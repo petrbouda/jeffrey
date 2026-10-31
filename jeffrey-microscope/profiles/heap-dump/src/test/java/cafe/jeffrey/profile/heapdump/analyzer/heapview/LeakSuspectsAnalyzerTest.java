@@ -25,9 +25,11 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import cafe.jeffrey.profile.heapdump.model.LeakSuspect;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
@@ -77,9 +79,11 @@ class LeakSuspectsAnalyzerTest {
 
         try (HeapView view = HeapView.open(indexDb)) {
             LeakSuspectsReport report = LeakSuspectsAnalyzer.analyze(view, 50.0, 5);
-            assertTrue(report.suspects().size() >= 1, "A retains 100% of heap, must surface as suspect");
-            // Top suspect is whoever retains most — that's A.
+            // B and C clear 50% too, but A dominates them: one chain is one suspect.
+            assertEquals(1, report.suspects().size(), "B and C are A's chain, not suspects of their own");
             assertEquals(a, report.suspects().get(0).objectId());
+            assertEquals(report.suspects().get(0).retainedSize(), report.analyzedBytes(),
+                    "the chain's bytes are counted once");
             assertEquals(1, report.suspects().get(0).rank());
             assertEquals("Holder", report.suspects().get(0).className());
             assertTrue(report.suspects().get(0).heapPercentage() >= 50.0);
@@ -123,6 +127,49 @@ class LeakSuspectsAnalyzerTest {
             LeakSuspectsReport empty = LeakSuspectsAnalyzer.analyze(view, 99.999, 5);
             // Each retains exactly 50% so 99.999% threshold filters them out.
             assertEquals(0, empty.suspects().size());
+        }
+    }
+
+    @Test
+    void disjointChainsAreSeparateSuspectsWhoseBytesSumWithinTheHeap(@TempDir Path tmp)
+            throws IOException, SQLException {
+        // Two rooted chains, A→B→C and X→Y. Every object is 24 bytes; the heap is 120.
+        // At 30% (36 bytes): A (72), B (48) and X (48) clear it, B only as A's chain.
+        int idSize = 8;
+        long classId = 0xC001L;
+        long a = 0x100L, b = 0x200L, c = 0x300L, x = 0x400L, y = 0x500L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, x)
+                        .instanceDump(a, classId, idBytes(b, idSize))
+                        .instanceDump(b, classId, idBytes(c, idSize))
+                        .instanceDump(c, classId, idBytes(0L, idSize))
+                        .instanceDump(x, classId, idBytes(y, idSize))
+                        .instanceDump(y, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "two-chains.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            LeakSuspectsReport report = LeakSuspectsAnalyzer.analyze(view, 30.0, 5);
+            assertEquals(List.of(a, x), report.suspects().stream().map(LeakSuspect::objectId).toList());
+            assertEquals(List.of(1, 2), report.suspects().stream().map(LeakSuspect::rank).toList());
+            long shallow = 16 + idSize;
+            assertEquals(shallow * 5, report.analyzedBytes(), "the two chains are disjoint and cover the heap");
+            assertTrue(report.analyzedBytes() <= report.totalHeapSize());
+            assertTrue(report.suspects().get(0).reason().startsWith("One Holder object retains 60.0%"),
+                    report.suspects().get(0).reason());
         }
     }
 

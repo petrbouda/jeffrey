@@ -50,6 +50,13 @@ class DominatorTreeBuilderTest {
     private static final Clock CLOCK =
             Clock.fixed(Instant.ofEpochMilli(1L), ZoneOffset.UTC);
 
+    /** Holder-leaf pairs in the large-graph test: twice this many nodes, past one row group. */
+    private static final int LARGE_GRAPH_PAIRS = 150_000;
+
+    private static final long LARGE_GRAPH_BASE_ID = 0x1_0000L;
+
+    private static final long PAIR_LEAF_OFFSET = 0x8L;
+
     /**
      * Diamond:
      *   V (virtual root) → A, B
@@ -238,6 +245,63 @@ class DominatorTreeBuilderTest {
             assertTrue(indexes.contains("idx_retained_size_instance"), indexes.toString());
             assertFalse(indexes.contains("idx_dominator_parent"), "replaced by the sorted load");
         }
+    }
+
+    /**
+     * More nodes than one DuckDB row group (122 880 rows). Past that size the JDBC driver streams a
+     * prepared {@code ORDER BY} out of order while {@code preserve_insertion_order} is off, as it is
+     * for the build; a node array filled in arrival order then disagreed with the node indices the
+     * edges were translated through, and almost every dominator came out wrong. Each pair here is a
+     * rooted holder and the leaf only it references, so every leaf's dominator is its own holder.
+     */
+    @Test
+    void graphLargerThanARowGroupKeepsEveryDominator(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> {
+                    seg.topLevelObjectClassDump(classId, 0xA002L);
+                    for (int pair = 0; pair < LARGE_GRAPH_PAIRS; pair++) {
+                        long holder = holderId(pair);
+                        long leaf = holder + PAIR_LEAF_OFFSET;
+                        seg.gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder)
+                                .instanceDump(holder, classId, idBytes(leaf, idSize))
+                                .instanceDump(leaf, classId, idBytes(0L, idSize));
+                    }
+                })
+                .heapDumpEnd()
+                .writeTo(tmp, "large.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        DominatorTreeBuilder.BuildResult result = DominatorTreeBuilder.build(indexDb);
+        assertEquals(LARGE_GRAPH_PAIRS * 2, result.reachableInstances());
+
+        long shallow = 16 + idSize;
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("""
+                     SELECT
+                         COUNT(*) FILTER (WHERE d.dominator_id = 0 AND r.bytes = %d),
+                         COUNT(*) FILTER (WHERE d.dominator_id = d.instance_id - %d AND r.bytes = %d)
+                     FROM dominator d
+                     JOIN retained_size r ON r.instance_id = d.instance_id
+                     """.formatted(shallow * 2, PAIR_LEAF_OFFSET, shallow))) {
+            assertTrue(rs.next());
+            assertEquals(LARGE_GRAPH_PAIRS, rs.getLong(1), "every holder is rooted and retains its leaf");
+            assertEquals(LARGE_GRAPH_PAIRS, rs.getLong(2), "every leaf is dominated by its own holder");
+        }
+    }
+
+    private static long holderId(int pair) {
+        return LARGE_GRAPH_BASE_ID + pair * 2L * PAIR_LEAF_OFFSET;
     }
 
     private static byte[] idBytes(long id, int idSize) {
