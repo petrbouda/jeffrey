@@ -52,6 +52,11 @@ average, or as a share of the time the *blocked threads* existed — never "N% o
 
 If you cannot name the call, you cannot make the claim. Delete it, or go and measure it.
 
+That holds for a figure the user hands you too — "most of the CPU is in X", "it blocks for about 80
+seconds". It is the question the report answers, not its evidence: when the profile is in Jeffrey,
+read each figure back with the call that measures it before writing it down, and report what that
+call said, even where it disagrees.
+
 A claim drawn from a file rather than a tool — an application log, a GC log or a crash file that
 `remote_fetchFile` put on this machine — names the file and the line instead, so the reader can open
 the same line:

@@ -188,10 +188,13 @@ baseline) is what separates a leak from a large working set.
 
 **When no tool fits.** `heap_executeQuery` runs SQL over the index — `class` (`class_id`, `name`,
 `super_class_id`, `classloader_id`), `instance` (`instance_id`, `class_id`, `shallow_size`),
-`outbound_ref` (`source_id`, `target_id`; indexed on `target_id`), `gc_root`, `dominator` and
-`retained_size` (`instance_id`, `bytes`; LEFT JOIN it, NULL until the dominator tree is built) and
-`string_content` (`content` is NULL past the large-content threshold; size questions use
-`content_length`). `heap_oql` runs OQL over the object graph — `INSTANCEOF` for a type with its
+`outbound_ref` (`source_id`, `target_id`, `field_kind` — `0` a field, `1` an array element, `2` a
+static — and `field_id`, for a field its position in the object's whole layout, which is the
+`field_index` of a field its own class declares; indexed on `target_id`), `class_instance_field`
+(`class_id`, `field_index`, `name`), `gc_root`, `dominator` and `retained_size` (`instance_id`,
+`bytes`; LEFT JOIN it, NULL until the dominator tree is built) and `string_content` (what a `String`
+says; `content` is NULL past the large-content threshold, size questions use `content_length`; the
+`string` table is the HPROF name pool, not the strings). `heap_oql` runs OQL over the object graph — `INSTANCEOF` for a type with its
 subclasses, `AS RETAINED SET` for what a selection keeps alive — which SQL cannot spell.
 
 <!-- include: shared/evidence-rules.md -->

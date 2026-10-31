@@ -37,6 +37,11 @@ model time at list price; `--max-cost-usd` stops it at a ceiling.
 | `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (about 0.4% of it), no tuning from one fired rule |
 | `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
 | `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `advise-jfr`, `compare-jfr`, `profile-run`) and makes that skill's first call |
+| `route-two-revisions-not-profiled` | "Did my last commit make it slower? Nothing is profiled yet" | `regression-check`, not `compare-jfr`: the pair named (HEAD against its parent), both recorded the same way, no differential of the catalogue's unrelated pair |
+| `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export`, `blocking_monitors`), confidence stated, a **Not assessed** section |
+
+Two more cases, under [`../evals-live/`](../evals-live/), ask what only SQL answers and run against a
+real Jeffrey — see [The SQL cases](#the-sql-cases).
 
 ## Where the answers come from
 
@@ -69,10 +74,56 @@ What the mocks cannot do, so the cases stay away from it:
 - **Free-text arguments.** A tool whose required argument is a SQL query, a URI or a path other than
   the recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql`,
   `jfr_getProfileInfo`, `http_endpoint` and the like are absent from the runs (85 of the 112 tools
-  are mocked).
+  are mocked). The SQL cases run against a real Jeffrey for that reason.
+- **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class
+  (`Checkout$Order`) can key none: `heap_browseClassInstances` for one answers that the name "is not a
+  plain file-name segment", which a model reads as Jeffrey refusing the class.
 - **The remote and the IDE.** The recording Jeffrey has no remote and no IntelliJ attached.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
+
+## The SQL cases
+
+`jfr-sql` and `heap-sql` are for the questions no dashboard or report shapes, and a question like that
+takes a query nobody can write down in advance — so no mock can answer it. Their two cases live in
+[`../evals-live/`](../evals-live/) and run with `--mocks off`, against a Jeffrey that holds the very
+recordings the mocks were taken from:
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
+| `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator: 1,446 of 5,825 |
+
+```bash
+java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffrey-live-home \
+  -Dserver.port=8585 -jar build/build-microscope/target/microscope.jar &
+python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
+  --work-dir /tmp/jeffrey-eval --load
+claude plugin eval ./jeffrey-claude-plugin --eval-dir evals-live --mocks off \
+  --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp -j 3 \
+  --json /tmp/microscope-live-evals.json
+```
+
+Port 8585 is the plugin's default endpoint, which the runs connect to. `--load` imports the files a
+recording left in `--work-dir` — they are not in git: 23 MB, and the workload is random — and refuses
+them unless the figures the graders name (`figures` in `fixtures/recorded-profiles.json`, measured by
+the recorder's figure queries) are what this Jeffrey answers. A re-recording measures those figures anew
+and rewrites them in the graders, as it rewrites the profile ids.
+
+**Why not a stand-in.** `claude plugin eval` can mock a tool with an agent — the judge model playing
+the server from a description — so the first version of these cases did that: each SQL tool was
+played from the real answers to a set of recorded queries (52 by the second round, the first round's
+unanswered queries added), refusing any it could not answer from them. Replaying every query of the
+six runs per case against the real Jeffrey:
+
+| Case | Queries | Answered as Jeffrey does | Same rows, another order | Refused | Wrong |
+|---|---|---|---|---|---|
+| `exception-inputs-counted-in-sql` | 12 | 7 | 1 (tied counts) | 3 | 1 — a count of 28,638 where Jeffrey answers 0 |
+| `orders-by-coupon-in-sql` | 36 | 11 | 3 | 21 | 1 — "Schema with name recurring does not exist" for the skill's own `USING KEY` walk, which DuckDB runs |
+
+A model explores a heap through ids, `information_schema` and multi-hop joins nobody records in
+advance, and a stand-in that refuses a correct query fails the plugin for its own reason: two of the
+heap runs it failed had sent queries that, against the real Jeffrey, answer 1,446 of 5,825.
 
 Reading the figures:
 
@@ -405,3 +456,45 @@ Five judges stay — `one-dump-is-a-state`, `profile-is-not-enough`, `pauses-in-
 and `puts-the-menu` — where what is checked is a claim's meaning rather than its words; none of them
 has failed a run in this file's measurements.
 
+
+**Two skills no case reached, and the SQL** (plugin 1.0.16). `regression-check` and `report` had no
+case, and neither did `jfr-sql` or `heap-sql`.
+
+| Case | Score | What the runs did | Cost |
+|---|---|---|---|
+| `route-two-revisions-not-profiled` | 1.00 | `regression-check` in 3 of 3, the pair and the one-difference rule stated, no Jeffrey call | $0.08 |
+| `route-write-it-up` | 0.87 → 1.00 | see below | $0.20 → $0.20 |
+
+`route-write-it-up` hands the model the user's own account ("most of the CPU goes to
+PriceCalculator.formatLine", "about 81 seconds"). One run in three wrote it up without a call — "the
+figures are yours" — which the evidence rule did not forbid in so many words. `report` now says that a
+figure the user hands over is the question, not the evidence: read it back with the call that measures
+it. Three runs after, every report quotes `blocking_monitors` (80.8 s over 6,079 contentions) and
+corrects the user: the method holds 4.1% of the CPU samples (128), not most of them.
+
+The SQL cases, against the real Jeffrey (`evals-live/`), three runs each:
+
+| Case | Score | Right answer | SQL skill loaded | Tool calls | Cost |
+|---|---|---|---|---|---|
+| `exception-inputs-counted-in-sql` | 0.87 | 3 of 3 — 100 distinct inputs, all `SPRING-` coupons | `jfr-sql` in 1 of 3 | 6 | $0.14 |
+| `orders-by-coupon-in-sql` | 0.75 | 3 of 3 — 1,446 of 5,825 orders | `heap-sql` in 1 of 3 | 20 | $0.23 |
+
+- **Every answer is right; the misses are routing.** The runs that skipped the SQL skill wrote the
+  query from `analyze-exceptions` or `analyze-heap` alone. Both now name their SQL skill where a query
+  is written, and the traps it holds. That moved nothing three runs can tell apart: `heap-sql` 1 of 3
+  before and after, `jfr-sql` 0 of 3 before and 1 of 3 in each of two rounds after (one of them
+  against the stand-in).
+- **`outbound_ref.field_kind` and `field_id` were undocumented.** The heap runs worked out which
+  `field_id` is an `Order`'s coupon by experiment — grouping by it, or looking one reference up. It is
+  the field's position in the object's whole layout, superclasses and primitive fields included
+  (`HprofPassBWalker`), so it equals `field_index` only for a field the object's own class declares.
+  `heap-sql` and the `heap-triage` handbook say so now, with `field_kind`'s three values.
+- **One `heap-triage` run read the `string` table first** — the name pool, which the handbook now
+  names as such — got no rows, and switched to `string_content`; `not-the-string-pool` fails it.
+- `reads-string-contents` was dropped before scoring: one run counted the coupons with `heap_oql`
+  (`o.coupon.toString().startsWith("SPRING-")`), which `analyze-heap` names for a filter over an
+  object's own fields, and was right.
+
+The two analysis skills this touched, re-measured on their mocked cases (three runs, against the
+1.0.14 baseline): `heap-dump-what-holds-memory` 1.00 → 1.00, 8 → 9 tool calls, $0.20 → $0.18;
+`exceptions-to-the-throw-site` 1.00 → 1.00, 7 → 7 tool calls, $0.16 → $0.15.
