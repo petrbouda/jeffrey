@@ -115,8 +115,8 @@ public final class HeapReportAnswers {
             String reason,
             @McpNullable
             @McpDescription("What keeps the suspect alive: the shortest strong path from a GC root to it, or, when "
-                    + "it is a root itself, one step naming its rootType, threadName and stackFrame. Null when only "
-                    + "weak or soft references reach it")
+                    + "it is a root itself, one step naming its rootType, threadName and stackFrame. Null when no "
+                    + "strong path was found within the search limit; the search is inconclusive")
             RootPath gcRootPath,
             @McpNullable
             @McpDescription("Where the retained objects accumulate, in a sentence: the deepest object down the "
@@ -353,10 +353,10 @@ public final class HeapReportAnswers {
         return HeapText.omitted(text, report.omittedObjects(), "objects").toString();
     }
 
-    /** What keeps a suspect alive: its own root's holder, or the path from a root, or that there is none. */
+    /** The root holder or a strong path, with an inconclusive answer when the bounded search found none. */
     private static void appendRoot(StringBuilder text, RootPath path) {
         if (path == null) {
-            text.append("  GC Root Path: none strong (only weak or soft references reach it)\n");
+            text.append("  GC Root Path: no strong path found within the search limit (inconclusive)\n");
             return;
         }
         text.append("  GC Root Path: ").append(path.rootType());

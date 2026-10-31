@@ -31,7 +31,7 @@ takes them from one that does:
    then every call an answer offers in `followUp.nextTools`, `investigationAreas[].nextTools` or
    `topFindings[].nextTool`, breadth first;
 4. rewrites the profile ids the cases' graders name to the new ones, and writes one mock per tool
-   that answered, keyed by its required arguments — at most
+   that answered, addressed by its required arguments and graded against its full input — at most
    `MAX_FIXTURES_PER_TOOL` answers a tool, the first reached —
    (`{{file:fixtures/<tool>-{input.a}-….json}}`), and `_tools.json`, the real `tools/list` for those
    tools, so each mocked tool carries its real description and input schema.
@@ -60,6 +60,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from decimal import Decimal
 from pathlib import Path
 
 PLUGIN_DIR = Path("jeffrey-claude-plugin")
@@ -67,7 +68,10 @@ WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java
 MOCKS = PLUGIN_DIR / "evals/mocks/jeffrey"
 FIXTURES = MOCKS / "fixtures"
 RECORDED_PROFILES = PLUGIN_DIR / "evals/fixtures/recorded-profiles.json"
-CASES = (PLUGIN_DIR / "evals/cases", PLUGIN_DIR / "evals-live/cases")
+MOCKED_CASES = PLUGIN_DIR / "evals/cases"
+# Run with --mocks off, so they have no mock_calls to grade and get no call-contract grader.
+LIVE_CASES = PLUGIN_DIR / "evals-live/cases"
+CASES = (MOCKED_CASES, LIVE_CASES)
 
 PROTOCOL_VERSION = "2026-07-28"
 CLIENT_INFO = {"name": "plugin-eval-recorder", "version": "1"}
@@ -143,6 +147,7 @@ class Recorded:
     """Each tool's answers by the values of its required arguments, in the order they were made."""
     answers: dict[str, dict[tuple, str]] = field(default_factory=lambda: collections.defaultdict(dict))
     fixed: dict[str, str] = field(default_factory=dict)
+    inputs: dict[str, dict[tuple, dict]] = field(default_factory=lambda: collections.defaultdict(dict))
 
 
 class Jeffrey:
@@ -222,6 +227,11 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
         if kind == "heap":
             # The one import a case repeats: the heap case names this file, so its answer is the mock.
             recorded.fixed["recordings_analyzeFile"] = text_of(answer)
+            recorded.inputs["recordings_analyzeFile"][()] = {"path": str(path)}
+            operation = (answer.get("structuredContent") or {}).get(OPERATION_ID)
+            if operation:
+                recorded.answers["operations_status"][(operation,)] = text_of(final)
+                recorded.inputs["operations_status"][(operation,)] = {OPERATION_ID: operation}
     profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"])
     jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
@@ -229,6 +239,7 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
     # that, in every other answer, has already finished.
     recorded.answers["heap_prepare"][(profiles.heap,)] = text_of(
         jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
+    recorded.inputs["heap_prepare"][(profiles.heap,)] = {PROFILE_ID: profiles.heap}
     return profiles
 
 
@@ -244,7 +255,7 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
                               **({"useWeight": True} if weighted else {})}) for primary, baseline in pairs]
     for tool in tools:
         name, schema = tool["name"], tool.get("inputSchema") or {}
-        if name in NOT_CALLED_FROM_ANSWERS:
+        if name in NOT_CALLED_FROM_ANSWERS or name == "operations_status":
             continue
         required = [argument for argument in schema.get("required", [])]
         free = [argument for argument in required if argument not in (PROFILE_ID, BASELINE_PROFILE_ID)
@@ -307,9 +318,13 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
         if answer.get("isError"):
             continue
         if not key:
-            recorded.fixed.setdefault(tool, text_of(answer))
+            if tool not in recorded.fixed:
+                recorded.fixed[tool] = text_of(answer)
+                recorded.inputs[tool][()] = arguments
         elif all(FILE_NAME_SAFE.fullmatch(value) for value in key):
-            recorded.answers[tool].setdefault(key, text_of(answer))
+            if key not in recorded.answers[tool]:
+                recorded.answers[tool][key] = text_of(answer)
+                recorded.inputs[tool][key] = arguments
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
 
@@ -319,7 +334,11 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     FIXTURES.mkdir(parents=True)
     schemas = {tool["name"]: tool.get("inputSchema") or {} for tool in tools}
     for tool, text in sorted(recorded.fixed.items()):
-        (MOCKS / f"{tool}.md").write_text(f"---\ntype: fixed\n---\n\n{text}\n")
+        guard = ""
+        if tool == "recordings_analyzeFile":
+            path = recorded.inputs[tool][()]["path"]
+            guard = "expect:\n  path: " + json.dumps(path) + "\n"
+        (MOCKS / f"{tool}.md").write_text(f"---\ntype: fixed\n{guard}---\n\n{text}\n")
     # A tool none of whose calls could be keyed gets no mock, so the runs do not offer it at all
     # rather than offering one that answers every call with a missing fixture.
     answered = {tool: answers for tool, answers in recorded.answers.items() if answers}
@@ -332,7 +351,110 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     mocked = set(recorded.fixed) | set(answered)
     listed = [tool for tool in tools if tool["name"] in mocked]
     (MOCKS / "_tools.json").write_text(json.dumps({"tools": listed}, indent=1, ensure_ascii=False) + "\n")
+    inputs = [{"tool": tool, "arguments": arguments}
+              for tool in sorted(mocked) for arguments in recorded.inputs[tool].values()]
+    (MOCKS / "_inputs.json").write_text(json.dumps(inputs, indent=1) + "\n")
+    write_contract_graders(listed, inputs)
     print(f"wrote {len(mocked)} mocked tools, {sum(map(len, answered.values()))} fixtures", file=sys.stderr)
+
+
+# Fixed mocks have neither optional/default substitutions nor conditional dispatch: a fixture is
+# addressed by the required arguments alone, so it answers a call whatever its optional ones say.
+# For most of them that is still the right answer — a different size, order, page or level of detail
+# of the same figures, or a filter that picks rows the fixture holds anyway. A few change what the
+# figures *are*: the weighting, the window, the frames left out or credited, a computation asked for,
+# the matches a search adds. Only those are graded, by a deterministic mock_calls grader that fails
+# the run when one differs from every recorded call. It is a post-call failure, not a router: the
+# fixture was already returned when the grader rejects the run.
+SEMANTIC_OPTIONS = {"useWeight", "startEpochMs", "endEpochMs", "excludeIdle", "excludeNonJava", "threadMode",
+                    "bucketMs", "framePrefixes", "includeJvmInternal", "compute"}
+# A search elsewhere selects rows; on a flamegraph it adds the matches and their share.
+SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"}}
+WEIGHT_DEFAULTS = {"jdk.ExecutionSample": False, "jdk.ObjectAllocationSample": True,
+                   "jdk.JavaMonitorEnter": True}
+WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements"}
+FALSE_DEFAULTS = {"excludeIdle", "excludeNonJava", "threadMode", "includeJvmInternal", "compute", "retry", "errorsOnly"}
+NO_DEFAULT = object()
+
+
+def json_pattern(value) -> str:
+    """A JSON literal, allowing serializer whitespace but retaining its value and array order."""
+    if isinstance(value, list):
+        return r"\[\s*" + r"\s*,\s*".join(json_pattern(item) for item in value) + r"\s*\]"
+    if isinstance(value, float):
+        # Python and JSON.stringify choose different spellings of the same number.
+        encoded = json.dumps(value)
+        plain = format(Decimal(str(value)), "f")
+        if "." in plain:
+            plain = plain.rstrip("0").rstrip(".")
+        if value == 0:
+            plain = "0"
+        exponent = re.sub(r"e([+-])0+(\d+)", r"e\1\2", encoded)
+        return "(?:" + "|".join(re.escape(part) for part in dict.fromkeys((encoded, plain, exponent))) + ")"
+    return re.escape(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
+
+
+def semantic_options(tool: str, schema: dict) -> list[str]:
+    required = set(schema.get("required", []))
+    graded = SEMANTIC_OPTIONS | SEMANTIC_OPTIONS_OF.get(tool, set())
+    return sorted(name for name in schema.get("properties", {}) if name in graded and name not in required)
+
+
+def server_default(tool: str, name: str, prop: dict, arguments: dict):
+    """The value the server uses when the option is left out, where it is known; else NO_DEFAULT."""
+    if name == "useWeight" and tool in WEIGHT_DEFAULT_TOOLS:
+        return WEIGHT_DEFAULTS.get(arguments.get("eventType"), NO_DEFAULT)
+    if name == "useWeight" and tool == "timeline_hotWindows":
+        return False
+    if name in FALSE_DEFAULTS:
+        return False
+    return prop["default"] if "default" in prop else NO_DEFAULT
+
+
+def input_pattern(tool: str, schema: dict, arguments: dict) -> str:
+    """A regex for the input objects the recorded call answers: each answer-changing option holds the
+    recorded value, or is left out where that value is the server's default; anything else is free."""
+    # The required arguments name the fixture, and decide defaults such as an event type's weighting,
+    # so an option is held to the recorded call with the same ones.
+    checks = [r'(?=[^{}\n]*"' + re.escape(name) + r'"\s*:\s*' + json_pattern(arguments[name]) + r"(?=\s*[,}]))"
+              for name in sorted(set(schema.get("required", [])) & set(arguments))]
+    for name in semantic_options(tool, schema):
+        prop = schema["properties"][name]
+        key = r'[^{}\n]*"' + re.escape(name) + r'"\s*:'
+        absent = "(?!" + key + ")"
+        default = server_default(tool, name, prop, arguments)
+        value = arguments.get(name, default)
+        if value is NO_DEFAULT:
+            checks.append(absent)
+            continue
+        present = "(?=" + key + r"\s*" + json_pattern(value) + r"(?=\s*[,}]))"
+        checks.append("(?:" + absent + "|" + present + ")" if value == default else present)
+    return r"\{" + "".join(checks) + r"[^\n]*\}"
+
+
+def write_contract_graders(tools: list[dict], inputs: list[dict]) -> None:
+    by_tool = collections.defaultdict(list)
+    for entry in inputs:
+        by_tool[entry["tool"]].append(entry["arguments"])
+    rejected = []
+    for tool in tools:
+        name, schema = tool["name"], tool.get("inputSchema") or {}
+        if not semantic_options(name, schema):
+            continue
+        # Import replay is deliberately a snapshot of this file, with no writer state machine.
+        # Its path is guarded in the responder; name/force do not model a new import in this suite.
+        if name == "recordings_analyzeFile":
+            continue
+        accepted = "|".join(input_pattern(name, schema, args) for args in by_tool[name]) or r"(?!)"
+        rejected.append(r'^\{"tool"\s*:\s*"mcp__[^"\n]*__' + re.escape(name)
+                        + r'"\s*,\s*"input"\s*:(?!\s*(?:' + accepted + r'))')
+    pattern = "|".join(rejected) or r"(?!)"
+    grader = ("---\n# Generated by record-plugin-eval-mocks.py from mocks/jeffrey/_inputs.json.\n"
+              "type: regex\ntarget: mock_calls\nmatch: not_contains\nflags: m\npattern: "
+              + json.dumps(pattern) + "\n---\n")
+    for case in sorted(MOCKED_CASES.iterdir()):
+        if case.is_dir() and (case / "graders").is_dir():
+            (case / "graders/recorded-call-semantics.md").write_text(grader)
 
 
 def measure_figures(jeffrey: Jeffrey, profiles: Profiles) -> dict[str, int]:
@@ -395,9 +517,11 @@ def main() -> int:
     profiles = import_profiles(jeffrey, files, recorded)
     print(f"profiles: {profiles}", file=sys.stderr)
     crawl(jeffrey, tools, profiles, recorded)
-    write_mocks(tools, recorded)
+    # The graders are renamed before the mocks are written, so the call-contract graders written
+    # with the mocks carry the new ids and are not renamed a second time.
     figures = measure_figures(jeffrey, profiles)
     rename_in_cases(profiles, figures)
+    write_mocks(tools, recorded)
     RECORDED_PROFILES.write_text(json.dumps(
         {"baseline": profiles.baseline, "candidate": profiles.candidate, "heap": profiles.heap,
          "heapDumpPath": str(files["heap"]), "figures": figures}, indent=1) + "\n")

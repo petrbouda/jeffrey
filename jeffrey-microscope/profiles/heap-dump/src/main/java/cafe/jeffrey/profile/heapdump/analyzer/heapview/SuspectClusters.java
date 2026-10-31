@@ -39,6 +39,10 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  *
  * <p>The <em>contents</em> are the objects the accumulation point directly dominates, grouped by
  * class: how many, and how much of the suspect they retain.
+ *
+ * <p>A class object is a node of the tree but not a row of {@code instance}: it is named
+ * {@code class <name>}, and the last one the descent passes is the <em>static holder</em> — what a
+ * suspect above a class loader's bookkeeping holds its memory through.
  */
 public final class SuspectClusters {
 
@@ -53,13 +57,23 @@ public final class SuspectClusters {
 
     private static final String UNKNOWN_CLASS = "<unknown>";
 
-    /** The largest object {@code ?} directly dominates, with its retained size and class. */
+    /** The class of a class object, as a contents row names it. */
+    private static final String CLASS_OBJECT_CLASS = "java.lang.Class";
+
+    /** How a class object reached by the descent is named. */
+    private static final String CLASS_OBJECT = "class %s";
+
+    /**
+     * The largest object {@code ?} directly dominates, with its retained size, its class, and — for a
+     * class object, which has no instance row — the class it is.
+     */
     private static final String LARGEST_CHILD_SQL = """
-            SELECT d.instance_id, r.bytes, c.name
+            SELECT d.instance_id, r.bytes, c.name, k.name
             FROM dominator d
             JOIN retained_size r ON r.instance_id = d.instance_id
             LEFT JOIN instance i ON i.instance_id = d.instance_id
             LEFT JOIN class c ON c.class_id = i.class_id
+            LEFT JOIN class k ON k.class_id = d.instance_id AND i.instance_id IS NULL
             WHERE d.dominator_id = ?
             ORDER BY r.bytes DESC, d.instance_id
             LIMIT 1
@@ -67,15 +81,17 @@ public final class SuspectClusters {
 
     /** The objects {@code ?} directly dominates, grouped by class, largest retained total first. */
     private static final String CONTENTS_SQL = """
-            SELECT COALESCE(c.name, '%s') AS class_name, COUNT(*) AS objects, SUM(r.bytes) AS retained
+            SELECT COALESCE(c.name, CASE WHEN k.class_id IS NOT NULL THEN '%s' END, '%s') AS class_name,
+                   COUNT(*) AS objects, SUM(r.bytes) AS retained
             FROM dominator d
             JOIN retained_size r ON r.instance_id = d.instance_id
             LEFT JOIN instance i ON i.instance_id = d.instance_id
             LEFT JOIN class c ON c.class_id = i.class_id
+            LEFT JOIN class k ON k.class_id = d.instance_id AND i.instance_id IS NULL
             WHERE d.dominator_id = ?
             GROUP BY class_name
             ORDER BY retained DESC, class_name
-            """.formatted(UNKNOWN_CLASS);
+            """.formatted(CLASS_OBJECT_CLASS, UNKNOWN_CLASS);
 
     /**
      * The accumulation point of one suspect and the classes it holds.
@@ -88,6 +104,8 @@ public final class SuspectClusters {
      * @param heldBytes     what those objects retain together
      * @param contents      the classes they belong to, largest first, at most {@link #CONTENT_CLASSES}
      * @param classCount    how many classes they belong to, before the cut
+     * @param staticHolder  the last class whose static fields the descent passed through on its way
+     *                      to the point, or null when it passed none
      */
     public record Cluster(
             long objectId,
@@ -97,7 +115,8 @@ public final class SuspectClusters {
             long objects,
             long heldBytes,
             List<DominatedClassEntry> contents,
-            int classCount) {
+            int classCount,
+            String staticHolder) {
 
         public Cluster {
             if (depth < 0) {
@@ -107,7 +126,12 @@ public final class SuspectClusters {
         }
     }
 
-    private record Child(long objectId, long retained, String className) {
+    /** One step of the descent; {@code classObjectOf} names the class when the child is a class object. */
+    private record Child(long objectId, long retained, String className, String classObjectOf) {
+
+        String name() {
+            return classObjectOf != null ? CLASS_OBJECT.formatted(classObjectOf) : className;
+        }
     }
 
     private SuspectClusters() {
@@ -122,6 +146,7 @@ public final class SuspectClusters {
         long floor = (long) Math.ceil(suspectRetained * ACCUMULATION_SHARE);
         long pointId = suspectId;
         String pointClass = suspectClass;
+        String staticHolder = null;
         int depth = 0;
         try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(LARGEST_CHILD_SQL)) {
             while (depth < MAX_DESCENT) {
@@ -130,12 +155,15 @@ public final class SuspectClusters {
                     break;
                 }
                 pointId = child.get().objectId();
-                pointClass = child.get().className();
+                pointClass = child.get().name();
+                if (child.get().classObjectOf() != null) {
+                    staticHolder = child.get().classObjectOf();
+                }
                 depth++;
             }
         }
         boolean capped = depth == MAX_DESCENT;
-        return contents(view, pointId, pointClass, depth, capped, suspectRetained);
+        return contents(view, pointId, pointClass, depth, capped, suspectRetained, staticHolder);
     }
 
     private static Optional<Child> largestChild(PreparedStatement stmt, long parentId) throws SQLException {
@@ -145,13 +173,15 @@ public final class SuspectClusters {
                 return Optional.empty();
             }
             String className = rs.getString(3);
-            return Optional.of(new Child(rs.getLong(1), rs.getLong(2), className == null ? UNKNOWN_CLASS : className));
+            String classObjectOf = className == null ? rs.getString(4) : null;
+            return Optional.of(new Child(rs.getLong(1), rs.getLong(2),
+                    className == null ? UNKNOWN_CLASS : className, classObjectOf));
         }
     }
 
     private static Cluster contents(
-            HeapView view, long pointId, String pointClass, int depth, boolean capped, long suspectRetained)
-            throws SQLException {
+            HeapView view, long pointId, String pointClass, int depth, boolean capped, long suspectRetained,
+            String staticHolder) throws SQLException {
         List<DominatedClassEntry> kept = new ArrayList<>();
         long objects = 0;
         long held = 0;
@@ -173,6 +203,6 @@ public final class SuspectClusters {
                 }
             }
         }
-        return new Cluster(pointId, pointClass, depth, capped, objects, held, kept, classes);
+        return new Cluster(pointId, pointClass, depth, capped, objects, held, kept, classes, staticHolder);
     }
 }

@@ -86,6 +86,9 @@ public class FlamegraphMcpTools {
     private static final String EXCLUDE_NON_JAVA = "excludeNonJava";
     private static final String START_EPOCH_MS = "startEpochMs";
     private static final String END_EPOCH_MS = "endEpochMs";
+    private static final String DETAIL = "detail";
+    private static final String THRESHOLD_PCT = "thresholdPct";
+    private static final String SEARCH = "search";
 
     private static final String EXPORT_WHY =
             "draws this event type at the defaults listed beside it; any eventType in available works the same way";
@@ -236,10 +239,6 @@ public class FlamegraphMcpTools {
 
         Type type = requireEventType(eventType);
         ProfileInfo info = profileManager.info();
-        List<EventSummaryResult> recorded = recordedTypes();
-        if (recorded.stream().noneMatch(summary -> summary.code().equals(type.code()))) {
-            return notRecorded(info.id(), type, Detail.of(detail), recorded);
-        }
         EpochWindow window = requestedWindow(info, startEpochMs, endEpochMs);
         // With no window the whole recording is graphed on the millisecond base the link names it on,
         // so the graph and the page opened from the link cannot differ by a sub-millisecond remainder.
@@ -253,6 +252,13 @@ public class FlamegraphMcpTools {
         // Resolved here rather than left to the manager, so the graph, the link and every next call
         // are drawn with the one weighting the record reports.
         boolean weighted = useWeight != null ? useWeight : weightedByDefault(type);
+        ExportOptions options = new ExportOptions(level, level.threshold(config), window,
+                Boolean.TRUE.equals(threadMode), weighted, searchPattern,
+                Boolean.TRUE.equals(excludeIdle), Boolean.TRUE.equals(excludeNonJava), useWeight, thresholdPct);
+        List<EventSummaryResult> recorded = recordedTypes();
+        if (recorded.stream().noneMatch(summary -> summary.code().equals(type.code()))) {
+            return notRecorded(info.id(), type, options, recorded);
+        }
         GraphParameters params = GraphParameters.builder()
                 .withEventType(type)
                 .withTimeRange(timeRange(info, graphed))
@@ -302,9 +308,12 @@ public class FlamegraphMcpTools {
         return McpToolResult.of(text.text(), export);
     }
 
-    /** The event types this profile holds samples of — the summaries the flamegraph grid is drawn from. */
+    /**
+     * Every recorded type a tree can be drawn from, including imported dimensions and custom events the
+     * grid omits — and none without stacks, which would graph to the empty tree this answer refuses.
+     */
     private List<EventSummaryResult> recordedTypes() {
-        return profileManager.flamegraphManager().eventSummaries().stream()
+        return profileManager.flamegraphManager().graphableEventSummaries().stream()
                 .filter(summary -> summary.primary() != null && summary.primary().samples() > 0)
                 .toList();
     }
@@ -314,7 +323,7 @@ public class FlamegraphMcpTools {
      * and as the next call the export of a recorded type that answers the same question, when there is
      * one — never a graph of something else, which the caller did not ask about.
      */
-    private McpToolResult notRecorded(String profileId, Type type, Detail level, List<EventSummaryResult> recorded) {
+    private McpToolResult notRecorded(String profileId, Type type, ExportOptions options, List<EventSummaryResult> recorded) {
         String reason = recorded.isEmpty()
                 ? NOTHING_TO_GRAPH
                 : NOT_RECORDED_REASON.formatted(type.code(),
@@ -324,25 +333,58 @@ public class FlamegraphMcpTools {
                 .findFirst()
                 .orElse(null);
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .nextWhen(alternative != null, () -> NextCalls.to(EXPORT_TOOL)
-                        .with(PROFILE_ID, profileId)
-                        .with(EVENT_TYPE, alternative.code())
+                .nextWhen(alternative != null, () -> options.alternative(profileId, alternative.code())
                         .why(ALTERNATIVE_WHY))
                 .next(NextCalls.to(LIST_TOOL).with(PROFILE_ID, profileId).why(LIST_WHY))
                 .followUp();
         String uiLink = UiLinks.view(profileId, GRID_VIEW);
         LinkedOutput.Footed text = LinkedOutput.footed(reason, followUp, uiLink, null);
         FlamegraphExport export = new FlamegraphExport(
-                GraphStatus.NOT_RECORDED, reason, profileId, type.code(), level, null, null,
-                false, weightedByDefault(type), false, false, null, 0, false, followUp, uiLink);
+                GraphStatus.NOT_RECORDED, reason, profileId, type.code(), options.detail(),
+                options.thresholdPct(), options.window(), options.threadMode(), options.useWeight(),
+                options.excludeIdle(), options.excludeNonJava(), options.search(), 0, false, followUp, uiLink);
         return McpToolResult.of(text.text(), export);
     }
 
-    /** Whether a recorded type graphs the same thing as the one asked for: on-CPU time, allocation or blocking. */
+    /** Known interchangeable samplers. Contention, monitor waits, parking and sleeping answer different questions. */
     private static boolean answerTheSameQuestion(Type asked, Type recorded) {
         return (ON_CPU_TYPES.contains(asked) && ON_CPU_TYPES.contains(recorded))
-                || (asked.isAllocationEvent() && recorded.isAllocationEvent())
-                || (asked.isBlockingEvent() && recorded.isBlockingEvent());
+                || (asked.isAllocationEvent() && recorded.isAllocationEvent());
+    }
+
+    /**
+     * The resolved request survives an absent type, so an alternative changes only the event type. The
+     * weighting and the threshold are resolved per type — an allocation sampler weighs by default, a CPU
+     * sampler counts — so the alternative carries them only as the caller asked ({@code askedUseWeight},
+     * {@code askedThresholdPct}), and otherwise takes its own type's defaults.
+     */
+    private record ExportOptions(
+            Detail detail, Double thresholdPct, EpochWindow window, boolean threadMode,
+            boolean useWeight, String search, boolean excludeIdle, boolean excludeNonJava,
+            Boolean askedUseWeight, Double askedThresholdPct) {
+
+        McpNextTool.Call alternative(String profileId, String eventType) {
+            McpNextTool.Call call = NextCalls.to(EXPORT_TOOL)
+                    .with(PROFILE_ID, profileId)
+                    .with(EVENT_TYPE, eventType)
+                    .with(DETAIL, detail.name())
+                    .with(THREAD_MODE, threadMode)
+                    .with(EXCLUDE_IDLE, excludeIdle)
+                    .with(EXCLUDE_NON_JAVA, excludeNonJava);
+            if (askedUseWeight != null) {
+                call.with(USE_WEIGHT, askedUseWeight);
+            }
+            if (askedThresholdPct != null) {
+                call.with(THRESHOLD_PCT, askedThresholdPct);
+            }
+            if (window != null) {
+                call.with(START_EPOCH_MS, window.startEpochMs()).with(END_EPOCH_MS, window.endEpochMs());
+            }
+            if (search != null) {
+                call.with(SEARCH, search);
+            }
+            return call;
+        }
     }
 
     /**

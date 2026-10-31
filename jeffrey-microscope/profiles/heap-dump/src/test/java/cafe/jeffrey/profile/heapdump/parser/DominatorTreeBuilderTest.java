@@ -330,17 +330,20 @@ class DominatorTreeBuilderTest {
         DominatorTreeBuilder.build(indexDb);
         try (HeapView view = HeapView.open(indexDb)) {
             assertTrue(view.hasDominatorTree(), "the current build's tree");
+            assertEquals(DominatorTreeBuilder.TREE_VERSION, view.dominatorTreeVersion());
         }
         assertEquals(List.of((long) DominatorTreeBuilder.TREE_VERSION), treeVersions(indexDb));
 
         execute(indexDb, "UPDATE dominator_build SET tree_version = " + (DominatorTreeBuilder.TREE_VERSION - 1));
         try (HeapView view = HeapView.open(indexDb)) {
             assertFalse(view.hasDominatorTree(), "an older build's tree, though its rows are all there");
+            assertEquals(DominatorTreeBuilder.TREE_VERSION - 1, view.dominatorTreeVersion());
         }
 
         execute(indexDb, "DROP TABLE dominator_build");
         try (HeapView view = HeapView.open(indexDb)) {
             assertFalse(view.hasDominatorTree(), "a tree built before trees were versioned");
+            assertEquals(0, view.dominatorTreeVersion());
         }
 
         DominatorTreeBuilder.build(indexDb);

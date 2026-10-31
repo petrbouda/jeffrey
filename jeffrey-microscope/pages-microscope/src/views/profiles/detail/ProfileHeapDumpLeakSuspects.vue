@@ -314,7 +314,7 @@ const summaryMetrics = computed(() => {
 const keptAliveBy = (suspect: LeakSuspect): string => {
   const root = suspect.gcRootPath;
   if (!root) {
-    return 'No strong path from a GC root';
+    return 'No strong path found within the search limit';
   }
   const thread = root.threadName ? ` of thread ${root.threadName}` : '';
   const frame = root.stackFrame ? ` at ${root.stackFrame}` : '';

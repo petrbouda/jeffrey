@@ -49,6 +49,11 @@ public sealed interface CachedAnalysis<T> permits
 
     Class<T> type();
 
+    /** Raise when this report's algorithm or persisted shape changes, independently of the tree. */
+    default int analysisVersion() {
+        return 1;
+    }
+
     /** Whether the dominator tree has to be built before {@link #compute} runs. */
     boolean needsDominatorTree();
 

@@ -449,7 +449,8 @@ public final class DuckDbHeapView implements HeapView {
         return scalarLong(DOMINATOR_TREE_LOADED) > 0 && dominatorTreeVersion() == DominatorTreeBuilder.TREE_VERSION;
     }
 
-    private long dominatorTreeVersion() throws SQLException {
+    @Override
+    public long dominatorTreeVersion() throws SQLException {
         if (scalarLong(DOMINATOR_BUILD_PRESENT) == 0) {
             return 0L;
         }
@@ -492,6 +493,15 @@ public final class DuckDbHeapView implements HeapView {
         List<InstanceFieldDescriptor> chain = List.copyOf(out);
         fieldChainCache.put(classId, chain);
         return chain;
+    }
+
+    @Override
+    public OptionalInt threadRootTraceSerial(long fileOffset) {
+        if (hprof == null) {
+            return OptionalInt.empty();
+        }
+        // ROOT_THREAD_OBJECT body: object id, thread serial (u4), trace serial (u4).
+        return OptionalInt.of(hprof.readInt(fileOffset + hprof.header().idSize() + Integer.BYTES));
     }
 
     @Override

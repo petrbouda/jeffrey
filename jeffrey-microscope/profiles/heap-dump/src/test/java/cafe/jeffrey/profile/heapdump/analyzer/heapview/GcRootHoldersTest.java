@@ -217,6 +217,73 @@ class GcRootHoldersTest {
         }
     }
 
+    @Nested
+    class MultipleTraces {
+
+        @Test
+        void usesTraceNamedByThreadRootWithEightByteIds() throws IOException, SQLException {
+            assertCurrentTrace(8);
+        }
+
+        @Test
+        void usesTraceNamedByThreadRootWithFourByteIds() throws IOException, SQLException {
+            assertCurrentTrace(4);
+        }
+
+        @Test
+        void leavesAmbiguousFrameUnknownWithoutAttachedDump() throws IOException, SQLException {
+            Path dump = multipleTraceDump(8, 7);
+            try (HeapView view = HeapView.open(buildIndex(dump))) {
+                assertNull(GcRootHolders.of(view, AUDIT_LOG).orElseThrow().stackFrame());
+            }
+        }
+
+        @Test
+        void doesNotSubstituteAnotherTraceWhenExplicitTraceIsAbsent() throws IOException, SQLException {
+            Path dump = multipleTraceDump(8, 9);
+            Path index = buildIndex(dump);
+            try (HprofMappedFile file = HprofMappedFile.open(dump);
+                 HeapView view = HeapView.open(index, file)) {
+                assertNull(GcRootHolders.of(view, AUDIT_LOG).orElseThrow().stackFrame());
+            }
+        }
+
+        private void assertCurrentTrace(int idSize) throws IOException, SQLException {
+            Path dump = multipleTraceDump(idSize, 7);
+            Path index = buildIndex(dump);
+            try (HprofMappedFile file = HprofMappedFile.open(dump);
+                 HeapView view = HeapView.open(index, file)) {
+                assertEquals("Holder.currentMethod(Holder.java:20)",
+                        GcRootHolders.of(view, AUDIT_LOG).orElseThrow().stackFrame());
+                assertEquals("Holder.currentMethod(Holder.java:20)",
+                        PathToGCRootAnalyzer.selfRoot(view, AUDIT_LOG).orElseThrow().stackFrame());
+            }
+        }
+
+        private Path multipleTraceDump(int idSize, int rootTraceSerial) throws IOException {
+            return SyntheticHprof.create("1.0.2", idSize, 0L)
+                    .string(0xA001L, "Holder").string(0xA002L, "next")
+                    .string(0xA003L, "oldMethod").string(0xA004L, "currentMethod").string(0xA005L, "Holder.java")
+                    .loadClass(1, AUDIT_LOG_CLASS, 0, 0xA001L)
+                    .stackFrame(0xF001L, 0xA003L, 0, 0xA005L, 1, 10)
+                    .stackFrame(0xF002L, 0xA004L, 0, 0xA005L, 1, 20)
+                    .stackTrace(6, THREAD_SERIAL, 0xF001L).stackTrace(7, THREAD_SERIAL, 0xF002L)
+                    .heapDumpSegment(seg -> seg.topLevelObjectClassDump(AUDIT_LOG_CLASS, 0xA002L)
+                            .gcRootThreadObject(THREAD, THREAD_SERIAL, rootTraceSerial)
+                            .gcRootJavaFrame(AUDIT_LOG, THREAD_SERIAL, 0)
+                            .instanceDump(AUDIT_LOG, AUDIT_LOG_CLASS, new byte[idSize]))
+                    .heapDumpEnd().writeTo(tmp, "multiple-traces-" + idSize + ".hprof");
+        }
+
+        private Path buildIndex(Path dump) throws IOException, SQLException {
+            Path index = HeapDumpIndexPaths.indexFor(dump);
+            try (HprofMappedFile file = HprofMappedFile.open(dump)) {
+                HprofIndex.build(file, index, CLOCK);
+            }
+            return index;
+        }
+    }
+
     private static byte[] threadFieldBytes(long nameRef) {
         try {
             ByteArrayOutputStream b = new ByteArrayOutputStream();

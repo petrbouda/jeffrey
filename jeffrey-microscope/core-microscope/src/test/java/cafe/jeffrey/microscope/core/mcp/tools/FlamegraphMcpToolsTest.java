@@ -135,7 +135,9 @@ class FlamegraphMcpToolsTest {
     private void profileOf(RecordingEventSource source, List<EventSummaryResult> summaries) {
         when(profileManager.info()).thenReturn(info(source));
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
-        when(flamegraphManager.eventSummaries()).thenReturn(summaries);
+        lenient().when(flamegraphManager.eventSummaries()).thenReturn(summaries);
+        lenient().when(flamegraphManager.allEventSummaries()).thenReturn(summaries);
+        lenient().when(flamegraphManager.graphableEventSummaries()).thenReturn(summaries);
     }
 
     private static JsonNode entry(JsonNode result, String eventType) {
@@ -312,7 +314,8 @@ class FlamegraphMcpToolsTest {
         void exportableProfile() {
             when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
-            when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("tree");
         }
 
@@ -382,7 +385,7 @@ class FlamegraphMcpToolsTest {
         void exportableProfile() {
             when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
-            lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            lenient().when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             lenient().when(flamegraphManager.generateAiExport(any(), any())).thenReturn(TREE);
         }
 
@@ -553,7 +556,7 @@ class FlamegraphMcpToolsTest {
          */
         @Test
         void anOmittedWeightingIsResolvedIntoTheLinkAndTheNextCalls() {
-            when(flamegraphManager.eventSummaries()).thenReturn(List.of(
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(
                     summary(EventTypeName.OBJECT_ALLOCATION_SAMPLE, 130, 9_000_000L)));
 
             JsonNode export = conforming("export", tools().export(EventTypeName.OBJECT_ALLOCATION_SAMPLE,
@@ -660,7 +663,8 @@ class FlamegraphMcpToolsTest {
                     "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
                     SUB_MS_START, SUB_MS_END, SUB_MS_START, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
-            when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("## Call tree");
         }
 
@@ -723,6 +727,65 @@ class FlamegraphMcpToolsTest {
             JsonNode offered = export.get("followUp").get("nextTools").get(0).get("arguments");
             assertEquals(CPU_TIME, offered.get("eventType").asString());
             assertEquals(2, McpNextToolConformance.assertFollowable(export, reachable()));
+        }
+
+        @Test
+        void alternativeKeepsTheRequestedWindowFiltersDetailAndWeight() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0)));
+
+            JsonNode export = conforming("export", tools().export(CPU, "FULL", 3.0,
+                    START_MS + 10_000, START_MS + 20_000, true, false, "  Checkout  ", true, true));
+
+            JsonNode offered = export.get("followUp").get("nextTools").get(0).get("arguments");
+            assertEquals(CPU_TIME, offered.get("eventType").asString());
+            assertEquals("FULL", offered.path("detail").asString());
+            assertEquals(3.0, offered.path("thresholdPct").asDouble());
+            assertEquals(START_MS + 10_000, offered.path("startEpochMs").asLong());
+            assertEquals(START_MS + 20_000, offered.path("endEpochMs").asLong());
+            assertTrue(offered.path("threadMode").asBoolean());
+            assertFalse(offered.path("useWeight").asBoolean(true));
+            assertEquals("Checkout", offered.path("search").asString());
+            assertTrue(offered.path("excludeIdle").asBoolean());
+            assertTrue(offered.path("excludeNonJava").asBoolean());
+            assertEquals(2, McpNextToolConformance.assertFollowable(export, reachable()));
+        }
+
+        /** Weighting and threshold are per type: unasked, the alternative takes its own type's defaults. */
+        @Test
+        void alternativeLeavesTheWeightingAndThresholdNobodyAskedForToItsOwnType() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0)));
+
+            JsonNode export = conforming("export", exportCpu());
+
+            JsonNode offered = export.get("followUp").get("nextTools").get(0).get("arguments");
+            assertEquals(CPU_TIME, offered.get("eventType").asString());
+            assertTrue(offered.path("useWeight").isMissingNode(), offered.toString());
+            assertTrue(offered.path("thresholdPct").isMissingNode(), offered.toString());
+            assertEquals(2, McpNextToolConformance.assertFollowable(export, reachable()));
+        }
+
+        @Test
+        void lockContentionIsNotReplacedWithSleepingParkingOrMonitorWaiting() {
+            profileOf(RecordingEventSource.JDK, List.of(
+                    summary(EventTypeName.THREAD_SLEEP, 100, 1_000),
+                    summary(EventTypeName.THREAD_PARK, 100, 1_000),
+                    summary(EventTypeName.JAVA_MONITOR_WAIT, 100, 1_000)));
+
+            JsonNode export = conforming("export", tools().export(EventTypeName.JAVA_MONITOR_ENTER,
+                    null, null, null, null, null, null, null, null, null));
+
+            assertEquals("NOT_RECORDED", export.get("status").asString());
+            assertEquals(List.of("flamegraph_list"), nextTools(export));
+        }
+
+        @Test
+        void parkingIsNotReplacedWithSleeping() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(EventTypeName.THREAD_SLEEP, 100, 1_000)));
+
+            JsonNode export = conforming("export", tools().export(EventTypeName.THREAD_PARK,
+                    null, null, null, null, null, null, null, null, null));
+
+            assertEquals(List.of("flamegraph_list"), nextTools(export));
         }
 
         @Test

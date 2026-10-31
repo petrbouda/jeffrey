@@ -552,6 +552,12 @@ class HeapDumpMcpToolsTest {
             assertEquals("4711", call(out, "heap_getPathToGCRoot").get("objectId").asString());
             assertFalse(result.text().contains("Accumulation Point: null"), result.text());
             assertTrue(first.get("gcRootPath").isNull(), "no path was found, so the path call is offered");
+            assertTrue(result.text().contains("no strong path found within the search limit"), result.text());
+            assertFalse(result.text().contains("only weak or soft"), result.text());
+            String pathDescription = schemaOf("getLeakSuspects").get("properties").get("suspects")
+                    .get("items").get("properties").get("gcRootPath").get("description").asString();
+            assertTrue(pathDescription.contains("search limit"), pathDescription);
+            assertFalse(pathDescription.contains("only weak or soft"), pathDescription);
         }
 
         @Test

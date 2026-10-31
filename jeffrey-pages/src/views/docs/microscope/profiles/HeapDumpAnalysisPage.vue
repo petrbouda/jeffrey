@@ -85,7 +85,7 @@ onMounted(() => {
 
       <h3 id="compressed-oops">Compressed oops and re-initialization</h3>
       <p>Initialization auto-detects whether the dumped JVM used compressed object pointers, which decides how big every reference and object header is. When object sizes look wrong, auto-detection guessed incorrectly: <strong>Re-initialize</strong> on the Heap Dump Overview drops the index and every cached analysis and builds them again, either auto-detecting again or forcing compressed oops <strong>enabled</strong> (4-byte references, heaps under 32&nbsp;GiB) or <strong>disabled</strong> (8-byte references). The <strong>Compressed Oops</strong> figure in the summary shows what the last run used.</p>
-      <p>A dump analysed by an earlier version of Microscope whose dominator tree is now built differently does not need re-initializing by hand: its tree, and every cached analysis computed from it (leak suspects, biggest objects and collections, class loaders, consumers, threads), read as not built, so the next <strong>Initialize</strong> (or <code>heap_prepare</code> over MCP) builds them again from the existing index.</p>
+      <p>A dump analysed by an earlier version of Microscope does not need re-initializing by hand. Opening a report in the UI refreshes its obsolete or unreadable cache over the current dominator tree, keeping the existing heap index. A report whose tree is older is not rebuilt while the page loads &mdash; that can take minutes on a large dump &mdash; and reads as not built until <strong>Initialize</strong> rebuilds the tree and the report as a tracked operation. Reports record their own analysis version separately from the version of the tree they actually read. Preparing only the thread report also builds the current tree before caching retained sizes. A report never prepared before remains unprepared; use <strong>Initialize</strong> to build it. MCP readers continue to answer <code>NOT_RUN_YET</code> for missing or stale reports, with <code>heap_prepare</code> as the recovery call.</p>
       <p>The Overview neither uploads nor deletes a heap dump: a dump arrives through the Recordings page and is removed there, with its row. When a run failed or never finished, the Overview offers <strong>Initialize</strong> (or <strong>Try again</strong>) to start it on the profile&rsquo;s copy without going back to the list.</p>
 
       <DocsCallout type="info">
@@ -111,7 +111,7 @@ onMounted(() => {
         <DocsFeatureCard
           icon="bi bi-search"
           title="Leak Suspects"
-          description="The objects retaining more than 5% of the heap that no other such object dominates, largest first — one suspect per retained cluster, so a holder, its list and the list's backing array count once. Each suspect shows what keeps it alive (the GC-root path, or for a local variable the thread and frame holding it), where its memory accumulates and the classes held there."
+          description="The objects retaining more than 5% of the heap that no other such object dominates, largest first — one suspect per retained cluster, so a holder, its list and the list's backing array count once, including when class objects occur between them. Memory a suspect holds through a class's static field names that class, so a static cache under a class loader is still traced to the code that declares it. Each suspect shows what keeps it alive (the GC-root path, or for a local variable the thread and frame holding it), where its memory accumulates and the classes held there."
         />
         <DocsFeatureCard
           icon="bi bi-box-seam-fill"
@@ -124,6 +124,8 @@ onMounted(() => {
           description="Per-package and per-classloader rollups of retained memory, showing which subsystem or dependency owns the heap."
         />
       </div>
+
+      <p>Leak-suspect percentages and thresholds use the dominator graph's total footprint: instance shallow sizes plus static-field footprints for class objects that have no instance row. A class already represented as an instance counts once.</p>
 
       <h2 id="retention">Retention &amp; GC Roots</h2>
       <div class="docs-grid docs-grid-2">
@@ -138,6 +140,8 @@ onMounted(() => {
           description="Trace the reference chain from any object back to a GC root to understand exactly why it is retained and cannot be collected."
         />
       </div>
+
+      <p>A missing GC-root path means no strong path was found within the search limit; a longer strong chain may still exist. Thread-local holders use the stack trace explicitly named by the thread root. When the source dump is unavailable and multiple traces belong to that thread, the holding frame stays unknown.</p>
 
       <h2 id="waste">Wasted Memory</h2>
       <div class="docs-grid docs-grid-2">
