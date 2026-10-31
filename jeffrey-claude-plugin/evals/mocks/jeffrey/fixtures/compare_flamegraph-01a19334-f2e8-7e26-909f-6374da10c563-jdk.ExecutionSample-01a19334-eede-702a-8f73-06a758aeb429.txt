@@ -1,0 +1,99 @@
+# How to read this differential call tree
+
+A **differential flamegraph** of two profiles of the same application, exported by
+Jeffrey. One is the **primary** — the run under examination — and the other is the
+**baseline** it is measured against. A positive delta means the primary spends *more*
+than the baseline did: a regression.
+
+## Read the comparability section first
+
+The arithmetic below is always valid; the comparison is only valid if both recordings
+watched the same kind of work, which nothing in a recording can prove. If the
+comparability section lists warnings, weigh them before reporting any finding.
+
+## Line format
+
+A markdown nested bullet list. Every kept frame appears exactly once, two spaces of
+indentation per level of call depth: a bullet nested under another was called by it.
+
+    - <method> [<state>] — Δ<delta> (<change>) · primary <p> (<p%>) · baseline <b> -> <b'> (<b%>)
+
+- `[S]` — **shared**: the frame is present in both profiles.
+- `[NEW]` — present only in the primary. Its whole subtree is new work; it has no
+  children in this document because there is nothing to pair it against.
+- `[GONE]` — present only in the baseline. Its whole subtree disappeared.
+- `Δ<delta>` — the movement: primary total minus scaled baseline total, in the unit
+  named by `unit` (or `weight_unit` on a weighted event type).
+- `(<change>)` — that movement as a percentage of the scaled baseline. Absent on a
+  `[NEW]` or `[GONE]` frame, where there is no baseline to be a percentage of.
+- `primary <p> (<p%>)` — the frame's **whole subtree** in the primary, and its share of
+  the primary's total. This is the bar width in the visual flamegraph.
+- `baseline <b> -> <b'> (<b%>)` — the same subtree in the baseline: raw, then scaled onto
+  the primary's time base, then its share of the baseline's total.
+- Children are sorted by the size of the movement inside them, largest first, so the
+  path to what changed is always the first nested bullet.
+
+## Totals here, self elsewhere
+
+The numbers on each line are **subtree totals**, like any flamegraph. A change deep in a
+call path therefore shows up on every ancestor above it with the same delta — that is
+how a tree works, not five separate regressions. Walk down until the delta stops being
+explained by a child: that frame is where the work actually moved. The companion ranked
+list orders methods by *self* movement and does this attribution for you.
+
+## Pruning
+
+Subtrees in which nothing moved by more than `prune_threshold_pct` of the larger of the
+two profiles' totals are dropped entirely. **Absence therefore means "did not move", not "not present"** —
+the opposite of the single-profile export, where absence means "small". A frame that is
+large in both profiles and changed in neither will not appear here at all.
+
+## Renames read as a pair of dramatic findings
+
+The tree is built by matching method names level by level, so a renamed, moved or
+extracted method breaks the match: its work appears once as `[NEW]` and once as
+`[GONE]`, often of near-identical size. Before reporting either half as a real change,
+check the source diff — which you have and this document does not.
+
+---
+
+event_type: jdk.ExecutionSample
+unit: samples
+measured_by: samples
+primary_duration: PT30.422815S
+baseline_duration: PT30.47555S
+scaled: yes
+baseline_scale_factor: 0.998
+primary_total: 3066
+baseline_total: 3118 (scaled: 3113)
+prune_threshold_pct: 2.0
+
+## Comparability
+
+No comparability problems detected: the two recordings are of similar length and carry comparable volumes of this event type.
+
+## Differential call tree
+
+- [root] — Δ-47 (-1.5%) · primary 3066 (100.0%) · baseline 3118 -> 3113 (100.0%)
+  - java.lang.Thread#run [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+    - java.lang.Thread#runWith [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+      - java.util.concurrent.ThreadPoolExecutor$Worker#run [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+        - java.util.concurrent.ThreadPoolExecutor#runWorker [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+          - java.util.concurrent.FutureTask#run [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+            - java.util.concurrent.Executors$RunnableAdapter#call [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+              - com.acme.checkout.Checkout#lambda$main$1 [S] — Δ-44 (-1.4%) · primary 3052 (99.5%) · baseline 3101 -> 3096 (99.5%)
+                - com.acme.checkout.Checkout$PriceCalculator#reprice [S] — Δ-113 (-33.8%) · primary 221 (7.2%) · baseline 335 -> 334 (10.7%)
+                  - com.acme.checkout.Checkout$PriceCalculator#formatLine [GONE] — Δ-131 (-100.0%) · primary 0 (0.0%) · baseline 131 -> 131 (4.2%)
+                - com.acme.checkout.Checkout$SessionCache#touch [S] — Δ+66 (+2.4%) · primary 2813 (91.7%) · baseline 2752 -> 2747 (88.3%)
+
+
+---
+Open in Microscope: http://localhost:8590/profiles/01a19334-eede-702a-8f73-06a758aeb429/flamegraph-view?eventType=jdk.ExecutionSample&graphMode=DIFFERENTIAL&baseline=01a19334-f2e8-7e26-909f-6374da10c563&startEpochMs=1793471020942&endEpochMs=1793471051364
+Link note: the page compares the baseline over the primary's 30422 ms window only; this answer read 30475 ms of the baseline, to its own end
+Next:
+- compare_quality {"profileId":"01a19334-eede-702a-8f73-06a758aeb429","baselineProfileId":"01a19334-f2e8-7e26-909f-6374da10c563"} [LIGHT]
+- flamegraph_export {"profileId":"01a19334-eede-702a-8f73-06a758aeb429","eventType":"jdk.ExecutionSample"} [HEAVY]
+- flamegraph_export {"profileId":"01a19334-f2e8-7e26-909f-6374da10c563","eventType":"jdk.ExecutionSample"} [HEAVY]
+Guidance:
+- This tree prunes by movement, so a frame absent here did not move - it is not missing.
+- A method that appears on one side only may be a rename rather than a change. You have the source diff and the profile does not; check before reporting either half.

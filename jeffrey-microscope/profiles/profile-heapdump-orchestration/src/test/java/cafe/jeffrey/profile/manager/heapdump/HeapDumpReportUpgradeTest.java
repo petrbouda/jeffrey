@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -79,32 +80,54 @@ class HeapDumpReportUpgradeTest {
     }
 
     @Test
-    void aReadDoesNotRebuildAnObsoleteTreeButPreparingTheReportDoes() throws Exception {
-        Path dump = legacyThreadReport(false);
+    void aReadDoesNotBuildTheTreeAReportNeedsButPreparingTheReportDoes() throws Exception {
+        Path dump = legacyLeakReport();
 
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
 
-            assertNull(manager.getThreadAnalysis(), "a page load must not build the dominator tree");
-            cache.withSession(dump, session -> {
-                assertFalse(session.view().hasDominatorTree(), "the read left the obsolete tree alone");
-                return null;
-            });
+            assertNull(manager.getLeakSuspects(), "a page load must not build the dominator tree");
+            assertFalse(hasCurrentTree(cache, dump), "the read left the obsolete tree alone");
 
-            manager.runThreadAnalysis();
+            manager.runLeakSuspects();
 
-            assertTrue(manager.getThreadAnalysis().totalRetainedSize() > 0);
+            assertNotNull(manager.getLeakSuspects());
+            assertTrue(hasCurrentTree(cache, dump), "preparing the report rebuilds the tree it needs");
             cache.withSession(dump, session -> {
                 assertEquals(CREATED.toEpochMilli(), session.view().metadata().parsedAtMs(),
-                        "preparing rebuilds the tree from the existing index");
+                        "from the existing index");
                 return null;
             });
         }
     }
 
     @Test
-    void preparingThreadsBeforeTheTreeCannotCacheMissingRetainedSizes() throws Exception {
-        legacyThreadReport(false);
+    void theThreadsAreReadWithoutBuildingTheTreeAndGainRetainedSizesOnceOneIsBuilt() throws Exception {
+        Path dump = legacyThreadReport(false);
+
+        try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
+            HeapDumpManager manager = manager(cache);
+
+            ThreadAnalysisReport withoutTree = manager.getThreadAnalysis();
+
+            assertNotNull(withoutTree, "the threads are a report without the tree");
+            assertNull(withoutTree.threads().getFirst().retainedSize(), "unknown, not read from the obsolete tree");
+            assertFalse(hasCurrentTree(cache, dump), "reading the threads builds no tree");
+            assertTrue(Files.exists(directory.resolve(HeapDumpReportStore.treelessName(new ThreadHeapAnalysis()))));
+
+            manager.runComputeDominator();
+            ThreadAnalysisReport withTree = manager.getThreadAnalysis();
+
+            assertNotNull(withTree.threads().getFirst().retainedSize(), "recomputed over the tree now there");
+            assertEquals(manager.getThreads(true).getFirst().retainedSize(), withTree.threads().getFirst().retainedSize());
+            assertFalse(Files.exists(directory.resolve(HeapDumpReportStore.treelessName(new ThreadHeapAnalysis()))),
+                    "the copy without the tree is replaced");
+        }
+    }
+
+    @Test
+    void preparingTheThreadsAloneBuildsNoTreeAndCachesNoRetainedSizeFromAnObsoleteOne() throws Exception {
+        Path dump = legacyThreadReport(false);
 
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
@@ -112,9 +135,9 @@ class HeapDumpReportUpgradeTest {
             manager.runThreadAnalysis();
             ThreadAnalysisReport report = manager.getThreadAnalysis();
 
-            assertNotNull(report.threads().getFirst().retainedSize(),
-                    "a versioned thread report must be computed from the current tree");
-            assertTrue(report.totalRetainedSize() > 0);
+            assertFalse(hasCurrentTree(cache, dump), "preparing the threads costs no tree build");
+            assertNull(report.threads().getFirst().retainedSize(),
+                    "an obsolete tree's retained sizes are never cached");
             manager.runComputeDominator();
             assertEquals(manager.getThreads(true).getFirst().retainedSize(),
                     manager.getThreadAnalysis().threads().getFirst().retainedSize());
@@ -139,6 +162,7 @@ class HeapDumpReportUpgradeTest {
         SyntheticHeapDumps.writeThreadDump(directory, "dump.hprof");
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(CLOCK)) {
             HeapDumpManager manager = manager(cache);
+            manager.runComputeDominator();
             manager.runThreadAnalysis();
             Path report = directory.resolve(HeapDumpReportStore.storedName(new ThreadHeapAnalysis()));
             Files.writeString(report, payload);
@@ -162,13 +186,34 @@ class HeapDumpReportUpgradeTest {
         reports.delete(new ThreadHeapAnalysis());
         reports.write("thread-analysis.json", oldReport, "Legacy thread report");
         if (!keepCurrentTree) {
-            try (var connection = DriverManager.getConnection("jdbc:duckdb:" + HeapDumpIndexPaths.indexFor(dump));
-                 var statement = connection.createStatement()) {
-                statement.execute("DROP TABLE dominator_build");
-            }
+            dropTreeVersion(dump);
         }
         assertTrue(HeapDumpSession.isIndexUsable(dump));
         return dump;
+    }
+
+    /** A leak-suspects report cached before reports were versioned, over an unversioned tree. */
+    private Path legacyLeakReport() throws Exception {
+        Path dump = SyntheticHeapDumps.writeThreadDump(directory, "dump.hprof");
+        try (HeapDumpSessionCache cache = new HeapDumpSessionCache(CLOCK)) {
+            manager(cache).runLeakSuspects();
+        }
+        Path current = directory.resolve(HeapDumpReportStore.storedName(new LeakSuspectsAnalysis()));
+        Files.move(current, directory.resolve("leak-suspects.json"));
+        dropTreeVersion(dump);
+        assertFalse(new HeapDumpReportStore(directory).exists(new LeakSuspectsAnalysis()));
+        return dump;
+    }
+
+    private static void dropTreeVersion(Path dump) throws Exception {
+        try (var connection = DriverManager.getConnection("jdbc:duckdb:" + HeapDumpIndexPaths.indexFor(dump));
+             var statement = connection.createStatement()) {
+            statement.execute("DROP TABLE dominator_build");
+        }
+    }
+
+    private static boolean hasCurrentTree(HeapDumpSessionCache cache, Path dump) throws Exception {
+        return cache.withSession(dump, session -> session.view().hasDominatorTree());
     }
 
     private HeapDumpManager manager(HeapDumpSessionCache cache) {

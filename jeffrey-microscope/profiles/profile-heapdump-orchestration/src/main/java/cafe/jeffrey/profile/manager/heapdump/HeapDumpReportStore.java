@@ -96,17 +96,33 @@ public final class HeapDumpReportStore {
         return read(analysis).isPresent();
     }
 
+    /** The report over the current tree, or — for one that reads the tree when built — its tree-less copy. */
     public <T> Optional<T> read(CachedAnalysis<T> analysis) {
-        return read(storedName(analysis), analysis.type());
+        Optional<T> current = read(storedName(analysis), analysis.type());
+        if (current.isPresent() || !analysis.readsTreeWhenBuilt()) {
+            return current;
+        }
+        return read(treelessName(analysis), analysis.type());
+    }
+
+    /** Whether what {@link #read} serves is the copy computed without a tree. */
+    public <T> boolean readsWithoutTree(CachedAnalysis<T> analysis) {
+        return analysis.readsTreeWhenBuilt()
+                && read(storedName(analysis), analysis.type()).isEmpty()
+                && read(treelessName(analysis), analysis.type()).isPresent();
     }
 
     public <T> void write(CachedAnalysis<T> analysis, HeapReportVersion version, T report) {
-        if (!HeapReportVersion.expected(analysis).equals(version)) {
+        boolean treeless = analysis.readsTreeWhenBuilt() && HeapReportVersion.withoutTree(analysis).equals(version);
+        if (!treeless && !HeapReportVersion.expected(analysis).equals(version)) {
             throw new IllegalArgumentException("Report was not computed from the required versions: " + version);
         }
-        write(storedName(analysis, version), report, analysis.displayName());
+        String written = storedName(analysis, version);
+        write(written, report, analysis.displayName());
         for (String stale : staleNames(analysis)) {
-            delete(stale, analysis.displayName());
+            if (!stale.equals(written)) {
+                delete(stale, analysis.displayName());
+            }
         }
     }
 
@@ -125,6 +141,11 @@ public final class HeapDumpReportStore {
     /** The expected report algorithm and, for retained figures, the tree it must have read. */
     static String storedName(CachedAnalysis<?> analysis) {
         return storedName(analysis, HeapReportVersion.expected(analysis));
+    }
+
+    /** Where a report that reads the tree when built is kept while computed without one. */
+    static String treelessName(CachedAnalysis<?> analysis) {
+        return storedName(analysis, HeapReportVersion.withoutTree(analysis));
     }
 
     private static String storedName(CachedAnalysis<?> analysis, HeapReportVersion version) {

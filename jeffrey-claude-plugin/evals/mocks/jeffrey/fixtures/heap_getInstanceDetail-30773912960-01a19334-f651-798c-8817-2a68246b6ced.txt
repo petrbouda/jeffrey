@@ -1,0 +1,36 @@
+Instance Detail (Object ID: 30773912960):
+
+Class: java.lang.Thread
+Shallow Size: 104 B
+
+Fields:
+NAME                           TYPE                           VALUE
+------------------------------------------------------------------------------------------
+eetop                          long                           139840645678992
+tid                            long                           3
+name                           Object                         null
+interrupted                    boolean                        false
+contextClassLoader             Object                         null
+holder                         Object                         null
+threadLocals                   Object                         null
+inheritableThreadLocals        Object                         null
+scopedValueBindings            Object                         null
+interruptLock                  Object                         null
+parkBlocker                    Object                         null
+nioBlocker                     Object                         null
+cont                           Object                         null
+uncaughtExceptionHandler       Object                         null
+threadLocalRandomSeed          long                           0
+threadLocalRandomProbe         int                            0
+threadLocalRandomSecondarySeed int                            0
+container                      Object                         null
+headStackableScopes            Object                         null
+
+
+---
+Open in Microscope: http://localhost:8590/profiles/01a19334-f651-798c-8817-2a68246b6ced/heap-dump/gc-root-path?objectId=30773912960
+Link note: The page runs the path-to-GC-root search for this object; the rest of this answer is not on it.
+Next:
+- heap_getPathToGCRoot {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30773912960"} [MEDIUM]
+- heap_getReferrers {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30773912960"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30777380064"} [LIGHT]

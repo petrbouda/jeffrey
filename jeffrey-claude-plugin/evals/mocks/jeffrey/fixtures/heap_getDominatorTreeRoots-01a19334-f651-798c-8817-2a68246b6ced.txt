@@ -1,0 +1,63 @@
+Dominator Tree Roots (top retained size holders):
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+com.acme.checkout.Checkout$AuditLog                           24 B         4.8 MiB          30777548584
+jdk.internal.loader.ClassLoaders$AppClassLoader              104 B       365.6 KiB          30773913424
+class jdk.jfr.internal.StringPool                             91 B       274.5 KiB          30774438568
+class jdk.jfr.internal.MetadataRepository                     16 B       264.2 KiB          30776370872
+class java.time.zone.ZoneRulesProvider                        32 B       204.3 KiB          30773632296
+class sun.util.calendar.ZoneInfoFile                         148 B       150.1 KiB          30784432640
+jdk.internal.jimage.ImageReader$SharedImageReader             96 B       140.5 KiB          30775172272
+byte[]                                                   107.9 KiB       107.9 KiB          30774461728
+class java.lang.invoke.MethodType                             69 B        99.4 KiB          30784419592
+com.sun.tools.javac.launcher.MemoryContext                    48 B        85.3 KiB          30773913384
+class jdk.jfr.internal.jfc.JFC                                36 B        80.7 KiB          30773732832
+class jdk.internal.module.ArchivedModuleGraph                  8 B        79.1 KiB          30784369936
+class sun.util.locale.provider.LocaleProviderAd...            33 B        76.0 KiB          30784562704
+java.lang.Object[]                                        10.6 KiB        75.3 KiB          30775573760
+class sun.util.resources.Bundles                              44 B        51.5 KiB          30784555624
+java.lang.Object[]                                        33.0 KiB        48.9 KiB          30784325272
+jdk.jfr.internal.PlatformRecorder                             48 B        47.4 KiB          30773909320
+java.util.concurrent.ConcurrentHashMap                        72 B        35.1 KiB          30775378440
+jdk.internal.loader.ClassLoaders$PlatformClassL...           104 B        33.7 KiB          30773910128
+java.lang.ModuleLayer                                         40 B        32.1 KiB          30773970912
+class java.lang.CharacterData00                               65 B        29.9 KiB          30784566616
+class jdk.internal.classfile.impl.LineNumberImpl              20 B        27.4 KiB          30777275336
+class java.lang.invoke.TypeConvertingMethodAdap...           144 B        26.0 KiB          30775869352
+com.acme.checkout.Checkout$SessionCache                       24 B        24.9 KiB          30777548568
+class jdk.jfr.internal.TypeLibrary                            50 B        22.8 KiB          30776921576
+class java.lang.System                                        88 B        19.9 KiB          30784385096
+java.lang.Module                                              56 B        17.5 KiB          30773940464
+java.io.PrintStream                                           48 B        17.1 KiB          30775304264
+com.sun.tools.javac.launcher.ProgramDescriptor                32 B        17.0 KiB          30773913528
+jdk.internal.ref.CleanerImpl$CleanableList$Node               32 B        16.1 KiB          30776459176
+class jdk.internal.loader.BootLoader                          48 B        14.8 KiB          30784513536
+class jdk.jfr.internal.periodic.PeriodicEvents                48 B        14.4 KiB          30775995472
+java.util.HashMap                                             48 B        12.8 KiB          30773917104
+class sun.util.cldr.CLDRBaseLocaleDataMetaInfo                25 B        12.6 KiB          30784414600
+java.lang.String                                              32 B        11.9 KiB          30784302608
+class com.sun.tools.javac.parser.Tokens$TokenKind            936 B        11.0 KiB          30775210024
+class jdk.internal.math.MathUtils                             68 B         9.9 KiB          30784535888
+class java.security.Security                                  40 B         9.8 KiB          30784584232
+class jdk.jfr.internal.EventInstrumentation                  240 B         8.7 KiB          30775479416
+java.lang.module.ModuleDescriptor                             72 B         8.5 KiB          30773940520
+class java.math.BigInteger                                   237 B         8.5 KiB          30784415632
+class com.sun.tools.javac.code.Symtab                         24 B         7.6 KiB          30775024376
+class java.lang.reflect.ProxyGenerator                       282 B         7.1 KiB          30775711816
+class jdk.internal.module.ModuleBootstrap                    161 B         7.1 KiB          30784575192
+class java.time.format.DateTimeFormatter                     144 B         7.0 KiB          30784458840
+class java.lang.Integer$IntegerCache                          33 B         6.8 KiB          30784390072
+jdk.jfr.internal.PlatformEventType                           112 B         6.4 KiB          30775845752
+com.sun.tools.javac.main.Option                               64 B         6.0 KiB          30774357008
+jdk.jfr.internal.PlatformEventType                           112 B         6.0 KiB          30776419936
+class java.lang.classfile.Opcode                           1.7 KiB         6.0 KiB          30784469384
+
+More roots exist beyond these 50
+
+
+---
+Open in Microscope: http://localhost:8590/profiles/01a19334-f651-798c-8817-2a68246b6ced/heap-dump/dominator-tree
+Next:
+- heap_getDominatorTreeChildren {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30777548584"} [MEDIUM]
+- heap_getPathToGCRoot {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30777548584"} [MEDIUM]

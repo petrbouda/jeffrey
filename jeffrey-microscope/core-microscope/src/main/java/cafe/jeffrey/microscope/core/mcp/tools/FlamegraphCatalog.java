@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
-import cafe.jeffrey.profile.panel.FlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
@@ -57,7 +57,13 @@ final class FlamegraphCatalog {
      * Every panel of the grid, placeholders included, in the grid's own order.
      */
     List<FlamegraphPanel> panels() {
-        return panelProvider().panels(profileManager.flamegraphManager().eventSummaries(), PanelContext.PRIMARY);
+        FlamegraphManager graphs = profileManager.flamegraphManager();
+        if (profileManager.info().eventSource().isFlamegraphOnlyImport()) {
+            // pprof and OTLP name their own dimensions (pprof.cpu, pprof.alloc_space, ...), none of which
+            // the curated JFR list holds: the grid is every recorded type, as their UI pages draw it.
+            return stackSamplePanelProvider.panels(graphs.allEventSummaries(), PanelContext.PRIMARY);
+        }
+        return jfrPanelProvider.panels(graphs.eventSummaries(), PanelContext.PRIMARY);
     }
 
     /**
@@ -77,17 +83,5 @@ final class FlamegraphCatalog {
 
     static boolean isRecorded(FlamegraphPanel panel) {
         return panel.event().primary().samples() > 0;
-    }
-
-    /**
-     * The grid this profile's format is drawn as — the same split the UI routes make. pprof and OTLP
-     * carry their own sample dimensions rather than JFR event types, so running them through the JFR
-     * catalog would report every dimension they do have as missing.
-     */
-    private FlamegraphPanelProvider panelProvider() {
-        if (profileManager.info().eventSource().isFlamegraphOnlyImport()) {
-            return stackSamplePanelProvider;
-        }
-        return jfrPanelProvider;
     }
 }

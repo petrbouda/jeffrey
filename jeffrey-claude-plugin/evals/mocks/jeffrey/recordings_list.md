@@ -6,9 +6,9 @@ Returned 3 of 3 recordings.
 
 | recording_id | name | event source | recorded | profile_id |
 | --- | --- | --- | --- | --- |
-| 01a19242-7d4a-7846-9006-cb0e1cbce553 | checkout.hprof | HEAP_DUMP |  | 01a19242-7d5f-7d93-b7d1-5fd6510bed9c |
-| 01a19242-79f1-7e85-81c6-08b1e2ad1371 | checkout-candidate.jfr | JDK | 2026-10-31T13:59:21.005299Z | 01a19242-79fe-783d-a5a1-11b7711d8ee0 |
-| 01a19242-75db-739a-8bcc-ba0019540978 | checkout-baseline.jfr | JDK | 2026-10-31T13:58:50.323518Z | 01a19242-75fd-7700-858a-3a8aa32440a1 |
+| 01a19334-f63e-7e0b-99a5-e4676afd49cd | checkout.hprof | HEAP_DUMP |  | 01a19334-f651-798c-8817-2a68246b6ced |
+| 01a19334-f2db-79f4-b7cb-1bb5b2f09f7d | checkout-candidate.jfr | JDK | 2026-10-31T18:24:11.648246Z | 01a19334-f2e8-7e26-909f-6374da10c563 |
+| 01a19334-eebc-7dd7-a5ac-64517bc68d80 | checkout-baseline.jfr | JDK | 2026-10-31T18:23:40.942111Z | 01a19334-eede-702a-8f73-06a758aeb429 |
 
 A row with an empty `profile_id` has not been analysed yet - pass its `recording_id` to recordings_analyzeRecording.
 
@@ -16,4 +16,4 @@ A row with an empty `profile_id` has not been analysed yet - pass its `recording
 End of the list (hasMore=false).
 
 ---
-Open in Microscope: http://localhost:8585/recordings
+Open in Microscope: http://localhost:8590/recordings

@@ -93,7 +93,7 @@ recordings the mocks were taken from:
 | Case | The question | What it holds the plugin to |
 |---|---|---|
 | `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
-| `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator: 1,446 of 5,825 |
+| `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
 
 ```bash
 java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffrey-live-home \
@@ -554,3 +554,71 @@ The SQL cases, against the real Jeffrey (`evals-live/`), three runs each:
 The two analysis skills this touched, re-measured on their mocked cases (three runs, against the
 1.0.14 baseline): `heap-dump-what-holds-memory` 1.00 → 1.00, 8 → 9 tool calls, $0.20 → $0.18;
 `exceptions-to-the-throw-site` 1.00 → 1.00, 7 → 7 tool calls, $0.16 → $0.15.
+
+## Baseline on plugin 1.0.17
+
+Re-recorded from the build after #377 and the fixes below (a new recording of the same workload:
+86 mocked tools, 257 fixtures; the live figures are now 1,427 `SPRING-` orders of 5,775), and run
+with the current graders — `recorded-call-semantics` in every mocked case, the `honest-verdict`
+judge on the comparison — so these figures replace the 1.0.14 baseline as the one to measure
+against. Three runs a case, `--threshold 1`:
+
+| Case | Score | Runs | Turns | Tool calls | Jeffrey calls | Tokens in | Agents' tokens in | Tokens out | Cost (USD) | Skills invoked |
+|---|---|---|---|---|---|---|---|---|---|---|
+| compare-finds-the-regression | 1.00 | 3 | 10 | 7 | 4 | 191,190 | 0 | 2,584 | 0.17 | microscope:compare-jfr |
+| exceptions-to-the-throw-site | 1.00 | 3 | 9 | 6 | 4 | 126,055 | 0 | 2,241 | 0.15 | microscope:analyze-exceptions |
+| gc-pauses-in-proportion | 1.00 | 3 | 7 | 4 | 3 | 137,307 | 0 | 1,502 | 0.16 | microscope:analyze-jfr |
+| heap-dump-what-holds-memory | 1.00 | 3 | 1 | 8 | 6 | 29,360 | 121,898 | 1,067 | 0.17 | microscope:analyze-heap |
+| help-what-is-here | 1.00 | 3 | 6 | 3 | 2 | 84,435 | 0 | 1,169 | 0.09 | microscope:help |
+| lock-contention-not-wall-clock | 0.94 | 3 | 7 | 4 | 3 | 125,350 | 0 | 1,367 | 0.11 | microscope:analyze-jfr |
+| named-area-cpu | 1.00 | 3 | 7 | 4 | 3 | 182,364 | 0 | 1,843 | 0.19 | microscope:analyze-jfr |
+| open-question-shows-menu | 1.00 | 3 | 6 | 3 | 2 | 132,590 | 0 | 1,386 | 0.17 | microscope:analyze-jfr |
+| record-exceptions-next-time | 1.00 | 3 | 3 | 1 | 0 | 39,314 | 0 | 958 | 0.08 | microscope:profile-run |
+| route-did-my-change-regress | 1.00 | 3 | 11 | 8 | 5 | 206,687 | 0 | 2,665 | 0.2 | microscope:compare-jfr |
+| route-record-first | 1.00 | 3 | 5 | 3 | 0 | 60,588 | 0 | 1,289 | 0.08 | microscope:profile-run |
+| route-two-revisions-not-profiled | 1.00 | 3 | 7 | 5 | 0 | 87,239 | 0 | 881 | 0.08 | microscope:profile-run, microscope:regression-check |
+| route-what-to-change | 1.00 | 3 | 8 | 5 | 3 | 131,074 | 0 | 1,630 | 0.15 | microscope:advise-jfr |
+| route-why-slow-no-profile-named | 1.00 | 3 | 6 | 3 | 2 | 132,819 | 0 | 1,517 | 0.15 | microscope:analyze-jfr |
+| route-write-it-up | 1.00 | 3 | 9 | 6 | 5 | 138,886 | 0 | 3,303 | 0.2 | microscope:jfr-sql, microscope:report |
+| two-areas-delegated | 0.92 | 3 | 1 | 10 | 7 | 45,834 | 213,401 | 1,111 | 0.37 | microscope:analyze-jfr |
+
+Overall score 0.99, 14/16 cases at the threshold; 7.64 USD including the judge; Claude Code 2.1.316. Medians per case.
+
+The live SQL cases, against a Jeffrey loaded with the same recording (`--load`):
+
+| Case | Score | Right answer | SQL skill loaded | Tool calls | Cost |
+|---|---|---|---|---|---|
+| `exception-inputs-counted-in-sql` | 0.93 | 3 of 3 | `jfr-sql` in 2 of 3 | 6 | $0.14 |
+| `orders-by-coupon-in-sql` | 1.00 | 3 of 3 — 1,427 of 5,775 | `heap-sql` in 3 of 3 | 7 | $0.16 |
+
+What the two misses were:
+
+- **`two-areas-delegated`, 2 of 3 runs:** `profile-analyst` asked for the allocation export with
+  `threadMode: true`, a per-thread split no fixture holds, so it read the aggregated tree for the
+  split it asked for — `recorded-call-semantics` failed both, as it should: nothing in the plugin
+  asks for `threadMode` there, and a mock cannot answer it. The answers themselves name the right
+  hotspots.
+- **`lock-contention-not-wall-clock`, 1 run:** `says-it-is-summed-over-threads` missed a correct
+  "about 2.6 threads blocked at any moment … each spent about 20 s". It now also matches the
+  threads-blocked-at-a-moment and per-thread phrasings; it passes the 3 answers kept from this run
+  and still fails the written-wrong ones (a share of the recording, a runtime spent waiting).
+
+What changed since 1.0.16, each measured where it applies:
+
+- **The SQL skills' descriptions say when to load them** — before the first `jfr_executeQuery` or
+  `heap_executeQuery`, whichever skill drives the analysis — and name their traps. Two live rounds
+  since: `jfr-sql` 5 of 6 runs (1 of 3 before), `heap-sql` 5 of 6 (1 of 3 before); the heap case went
+  from 20 tool calls to 7–8, every answer right. Plugin 1.0.17.
+- **`flamegraph_list` lists an imported profile's dimensions.** The MCP catalog read the curated JFR
+  list for every format, which holds no pprof or OTLP dimension (`pprof.cpu`, …), so an import was
+  reported as having nothing to graph while its UI page graphed it. It now reads what that page
+  reads. Checked on a pprof file Jeffrey exported from the candidate recording: `flamegraph_list`
+  answers OK with its dimension, and its export answers OK.
+- **Preparing the thread report alone builds no tree.** Without a current tree its retained sizes
+  stay unknown (never read from an obsolete tree), it is stored without a tree version, and the read
+  after a tree is built recomputes it over that tree.
+- **`build/scripts/DuckDbOrderRepro.java`** reproduces the driver's misordered `ORDER BY` with no
+  Jeffrey code (DuckDB v2.0.0: 3 rows of 1,000,000 out of order prepared, 103–217 with
+  `jdbc_stream_results`, 0 for a plain statement, one thread or the setting on) — the check to run
+  before a new driver is trusted with result order.
+

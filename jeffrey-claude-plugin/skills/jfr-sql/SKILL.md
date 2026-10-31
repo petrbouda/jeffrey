@@ -1,6 +1,6 @@
 ---
 name: jfr-sql
-description: "Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables — including the event_types columns that say what a type's fields are and how the recording was configured. Use when jfr_executeQuery or jfr_queryEvents is needed because no flamegraph, trace, heap or jvm dashboard tool answers the question: a distribution over time, a correlation between event types, the cardinality of a field."
+description: "Load before the first jfr_executeQuery or jfr_queryEvents call, whichever skill is driving the analysis: the schema of a Jeffrey profile's JFR database (events, event_types, threads, stacktraces, frames), the field names per event type, and the traps that return a wrong answer without an error — events_raw's truncated fields, ->> binding tighter than casts, root-first stacks, the row cap. Use for what no flamegraph, trace, heap or jvm dashboard tool answers: how many distinct values a field takes, a distribution over time, a correlation between event types."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
