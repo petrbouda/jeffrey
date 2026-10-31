@@ -1,0 +1,17 @@
+Paths to GC Root for Object ID 30774690120:
+
+Path #1:
+  GC Root Type: JNI global
+  -> <unknown>.? (ID: 30774438568)
+  -> java.util.concurrent.ConcurrentHashMap.table (ID: 30774689880)
+  -> java.util.concurrent.ConcurrentHashMap$Node[].[3101] (ID: 30774704024)
+  -> java.util.concurrent.ConcurrentHashMap$Node.val (ID: 30774689944)
+  -> java.lang.Long (ID: 30774690120)
+
+
+
+---
+Open in Microscope: http://localhost:8590/profiles/01a19334-f651-798c-8817-2a68246b6ced/heap-dump/gc-root-path?objectId=30774690120
+Next:
+- heap_getReferrers {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30774690120"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a19334-f651-798c-8817-2a68246b6ced","objectId":"30774438568"} [LIGHT]

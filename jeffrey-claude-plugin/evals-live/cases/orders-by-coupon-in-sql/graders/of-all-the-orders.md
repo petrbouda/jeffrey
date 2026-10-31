@@ -1,5 +1,5 @@
 ---
 # Against the orders the dump holds.
 type: regex
-pattern: '5[,.\s ]?825'
+pattern: '5[,.\s ]?775'
 ---

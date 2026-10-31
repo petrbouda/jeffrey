@@ -234,6 +234,312 @@
    }
   },
   {
+   "name": "operations_status",
+   "title": "Operations: Status",
+   "description": "Reports the status, phase and progress, result and next call of one operationId returned by recordings_analyzeFile, recordings_analyzeRecording, remote_download, remote_fetchFile, heap_prepare, heap_oql with includeRetainedSize or jvm_autoAnalysis with compute. Times are UTC epoch milliseconds. Polling starts no work. An id identifies one exact attempt and lives for one hour after completion, in this process only; a server restart forgets it.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "operationId": {
+      "type": "string",
+      "description": "Exact operationId returned by the starting tool"
+     }
+    },
+    "required": [
+     "operationId"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "operationId": {
+      "type": "string"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "RECORDING_IMPORT",
+       "RECORDING_ANALYSIS",
+       "REMOTE_DOWNLOAD",
+       "REMOTE_FETCH",
+       "HEAP_PREPARE",
+       "HEAP_OQL",
+       "JVM_AUTO_ANALYSIS"
+      ]
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "QUEUED",
+       "RUNNING",
+       "CANCEL_REQUESTED",
+       "COMPLETED",
+       "FAILED",
+       "CANCELLED"
+      ]
+     },
+     "startedAtEpochMs": {
+      "type": "integer",
+      "description": "When the attempt started, as UTC epoch milliseconds"
+     },
+     "finishedAtEpochMs": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "When the attempt finished, as UTC epoch milliseconds; null while it runs"
+     },
+     "cancellationRequested": {
+      "type": "boolean"
+     },
+     "retryable": {
+      "type": "boolean",
+      "description": "Whether the attempt failed or was cancelled, so a new one may be started"
+     },
+     "progress": {
+      "type": "object",
+      "properties": {
+       "phase": {
+        "type": "string",
+        "enum": [
+         "QUEUED",
+         "RUNNING",
+         "NOT_STARTED",
+         "ALREADY_AVAILABLE",
+         "PIPELINE",
+         "IMPORTING",
+         "ANALYZING",
+         "FINALIZING",
+         "DOWNLOADING",
+         "FETCHING"
+        ]
+       },
+       "details": {
+        "type": "object",
+        "properties": {
+         "recordingId": {
+          "type": [
+           "string",
+           "null"
+          ]
+         },
+         "stages": {
+          "type": "array",
+          "items": {
+           "type": "object",
+           "properties": {
+            "id": {
+             "type": "string"
+            },
+            "status": {
+             "type": "string",
+             "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED",
+              "SKIPPED"
+             ]
+            },
+            "durationMs": {
+             "type": [
+              "integer",
+              "null"
+             ],
+             "minimum": 0,
+             "description": "How long the stage took, in milliseconds; null while it has not finished"
+            }
+           },
+           "required": [
+            "id",
+            "status",
+            "durationMs"
+           ],
+           "additionalProperties": false
+          }
+         },
+         "sessionRef": {
+          "type": [
+           "string",
+           "null"
+          ]
+         },
+         "sessionId": {
+          "type": [
+           "string",
+           "null"
+          ]
+         },
+         "fileId": {
+          "type": [
+           "string",
+           "null"
+          ]
+         },
+         "fileName": {
+          "type": [
+           "string",
+           "null"
+          ]
+         },
+         "sizeBytes": {
+          "type": [
+           "integer",
+           "null"
+          ],
+          "minimum": 0,
+          "description": "How many bytes the transfer moves"
+         },
+         "path": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "description": "Where on the Microscope machine a fetch writes the file"
+         },
+         "unavailableReason": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "description": "Why the progress could not be read; null when it was"
+         }
+        },
+        "required": [
+         "recordingId",
+         "stages",
+         "sessionRef",
+         "sessionId",
+         "fileId",
+         "fileName",
+         "sizeBytes",
+         "path",
+         "unavailableReason"
+        ],
+        "additionalProperties": false
+       }
+      },
+      "required": [
+       "phase",
+       "details"
+      ],
+      "additionalProperties": false
+     },
+     "result": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "description": "What the operation produced; null until it completes. Its fields depend on the kind"
+     },
+     "error": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "code": {
+        "type": "string",
+        "enum": [
+         "CANCELLED",
+         "OPERATION_FAILED"
+        ]
+       },
+       "message": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "code",
+       "message"
+      ],
+      "additionalProperties": false
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "required": [
+     "operationId",
+     "kind",
+     "status",
+     "startedAtEpochMs",
+     "finishedAtEpochMs",
+     "cancellationRequested",
+     "retryable",
+     "progress",
+     "result",
+     "error",
+     "followUp"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+   },
+   "_meta": {
+    "jeffrey/cost": "CHEAP"
+   }
+  },
+  {
    "name": "profiles_evidence",
    "title": "Profiles: Evidence",
    "description": "Returns a versioned evidence snapshot of the profile's current state as one JSON document: recording identity, build, whole-recording units and denominators, stored sampling settings, whether the auto-analysis rules have run and their evaluated findings, capability gaps, the call that replays it and complete-record omission counts. Instants are UTC epoch milliseconds. A live snapshot, not an immutable archive: the returned document is what preserves this observation. Computes and changes nothing.",
@@ -18650,7 +18956,7 @@
           "omittedSteps"
          ],
          "additionalProperties": false,
-         "description": "What keeps the suspect alive: the shortest strong path from a GC root to it, or, when it is a root itself, one step naming its rootType, threadName and stackFrame. Null when only weak or soft references reach it"
+         "description": "What keeps the suspect alive: the shortest strong path from a GC root to it, or, when it is a root itself, one step naming its rootType, threadName and stackFrame. Null when no strong path was found within the search limit; the search is inconclusive"
         },
         "accumulationPoint": {
          "type": [

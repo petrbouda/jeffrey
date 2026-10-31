@@ -1,1676 +1,1517 @@
 [
  {
+  "tool": "blocking_monitors",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "blocking_monitors",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "blocking_monitors",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "blocking_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "blocking_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "blocking_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "blocking_pinnedThreads",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "blocking_pinnedThreads",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "blocking_pinnedThreads",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_list",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "compare_list",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_quality",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "compare_quality",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_list",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "flamegraph_list",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "flamegraph_list",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "grpc_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "grpc_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "grpc_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "grpc_traffic",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "grpc_traffic",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "grpc_traffic",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_browseClassInstances",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "className": "java.lang.Long"
+  }
+ },
+ {
+  "tool": "heap_browseClassInstances",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "className": "java.util.concurrent.ConcurrentHashMap"
+  }
+ },
+ {
+  "tool": "heap_browseClassInstances",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "className": "java.lang.String"
+  }
+ },
+ {
+  "tool": "heap_describeTable",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "tableName": "class"
+  }
+ },
+ {
+  "tool": "heap_diff",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "baselineProfileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "heap_diff",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "baselineProfileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "heap_getBiggestObjects",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getClassHistogram",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getClassLoaderLeakChains",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getCollectionAnalysis",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30777548584"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30783272656"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773912960"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30778006048"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30778010280"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30777489520"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30778010416"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeChildren",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30779113136"
+  }
+ },
+ {
+  "tool": "heap_getDominatorTreeRoots",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getDumpMetadata",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getGCRootSummary",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getHeapSummary",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773912960"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30774690120"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773690864"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773608712"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30777380064"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30776924360"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30774381928"
+  }
+ },
+ {
+  "tool": "heap_getInstanceDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773690928"
+  }
+ },
+ {
+  "tool": "heap_getLeakSuspects",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30777548584"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30774690120"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773690864"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30783272656"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773608712"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773912960"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30778006048"
+  }
+ },
+ {
+  "tool": "heap_getPathToGCRoot",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30776924360"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30777548584"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773912960"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30774690120"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773690864"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30783272656"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30773608712"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30777380064"
+  }
+ },
+ {
+  "tool": "heap_getReferrers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "objectId": "30778006048"
+  }
+ },
+ {
+  "tool": "heap_getStringAnalysis",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getThreads",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_getTopConsumers",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_listTables",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_prepare",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "heap_status",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "heap_status",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "heap_status",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "ide_windows",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "ide_windows",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "ide_windows",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "jdbc_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jdbc_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jdbc_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jdbc_pools",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jdbc_pools",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jdbc_pools",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jfr_describeEventType",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaExceptionThrow"
+  }
+ },
+ {
+  "tool": "jfr_describeEventType",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaExceptionThrow"
+  }
+ },
+ {
+  "tool": "jfr_describeTable",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "tableName": "events"
+  }
+ },
+ {
+  "tool": "jfr_describeTable",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "tableName": "events"
+  }
+ },
+ {
+  "tool": "jfr_describeTable",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced",
+   "tableName": "events"
+  }
+ },
+ {
+  "tool": "jfr_listEventTypes",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jfr_listEventTypes",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jfr_listEventTypes",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jfr_listTables",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jfr_listTables",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jfr_listTables",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jfr_queryEvents",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaExceptionThrow",
+   "limit": 10
+  }
+ },
+ {
+  "tool": "jfr_queryEvents",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaExceptionThrow",
+   "limit": 10
+  }
+ },
+ {
+  "tool": "jvm_autoAnalysis",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_autoAnalysis",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_autoAnalysis",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_classLoading",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_classLoading",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_classLoading",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_configuration",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_configuration",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_configuration",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_container",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_container",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_container",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_exceptionSites",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "jvm_exceptionSites",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "jvm_exceptionSites",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_exceptions",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_exceptions",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_exceptions",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_flags",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_flags",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_flags",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_gc",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_gc",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_gc",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_gcDetail",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_gcDetail",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_gcDetail",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_jit",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_jit",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_jit",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_nativeMemory",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_nativeMemory",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_nativeMemory",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_safepoints",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_safepoints",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_safepoints",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_sections",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_sections",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_sections",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_security",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_security",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_security",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_system",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_system",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_system",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_threadDumps",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_threadDumps",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_threadDumps",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "jvm_threads",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "jvm_threads",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "jvm_threads",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "memory_allocations",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "memory_allocations",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "memory_allocations",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "memory_leakCandidates",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "memory_leakCandidates",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "memory_leakCandidates",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "methodtracing_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "methodtracing_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "methodtracing_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "methodtracing_slowest",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "methodtracing_slowest",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "methodtracing_slowest",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "methodtracing_timing",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "methodtracing_timing",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "methodtracing_timing",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "operations_status",
+  "arguments": {
+   "operationId": "acf39e0c-a69b-45f3-ae86-4b4111dcbb22"
+  }
+ },
+ {
+  "tool": "profiles_evidence",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "profiles_evidence",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "profiles_evidence",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "profiles_features",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "profiles_features",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "profiles_features",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "profiles_get",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "profiles_get",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "profiles_get",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "profiles_link",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "profiles_link",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "profiles_link",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
   "tool": "profiles_list",
   "arguments": {}
  },
  {
-  "tool": "profiles_evidence",
+  "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "profiles_evidence",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "profiles_evidence",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "profiles_features",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "profiles_features",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "profiles_features",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "profiles_get",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "profiles_get",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "profiles_get",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "profiles_link",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "profiles_link",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "profiles_link",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
   }
  },
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
   }
  },
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "profiles_samplerHealth",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "view": "allocations"
-  }
- },
- {
-  "tool": "profiles_viewLink",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "view": "auto-analysis"
-  }
- },
- {
-  "tool": "profiles_viewLink",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
    "view": "dashboard"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "view": "auto-analysis"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "view": "overview"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
    "view": "event-types"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
    "view": "flags"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
    "view": "garbage-collection"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "view": "nmt"
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "view": "allocations"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "view": "overview"
-  }
- },
- {
-  "tool": "jfr_describeEventType",
-  "arguments": {
-   "eventType": "jdk.JavaExceptionThrow",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jfr_describeEventType",
-  "arguments": {
-   "eventType": "jdk.JavaExceptionThrow",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jfr_describeTable",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "tableName": "events"
-  }
- },
- {
-  "tool": "jfr_describeTable",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "tableName": "events"
-  }
- },
- {
-  "tool": "jfr_describeTable",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c",
-   "tableName": "events"
-  }
- },
- {
-  "tool": "jfr_listEventTypes",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jfr_listEventTypes",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jfr_listEventTypes",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jfr_listTables",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jfr_listTables",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jfr_listTables",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jfr_queryEvents",
-  "arguments": {
-   "eventType": "jdk.JavaExceptionThrow",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jfr_queryEvents",
-  "arguments": {
-   "eventType": "jdk.JavaExceptionThrow",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "flamegraph_export",
-  "arguments": {
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "flamegraph_export",
-  "arguments": {
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "flamegraph_export",
-  "arguments": {
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "flamegraph_export",
-  "arguments": {
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "flamegraph_export",
-  "arguments": {
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "flamegraph_export",
-  "arguments": {
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "flamegraph_list",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "flamegraph_list",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "flamegraph_list",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "compare_flamegraph",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "compare_flamegraph",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_flamegraph",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_flamegraph",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "compare_flamegraph",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_flamegraph",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_list",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "compare_list",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "compare_movements",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "compare_movements",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_movements",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_movements",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "compare_movements",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_movements",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "useWeight": true
-  }
- },
- {
-  "tool": "compare_quality",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "compare_quality",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "traces_notifications",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "traces_notifications",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "traces_notifications",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "traces_operations",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "traces_operations",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "traces_operations",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "traces_overview",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "traces_overview",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "traces_overview",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_autoAnalysis",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_autoAnalysis",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_autoAnalysis",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_classLoading",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_classLoading",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_classLoading",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_configuration",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_configuration",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_configuration",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_container",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_container",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_container",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_exceptionSites",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "jvm_exceptionSites",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "jvm_exceptionSites",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "jvm_exceptions",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_exceptions",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_exceptions",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_flags",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_flags",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_flags",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_gc",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_gc",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_gc",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_gcDetail",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_gcDetail",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_gcDetail",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_jit",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_jit",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_jit",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_nativeMemory",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_nativeMemory",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_nativeMemory",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_safepoints",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_safepoints",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_safepoints",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_sections",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_sections",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_sections",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_security",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_security",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_security",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_system",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_system",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_system",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_threadDumps",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_threadDumps",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_threadDumps",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jvm_threads",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jvm_threads",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jvm_threads",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "http_overview",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "http_overview",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "http_overview",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jdbc_overview",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jdbc_overview",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jdbc_overview",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "jdbc_pools",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "jdbc_pools",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "jdbc_pools",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "grpc_overview",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "grpc_overview",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "grpc_overview",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "grpc_traffic",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "grpc_traffic",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "grpc_traffic",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "methodtracing_overview",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "methodtracing_overview",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "methodtracing_overview",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "methodtracing_slowest",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "methodtracing_slowest",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "methodtracing_slowest",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "methodtracing_timing",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "methodtracing_timing",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "methodtracing_timing",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "io_overview",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "io_overview",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "io_overview",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "io_overview",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "io_overview",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "io_overview",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "kind": "FILE",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "kind": "SOCKET",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "blocking_monitors",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "blocking_monitors",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "blocking_monitors",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "blocking_overview",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "blocking_overview",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "blocking_overview",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "blocking_pinnedThreads",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "blocking_pinnedThreads",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "blocking_pinnedThreads",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "timeline_hotWindows",
-  "arguments": {
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "timeline_hotWindows",
-  "arguments": {
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "timeline_hotWindows",
-  "arguments": {
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "timeline_hotWindows",
-  "arguments": {
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "timeline_hotWindows",
-  "arguments": {
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "timeline_hotWindows",
-  "arguments": {
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455131323,
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "startEpochMs": 1793455130323
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455132323,
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "startEpochMs": 1793455131323
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455134323,
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "startEpochMs": 1793455133323
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455151323,
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "startEpochMs": 1793455150323
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455162005,
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "startEpochMs": 1793455161005
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455163005,
-   "eventType": "jdk.JavaMonitorEnter",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "startEpochMs": 1793455162005
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455165005,
-   "eventType": "jdk.ExecutionSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "startEpochMs": 1793455164005
-  }
- },
- {
-  "tool": "timeline_zoom",
-  "arguments": {
-   "endEpochMs": 1793455170005,
-   "eventType": "jdk.ObjectAllocationSample",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "startEpochMs": 1793455169005
-  }
- },
- {
-  "tool": "memory_allocations",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "memory_allocations",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "memory_allocations",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "memory_leakCandidates",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "memory_leakCandidates",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "memory_leakCandidates",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "traces_attributeKeys",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "traces_attributeKeys",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "traces_attributeKeys",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_diff",
-  "arguments": {
-   "baselineProfileId": "01a19242-75fd-7700-858a-3a8aa32440a1",
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "heap_diff",
-  "arguments": {
-   "baselineProfileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "heap_browseClassInstances",
-  "arguments": {
-   "className": "java.lang.Long",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_browseClassInstances",
-  "arguments": {
-   "className": "java.lang.String",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_browseClassInstances",
-  "arguments": {
-   "className": "java.util.concurrent.ConcurrentHashMap",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_describeTable",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c",
-   "tableName": "class"
-  }
- },
- {
-  "tool": "heap_getBiggestObjects",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getClassHistogram",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getClassLoaderLeakChains",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getCollectionAnalysis",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30773961784",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30777055536",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30777332512",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30777705024",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30777705792",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30778015824",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30779003864",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeChildren",
-  "arguments": {
-   "objectId": "30779514856",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDominatorTreeRoots",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getDumpMetadata",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getGCRootSummary",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getHeapSummary",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30773614728",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30773798240",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30773798304",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30773961784",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30774560976",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30774951224",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30776066856",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getInstanceDetail",
-  "arguments": {
-   "objectId": "30777060176",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getLeakSuspects",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30773614728",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30773798240",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30773961784",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30774951224",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30776066856",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30777332512",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30778015824",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getPathToGCRoot",
-  "arguments": {
-   "objectId": "30779514856",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30773614728",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30773798240",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30773961784",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30774951224",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30777060176",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30777332512",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30778015824",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getReferrers",
-  "arguments": {
-   "objectId": "30779514856",
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getStringAnalysis",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getThreads",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_getTopConsumers",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_listTables",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_prepare",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
-  "tool": "heap_status",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "heap_status",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "heap_status",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "view": "nmt"
   }
  },
  {
@@ -1684,29 +1525,199 @@
   "arguments": {}
  },
  {
-  "tool": "ide_windows",
-  "arguments": {
-   "profileId": "01a19242-75fd-7700-858a-3a8aa32440a1"
-  }
- },
- {
-  "tool": "ide_windows",
-  "arguments": {
-   "profileId": "01a19242-79fe-783d-a5a1-11b7711d8ee0"
-  }
- },
- {
-  "tool": "ide_windows",
-  "arguments": {
-   "profileId": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c"
-  }
- },
- {
   "tool": "remote_sessions",
   "arguments": {}
  },
  {
   "tool": "remote_status",
   "arguments": {}
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaMonitorEnter"
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ObjectAllocationSample"
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ObjectAllocationSample",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaMonitorEnter",
+   "startEpochMs": 1793471043942,
+   "endEpochMs": 1793471044942
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ObjectAllocationSample",
+   "startEpochMs": 1793471059648,
+   "endEpochMs": 1793471060648
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ExecutionSample",
+   "startEpochMs": 1793471023942,
+   "endEpochMs": 1793471024942
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ExecutionSample",
+   "startEpochMs": 1793471051648,
+   "endEpochMs": 1793471052648
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.ObjectAllocationSample",
+   "startEpochMs": 1793471020942,
+   "endEpochMs": 1793471021942
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.ObjectAllocationSample",
+   "startEpochMs": 1793471051648,
+   "endEpochMs": 1793471052648
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563",
+   "eventType": "jdk.JavaMonitorEnter",
+   "startEpochMs": 1793471052648,
+   "endEpochMs": 1793471053648
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429",
+   "eventType": "jdk.JavaMonitorEnter",
+   "startEpochMs": 1793471021942,
+   "endEpochMs": 1793471022942
+  }
+ },
+ {
+  "tool": "traces_attributeKeys",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "traces_attributeKeys",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "traces_attributeKeys",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "traces_notifications",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "traces_notifications",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "traces_notifications",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "traces_operations",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "traces_operations",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "traces_operations",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
+ },
+ {
+  "tool": "traces_overview",
+  "arguments": {
+   "profileId": "01a19334-eede-702a-8f73-06a758aeb429"
+  }
+ },
+ {
+  "tool": "traces_overview",
+  "arguments": {
+   "profileId": "01a19334-f2e8-7e26-909f-6374da10c563"
+  }
+ },
+ {
+  "tool": "traces_overview",
+  "arguments": {
+   "profileId": "01a19334-f651-798c-8817-2a68246b6ced"
+  }
  }
 ]
