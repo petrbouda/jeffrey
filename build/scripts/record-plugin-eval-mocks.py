@@ -41,7 +41,8 @@ URI) gets no mock and is absent from the eval runs; so are the writers this scri
 The answers describe this Jeffrey's build — re-record after a change to what the tools return.
 
 The SQL cases (`evals-live/`) run against a real Jeffrey instead, which `--load` prepares: it imports
-the files a recording left in `--work-dir` into an empty Jeffrey, under the names the mocks carry, and
+the files a recording left in `--work-dir` (or the copies kept in jeffrey-recordings/plugin-evals,
+with the dump gzipped) into an empty Jeffrey, under the names the mocks carry, and
 checks the figures those cases' graders name against it. A recording measures those figures
 (`FIGURES`) and rewrites them in the graders, as it does the profile ids.
 
@@ -51,6 +52,8 @@ Usage: record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp --work-di
 
 import argparse
 import collections
+import gzip
+import hashlib
 import json
 import re
 import shutil
@@ -68,6 +71,10 @@ WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java
 MOCKS = PLUGIN_DIR / "evals/mocks/jeffrey"
 FIXTURES = MOCKS / "fixtures"
 RECORDED_PROFILES = PLUGIN_DIR / "evals/fixtures/recorded-profiles.json"
+# Where the recording behind the mocks is kept, for --load on another machine: plugin-evals/ holds the two
+# JFR files and the dump gzipped, under the names recorded_files() gives them.
+RECORDINGS_REPO = "https://github.com/petrbouda/jeffrey-recordings (plugin-evals/)"
+GZIP_SUFFIX = ".gz"
 MOCKED_CASES = PLUGIN_DIR / "evals/cases"
 # Run with --mocks off, so they have no mock_calls to grade and get no call-contract grader.
 LIVE_CASES = PLUGIN_DIR / "evals-live/cases"
@@ -524,7 +531,8 @@ def main() -> int:
     write_mocks(tools, recorded)
     RECORDED_PROFILES.write_text(json.dumps(
         {"baseline": profiles.baseline, "candidate": profiles.candidate, "heap": profiles.heap,
-         "heapDumpPath": str(files["heap"]), "figures": figures}, indent=1) + "\n")
+         "heapDumpPath": str(files["heap"]), "figures": figures,
+         "files": {path.name: sha256_of(path) for path in files.values()}}, indent=1) + "\n")
     return 0
 
 
@@ -533,16 +541,43 @@ def recorded_files(work_dir: Path) -> dict[str, Path]:
             "heap": work_dir / "checkout.hprof"}
 
 
+def sha256_of(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for block in iter(lambda: file.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def unpack_heap_dump(work_dir: Path) -> None:
+    """The recordings are kept with the dump gzipped (RECORDINGS_REPO); the import reads it unpacked."""
+    dump = recorded_files(work_dir)["heap"]
+    packed = dump.with_name(dump.name + GZIP_SUFFIX)
+    if not dump.exists() and packed.exists():
+        with gzip.open(packed, "rb") as source, dump.open("wb") as target:
+            shutil.copyfileobj(source, target)
+
+
 def load(jeffrey: Jeffrey, work_dir: Path) -> int:
     """The live cases' Jeffrey: the recordings the mocks were taken from, imported under the same names,
-    refused when their figures are not the ones the graders name."""
+    refused when they are not the files the mocks were recorded from (their checksums) or do not answer
+    the figures the graders name."""
+    unpack_heap_dump(work_dir)
     files = recorded_files(work_dir)
     missing = [str(path) for path in files.values() if not path.exists()]
     if missing:
-        print(f"--load imports the files a recording left in --work-dir; missing: {missing}", file=sys.stderr)
+        print(f"--load imports the files a recording left in --work-dir, or a clone of {RECORDINGS_REPO}; "
+              f"missing: {missing}", file=sys.stderr)
+        return 1
+    recorded = json.loads(RECORDED_PROFILES.read_text())
+    sums = recorded.get("files") or {}
+    wrong = [path.name for path in files.values() if path.name in sums and sha256_of(path) != sums[path.name]]
+    if wrong:
+        print(f"these files are not the recording the mocks were taken from: {wrong} (see {RECORDINGS_REPO})",
+              file=sys.stderr)
         return 1
     profiles = import_profiles(jeffrey, files, Recorded())
-    expected = json.loads(RECORDED_PROFILES.read_text()).get("figures") or {}
+    expected = recorded.get("figures") or {}
     measured = measure_figures(jeffrey, profiles)
     if measured != expected:
         print(f"these files are not the recording the graders name: figures {measured}, expected {expected}",

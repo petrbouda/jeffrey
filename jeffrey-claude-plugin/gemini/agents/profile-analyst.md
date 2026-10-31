@@ -86,7 +86,9 @@ question; `flamegraph_list` names them all, each with its export defaults.
 A whole-recording graph flattens a spike into an average: `timeline_hotWindows` ranks the busiest
 windows, and the export of the busiest is already in its `followUp.nextTools`. Raise `thresholdPct`
 for the shape, lower it to chase one path. A frame with `self` close to `total` is leaf work; one
-with `self` far below `total` is orchestration — walk into it.
+with `self` far below `total` is orchestration — walk into it. Leave `threadMode` off unless the
+question is about threads: the per-thread split repeats every path once per thread, so the export
+runs several times longer, and a hotspot shows in the aggregate either way.
 
 **A trace operation.** `traces_overview`; then `traces_notifications` first when any is `CRITICAL` or
 `HIGH`, since it names the cause the span tree only shows the cost of; then `traces_operations` —
