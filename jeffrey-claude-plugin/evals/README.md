@@ -168,3 +168,22 @@ first case to exercise it. `named-area-cpu`, one export, still reads it in the m
 (1.00, 186k). The trade is model time for a main conversation five times smaller, which is what a
 follow-up question in the same conversation pays for; these single-question cases do not measure
 that second turn.
+
+**The agents carry handbooks, not skills** (plugin 1.0.10). `profile-analyst` no longer preloads
+`report` and `heap-triage` no longer preloads `analyze-heap`, `heap-sql` and `report` (38 KB): each
+carries what it works by inline — the heap handbook for `heap-triage`, and for both the evidence
+rules, one shared fragment (`build/plugin/shared/evidence-rules.md`). Measured on 2026-10-31, three
+runs each:
+
+| Case | Score | Agents' tokens in | Cost per answer |
+|---|---|---|---|
+| `two-areas-delegated` (two `profile-analyst`) | 1.00 → 1.00 | 202k → 159k (−21%) | $0.36 → $0.27 |
+| `heap-dump-what-holds-memory` (`heap-triage`) | 1.00 → 1.00 | 123k → 119k (−3%) | $0.26 → $0.25 |
+
+**Where the main conversation's tokens go**, read off the per-request usage in a trace: every request
+starts from about 18k tokens — Claude Code's system prompt and the tool list — before the skill or
+any answer; the skill adds 5–7k once, and each answer a few thousand. A case's tokens-in total is
+mostly that base read again on every request, nearly all of it cache reads. So shortening the
+main-conversation skills further moves little; the number of requests an answer takes is the lever,
+and that is the tools' shape — how many calls stand between the question and the first answer —
+rather than the skills' length.

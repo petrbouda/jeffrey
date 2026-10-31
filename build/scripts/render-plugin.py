@@ -26,7 +26,8 @@ one dialect, a rule reached two of three, and a tool list used a wildcard Claude
 So those parts have one source each under `build/plugin/`, and this script writes the copies:
 
 - `shared/*.md` — a section or a sentence, written into every skill listed for it;
-- `agents/<name>.md` — one agent: its description once, each dialect's settings, and one body whose
+- `agents/<name>.md` — one agent: its description once, each dialect's settings, and one body — with
+  `<!-- include: shared/<fragment>.md -->` lines for text two agents share — whose
   `<!-- claude -->` / `<!-- portable -->` / `<!-- end -->` blocks hold what only one dialect says
   (the portable text is Codex's and Gemini's, which are the same). A Claude Code tool list names
   families (`heap_*`) or the whole server (`*`); it is written out as exact tool names from
@@ -56,6 +57,8 @@ CLAUDE_PREFIXES = ("mcp__plugin_microscope_jeffrey__", "mcp__jeffrey__")
 WHOLE_SERVER = "*"
 FAMILY_WILDCARD = re.compile(r"^(?P<family>[a-z]+)_\*$")
 
+# A line of its own that puts a shared fragment into an agent's body, so two agents can carry one text.
+INCLUDE = re.compile(r"^<!-- include: (?P<source>shared/[\w.-]+\.md) -->$")
 CLAUDE_BLOCK, PORTABLE_BLOCK, END_BLOCK = "<!-- claude -->", "<!-- portable -->", "<!-- end -->"
 DIALECT_BLOCKS = {CLAUDE_BLOCK: "claude", PORTABLE_BLOCK: "portable"}
 TOML_WIDTH = 103
@@ -133,11 +136,11 @@ class AgentSource:
     body: str
 
     @staticmethod
-    def read(path: Path) -> "AgentSource":
+    def read(path: Path, sources: Path) -> "AgentSource":
         _, front, body = path.read_text().split("---\n", 2)
         data = yaml.safe_load(front)
         return AgentSource(data["name"], data["description"], data["claude"], data["codex"], data.get("gemini"),
-                           body.strip("\n"))
+                           included(body.strip("\n"), sources, data["name"]))
 
     def body_for(self, dialect: str) -> str:
         """The body with the other dialect's blocks dropped and every block marker removed."""
@@ -154,6 +157,21 @@ class AgentSource:
         if current is not None:
             raise RenderError(f"agents/{self.name}: a {current} block is never closed")
         return "\n".join(lines)
+
+
+def included(body: str, sources: Path, agent: str) -> str:
+    """The body with each include line replaced by the shared fragment it names."""
+    lines = []
+    for line in body.splitlines():
+        include = INCLUDE.match(line)
+        if include is None:
+            lines.append(line)
+            continue
+        fragment = sources / include.group("source")
+        if not fragment.exists():
+            raise RenderError(f"agents/{agent}: includes {include.group('source')}, which does not exist")
+        lines += fragment.read_text().rstrip("\n").splitlines()
+    return "\n".join(lines)
 
 
 def claude_entries(specs: list[str], tools: set[str], agent: str) -> list[str]:
@@ -185,8 +203,9 @@ def render_claude(agent: AgentSource, tools: set[str]) -> str:
             lines.append(f"{key}:")
             lines += [f"  - {entry}" for entry in claude_entries(settings[key], tools, agent.name)]
     lines.append(f"model: {settings['model']}")
-    lines.append("skills:")
-    lines += [f"  - {skill}" for skill in settings["skills"]]
+    if settings.get("skills"):
+        lines.append("skills:")
+        lines += [f"  - {skill}" for skill in settings["skills"]]
     lines += [f"color: {settings['color']}", "---", "", agent.body_for("claude")]
     return "\n".join(lines) + "\n"
 
@@ -230,7 +249,7 @@ def rendered(root: Path) -> dict[Path, str]:
         path = plugin / "skills" / skill / "SKILL.md"
         files[path] = render_skill(path.read_text(), skill, sources)
     for source in sorted((sources / "agents").glob("*.md")):
-        agent = AgentSource.read(source)
+        agent = AgentSource.read(source, sources)
         files[plugin / "agents" / f"{agent.name}.md"] = render_claude(agent, tools)
         files[plugin / "codex" / "agents" / f"{agent.name}.toml"] = render_codex(agent)
         if agent.gemini is not None:

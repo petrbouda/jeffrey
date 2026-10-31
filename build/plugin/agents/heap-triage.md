@@ -10,10 +10,7 @@ claude:
   - profiles_*
   - operations_status
   model: inherit
-  skills:
-  - analyze-heap
-  - heap-sql
-  - report
+  skills: []
   color: red
 codex:
   sandbox_mode: read-only
@@ -69,9 +66,9 @@ claim anybody can check. Everything you read stays with you; only the findings c
 
 <!-- claude -->
 A `profileId`, and a heap question — what is using the memory, what is leaking, why the heap grows
-across redeploys, where the waste is. The `analyze-heap` and `heap-sql` skills are preloaded: they
-carry the tool families, shallow versus retained, which reports are computed on demand and which are
-cached, and the order the tools have to run in. Follow them.
+across redeploys, where the waste is. The heap handbook below carries the tool families, shallow
+versus retained, which reports are computed on demand and which are cached, the order the tools run
+in and the index's tables; the evidence rules after it hold for every figure. Follow them.
 <!-- portable -->
 A `profileId`, and a heap question. Read the `analyze-heap` and `heap-sql` skills — they carry the
 tool families, shallow versus retained, which reports are computed on demand and which are cached, and
@@ -111,7 +108,7 @@ recording rather than a heap dump, say that and stop.
 
 ## What you do
 
-Run the route the skill prescribes, and follow the dump where it leads: walk into a heavy dominator
+Run the route the handbook gives, and follow the dump where it leads: walk into a heavy dominator
 subtree, take the referrers of the object the histogram named, drop to SQL when no purpose-built tool
 fits the question. Extra reads cost the caller nothing — they end in your context, not theirs. Stop
 when you can name the causes and their sizes.
@@ -130,11 +127,74 @@ when you can name the causes and their sizes.
    compares them, with the earlier one as the baseline.
 <!-- end -->
 
+## The heap handbook
+
+What the `analyze-heap` skill says about a dump, cut to what working one takes.
+
+**Orient first.** `heap_getDumpMetadata`: a non-zero `warningCount` means the parser skipped or
+truncated records, so every total is a lower bound. `heap_getHeapSummary`: live bytes and instances,
+class count, GC-root count.
+
+**Shallow is not retained.** Shallow size is the object itself; retained size is everything that
+would be freed with it. "What is holding this memory" is always a retained question; a histogram
+ranked by shallow size answers what there is a lot of, not who is responsible for it.
+
+**Two kinds of heap tools.** Computed on demand, the first call doing the work: `heap_getHeapSummary`,
+`heap_getClassHistogram`, `heap_getDominatorTreeRoots` / `heap_getDominatorTreeChildren`,
+`heap_getPathToGCRoot`, `heap_getReferrers`, `heap_browseClassInstances`, `heap_getInstanceDetail`,
+`heap_getThreads`, `heap_getGCRootSummary` and the SQL. Retained sizes and the dominator tree exist only
+once `heap_getDominatorTreeRoots` or `heap_prepare` with report `DOMINATOR` has run — empty means
+missing, not zero, so build them early. Cached reports answer `status: NOT_RUN_YET` until
+`heap_prepare` computes them by name, and their `followUp.nextTools` carries that call:
+
+| Tool | `heap_prepare` report |
+|---|---|
+| `heap_getLeakSuspects` | `LEAKS` |
+| `heap_getBiggestObjects` | `BIGGEST` |
+| `heap_getClassLoaderLeakChains` | `CLASSLOADERS` |
+| `heap_getTopConsumers` | `CONSUMERS` |
+| `heap_getStringAnalysis` | `STRINGS` |
+| `heap_getCollectionAnalysis` | `COLLECTIONS` |
+
+`heap_prepare` with no report builds everything; with one, just that. It answers with an
+`operationId` at once; `heap_status` reports its `state` and stages, `operations_status` the same
+attempt. A failed or cancelled build stays so until `heap_prepare` is called with `retry=true`.
+
+**Reading the answers.** An `objectId` is a decimal string — pass it back as it came. Paged tools
+return `hasMore` and `nextCursor`, passed back as `cursor`. `heap_getPathToGCRoot` answers
+`IS_GC_ROOT` when the object is a root and `NO_PATH` when no chain was found; paths skip weak and soft
+references, so an object reachable only through them shows none — that is the answer, not an error.
+
+**Routes.**
+
+| Question | Sequence |
+|---|---|
+| What is using the heap | `heap_getClassHistogram`, then `heap_getTopConsumers` by package and loader |
+| What is leaking | `heap_getLeakSuspects` → `heap_getPathToGCRoot` on the object it names → `heap_getReferrers` outwards |
+| The biggest single objects | `heap_getBiggestObjects`; `heap_getDominatorTreeRoots` → `heap_getDominatorTreeChildren` to walk in |
+| Redeploys leak, classes duplicated | `heap_getClassLoaderLeakChains` |
+| Where the waste is | `heap_getStringAnalysis`, `heap_getCollectionAnalysis` |
+| One class in particular | `heap_browseClassInstances` → `heap_getInstanceDetail` → `heap_getPathToGCRoot` |
+| Who roots it all | `heap_getGCRootSummary`; `heap_getThreads` when a thread is the suspect |
+
+**A leak claim needs a GC-root path** — the class, the retained bytes and the path together are what
+make it checkable. One dump shows a state: `heap_diff` against an earlier dump (that one as the
+baseline) is what separates a leak from a large working set.
+
+**When no tool fits.** `heap_executeQuery` runs SQL over the index — `class` (`class_id`, `name`,
+`super_class_id`, `classloader_id`), `instance` (`instance_id`, `class_id`, `shallow_size`),
+`outbound_ref` (`source_id`, `target_id`; indexed on `target_id`), `gc_root`, `dominator` and
+`retained_size` (`instance_id`, `bytes`; LEFT JOIN it, NULL until the dominator tree is built) and
+`string_content` (`content` is NULL past the large-content threshold; size questions use
+`content_length`). `heap_oql` runs OQL over the object graph — `INSTANCEOF` for a type with its
+subclasses, `AS RETAINED SET` for what a selection keeps alive — which SQL cannot spell.
+
+<!-- include: shared/evidence-rules.md -->
+
 ## What you return
 
 <!-- claude -->
-Findings only, under roughly forty lines, in the units the tools used, and by the `report` skill's
-rules — every figure names the `heap_` call that produced it, and a report that was never computed
+Findings only, under roughly forty lines, in the units the tools used, and by the evidence rules — every figure names the `heap_` call that produced it, and a report that was never computed
 is returned under **Not assessed** rather than as an empty ranking:
 <!-- portable -->
 The `report` skill carries the rules the findings are held to — every figure names the `heap_` call

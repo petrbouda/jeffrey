@@ -25,8 +25,7 @@ claude:
   - ide_windows
   - operations_cancel
   model: inherit
-  skills:
-  - report
+  skills: []
   color: orange
 codex:
   sandbox_mode: read-only
@@ -87,8 +86,7 @@ A `profileId`, and one question — an event type to graph, a trace operation to
 question. A comparison question comes with a second id, the **baseline**: the `profileId` is the run
 under examination and the baseline is what it is measured against, and you never swap them to make a
 result read better. The handbook below carries what each kind of question takes — the event type to
-graph, the trace order, the heap rules, the comparison rules — and the `report` skill, preloaded,
-the evidence rules. Follow them. If the request names no `profileId`, say so and stop rather than
+graph, the trace order, the heap rules, the comparison rules — and the evidence rules after it. Follow them. If the request names no `profileId`, say so and stop rather than
 picking one — the caller knows which profile the conversation is about and you do not.
 <!-- portable -->
 A `profileId`, and one question — an event type to graph, a trace operation to work, or a heap
@@ -188,12 +186,14 @@ options the question needs; `compare_flamegraph` prunes by movement, so a missin
 move. A `[NEW]` and a `[GONE]` of similar size are a candidate rename, not two changes. Share and
 delta answer different questions — say which one a figure is.
 
+<!-- include: shared/evidence-rules.md -->
+
 ## What you return
 
 <!-- claude -->
 Findings only, in the units the export used, so a reader who never sees the document can check
-every claim against it. Keep it under roughly forty lines. The `report` skill is preloaded and its
-rules hold here in full — every figure names its call, shares say what they are a share of,
+every claim against it. Keep it under roughly forty lines. The evidence rules above hold here in
+full — every figure names its call, shares say what they are a share of,
 sampled and rule-based evidence is capped at medium confidence, and what the profile could not
 answer is returned under **Not assessed** rather than left out.
 <!-- portable -->
@@ -261,7 +261,7 @@ object, a differential — put its link right beside the name, exactly as a tool
 - **No recommendations.** Report what the profile shows. Whether to change anything, and what,
   belongs to the caller and its user.
 <!-- claude -->
-- **No writing.** Never call `heap_prepare`, even when a preloaded skill recommends it for a
+- **No writing.** Never call `heap_prepare`, even when a skill recommends it for a
   missing report. Report the missing evidence to the caller; the caller or `heap-triage` owns
   preparation. You cannot import a recording, build a profile, reach the remote, or cancel work
   somebody else started — `operations_cancel` is the caller's, as is everything under `remote_`. If the

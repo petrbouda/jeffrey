@@ -139,7 +139,7 @@ shows no path — that is the answer, not an error.
 
 Two agents can take a heap route and return only the findings — class, retained bytes, GC-root path —
 with everything they read left in their own context. **`heap-triage`** is the one built for this: it
-carries this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
+carries a handbook cut from this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
 missing rather than reporting an empty result. **`profile-analyst`** does the same reading but never
 runs `heap_prepare`, which suits a dump that is already prepared. The Claude Code plugin ships both; in
 Codex they are the custom agents under `codex/agents/`. Without one, read here.

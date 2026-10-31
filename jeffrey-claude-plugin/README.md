@@ -241,7 +241,7 @@ hot frames with their shares, or the retaining classes with their GC-root paths 
 it read in its own context. The skills hand it the reading and keep what needs your conversation:
 mapping frames onto the checkout, the recommendation, and every question put to you.
 
-`heap-triage` is the heap specialist: it carries `analyze-heap` and `heap-sql`, runs the whole leak
+`heap-triage` is the heap specialist: it carries a handbook cut from `analyze-heap` and `heap-sql`, runs the whole leak
 route, and will build a missing dominator tree or report with `heap_prepare` rather than reporting an
 empty result.
 
