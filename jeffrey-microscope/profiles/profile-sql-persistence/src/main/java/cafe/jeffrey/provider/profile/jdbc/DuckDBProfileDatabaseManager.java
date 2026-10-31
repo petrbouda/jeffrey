@@ -35,12 +35,15 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
     private static final String JDBC_URL_PREFIX = "jdbc:duckdb:";
 
-    // DuckDB setting: without the obligation to preserve insertion order, parallel ingestion
-    // (appenders, CTAS re-clustering) streams batches with less memory and no final re-ordering.
-    // Safe here: consumers that need chronological events request an explicit ORDER BY
-    // (EventQueryConfigurer.orderedByTime), and the table is re-clustered after parsing anyway.
-    private static final String PRESERVE_INSERTION_ORDER_SETTING = "preserve_insertion_order";
-    private static final String PRESERVE_INSERTION_ORDER_VALUE = "false";
+    /*
+     * preserve_insertion_order is left at DuckDB's default (true) on purpose. Turned off, the JDBC
+     * driver hands a prepared statement's ORDER BY back out of order once the result passes one row
+     * group (~122 880 rows), and every reader here is a prepared statement: the time-ordered event
+     * streams (EventQueryConfigurer.orderedByTime) delta consecutive counters and keep the last
+     * snapshot per key, so a long recording answered wrong. It bought nothing measurable: appenders
+     * ignore it, the CTAS re-cluster sorts in the same time either way, and a multi-million-row
+     * unordered scan was a few milliseconds faster. DuckDBProfileDatabaseManagerTest pins the order.
+     */
 
     // Sized so that every DB-writer thread can flush its batch concurrently during ingestion
     // instead of blocking on the pool
@@ -148,7 +151,6 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .maxLifetime(Duration.ZERO)
                 .keepAliveTime(Duration.ZERO)
                 .additionalProperty(WAL_AUTOCHECKPOINT_PROPERTY, WAL_AUTOCHECKPOINT_THRESHOLD)
-                .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
                 .additionalProperty(EXTERNAL_ACCESS_SETTING, EXTERNAL_ACCESS_VALUE)
                 .additionalProperty(AUTOINSTALL_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
                 .additionalProperty(AUTOLOAD_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
