@@ -1,8 +1,6 @@
 ---
-type: llm
+# Allocation is ranked by bytes: the answer carries byte figures or says its shares are of bytes.
+type: regex
+pattern: '(?:of|by|in)\s+(?:the\s+)?(?:total\s+|all\s+|allocated\s+|sampled\s+)*bytes|\d+(?:\.\d+)?\s*(?:[KMGT]i?B)\b'
+flags: i
 ---
-
-PASS if the answer ranks allocation by bytes (or says what its shares are of) and names
-PriceCalculator.formatLine / String.format as the dominant allocation path, and names
-SessionCache.busyWait as the dominant CPU frame. FAIL if either hotspot is wrong or allocation is
-ranked by sample count alone without saying so.

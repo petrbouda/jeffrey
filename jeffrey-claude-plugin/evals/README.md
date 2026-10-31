@@ -374,3 +374,34 @@ Every run quotes the complete count (28,638 `NumberFormatException`s at `CouponP
 one miss is `classifies-it`'s judge (FAIL, FAIL, PASS) on a run that did not read the throw site's
 source before classifying it — the grader that cost this case a run at 1.0.6 too, not the counts.
 
+**Three judges become regexes, and one regex widens.** Across this file's runs the judges
+`classifies-it`, `honest-verdict` and `weighs-allocation-by-bytes` failed 5 answers, and reading them
+showed every one correct: "exception-driven control flow … check the format first", "medium
+confidence until you confirm both runs did the same workload", "95.2% of bytes (13.6 GiB)". Each judge
+bundled checks other graders already make (the site, the hotspots) with one question a pattern can
+answer, so the questions became graders of their own:
+
+| Case | Was | Now |
+|---|---|---|
+| `exceptions-to-the-throw-site` | `classifies-it` (judge) | `calls-it-control-flow`, `checks-before-parsing`, `does-not-claim-the-source` |
+| `compare-finds-the-regression` | `honest-verdict` (judge) | `states-its-limits`, `no-measured-overall-slowdown` (not contains) |
+| `two-areas-delegated` | `weighs-allocation-by-bytes` (judge) | the same name, a regex: byte figures, or shares said to be of bytes |
+| `lock-contention-not-wall-clock` | `says-it-is-summed-over-threads` | the same, with "combined time", "per-thread", "cumulative" and the like |
+
+Each pattern passes every answer this suite has kept — 18 for the exceptions case, 12 for the
+comparison, 21 for the two areas, the 3 fresh lock answers — and fails a set of written-wrong ones
+(a fix that catches instead of checking, an overall "12.4% slower" stated as measured, allocation
+ranked by sample count, blocked time quoted against the recording). `checks-before-parsing` was
+widened once, after it failed a correct "check it first … without throwing". Three runs each:
+
+| Case | Score | Cost |
+|---|---|---|
+| `exceptions-to-the-throw-site` | 0.95 (the widened `checks-before-parsing` passes that run's answer, checked offline, not re-run) | $0.15 |
+| `compare-finds-the-regression` | 1.00 | $0.20 |
+| `two-areas-delegated` | 1.00 | $0.37 |
+| `lock-contention-not-wall-clock` | 1.00 | $0.11 |
+
+Five judges stay — `one-dump-is-a-state`, `profile-is-not-enough`, `pauses-in-proportion`, `orients`
+and `puts-the-menu` — where what is checked is a claim's meaning rather than its words; none of them
+has failed a run in this file's measurements.
+
