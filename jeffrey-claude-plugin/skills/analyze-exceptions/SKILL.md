@@ -95,6 +95,11 @@ the throw events are throttled (300/s under `profile`, 100/s under `default`): t
 sample, so compare sites by share and take how many were thrown from `totalThrowables`, which
 `jdk.ExceptionStatistics` counts unthrottled.
 
+A question these answers do not shape — how many *distinct* messages a type carries (each site lists
+only its commonest), the throws per second, the threads they came from — is SQL over the
+`jdk.JavaExceptionThrow` events (`thrownClass`, `message` in `fields`): load the **jfr-sql** skill
+before writing it, and quote the query's answer, not an estimate from the commonest messages.
+
 ## 4. Find the code — `jvm_exceptionSites`
 
 Call it with `framePrefixes` set to the packages from step 2 (and `thrownClass` when the user named

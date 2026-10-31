@@ -224,7 +224,10 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 For a question none of the tools above cover there are two languages, and they are not
 interchangeable. `heap_executeQuery` runs **SQL** against the index as it is stored — join `instance`
-to `class`, group by loader, correlate two tables; the `heap-sql` skill has the schema. `heap_oql`
+to `class`, group by loader, correlate two tables, read what the strings say. Load the **heap-sql**
+skill before the first query: it has the schema, and the traps the column names do not show (the
+`string` table is the HPROF name pool, not the `String` instances; `outbound_ref.field_id` counts the
+object's whole field layout). `heap_oql`
 runs **OQL** against the object graph the index implies — every instance of a type including its
 subclasses, the retained set of a selection, a filter over an object's own fields. The retained-set
 and `INSTANCEOF` forms have no SQL spelling at all.

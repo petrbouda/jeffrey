@@ -28,9 +28,13 @@ Tool names below omit the prefix your client puts in front of them — `mcp__plu
   `super_class_id`, `classloader_id`, `instance_size`, `is_array`.
 - **`instance`** — `instance_id`, `class_id` (nullable for primitive arrays), `shallow_size`,
   `array_length`, `record_kind` (TINYINT: `0` instance, `1` object array, `2` primitive array).
-- **`outbound_ref`** — `source_id`, `target_id`, `field_kind`, `field_id`. The whole reference graph;
-  indexed on `target_id` only, so "who points at X" is a lookup and "what X points at" is a scan —
-  cheap once, slow when repeated per row.
+- **`outbound_ref`** — `source_id`, `target_id`, `field_kind`, `field_id`. `field_kind` `0` is an
+  instance field: `field_id` is its position in the object's whole layout — its own class's fields
+  first, then each superclass's, primitive fields counted too — so for a field the object's own class
+  declares it equals that field's `field_index` in `class_instance_field`. `1` is an array element
+  (`field_id` the element's index), `2` a static field (`source_id` the class object). The whole
+  reference graph; indexed on `target_id` only, so "who points at X" is a lookup and "what X points
+  at" is a scan — cheap once, slow when repeated per row.
 - **`gc_root`** — `instance_id`, `root_kind`, `thread_serial`, `frame_index`.
 - **`dominator`** — `instance_id`, `dominator_id`. **Built lazily** — empty until something asks for it.
 - **`retained_size`** — `instance_id`, `bytes`. Populated alongside `dominator`, so LEFT JOIN it and

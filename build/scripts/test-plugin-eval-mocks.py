@@ -47,7 +47,7 @@ class ReplayContractTest(unittest.TestCase):
         self.mocks = self.root / 'mocks'
         self.cases = self.root / 'cases'
         (self.cases / 'example/graders').mkdir(parents=True)
-        for name, value in [('MOCKS', self.mocks), ('FIXTURES', self.mocks / 'fixtures'), ('CASES', self.cases)]:
+        for name, value in [('MOCKS', self.mocks), ('FIXTURES', self.mocks / 'fixtures'), ('MOCKED_CASES', self.cases)]:
             p = patch.object(recorder, name, value)
             p.start()
             self.addCleanup(p.stop)
@@ -154,7 +154,7 @@ class CheckedInContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)
             (output / 'example/graders').mkdir(parents=True)
-            with patch.object(recorder, 'CASES', output):
+            with patch.object(recorder, 'MOCKED_CASES', output):
                 recorder.write_contract_graders(tools, inputs)
             expected = (output / 'example/graders/recorded-call-semantics.md').read_text()
         for case in cases.iterdir():
