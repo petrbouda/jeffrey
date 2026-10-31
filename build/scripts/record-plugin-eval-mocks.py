@@ -66,7 +66,10 @@ CASES = PLUGIN_DIR / "evals/cases"
 
 PROTOCOL_VERSION = "2026-07-28"
 CLIENT_INFO = {"name": "plugin-eval-recorder", "version": "1"}
-JFR_OPTIONS = "settings=profile,jdk.JavaExceptionThrow#enabled=true,dumponexit=true"
+# Every throw, on any JDK: JDK 25 turns jdk.JavaExceptionThrow on but throttles it (300/s under
+# profile), so #enabled=true alone records a sample; JDK 21 warns that throttle does not exist.
+JFR_OPTIONS = ("settings=profile,jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off,"
+               "dumponexit=true")
 REQUEST_TIMEOUT_SECONDS = 180
 OPERATION_POLL_SECONDS = 2
 OPERATION_FINISHED = ("COMPLETED", "FAILED", "CANCELLED")

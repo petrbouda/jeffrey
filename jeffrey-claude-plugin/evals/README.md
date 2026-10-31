@@ -359,3 +359,18 @@ the one that lacks it.
 | `record-exceptions-next-time` | 1.00 → 1.00 | — → `profile-run` | 0 of 3 → 3 of 3 | $0.06 → $0.07 |
 | `route-record-first` | 1.00 → 1.00 | `profile-run` | — | $0.08 → $0.08 |
 
+**The eval workload records every throw.** The recorder ran it with `#enabled=true` alone, so on
+JDK 25 the exception mocks were a 300/s sample: 8,419 of 29,370 throwables named (29%). With
+`#throttle=off` added, the same 30-second workload names 30,081 against a counted 29,699 — every
+throw (the throw events can exceed the total: `jdk.ExceptionStatistics` is a once-a-second counter
+and misses the throws before its first sample and after its last). Three runs of the case that reads
+them:
+
+| Case | Score | Tool calls | Tokens in | Cost |
+|---|---|---|---|---|
+| `exceptions-to-the-throw-site` | 1.00 → 0.93 | 7 → 7 | 152k → 153k | $0.16 → $0.15 |
+
+Every run quotes the complete count (28,638 `NumberFormatException`s at `CouponParser.discount`). The
+one miss is `classifies-it`'s judge (FAIL, FAIL, PASS) on a run that did not read the throw site's
+source before classifying it — the grader that cost this case a run at 1.0.6 too, not the counts.
+

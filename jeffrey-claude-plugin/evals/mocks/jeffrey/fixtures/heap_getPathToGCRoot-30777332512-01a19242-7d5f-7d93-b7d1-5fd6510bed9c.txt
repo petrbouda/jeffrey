@@ -1,0 +1,8 @@
+status: IS_GC_ROOT
+Object 30777332512 is itself a GC root (Java frame of thread main at com.acme.checkout.Checkout.main(Checkout.java:82)): it is kept alive directly, and no longer path was found.
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19242-7d5f-7d93-b7d1-5fd6510bed9c/heap-dump/gc-root-path?objectId=30777332512
+Next:
+- heap_getReferrers {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30777332512"} [MEDIUM]

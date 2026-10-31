@@ -1,8 +1,0 @@
-status: IS_GC_ROOT
-Object 30774000680 is itself a GC root (Thread object of thread main): it is kept alive directly, and no longer path was found.
-
-
----
-Open in Microscope: http://localhost:8585/profiles/01a191f9-d692-735b-8bfa-1b762f0994ab/heap-dump/gc-root-path?objectId=30774000680
-Next:
-- heap_getReferrers {"profileId":"01a191f9-d692-735b-8bfa-1b762f0994ab","objectId":"30774000680"} [MEDIUM]

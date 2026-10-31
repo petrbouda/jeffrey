@@ -1,0 +1,38 @@
+Biggest Objects Report:
+
+Total Heap Size: 10.7 MiB
+Total Retained by Top Objects: 7.1 MiB
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+com.acme.checkout.Checkout$AuditLog                           24 B         4.9 MiB          30777332512
+jdk.internal.loader.ClassLoaders$AppClassLoader              104 B       365.6 KiB          30773962248
+class jdk.jfr.internal.StringPool                             91 B       274.5 KiB          30774592416
+class jdk.jfr.internal.MetadataRepository                     16 B       264.2 KiB          30776892640
+class java.time.zone.ZoneRulesProvider                        32 B       204.3 KiB          30773662176
+class sun.util.calendar.ZoneInfoFile                         148 B       150.1 KiB          30788130104
+jdk.internal.jimage.ImageReader$SharedImageReader             96 B       140.5 KiB          30775345280
+byte[]                                                   107.9 KiB       107.9 KiB          30774648440
+class java.lang.invoke.MethodType                             69 B        99.4 KiB          30788117056
+com.sun.tools.javac.launcher.MemoryContext                    48 B        85.3 KiB          30773962208
+class jdk.jfr.internal.jfc.JFC                                36 B        80.7 KiB          30773689416
+class jdk.internal.module.ArchivedModuleGraph                  8 B        79.1 KiB          30788067400
+class sun.util.locale.provider.LocaleProviderAd...            33 B        76.0 KiB          30788260168
+java.lang.Object[]                                        10.6 KiB        75.3 KiB          30787659832
+class sun.util.resources.Bundles                              44 B        51.5 KiB          30788253088
+java.lang.Object[]                                        33.0 KiB        48.9 KiB          30788022736
+jdk.jfr.internal.PlatformRecorder                             48 B        47.4 KiB          30773964288
+java.util.concurrent.ConcurrentHashMap                        72 B        35.1 KiB          30775414040
+jdk.internal.loader.ClassLoaders$PlatformClassL...           104 B        33.7 KiB          30773965720
+java.lang.ModuleLayer                                         40 B        32.1 KiB          30774033896
+
+(more objects may exist beyond these)
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19242-7d5f-7d93-b7d1-5fd6510bed9c/heap-dump/biggest-objects
+Next:
+- heap_getPathToGCRoot {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30777332512"} [MEDIUM]
+- heap_getDominatorTreeChildren {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30777332512"} [MEDIUM]
+Guidance:
+- A size is an observation, not a cause: heap_getPathToGCRoot on an object id says why it is still reachable, which is what makes a leak claim checkable.
