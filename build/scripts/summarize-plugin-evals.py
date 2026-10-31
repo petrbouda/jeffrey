@@ -19,8 +19,10 @@
 
 `claude plugin eval --json` reports each run's score, turns and cost, and — with `--keep-temp` — the
 path of its trace. From the trace this adds what the score does not say: how many tool calls the
-answer took, how many of them went to Jeffrey, and how many tokens went in and came out. Those are
-the figures a restructure of the skills is meant to move, so they are recorded beside the score.
+answer took, how many of them went to Jeffrey, and how many tokens went in and came out — the main
+conversation's, and separately what the agents it delegated to read, since every agent writes its
+own result line and the last one is the main conversation's. Those are the figures a restructure of
+the skills is meant to move, so they are recorded beside the score.
 
 Usage: summarize-plugin-evals.py <aggregate-result.json>
 """
@@ -40,7 +42,7 @@ def trace_figures(trace: Path) -> dict | None:
         return None
     calls = jeffrey = 0
     skills = []
-    tokens_in = tokens_out = None
+    results = []
     for line in trace.read_text().splitlines():
         event = json.loads(line)
         if event.get("type") == "assistant":
@@ -52,11 +54,16 @@ def trace_figures(trace: Path) -> dict | None:
                 if block["name"] == "Skill":
                     skills.append(block["input"].get("skill", "?"))
         if "total_cost_usd" in event and "usage" in event:
-            usage = event["usage"]
-            tokens_in = sum(usage.get(key, 0) for key in
-                            ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
-            tokens_out = usage.get("output_tokens", 0)
-    return {"calls": calls, "jeffrey": jeffrey, "skills": skills, "in": tokens_in, "out": tokens_out}
+            results.append(event["usage"])
+    if not results:
+        return None
+    *agents, main = results
+    return {"calls": calls, "jeffrey": jeffrey, "skills": skills, "in": tokens_read(main),
+            "out": main.get("output_tokens", 0), "agents_in": sum(map(tokens_read, agents))}
+
+
+def tokens_read(usage: dict) -> int:
+    return sum(usage.get(key, 0) for key in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
 
 
 def median(values: list) -> str:
@@ -69,8 +76,9 @@ def median(values: list) -> str:
 
 def main() -> int:
     result = json.loads(Path(sys.argv[1]).read_text())
-    print("| Case | Score | Runs | Turns | Tool calls | Jeffrey calls | Tokens in | Tokens out | Cost (USD) | Skills invoked |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
+    print("| Case | Score | Runs | Turns | Tool calls | Jeffrey calls | Tokens in | Agents' tokens in | Tokens out "
+          "| Cost (USD) | Skills invoked |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for case in result["cases"]:
         runs = case["arms"]["with"]
         figures = [trace_figures(Path(run["tracePath"])) if run.get("tracePath") else None for run in runs]
@@ -79,7 +87,8 @@ def main() -> int:
         print(f"| {case['name']} | {case['aggregates']['score']:.2f} | {len(runs)} "
               f"| {median([run.get('turns') for run in runs])} "
               f"| {median([f['calls'] for f in figures])} | {median([f['jeffrey'] for f in figures])} "
-              f"| {median([f['in'] for f in figures])} | {median([f['out'] for f in figures])} "
+              f"| {median([f['in'] for f in figures])} | {median([f['agents_in'] for f in figures])} "
+              f"| {median([f['out'] for f in figures])} "
               f"| {median([run.get('costUsd') for run in runs])} | {', '.join(skills) or '—'} |")
     aggregates = result["aggregates"]
     print(f"\nOverall score {aggregates['overallScore']:.2f}, {aggregates['casesPassed']}/{aggregates['casesTotal']} "

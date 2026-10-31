@@ -59,6 +59,66 @@ never spawn another agent.
 3. Stop when you can name the causes and their sizes. A second export that would not change the
    findings is not worth the time.
 
+## The handbook
+
+What the main conversation's skills say about each kind of question, cut to what reading takes.
+
+**Every answer** is a typed record. Times are UTC epoch milliseconds (`…EpochMs`) and pass from one
+answer to the next call unchanged. A `status` such as `NOT_RECORDED`, `NOT_COMPUTED`, `NOT_RUN_YET`,
+`NO_TRACES` or `EMPTY`, with its `reason`, is a gap to report, never an error to retry.
+`followUp.nextTools` are the next calls with their arguments filled in — send them as they are.
+`hasMore` with a `nextCursor` continues a list: pass `nextCursor` back as `cursor`. An export opens
+with its own reading instructions — what `self` and `total` mean, what the frame tags mean, what was
+pruned — and that preamble governs, not generic flamegraph lore.
+
+**A flamegraph.** `flamegraph_list` first: it names the event types this profile recorded, each with
+its export defaults, and a type it did not record exports as an empty tree.
+
+| Question | Event type | Options |
+|---|---|---|
+| on-CPU | `jdk.ExecutionSample`, or `jdk.CPUTimeSample` (JDK 25's CPU-time sampler) — whichever `flamegraph_list` offers | |
+| allocation | `jdk.ObjectAllocationSample` | `useWeight: true`, to rank by bytes |
+| lock contention | `jdk.JavaMonitorEnter`; `jdk.JavaMonitorWait`, `jdk.ThreadPark`, `jdk.ThreadSleep` and `jdk.VirtualThreadPinned` the same way | `useWeight: true`, nanoseconds blocked |
+| wall clock, off-CPU included | `profiler.WallClockSample` — async-profiler's, with no `jdk.` prefix | |
+| native allocation | `profiler.Malloc`, and `jeffrey.NativeLeak` for what was never freed | |
+
+A whole-recording graph flattens a spike into an average: `timeline_hotWindows` ranks the busiest
+windows, and the export of the busiest is already in its `followUp.nextTools`. Raise `thresholdPct`
+for the shape, lower it to chase one path. A frame with `self` close to `total` is leaf work; one
+with `self` far below `total` is orchestration — walk into it.
+
+**A trace operation.** `traces_overview`; then `traces_notifications` first when any is `CRITICAL` or
+`HIGH`, since it names the cause the span tree only shows the cost of; then `traces_operations` —
+an operation is `(name, kind, eventType)`, not a name — `traces_operationExport` for the population,
+`traces_slowestTraces` → `traces_traceExport` for one exemplar, and `traces_spanFlamegraphExport` for
+the frames inside one slow span. One population slow and the rest fine: `traces_attributeKeys` →
+`traces_attributeValues` → `traces_attributeSearch`. Without traces, `http_overview` and
+`jdbc_overview` answer in aggregate; statements all fast while requests are slow is `jdbc_pools`.
+
+**The machine underneath.** `jvm_sections` first. `jvm_gc` says whether pauses matter; their cause is
+allocation, which the allocation flamegraph names. Pauses that are not GC are `jvm_safepoints`. An
+empty slow-compilation list in `jvm_jit` means nothing compiled slowly, not that nothing compiled.
+`jvm_flags` gives each value's origin and comes before any tuning claim. "My JVM or the box" is
+`jvm_system`; "it stopped responding" is `jvm_threadDumps`; throttling is `jvm_container`. The waiting
+a CPU graph cannot see is `blocking_overview` → `blocking_monitors`, and `io_overview` (`SOCKET` or
+`FILE`) → `io_endpoints` → `io_slowest`. Those events are threshold-gated: none recorded can mean
+nothing crossed the threshold, and the tools say which.
+
+**A heap dump.** Shallow size is the object; retained size is what would be freed with it, and "what
+holds the memory" is always a retained question. Retained sizes exist only after
+`heap_getDominatorTreeRoots` or `heap_prepare` with report `DOMINATOR` has run — empty means missing,
+not zero. A cached report answering `NOT_RUN_YET` is reported to the caller: you never call
+`heap_prepare`. A leak claim needs the path `heap_getPathToGCRoot` gives; an object reachable only
+through weak or soft references shows none, and that is the answer. An `objectId` is a decimal string
+— pass it back as it came. One dump shows a state, not a trend.
+
+**A comparison.** `compare_list`, then `compare_quality`, before any delta — "these two runs are not
+comparable" is a finding. `profileId` is the run under examination and `baselineProfileId` what it is
+measured against; never swap them. `compare_movements` ranks by self weight, with the event type and
+options the question needs; `compare_flamegraph` prunes by movement, so a missing subtree did not
+move. A `[NEW]` and a `[GONE]` of similar size are a candidate rename, not two changes. Share and
+delta answer different questions — say which one a figure is.
+
 ## What you return
 
 Findings only, in the units the export used, so a reader who never sees the document can check every

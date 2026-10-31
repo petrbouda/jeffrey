@@ -33,6 +33,9 @@ model time at list price; `--max-cost-usd` stops it at a ceiling.
 | `heap-dump-what-holds-memory` | "What holds the memory in this .hprof?" | the import, a GC-root path behind the leak claim, one dump read as a state |
 | `help-what-is-here` | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
 | `record-exceptions-next-time` | "How do I record the exception types?" | `jdk.JavaExceptionThrow#enabled=true`, and that `settings=profile` does not turn it on |
+| `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
+| `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (142 ms of 30.6 s), no tuning from one fired rule |
+| `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its 80.8 s of blocked time read as thread-time, never as a share of the recording |
 
 ## Where the answers come from
 
@@ -117,3 +120,28 @@ What it says:
 | Change | Case | Before | After | What moved |
 |---|---|---|---|---|
 | `analyze-heap` imports a named dump before delegating; `heap-triage` never looks a profile up by name (plugin 1.0.6) | `heap-dump-what-holds-memory` | 0.87 — the named file not imported in 7 of 10 runs | 1.00 — imported in 3 of 3, in the main conversation before the hand-off | `recordings_analyzeFile` → `Agent(heap-triage)` with its `profileId`; tool calls, tokens and cost unchanged (18 calls, 30k tokens in, $0.26) |
+| `analyze-jfr` cut to its entry, menu, routing and answer rules (490 → 271 lines); the family tables and per-area detail moved to `references/`; `profile-analyst` given a 4.6 KB handbook and only `report` preloaded, instead of four skills (plugin 1.0.7) | the `analyze-jfr` cases | see below | see below | tokens down on every case that loads the skill, no score lost |
+
+Measured on 2026-10-31, three runs a case, before (the plugin at 1.0.6) and after:
+
+| Case | Score before → after | Tokens in before → after |
+|---|---|---|
+| `open-question-shows-menu` | 1.00 → 1.00 | 162k → 136k (−16%) |
+| `named-area-cpu` | 1.00 → 1.00 | 200k → 186k (−7%) |
+| `two-areas-delegated` | 0.86 → 0.81 | 211k → 199k (−6%) |
+| `gc-pauses-in-proportion` | 1.00 → 1.00 | 154k → 140k (−9%) |
+| `lock-contention-not-wall-clock` | 0.93 → 1.00 | 153k → 129k (−16%) |
+
+What the traces add:
+
+- **The references were never opened** — 0 of 18 runs of the new version read one, including the
+  GC and lock cases whose detail moved there. The tool answers and their `followUp` carried what
+  the detail used to, which is the case for moving more of it out of the skills.
+- **Two areas are not handed to `profile-analyst`** — in 0 of 6 runs, before or after, although
+  `analyze-jfr` says to delegate when more than one export is in play. The main conversation reads
+  both exports itself. The analyst's handbook is therefore not exercised by any case yet: the 79 KB
+  of preloads it replaces were not being paid either. Whether delegation should be a rule the skill
+  enforces, or dropped, is the next question this suite should settle.
+- `two-areas-delegated`'s dip is one judge vote on an answer that names both hotspots with their
+  denominators; `lock-contention-not-wall-clock`'s judge was replaced by two `regex` graders after it
+  failed answers its own criterion allowed ("66% of their combined time").
