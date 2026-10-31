@@ -1,6 +1,6 @@
 ---
 name: heap-sql
-description: Query a Jeffrey heap-dump index with DuckDB SQL — the class, instance, outbound_ref, gc_root, dominator and retained_size tables. Use when heap_executeQuery is needed because the purpose-built heap tools do not answer the question.
+description: "Load before the first heap_executeQuery call, whichever skill is driving the analysis: the schema of a Jeffrey heap-dump index (class, instance, outbound_ref, class_instance_field, string_content, gc_root, dominator, retained_size) and the traps that return a wrong answer without an error — the string table is the name pool, not the String contents; outbound_ref.field_id counts the whole field layout; retained sizes need the current tree. Use for what the purpose-built heap tools do not answer: what objects' fields or strings hold across a class, a count or join they do not shape."
 allowed-tools: mcp__plugin_microscope_jeffrey__heap_* mcp__jeffrey__heap_*
 ---
 

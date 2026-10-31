@@ -58,25 +58,35 @@ public final class CachedAnalysisRunner {
      * would hold the request and the dump's lock with no progress to show. A report
      * whose tree is missing or obsolete reads as not built, and Initialize (or
      * {@code heap_prepare}) rebuilds both as a tracked operation.
+     * <p>
+     * A report that reads the tree when built (the threads) and was computed without
+     * one is the dump's state while no current tree exists; once one does, the read
+     * recomputes it over that tree, which costs no tree build.
      */
     public <T> Optional<T> read(CachedAnalysis<T> analysis) {
         Optional<T> cached = reports.read(analysis);
-        if (cached.isPresent() || !reports.hasStoredCopy(analysis)) {
+        boolean treeless = cached.isPresent() && reports.readsWithoutTree(analysis);
+        if ((cached.isPresent() && !treeless) || (cached.isEmpty() && !reports.hasStoredCopy(analysis))) {
             return cached;
         }
         return sessions.execute(session -> {
             Optional<T> current = reports.read(analysis);
-            if (current.isPresent()) {
+            boolean stillTreeless = current.isPresent() && reports.readsWithoutTree(analysis);
+            if (current.isPresent() && !stillTreeless) {
                 return current.get();
             }
-            if (!reports.hasStoredCopy(analysis)) {
+            boolean treeCurrent = session.view().hasDominatorTree();
+            if (stillTreeless && !treeCurrent) {
+                return current.get();
+            }
+            if (current.isEmpty() && !reports.hasStoredCopy(analysis)) {
                 return null;
             }
-            if (analysis.needsDominatorTree() && !session.view().hasDominatorTree()) {
+            if (analysis.needsDominatorTree() && !treeCurrent) {
                 return null;
             }
             return compute(session, analysis);
-        });
+        }).or(() -> cached);
     }
 
     private <T> T compute(HeapDumpSession session, CachedAnalysis<T> analysis) throws SQLException, IOException {

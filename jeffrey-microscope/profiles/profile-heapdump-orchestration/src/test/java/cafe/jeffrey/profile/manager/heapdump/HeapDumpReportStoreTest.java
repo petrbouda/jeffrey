@@ -160,8 +160,10 @@ class HeapDumpReportStoreTest {
         @Test
         @DisplayName("the thread report is, because it carries retained sizes whenever a tree exists")
         void theThreadReportIsVersioned() {
-            assertEquals("thread-analysis.analysis-v1.tree-v" + DominatorTreeBuilder.TREE_VERSION + ".json",
+            assertEquals("thread-analysis.analysis-v2.tree-v" + DominatorTreeBuilder.TREE_VERSION + ".json",
                     HeapDumpReportStore.storedName(new ThreadHeapAnalysis()));
+            assertEquals("thread-analysis.analysis-v2.json", HeapDumpReportStore.treelessName(new ThreadHeapAnalysis()),
+                    "computed without a tree, under a name the legacy unversioned file cannot take");
         }
 
         @Test

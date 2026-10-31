@@ -280,25 +280,29 @@ class FlamegraphMcpToolsTest {
 
         /**
          * pprof and OTLP carry their own sample dimensions rather than JFR event types. Running them
-         * through the JFR catalog would report every dimension they do have as missing.
+         * through the JFR catalog would report every dimension they do have as missing, and the curated
+         * JFR list holds none of them: the real manager answers it empty for an import, so the grid is
+         * drawn from every recorded type, as the UI's pprof and OTLP pages draw it.
          */
         @Test
         void listsTheDimensionsOfAnImportedProfile() {
             profileOf(RecordingEventSource.PPROF, List.of(
-                    summary("cpu", 900, 0L, Map.of(SAMPLE_TYPE_EXTRA, "cpu/nanoseconds")),
-                    summary("alloc_space", 40, 2048L, Map.of(SAMPLE_TYPE_EXTRA, "alloc_space/bytes"))));
+                    summary("pprof.cpu", 900, 0L, Map.of(SAMPLE_TYPE_EXTRA, "cpu/nanoseconds")),
+                    summary("pprof.alloc_space", 40, 2048L, Map.of(SAMPLE_TYPE_EXTRA, "alloc_space/bytes"))));
+            lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of());
 
             JsonNode root = conforming("list", tools().list());
 
             List<String> available = root.get("available").valueStream()
                     .map(node -> node.get("eventType").asString())
                     .toList();
-            assertEquals(List.of("cpu", "alloc_space"), available);
+            assertEquals(List.of("pprof.cpu", "pprof.alloc_space"), available);
             assertTrue(root.get("notRecorded").isEmpty());
 
-            JsonNode alloc = entry(root, "alloc_space");
+            JsonNode alloc = entry(root, "pprof.alloc_space");
             assertEquals("bytes", alloc.get("weightUnit").asString());
             assertEquals(2048L, alloc.get("weight").asLong());
+            verify(flamegraphManager, never()).eventSummaries();
         }
     }
 

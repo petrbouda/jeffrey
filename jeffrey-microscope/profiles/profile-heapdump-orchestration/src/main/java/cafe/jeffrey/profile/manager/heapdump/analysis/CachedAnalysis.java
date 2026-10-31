@@ -66,6 +66,15 @@ public sealed interface CachedAnalysis<T> permits
         return needsDominatorTree();
     }
 
+    /**
+     * Whether the report reads the tree when it is there and is still a report without it — retained
+     * sizes left unknown rather than the tree built for it. Such a report is stored with the tree it
+     * read, or with none, and the copy over a current tree wins.
+     */
+    default boolean readsTreeWhenBuilt() {
+        return dependsOnDominatorTree() && !needsDominatorTree();
+    }
+
     String displayName();
 
     T compute(HeapView view) throws SQLException;

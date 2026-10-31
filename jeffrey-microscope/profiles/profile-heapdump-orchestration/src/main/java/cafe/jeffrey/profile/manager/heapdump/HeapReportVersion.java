@@ -38,7 +38,16 @@ public record HeapReportVersion(int analysisVersion, Long treeVersion) {
     }
 
     public static HeapReportVersion from(CachedAnalysis<?> analysis, HeapView view) throws SQLException {
+        if (analysis.readsTreeWhenBuilt()) {
+            // It read the tree only if a current one was there; an obsolete one it did not read at all.
+            return view.hasDominatorTree() ? expected(analysis) : withoutTree(analysis);
+        }
         return new HeapReportVersion(analysis.analysisVersion(),
                 analysis.dependsOnDominatorTree() ? view.dominatorTreeVersion() : null);
+    }
+
+    /** The version of a report that reads the tree when built, computed while none was. */
+    public static HeapReportVersion withoutTree(CachedAnalysis<?> analysis) {
+        return new HeapReportVersion(analysis.analysisVersion(), null);
     }
 }
