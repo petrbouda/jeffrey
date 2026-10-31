@@ -5867,6 +5867,83 @@
                 "className": {
                   "type": "string"
                 },
+                "gcRootPath": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "omittedSteps": {
+                      "type": "integer"
+                    },
+                    "rootClassName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rootObjectId": {
+                      "type": "string"
+                    },
+                    "rootType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stackFrame": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "steps": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "className": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fieldName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "objectId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "className",
+                          "fieldName",
+                          "objectId"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "threadName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "omittedSteps",
+                    "rootClassName",
+                    "rootObjectId",
+                    "rootType",
+                    "stackFrame",
+                    "steps",
+                    "threadName"
+                  ],
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
                 "heapPercent": {
                   "type": "number"
                 },
@@ -5932,6 +6009,7 @@
                 "classLoaderClassName",
                 "classLoaderId",
                 "className",
+                "gcRootPath",
                 "heapPercent",
                 "instanceCount",
                 "leakScore",

@@ -110,7 +110,7 @@ onMounted(() => {
         <DocsFeatureCard
           icon="bi bi-search"
           title="Leak Suspects"
-          description="The objects retaining more than 5% of the heap that no other such object dominates, largest first — one suspect per retained cluster, so a holder, its list and the list's backing array count once. Follow a suspect into its GC-root path to see what keeps it alive."
+          description="The objects retaining more than 5% of the heap that no other such object dominates, largest first — one suspect per retained cluster, so a holder, its list and the list's backing array count once. Each suspect shows what keeps it alive (the GC-root path, or for a local variable the thread and frame holding it), where its memory accumulates and the classes held there."
         />
         <DocsFeatureCard
           icon="bi bi-box-seam-fill"

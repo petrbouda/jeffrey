@@ -1,0 +1,33 @@
+Dominator Tree Children of Object ID 30779686608:
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+com.acme.checkout.Checkout$Order                              32 B           880 B          30777885128
+com.acme.checkout.Checkout$Order                              32 B           880 B          30777888496
+com.acme.checkout.Checkout$Order                              32 B           880 B          30777890192
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778924960
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778929984
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778952672
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778954360
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778958568
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778960256
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778965304
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778966664
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778968352
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778969200
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778970048
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778971736
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778979304
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778980152
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778982680
+com.acme.checkout.Checkout$Order                              32 B           880 B          30778990400
+com.acme.checkout.Checkout$Order                              32 B           880 B          30779001328
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191a0-fd9e-7e5f-9aec-17f2142cbe28/heap-dump/dominator-tree
+Link note: The page opens at the dominator-tree roots; expand down to object 30779686608 there.
+Next:
+- heap_getDominatorTreeChildren {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30777885128"} [MEDIUM]
+- heap_getDominatorTreeChildren {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30779686608","limit":20,"cursor":"eyJ2ZXJzaW9uIjoxLCJmaWx0ZXJzIjoiYjgxZjkxMDg0YjEzMjgxNTc1MTkzY2ZjY2I3OTY5MWE3OTQ1ZmYxMjM1MDljY2UxOWMzNWJiMmJiMDE2ODAwMiIsIm9mZnNldCI6MjB9"} [MEDIUM]
+- heap_getPathToGCRoot {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30779686608"} [MEDIUM]

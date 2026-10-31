@@ -1,0 +1,35 @@
+Instances of java.lang.String:
+
+Total Instances: 38,463
+
+OBJECT ID            DETAILS                                               SHALLOW SIZE
+---------------------------------------------------------------------------------------
+30773608568          {value=0x72a400090, coder=0, hash=1653090162, h...            32 B
+30773609040          {value=0x72a400268, coder=0, hash=-1609594047, ...            32 B
+30773609288          {value=0x72a400360, coder=0, hash=2026279837, h...            32 B
+30773609544          {value=0x72a400460, coder=0, hash=-515568895, h...            32 B
+30773609792          {value=0x72a400558, coder=0, hash=-1609594047, ...            32 B
+30773610040          {value=0x72a400650, coder=0, hash=688573365, ha...            32 B
+30773610288          {value=0x72a400748, coder=0, hash=-1609594047, ...            32 B
+30773610536          {value=0x72a400840, coder=0, hash=-991726143, h...            32 B
+30773610784          {value=0x72a400938, coder=0, hash=1565964919, h...            32 B
+30773611032          {value=0x72a400a30, coder=0, hash=-1609594047, ...            32 B
+30773611280          {value=0x72a400b28, coder=0, hash=-991726143, h...            32 B
+30773611528          {value=0x72a400c20, coder=0, hash=1888751817, h...            32 B
+30773611776          {value=0x72a400d18, coder=0, hash=-1609594047, ...            32 B
+30773612024          {value=0x72a400e10, coder=0, hash=-1545477013, ...            32 B
+30773612280          {value=0x72a400f10, coder=0, hash=-1656562126, ...            32 B
+30773612536          {value=0x72a401010, coder=0, hash=-1609594047, ...            32 B
+30773612784          {value=0x72a401108, coder=0, hash=-991726143, h...            32 B
+30773613032          {value=0x72a401200, coder=0, hash=1534748880, h...            32 B
+30773613280          {value=0x72a4012f8, coder=0, hash=-1609594047, ...            32 B
+30773613528          {value=0x72a4013f0, coder=0, hash=2026279837, h...            32 B
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191a0-fd9e-7e5f-9aec-17f2142cbe28/heap-dump/histogram
+Link note: The histogram page lists the class; its instances open from the class's row there.
+Next:
+- heap_browseClassInstances {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","className":"java.lang.String","limit":20,"cursor":"eyJ2ZXJzaW9uIjoxLCJmaWx0ZXJzIjoiYmNiZThjYjFlMTBhMmU2MzkwZGNhNjAzZGIwNjM2YjI1ZjViNjE3YjdiMzYxM2NjMTI3ODk1YzIzNDU3MWQ1MSIsIm9mZnNldCI6MjB9"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30773608568"} [LIGHT]
+- heap_getPathToGCRoot {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30773608568"} [MEDIUM]

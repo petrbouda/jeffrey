@@ -222,13 +222,35 @@ public final class PathToGCRootAnalyzer {
         PathRow root = rows.getFirst();
         int rootKind = root.rootKind() != null ? root.rootKind() : HprofTag.Sub.ROOT_UNKNOWN;
         String rootClassName = optionalClassName(view, root.instanceId(), classCache);
+        Optional<GcRootHolders.Holder> holder = GcRootHolders.of(view, root.instanceId());
         return new GCRootPath(
                 root.instanceId(),
                 rootClassName,
                 HprofTag.Sub.rootKindName(rootKind),
-                null,           // threadName — populated once ThreadAnalyzer (PR #10) lands
-                null,           // stackFrame — same
+                holder.map(GcRootHolders.Holder::threadName).orElse(null),
+                holder.map(GcRootHolders.Holder::stackFrame).orElse(null),
                 steps);
+    }
+
+    /**
+     * The path of an object that is itself a GC root: the root is the object, and the one step is the
+     * object. {@link #findPaths} finds no longer path for it, so a caller that wants to say what keeps
+     * a root alive — its kind, thread and frame — asks here. Empty when the object is not a root.
+     */
+    public static Optional<GCRootPath> selfRoot(HeapView view, long instanceId) throws SQLException {
+        Optional<GcRootHolders.Holder> holder = GcRootHolders.of(view, instanceId);
+        if (holder.isEmpty()) {
+            return Optional.empty();
+        }
+        Map<Long, JavaClassRow> classCache = new HashMap<>();
+        PathStep self = buildStep(view, instanceId, null, true, classCache);
+        return Optional.of(new GCRootPath(
+                instanceId,
+                optionalClassName(view, instanceId, classCache),
+                holder.get().rootType(),
+                holder.get().threadName(),
+                holder.get().stackFrame(),
+                List.of(self)));
     }
 
     private static String resolveFieldName(

@@ -18430,7 +18430,7 @@
   {
    "name": "heap_getLeakSuspects",
    "title": "Heap: Get Leak Suspects",
-   "description": "Returns leak suspects found by heuristics: single objects with a disproportionate retained size, or classes whose many instances together hold significant memory, with the object ids of each cluster root and the class loaders involved. Reads the leak-suspect report heap_prepare builds; until it is built the status is NOT_RUN_YET.",
+   "description": "Returns the leak suspects: the objects retaining at least 5% of the heap that no other suspect dominates, one per retained cluster, largest first. Each carries what keeps it alive (gcRootPath: the shortest strong path from a GC root, or its own root's type, thread and frame), its accumulation point (the deepest object down its largest child that still retains most of it) and the classes that point holds, so a leak claim can be checked from this one answer; and the class loaders involved. Reads the leak-suspect report heap_prepare builds; until it is built the status is NOT_RUN_YET.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -18513,18 +18513,102 @@
           "null"
          ]
         },
+        "gcRootPath": {
+         "type": [
+          "object",
+          "null"
+         ],
+         "properties": {
+          "rootObjectId": {
+           "type": "string",
+           "description": "A decimal string, as every heap tool takes it"
+          },
+          "rootClassName": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "rootType": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "threadName": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "stackFrame": {
+           "type": [
+            "string",
+            "null"
+           ]
+          },
+          "steps": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "objectId": {
+              "type": "string",
+              "description": "A decimal string, as every heap tool takes it"
+             },
+             "className": {
+              "type": [
+               "string",
+               "null"
+              ]
+             },
+             "fieldName": {
+              "type": [
+               "string",
+               "null"
+              ],
+              "description": "The field of this object that holds the next one; null on the last hop"
+             }
+            },
+            "required": [
+             "objectId",
+             "className",
+             "fieldName"
+            ],
+            "additionalProperties": false
+           },
+           "description": "The hops from the root, each naming the field that holds the next object. A path longer than 40 hops keeps the 20 nearest the root and the 20 nearest its end"
+          },
+          "omittedSteps": {
+           "type": "integer",
+           "description": "How many hops between the two kept ends were left out; they sit after the first 20"
+          }
+         },
+         "required": [
+          "rootObjectId",
+          "rootClassName",
+          "rootType",
+          "threadName",
+          "stackFrame",
+          "steps",
+          "omittedSteps"
+         ],
+         "additionalProperties": false,
+         "description": "What keeps the suspect alive: the shortest strong path from a GC root to it, or, when it is a root itself, one step naming its rootType, threadName and stackFrame. Null when only weak or soft references reach it"
+        },
         "accumulationPoint": {
          "type": [
           "string",
           "null"
          ],
-         "description": "Where the retained objects accumulate; null when the heuristic found none"
+         "description": "Where the retained objects accumulate, in a sentence: the deepest object down the suspect's largest dominated child that still retains most of it, and what it holds"
         },
         "accumulationPointObjectId": {
          "type": [
           "string",
           "null"
-         ]
+         ],
+         "description": "The accumulation point's object id, a decimal string; the suspect's own id when no child holds most of it. heap_getDominatorTreeChildren on it pages through what it holds"
         },
         "accumulationPointClass": {
          "type": [
@@ -18572,7 +18656,7 @@
           ],
           "additionalProperties": false
          },
-         "description": "The classes contributing most to the cluster, at most 5"
+         "description": "The classes of the objects the accumulation point directly holds, by the bytes they retain, at most 5"
         },
         "omittedContributors": {
          "type": "integer",
@@ -18587,6 +18671,7 @@
         "heapPercent",
         "instanceCount",
         "reason",
+        "gcRootPath",
         "accumulationPoint",
         "accumulationPointObjectId",
         "accumulationPointClass",

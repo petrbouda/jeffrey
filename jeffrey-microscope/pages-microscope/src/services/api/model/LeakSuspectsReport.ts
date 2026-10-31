@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { PathStep } from '@/services/api/model/GCRootPath';
+import { GCRootPath } from '@/services/api/model/GCRootPath';
 
 export interface DominatedClassEntry {
   className: string;
@@ -40,10 +40,11 @@ export interface LeakSuspect {
   instanceCount: number;
   reason: string;
   accumulationPoint: string;
-  pathSteps: PathStep[];
+  gcRootPath: GCRootPath | null;
   accumulationPointId: number | null;
   accumulationPointClass: string | null;
   dominatedHistogram: DominatedClassEntry[];
+  dominatedClassCount: number;
   leakScore: number;
   classLoaderId: number;
   classLoaderClassName: string;

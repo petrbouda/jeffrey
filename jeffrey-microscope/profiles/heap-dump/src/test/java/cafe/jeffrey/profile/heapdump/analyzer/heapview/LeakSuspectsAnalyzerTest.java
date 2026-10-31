@@ -29,6 +29,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import cafe.jeffrey.profile.heapdump.model.DominatedClassEntry;
+import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspect;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder;
@@ -40,6 +42,7 @@ import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.parser.SyntheticHprof;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -170,6 +173,122 @@ class LeakSuspectsAnalyzerTest {
             assertTrue(report.analyzedBytes() <= report.totalHeapSize());
             assertTrue(report.suspects().get(0).reason().startsWith("One Holder object retains 60.0%"),
                     report.suspects().get(0).reason());
+        }
+    }
+
+    @Test
+    void namesWhereTheSuspectAccumulatesWhatItHoldsAndWhatKeepsItAlive(@TempDir Path tmp)
+            throws IOException, SQLException {
+        // Holder (rooted) -> Object[] -> four Elem objects. The array retains most of the holder, its
+        // elements each a quarter of the rest: the array is where the memory accumulates.
+        int idSize = 8;
+        long holderClass = 0xC001L;
+        long elemClass = 0xC002L;
+        long holder = 0x100L;
+        long array = 0x200L;
+        long[] elems = {0x301L, 0x302L, 0x303L, 0x304L};
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "Elem")
+                .string(0xA003L, "next")
+                .loadClass(1, holderClass, 0, 0xA001L)
+                .loadClass(2, elemClass, 0, 0xA002L)
+                .heapDumpSegment(seg -> {
+                    seg.topLevelObjectClassDump(holderClass, 0xA003L)
+                            .topLevelObjectClassDump(elemClass, 0xA003L)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder)
+                            .instanceDump(holder, holderClass, idBytes(array, idSize))
+                            .objectArrayDump(array, elemClass, elems);
+                    for (long elem : elems) {
+                        seg.instanceDump(elem, elemClass, idBytes(0L, idSize));
+                    }
+                })
+                .heapDumpEnd()
+                .writeTo(tmp, "accumulation.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            LeakSuspectsReport report = LeakSuspectsAnalyzer.analyze(view, 50.0, 5);
+            assertEquals(1, report.suspects().size());
+            LeakSuspect suspect = report.suspects().getFirst();
+            long elemsRetained = 0;
+            for (long elem : elems) {
+                elemsRetained += view.retainedSize(elem);
+            }
+
+            assertEquals(Long.valueOf(array), suspect.accumulationPointId(), "one level below the holder");
+            assertEquals(1, suspect.dominatedClassCount());
+            DominatedClassEntry contents = suspect.dominatedHistogram().getFirst();
+            assertEquals("Elem", contents.className());
+            assertEquals(elems.length, contents.instanceCount());
+            assertEquals(elemsRetained, contents.retainedSize());
+            assertEquals(elemsRetained * 100.0 / suspect.retainedSize(), contents.percentOfCluster(), 1e-9);
+            assertTrue(suspect.accumulationPoint().contains("1 level below the suspect"),
+                    suspect.accumulationPoint());
+            assertTrue(suspect.accumulationPoint().contains("directly holds 4 objects of 1 class"),
+                    suspect.accumulationPoint());
+
+            GCRootPath root = suspect.gcRootPath();
+            assertNotNull(root, "the holder is a root, so it carries its own one-step path");
+            assertEquals(holder, root.rootObjectId());
+            assertEquals("Sticky class", root.rootType());
+            assertEquals(1, root.steps().size());
+        }
+    }
+
+    @Test
+    void carriesTheShortestPathWhenTheSuspectIsHeldThroughOtherObjects(@TempDir Path tmp)
+            throws IOException, SQLException {
+        // Two roots, A and B, each hold the suspect S through one field; S heads a chain of three. No
+        // single path dominates S, so it is a suspect of its own, and its path runs through a referrer.
+        int idSize = 8;
+        long classId = 0xC001L;
+        long a = 0x100L;
+        long b = 0x200L;
+        long suspect = 0x300L;
+        long x = 0x400L;
+        long y = 0x500L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, b)
+                        .instanceDump(a, classId, idBytes(suspect, idSize))
+                        .instanceDump(b, classId, idBytes(suspect, idSize))
+                        .instanceDump(suspect, classId, idBytes(x, idSize))
+                        .instanceDump(x, classId, idBytes(y, idSize))
+                        .instanceDump(y, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "held.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            // The heap is five objects; S retains three of them (60%), A and B one each.
+            LeakSuspect top = LeakSuspectsAnalyzer.analyze(view, 50.0, 5).suspects().getFirst();
+            assertEquals(Long.valueOf(suspect), top.objectId());
+
+            GCRootPath path = top.gcRootPath();
+            assertNotNull(path);
+            assertTrue(path.rootObjectId() == a || path.rootObjectId() == b, "rooted at A or B");
+            assertEquals("Sticky class", path.rootType());
+            assertEquals(2, path.steps().size(), "the root, then the suspect");
+            assertEquals("next", path.steps().getFirst().fieldName());
+            assertTrue(path.steps().getLast().isTarget());
         }
     }
 

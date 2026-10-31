@@ -159,7 +159,7 @@ references, so an object reachable only through them shows none — that is the 
 | Question | Sequence |
 |---|---|
 | What is using the heap | `heap_getClassHistogram`, then `heap_getTopConsumers` by package and loader |
-| What is leaking | `heap_getLeakSuspects` → `heap_getPathToGCRoot` on the object it names → `heap_getReferrers` outwards |
+| What is leaking | `heap_getLeakSuspects`: each suspect carries its `gcRootPath`, `accumulationPoint` and `topContributors`; `heap_getPathToGCRoot` only when `gcRootPath` is null; `heap_getReferrers` outwards |
 | The biggest single objects | `heap_getBiggestObjects`; `heap_getDominatorTreeRoots` → `heap_getDominatorTreeChildren` to walk in |
 | Redeploys leak, classes duplicated | `heap_getClassLoaderLeakChains` |
 | Where the waste is | `heap_getStringAnalysis`, `heap_getCollectionAnalysis` |
@@ -167,7 +167,10 @@ references, so an object reachable only through them shows none — that is the 
 | Who roots it all | `heap_getGCRootSummary`; `heap_getThreads` when a thread is the suspect |
 
 **A leak claim needs a GC-root path** — the class, the retained bytes and the path together are what
-make it checkable. One dump shows a state: `heap_diff` against an earlier dump (that one as the
+make it checkable. **A leak suspect's `gcRootPath` is that path** — for a suspect that is itself a root,
+its `rootType`, `threadName` and `stackFrame` — so `heap_getPathToGCRoot` is not called on a suspect
+whose `gcRootPath` is set. Its `accumulationPoint` and `topContributors` say what it is made of, so the
+dominator tree is not walked to name them either. One dump shows a state: `heap_diff` against an earlier dump (that one as the
 baseline) is what separates a leak from a large working set.
 
 **When no tool fits.** `heap_executeQuery` runs SQL over the index — `class` (`class_id`, `name`,

@@ -207,7 +207,7 @@ LIMIT 20`;
       <h2 id="chase-a-memory-problem">Chase a Memory Problem</h2>
       <DocsCodeBlock :code="promptMemory" language="bash" />
 
-      <p>Loads the <router-link to="/docs/microscope-mcp/skills"><code>analyze-heap</code></router-link> skill, which drives <code>heap_getHeapSummary</code> &rarr; <code>heap_getDominatorTreeRoots</code> &rarr; <code>heap_getPathToGCRoot</code>, usually with <code>heap_getLeakSuspects</code> and <code>heap_getInstanceDetail</code> along the way.</p>
+      <p>Loads the <router-link to="/docs/microscope-mcp/skills"><code>analyze-heap</code></router-link> skill, which drives <code>heap_getHeapSummary</code> &rarr; <code>heap_getLeakSuspects</code>, with <code>heap_getDominatorTreeRoots</code> and <code>heap_getPathToGCRoot</code> for anything a suspect does not already explain. Each suspect carries its own GC-root path &mdash; for an object held by a local variable, the thread and the frame holding it &mdash; and where its memory accumulates, so one answer names the leak, its contents and what keeps it alive.</p>
 
       <p>The two-step matters. A class histogram answers &ldquo;what is there&rdquo;; the dominator tree answers &ldquo;what would be freed&rdquo;, which is the one that finds a leak. And <code>heap_getPathToGCRoot</code> is the actual answer to &ldquo;why is this still alive&rdquo; &mdash; a reference chain from a root, usually ending somewhere recognisable like a static cache or a thread-local.</p>
 

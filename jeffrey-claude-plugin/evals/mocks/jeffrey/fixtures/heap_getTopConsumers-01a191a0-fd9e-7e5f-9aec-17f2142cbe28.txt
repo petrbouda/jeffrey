@@ -1,0 +1,32 @@
+Top Consumers (by package + class loader, largest shallow size first):
+  java.lang [<bootstrap>] — 5.5 MiB shallow, 69 classes / 196,035 instances
+  <default> [<bootstrap>] — 2.5 MiB shallow, 11 classes / 44,961 instances
+  java.util [<bootstrap>] — 1.0 MiB shallow, 77 classes / 28,168 instances
+  java.util.concurrent [<bootstrap>] — 488.9 KiB shallow, 14 classes / 6,036 instances
+  java.lang.invoke [<bootstrap>] — 242.1 KiB shallow, 62 classes / 6,281 instances
+  jdk.internal.jimage [<bootstrap>] — 208.9 KiB shallow, 10 classes / 6,628 instances
+  com.acme.checkout [com.sun.tools.javac.launcher.MemoryClassLoader] — 184.6 KiB shallow, 5 classes / 5,910 instances
+  jdk.jfr [<bootstrap>] — 110.9 KiB shallow, 10 classes / 3,142 instances
+  java.lang.reflect [<bootstrap>] — 104.6 KiB shallow, 19 classes / 1,443 instances
+  jdk.jfr.internal [<bootstrap>] — 103.3 KiB shallow, 42 classes / 3,134 instances
+  jdk.internal.util [<bootstrap>] — 51.4 KiB shallow, 9 classes / 1,318 instances
+  java.lang.module [<bootstrap>] — 48.6 KiB shallow, 14 classes / 1,453 instances
+  java.lang.ref [<bootstrap>] — 38.3 KiB shallow, 12 classes / 708 instances
+  jdk.internal.classfile.impl [<bootstrap>] — 34.1 KiB shallow, 54 classes / 1,324 instances
+  jdk.internal.module [<bootstrap>] — 21.4 KiB shallow, 22 classes / 696 instances
+  sun.reflect.annotation [<bootstrap>] — 17.0 KiB shallow, 2 classes / 539 instances
+  jdk.internal.ref [<bootstrap>] — 16.2 KiB shallow, 6 classes / 7 instances
+  com.sun.tools.javac.util [jdk.internal.loader.ClassLoaders$AppClassLoader] — 15.7 KiB shallow, 46 classes / 536 instances
+  jdk.jfr.internal.settings [<bootstrap>] — 14.9 KiB shallow, 12 classes / 446 instances
+  jdk.internal.jrtfs [<bootstrap>] — 12.6 KiB shallow, 6 classes / 420 instances
+
+(more consumers may exist beyond these)
+
+Component Report (per-package): not computed
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191a0-fd9e-7e5f-9aec-17f2142cbe28/heap-dump/consumers
+Next:
+- heap_getClassHistogram {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28"} [MEDIUM]
+- heap_getDominatorTreeRoots {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28"} [HEAVY]

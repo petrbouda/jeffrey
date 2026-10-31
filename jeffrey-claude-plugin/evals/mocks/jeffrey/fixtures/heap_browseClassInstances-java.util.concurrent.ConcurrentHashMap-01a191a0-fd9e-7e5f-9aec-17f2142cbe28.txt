@@ -1,0 +1,35 @@
+Instances of java.util.concurrent.ConcurrentHashMap:
+
+Total Instances: 97
+
+OBJECT ID            DETAILS                                               SHALLOW SIZE
+---------------------------------------------------------------------------------------
+30773837112          {table=0x72a437d78, nextTable=null, baseCount=0...            72 B
+30773843848          {table=0x72a4397c8, nextTable=null, baseCount=0...            72 B
+30774153424          {table=0x72a48a4d8, nextTable=null, baseCount=0...            72 B
+30774352632          {table=0x72a4b5b38, nextTable=null, baseCount=0...            72 B
+30774432208          {table=0x72a4c9210, nextTable=null, baseCount=0...            72 B
+30774486536          {table=0x72a4d6648, nextTable=null, baseCount=0...            72 B
+30774488680          {table=null, nextTable=null, baseCount=null, si...            72 B
+30774491616          {table=null, nextTable=null, baseCount=null, si...            72 B
+30774559552          {table=0x72a4e8380, nextTable=null, baseCount=0...            72 B
+30774567168          {table=null, nextTable=null, baseCount=null, si...            72 B
+30774570976          {table=null, nextTable=null, baseCount=null, si...            72 B
+30774596776          {table=0x72a4f14e8, nextTable=null, baseCount=0...            72 B
+30774618416          {table=0x72a4f6970, nextTable=null, baseCount=0...            72 B
+30774618984          {table=null, nextTable=null, baseCount=null, si...            72 B
+30774619064          {table=0x72a4f6bf8, nextTable=null, baseCount=0...            72 B
+30774619272          {table=0x72a4f6cc8, nextTable=null, baseCount=0...            72 B
+30774620720          {table=0x72a4f7270, nextTable=null, baseCount=0...            72 B
+30774621120          {table=null, nextTable=null, baseCount=null, si...            72 B
+30774621296          {table=0x72a4f74b0, nextTable=null, baseCount=0...            72 B
+30774621768          {table=null, nextTable=null, baseCount=null, si...            72 B
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191a0-fd9e-7e5f-9aec-17f2142cbe28/heap-dump/histogram
+Link note: The histogram page lists the class; its instances open from the class's row there.
+Next:
+- heap_browseClassInstances {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","className":"java.util.concurrent.ConcurrentHashMap","limit":20,"cursor":"eyJ2ZXJzaW9uIjoxLCJmaWx0ZXJzIjoiMDRkZWIzYWViOTQxYTU4MWI1NWNmNzY4OTRkNmE2MGVmNjc2YjdhZWI1ODFkYzQ2Yjc1ZmIzMmVhNTM5NGJhMCIsIm9mZnNldCI6MjB9"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30773837112"} [LIGHT]
+- heap_getPathToGCRoot {"profileId":"01a191a0-fd9e-7e5f-9aec-17f2142cbe28","objectId":"30773837112"} [MEDIUM]

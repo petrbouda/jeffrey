@@ -1047,7 +1047,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>heap_getLeakSuspects</code></td>
             <td><code>profileId</code></td>
-            <td>Leak-suspect analysis, once <code>heap_prepare</code> or the UI has built it</td>
+            <td>One suspect per retained cluster (5% of the heap or more, dominated by no other suspect), each with what keeps it alive (<code>gcRootPath</code>: the path from a GC root, or its own root's type, thread and frame), its accumulation point and the classes that point holds &mdash; once <code>heap_prepare</code> or the UI has built the report</td>
           </tr>
           <tr>
             <td><code>heap_getClassLoaderLeakChains</code></td>

@@ -485,12 +485,12 @@ class HeapDumpMcpToolsTest {
 
         @Test
         void reportsLeakSuspectsWithStringIdsAndLeavesAnUnknownAccumulationPointNull() {
-            LeakSuspect suspect = new LeakSuspect(1, NODE, 4711L, 8_000, 80.0, 1, "retains 80%", null, List.of(),
+            LeakSuspect suspect = new LeakSuspect(1, NODE, 4711L, 8_000, 80.0, 1, "retains 80%", null, null,
                     null, null, List.of(
                     new DominatedClassEntry("a.A", 1, 10, 1.0), new DominatedClassEntry("b.B", 1, 10, 1.0),
                     new DominatedClassEntry("c.C", 1, 10, 1.0), new DominatedClassEntry("d.D", 1, 10, 1.0),
                     new DominatedClassEntry("e.E", 1, 10, 1.0), new DominatedClassEntry("f.F", 1, 10, 1.0)),
-                    80.0, 99, "<bootstrap>");
+                    6, 80.0, 99, "<bootstrap>");
             when(delegate.getLeakSuspects()).thenReturn(new LeakSuspectsReport(10_000, 8_000, List.of(suspect),
                     List.of(new ClassLoaderLeakSummary(99, "<bootstrap>", 8_000, 1))));
 
@@ -506,6 +506,43 @@ class HeapDumpMcpToolsTest {
             assertTrue(result.text().contains("1 more contributing class"), result.text());
             assertEquals("4711", call(out, "heap_getPathToGCRoot").get("objectId").asString());
             assertFalse(result.text().contains("Accumulation Point: null"), result.text());
+            assertTrue(first.get("gcRootPath").isNull(), "no path was found, so the path call is offered");
+        }
+
+        @Test
+        void carriesWhatKeepsTheSuspectAliveAndWhatItHoldsSoThePathCallIsNotOffered() {
+            GCRootPath self = new GCRootPath(4711, NODE, "Java frame", "main",
+                    "com.acme.checkout.Checkout.main(Checkout.java:82)", List.of(step(4711, NODE, null)));
+            LeakSuspect suspect = new LeakSuspect(1, NODE, 4711L, 8_000, 80.0, 1, "retains 80%",
+                    "A java.lang.Object[], 2 levels below the suspect, directly holds 100 objects of 1 class",
+                    self, 4800L, "java.lang.Object[]",
+                    List.of(new DominatedClassEntry("com.acme.checkout.Checkout$Order", 100, 7_900, 98.8)),
+                    9, 80.0, 99, "<bootstrap>");
+            when(delegate.getLeakSuspects()).thenReturn(new LeakSuspectsReport(10_000, 8_000, List.of(suspect),
+                    List.of(new ClassLoaderLeakSummary(99, "<bootstrap>", 8_000, 1))));
+
+            McpToolResult result = tools().getLeakSuspects();
+            JsonNode out = conforming("getLeakSuspects", result);
+
+            JsonNode first = out.get("suspects").get(0);
+            JsonNode root = first.get("gcRootPath");
+            assertEquals("Java frame", root.get("rootType").asString());
+            assertEquals("main", root.get("threadName").asString());
+            assertEquals("com.acme.checkout.Checkout.main(Checkout.java:82)", root.get("stackFrame").asString());
+            assertEquals("4711", root.get("steps").get(0).get("objectId").asString());
+            assertEquals("4800", first.get("accumulationPointObjectId").asString());
+            assertEquals(8, first.get("omittedContributors").asInt(), "nine classes, one listed");
+            assertTrue(result.text().contains(
+                    "GC Root Path: Java frame of thread main at com.acme.checkout.Checkout.main(Checkout.java:82)"),
+                    result.text());
+
+            List<String> next = new ArrayList<>();
+            out.get("followUp").get("nextTools").forEach(tool -> next.add(tool.get("tool").asString()));
+            assertFalse(next.contains("heap_getPathToGCRoot"), "the suspect carries its path: " + next);
+            assertEquals("4800", call(out, "heap_getDominatorTreeChildren").get("objectId").asString());
+            assertEquals("4711", call(out, "heap_getReferrers").get("objectId").asString());
+            assertTrue(result.text().contains("heap_diff against an earlier dump"),
+                    "the footer repeats the one piece of advice the suspects leave: " + result.text());
         }
 
         @Test

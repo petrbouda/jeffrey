@@ -218,3 +218,59 @@ three runs:
 | Case | Score | What the answer names | Cost per answer |
 |---|---|---|---|
 | `heap-dump-what-holds-memory` (`heap-triage`) | 1.00 → 1.00 | `Checkout$AuditLog`, 45.5% of the heap, held by a Java frame, through its `ArrayList` and `Object[]` to the `Checkout$Order` elements — one suspect; the old mocks offered two `java.lang.Long` and a `byte[]`, "analyzing" 20.3 MiB of a 10.6 MiB heap | $0.25 → $0.24 |
+
+## Baseline on plugin 1.0.11
+
+Taken again once the restructure above had landed, so later changes are measured against one
+recording rather than across re-recordings. Recorded 2026-10-31 on plugin 1.0.11 with the mocks
+recorded from the build that fixed the dominator tree, `claude-sonnet-5-5`, three runs a case:
+
+| Case | Score | Runs | Turns | Tool calls | Jeffrey calls | Tokens in | Agents' tokens in | Tokens out | Cost (USD) | Skills invoked |
+|---|---|---|---|---|---|---|---|---|---|---|
+| compare-finds-the-regression | 0.94 | 3 | 11 | 8 | 4 | 190,121 | 0 | 2,830 | 0.17 | microscope:compare-jfr |
+| exceptions-to-the-throw-site | 1.00 | 3 | 10 | 7 | 4 | 123,802 | 0 | 2,294 | 0.15 | microscope:analyze-exceptions |
+| gc-pauses-in-proportion | 1.00 | 3 | 7 | 4 | 3 | 136,478 | 0 | 1,463 | 0.17 | microscope:analyze-jfr |
+| heap-dump-what-holds-memory | 1.00 | 3 | 1 | 17 | 15 | 28,916 | 118,466 | 1,096 | 0.22 | microscope:analyze-heap |
+| help-what-is-here | 1.00 | 3 | 6 | 3 | 2 | 83,521 | 0 | 1,210 | 0.09 | microscope:help |
+| lock-contention-not-wall-clock | 0.93 | 3 | 7 | 4 | 3 | 124,214 | 0 | 1,482 | 0.11 | microscope:analyze-jfr |
+| named-area-cpu | 1.00 | 3 | 7 | 4 | 3 | 181,347 | 0 | 1,862 | 0.19 | microscope:analyze-jfr |
+| open-question-shows-menu | 1.00 | 3 | 6 | 3 | 2 | 131,650 | 0 | 1,516 | 0.18 | microscope:analyze-jfr |
+| record-exceptions-next-time | 1.00 | 3 | 1 | 0 | 0 | 17,939 | 0 | 1,055 | 0.06 | — |
+| route-did-my-change-regress | 1.00 | 3 | 11 | 8 | 5 | 205,047 | 0 | 2,910 | 0.2 | microscope:compare-jfr |
+| route-record-first | 1.00 | 3 | 5 | 3 | 0 | 59,458 | 0 | 1,301 | 0.08 | microscope:profile-run |
+| route-what-to-change | 1.00 | 3 | 9 | 5 | 3 | 129,952 | 0 | 1,629 | 0.15 | microscope:advise-jfr |
+| route-why-slow-no-profile-named | 1.00 | 3 | 6 | 3 | 2 | 131,727 | 0 | 1,489 | 0.15 | microscope:analyze-jfr |
+| two-areas-delegated | 0.95 | 3 | 1 | 9 | 6 | 45,994 | 212,879 | 1,417 | 0.34 | microscope:analyze-jfr |
+
+Overall score 0.99, 11/14 cases at the threshold; 6.82 USD including the judge; Claude Code 2.1.316. Medians per case.
+
+What it says:
+
+- **Every case reaches its skill**, the routing cases included, and the three cases under their
+  threshold each lost one run of three: two to an LLM judge (`compare-finds-the-regression`'s
+  `honest-verdict`, `two-areas-delegated`'s `weighs-allocation-by-bytes`) and one to a regex
+  (`lock-contention-not-wall-clock`'s `says-it-is-summed-over-threads`: its pattern was not in that
+  run's answer). None failed in more than one run.
+- **The heap answer walks the suspect by hand.** Of its 15 Jeffrey calls, 5–7 come after
+  `heap_getLeakSuspects` and only reconstruct what the suspect could have carried: the GC-root path,
+  its dominator children, `heap_getInstanceDetail`, and `heap_getDominatorTreeChildren` down the
+  `ArrayList` and its `Object[]` to the `Checkout$Order` elements. The same chain in all three runs.
+
+**A leak suspect carries its own evidence** (server change; plugin 1.0.12). Each suspect now carries
+what keeps it alive (`gcRootPath`: the shortest strong path from a GC root, or, for a suspect that is
+a root itself, its root type with the thread and the frame holding it), its accumulation point (the
+deepest object down its largest dominated child that still retains 80% of it) and the classes that
+point holds. The follow-up stops offering `heap_getPathToGCRoot` for a suspect that has its path.
+`analyze-heap` passes the user's question to `heap-triage` as asked instead of a list of reports to
+cover. Measured on 2026-10-31, three runs, against the baseline above:
+
+| Case | Score | Heap calls per run | Tokens in (main / agent) | Cost | The answer names the code that holds the leak |
+|---|---|---|---|---|---|
+| `heap-dump-what-holds-memory` | 1.00 → 1.00 | 14, 14, 15 → 13, 12, 12 | 29k / 118k → 29k / 119k | $0.22 → $0.24 | 0 of 3 → 3 of 3 |
+
+The calls fell less than the walk the suspect now makes redundant: in two runs of three the agent
+still asks `heap_getPathToGCRoot` and walks `heap_getDominatorTreeChildren` to confirm what the suspect
+says. What moved is the answer. Before, all three stopped at "held by a Java stack frame, probably a
+live local variable"; now all three name thread `main` at `Checkout.main(Checkout.java:82)` — the
+dump records the frame of every Java-frame root, and the path tool used to leave it out.
+

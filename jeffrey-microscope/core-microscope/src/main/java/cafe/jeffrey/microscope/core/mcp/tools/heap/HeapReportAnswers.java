@@ -114,9 +114,17 @@ public final class HeapReportAnswers {
             @McpNullable
             String reason,
             @McpNullable
-            @McpDescription("Where the retained objects accumulate; null when the heuristic found none")
+            @McpDescription("What keeps the suspect alive: the shortest strong path from a GC root to it, or, when "
+                    + "it is a root itself, one step naming its rootType, threadName and stackFrame. Null when only "
+                    + "weak or soft references reach it")
+            RootPath gcRootPath,
+            @McpNullable
+            @McpDescription("Where the retained objects accumulate, in a sentence: the deepest object down the "
+                    + "suspect's largest dominated child that still retains most of it, and what it holds")
             String accumulationPoint,
             @McpNullable
+            @McpDescription("The accumulation point's object id, a decimal string; the suspect's own id when no child "
+                    + "holds most of it. heap_getDominatorTreeChildren on it pages through what it holds")
             String accumulationPointObjectId,
             @McpNullable
             String accumulationPointClass,
@@ -125,7 +133,8 @@ public final class HeapReportAnswers {
             String classLoaderId,
             @McpNullable
             String classLoaderClassName,
-            @McpDescription("The classes contributing most to the cluster, at most " + HeapLimits.SUSPECT_CONTRIBUTORS)
+            @McpDescription("The classes of the objects the accumulation point directly holds, by the bytes they "
+                    + "retain, at most " + HeapLimits.SUSPECT_CONTRIBUTORS)
             List<Contributor> topContributors,
             @McpDescription("How many contributing classes the list left out")
             int omittedContributors) {
@@ -344,6 +353,28 @@ public final class HeapReportAnswers {
         return HeapText.omitted(text, report.omittedObjects(), "objects").toString();
     }
 
+    /** What keeps a suspect alive: its own root's holder, or the path from a root, or that there is none. */
+    private static void appendRoot(StringBuilder text, RootPath path) {
+        if (path == null) {
+            text.append("  GC Root Path: none strong (only weak or soft references reach it)\n");
+            return;
+        }
+        text.append("  GC Root Path: ").append(path.rootType());
+        if (path.threadName() != null) {
+            text.append(" of thread ").append(path.threadName());
+        }
+        if (path.stackFrame() != null) {
+            text.append(" at ").append(path.stackFrame());
+        }
+        text.append("\n");
+        if (path.steps().size() + path.omittedSteps() > 1) {
+            text.append("    ").append(path.steps().size() + path.omittedSteps()).append(" hop(s) from the root:\n");
+            HeapObjectAnswers.appendSteps(text, path, "    ");
+        } else {
+            text.append("    the suspect is itself the root\n");
+        }
+    }
+
     public static String text(LeakSuspects report) {
         if (report.status() != ReportStatus.OK) {
             return statusText(report.status(), report.reason());
@@ -369,6 +400,7 @@ public final class HeapReportAnswers {
                     .append("  Class Loader: ").append(suspect.classLoaderClassName())
                     .append(" (id=").append(suspect.classLoaderId()).append(")\n");
             appendLine(text, "  Cluster Root Object ID: ", suspect.objectId());
+            appendRoot(text, suspect.gcRootPath());
             if (!suspect.topContributors().isEmpty()) {
                 text.append("  Top Contributing Classes:\n");
                 for (Contributor entry : suspect.topContributors()) {

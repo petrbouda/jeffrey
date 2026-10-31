@@ -1,0 +1,98 @@
+# How to read this differential call tree
+
+A **differential flamegraph** of two profiles of the same application, exported by
+Jeffrey. One is the **primary** — the run under examination — and the other is the
+**baseline** it is measured against. A positive delta means the primary spends *more*
+than the baseline did: a regression.
+
+## Read the comparability section first
+
+The arithmetic below is always valid; the comparison is only valid if both recordings
+watched the same kind of work, which nothing in a recording can prove. If the
+comparability section lists warnings, weigh them before reporting any finding.
+
+## Line format
+
+A markdown nested bullet list. Every kept frame appears exactly once, two spaces of
+indentation per level of call depth: a bullet nested under another was called by it.
+
+    - <method> [<state>] — Δ<delta> (<change>) · primary <p> (<p%>) · baseline <b> -> <b'> (<b%>)
+
+- `[S]` — **shared**: the frame is present in both profiles.
+- `[NEW]` — present only in the primary. Its whole subtree is new work; it has no
+  children in this document because there is nothing to pair it against.
+- `[GONE]` — present only in the baseline. Its whole subtree disappeared.
+- `Δ<delta>` — the movement: primary total minus scaled baseline total, in the unit
+  named by `unit` (or `weight_unit` on a weighted event type).
+- `(<change>)` — that movement as a percentage of the scaled baseline. Absent on a
+  `[NEW]` or `[GONE]` frame, where there is no baseline to be a percentage of.
+- `primary <p> (<p%>)` — the frame's **whole subtree** in the primary, and its share of
+  the primary's total. This is the bar width in the visual flamegraph.
+- `baseline <b> -> <b'> (<b%>)` — the same subtree in the baseline: raw, then scaled onto
+  the primary's time base, then its share of the baseline's total.
+- Children are sorted by the size of the movement inside them, largest first, so the
+  path to what changed is always the first nested bullet.
+
+## Totals here, self elsewhere
+
+The numbers on each line are **subtree totals**, like any flamegraph. A change deep in a
+call path therefore shows up on every ancestor above it with the same delta — that is
+how a tree works, not five separate regressions. Walk down until the delta stops being
+explained by a child: that frame is where the work actually moved. The companion ranked
+list orders methods by *self* movement and does this attribution for you.
+
+## Pruning
+
+Subtrees in which nothing moved by more than `prune_threshold_pct` of the larger of the
+two profiles' totals are dropped entirely. **Absence therefore means "did not move", not "not present"** —
+the opposite of the single-profile export, where absence means "small". A frame that is
+large in both profiles and changed in neither will not appear here at all.
+
+## Renames read as a pair of dramatic findings
+
+The tree is built by matching method names level by level, so a renamed, moved or
+extracted method breaks the match: its work appears once as `[NEW]` and once as
+`[GONE]`, often of near-identical size. Before reporting either half as a real change,
+check the source diff — which you have and this document does not.
+
+---
+
+event_type: jdk.ObjectAllocationSample
+unit: samples
+weight_unit: bytes
+measured_by: weight
+primary_duration: PT30.470105S
+baseline_duration: PT30.410031S
+scaled: yes
+baseline_scale_factor: 1.002
+primary_total: 14.4 GiB
+baseline_total: 770.7 MiB (scaled: 772.3 MiB)
+prune_threshold_pct: 2.0
+
+## Comparability
+
+- **After scaling, the two profiles still differ by 19.0x in total (15419989120 vs 809774697). That is far more than a code change normally moves: suspect different workloads, different profiler settings or a different machine before reporting any regression.**
+
+## Differential call tree
+
+- [root] — Δ+13.6 GiB (+1804.2%) · primary 14.4 GiB (100.0%) · baseline 770.7 MiB -> 772.3 MiB (100.0%)
+  - java.lang.Thread#run [S] — Δ+13.6 GiB (+1944.3%) · primary 14.3 GiB (99.6%) · baseline 715.2 MiB -> 716.6 MiB (92.8%)
+    - java.lang.Thread#runWith [S] — Δ+13.6 GiB (+1944.3%) · primary 14.3 GiB (99.6%) · baseline 715.2 MiB -> 716.6 MiB (92.8%)
+      - java.util.concurrent.ThreadPoolExecutor$Worker#run [S] — Δ+13.6 GiB (+1945.5%) · primary 14.3 GiB (99.6%) · baseline 714.8 MiB -> 716.2 MiB (92.7%)
+        - java.util.concurrent.ThreadPoolExecutor#runWorker [S] — Δ+13.6 GiB (+1945.5%) · primary 14.3 GiB (99.6%) · baseline 714.8 MiB -> 716.2 MiB (92.7%)
+          - java.util.concurrent.FutureTask#run [S] — Δ+13.6 GiB (+1945.5%) · primary 14.3 GiB (99.6%) · baseline 714.8 MiB -> 716.2 MiB (92.7%)
+            - java.util.concurrent.Executors$RunnableAdapter#call [S] — Δ+13.6 GiB (+1945.5%) · primary 14.3 GiB (99.6%) · baseline 714.8 MiB -> 716.2 MiB (92.7%)
+              - com.acme.checkout.Checkout#lambda$main$1 [S] — Δ+13.6 GiB (+1945.5%) · primary 14.3 GiB (99.6%) · baseline 714.8 MiB -> 716.2 MiB (92.7%)
+                - com.acme.checkout.Checkout$PriceCalculator#reprice [S] — Δ+13.6 GiB (+2326.4%) · primary 14.2 GiB (98.7%) · baseline 596.7 MiB -> 597.9 MiB (77.4%)
+                  - com.acme.checkout.Checkout$PriceCalculator#formatLine [NEW] — Δ+13.6 GiB · primary 13.6 GiB (94.4%) · baseline 0 B -> 0 B (0.0%)
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191a0-fb12-7355-b0db-b3b6df893005/flamegraph-view?eventType=jdk.ObjectAllocationSample&graphMode=DIFFERENTIAL&baseline=01a191a0-f77a-7644-82c7-4a9c49bcb090&useWeight=true&startEpochMs=1793444577313&endEpochMs=1793444607783
+Next:
+- compare_quality {"profileId":"01a191a0-fb12-7355-b0db-b3b6df893005","baselineProfileId":"01a191a0-f77a-7644-82c7-4a9c49bcb090"} [LIGHT]
+- flamegraph_export {"profileId":"01a191a0-fb12-7355-b0db-b3b6df893005","eventType":"jdk.ObjectAllocationSample","useWeight":true} [HEAVY]
+- flamegraph_export {"profileId":"01a191a0-f77a-7644-82c7-4a9c49bcb090","eventType":"jdk.ObjectAllocationSample","useWeight":true} [HEAVY]
+Guidance:
+- This tree prunes by movement, so a frame absent here did not move - it is not missing.
+- A method that appears on one side only may be a rename rather than a change. You have the source diff and the profile does not; check before reporting either half.

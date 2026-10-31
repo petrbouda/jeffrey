@@ -25,11 +25,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakSummary;
-import cafe.jeffrey.profile.heapdump.model.DominatedClassEntry;
+import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspect;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
-import cafe.jeffrey.profile.heapdump.model.PathStep;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
@@ -44,8 +44,7 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  * exceeds a configurable percentage of the total heap, and that no other such
  * instance dominates. This is the same starting heuristic MAT uses; the
  * existing NetBeans-backed analyzer in Jeffrey has additional classloader-cluster
- * and accumulation-point logic that is not yet ported (see field-level
- * limitations below).
+ * logic that is not ported.
  *
  * <p>One leak is one suspect. Retained size never grows down the dominator tree,
  * so the objects a big retainer dominates on the way to its contents — a holder,
@@ -57,20 +56,10 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  * share of the heap. A candidate dominated by a class object (a static field) is
  * still a suspect: the class itself is never one.
  *
- * Limitations vs the existing NetBeans-backed version (documented in the
- * model-level fields they map to):
- * <ul>
- *   <li>{@code accumulationPoint} / {@code accumulationPointId} /
- *       {@code accumulationPointClass}: null. The existing analyzer walks
- *       the dominated set looking for a clustering "neck" object (often a
- *       collection); deferring to a follow-up PR.</li>
- *   <li>{@code dominatedHistogram}: empty list. Computing this requires a
- *       per-suspect descendant scan which is straightforward but unmigrated.</li>
- *   <li>{@code pathSteps}: empty list. Once
- *       {@link PathToGCRootAnalyzer} is wired into this flow, populated.</li>
- *   <li>{@code reason}: a brief, generic message. The NetBeans path produces
- *       richer text including the dominated cluster's character.</li>
- * </ul>
+ * <p>Each suspect carries what a leak claim is checked by, so the answer that names it is enough to
+ * make the claim: what keeps it alive ({@link PathToGCRootAnalyzer#selfRoot} for a suspect that is a
+ * root itself, with its thread and frame, else the shortest strong path), where its memory
+ * accumulates and what that is made of ({@link SuspectClusters}).
  */
 public final class LeakSuspectsAnalyzer {
 
@@ -102,6 +91,22 @@ public final class LeakSuspectsAnalyzer {
 
     private static final String REASON =
             "One %s object retains %.1f%% of the heap, and no other suspect dominates it.";
+
+    private static final String ACCUMULATES_IN_SUSPECT = "The %s itself";
+
+    private static final String ACCUMULATES_BELOW = "A %s, %d %s below the suspect,";
+
+    private static final String HOLDS = " directly holds %,d objects of %d %s that retain %.1f%% of it.";
+
+    private static final String DESCENT_CAPPED = " The descent stopped after %d levels; the chain goes deeper.";
+
+    private static final String LEVEL = "level";
+
+    private static final String LEVELS = "levels";
+
+    private static final String CLASS = "class";
+
+    private static final String CLASSES = "classes";
 
     private LeakSuspectsAnalyzer() {
     }
@@ -161,6 +166,9 @@ public final class LeakSuspectsAnalyzer {
                     double percent = totalHeapSize == 0 ? 0.0 : (retained * 100.0) / totalHeapSize;
                     double score = percent; // simple score: retained percentage
 
+                    GCRootPath rootPath = rootPath(view, instanceId);
+                    SuspectClusters.Cluster cluster = SuspectClusters.of(view, instanceId, className, retained);
+
                     suspects.add(new LeakSuspect(
                             rank++,
                             className,
@@ -169,10 +177,12 @@ public final class LeakSuspectsAnalyzer {
                             percent,
                             instanceCount,
                             buildReason(percent, className),
-                            null, // accumulationPoint
-                            List.<PathStep>of(),
-                            null, null,
-                            List.<DominatedClassEntry>of(),
+                            describe(cluster, retained),
+                            rootPath,
+                            cluster.objectId(),
+                            cluster.className(),
+                            cluster.contents(),
+                            cluster.classCount(),
                             score,
                             loaderId,
                             loaderName));
@@ -208,6 +218,31 @@ public final class LeakSuspectsAnalyzer {
                 return name;
             }
         }
+    }
+
+    /**
+     * What keeps the suspect alive: its own root, when it is one, else the shortest strong path from
+     * one; null when neither exists (it is reachable only through weak or soft references).
+     */
+    private static GCRootPath rootPath(HeapView view, long instanceId) throws SQLException {
+        Optional<GCRootPath> self = PathToGCRootAnalyzer.selfRoot(view, instanceId);
+        if (self.isPresent()) {
+            return self.get();
+        }
+        List<GCRootPath> paths = PathToGCRootAnalyzer.findPaths(view, instanceId, true, 1);
+        return paths.isEmpty() ? null : paths.getFirst();
+    }
+
+    /** Where the suspect's memory accumulates, in a sentence. */
+    private static String describe(SuspectClusters.Cluster cluster, long suspectRetained) {
+        double share = suspectRetained == 0 ? 0.0 : (cluster.heldBytes() * 100.0) / suspectRetained;
+        String where = cluster.depth() == 0
+                ? String.format(ACCUMULATES_IN_SUSPECT, cluster.className())
+                : String.format(ACCUMULATES_BELOW, cluster.className(), cluster.depth(),
+                        cluster.depth() == 1 ? LEVEL : LEVELS);
+        String held = String.format(HOLDS, cluster.objects(), cluster.classCount(),
+                cluster.classCount() == 1 ? CLASS : CLASSES, share);
+        return where + held + (cluster.descentCapped() ? String.format(DESCENT_CAPPED, SuspectClusters.MAX_DESCENT) : "");
     }
 
     private static String buildReason(double percent, String className) {

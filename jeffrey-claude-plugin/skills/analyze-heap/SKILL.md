@@ -123,15 +123,18 @@ A question that names its area goes straight to the table below, without the men
 | Question | Sequence | Without the report |
 |---|---|---|
 | What is using the heap at all | `heap_getClassHistogram`, then `heap_getTopConsumers` for the same picture by package and class loader | The histogram alone |
-| What is leaking | `heap_getLeakSuspects` → `heap_getPathToGCRoot` on the object it names → `heap_getReferrers` to walk outwards | `heap_getDominatorTreeRoots` → `heap_getPathToGCRoot` on the largest roots |
+| What is leaking | `heap_getLeakSuspects` — each suspect carries its `gcRootPath`, its `accumulationPoint` and the `topContributors` it holds; `heap_getPathToGCRoot` only for a suspect whose `gcRootPath` is null, `heap_getReferrers` to walk outwards | `heap_getDominatorTreeRoots` → `heap_getPathToGCRoot` on the largest roots |
 | Which single objects are the biggest | `heap_getBiggestObjects` for the flat ranking; `heap_getDominatorTreeRoots` → `heap_getDominatorTreeChildren` to walk into one | The dominator tree already is the ranking |
 | Redeploys leak, or classes look duplicated | `heap_getClassLoaderLeakChains` — names the loader, the GC-root path keeping it alive and the pattern that matched (ThreadLocal, JDBC driver, JNI global, ServiceLoader, static logger, context class loader) | `heap_browseClassInstances` on the loader class → `heap_getPathToGCRoot` |
 | Where the waste is | `heap_getStringAnalysis` (duplicate and oversized strings), `heap_getCollectionAnalysis` (empty, singleton and oversized collections with fill ratios) | Histogram by `COUNT`, then `heap_browseClassInstances` |
 | What is in one particular class | `heap_browseClassInstances` → `heap_getInstanceDetail` → `heap_getPathToGCRoot` | — |
 | Who is rooting all this | `heap_getGCRootSummary`; `heap_getThreads` when a thread is the suspect | — |
 
-`heap_getPathToGCRoot` turns an observation into a cause: the histogram says a class is large, the
-path says *why those instances are still reachable*. Do not report a leak without one. The paths
+A GC-root path turns an observation into a cause: the histogram says a class is large, the path
+says *why those instances are still reachable*. Do not report a leak without one. A leak suspect
+already carries it (`gcRootPath`: the path, or, for a suspect that is itself a root, its
+`rootType`, `threadName` and `stackFrame`), so read it there instead of asking again;
+`heap_getPathToGCRoot` is for any other object. The paths
 skip weak and soft references, so an object reachable only through a `WeakHashMap` or a soft cache
 shows no path — that is the answer, not an error.
 
@@ -148,8 +151,10 @@ Delegate only with a `profileId` in hand. Neither agent may import, so a dump th
 file is imported here first — `recordings_analyzeFile` with its absolute path, followed to the
 `profileId` as step 1 describes. An agent handed a path or a name instead looks a profile up in
 the catalogue, which can be another dump of the same name rather than the file the user meant.
-Then delegate a whole route from step 5 — give it the `profileId` and the question — and send
-independent questions in one message so they run at once.
+Then delegate a whole route from step 5 — give it the `profileId` and the user's question as asked,
+and let it pick the route: a brief that lists reports to cover ("the histogram, the consumers, the
+class loaders, the strings…") makes it read every one of them whether the question needs it or not.
+Send independent questions in one message so they run at once.
 
 Work here instead when a single tool answers the question, or when the user is walking the
 dominator tree with you object by object. Reading the real source behind a retaining field, and
