@@ -46,6 +46,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class DuckDBProfileDatabaseManagerTest {
 
+    /** Past DuckDB's row group of 122 880 rows, where a parallel sort hands back more than one run. */
+    private static final long ORDERED_PROBE_ROWS = 500_000;
+
     @TempDir
     Path baseDir;
 
@@ -101,7 +104,8 @@ class DuckDBProfileDatabaseManagerTest {
         void keepsTheIngestionSettings() throws SQLException {
             DataSource dataSource = profileDatabase();
 
-            assertEquals("false", setting(dataSource, "preserve_insertion_order"));
+            assertEquals("true", setting(dataSource, "preserve_insertion_order"),
+                    "turned off, a large ORDER BY arrives out of order");
             assertEquals("false", setting(dataSource, "enable_external_access"));
             assertEquals("true", setting(dataSource, "lock_configuration"));
         }
@@ -122,6 +126,42 @@ class DuckDBProfileDatabaseManagerTest {
 
                 assertTrue(first.isValid(0));
                 assertTrue(rs.next());
+            }
+        }
+
+        /*
+         * Past one row group, the DuckDB JDBC driver hands a prepared statement's ORDER BY back out
+         * of order while preserve_insertion_order is off -- and every reader of a profile database
+         * goes through a prepared statement (NamedParameterJdbcTemplate). The time-ordered event
+         * streams delta consecutive counters and keep the last snapshot per key, so a misordered
+         * stream was a wrong answer, not a slow one.
+         */
+        @Test
+        @DisplayName("an ORDER BY larger than one row group arrives in order")
+        void keepsTheOrderOfALargeOrderedRead() throws SQLException {
+            DataSource dataSource = profileDatabase();
+
+            try (Connection conn = dataSource.getConnection()) {
+                try (PreparedStatement create = conn.prepareStatement(
+                        "CREATE TABLE ordered_probe AS SELECT (hash(i) % 1000000000000)::BIGINT AS t FROM range(" + ORDERED_PROBE_ROWS + ") r(i)")) {
+                    create.execute();
+                }
+                long outOfOrder = 0;
+                long rows = 0;
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT t FROM ordered_probe ORDER BY t");
+                     ResultSet rs = stmt.executeQuery()) {
+                    long previous = Long.MIN_VALUE;
+                    while (rs.next()) {
+                        long value = rs.getLong(1);
+                        if (value < previous) {
+                            outOfOrder++;
+                        }
+                        previous = value;
+                        rows++;
+                    }
+                }
+                assertEquals(ORDERED_PROBE_ROWS, rows);
+                assertEquals(0, outOfOrder, "rows that arrived before a smaller one");
             }
         }
 
