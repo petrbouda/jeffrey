@@ -27,6 +27,7 @@ import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
+import cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.slf4j.Logger;
@@ -36,8 +37,10 @@ import tools.jackson.core.JacksonException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Typed JSON I/O for heap-dump analysis sidecar files. Uses the shared
@@ -64,6 +67,11 @@ public final class HeapDumpReportStore {
             new ConsumerReportAnalysis(),
             new DuplicateDataAnalysis());
 
+    private static final String JSON_SUFFIX = ".json";
+
+    /** Between a report's name and the version of the dominator tree it was computed from. */
+    private static final String TREE_VERSION_MARK = ".tree-v";
+
     private final Path analysisDir;
 
     public HeapDumpReportStore(Path analysisDir) {
@@ -71,21 +79,68 @@ public final class HeapDumpReportStore {
     }
 
     // --- CachedAnalysis-typed operations --------------------------------
+    //
+    // A report computed from the dominator tree is stored under the version of the tree it read
+    // (DominatorTreeBuilder.TREE_VERSION): one cached from an older tree is not found, so it reads as
+    // not built and its stage runs again, against the tree rebuilt beside it, rather than serving
+    // figures from a tree the current build would not produce.
 
     public <T> boolean exists(CachedAnalysis<T> analysis) {
-        return Files.exists(analysisDir.resolve(analysis.fileName()));
+        return Files.exists(analysisDir.resolve(storedName(analysis)));
     }
 
     public <T> Optional<T> read(CachedAnalysis<T> analysis) {
-        return read(analysis.fileName(), analysis.type());
+        return read(storedName(analysis), analysis.type());
     }
 
     public <T> void write(CachedAnalysis<T> analysis, T report) {
-        write(analysis.fileName(), report, analysis.displayName());
+        write(storedName(analysis), report, analysis.displayName());
+        for (String stale : staleNames(analysis)) {
+            delete(stale, analysis.displayName());
+        }
     }
 
     public <T> void delete(CachedAnalysis<T> analysis) {
-        delete(analysis.fileName(), analysis.displayName());
+        delete(storedName(analysis), analysis.displayName());
+        for (String stale : staleNames(analysis)) {
+            delete(stale, analysis.displayName());
+        }
+    }
+
+    /** The file the analysis is stored in: its own name, versioned by the tree when it reads one. */
+    static String storedName(CachedAnalysis<?> analysis) {
+        if (!analysis.dependsOnDominatorTree()) {
+            return analysis.fileName();
+        }
+        return baseName(analysis) + TREE_VERSION_MARK + DominatorTreeBuilder.TREE_VERSION + JSON_SUFFIX;
+    }
+
+    /**
+     * The analysis's files from earlier trees: the unversioned name every report had before trees were
+     * versioned, and any other version. Only for an analysis that reads the tree.
+     */
+    private List<String> staleNames(CachedAnalysis<?> analysis) {
+        if (!analysis.dependsOnDominatorTree() || !Files.isDirectory(analysisDir)) {
+            return List.of();
+        }
+        String current = storedName(analysis);
+        String versionedPrefix = baseName(analysis) + TREE_VERSION_MARK;
+        List<String> stale = new ArrayList<>();
+        try (Stream<Path> files = Files.list(analysisDir)) {
+            files.map(path -> path.getFileName().toString())
+                    .filter(name -> !name.equals(current))
+                    .filter(name -> name.equals(analysis.fileName())
+                            || (name.startsWith(versionedPrefix) && name.endsWith(JSON_SUFFIX)))
+                    .forEach(stale::add);
+        } catch (IOException e) {
+            LOG.warn("Could not list cached analyses: path={} message={}", analysisDir, e.getMessage());
+        }
+        return stale;
+    }
+
+    private static String baseName(CachedAnalysis<?> analysis) {
+        String name = analysis.fileName();
+        return name.endsWith(JSON_SUFFIX) ? name.substring(0, name.length() - JSON_SUFFIX.length()) : name;
     }
 
     // --- Raw-fileName operations (for non-CachedAnalysis files) ---------

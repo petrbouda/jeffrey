@@ -49,7 +49,17 @@ public sealed interface CachedAnalysis<T> permits
 
     Class<T> type();
 
+    /** Whether the dominator tree has to be built before {@link #compute} runs. */
     boolean needsDominatorTree();
+
+    /**
+     * Whether the report's figures come from the dominator tree, so a report cached from an older tree
+     * is stale with it. True for every analysis that needs the tree; an analysis that only reads
+     * retained sizes when they happen to be there (the threads) says so itself.
+     */
+    default boolean dependsOnDominatorTree() {
+        return needsDominatorTree();
+    }
 
     String displayName();
 

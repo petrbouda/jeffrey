@@ -142,7 +142,9 @@ public interface HeapView extends AutoCloseable {
     }
 
     /**
-     * True iff the dominator + retained_size tables have been populated.
+     * True iff the dominator + retained_size tables have been populated by the current dominator
+     * build. A tree an older build wrote reads as not built, so whatever builds on demand builds it
+     * again.
      */
     boolean hasDominatorTree() throws SQLException;
 

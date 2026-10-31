@@ -1,0 +1,67 @@
+Class Histogram (top 50 by SIZE):
+
+CLASS                                                              INSTANCES      TOTAL SIZE
+--------------------------------------------------------------------------------------------
+java.lang.Long                                                       138,956         3.2 MiB
+byte[]                                                                39,182         1.9 MiB
+java.lang.String                                                      38,173         1.2 MiB
+java.lang.Object[]                                                     9,816       964.5 KiB
+java.util.concurrent.ConcurrentHashMap$Node[]                             72       298.9 KiB
+java.util.HashMap$Node                                                 8,416       263.0 KiB
+long[]                                                                 3,229       261.9 KiB
+java.util.ArrayList                                                    6,957       217.4 KiB
+java.util.concurrent.ConcurrentHashMap$Node                            5,775       180.5 KiB
+com.acme.checkout.Checkout$Order                                       5,760       180.0 KiB
+java.util.HashMap$Node[]                                               1,744       172.8 KiB
+jdk.internal.jimage.ImageReader$Resource                               3,196       124.8 KiB
+int[]                                                                  1,739       121.6 KiB
+java.util.LinkedHashMap$Entry                                          2,838       110.9 KiB
+jdk.internal.jimage.ImageLocation                                      3,196        74.9 KiB
+char[]                                                                   226        71.8 KiB
+java.lang.reflect.Method                                                 652        61.1 KiB
+java.util.LinkedHashMap                                                  950        59.4 KiB
+java.util.ImmutableCollections$List12                                  2,445        57.3 KiB
+java.lang.invoke.MemberName                                            1,389        54.3 KiB
+jdk.jfr.AnnotationElement                                              1,650        51.6 KiB
+jdk.internal.util.WeakReferenceKey                                     1,278        49.9 KiB
+java.lang.invoke.MethodType                                            1,263        49.3 KiB
+java.util.HashMap                                                        910        42.7 KiB
+jdk.jfr.ValueDescriptor                                                  843        39.5 KiB
+jdk.jfr.internal.AnnotationConstruct                                   1,555        36.4 KiB
+java.lang.Class[]                                                      1,248        34.0 KiB
+java.lang.String[]                                                       782        33.7 KiB
+java.lang.Object                                                       1,654        25.8 KiB
+java.lang.reflect.Field                                                  357        25.1 KiB
+java.lang.invoke.ResolvedMethodName                                    1,049        24.6 KiB
+java.lang.ref.SoftReference[]                                            318        23.6 KiB
+jdk.internal.classfile.impl.LineNumberImpl                             1,000        23.4 KiB
+java.lang.module.ModuleDescriptor$Exports                                742        23.2 KiB
+jdk.jfr.internal.PlatformEventType                                       200        21.9 KiB
+java.lang.invoke.DirectMethodHandle                                      484        18.9 KiB
+java.lang.invoke.LambdaForm$Name                                         434        17.0 KiB
+java.util.HashSet                                                        687        16.1 KiB
+sun.reflect.annotation.AnnotationInvocationHandler                       515        16.1 KiB
+jdk.internal.ref.PhantomCleanable[]                                        1        16.0 KiB
+java.util.HashSet[]                                                      407        15.9 KiB
+jdk.jfr.internal.Control                                                 407        15.9 KiB
+java.lang.ref.SoftReference                                              345        13.5 KiB
+java.lang.invoke.DirectMethodHandle$Constructor                          276        12.9 KiB
+jdk.jfr.SettingDescriptor                                                410        12.8 KiB
+java.net.URI                                                             131        11.3 KiB
+java.lang.Class$ReflectionData                                           179        11.2 KiB
+java.util.ImmutableCollections$ListN                                     472        11.1 KiB
+jdk.internal.jrtfs.JrtPath                                               347        10.8 KiB
+java.util.ImmutableCollections$Set12                                     458        10.7 KiB
+
+50 class(es) returned
+
+(more classes may exist beyond these)
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191c0-1ead-7acd-8332-7cc1292945ad/heap-dump/histogram
+Next:
+- heap_browseClassInstances {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad","className":"java.lang.Long"} [MEDIUM]
+- heap_getDominatorTreeRoots {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad"} [HEAVY]
+Guidance:
+- A size is an observation, not a cause: heap_getPathToGCRoot on an object id says why it is still reachable, which is what makes a leak claim checkable.

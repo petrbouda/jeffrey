@@ -1,0 +1,15 @@
+Heap Summary:
+
+Total Live Bytes:      10.7 MiB (11,177,640 bytes)
+Total Live Instances:  309,046
+Number of Classes:     3,990
+Number of GC Roots:    2,243
+Heap Dump Time:        2026-10-31T11:37:27.858Z
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191c0-1ead-7acd-8332-7cc1292945ad/heap-dump/overview
+Next:
+- heap_getClassHistogram {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad"} [MEDIUM]
+- heap_getDominatorTreeRoots {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad"} [HEAVY]
+- heap_getLeakSuspects {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad"} [LIGHT]

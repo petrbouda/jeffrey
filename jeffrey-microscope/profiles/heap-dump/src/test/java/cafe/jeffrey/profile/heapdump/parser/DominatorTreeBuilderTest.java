@@ -300,6 +300,77 @@ class DominatorTreeBuilderTest {
         }
     }
 
+    /**
+     * An index file outlives the code that wrote it. A tree with no version row (every tree built
+     * before the table existed) or an older version is read as not built, and the next build replaces
+     * it and records the current version.
+     */
+    @Test
+    void treeOfAnotherBuildReadsAsNotBuiltUntilItIsBuiltAgain(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long a = 0x1A0L, b = 0x1B0L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .instanceDump(a, classId, idBytes(b, idSize))
+                        .instanceDump(b, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "versioned.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertTrue(view.hasDominatorTree(), "the current build's tree");
+        }
+        assertEquals(List.of((long) DominatorTreeBuilder.TREE_VERSION), treeVersions(indexDb));
+
+        execute(indexDb, "UPDATE dominator_build SET tree_version = " + (DominatorTreeBuilder.TREE_VERSION - 1));
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertFalse(view.hasDominatorTree(), "an older build's tree, though its rows are all there");
+        }
+
+        execute(indexDb, "DROP TABLE dominator_build");
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertFalse(view.hasDominatorTree(), "a tree built before trees were versioned");
+        }
+
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertTrue(view.hasDominatorTree());
+            assertEquals(a, view.dominatorOf(b), "the rebuilt tree");
+        }
+        assertEquals(List.of((long) DominatorTreeBuilder.TREE_VERSION), treeVersions(indexDb),
+                "one version row, the table recreated on an index that had lost it");
+    }
+
+    private static List<Long> treeVersions(Path indexDb) throws SQLException {
+        List<Long> versions = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT tree_version FROM dominator_build")) {
+            while (rs.next()) {
+                versions.add(rs.getLong(1));
+            }
+        }
+        return versions;
+    }
+
+    private static void execute(Path indexDb, String sql) throws SQLException {
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
     private static long holderId(int pair) {
         return LARGE_GRAPH_BASE_ID + pair * 2L * PAIR_LEAF_OFFSET;
     }

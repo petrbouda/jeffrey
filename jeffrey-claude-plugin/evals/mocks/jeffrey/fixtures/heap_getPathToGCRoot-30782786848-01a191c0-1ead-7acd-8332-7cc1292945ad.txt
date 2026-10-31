@@ -1,0 +1,17 @@
+Paths to GC Root for Object ID 30782786848:
+
+Path #1:
+  GC Root Type: Java frame
+  Thread: main
+  Stack Frame: com.acme.checkout.Checkout.main(Checkout.java:82)
+  -> com.acme.checkout.Checkout$AuditLog.orders (ID: 30777346440)
+  -> java.util.ArrayList.elementData (ID: 30778703848)
+  -> java.lang.Object[] (ID: 30782786848)
+
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191c0-1ead-7acd-8332-7cc1292945ad/heap-dump/gc-root-path?objectId=30782786848
+Next:
+- heap_getReferrers {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad","objectId":"30782786848"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad","objectId":"30777346440"} [LIGHT]

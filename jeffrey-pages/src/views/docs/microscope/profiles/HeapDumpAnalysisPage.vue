@@ -85,6 +85,7 @@ onMounted(() => {
 
       <h3 id="compressed-oops">Compressed oops and re-initialization</h3>
       <p>Initialization auto-detects whether the dumped JVM used compressed object pointers, which decides how big every reference and object header is. When object sizes look wrong, auto-detection guessed incorrectly: <strong>Re-initialize</strong> on the Heap Dump Overview drops the index and every cached analysis and builds them again, either auto-detecting again or forcing compressed oops <strong>enabled</strong> (4-byte references, heaps under 32&nbsp;GiB) or <strong>disabled</strong> (8-byte references). The <strong>Compressed Oops</strong> figure in the summary shows what the last run used.</p>
+      <p>A dump analysed by an earlier version of Microscope whose dominator tree is now built differently does not need re-initializing by hand: its tree, and every cached analysis computed from it (leak suspects, biggest objects and collections, class loaders, consumers, threads), read as not built, so the next <strong>Initialize</strong> (or <code>heap_prepare</code> over MCP) builds them again from the existing index.</p>
       <p>The Overview neither uploads nor deletes a heap dump: a dump arrives through the Recordings page and is removed there, with its row. When a run failed or never finished, the Overview offers <strong>Initialize</strong> (or <strong>Try again</strong>) to start it on the profile&rsquo;s copy without going back to the list.</p>
 
       <DocsCallout type="info">

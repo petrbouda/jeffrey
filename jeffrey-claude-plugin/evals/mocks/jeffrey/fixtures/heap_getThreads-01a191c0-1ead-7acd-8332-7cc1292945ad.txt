@@ -1,0 +1,20 @@
+Threads in Heap Dump:
+
+THREAD NAME                                                   OBJECT ID        RETAINED
+---------------------------------------------------------------------------------------
+main                                                        30774176776         4.9 KiB
+JFR Periodic Tasks                                          30774172760         4.7 KiB
+Signal Dispatcher                                           30774173920           240 B
+Notification Thread                                         30774185032           240 B
+Reference Handler                                           30774172648           168 B
+JFR Recorder Thread                                         30774174480           168 B
+Finalizer                                                   30774174712           168 B
+Common-Cleaner                                              30774178840           168 B
+
+8 thread(s) found
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191c0-1ead-7acd-8332-7cc1292945ad/heap-dump/threads
+Next:
+- heap_getInstanceDetail {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad","objectId":"30774176776"} [LIGHT]
+- heap_getDominatorTreeChildren {"profileId":"01a191c0-1ead-7acd-8332-7cc1292945ad","objectId":"30774176776"} [MEDIUM]

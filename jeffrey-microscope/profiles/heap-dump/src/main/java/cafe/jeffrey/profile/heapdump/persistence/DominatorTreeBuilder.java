@@ -40,6 +40,7 @@ import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.FutureJoin;
 
 /**
@@ -73,6 +74,28 @@ public final class DominatorTreeBuilder {
 
     /** Reserved id for the synthetic virtual root. HPROF id 0 means null, never a real instance. */
     public static final long VIRTUAL_ROOT = 0L;
+
+    /**
+     * The version of the tree this builder writes, recorded in {@code dominator_build} beside the
+     * rows. Version 1 is every tree written before the table existed: it filled its node array in the
+     * order a prepared {@code ORDER BY} streamed, which the JDBC driver does not keep past one row
+     * group, and came out wrong on any dump of that size. A view reads a tree of another version as
+     * not built ({@link HeapView#hasDominatorTree()}), and the reports cached from one carry this
+     * version in their name, so both are built again rather than served. Raise it whenever a change
+     * here alters which tree a dump gets.
+     */
+    public static final int TREE_VERSION = 2;
+
+    private static final String DOMINATOR_BUILD_TABLE = "dominator_build";
+
+    /** An index file written before the version table existed gains it on its first rebuild. */
+    private static final String CREATE_DOMINATOR_BUILD =
+            "CREATE TABLE IF NOT EXISTS " + DOMINATOR_BUILD_TABLE + " (tree_version INTEGER NOT NULL)";
+
+    private static final String DELETE_DOMINATOR_BUILD = "DELETE FROM " + DOMINATOR_BUILD_TABLE;
+
+    private static final String RECORD_DOMINATOR_BUILD =
+            "INSERT INTO " + DOMINATOR_BUILD_TABLE + " VALUES (" + TREE_VERSION + ")";
 
     /**
      * Raises the WAL auto-checkpoint threshold so DuckDB doesn't flush WAL → main
@@ -181,6 +204,7 @@ public final class DominatorTreeBuilder {
             for (String ddl : DROP_INDEX_DDL) {
                 client.execute(HeapDumpStatement.DROP_INDEXES, ddl);
             }
+            client.execute(HeapDumpStatement.CREATE_DOMINATOR_BUILD, CREATE_DOMINATOR_BUILD);
             // The replacement of both tables is one transaction, taken in persistViaParquet around
             // the deletes and the two loads. It is not taken here: the graph computation between
             // them touches no table, and holding a write transaction open across minutes of it
@@ -404,6 +428,9 @@ public final class DominatorTreeBuilder {
                     client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
                 }
                 staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
+                // The version goes in with the rows, so a tree is never marked current without them.
+                client.execute(HeapDumpStatement.DELETE_DOMINATOR_BUILD, DELETE_DOMINATOR_BUILD);
+                client.execute(HeapDumpStatement.RECORD_DOMINATOR_BUILD, RECORD_DOMINATOR_BUILD);
                 client.execute(HeapDumpStatement.COMMIT_TRANSACTION, COMMIT_TRANSACTION);
             } catch (RuntimeException e) {
                 rollbackQuietly(client);

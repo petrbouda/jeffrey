@@ -1,1 +1,0 @@
-{"profileId":"01a191a0-f77a-7644-82c7-4a9c49bcb090","view":"nmt","objectId":null,"uiLink":"http://localhost:8585/profiles/01a191a0-f77a-7644-82c7-4a9c49bcb090/nmt"}

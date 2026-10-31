@@ -54,6 +54,12 @@ public final class ThreadHeapAnalysis implements CachedAnalysis<ThreadAnalysisRe
         return false;
     }
 
+    /** Each thread's retained size is read whenever the tree exists, so a stale tree makes it stale. */
+    @Override
+    public boolean dependsOnDominatorTree() {
+        return true;
+    }
+
     @Override
     public String displayName() {
         return DISPLAY_NAME;
