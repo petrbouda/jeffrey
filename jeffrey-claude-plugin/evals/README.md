@@ -36,6 +36,7 @@ model time at list price; `--max-cost-usd` stops it at a ceiling.
 | `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
 | `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (142 ms of 30.6 s), no tuning from one fired rule |
 | `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its 80.8 s of blocked time read as thread-time, never as a share of the recording |
+| `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `advise-jfr`, `compare-jfr`, `profile-run`) and makes that skill's first call |
 
 ## Where the answers come from
 
@@ -145,3 +146,25 @@ What the traces add:
 - `two-areas-delegated`'s dip is one judge vote on an answer that names both hotspots with their
   denominators; `lock-contention-not-wall-clock`'s judge was replaced by two `regex` graders after it
   failed answers its own criterion allowed ("66% of their combined time").
+- **Routing among overlapping skills is not a problem.** The four `route-*` cases — "why is it slow"
+  with no profile named, "what should I change", "did my change regress", "how do I record it" —
+  reached the intended skill in 12 of 12 runs, one skill each, on plugin 1.0.7. Merging skills to
+  fix routing would fix nothing these cases can see.
+
+**Delegation enforced** (plugin 1.0.8). `analyze-jfr`'s "delegate when more than one export is in
+play" became "two or more exports are never read here": one `profile-analyst` call per export, all
+in one message. Measured against 1.0.7 on 2026-10-31, three runs each:
+
+| `two-areas-delegated` | Read in the main conversation (1.0.7) | Delegated (1.0.8) |
+|---|---|---|
+| Score | 0.81 | 1.00 — every grader, every run |
+| Main conversation's tokens in | 199k | 39k (−81%) |
+| Analysts' tokens in | 0 | 202k |
+| Cost per answer | $0.25 | $0.36 (+44%) |
+| Wall time, median | 27 s | 46 s |
+
+Both analysts ran in every run, in parallel, and their handbook carried them to the right answer — the
+first case to exercise it. `named-area-cpu`, one export, still reads it in the main conversation
+(1.00, 186k). The trade is model time for a main conversation five times smaller, which is what a
+follow-up question in the same conversation pays for; these single-question cases do not measure
+that second turn.

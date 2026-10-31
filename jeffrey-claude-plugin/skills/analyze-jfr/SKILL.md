@@ -192,12 +192,13 @@ ships it as `microscope:profile-analyst`; in Codex it is the custom agent from
 `codex/agents/profile-analyst.toml`. If your client has no such agent, read the exports here and
 keep the sequence short.
 
-Delegate when more than one export is in play — several areas the user picked, a whole trace
-operation, a deep chase down one path — and give it the `profileId` and the one question. Delegate
-only what the user chose: independent picks go out in a single message so they run at once, and an
-area nobody picked is not sent to an analyst to be safe.
+**Two or more exports are never read here.** When the question needs more than one — two areas the
+user named or picked, a flamegraph and a trace, a deep chase down one path — send one
+`profile-analyst` call per export, all in a single message so they run at once, each with the
+`profileId`, the one question and the event type it reads. Read nothing they will read. An area
+nobody chose is not sent to an analyst to be safe.
 
-Read an export here, in this conversation, when there is exactly one and its result will be
+Read an export here, in this conversation, only when there is exactly one and its result will be
 discussed turn by turn. The analyst returns a report; it cannot answer a follow-up about a document
 the conversation never saw.
 
