@@ -122,6 +122,13 @@ public final class LeakSuspectsAnalyzer {
 
     private static final String ACCUMULATES_BELOW = "A %s, %d %s below the suspect,";
 
+    /**
+     * The same, reached through a class object: a suspect above a class loader's bookkeeping names the
+     * class whose static field holds the memory, which is the code to read.
+     */
+    private static final String ACCUMULATES_THROUGH_STATIC =
+            "A %s, %d %s below the suspect through a static field of %s,";
+
     private static final String HOLDS = " directly holds %,d objects of %d %s that retain %.1f%% of it.";
 
     private static final String DESCENT_CAPPED = " The descent stopped after %d levels; the chain goes deeper.";
@@ -269,10 +276,16 @@ public final class LeakSuspectsAnalyzer {
     /** Where the suspect's memory accumulates, in a sentence. */
     private static String describe(SuspectClusters.Cluster cluster, long suspectRetained) {
         double share = suspectRetained == 0 ? 0.0 : (cluster.heldBytes() * 100.0) / suspectRetained;
-        String where = cluster.depth() == 0
-                ? String.format(ACCUMULATES_IN_SUSPECT, cluster.className())
-                : String.format(ACCUMULATES_BELOW, cluster.className(), cluster.depth(),
-                        cluster.depth() == 1 ? LEVEL : LEVELS);
+        String levels = cluster.depth() == 1 ? LEVEL : LEVELS;
+        String where;
+        if (cluster.depth() == 0) {
+            where = String.format(ACCUMULATES_IN_SUSPECT, cluster.className());
+        } else if (cluster.staticHolder() != null) {
+            where = String.format(ACCUMULATES_THROUGH_STATIC, cluster.className(), cluster.depth(), levels,
+                    cluster.staticHolder());
+        } else {
+            where = String.format(ACCUMULATES_BELOW, cluster.className(), cluster.depth(), levels);
+        }
         String held = String.format(HOLDS, cluster.objects(), cluster.classCount(),
                 cluster.classCount() == 1 ? CLASS : CLASSES, share);
         return where + held + (cluster.descentCapped() ? String.format(DESCENT_CAPPED, SuspectClusters.MAX_DESCENT) : "");

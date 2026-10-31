@@ -41,12 +41,18 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FlamegraphRecordedTypesTest {
+
+    private static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
+    private static final String HEAP_SUMMARY = "jdk.GCHeapSummary";
 
     @Test
     void recordedPprofDimensionMustStillExport() {
@@ -56,6 +62,41 @@ class FlamegraphRecordedTypesTest {
     @Test
     void recordedJfrSocketReadMustStillExport() {
         assertExportsRecordedType("jdk.SocketRead", RecordingEventSource.JDK);
+    }
+
+    @Test
+    void recordedTypeWithoutStacksIsNotGraphedAsAnEmptyTree() {
+        EventSummary samples = new EventSummary(EXECUTION_SAMPLE, EXECUTION_SAMPLE, RecordingEventSource.JDK, null,
+                3108, 0, true, false, List.of(), Map.of(), Map.of());
+        EventSummary heapSummary = new EventSummary(HEAP_SUMMARY, HEAP_SUMMARY, RecordingEventSource.JDK, null,
+                94, 0, false, false, List.of(), Map.of(), Map.of());
+        ProfileEventTypeRepository repository = mock(ProfileEventTypeRepository.class);
+        when(repository.eventSummaries()).thenReturn(List.of(samples, heapSummary));
+        when(repository.eventSummaries(any(List.class))).thenReturn(List.of(samples));
+        DbBasedFlamegraphGenerator generator = mock(DbBasedFlamegraphGenerator.class);
+        FlamegraphMcpTools tools = toolsOver(new PrimaryFlamegraphManager(repository, generator), RecordingEventSource.JDK);
+
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+        try {
+            var result = tools.export(HEAP_SUMMARY, null, null, null, null, null, null, null, null, null);
+            assertEquals("NOT_RECORDED", result.structuredContent().get("status").asString(), result.text());
+            String recorded = result.structuredContent().get("reason").asString().split("It recorded:")[1];
+            assertTrue(recorded.contains(EXECUTION_SAMPLE), recorded);
+            assertFalse(recorded.contains(HEAP_SUMMARY), "a type without stacks is not offered as graphable");
+            verify(generator, never()).generateAiExport(any(), any());
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    private static FlamegraphMcpTools toolsOver(PrimaryFlamegraphManager manager, RecordingEventSource source) {
+        Instant start = Instant.parse("2026-10-01T12:00:00Z");
+        ProfileManager profile = mock(ProfileManager.class);
+        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "project", "workspace", "Review", source,
+                start, start.plusSeconds(60), start, true, false, "recording"));
+        when(profile.flamegraphManager()).thenReturn(manager);
+        return new FlamegraphMcpTools(profile, new JfrFlamegraphPanelProvider(),
+                new StackSampleFlamegraphPanelProvider(), new AdvertisedFamilies(Set.of("flamegraph")));
     }
 
     private void assertExportsRecordedType(String code, RecordingEventSource source) {

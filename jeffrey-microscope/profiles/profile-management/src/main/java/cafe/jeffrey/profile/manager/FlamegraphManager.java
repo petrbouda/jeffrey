@@ -48,6 +48,14 @@ public interface FlamegraphManager {
     List<EventSummaryResult> allEventSummaries();
 
     /**
+     * The event types a flamegraph can be drawn from: every recorded type with samples and stack
+     * traces, whether or not the curated grid shows it (an imported pprof or OTLP dimension, a custom
+     * JFR event). A recorded type without stacks — a setting, a heap summary — graphs to an empty
+     * tree, so it is not one of them.
+     */
+    List<EventSummaryResult> graphableEventSummaries();
+
+    /**
      * Per-event-type summaries narrowed to a {@link SpanScope}, so the span flamegraph cards show the
      * real sample/weight counts those windows cover rather than profile-wide totals.
      *

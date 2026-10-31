@@ -254,7 +254,7 @@ public class FlamegraphMcpTools {
         boolean weighted = useWeight != null ? useWeight : weightedByDefault(type);
         ExportOptions options = new ExportOptions(level, level.threshold(config), window,
                 Boolean.TRUE.equals(threadMode), weighted, searchPattern,
-                Boolean.TRUE.equals(excludeIdle), Boolean.TRUE.equals(excludeNonJava));
+                Boolean.TRUE.equals(excludeIdle), Boolean.TRUE.equals(excludeNonJava), useWeight, thresholdPct);
         List<EventSummaryResult> recorded = recordedTypes();
         if (recorded.stream().noneMatch(summary -> summary.code().equals(type.code()))) {
             return notRecorded(info.id(), type, options, recorded);
@@ -308,9 +308,12 @@ public class FlamegraphMcpTools {
         return McpToolResult.of(text.text(), export);
     }
 
-    /** Complete recorded types, including imported dimensions and custom events omitted from the UI grid. */
+    /**
+     * Every recorded type a tree can be drawn from, including imported dimensions and custom events the
+     * grid omits — and none without stacks, which would graph to the empty tree this answer refuses.
+     */
     private List<EventSummaryResult> recordedTypes() {
-        return profileManager.flamegraphManager().allEventSummaries().stream()
+        return profileManager.flamegraphManager().graphableEventSummaries().stream()
                 .filter(summary -> summary.primary() != null && summary.primary().samples() > 0)
                 .toList();
     }
@@ -349,10 +352,16 @@ public class FlamegraphMcpTools {
                 || (asked.isAllocationEvent() && recorded.isAllocationEvent());
     }
 
-    /** The resolved request survives an absent type, so an alternative changes only the event type. */
+    /**
+     * The resolved request survives an absent type, so an alternative changes only the event type. The
+     * weighting and the threshold are resolved per type — an allocation sampler weighs by default, a CPU
+     * sampler counts — so the alternative carries them only as the caller asked ({@code askedUseWeight},
+     * {@code askedThresholdPct}), and otherwise takes its own type's defaults.
+     */
     private record ExportOptions(
             Detail detail, Double thresholdPct, EpochWindow window, boolean threadMode,
-            boolean useWeight, String search, boolean excludeIdle, boolean excludeNonJava) {
+            boolean useWeight, String search, boolean excludeIdle, boolean excludeNonJava,
+            Boolean askedUseWeight, Double askedThresholdPct) {
 
         McpNextTool.Call alternative(String profileId, String eventType) {
             McpNextTool.Call call = NextCalls.to(EXPORT_TOOL)
@@ -360,11 +369,13 @@ public class FlamegraphMcpTools {
                     .with(EVENT_TYPE, eventType)
                     .with(DETAIL, detail.name())
                     .with(THREAD_MODE, threadMode)
-                    .with(USE_WEIGHT, useWeight)
                     .with(EXCLUDE_IDLE, excludeIdle)
                     .with(EXCLUDE_NON_JAVA, excludeNonJava);
-            if (thresholdPct != null) {
-                call.with(THRESHOLD_PCT, thresholdPct);
+            if (askedUseWeight != null) {
+                call.with(USE_WEIGHT, askedUseWeight);
+            }
+            if (askedThresholdPct != null) {
+                call.with(THRESHOLD_PCT, askedThresholdPct);
             }
             if (window != null) {
                 call.with(START_EPOCH_MS, window.startEpochMs()).with(END_EPOCH_MS, window.endEpochMs());

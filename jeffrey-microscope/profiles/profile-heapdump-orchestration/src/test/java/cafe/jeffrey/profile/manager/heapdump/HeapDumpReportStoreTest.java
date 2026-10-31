@@ -103,6 +103,20 @@ class HeapDumpReportStoreTest {
             assertFalse(Files.exists(analysisDir.resolve(CURRENT_LEAKS)));
             assertFalse(Files.exists(analysisDir.resolve("leak-suspects.json")));
         }
+
+        @Test
+        @DisplayName("is deleted with the temporary file a write cut short left behind")
+        void isDeletedWithAnInterruptedWrite() throws IOException {
+            Path interrupted = analysisDir.resolve(CURRENT_LEAKS + ".8812736.tmp");
+            Path unrelated = analysisDir.resolve("heap-dump-config.json.tmp");
+            Files.writeString(interrupted, "{\"totalHeapSize\":");
+            Files.writeString(unrelated, "{}");
+
+            new HeapDumpReportStore(analysisDir).deleteAllCachedAnalyses();
+
+            assertFalse(Files.exists(interrupted));
+            assertTrue(Files.exists(unrelated), "only a report's own temporary files are its to remove");
+        }
     }
 
     @Nested

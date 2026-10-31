@@ -77,6 +77,9 @@ public final class HeapDumpReportStore {
 
     private static final int LEGACY_ANALYSIS_VERSION = 1;
 
+    /** A report being written; one a crash left behind is removed with the cached analyses. */
+    private static final String TEMPORARY_SUFFIX = ".tmp";
+
     private final Path analysisDir;
 
     public HeapDumpReportStore(Path analysisDir) {
@@ -176,7 +179,8 @@ public final class HeapDumpReportStore {
         try {
             return Optional.ofNullable(Json.mapper().readValue(filePath.toFile(), type));
         } catch (JacksonException e) {
-            LOG.error("Failed to read analysis file: path={}", filePath, e);
+            // Not an error: an unreadable report reads as not built and is computed again.
+            LOG.warn("Unreadable analysis file, read as not built: path={} message={}", filePath, e.getMessage());
             return Optional.empty();
         }
     }
@@ -186,7 +190,7 @@ public final class HeapDumpReportStore {
         try {
             ensureAnalysisDir();
             Path filePath = analysisDir.resolve(fileName);
-            temporary = Files.createTempFile(analysisDir, fileName + ".", ".tmp");
+            temporary = Files.createTempFile(analysisDir, fileName + ".", TEMPORARY_SUFFIX);
             Json.mapper().writerWithDefaultPrettyPrinter().writeValue(temporary.toFile(), payload);
             try {
                 Files.move(temporary, filePath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
@@ -247,6 +251,22 @@ public final class HeapDumpReportStore {
     public void deleteAllCachedAnalyses() {
         for (CachedAnalysis<?> analysis : ALL_CACHED_ANALYSES) {
             delete(analysis);
+        }
+        deleteTemporaryReports();
+    }
+
+    private void deleteTemporaryReports() {
+        if (!Files.isDirectory(analysisDir)) {
+            return;
+        }
+        List<String> prefixes = ALL_CACHED_ANALYSES.stream().map(HeapDumpReportStore::baseName).toList();
+        try (Stream<Path> files = Files.list(analysisDir)) {
+            files.map(path -> path.getFileName().toString())
+                    .filter(name -> name.endsWith(TEMPORARY_SUFFIX))
+                    .filter(name -> prefixes.stream().anyMatch(name::startsWith))
+                    .forEach(name -> delete(name, "Temporary report"));
+        } catch (IOException e) {
+            LOG.warn("Could not list temporary reports: path={} message={}", analysisDir, e.getMessage());
         }
     }
 }

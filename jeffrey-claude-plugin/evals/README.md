@@ -144,16 +144,26 @@ this change includes no new paid eval run or new score, token, latency or cost c
 
 Fixed mocks address files with required arguments. Claude Code's fixed mock format cannot dispatch
 on an optional argument while accepting its omission: missing file-template segments are errors,
-and `expect` does not express “missing or this default”. We therefore keep that supported format
-and add a deterministic `recorded-call-semantics` grader to every case. It validates full captured
-inputs from `mocks/jeffrey/_inputs.json`, allowing known equivalent defaults. For example, omitting
-`useWeight` on an allocation flamegraph and setting it to `true` both pass; explicitly setting it to
-`false` fails. Different windows, frame prefixes, search terms, filters and other unrecorded options
-also fail. CPU and timeline weighting defaults are checked separately: timeline buckets default to
-sample counts. This is a **post-call grading failure**, not a conditional responder: the fixed mock
-may already have returned the first fixture before that grader rejects the run. Do not interpret
-an unsupported call's fixture as evidence. Unknown required-argument file addresses remain tool
-errors. The import responder additionally guards the one recorded dump path with `expect`.
+and `expect` does not express “missing or this default”. So a fixture answers a call whatever its
+optional arguments say. For most of them that is still the right answer: a different size, order,
+page or level of detail of the same figures (`limit`, `topN`, `cursor`, `detail`, `thresholdPct`),
+or a filter that picks rows the fixture holds anyway (`search` on a list, `thrownClass`). A few change
+what the figures *are* — the weighting, the window, the frames left out (`excludeIdle`,
+`excludeNonJava`) or credited (`framePrefixes`, `includeJvmInternal`), `threadMode`, `bucketMs`,
+`compute`, and `search` on `flamegraph_export`, which adds the matches. A deterministic
+`recorded-call-semantics` grader in every mocked case fails the run when one of those differs from
+every recorded call with the same required arguments (`mocks/jeffrey/_inputs.json`), a known default
+standing for an omitted option: omitting `useWeight` on an allocation flamegraph and setting it to
+`true` both pass; `false` fails. It is a **post-call grading failure**, not a conditional responder:
+the fixed mock has already answered when the grader rejects the run, so do not read an unsupported
+call's fixture as evidence. Unknown required-argument file addresses remain tool errors. The import
+responder additionally guards the one recorded dump path with `expect`. The live cases
+(`../evals-live/`) run against a real Jeffrey and carry no such grader.
+
+Replayed against the 15 runs of the cases measured on 2026-10-31 (58 Jeffrey calls), the grader
+fails none: the first version, which rejected every unrecorded optional argument, failed 9 of 9 runs
+that called Jeffrey — `profiles_list` with `search`, the heap tools with `topN` or `limit`, and
+`flamegraph_export` with `detail: "SUMMARY"`, which the tools page recommends.
 
 The checked-in input addresses were reconstructed mechanically from fixture names, recorder seeds
 and the response headers; answer contents and tool schemas were preserved. The recorder saves

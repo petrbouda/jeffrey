@@ -112,6 +112,33 @@ class ReplayContractTest(unittest.TestCase):
                 pattern = self.capture('flamegraph_export', args)
                 self.assertFalse(self.violates(pattern, 'flamegraph_export', args))
 
+    def test_size_detail_and_threshold_do_not_change_what_the_answer_says(self):
+        args = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample'}
+        pattern = self.capture('flamegraph_export', args)
+        for change in [{'thresholdPct': 2.5}, {'detail': 'SUMMARY'}, {'useWeight': False}]:
+            with self.subTest(change=change):
+                self.assertFalse(self.violates(pattern, 'flamegraph_export', {**args, **change}))
+
+    def test_a_list_filter_or_page_size_is_not_graded(self):
+        schema = {'required': [], 'properties': {'search': {'type': 'string'},
+                                                 'limit': {'type': 'integer', 'default': 100}}}
+        heap = {'required': ['profileId'], 'properties': {'profileId': {'type': 'string'}, 'topN': {'type': 'integer'},
+                                                         'sortBy': {'type': 'string'}}}
+        recorder.write_contract_graders(
+            [{'name': 'profiles_list', 'inputSchema': schema}, {'name': 'heap_getClassHistogram', 'inputSchema': heap}],
+            [{'tool': 'profiles_list', 'arguments': {}}, {'tool': 'heap_getClassHistogram', 'arguments': {'profileId': 'h'}}])
+        path = self.cases / 'example/graders/recorded-call-semantics.md'
+        pattern = yaml.safe_load(path.read_text().split('---')[1])['pattern']
+        self.assertFalse(self.violates(pattern, 'profiles_list', {'search': 'checkout', 'limit': 10}))
+        self.assertFalse(self.violates(pattern, 'heap_getClassHistogram', {'profileId': 'h', 'topN': 12, 'sortBy': 'COUNT'}))
+
+    def test_whitespace_after_the_input_key_cannot_slip_a_call_past(self):
+        args = {'profileId': 'b', 'eventType': 'jdk.ObjectAllocationSample'}
+        pattern = self.capture('flamegraph_export', args)
+        spaced = '{"tool":"mcp__plugin_microscope_jeffrey__flamegraph_export","input": %s}'
+        self.assertIsNone(re.search(pattern, spaced % json.dumps(args), re.M), 'the recorded call passes')
+        self.assertIsNotNone(re.search(pattern, spaced % json.dumps({**args, 'useWeight': False}), re.M))
+
     def test_optional_frame_prefixes_are_part_of_contract(self):
         schema = {'required': ['profileId'], 'properties': {'profileId': {'type': 'string'}, 'framePrefixes': {'type': 'array'}}}
         recorder.write_contract_graders([{'name': 'jvm_exceptionSites', 'inputSchema': schema}],

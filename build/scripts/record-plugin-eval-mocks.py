@@ -358,13 +358,23 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     print(f"wrote {len(mocked)} mocked tools, {sum(map(len, answered.values()))} fixtures", file=sys.stderr)
 
 
-# Fixed mocks have neither optional/default substitutions nor conditional dispatch. Keep their
-# supported file addressing, and reject unsupported inputs with a deterministic mock_calls grader.
-# This is a post-call score failure: it does not pretend the fixed responder is a semantic router.
+# Fixed mocks have neither optional/default substitutions nor conditional dispatch: a fixture is
+# addressed by the required arguments alone, so it answers a call whatever its optional ones say.
+# For most of them that is still the right answer — a different size, order, page or level of detail
+# of the same figures, or a filter that picks rows the fixture holds anyway. A few change what the
+# figures *are*: the weighting, the window, the frames left out or credited, a computation asked for,
+# the matches a search adds. Only those are graded, by a deterministic mock_calls grader that fails
+# the run when one differs from every recorded call. It is a post-call failure, not a router: the
+# fixture was already returned when the grader rejects the run.
+SEMANTIC_OPTIONS = {"useWeight", "startEpochMs", "endEpochMs", "excludeIdle", "excludeNonJava", "threadMode",
+                    "bucketMs", "framePrefixes", "includeJvmInternal", "compute"}
+# A search elsewhere selects rows; on a flamegraph it adds the matches and their share.
+SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"}}
 WEIGHT_DEFAULTS = {"jdk.ExecutionSample": False, "jdk.ObjectAllocationSample": True,
                    "jdk.JavaMonitorEnter": True}
 WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements"}
 FALSE_DEFAULTS = {"excludeIdle", "excludeNonJava", "threadMode", "includeJvmInternal", "compute", "retry", "errorsOnly"}
+NO_DEFAULT = object()
 
 
 def json_pattern(value) -> str:
@@ -384,36 +394,42 @@ def json_pattern(value) -> str:
     return re.escape(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
 
 
-def input_pattern(tool: str, schema: dict, arguments: dict) -> str:
+def semantic_options(tool: str, schema: dict) -> list[str]:
     required = set(schema.get("required", []))
-    fields, present = {}, set(arguments)
-    for name, value in arguments.items():
-        fields[name] = json_pattern(value)
-    # Only proven server defaults get omission aliases. An unsupported option is rejected even if
-    # it happens not to change this particular answer. No fabricated weighted/window fixtures.
-    for name, prop in schema.get("properties", {}).items():
-        default = prop.get("default")
-        has_default = "default" in prop
-        if name in FALSE_DEFAULTS:
-            default, has_default = False, True
-        if name == "detail" and tool == "flamegraph_export":
-            default, has_default = "STANDARD", True
-        if name == "useWeight" and tool == "timeline_hotWindows":
-            default, has_default = False, True
-        if name == "useWeight" and tool in WEIGHT_DEFAULT_TOOLS and arguments.get("eventType") in WEIGHT_DEFAULTS:
-            default, has_default = WEIGHT_DEFAULTS[arguments["eventType"]], True
-        if has_default and name not in required:
-            if name not in arguments:
-                fields[name] = json_pattern(default)
-            elif arguments[name] == default:
-                present.discard(name)
-    lookaheads = "".join(r'(?=[^{}\n]*"' + re.escape(name) + r'"\s*:\s*' + fields[name] + r'(?=\s*[,}]))'
-                         for name in sorted(present))
-    entries = [json_pattern(name) + r"\s*:\s*" + value for name, value in sorted(fields.items())]
-    if not entries:
-        return r"\{\s*\}"
-    entry = "(?:" + "|".join(entries) + ")"
-    return r"\{" + lookaheads + r"\s*(?:" + entry + r"(?:\s*,\s*" + entry + r")*)?\s*\}"
+    graded = SEMANTIC_OPTIONS | SEMANTIC_OPTIONS_OF.get(tool, set())
+    return sorted(name for name in schema.get("properties", {}) if name in graded and name not in required)
+
+
+def server_default(tool: str, name: str, prop: dict, arguments: dict):
+    """The value the server uses when the option is left out, where it is known; else NO_DEFAULT."""
+    if name == "useWeight" and tool in WEIGHT_DEFAULT_TOOLS:
+        return WEIGHT_DEFAULTS.get(arguments.get("eventType"), NO_DEFAULT)
+    if name == "useWeight" and tool == "timeline_hotWindows":
+        return False
+    if name in FALSE_DEFAULTS:
+        return False
+    return prop["default"] if "default" in prop else NO_DEFAULT
+
+
+def input_pattern(tool: str, schema: dict, arguments: dict) -> str:
+    """A regex for the input objects the recorded call answers: each answer-changing option holds the
+    recorded value, or is left out where that value is the server's default; anything else is free."""
+    # The required arguments name the fixture, and decide defaults such as an event type's weighting,
+    # so an option is held to the recorded call with the same ones.
+    checks = [r'(?=[^{}\n]*"' + re.escape(name) + r'"\s*:\s*' + json_pattern(arguments[name]) + r"(?=\s*[,}]))"
+              for name in sorted(set(schema.get("required", [])) & set(arguments))]
+    for name in semantic_options(tool, schema):
+        prop = schema["properties"][name]
+        key = r'[^{}\n]*"' + re.escape(name) + r'"\s*:'
+        absent = "(?!" + key + ")"
+        default = server_default(tool, name, prop, arguments)
+        value = arguments.get(name, default)
+        if value is NO_DEFAULT:
+            checks.append(absent)
+            continue
+        present = "(?=" + key + r"\s*" + json_pattern(value) + r"(?=\s*[,}]))"
+        checks.append("(?:" + absent + "|" + present + ")" if value == default else present)
+    return r"\{" + "".join(checks) + r"[^\n]*\}"
 
 
 def write_contract_graders(tools: list[dict], inputs: list[dict]) -> None:
@@ -423,7 +439,7 @@ def write_contract_graders(tools: list[dict], inputs: list[dict]) -> None:
     rejected = []
     for tool in tools:
         name, schema = tool["name"], tool.get("inputSchema") or {}
-        if not (set(schema.get("properties", {})) - set(schema.get("required", []))):
+        if not semantic_options(name, schema):
             continue
         # Import replay is deliberately a snapshot of this file, with no writer state machine.
         # Its path is guarded in the responder; name/force do not model a new import in this suite.
@@ -431,7 +447,7 @@ def write_contract_graders(tools: list[dict], inputs: list[dict]) -> None:
             continue
         accepted = "|".join(input_pattern(name, schema, args) for args in by_tool[name]) or r"(?!)"
         rejected.append(r'^\{"tool"\s*:\s*"mcp__[^"\n]*__' + re.escape(name)
-                        + r'"\s*,\s*"input"\s*:\s*(?!(?:' + accepted + r')(?=\s*[,}]))')
+                        + r'"\s*,\s*"input"\s*:(?!\s*(?:' + accepted + r'))')
     pattern = "|".join(rejected) or r"(?!)"
     grader = ("---\n# Generated by record-plugin-eval-mocks.py from mocks/jeffrey/_inputs.json.\n"
               "type: regex\ntarget: mock_calls\nmatch: not_contains\nflags: m\npattern: "

@@ -137,6 +137,7 @@ class FlamegraphMcpToolsTest {
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
         lenient().when(flamegraphManager.eventSummaries()).thenReturn(summaries);
         lenient().when(flamegraphManager.allEventSummaries()).thenReturn(summaries);
+        lenient().when(flamegraphManager.graphableEventSummaries()).thenReturn(summaries);
     }
 
     private static JsonNode entry(JsonNode result, String eventType) {
@@ -314,7 +315,7 @@ class FlamegraphMcpToolsTest {
             when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
-            when(flamegraphManager.allEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("tree");
         }
 
@@ -384,7 +385,7 @@ class FlamegraphMcpToolsTest {
         void exportableProfile() {
             when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
-            lenient().when(flamegraphManager.allEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            lenient().when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             lenient().when(flamegraphManager.generateAiExport(any(), any())).thenReturn(TREE);
         }
 
@@ -555,7 +556,7 @@ class FlamegraphMcpToolsTest {
          */
         @Test
         void anOmittedWeightingIsResolvedIntoTheLinkAndTheNextCalls() {
-            when(flamegraphManager.allEventSummaries()).thenReturn(List.of(
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(
                     summary(EventTypeName.OBJECT_ALLOCATION_SAMPLE, 130, 9_000_000L)));
 
             JsonNode export = conforming("export", tools().export(EventTypeName.OBJECT_ALLOCATION_SAMPLE,
@@ -663,7 +664,7 @@ class FlamegraphMcpToolsTest {
                     SUB_MS_START, SUB_MS_END, SUB_MS_START, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
-            when(flamegraphManager.allEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("## Call tree");
         }
 
@@ -746,6 +747,20 @@ class FlamegraphMcpToolsTest {
             assertEquals("Checkout", offered.path("search").asString());
             assertTrue(offered.path("excludeIdle").asBoolean());
             assertTrue(offered.path("excludeNonJava").asBoolean());
+            assertEquals(2, McpNextToolConformance.assertFollowable(export, reachable()));
+        }
+
+        /** Weighting and threshold are per type: unasked, the alternative takes its own type's defaults. */
+        @Test
+        void alternativeLeavesTheWeightingAndThresholdNobodyAskedForToItsOwnType() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0)));
+
+            JsonNode export = conforming("export", exportCpu());
+
+            JsonNode offered = export.get("followUp").get("nextTools").get(0).get("arguments");
+            assertEquals(CPU_TIME, offered.get("eventType").asString());
+            assertTrue(offered.path("useWeight").isMissingNode(), offered.toString());
+            assertTrue(offered.path("thresholdPct").isMissingNode(), offered.toString());
             assertEquals(2, McpNextToolConformance.assertFollowable(export, reachable()));
         }
 

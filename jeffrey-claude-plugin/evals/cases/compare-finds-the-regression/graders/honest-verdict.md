@@ -4,7 +4,7 @@ focus: last_message
 ---
 
 Judge the meaning of the comparison verdict, including any qualifications. PASS if it describes
-formatLine/PricingEngine as a CPU hotspot or a larger share of sampled CPU in the candidate, while
+PriceCalculator.formatLine as a CPU hotspot or a larger share of sampled CPU in the candidate, while
 making clear that the profiles do not establish an end-to-end latency or throughput slowdown.
 It must state a real limit: one run each, sampling uncertainty, or unverified equal workload and
 recording conditions. Medium confidence pending comparable-workload confirmation is sufficient;

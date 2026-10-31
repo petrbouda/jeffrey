@@ -343,6 +343,40 @@ class LeakSuspectsAnalyzerTest {
     }
 
     @Test
+    void namesTheStaticFieldASuspectAboveAClassHoldsItsMemoryThrough(@TempDir Path tmp)
+            throws IOException, SQLException {
+        // loader -> class com.acme.Statics -> (static) payload: the payload's chain is the loader's, and the
+        // suspect it is reported under names the class whose static field holds it.
+        long loaderClass = 0xC001L, statics = 0xC002L, loader = 0x100L, payload = 0x200L;
+        Path hprof = SyntheticHprof.create("1.0.2", 8, 0L)
+                .string(0xA001L, "Loader").string(0xA002L, "com.acme.Statics").string(0xA003L, "next")
+                .loadClass(1, loaderClass, 0, 0xA001L)
+                .loadClass(2, statics, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(loaderClass, 0xA003L)
+                        .classDumpWithStatics(statics, 0, 0, 0,
+                                new SyntheticHprof.SubBuilder.StaticSpec[]{
+                                        new SyntheticHprof.SubBuilder.StaticSpec(0xA003L, HprofTag.BasicType.OBJECT, payload)})
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, loader)
+                        .instanceDump(loader, loaderClass, idBytes(statics, 8))
+                        .primitiveArrayDump(payload, HprofTag.BasicType.BYTE, new byte[100_000], 100_000))
+                .heapDumpEnd().writeTo(tmp, "static-holder.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            LeakSuspect suspect = LeakSuspectsAnalyzer.analyze(view, 5, 10).suspects().getFirst();
+
+            assertEquals(loader, suspect.objectId());
+            assertEquals(payload, suspect.accumulationPointId(), "the descent crosses the class into its static");
+            assertTrue(suspect.accumulationPoint().contains("through a static field of com.acme.Statics"),
+                    suspect.accumulationPoint());
+        }
+    }
+
+    @Test
     void countsClassObjectAlreadyPresentAsInstanceOnlyOnce(@TempDir Path tmp)
             throws IOException, SQLException {
         long holderClass = 0xC001L, classObject = 0xC002L, payload = 0x200L;

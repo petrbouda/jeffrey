@@ -52,8 +52,8 @@ class HeapDumpReportUpgradeTest {
     Path directory;
 
     @Test
-    void legacyReportIsRegeneratedOnAccessWithoutReparsingTheIndex() throws Exception {
-        Path dump = legacyThreadReport();
+    void legacyReportOverTheCurrentTreeIsRegeneratedOnAccessWithoutReparsingTheIndex() throws Exception {
+        Path dump = legacyThreadReport(true);
 
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
@@ -79,8 +79,32 @@ class HeapDumpReportUpgradeTest {
     }
 
     @Test
+    void aReadDoesNotRebuildAnObsoleteTreeButPreparingTheReportDoes() throws Exception {
+        Path dump = legacyThreadReport(false);
+
+        try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
+            HeapDumpManager manager = manager(cache);
+
+            assertNull(manager.getThreadAnalysis(), "a page load must not build the dominator tree");
+            cache.withSession(dump, session -> {
+                assertFalse(session.view().hasDominatorTree(), "the read left the obsolete tree alone");
+                return null;
+            });
+
+            manager.runThreadAnalysis();
+
+            assertTrue(manager.getThreadAnalysis().totalRetainedSize() > 0);
+            cache.withSession(dump, session -> {
+                assertEquals(CREATED.toEpochMilli(), session.view().metadata().parsedAtMs(),
+                        "preparing rebuilds the tree from the existing index");
+                return null;
+            });
+        }
+    }
+
+    @Test
     void preparingThreadsBeforeTheTreeCannotCacheMissingRetainedSizes() throws Exception {
-        legacyThreadReport();
+        legacyThreadReport(false);
 
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
@@ -124,7 +148,8 @@ class HeapDumpReportUpgradeTest {
         }
     }
 
-    private Path legacyThreadReport() throws Exception {
+    /** A thread report cached before reports were versioned, over the current tree or an unversioned one. */
+    private Path legacyThreadReport(boolean keepCurrentTree) throws Exception {
         Path dump = SyntheticHeapDumps.writeThreadDump(directory, "dump.hprof");
         ThreadAnalysisReport oldReport;
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(CLOCK)) {
@@ -136,9 +161,11 @@ class HeapDumpReportUpgradeTest {
         HeapDumpReportStore reports = new HeapDumpReportStore(directory);
         reports.delete(new ThreadHeapAnalysis());
         reports.write("thread-analysis.json", oldReport, "Legacy thread report");
-        try (var connection = DriverManager.getConnection("jdbc:duckdb:" + HeapDumpIndexPaths.indexFor(dump));
-             var statement = connection.createStatement()) {
-            statement.execute("DROP TABLE dominator_build");
+        if (!keepCurrentTree) {
+            try (var connection = DriverManager.getConnection("jdbc:duckdb:" + HeapDumpIndexPaths.indexFor(dump));
+                 var statement = connection.createStatement()) {
+                statement.execute("DROP TABLE dominator_build");
+            }
         }
         assertTrue(HeapDumpSession.isIndexUsable(dump));
         return dump;
