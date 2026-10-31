@@ -18946,7 +18946,7 @@
        ],
        "additionalProperties": false
       },
-      "description": "The shortest paths from a GC root to the object"
+      "description": "The shortest paths from a GC root to the object; for an object that is itself a root, one step naming its rootType, threadName and stackFrame"
      },
      "followUp": {
       "type": "object",

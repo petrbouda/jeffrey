@@ -35,6 +35,9 @@ Tool names below omit the prefix your client puts in front of them — `mcp__plu
 - **`dominator`** — `instance_id`, `dominator_id`. **Built lazily** — empty until something asks for it.
 - **`retained_size`** — `instance_id`, `bytes`. Populated alongside `dominator`, so LEFT JOIN it and
   expect NULLs on a heap whose dominator tree has not been built.
+- A dump indexed by an earlier Microscope can hold an older dominator tree in both tables, which the
+  tools read as not built and replace on first use. Run `heap_getDominatorTreeRoots` (or
+  `heap_prepare`) before querying them, so the SQL reads the tree the tools do.
 - **`string`** — `string_id`, `value`. The HPROF **UTF-8 string pool** (class and field names), *not*
   the contents of Java `String` instances — those are in `string_content`.
 - **`string_content`** — `instance_id`, `content_length`, `content`. The decoded text of every

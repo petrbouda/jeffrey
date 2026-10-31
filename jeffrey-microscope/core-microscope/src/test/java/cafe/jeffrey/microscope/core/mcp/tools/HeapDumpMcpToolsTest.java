@@ -962,6 +962,27 @@ class HeapDumpMcpToolsTest {
             assertEquals("Thread object", out.get("targetRootKind").asString());
             assertTrue(out.get("reason").asString().contains("itself a GC root"), out.toString());
         }
+
+        /** A Java-frame root is named by the code holding it, which is what a reader acts on. */
+        @Test
+        void aFrameRootNamesItsThreadAndFrame() {
+            when(delegate.getPathsToGCRoot(42, true, 3)).thenReturn(List.of());
+            when(delegate.gcRootKind(42L)).thenReturn(Optional.of("Java frame"));
+            when(delegate.selfRootPath(42L)).thenReturn(Optional.of(new GCRootPath(42, NODE, "Java frame", "main",
+                    "com.acme.checkout.Checkout.main(Checkout.java:82)", List.of(step(42, NODE, null)))));
+
+            McpToolResult result = tools().getPathToGCRoot("42", null);
+            JsonNode out = conforming("getPathToGCRoot", result);
+
+            assertEquals("IS_GC_ROOT", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains(
+                    "(Java frame of thread main at com.acme.checkout.Checkout.main(Checkout.java:82))"), out.toString());
+            JsonNode self = out.get("paths").get(0);
+            assertEquals("main", self.get("threadName").asString());
+            assertEquals("42", self.get("steps").get(0).get("objectId").asString());
+            assertTrue(result.text().contains("thread main at com.acme.checkout.Checkout.main(Checkout.java:82)"),
+                    "the text says it too: " + result.text());
+        }
     }
 
     @Nested

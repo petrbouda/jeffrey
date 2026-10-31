@@ -427,6 +427,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 .orElse(List.of());
     }
 
+    @Override
+    public Optional<GCRootPath> getSelfRootPath(long objectId) {
+        return withSession(session -> PathToGCRootAnalyzer.selfRoot(session.view(), objectId))
+                .flatMap(path -> path);
+    }
+
     // --- Heap Dump Config (compressed oops detection only — correction is not applied) ----
 
     @Override

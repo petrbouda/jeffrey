@@ -1,0 +1,14 @@
+Paths to GC Root for Object ID 30773788080:
+
+Path #1:
+  GC Root Type: Sticky class
+  -> <unknown>.? (ID: 30773634288)
+  -> java.util.concurrent.ConcurrentHashMap (ID: 30773788080)
+
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a191e4-0e90-7c2b-a27c-67382c632b50/heap-dump/gc-root-path?objectId=30773788080
+Next:
+- heap_getReferrers {"profileId":"01a191e4-0e90-7c2b-a27c-67382c632b50","objectId":"30773788080"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a191e4-0e90-7c2b-a27c-67382c632b50","objectId":"30773634288"} [LIGHT]

@@ -209,6 +209,8 @@ public class HeapDumpMcpTools {
                     + " hops; weak references are not followed.";
     private static final String IS_GC_ROOT =
             "Object %s is itself a GC root (%s): it is kept alive directly, and no longer path was found.";
+    private static final String OF_THREAD = " of thread ";
+    private static final String AT_FRAME = " at ";
     /** How the string report ends a preview it cut from a longer string. */
     private static final String PREVIEW_ELLIPSIS = "\u2026";
     private static final String NO_METADATA = "The heap-dump index holds no metadata row.";
@@ -731,8 +733,11 @@ public class HeapDumpMcpTools {
         McpFollowUp referrers = steps().next(onObject(REFERRERS_TOOL, self).why(WHY_REFERRERS)).followUp();
         GcRootPaths answer;
         if (rootPaths.isEmpty() && rootKind != null) {
-            answer = new GcRootPaths(PathStatus.IS_GC_ROOT, IS_GC_ROOT.formatted(canonical, rootKind), profileId,
-                    canonical, rootKind, List.of(), referrers, objectLink(canonical));
+            Optional<GCRootPath> ownRoot = read("GC root holder", () -> delegate.selfRootPath(id));
+            String holder = ownRoot.map(HeapDumpMcpTools::holder).orElse(rootKind);
+            answer = new GcRootPaths(PathStatus.IS_GC_ROOT, IS_GC_ROOT.formatted(canonical, holder), profileId,
+                    canonical, rootKind, ownRoot.map(RootPath::of).map(List::of).orElse(List.of()), referrers,
+                    objectLink(canonical));
         } else if (rootPaths.isEmpty()) {
             answer = new GcRootPaths(PathStatus.NO_PATH, NO_PATH.formatted(canonical), profileId, canonical, null,
                     List.of(), referrers, objectLink(canonical));
@@ -1034,6 +1039,18 @@ public class HeapDumpMcpTools {
                 .nextWhen(suspect.isPresent(), onObject(REFERRERS_TOOL, suspect).why(WHY_REFERRERS))
                 .guidance(pathCarried ? SUSPECT_EVIDENCE : OBSERVATION)
                 .followUp();
+    }
+
+    /** A root's kind, with the thread and frame holding it where the dump records them. */
+    private static String holder(GCRootPath root) {
+        StringBuilder text = new StringBuilder(root.rootType());
+        if (root.threadName() != null) {
+            text.append(OF_THREAD).append(root.threadName());
+        }
+        if (root.stackFrame() != null) {
+            text.append(AT_FRAME).append(root.stackFrame());
+        }
+        return text.toString();
     }
 
     /** The calls that follow an object answer: why it is reachable and what it retains. */

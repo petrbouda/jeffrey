@@ -69,6 +69,11 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
     }
 
     @Override
+    public Optional<GCRootPath> selfRootPath(long objectId) {
+        return manager.getSelfRootPath(objectId);
+    }
+
+    @Override
     public HeapSummary getSummary() {
         return manager.getSummary();
     }

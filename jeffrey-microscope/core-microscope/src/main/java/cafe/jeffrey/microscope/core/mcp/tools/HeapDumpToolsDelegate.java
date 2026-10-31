@@ -60,6 +60,12 @@ public interface HeapDumpToolsDelegate {
      */
     Optional<String> gcRootKind(long objectId);
 
+    /**
+     * The one-step path of an object that is itself a GC root, naming its thread and frame where it
+     * sits on a stack; empty when it is no root.
+     */
+    Optional<GCRootPath> selfRootPath(long objectId);
+
     DominatorTreeResponse getDominatorTreeRoots(int limit);
 
     DominatorTreeResponse getDominatorTreeChildren(long objectId, int limit, int offset);
