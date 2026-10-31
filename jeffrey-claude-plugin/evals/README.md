@@ -295,3 +295,42 @@ Measured on 2026-10-31, three runs, against the change before it:
 The agent's tokens stay where they were: most of its 120k is its own handbook and system prompt,
 read on each of its requests, so fewer requests cost less but the first ones still read it whole.
 
+## Baseline on plugin 1.0.14
+
+Taken once the heap changes above had landed, against the mocks recorded from that build (the
+recorder now waiting for each operation), `claude-sonnet-5-5`, three runs a case. This is the
+baseline the next change is measured against.
+
+| Case | Score | Runs | Turns | Tool calls | Jeffrey calls | Tokens in | Agents' tokens in | Tokens out | Cost (USD) | Skills invoked |
+|---|---|---|---|---|---|---|---|---|---|---|
+| compare-finds-the-regression | 1.00 | 3 | 10 | 7 | 4 | 189,698 | 0 | 2,988 | 0.17 | microscope:compare-jfr |
+| exceptions-to-the-throw-site | 1.00 | 3 | 10 | 7 | 4 | 151,922 | 0 | 2,361 | 0.16 | microscope:analyze-exceptions |
+| gc-pauses-in-proportion | 1.00 | 3 | 7 | 4 | 3 | 136,294 | 0 | 1,435 | 0.16 | microscope:analyze-jfr |
+| heap-dump-what-holds-memory | 1.00 | 3 | 1 | 8 | 6 | 28,713 | 119,613 | 918 | 0.2 | microscope:analyze-heap |
+| help-what-is-here | 1.00 | 3 | 6 | 3 | 2 | 83,505 | 0 | 1,157 | 0.09 | microscope:help |
+| lock-contention-not-wall-clock | 1.00 | 3 | 8 | 5 | 3 | 126,699 | 0 | 1,665 | 0.12 | microscope:analyze-jfr |
+| named-area-cpu | 1.00 | 3 | 7 | 4 | 3 | 183,377 | 0 | 1,794 | 0.19 | microscope:analyze-jfr |
+| open-question-shows-menu | 1.00 | 3 | 6 | 3 | 2 | 131,616 | 0 | 1,537 | 0.18 | microscope:analyze-jfr |
+| record-exceptions-next-time | 1.00 | 3 | 1 | 0 | 0 | 17,939 | 0 | 1,033 | 0.06 | — |
+| route-did-my-change-regress | 1.00 | 3 | 11 | 8 | 5 | 205,340 | 0 | 2,921 | 0.2 | microscope:compare-jfr |
+| route-record-first | 1.00 | 3 | 5 | 3 | 0 | 59,559 | 0 | 1,314 | 0.08 | microscope:profile-run |
+| route-what-to-change | 1.00 | 3 | 7 | 4 | 3 | 129,852 | 0 | 1,593 | 0.15 | microscope:advise-jfr |
+| route-why-slow-no-profile-named | 1.00 | 3 | 6 | 3 | 2 | 131,767 | 0 | 1,438 | 0.15 | microscope:analyze-jfr |
+| two-areas-delegated | 1.00 | 3 | 1 | 8 | 5 | 34,453 | 157,999 | 1,232 | 0.28 | microscope:analyze-jfr |
+
+Overall score 1.00, 14/14 cases at the threshold; 6.50 USD including the judge; Claude Code 2.1.316. Medians per case.
+
+Against the 1.0.11 baseline (medians):
+
+- **Every case at its threshold**, 42 of 42 runs, where 1.0.11 lost one run in each of three cases.
+  The lock case's regex and the two judges that dissented then (`honest-verdict`,
+  `weighs-allocation-by-bytes`) all passed; that is three runs, not a fix to the graders.
+- **`heap-dump-what-holds-memory`**: tool calls 17 → 8, Jeffrey calls 15 → 6, $0.22 → $0.20, and the
+  answer names the code holding the leak.
+- **`two-areas-delegated`**: 0.95 → 1.00, the main conversation 46k → 34k tokens with one call fewer,
+  the analysts 213k → 158k, $0.34 → $0.28.
+- **The other JFR cases** moved within a few thousand tokens and a cent either way, none of the
+  changes since having touched them — except `exceptions-to-the-throw-site`, which read 123k → 151k
+  with the same seven calls and $0.15 → $0.16. That is back where 1.0.6 measured it (157k): the 1.0.11
+  figure is the one that stands out, and three runs do not say which is typical.
+
