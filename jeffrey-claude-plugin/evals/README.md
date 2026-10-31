@@ -64,7 +64,8 @@ What the mocks cannot do, so the cases stay away from it:
   prepared, and `jvm_autoAnalysis` as not yet computed.
 - **Free-text arguments.** A tool whose required argument is a SQL query, a URI or a path other than
   the recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql`,
-  `http_endpoint` and the like are absent from the runs.
+  `jfr_getProfileInfo`, `http_endpoint` and the like are absent from the runs (85 of the 112 tools
+  are mocked).
 - **The remote and the IDE.** The recording Jeffrey has no remote and no IntelliJ attached.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
@@ -83,28 +84,28 @@ Reading the figures:
 The figures a restructure of the skills is meant to move — recorded before it, so the change is
 measured rather than argued. Medians per case; see the summary script for the definitions.
 
-Recorded 2026-10-30 on the plugin as of PR #373, `claude-sonnet-5-5` (the eval runs' default model),
-three runs a case:
+Recorded 2026-10-31 on the plugin as of PR #373, `claude-sonnet-5-5` (the eval runs' default model),
+three runs a case, against the 85 mocked tools:
 
 | Case | Score | Runs | Turns | Tool calls | Jeffrey calls | Tokens in | Tokens out | Cost (USD) | Skills invoked |
 |---|---|---|---|---|---|---|---|---|---|
-| compare-finds-the-regression | 1.00 | 3 | 10 | 7 | 4 | 196,810 | 2,892 | 0.17 | microscope:compare-jfr |
-| exceptions-to-the-throw-site | 1.00 | 3 | 9 | 6 | 4 | 128,870 | 2,387 | 0.16 | microscope:analyze-exceptions |
-| heap-dump-what-holds-memory | 0.93 | 3 | 1 | 18 | 16 | 30,009 | 1,120 | 0.26 | microscope:analyze-heap |
-| help-what-is-here | 1.00 | 3 | 6 | 3 | 2 | 87,448 | 1,171 | 0.09 | microscope:help |
-| named-area-cpu | 1.00 | 3 | 7 | 4 | 3 | 199,150 | 1,740 | 0.18 | microscope:analyze-jfr |
-| open-question-shows-menu | 1.00 | 3 | 6 | 3 | 2 | 162,649 | 1,581 | 0.21 | microscope:analyze-jfr |
-| record-exceptions-next-time | 1.00 | 3 | 1 | 0 | 0 | 18,923 | 1,038 | 0.06 | — |
+| compare-finds-the-regression | 1.00 | 3 | 10 | 7 | 4 | 195,902 | 2,629 | 0.17 | microscope:compare-jfr |
+| exceptions-to-the-throw-site | 0.93 | 3 | 10 | 7 | 4 | 156,532 | 2,484 | 0.16 | microscope:analyze-exceptions |
+| heap-dump-what-holds-memory | 0.87 | 3 | 1 | 19 | 17 | 29,180 | 1,259 | 0.3 | microscope:analyze-heap |
+| help-what-is-here | 1.00 | 3 | 6 | 3 | 2 | 86,992 | 1,150 | 0.09 | microscope:help |
+| named-area-cpu | 1.00 | 3 | 7 | 4 | 3 | 198,241 | 1,678 | 0.18 | microscope:analyze-jfr |
+| open-question-shows-menu | 1.00 | 3 | 6 | 3 | 2 | 161,978 | 1,611 | 0.2 | microscope:analyze-jfr |
+| record-exceptions-next-time | 1.00 | 3 | 1 | 0 | 0 | 18,809 | 1,069 | 0.07 | — |
 
-Overall score 0.99, 6/7 cases at the threshold; 3.46 USD including the judge; Claude Code 2.1.314. Medians per case.
+Overall score 0.97, 5/7 cases at the threshold; 3.53 USD including the judge; Claude Code 2.1.316. Medians per case.
 
 What it says:
 
 - **Every case reaches the skill it should**, and the open question stops at the menu.
 - **`heap-dump-what-holds-memory` is the one failing rule:** `analyze-heap` hands the route to
   `heap-triage` before importing the file the user named, and `heap-triage` — which may not import —
-  picks the catalogue's existing heap-dump profile instead. It happened in five of seven runs across
-  the three passes taken while the suite was written, and the answer says so itself ("could not
+  picks the catalogue's existing heap-dump profile instead. It happened in seven of ten runs across
+  the four passes taken while the suite was written, and the answer says so itself ("could not
   confirm that this profile came from …"). The skill's delegation section should import first.
 - **The cost of an answer is mostly instructions.** The one case that loads no skill reads ~19k tokens;
   a case that loads `analyze-jfr` or `compare-jfr` reads 160k–200k across its turns — the skill, the tool
