@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Stream;
 import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
 import cafe.jeffrey.profile.heapdump.persistence.DuckDbHeapView;
@@ -104,6 +105,15 @@ public interface HeapView extends AutoCloseable {
 
     boolean isGcRoot(long instanceId) throws SQLException;
 
+    /**
+     * Reads the trace serial explicitly named by a ROOT_THREAD_OBJECT at its indexed body offset.
+     * Empty when the source dump is not attached. This supplements existing indexes without
+     * rebuilding them: their gc_root rows already retain the required file offset.
+     */
+    default OptionalInt threadRootTraceSerial(long fileOffset) {
+        return OptionalInt.empty();
+    }
+
     long gcRootCount() throws SQLException;
 
     // ---- Reference graph -------------------------------------------------
@@ -142,9 +152,14 @@ public interface HeapView extends AutoCloseable {
     }
 
     /**
-     * True iff the dominator + retained_size tables have been populated.
+     * True iff the dominator + retained_size tables have been populated by the current dominator
+     * build. A tree an older build wrote reads as not built, so whatever builds on demand builds it
+     * again.
      */
     boolean hasDominatorTree() throws SQLException;
+
+    /** The persisted input-tree version, including an empty build; 0 for an unversioned or unbuilt tree. */
+    long dominatorTreeVersion() throws SQLException;
 
     /**
      * Runs a read-only SQL query against the index and returns at most {@code maxRows} rows.

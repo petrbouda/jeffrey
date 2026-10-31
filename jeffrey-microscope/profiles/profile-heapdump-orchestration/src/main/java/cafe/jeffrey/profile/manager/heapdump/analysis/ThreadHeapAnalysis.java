@@ -27,11 +27,9 @@ import java.util.List;
 
 /**
  * Runs {@link ThreadAnalyzer} and derives summary counts (daemon, user, total
- * retained) into the final report. Does not request the dominator tree itself
- * — the init pipeline runs the dominator step before this analysis, and the
- * analyzer reads retained sizes from the persisted {@code retained_size}
- * table; if absent, retained sizes come back {@code null} which the analyzer
- * handles gracefully.
+ * retained) into the final report. Requires a current dominator tree even when
+ * this report is prepared independently of the full initialization pipeline,
+ * so its persisted retained sizes cannot describe an absent or obsolete tree.
  */
 public final class ThreadHeapAnalysis implements CachedAnalysis<ThreadAnalysisReport> {
 
@@ -51,7 +49,7 @@ public final class ThreadHeapAnalysis implements CachedAnalysis<ThreadAnalysisRe
 
     @Override
     public boolean needsDominatorTree() {
-        return false;
+        return true;
     }
 
     @Override

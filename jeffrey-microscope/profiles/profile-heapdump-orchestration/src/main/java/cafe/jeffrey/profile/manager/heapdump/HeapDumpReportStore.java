@@ -36,8 +36,12 @@ import tools.jackson.core.JacksonException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Typed JSON I/O for heap-dump analysis sidecar files. Uses the shared
@@ -64,6 +68,18 @@ public final class HeapDumpReportStore {
             new ConsumerReportAnalysis(),
             new DuplicateDataAnalysis());
 
+    private static final String JSON_SUFFIX = ".json";
+
+    /** Between a report's name and the version of the dominator tree it was computed from. */
+    private static final String TREE_VERSION_MARK = ".tree-v";
+
+    private static final String ANALYSIS_VERSION_MARK = ".analysis-v";
+
+    private static final int LEGACY_ANALYSIS_VERSION = 1;
+
+    /** A report being written; one a crash left behind is removed with the cached analyses. */
+    private static final String TEMPORARY_SUFFIX = ".tmp";
+
     private final Path analysisDir;
 
     public HeapDumpReportStore(Path analysisDir) {
@@ -71,21 +87,82 @@ public final class HeapDumpReportStore {
     }
 
     // --- CachedAnalysis-typed operations --------------------------------
+    //
+    // The writer passes the actual input tree version, captured under the session lock. Readers
+    // require both that tree and the current report algorithm, so changing a report does not force
+    // a tree rebuild, and an absent tree cannot be stamped as the running binary's tree version.
 
     public <T> boolean exists(CachedAnalysis<T> analysis) {
-        return Files.exists(analysisDir.resolve(analysis.fileName()));
+        return read(analysis).isPresent();
     }
 
     public <T> Optional<T> read(CachedAnalysis<T> analysis) {
-        return read(analysis.fileName(), analysis.type());
+        return read(storedName(analysis), analysis.type());
     }
 
-    public <T> void write(CachedAnalysis<T> analysis, T report) {
-        write(analysis.fileName(), report, analysis.displayName());
+    public <T> void write(CachedAnalysis<T> analysis, HeapReportVersion version, T report) {
+        if (!HeapReportVersion.expected(analysis).equals(version)) {
+            throw new IllegalArgumentException("Report was not computed from the required versions: " + version);
+        }
+        write(storedName(analysis, version), report, analysis.displayName());
+        for (String stale : staleNames(analysis)) {
+            delete(stale, analysis.displayName());
+        }
     }
 
     public <T> void delete(CachedAnalysis<T> analysis) {
-        delete(analysis.fileName(), analysis.displayName());
+        delete(storedName(analysis), analysis.displayName());
+        for (String stale : staleNames(analysis)) {
+            delete(stale, analysis.displayName());
+        }
+    }
+
+    /** A stored but obsolete or unreadable report can be refreshed; a never-requested report cannot. */
+    public boolean hasStoredCopy(CachedAnalysis<?> analysis) {
+        return Files.exists(analysisDir.resolve(storedName(analysis))) || !staleNames(analysis).isEmpty();
+    }
+
+    /** The expected report algorithm and, for retained figures, the tree it must have read. */
+    static String storedName(CachedAnalysis<?> analysis) {
+        return storedName(analysis, HeapReportVersion.expected(analysis));
+    }
+
+    private static String storedName(CachedAnalysis<?> analysis, HeapReportVersion version) {
+        // Unchanged reports that never read a tree retain their compatible legacy names.
+        if (version.treeVersion() == null && version.analysisVersion() == LEGACY_ANALYSIS_VERSION) {
+            return analysis.fileName();
+        }
+        String tree = version.treeVersion() == null ? "" : TREE_VERSION_MARK + version.treeVersion();
+        return baseName(analysis) + ANALYSIS_VERSION_MARK + version.analysisVersion() + tree + JSON_SUFFIX;
+    }
+
+    /**
+     * The analysis's files from earlier report algorithms or trees, including unversioned files.
+     */
+    private List<String> staleNames(CachedAnalysis<?> analysis) {
+        if (!Files.isDirectory(analysisDir)) {
+            return List.of();
+        }
+        String current = storedName(analysis);
+        String versionedPrefix = baseName(analysis) + TREE_VERSION_MARK;
+        String analysisPrefix = baseName(analysis) + ANALYSIS_VERSION_MARK;
+        List<String> stale = new ArrayList<>();
+        try (Stream<Path> files = Files.list(analysisDir)) {
+            files.map(path -> path.getFileName().toString())
+                    .filter(name -> !name.equals(current))
+                    .filter(name -> name.equals(analysis.fileName())
+                            || ((name.startsWith(versionedPrefix) || name.startsWith(analysisPrefix))
+                            && name.endsWith(JSON_SUFFIX)))
+                    .forEach(stale::add);
+        } catch (IOException e) {
+            LOG.warn("Could not list cached analyses: path={} message={}", analysisDir, e.getMessage());
+        }
+        return stale;
+    }
+
+    private static String baseName(CachedAnalysis<?> analysis) {
+        String name = analysis.fileName();
+        return name.endsWith(JSON_SUFFIX) ? name.substring(0, name.length() - JSON_SUFFIX.length()) : name;
     }
 
     // --- Raw-fileName operations (for non-CachedAnalysis files) ---------
@@ -100,22 +177,38 @@ public final class HeapDumpReportStore {
             return Optional.empty();
         }
         try {
-            return Optional.of(Json.mapper().readValue(filePath.toFile(), type));
+            return Optional.ofNullable(Json.mapper().readValue(filePath.toFile(), type));
         } catch (JacksonException e) {
-            LOG.error("Failed to read analysis file: path={}", filePath, e);
+            // Not an error: an unreadable report reads as not built and is computed again.
+            LOG.warn("Unreadable analysis file, read as not built: path={} message={}", filePath, e.getMessage());
             return Optional.empty();
         }
     }
 
     public void write(String fileName, Object payload, String displayName) {
+        Path temporary = null;
         try {
             ensureAnalysisDir();
             Path filePath = analysisDir.resolve(fileName);
-            Json.mapper().writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), payload);
+            temporary = Files.createTempFile(analysisDir, fileName + ".", TEMPORARY_SUFFIX);
+            Json.mapper().writerWithDefaultPrettyPrinter().writeValue(temporary.toFile(), payload);
+            try {
+                Files.move(temporary, filePath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                Files.move(temporary, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
             LOG.info("{} saved: path={}", displayName, filePath);
         } catch (IOException | JacksonException e) {
             LOG.error("Failed to save {}: path={}", displayName, analysisDir, e);
             throw Exceptions.internal("Failed to save " + displayName + ": " + e.getMessage(), e);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException e) {
+                    LOG.warn("Could not remove temporary report: path={}", temporary, e);
+                }
+            }
         }
     }
 
@@ -158,6 +251,22 @@ public final class HeapDumpReportStore {
     public void deleteAllCachedAnalyses() {
         for (CachedAnalysis<?> analysis : ALL_CACHED_ANALYSES) {
             delete(analysis);
+        }
+        deleteTemporaryReports();
+    }
+
+    private void deleteTemporaryReports() {
+        if (!Files.isDirectory(analysisDir)) {
+            return;
+        }
+        List<String> prefixes = ALL_CACHED_ANALYSES.stream().map(HeapDumpReportStore::baseName).toList();
+        try (Stream<Path> files = Files.list(analysisDir)) {
+            files.map(path -> path.getFileName().toString())
+                    .filter(name -> name.endsWith(TEMPORARY_SUFFIX))
+                    .filter(name -> prefixes.stream().anyMatch(name::startsWith))
+                    .forEach(name -> delete(name, "Temporary report"));
+        } catch (IOException e) {
+            LOG.warn("Could not list temporary reports: path={} message={}", analysisDir, e.getMessage());
         }
     }
 }

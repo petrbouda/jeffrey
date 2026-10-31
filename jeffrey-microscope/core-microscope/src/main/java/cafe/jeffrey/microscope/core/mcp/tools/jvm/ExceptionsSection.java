@@ -46,9 +46,11 @@ import java.util.Set;
  * <p>
  * The counts come from two different sources and they measure different things. {@code totalThrowables}
  * is from {@code jdk.ExceptionStatistics}, which counts every throwable including the ones nothing
- * sampled; the per-type list comes from the throw events, which are off in most recordings. So a
- * profile can honestly report millions of exceptions and name none of them, and that is a finding
- * about the profiler's configuration rather than an empty result.
+ * sampled; the per-type list comes from the throw events, which the JDK's own settings leave off on
+ * JDK 21 and throttle on JDK 25 (300/s under {@code profile}, 100/s under {@code default}). So a
+ * profile can honestly report millions of exceptions and name none of them, which is a finding about
+ * the profiler's configuration rather than an empty result, and on JDK 25 the per-type counts are a
+ * sample of the total.
  * <p>
  * Every throw is also split by origin. {@code JVM_INTERNAL} is the JVM resolving and linking —
  * class loading, reflection, method-handle linking — which throws and catches by the handful and
@@ -74,8 +76,8 @@ public record ExceptionsSection(ProfileManager profileManager) implements JvmSec
     private static final String THROW_SITE_FRAME = "fillInStackTrace";
 
     private static final String UNATTRIBUTED_GUIDANCE =
-            "The total is counted, but jdk.JavaExceptionThrow was not recorded, so no type is named: the "
-                    + "attribution is missing, and only a new recording with that event enabled supplies it.";
+            "jdk.JavaExceptionThrow was not recorded, so no type is named; a recording with "
+                    + "jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off names every throw.";
     private static final String THROW_SITE_WHY =
             "finds the hot throw sites: constructing an exception walks the stack, which shows up as "
                     + "fillInStackTrace in the on-CPU flamegraph";

@@ -357,7 +357,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public StringAnalysisReport getStringAnalysis() {
-        return reports.read(new StringHeapAnalysis()).orElse(null);
+        return runner.read(new StringHeapAnalysis()).orElse(null);
     }
 
     @Override
@@ -374,7 +374,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public ThreadAnalysisReport getThreadAnalysis() {
-        return reports.read(new ThreadHeapAnalysis()).orElse(null);
+        return runner.read(new ThreadHeapAnalysis()).orElse(null);
     }
 
     @Override
@@ -425,6 +425,12 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         return withSession(session -> PathToGCRootAnalyzer.findPaths(
                 session.view(), objectId, excludeWeakRefs, maxPaths))
                 .orElse(List.of());
+    }
+
+    @Override
+    public Optional<GCRootPath> getSelfRootPath(long objectId) {
+        return withSession(session -> PathToGCRootAnalyzer.selfRoot(session.view(), objectId))
+                .flatMap(path -> path);
     }
 
     // --- Heap Dump Config (compressed oops detection only — correction is not applied) ----
@@ -478,7 +484,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public CollectionAnalysisReport getCollectionAnalysis() {
-        return reports.read(new CollectionHeapAnalysis()).orElse(null);
+        return runner.read(new CollectionHeapAnalysis()).orElse(null);
     }
 
     @Override
@@ -519,7 +525,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public LeakSuspectsReport getLeakSuspects() {
-        return reports.read(new LeakSuspectsAnalysis()).orElse(null);
+        return runner.read(new LeakSuspectsAnalysis()).orElse(null);
     }
 
     @Override
@@ -536,7 +542,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public BiggestObjectsReport getBiggestObjects() {
-        return reports.read(new BiggestObjectsAnalysis()).orElse(null);
+        return runner.read(new BiggestObjectsAnalysis()).orElse(null);
     }
 
     @Override
@@ -553,7 +559,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public BiggestCollectionsReport getBiggestCollections() {
-        return reports.read(new BiggestCollectionsAnalysis()).orElse(null);
+        return runner.read(new BiggestCollectionsAnalysis()).orElse(null);
     }
 
     @Override
@@ -570,7 +576,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public ClassLoaderReport getClassLoaderAnalysis() {
-        return reports.read(new ClassLoaderHeapAnalysis()).orElse(null);
+        return runner.read(new ClassLoaderHeapAnalysis()).orElse(null);
     }
 
     @Override
@@ -595,7 +601,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public ConsumerReport getConsumerReport() {
-        return reports.read(new ConsumerReportAnalysis()).orElse(null);
+        return runner.read(new ConsumerReportAnalysis()).orElse(null);
     }
 
     @Override
@@ -612,7 +618,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public DuplicateDataReport getDuplicateData() {
-        return reports.read(new DuplicateDataAnalysis()).orElse(null);
+        return runner.read(new DuplicateDataAnalysis()).orElse(null);
     }
 
     @Override

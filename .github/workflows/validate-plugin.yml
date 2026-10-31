@@ -32,6 +32,13 @@ on:
       - '.agents/plugins/**'
       - 'jeffrey-claude-plugin/**'
       - 'build/scripts/validate-agent-plugin.py'
+      - 'build/scripts/check-plugin-references.py'
+      - 'build/scripts/render-plugin.py'
+      - 'build/scripts/test-status-hook.py'
+      - 'build/scripts/record-plugin-eval-mocks.py'
+      - 'build/scripts/test-plugin-eval-mocks.py'
+      - 'build/plugin/**'
+      - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
   pull_request:
     paths:
@@ -39,6 +46,13 @@ on:
       - '.agents/plugins/**'
       - 'jeffrey-claude-plugin/**'
       - 'build/scripts/validate-agent-plugin.py'
+      - 'build/scripts/check-plugin-references.py'
+      - 'build/scripts/render-plugin.py'
+      - 'build/scripts/test-status-hook.py'
+      - 'build/scripts/record-plugin-eval-mocks.py'
+      - 'build/scripts/test-plugin-eval-mocks.py'
+      - 'build/plugin/**'
+      - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
   workflow_dispatch:
 
@@ -74,3 +88,27 @@ jobs:
       run: |
         sudo apt-get update -qq && sudo apt-get install -y -qq python3-yaml
         python3 build/scripts/validate-agent-plugin.py .
+
+    # Every tool, argument, response field and enum value the skills, agents and README
+    # name, held to the tools/list snapshot CI pins against the packaged jar - and every
+    # MCP entry an agent lists a real tool or a whole server, since Claude Code drops a
+    # family wildcard as unrecognized. The self-test proves each check still fires.
+    - name: Check what the plugin names against the server
+      run: |
+        python3 build/scripts/check-plugin-references.py --self-test
+        python3 build/scripts/check-plugin-references.py .
+
+    # The skills' shared sections and the three dialects of every agent are rendered from
+    # build/plugin/; a hand edit to a rendered file, or a source edit nobody rendered, fails.
+    - name: Check the rendered plugin files against their sources
+      run: python3 build/scripts/render-plugin.py . --check
+
+    # The SessionStart hook runs in every session of every repository the plugin is installed for:
+    # silent outside a JVM project and when Jeffrey answers, one valid message for each way the
+    # tools are about to fail. Against a local stand-in for Jeffrey; needs bash and curl.
+    - name: Test the SessionStart hook
+      run: python3 build/scripts/test-status-hook.py
+
+    # Offline: fixture semantics, async import replay and semantic-rubric shape. No model calls.
+    - name: Test recorded eval contracts
+      run: python3 build/scripts/test-plugin-eval-mocks.py

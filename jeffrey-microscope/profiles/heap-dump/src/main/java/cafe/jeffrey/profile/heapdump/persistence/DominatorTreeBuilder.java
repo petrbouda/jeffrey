@@ -40,6 +40,7 @@ import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.parser.FutureJoin;
 
 /**
@@ -73,6 +74,28 @@ public final class DominatorTreeBuilder {
 
     /** Reserved id for the synthetic virtual root. HPROF id 0 means null, never a real instance. */
     public static final long VIRTUAL_ROOT = 0L;
+
+    /**
+     * The version of the tree this builder writes, recorded in {@code dominator_build} beside the
+     * rows. Version 1 is every tree written before the table existed: it filled its node array in the
+     * order a prepared {@code ORDER BY} streamed, which the JDBC driver does not keep past one row
+     * group, and came out wrong on any dump of that size. A view reads a tree of another version as
+     * not built ({@link HeapView#hasDominatorTree()}), and the reports cached from one carry this
+     * version in their name, so both are built again rather than served. Raise it whenever a change
+     * here alters which tree a dump gets.
+     */
+    public static final int TREE_VERSION = 2;
+
+    private static final String DOMINATOR_BUILD_TABLE = "dominator_build";
+
+    /** An index file written before the version table existed gains it on its first rebuild. */
+    private static final String CREATE_DOMINATOR_BUILD =
+            "CREATE TABLE IF NOT EXISTS " + DOMINATOR_BUILD_TABLE + " (tree_version INTEGER NOT NULL)";
+
+    private static final String DELETE_DOMINATOR_BUILD = "DELETE FROM " + DOMINATOR_BUILD_TABLE;
+
+    private static final String RECORD_DOMINATOR_BUILD =
+            "INSERT INTO " + DOMINATOR_BUILD_TABLE + " VALUES (" + TREE_VERSION + ")";
 
     /**
      * Raises the WAL auto-checkpoint threshold so DuckDB doesn't flush WAL → main
@@ -181,6 +204,7 @@ public final class DominatorTreeBuilder {
             for (String ddl : DROP_INDEX_DDL) {
                 client.execute(HeapDumpStatement.DROP_INDEXES, ddl);
             }
+            client.execute(HeapDumpStatement.CREATE_DOMINATOR_BUILD, CREATE_DOMINATOR_BUILD);
             // The replacement of both tables is one transaction, taken in persistViaParquet around
             // the deletes and the two loads. It is not taken here: the graph computation between
             // them touches no table, and holding a write transaction open across minutes of it
@@ -219,15 +243,24 @@ public final class DominatorTreeBuilder {
 
     private static BuildResult doBuild(HeapDumpDatabaseClient client, Path indexDbPath, Path stagingDir)
             throws SQLException, IOException {
-        Elapsed<InstanceMeta> metaE = measure(() -> loadInstanceMeta(client));
+        // id_index lives across both loads: the nodes are read from it by node_index, and the edges
+        // are translated through it, so the two agree on every node's slot by construction.
+        Elapsed<InstanceMeta> metaE;
+        Elapsed<Csr> succE;
+        client.execute(HeapDumpStatement.BUILD_ID_INDEX, CREATE_ID_INDEX_SQL);
+        try {
+            metaE = measure(() -> loadInstanceMeta(client));
+            int virtualRootIndex = metaE.entity().ids().length;
+            succE = measure(() -> loadSuccessors(client, virtualRootIndex));
+        } finally {
+            client.execute(HeapDumpStatement.DROP_ID_INDEX, DROP_ID_INDEX_SQL);
+        }
         InstanceMeta meta = metaE.entity();
         long[] ids = meta.ids();
         long[] shallow = meta.shallow();
         // Index N = virtual root. We allocate one extra slot at index ids.length.
         int virtualIndex = ids.length;
         int totalNodes = ids.length + 1;
-
-        Elapsed<Csr> succE = measure(() -> loadSuccessors(client, ids, virtualIndex));
         Csr succ = succE.entity();
 
         Elapsed<Csr> predE = Measuring.s(() -> invert(succ, totalNodes));
@@ -395,6 +428,9 @@ public final class DominatorTreeBuilder {
                     client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
                 }
                 staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
+                // The version goes in with the rows, so a tree is never marked current without them.
+                client.execute(HeapDumpStatement.DELETE_DOMINATOR_BUILD, DELETE_DOMINATOR_BUILD);
+                client.execute(HeapDumpStatement.RECORD_DOMINATOR_BUILD, RECORD_DOMINATOR_BUILD);
                 client.execute(HeapDumpStatement.COMMIT_TRANSACTION, COMMIT_TRANSACTION);
             } catch (RuntimeException e) {
                 rollbackQuietly(client);
@@ -708,52 +744,43 @@ public final class DominatorTreeBuilder {
     }
 
     /**
-     * Sorted instance ids paired with their shallow sizes, indices aligned —
-     * {@code ids[i]} has size {@code shallow[i]}. Loaded by one ORDER BY
-     * instance_id scan so the downstream code can use {@code shallow[index]}
-     * directly without a second SQL pass or per-row lookup.
+     * Instance ids paired with their shallow sizes, indices aligned — {@code ids[i]} has size
+     * {@code shallow[i]}, and {@code i} is the node's {@code node_index} in {@code id_index}, so the
+     * edge queries' translated indices address these arrays directly.
      */
     private record InstanceMeta(long[] ids, long[] shallow) {
     }
 
+    /**
+     * Fills {@code ids[]} and {@code shallow[]} from {@code id_index}, each row written to the slot
+     * its {@code node_index} names. The position comes from the row, never from the order rows
+     * arrive in: the DuckDB JDBC driver streams a prepared {@code ORDER BY} out of order past one
+     * row group while {@code preserve_insertion_order} is off, which this session sets, and an
+     * array filled in arrival order then disagrees with the indices every edge was translated
+     * through — the dominator tree came out scrambled.
+     */
     private static InstanceMeta loadInstanceMeta(HeapDumpDatabaseClient client) {
         int count = (int) client.queryLong(HeapDumpStatement.TOTAL_INSTANCE_COUNT, NODE_COUNT_SQL);
         long[] ids = new long[count];
         long[] shallow = new long[count];
-        int[] iBox = {0};
+        long[] read = {0};
         client.rawStream(HeapDumpStatement.STREAM_INSTANCES_BY_CLASS, NODE_META_SQL,
                 rs -> {
-                    while (rs.next() && iBox[0] < count) {
-                        ids[iBox[0]] = rs.getLong(1);
-                        shallow[iBox[0]] = rs.getLong(2);
-                        iBox[0]++;
+                    while (rs.next()) {
+                        int index = rs.getInt(1);
+                        ids[index] = rs.getLong(2);
+                        shallow[index] = rs.getLong(3);
+                        read[0]++;
                     }
-                    return iBox[0];
+                    return read[0];
                 });
-        int i = iBox[0];
-        if (i != count) {
-            // Defensive: COUNT(*) and the scan returned different row counts
-            // (concurrent write, or count overflow). Truncate to actually read.
-            long[] idsTrimmed = new long[i];
-            long[] shallowTrimmed = new long[i];
-            System.arraycopy(ids, 0, idsTrimmed, 0, i);
-            System.arraycopy(shallow, 0, shallowTrimmed, 0, i);
-            return new InstanceMeta(idsTrimmed, shallowTrimmed);
+        if (read[0] != count) {
+            throw new IllegalStateException(
+                    "id_index read back a different row count: expected=" + count + " read=" + read[0]);
         }
         return new InstanceMeta(ids, shallow);
     }
 
-    /**
-     * Builds a connection-local temp table mapping every {@code instance_id} to
-     * its dense node index — the position in the in-memory {@code ids[]} array.
-     * Both use {@code ORDER BY instance_id}, so {@code ROW_NUMBER() OVER
-     * (ORDER BY instance_id) - 1} produces the same indices as the Java-side
-     * {@code loadInstanceMeta} scan.
-     *
-     * <p>Materialising the mapping in DuckDB lets the edge-loading queries push
-     * the translation into the engine's parallel hash join, replacing 87 M ×
-     * two Java-side binary searches per pass with a single multi-threaded scan.
-     */
     /**
      * The dominator graph's node set: every instance plus every class object.
      * Class objects are graph nodes so class-static references (outbound_ref
@@ -769,18 +796,24 @@ public final class DominatorTreeBuilder {
             WHERE class_id NOT IN (SELECT instance_id FROM instance)
             """;
 
-    private static final String NODE_COUNT_SQL =
-            "SELECT COUNT(*) FROM (" + NODE_SET_SQL + ")";
-
-    private static final String NODE_META_SQL =
-            "SELECT id, shallow FROM (" + NODE_SET_SQL + ") ORDER BY id";
-
+    /**
+     * A connection-local temp table giving every node of {@link #NODE_SET_SQL} its dense
+     * {@code node_index} — its slot in the in-memory {@code ids[]}/{@code shallow[]} arrays, which
+     * {@link #loadInstanceMeta} fills from this same table by that column. Materialising the
+     * mapping in DuckDB lets the edge-loading queries push the translation into the engine's
+     * parallel hash join, replacing two Java-side binary searches per edge with one scan.
+     */
     private static final String CREATE_ID_INDEX_SQL = """
             CREATE TEMP TABLE id_index AS
             SELECT id AS instance_id,
+                   shallow,
                    CAST(ROW_NUMBER() OVER (ORDER BY id) - 1 AS INTEGER) AS node_index
             FROM (
             """ + NODE_SET_SQL + ")";
+
+    private static final String NODE_COUNT_SQL = "SELECT COUNT(*) FROM id_index";
+
+    private static final String NODE_META_SQL = "SELECT node_index, instance_id, shallow FROM id_index";
 
     private static final String DROP_ID_INDEX_SQL = "DROP TABLE id_index";
 
@@ -825,73 +858,68 @@ public final class DominatorTreeBuilder {
      * to instances absent from the {@code instance} table, matching the old
      * {@code if (src >= 0 && dst >= 0)} filter.
      */
-    private static Csr loadSuccessors(
-            HeapDumpDatabaseClient client, long[] ids, int virtualIndex) {
-        int n = ids.length + 1;
+    private static Csr loadSuccessors(HeapDumpDatabaseClient client, int virtualIndex) {
+        // The virtual root takes the slot after the last node.
+        int n = virtualIndex + 1;
         int[] offsets = new int[n + 1];
 
-        client.execute(HeapDumpStatement.BUILD_ID_INDEX, CREATE_ID_INDEX_SQL);
-        try {
-            // Pass 1a: out-degrees by source, one row per source. Stashed at
-            // offsets[u + 1] so the prefix-sum below converts them in place.
-            client.rawStream(HeapDumpStatement.COUNT_OUTBOUND_DEGREES, OUTBOUND_DEGREES_SQL, rs -> {
-                long rows = 0;
-                while (rs.next()) {
-                    int src = rs.getInt(1);
-                    offsets[src + 1] = rs.getInt(2);
-                    rows++;
-                }
-                return rows;
-            });
-
-            // Pass 1b: count gc_root edges from virtual root.
-            client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
-                long rows = 0;
-                while (rs.next()) {
-                    offsets[virtualIndex + 1]++;
-                    rows++;
-                }
-                return rows;
-            });
-
-            // Prefix-sum the degrees in offsets[1..n] → CSR start offsets.
-            // offsets[0] stays 0; offsets[n] becomes the total edge count.
-            for (int i = 1; i <= n; i++) {
-                offsets[i] += offsets[i - 1];
+        // Pass 1a: out-degrees by source, one row per source. Stashed at
+        // offsets[u + 1] so the prefix-sum below converts them in place.
+        client.rawStream(HeapDumpStatement.COUNT_OUTBOUND_DEGREES, OUTBOUND_DEGREES_SQL, rs -> {
+            long rows = 0;
+            while (rs.next()) {
+                int src = rs.getInt(1);
+                offsets[src + 1] = rs.getInt(2);
+                rows++;
             }
-            int totalEdges = offsets[n];
-            int[] edges = new int[totalEdges];
+            return rows;
+        });
 
-            // Pass 2: fill edges using cursor[] to track per-source write position.
-            // cursor[u] starts at offsets[u]; advances within [offsets[u], offsets[u + 1]).
-            int[] cursor = new int[n];
-            System.arraycopy(offsets, 0, cursor, 0, n);
+        // Pass 1b: count gc_root edges from virtual root.
+        client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
+            long rows = 0;
+            while (rs.next()) {
+                offsets[virtualIndex + 1]++;
+                rows++;
+            }
+            return rows;
+        });
 
-            client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
-                long rows = 0;
-                while (rs.next()) {
-                    int src = rs.getInt(1);
-                    int dst = rs.getInt(2);
-                    edges[cursor[src]++] = dst;
-                    rows++;
-                }
-                return rows;
-            });
-
-            client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
-                long rows = 0;
-                while (rs.next()) {
-                    int dst = rs.getInt(1);
-                    edges[cursor[virtualIndex]++] = dst;
-                    rows++;
-                }
-                return rows;
-            });
-
-            return new Csr(offsets, edges);
-        } finally {
-            client.execute(HeapDumpStatement.DROP_ID_INDEX, DROP_ID_INDEX_SQL);
+        // Prefix-sum the degrees in offsets[1..n] → CSR start offsets.
+        // offsets[0] stays 0; offsets[n] becomes the total edge count.
+        for (int i = 1; i <= n; i++) {
+            offsets[i] += offsets[i - 1];
         }
+        int totalEdges = offsets[n];
+        int[] edges = new int[totalEdges];
+
+        // Pass 2: fill edges using cursor[] to track per-source write position.
+        // cursor[u] starts at offsets[u]; advances within [offsets[u], offsets[u + 1]).
+        int[] cursor = new int[n];
+        System.arraycopy(offsets, 0, cursor, 0, n);
+
+        client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
+            long rows = 0;
+            while (rs.next()) {
+                int src = rs.getInt(1);
+                int dst = rs.getInt(2);
+                edges[cursor[src]++] = dst;
+                rows++;
+            }
+            return rows;
+        });
+
+        client.rawStream(HeapDumpStatement.JOIN_GC_ROOTS, GC_ROOTS_JOIN_SQL, rs -> {
+            long rows = 0;
+            while (rs.next()) {
+                int dst = rs.getInt(1);
+                edges[cursor[virtualIndex]++] = dst;
+                rows++;
+            }
+            return rows;
+        });
+
+        return new Csr(offsets, edges);
     }
 
     /**

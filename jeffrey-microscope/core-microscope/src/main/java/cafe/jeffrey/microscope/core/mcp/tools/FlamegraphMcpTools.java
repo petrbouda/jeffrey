@@ -41,6 +41,7 @@ import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.model.WeightKind;
 import cafe.jeffrey.profile.model.WeightOption;
@@ -51,15 +52,17 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
  * Flamegraphs of one profile, rendered as the Markdown export rather than as the protobuf the browser
  * draws — the same call tree, written to be read.
  * <p>
- * {@link #list()} comes first on purpose: which event types a recording actually captured varies by
- * profiler configuration, and asking for a graph of an event type that was never recorded returns an
- * empty tree rather than an error. The list is the profile's own answer to "what can I graph".
+ * Which event types a recording actually captured varies by profiler configuration. {@link #list()} is
+ * the profile's own answer to "what can I graph", and an export of a type the recording never captured
+ * says so — status {@code NOT_RECORDED}, naming the types it did — rather than drawing an empty tree, so
+ * a caller that already knows the type it wants can export it without asking for the list first.
  * <p>
  * The export's Markdown stays the text the agent reads. Beside it, the structured record says what
  * the tree was built from — event type, window, threshold, detail, filters — with the next calls and
@@ -71,6 +74,7 @@ public class FlamegraphMcpTools {
 
     /** The tools and arguments this family's answers hand back as next calls. */
     private static final String EXPORT_TOOL = "flamegraph_export";
+    private static final String LIST_TOOL = "flamegraph_list";
     private static final String HOT_WINDOWS_TOOL = "timeline_hotWindows";
     private static final String THREADS_TOOL = "jvm_threads";
     private static final String FEATURES_TOOL = "profiles_features";
@@ -82,6 +86,9 @@ public class FlamegraphMcpTools {
     private static final String EXCLUDE_NON_JAVA = "excludeNonJava";
     private static final String START_EPOCH_MS = "startEpochMs";
     private static final String END_EPOCH_MS = "endEpochMs";
+    private static final String DETAIL = "detail";
+    private static final String THRESHOLD_PCT = "thresholdPct";
+    private static final String SEARCH = "search";
 
     private static final String EXPORT_WHY =
             "draws this event type at the defaults listed beside it; any eventType in available works the same way";
@@ -93,6 +100,15 @@ public class FlamegraphMcpTools {
     private static final String COMPARE_GUIDANCE =
             "Whether this is worse than it was is not visible in one profile: compare_list with a baseline "
                     + "profile's id, then compare_movements.";
+
+    private static final String ALTERNATIVE_WHY =
+            "the recorded event type that answers the same question as the one asked for";
+    private static final String LIST_WHY = "every event type this profile recorded, with its export defaults";
+    private static final String NOT_RECORDED_REASON =
+            "This profile recorded no %s samples, so there is no tree to draw. It recorded: %s.";
+
+    /** The two samplers of on-CPU time: a recording made with JDK 25's CPU-time sampler holds no ExecutionSample. */
+    private static final Set<Type> ON_CPU_TYPES = Set.of(Type.EXECUTION_SAMPLE, Type.CPU_TIME_SAMPLE);
 
     private static final String NOTHING_TO_GRAPH =
             "This profile has no flamegraph-capable event types. It may be a heap dump "
@@ -173,8 +189,8 @@ public class FlamegraphMcpTools {
             + "jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is "
             + "the tree at 0.5%, several times longer. The Markdown is the text; the structured "
             + "result records the event type, window, threshold and filters it was built with, and "
-            + "uiLink opens the same graph in Microscope. flamegraph_list names the event types "
-            + "this profile can graph.")
+            + "uiLink opens the same graph in Microscope. An event type this profile did not record "
+            + "answers status NOT_RECORDED, naming the types it did, rather than an empty tree.")
     @McpOutputSchema(FlamegraphExport.class)
     @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.MODERATE)
     public McpToolResult export(
@@ -236,6 +252,13 @@ public class FlamegraphMcpTools {
         // Resolved here rather than left to the manager, so the graph, the link and every next call
         // are drawn with the one weighting the record reports.
         boolean weighted = useWeight != null ? useWeight : weightedByDefault(type);
+        ExportOptions options = new ExportOptions(level, level.threshold(config), window,
+                Boolean.TRUE.equals(threadMode), weighted, searchPattern,
+                Boolean.TRUE.equals(excludeIdle), Boolean.TRUE.equals(excludeNonJava), useWeight, thresholdPct);
+        List<EventSummaryResult> recorded = recordedTypes();
+        if (recorded.stream().noneMatch(summary -> summary.code().equals(type.code()))) {
+            return notRecorded(info.id(), type, options, recorded);
+        }
         GraphParameters params = GraphParameters.builder()
                 .withEventType(type)
                 .withTimeRange(timeRange(info, graphed))
@@ -266,6 +289,8 @@ public class FlamegraphMcpTools {
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, null);
 
         FlamegraphExport export = new FlamegraphExport(
+                GraphStatus.OK,
+                null,
                 info.id(),
                 type.code(),
                 level,
@@ -281,6 +306,85 @@ public class FlamegraphMcpTools {
                 followUp,
                 uiLink);
         return McpToolResult.of(text.text(), export);
+    }
+
+    /**
+     * Every recorded type a tree can be drawn from, including imported dimensions and custom events the
+     * grid omits — and none without stacks, which would graph to the empty tree this answer refuses.
+     */
+    private List<EventSummaryResult> recordedTypes() {
+        return profileManager.flamegraphManager().graphableEventSummaries().stream()
+                .filter(summary -> summary.primary() != null && summary.primary().samples() > 0)
+                .toList();
+    }
+
+    /**
+     * The answer to an export of a type the recording never captured: no tree, the types it did capture,
+     * and as the next call the export of a recorded type that answers the same question, when there is
+     * one — never a graph of something else, which the caller did not ask about.
+     */
+    private McpToolResult notRecorded(String profileId, Type type, ExportOptions options, List<EventSummaryResult> recorded) {
+        String reason = recorded.isEmpty()
+                ? NOTHING_TO_GRAPH
+                : NOT_RECORDED_REASON.formatted(type.code(),
+                        String.join(", ", recorded.stream().map(EventSummaryResult::code).toList()));
+        EventSummaryResult alternative = recorded.stream()
+                .filter(summary -> answerTheSameQuestion(type, Type.fromCode(summary.code())))
+                .findFirst()
+                .orElse(null);
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .nextWhen(alternative != null, () -> options.alternative(profileId, alternative.code())
+                        .why(ALTERNATIVE_WHY))
+                .next(NextCalls.to(LIST_TOOL).with(PROFILE_ID, profileId).why(LIST_WHY))
+                .followUp();
+        String uiLink = UiLinks.view(profileId, GRID_VIEW);
+        LinkedOutput.Footed text = LinkedOutput.footed(reason, followUp, uiLink, null);
+        FlamegraphExport export = new FlamegraphExport(
+                GraphStatus.NOT_RECORDED, reason, profileId, type.code(), options.detail(),
+                options.thresholdPct(), options.window(), options.threadMode(), options.useWeight(),
+                options.excludeIdle(), options.excludeNonJava(), options.search(), 0, false, followUp, uiLink);
+        return McpToolResult.of(text.text(), export);
+    }
+
+    /** Known interchangeable samplers. Contention, monitor waits, parking and sleeping answer different questions. */
+    private static boolean answerTheSameQuestion(Type asked, Type recorded) {
+        return (ON_CPU_TYPES.contains(asked) && ON_CPU_TYPES.contains(recorded))
+                || (asked.isAllocationEvent() && recorded.isAllocationEvent());
+    }
+
+    /**
+     * The resolved request survives an absent type, so an alternative changes only the event type. The
+     * weighting and the threshold are resolved per type — an allocation sampler weighs by default, a CPU
+     * sampler counts — so the alternative carries them only as the caller asked ({@code askedUseWeight},
+     * {@code askedThresholdPct}), and otherwise takes its own type's defaults.
+     */
+    private record ExportOptions(
+            Detail detail, Double thresholdPct, EpochWindow window, boolean threadMode,
+            boolean useWeight, String search, boolean excludeIdle, boolean excludeNonJava,
+            Boolean askedUseWeight, Double askedThresholdPct) {
+
+        McpNextTool.Call alternative(String profileId, String eventType) {
+            McpNextTool.Call call = NextCalls.to(EXPORT_TOOL)
+                    .with(PROFILE_ID, profileId)
+                    .with(EVENT_TYPE, eventType)
+                    .with(DETAIL, detail.name())
+                    .with(THREAD_MODE, threadMode)
+                    .with(EXCLUDE_IDLE, excludeIdle)
+                    .with(EXCLUDE_NON_JAVA, excludeNonJava);
+            if (askedUseWeight != null) {
+                call.with(USE_WEIGHT, askedUseWeight);
+            }
+            if (askedThresholdPct != null) {
+                call.with(THRESHOLD_PCT, askedThresholdPct);
+            }
+            if (window != null) {
+                call.with(START_EPOCH_MS, window.startEpochMs()).with(END_EPOCH_MS, window.endEpochMs());
+            }
+            if (search != null) {
+                call.with(SEARCH, search);
+            }
+            return call;
+        }
     }
 
     /**
@@ -506,6 +610,12 @@ public class FlamegraphMcpTools {
      * @param window the window graphed; null when it was the whole recording
      */
     record FlamegraphExport(
+            @McpDescription("OK when the Markdown is the call tree; NOT_RECORDED when this profile holds no "
+                    + "samples of eventType, and reason names the types it does")
+            GraphStatus status,
+            @McpNullable
+            @McpDescription("Why there is no tree, naming the recorded event types; null when status is OK")
+            String reason,
             String profileId,
             String eventType,
             Detail detail,

@@ -229,6 +229,19 @@ CREATE TABLE IF NOT EXISTS retained_size
 CREATE INDEX IF NOT EXISTS idx_retained_size_instance ON retained_size(instance_id);
 
 --
+-- DOMINATOR_BUILD
+-- The version of the dominator build that filled dominator and retained_size,
+-- one row, written in the same transaction as their rows. A tree with no row,
+-- or an older version, is read as not built and is built again: an index file
+-- outlives the code that wrote it, and a build whose tree was wrong must not
+-- be served once the code that fixed it runs.
+--
+CREATE TABLE IF NOT EXISTS dominator_build
+(
+    tree_version INTEGER NOT NULL
+);
+
+--
 -- STRING_CONTENT
 -- Decoded text of every java.lang.String instance, materialised during the
 -- index build so OQL string predicates push down to DuckDB varchar functions

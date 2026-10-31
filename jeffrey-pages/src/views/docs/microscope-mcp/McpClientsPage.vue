@@ -100,10 +100,10 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap,operations`;
             <td>Yes</td>
           </tr>
           <tr>
-            <td>The three agents</td>
+            <td>The two agents</td>
             <td>Yes, with a tool deny-list</td>
-            <td>Files to copy, all three</td>
-            <td>Files to copy, two of three</td>
+            <td>Files to copy, both</td>
+            <td>Files to copy, both</td>
           </tr>
         </tbody>
       </table>
@@ -114,7 +114,7 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap,operations`;
       <p>The same skills are also served by Jeffrey itself, so a client with no plugin at all can still read them: over the MCP skills extension, where a client that speaks <code>2026-07-28</code> with that extension gets all twelve and loads them on its own, and as MCP <strong>prompts</strong> &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the calls.</p>
 
       <h2 id="the-agents">The Three Agents</h2>
-      <p><code>profile-analyst</code>, <code>heap-triage</code> and <code>profile-lead</code> read an export end to end and return only the findings, so the raw document never lands in the main conversation. What each one is for is on the <router-link to="/docs/microscope-mcp/agent">Agents</router-link> page. How a client gets them differs: Claude Code carries them in the plugin with a tool deny-list; Codex and Gemini take them as files to copy, held to reading by an instruction rather than a wall, and Gemini has no <code>profile-lead</code> at all because one of its subagents may not dispatch another. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping the copy costs context rather than correctness.</p>
+      <p><code>profile-analyst</code> and <code>heap-triage</code> read an export end to end and return only the findings, so the raw document never lands in the main conversation. What each one is for is on the <router-link to="/docs/microscope-mcp/agent">Agents</router-link> page. How a client gets them differs: Claude Code carries them in the plugin with a tool deny-list; Codex and Gemini take them as files to copy, held to reading by an instruction rather than a wall. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping the copy costs context rather than correctness.</p>
 
       <h2 id="what-writes">The Eleven Tools That Write</h2>
       <p>Every client asks before a tool the first time, and the answer that fits Jeffrey is the same everywhere: approve the read-only families once. Every tool reads except eleven, and each of the eleven says so in its own MCP annotations rather than inheriting its family's:</p>

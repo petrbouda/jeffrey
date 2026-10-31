@@ -195,7 +195,8 @@ public final class HeapObjectAnswers {
             @McpNullable
             @McpDescription("The kind of GC root the object itself is; null when it is none")
             String targetRootKind,
-            @McpDescription("The shortest paths from a GC root to the object")
+            @McpDescription("The shortest paths from a GC root to the object; for an object that is itself a "
+                    + "root, one step naming its rootType, threadName and stackFrame")
             List<RootPath> paths,
             @McpDescription(FOLLOW_UP)
             McpFollowUp followUp,

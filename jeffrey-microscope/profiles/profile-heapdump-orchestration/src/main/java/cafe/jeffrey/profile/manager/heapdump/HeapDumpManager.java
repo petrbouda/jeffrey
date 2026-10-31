@@ -339,6 +339,15 @@ public interface HeapDumpManager {
      */
     List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths);
 
+    /**
+     * What keeps an object that is itself a GC root alive: a one-step path naming its root type and,
+     * for a root on a thread's stack, the thread and the frame holding it.
+     *
+     * @param objectId the object
+     * @return the path, or empty when the object is not a GC root
+     */
+    Optional<GCRootPath> getSelfRootPath(long objectId);
+
     // --- Dominator Tree ---
 
     /**

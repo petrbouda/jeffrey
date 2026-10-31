@@ -136,6 +136,16 @@ public final class DuckDbHeapView implements HeapView {
             "SELECT CASE WHEN EXISTS (SELECT 1 FROM dominator) AND EXISTS (SELECT 1 FROM retained_size) "
                     + "THEN 1 ELSE 0 END";
 
+    private static final String DOMINATOR_BUILD_TABLE = "dominator_build";
+
+    /** Whether the index has the version table at all: one written before it existed does not. */
+    private static final String DOMINATOR_BUILD_PRESENT =
+            "SELECT COUNT(*) FROM duckdb_tables() WHERE table_name = '" + DOMINATOR_BUILD_TABLE + "'";
+
+    /** The version of the tree in the index; 0 when none was recorded. */
+    private static final String DOMINATOR_TREE_VERSION =
+            "SELECT COALESCE(MAX(tree_version), 0) FROM " + DOMINATOR_BUILD_TABLE;
+
     private static final String SELECT_INSTANCE_FIELDS_BY_CLASS =
             "SELECT class_id, field_index, name, basic_type "
                     + "FROM class_instance_field WHERE class_id = ? ORDER BY field_index";
@@ -430,9 +440,21 @@ public final class DuckDbHeapView implements HeapView {
         }
     }
 
+    /**
+     * A tree counts only when the current builder wrote it: rows of another version, or of none, are a
+     * tree this code would not build, so they read as missing and the next build replaces them.
+     */
     @Override
     public boolean hasDominatorTree() throws SQLException {
-        return scalarLong(DOMINATOR_TREE_LOADED) > 0;
+        return scalarLong(DOMINATOR_TREE_LOADED) > 0 && dominatorTreeVersion() == DominatorTreeBuilder.TREE_VERSION;
+    }
+
+    @Override
+    public long dominatorTreeVersion() throws SQLException {
+        if (scalarLong(DOMINATOR_BUILD_PRESENT) == 0) {
+            return 0L;
+        }
+        return scalarLong(DOMINATOR_TREE_VERSION);
     }
 
     // ---- Class fields + instance values ----------------------------------
@@ -471,6 +493,15 @@ public final class DuckDbHeapView implements HeapView {
         List<InstanceFieldDescriptor> chain = List.copyOf(out);
         fieldChainCache.put(classId, chain);
         return chain;
+    }
+
+    @Override
+    public OptionalInt threadRootTraceSerial(long fileOffset) {
+        if (hprof == null) {
+            return OptionalInt.empty();
+        }
+        // ROOT_THREAD_OBJECT body: object id, thread serial (u4), trace serial (u4).
+        return OptionalInt.of(hprof.readInt(fileOffset + hprof.header().idSize() + Integer.BYTES));
     }
 
     @Override

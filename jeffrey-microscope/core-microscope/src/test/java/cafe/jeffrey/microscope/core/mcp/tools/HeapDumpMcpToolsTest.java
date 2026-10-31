@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapObjectIds;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HistogramOrder;
@@ -311,22 +312,66 @@ class HeapDumpMcpToolsTest {
         @Test
         void summarisesTheHeapWithTheDumpTimeAsEpochMilliseconds() {
             when(delegate.getSummary()).thenReturn(new HeapSummary(1_024, 10, 3, 2, DUMPED_AT));
+            metadata("0", "false");
+            when(delegate.storedReports()).thenReturn(HeapReport.storedKinds());
 
-            JsonNode out = conforming("getHeapSummary", tools().getHeapSummary());
+            McpToolResult result = tools().getHeapSummary();
+            JsonNode out = conforming("getHeapSummary", result);
 
             assertEquals(1_024, out.get("totalLiveBytes").asLong());
             assertEquals(DUMPED_AT.toEpochMilli(), out.get("dumpTakenAtEpochMs").asLong());
             assertTrue(out.get("uiLink").asString().endsWith("/profiles/" + PROFILE_ID + "/heap-dump/overview"));
             assertTrue(nextTools(out).contains("heap_getClassHistogram"), out.toString());
+            assertEquals(0, out.get("warningCount").asLong());
+            assertFalse(out.get("truncated").asBoolean());
+            assertEquals(HeapReport.storedKinds().size(), out.get("reportsBuilt").size());
+            assertEquals(0, out.get("reportsNotBuilt").size());
+            assertFalse(nextTools(out).contains("heap_prepare"), "everything is built: " + out);
+            assertTrue(result.text().contains("the totals are complete"), result.text());
+            assertTrue(result.text().contains("Reports:               all built"), result.text());
+        }
+
+        /** The one orienting call says what heap_prepare would add, and offers it only then. */
+        @Test
+        void namesTheReportsNotBuiltAndTheWarningsThatMakeTotalsLowerBounds() {
+            when(delegate.getSummary()).thenReturn(new HeapSummary(1_024, 10, 3, 2, DUMPED_AT));
+            metadata("3", "true");
+            when(delegate.storedReports()).thenReturn(Set.of(HeapReport.STRINGS, HeapReport.THREADS));
+
+            McpToolResult result = tools().getHeapSummary();
+            JsonNode out = conforming("getHeapSummary", result);
+
+            assertEquals(3, out.get("warningCount").asLong());
+            assertTrue(out.get("truncated").asBoolean());
+            assertEquals("STRINGS", out.get("reportsBuilt").get(0).asString());
+            List<String> notBuilt = new ArrayList<>();
+            out.get("reportsNotBuilt").forEach(report -> notBuilt.add(report.asString()));
+            assertTrue(notBuilt.contains("LEAKS") && !notBuilt.contains("STRINGS"), notBuilt.toString());
+            assertFalse(notBuilt.contains("DOMINATOR"), "the tree is built by the first tool that needs it");
+            assertEquals("heap_prepare", out.get("followUp").get("nextTools").get(0).get("tool").asString(),
+                    "what is missing comes first");
+            assertTrue(result.text().contains("every total is a lower bound"), result.text());
+            assertTrue(result.text().contains("LEAKS"), result.text());
         }
 
         @Test
         void aDumpWithoutATimeSaysNullRatherThanUnknown() {
             when(delegate.getSummary()).thenReturn(new HeapSummary(1_024, 10, 3, 2, null));
+            when(delegate.executeSql(any(), anyInt())).thenReturn(new SqlQueryResult(List.of("id_size"), List.of(), false));
+            when(delegate.storedReports()).thenReturn(Set.of());
 
             JsonNode out = conforming("getHeapSummary", tools().getHeapSummary());
 
             assertTrue(out.get("dumpTakenAtEpochMs").isNull(), out.toString());
+            assertTrue(out.get("warningCount").isNull(), "no metadata: unknown, not zero");
+        }
+
+        private void metadata(String warnings, String truncated) {
+            when(delegate.executeSql(any(), anyInt())).thenReturn(new SqlQueryResult(
+                    List.of("id_size", "hprof_version", "compressed_oops", "bytes_parsed", "record_count",
+                            "warning_count", "truncated", "parser_version", "parsed_at_ms"),
+                    List.of(List.of("8", "JAVA PROFILE 1.0.2", "true", "1024", "10", warnings, truncated, "3",
+                            Long.toString(DUMPED_AT.toEpochMilli()))), false));
         }
 
         @Test
@@ -485,12 +530,12 @@ class HeapDumpMcpToolsTest {
 
         @Test
         void reportsLeakSuspectsWithStringIdsAndLeavesAnUnknownAccumulationPointNull() {
-            LeakSuspect suspect = new LeakSuspect(1, NODE, 4711L, 8_000, 80.0, 1, "retains 80%", null, List.of(),
+            LeakSuspect suspect = new LeakSuspect(1, NODE, 4711L, 8_000, 80.0, 1, "retains 80%", null, null,
                     null, null, List.of(
                     new DominatedClassEntry("a.A", 1, 10, 1.0), new DominatedClassEntry("b.B", 1, 10, 1.0),
                     new DominatedClassEntry("c.C", 1, 10, 1.0), new DominatedClassEntry("d.D", 1, 10, 1.0),
                     new DominatedClassEntry("e.E", 1, 10, 1.0), new DominatedClassEntry("f.F", 1, 10, 1.0)),
-                    80.0, 99, "<bootstrap>");
+                    6, 80.0, 99, "<bootstrap>");
             when(delegate.getLeakSuspects()).thenReturn(new LeakSuspectsReport(10_000, 8_000, List.of(suspect),
                     List.of(new ClassLoaderLeakSummary(99, "<bootstrap>", 8_000, 1))));
 
@@ -506,6 +551,49 @@ class HeapDumpMcpToolsTest {
             assertTrue(result.text().contains("1 more contributing class"), result.text());
             assertEquals("4711", call(out, "heap_getPathToGCRoot").get("objectId").asString());
             assertFalse(result.text().contains("Accumulation Point: null"), result.text());
+            assertTrue(first.get("gcRootPath").isNull(), "no path was found, so the path call is offered");
+            assertTrue(result.text().contains("no strong path found within the search limit"), result.text());
+            assertFalse(result.text().contains("only weak or soft"), result.text());
+            String pathDescription = schemaOf("getLeakSuspects").get("properties").get("suspects")
+                    .get("items").get("properties").get("gcRootPath").get("description").asString();
+            assertTrue(pathDescription.contains("search limit"), pathDescription);
+            assertFalse(pathDescription.contains("only weak or soft"), pathDescription);
+        }
+
+        @Test
+        void carriesWhatKeepsTheSuspectAliveAndWhatItHoldsSoThePathCallIsNotOffered() {
+            GCRootPath self = new GCRootPath(4711, NODE, "Java frame", "main",
+                    "com.acme.checkout.Checkout.main(Checkout.java:82)", List.of(step(4711, NODE, null)));
+            LeakSuspect suspect = new LeakSuspect(1, NODE, 4711L, 8_000, 80.0, 1, "retains 80%",
+                    "A java.lang.Object[], 2 levels below the suspect, directly holds 100 objects of 1 class",
+                    self, 4800L, "java.lang.Object[]",
+                    List.of(new DominatedClassEntry("com.acme.checkout.Checkout$Order", 100, 7_900, 98.8)),
+                    9, 80.0, 99, "<bootstrap>");
+            when(delegate.getLeakSuspects()).thenReturn(new LeakSuspectsReport(10_000, 8_000, List.of(suspect),
+                    List.of(new ClassLoaderLeakSummary(99, "<bootstrap>", 8_000, 1))));
+
+            McpToolResult result = tools().getLeakSuspects();
+            JsonNode out = conforming("getLeakSuspects", result);
+
+            JsonNode first = out.get("suspects").get(0);
+            JsonNode root = first.get("gcRootPath");
+            assertEquals("Java frame", root.get("rootType").asString());
+            assertEquals("main", root.get("threadName").asString());
+            assertEquals("com.acme.checkout.Checkout.main(Checkout.java:82)", root.get("stackFrame").asString());
+            assertEquals("4711", root.get("steps").get(0).get("objectId").asString());
+            assertEquals("4800", first.get("accumulationPointObjectId").asString());
+            assertEquals(8, first.get("omittedContributors").asInt(), "nine classes, one listed");
+            assertTrue(result.text().contains(
+                    "GC Root Path: Java frame of thread main at com.acme.checkout.Checkout.main(Checkout.java:82)"),
+                    result.text());
+
+            List<String> next = new ArrayList<>();
+            out.get("followUp").get("nextTools").forEach(tool -> next.add(tool.get("tool").asString()));
+            assertFalse(next.contains("heap_getPathToGCRoot"), "the suspect carries its path: " + next);
+            assertEquals("4800", call(out, "heap_getDominatorTreeChildren").get("objectId").asString());
+            assertEquals("4711", call(out, "heap_getReferrers").get("objectId").asString());
+            assertTrue(result.text().contains("heap_diff against an earlier dump"),
+                    "the footer repeats the one piece of advice the suspects leave: " + result.text());
         }
 
         @Test
@@ -924,6 +1012,27 @@ class HeapDumpMcpToolsTest {
             assertEquals("IS_GC_ROOT", out.get("status").asString());
             assertEquals("Thread object", out.get("targetRootKind").asString());
             assertTrue(out.get("reason").asString().contains("itself a GC root"), out.toString());
+        }
+
+        /** A Java-frame root is named by the code holding it, which is what a reader acts on. */
+        @Test
+        void aFrameRootNamesItsThreadAndFrame() {
+            when(delegate.getPathsToGCRoot(42, true, 3)).thenReturn(List.of());
+            when(delegate.gcRootKind(42L)).thenReturn(Optional.of("Java frame"));
+            when(delegate.selfRootPath(42L)).thenReturn(Optional.of(new GCRootPath(42, NODE, "Java frame", "main",
+                    "com.acme.checkout.Checkout.main(Checkout.java:82)", List.of(step(42, NODE, null)))));
+
+            McpToolResult result = tools().getPathToGCRoot("42", null);
+            JsonNode out = conforming("getPathToGCRoot", result);
+
+            assertEquals("IS_GC_ROOT", out.get("status").asString());
+            assertTrue(out.get("reason").asString().contains(
+                    "(Java frame of thread main at com.acme.checkout.Checkout.main(Checkout.java:82))"), out.toString());
+            JsonNode self = out.get("paths").get(0);
+            assertEquals("main", self.get("threadName").asString());
+            assertEquals("42", self.get("steps").get(0).get("objectId").asString());
+            assertTrue(result.text().contains("thread main at com.acme.checkout.Checkout.main(Checkout.java:82)"),
+                    "the text says it too: " + result.text());
         }
     }
 

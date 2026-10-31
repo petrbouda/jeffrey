@@ -343,6 +343,11 @@ final class TestHeapView implements HeapView {
     }
 
     @Override
+    public long dominatorTreeVersion() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Optional<Long> findRetainedSize(long instanceId) {
         throw new UnsupportedOperationException();
     }

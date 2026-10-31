@@ -275,7 +275,7 @@ class MemoryMcpToolsTest {
         }
 
         /**
-         * The sampler is off in most profiles, so its absence has to read as "not measured" rather than
+         * An async-profiler recording carries no samples unless asked, so their absence has to read as "not measured" rather than
          * as "this application does not leak" - a verdict the tool has no evidence for.
          */
         @Test

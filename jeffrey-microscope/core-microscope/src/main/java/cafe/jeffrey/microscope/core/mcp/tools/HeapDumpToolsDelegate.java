@@ -17,11 +17,13 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.profile.heapdump.model.*;
 import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Delegate interface for heap dump operations used by AI MCP tools.
@@ -59,6 +61,15 @@ public interface HeapDumpToolsDelegate {
      * The kind of GC root the object is, as the HPROF dump names it, or empty when it is no root.
      */
     Optional<String> gcRootKind(long objectId);
+
+    /**
+     * The one-step path of an object that is itself a GC root, naming its thread and frame where it
+     * sits on a stack; empty when it is no root.
+     */
+    Optional<GCRootPath> selfRootPath(long objectId);
+
+    /** The reports {@code heap_prepare} stores that this dump has on disk now; never computes one. */
+    Set<HeapReport> storedReports();
 
     DominatorTreeResponse getDominatorTreeRoots(int limit);
 

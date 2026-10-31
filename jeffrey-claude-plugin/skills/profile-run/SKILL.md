@@ -1,6 +1,6 @@
 ---
 name: profile-run
-description: "Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: \"profile this benchmark\", \"record a JFR while the tests run\", \"why is this slow\" with no recording in hand, or when a hotspot needs measuring rather than guessing."
+description: "Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: \"profile this benchmark\", \"record a JFR while the tests run\", \"why is this slow\" with no recording in hand, or when a hotspot needs measuring rather than guessing — and when they ask how to record what a recording lacks: which JFR settings or async-profiler events capture exception types, locks, allocation or wall-clock time, per JDK version (\"how do I record the exception types next time\")."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 argument-hint: "[what to run] [cpu|wall|alloc|lock]"
 ---
@@ -33,8 +33,10 @@ because it looks like an answer.
 -XX:StartFlightRecording=settings=profile,filename=/absolute/path/run.jfr,dumponexit=true
 ```
 
-`settings=profile` rather than `default`: the default configuration omits allocation sampling and
-most of what makes a profile worth reading. Pass the flag through whatever the build uses — Maven's
+`settings=profile` rather than `default`: it samples allocations twice as often (300/s against 150/s)
+and records lock waits from 10 ms rather than 20 ms (compilations from 100 ms rather than 1 s), so
+short waits that `default` drops show up. Socket and file waits follow the lock thresholds on JDK 21;
+JDK 25 records them from 1 ms under both, throttled to 300/s under `profile` against 100/s. Pass the flag through whatever the build uses — Maven's
 `-DargLine=`, Gradle's `jvmArgs`, JMH's `-jvmArgsAppend`, or `JAVA_TOOL_OPTIONS` for an application
 started by a script.
 
@@ -44,8 +46,15 @@ Add these when the question calls for them:
   `flamegraph_export` graphs with `useWeight: true`.
 - **Wall-clock, or off-CPU time** — JFR does not sample it. That needs async-profiler:
   `-agentpath:/path/libasyncProfiler.so=start,event=wall,jfr,file=/absolute/path/run.jfr`.
-- **Locks** — `jdk.JavaMonitorEnter` is in `settings=profile`, but threshold-gated at 20ms. Lower it
-  with a custom `.jfc` when contention is short and frequent.
+- **Locks** — `jdk.JavaMonitorEnter` and `jdk.ThreadPark` are in `settings=profile`, but
+  threshold-gated at 10 ms. Lower it with a custom `.jfc` when contention is short and frequent.
+- **Exceptions** — on JDK 21 `jdk.JavaExceptionThrow` is off in both `default` and `profile`, and
+  a recording counts throwables but cannot name them. JDK 25 turns it on but throttles it (300/s under
+  `profile`, 100/s under `default`), so the throws it names are a sample. When the question is about
+  what was thrown, add `jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off` to the
+  `-XX:StartFlightRecording` options: it records every throw on either (JDK 17 or later; a JDK
+  without the throttle, such as 21, warns that `throttle` does not exist and ignores it). Between the
+  two, the JDK's own `lib/jfr/profile.jfc` says which applies.
 - **A JMH run** — profile the benchmark, not the harness: `-prof jfr` gives one recording per
   benchmark rather than one for the whole fork.
 
@@ -70,9 +79,7 @@ old profile instead of this run.
 A small recording comes back with a `profileId`. A large one comes back with a status of `RUNNING`
 and an `operationId` — no `recordingId` yet, because the copy may still be in flight — and
 `operations_status(operationId)` follows it until the `profileId` appears. Poll that rather than
-calling again; `recordings_analyzeFile` returns the existing profile for a file with the same name
-and size as one already imported; after re-recording to the same path, pass `force=true`.
-`operations_cancel(operationId)` stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
+calling again. `operations_cancel(operationId)` stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
 
 Then hand off: the **analyze-jfr** skill has the families, the entry sequence and the flamegraph
 choice per question. Start with `profiles_summary` — it reports what the recording actually captured,

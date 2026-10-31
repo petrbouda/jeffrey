@@ -74,8 +74,12 @@ One call. Read, in this order:
 
 - `exceptionThrowsRecorded` — **false means the recording cannot name the throws**, whatever
   `totalThrowables` says. Stop here: say how many throwables were counted, that their types were not
-  recorded, and give the remedy — record with JFR's `profile` settings, or enable
-  `jdk.JavaExceptionThrow` (async-profiler: `jfrsync=profile`). Do not guess types from the total.
+  recorded, and give the remedy — record `jdk.JavaExceptionThrow`, which the JDK's own `default` and
+  `profile` settings leave off on JDK 21 and throttle on JDK 25:
+  `-XX:StartFlightRecording=settings=profile,jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off,…`
+  records every throw on either (JDK 17 or later; a JDK without the throttle, such as 21, warns that
+  `throttle` does not exist and ignores it), or a custom `.jfc` with the event on (async-profiler: `jfrsync=<that .jfc>`).
+  Do not guess types from the total.
 - `applicationThrows` against `jvmInternalThrows`. The JVM-internal ones are the JDK resolving and
   linking — `ClassNotFoundException` while a library probes the classpath, `NoSuchMethodException`
   from reflection, `java.lang.invoke` linking a call site, a class loader failing to find a resource
@@ -86,7 +90,15 @@ One call. Read, in this order:
   a look even at a count of one.
 
 Put the three or four heaviest sites to the user with their counts as a short table, plus every
-`Error` site. If the user named a class, keep that one.
+`Error` site. If the user named a class, keep that one. On a recording made with JDK 25's own settings
+the throw events are throttled (300/s under `profile`, 100/s under `default`): their counts are a
+sample, so compare sites by share and take how many were thrown from `totalThrowables`, which
+`jdk.ExceptionStatistics` counts unthrottled.
+
+A question these answers do not shape — how many *distinct* messages a type carries (each site lists
+only its commonest), the throws per second, the threads they came from — is SQL over the
+`jdk.JavaExceptionThrow` events (`thrownClass`, `message` in `fields`): load the **jfr-sql** skill
+before writing it, and quote the query's answer, not an estimate from the commonest messages.
 
 ## 4. Find the code — `jvm_exceptionSites`
 
