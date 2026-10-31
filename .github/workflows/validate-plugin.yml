@@ -34,6 +34,7 @@ on:
       - 'build/scripts/validate-agent-plugin.py'
       - 'build/scripts/check-plugin-references.py'
       - 'build/scripts/render-plugin.py'
+      - 'build/scripts/test-status-hook.py'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
@@ -45,6 +46,7 @@ on:
       - 'build/scripts/validate-agent-plugin.py'
       - 'build/scripts/check-plugin-references.py'
       - 'build/scripts/render-plugin.py'
+      - 'build/scripts/test-status-hook.py'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
@@ -96,3 +98,9 @@ jobs:
     # build/plugin/; a hand edit to a rendered file, or a source edit nobody rendered, fails.
     - name: Check the rendered plugin files against their sources
       run: python3 build/scripts/render-plugin.py . --check
+
+    # The SessionStart hook runs in every session of every repository the plugin is installed for:
+    # silent outside a JVM project and when Jeffrey answers, one valid message for each way the
+    # tools are about to fail. Against a local stand-in for Jeffrey; needs bash and curl.
+    - name: Test the SessionStart hook
+      run: python3 build/scripts/test-status-hook.py
