@@ -258,38 +258,6 @@ def check_agent_contracts(root: Path) -> None:
         fail(str(skill), "remote_sessions documented default must match RemoteMcpTools.DEFAULT_LIMIT")
 
 
-# What a Claude Code subagent's tools: and disallowedTools: take for an MCP tool: one exact name, or a
-# whole server as mcp__<server>__*. Anything between - mcp__<server>__heap_* - is read as the name of
-# a tool nobody has, so the entry is dropped as unrecognized and the agent starts without that family.
-MCP_TOOL_ENTRY = re.compile(r"^mcp__(?P<server>[A-Za-z0-9_-]+?)__(?P<tool>.+)$")
-WHOLE_SERVER = "*"
-TOOLS_SNAPSHOT = "build/mcp/tools-list.snapshot.json"
-AGENT_TOOL_LISTS = ("tools", "disallowedTools")
-
-
-def check_agent_tool_entries(root: Path) -> None:
-    """Every MCP entry an agent lists is a real tool or a whole server, never a family wildcard."""
-    snapshot = load(root / TOOLS_SNAPSHOT)
-    if snapshot is None:
-        return
-    known = {tool["name"] for tool in snapshot["tools"]}
-    for agent in sorted((root / PLUGIN_DIR / "agents").glob("*.md")):
-        frontmatter = agent.read_text().split(FRONTMATTER_DELIMITER, 2)[1]
-        for key in AGENT_TOOL_LISTS:
-            section = re.search(rf"^{key}:\n((?:  - .+\n)+)", frontmatter, re.M)
-            entries = re.findall(r"^  - (.+)$", section.group(1), re.M) if section else []
-            for entry in entries:
-                match = MCP_TOOL_ENTRY.match(entry)
-                if match is None or match.group("tool") == WHOLE_SERVER:
-                    continue
-                tool = match.group("tool")
-                if "*" in tool:
-                    fail(str(agent), f"{key} entry {entry} is a family wildcard, which Claude Code does not "
-                                     f"resolve - list the tools by name or take the whole server")
-                elif tool not in known:
-                    fail(str(agent), f"{key} entry {entry} names no tool in {TOOLS_SNAPSHOT}")
-
-
 GOOD_SKILL = """---
 name: {name}
 description: "A skill that loads: \\"quoted\\" words and a colon, all inside one quoted value."
@@ -413,7 +381,6 @@ def main() -> int:
     check_skill_links(plugin_root)
     check_versions(root)
     check_agent_contracts(root)
-    check_agent_tool_entries(root)
 
     if failures:
         for failure in failures:

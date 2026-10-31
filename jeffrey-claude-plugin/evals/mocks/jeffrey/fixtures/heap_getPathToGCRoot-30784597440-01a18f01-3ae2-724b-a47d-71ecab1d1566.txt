@@ -1,0 +1,22 @@
+Paths to GC Root for Object ID 30784597440:
+
+Path #1:
+  GC Root Type: JNI global
+  -> java.lang.Object[].[3435] (ID: 30775635568)
+  -> java.lang.String.value (ID: 30775552296)
+  -> byte[] (ID: 30784597440)
+
+Path #2:
+  GC Root Type: Sticky class
+  -> <unknown>.? (ID: 30784211920)
+  -> java.lang.Object[].[1] (ID: 30775552248)
+  -> java.lang.String.value (ID: 30775552296)
+  -> byte[] (ID: 30784597440)
+
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a18f01-3ae2-724b-a47d-71ecab1d1566/heap-dump/gc-root-path?objectId=30784597440
+Next:
+- heap_getReferrers {"profileId":"01a18f01-3ae2-724b-a47d-71ecab1d1566","objectId":"30784597440"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a18f01-3ae2-724b-a47d-71ecab1d1566","objectId":"30775635568"} [LIGHT]

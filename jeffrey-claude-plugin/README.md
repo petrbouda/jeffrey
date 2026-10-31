@@ -417,6 +417,12 @@ rejects — on ordinary commands, not only in debug mode. Nothing else follows f
 loads, the server connects and the skills work. It is the cost of one directory that has to satisfy
 Claude Code, whose plugins read `agents/` and nothing else.
 
+**Written once, rendered three times.** None of the agent files, and none of the skill sections every
+skill shares (*Link what you name*, the tool-prefix sentence), is edited where it ships: each has one
+source under [`build/plugin/`](../build/plugin/), and `build/scripts/render-plugin.py` writes the
+copies — the Claude Code subagent with its tool lists spelled out from the server's tool snapshot,
+and the Codex and Gemini versions with the text only those clients need. CI runs it with `--check`.
+
 In both hand-copied sets the read-only promise rests on the *No writing* rule in the agent's own
 instructions rather than on a deny-list the client does not have.
 

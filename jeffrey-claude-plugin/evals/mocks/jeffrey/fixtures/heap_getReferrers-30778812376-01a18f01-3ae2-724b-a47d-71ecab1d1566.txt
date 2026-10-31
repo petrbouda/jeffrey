@@ -1,0 +1,14 @@
+Referrers of Object ID 30778812376:
+
+Total Referrers: 1
+
+CLASS                                                         SIZE            OBJECT ID FIELD
+-------------------------------------------------------------------------------------------------------
+com.acme.checkout.Checkout$AuditLog                           24 B          30777838496 
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a18f01-3ae2-724b-a47d-71ecab1d1566/heap-dump/gc-root-path?objectId=30778812376
+Link note: The page runs the path-to-GC-root search for this object; the rest of this answer is not on it.
+Next:
+- heap_getPathToGCRoot {"profileId":"01a18f01-3ae2-724b-a47d-71ecab1d1566","objectId":"30778812376"} [MEDIUM]

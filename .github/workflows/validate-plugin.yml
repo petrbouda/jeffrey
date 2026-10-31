@@ -32,6 +32,9 @@ on:
       - '.agents/plugins/**'
       - 'jeffrey-claude-plugin/**'
       - 'build/scripts/validate-agent-plugin.py'
+      - 'build/scripts/check-plugin-references.py'
+      - 'build/scripts/render-plugin.py'
+      - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
   pull_request:
@@ -40,6 +43,9 @@ on:
       - '.agents/plugins/**'
       - 'jeffrey-claude-plugin/**'
       - 'build/scripts/validate-agent-plugin.py'
+      - 'build/scripts/check-plugin-references.py'
+      - 'build/scripts/render-plugin.py'
+      - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
   workflow_dispatch:
@@ -71,9 +77,22 @@ jobs:
     # clients read, the skills both halves share, and the version agreement across all
     # four manifests. Also checks each skill carries usable front matter - the Claude
     # validator does not look inside skills, and one missing its front matter loads as
-    # an unnamed no-op - and that every MCP tool an agent lists is a real one, by name
-    # or as its whole server, since Claude Code drops a family wildcard as unrecognized.
+    # an unnamed no-op.
     - name: Validate the Agent Plugins manifest
       run: |
         sudo apt-get update -qq && sudo apt-get install -y -qq python3-yaml
         python3 build/scripts/validate-agent-plugin.py .
+
+    # Every tool, argument, response field and enum value the skills, agents and README
+    # name, held to the tools/list snapshot CI pins against the packaged jar - and every
+    # MCP entry an agent lists a real tool or a whole server, since Claude Code drops a
+    # family wildcard as unrecognized. The self-test proves each check still fires.
+    - name: Check what the plugin names against the server
+      run: |
+        python3 build/scripts/check-plugin-references.py --self-test
+        python3 build/scripts/check-plugin-references.py .
+
+    # The skills' shared sections and the three dialects of every agent are rendered from
+    # build/plugin/; a hand edit to a rendered file, or a source edit nobody rendered, fails.
+    - name: Check the rendered plugin files against their sources
+      run: python3 build/scripts/render-plugin.py . --check

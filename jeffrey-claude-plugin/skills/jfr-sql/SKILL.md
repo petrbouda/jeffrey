@@ -8,7 +8,7 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 
 Each profile is one DuckDB database. Reach it with `jfr_executeQuery` (SELECT/WITH only, row-capped)
 or `jfr_queryEvents` for the common "give me events of this type" case.
-Tool names here omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
 
 Prefer a purpose-built tool where one exists — `flamegraph_export` beats reconstructing a call tree
 by hand, and the `heap_` family beats querying the heap index. SQL is for the questions they do not

@@ -7,7 +7,8 @@
 #
 # As with profile-analyst, the tool restriction here is instruction-level rather than enforced: Codex
 # has no per-agent tool deny-list, so the "never write" rules below are the only thing keeping this
-# agent off recordings_, remote_ and operations_cancel. Read-only sandboxing keeps it out of your files.
+# agent off recordings_, remote_, operations_cancel and the two ide_ tools that act on your editor.
+# Read-only sandboxing keeps it out of your files.
 
 name = "heap-triage"
 

@@ -1,0 +1,5 @@
+No suspicious class loaders detected.
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a18f01-3ae2-724b-a47d-71ecab1d1566/heap-dump/classloader-analysis

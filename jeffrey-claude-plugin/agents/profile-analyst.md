@@ -6,7 +6,6 @@ tools:
   - mcp__jeffrey__*
 disallowedTools:
   - mcp__plugin_microscope_jeffrey__heap_prepare
-  - mcp__jeffrey__heap_prepare
   - mcp__plugin_microscope_jeffrey__recordings_analyzeFile
   - mcp__plugin_microscope_jeffrey__recordings_analyzeRecording
   - mcp__plugin_microscope_jeffrey__recordings_delete
@@ -21,6 +20,7 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__ide_source
   - mcp__plugin_microscope_jeffrey__ide_windows
   - mcp__plugin_microscope_jeffrey__operations_cancel
+  - mcp__jeffrey__heap_prepare
   - mcp__jeffrey__recordings_analyzeFile
   - mcp__jeffrey__recordings_analyzeRecording
   - mcp__jeffrey__recordings_delete

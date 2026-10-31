@@ -1,0 +1,12 @@
+Dominator Tree Children of Object ID 30774749336:
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+java.util.LinkedHashMap$Entry                                 40 B            40 B          30774859856
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a18f01-3ae2-724b-a47d-71ecab1d1566/heap-dump/dominator-tree
+Link note: The page opens at the dominator-tree roots; expand down to object 30774749336 there.
+Next:
+- heap_getPathToGCRoot {"profileId":"01a18f01-3ae2-724b-a47d-71ecab1d1566","objectId":"30774749336"} [MEDIUM]

@@ -1,0 +1,239 @@
+# How to read this profile
+
+This document is a **single flamegraph snapshot** exported by Jeffrey
+(a JVM performance analyst) for AI-assisted interpretation. Treat it as
+the authoritative description of one event type over one time
+window — not as a generic stack-trace dump.
+
+## Sections
+
+1. **Header (YAML-ish)** — machine context: event type, unit,
+   totals, filters in effect, and the prune threshold.
+2. **Call tree** — a markdown nested bullet list where every kept
+   frame appears exactly once. Indentation (two spaces per level)
+   encodes call depth: a bullet nested under another bullet was
+   called by the bullet above it. Each line has the form:
+
+       - <method> [<type-tag>] — <totalSamples> (<total%>, self <selfSamples>[, +pruned <prunedTailSamples>])
+
+   For a **weighted** event type (allocation, blocking, method
+   latency — the header carries a `weight_unit`) every line gets a
+   second clause after ` · ` in that unit:
+
+       ... · <totalWeight> (<weight%>, self <selfWeight>[, +pruned <prunedTailWeight>])
+
+   Read the weight clause first on those profiles: it is the bytes
+   (or nanoseconds) the subtree accounts for, which is what the
+   question is about. The sample count is how often the site was
+   seen. One sample of a 170 MB array outweighs a hundred samples
+   of small objects, and only the weight clause shows that.
+
+   - `<totalSamples>` / `<total%>` is this frame's full subtree
+     weight — same as the bar width in the visual flamegraph.
+   - `<selfSamples>` is what stayed at this exact frame (didn't
+     go deeper). For a true tree leaf, `self ≈ total`; for an
+     interior orchestration frame, `self << total`.
+   - `+pruned <N>` (when present) is the cumulative weight of
+     this frame's children that fell below the prune threshold
+     and were dropped from the output. It's annotated here so
+     the deeper detail isn't silently lost — you know "there's
+     more under this frame but it's small".
+   - Children are listed sorted by `total` descending — by total
+     weight on a weighted profile, by total samples otherwise — so
+     the heaviest call path under any parent is the first nested
+     bullet.
+
+   **Sample-conservation invariant:** for every kept frame N,
+   `Σ surviving-children-totals + selfSamples + prunedTail ==
+   N.totalSamples`. Nothing is double-counted; nothing is
+   silently dropped.
+
+## Frame type tag
+
+Every bullet (except the synthetic `[root]` container) carries a
+`[...]` tag describing where the frame ran:
+
+- `[C2]` — JIT-compiled at the C2 tier (fully optimised).
+- `[C1]` — JIT-compiled at the C1 tier (intermediate
+  optimisation).
+- `[INT]` — interpreted (no JIT yet).
+- `[INL]` — inlined into the caller (no separate frame at
+  runtime).
+- `[C1: 950, C2: 50]` (or any subset of `INT, C1, C2, INL`)
+  — samples for this frame are split across compilation
+  tiers. This is the key signal for JVM tuning: a hot
+  method showing `[C1: ..., C2: ...]` is being promoted;
+  one stuck at `[C1]` only is a candidate for investigation
+  (CompileThreshold, inlining caps, OSR behaviour, method
+  size). Tier order in mixed tags is always INT, C1, C2,
+  INL.
+- `[NATIVE]` — JNI / libc / userland native code.
+- `[CPP]` — JVM runtime internals (GC threads, JIT compiler
+  threads, safepoint machinery — C++ inside the JVM).
+- `[KERNEL]` — kernel-space samples (syscalls).
+- `[UNKNOWN]` — frame type couldn't be classified.
+- `[SYNTHETIC]` — structural markers (thread names,
+  allocated/blocking-object placeholders, collapsed and truncated
+  subtrees); do not treat these as real call frames.
+
+## Unit semantics
+
+- Counts in the tree are always **sample counts**. Each
+  sample corresponds to one event.
+- For CPU/wall-clock events: one sample ≈ one sampling interval
+  of that thread on-CPU (or on/off-CPU for wall-clock).
+- For allocation events (`OBJECT_ALLOCATION_*`): one sample =
+  one recorded allocation event, and the **weight** is the bytes
+  it stands for. JFR samples allocations by TLAB turnover, so a
+  sample's weight is the allocation volume it represents, not the
+  size of one object; per-frame weights sum the same way samples do.
+- For blocking events (`JAVA_MONITOR_*`, `THREAD_PARK`,
+  `THREAD_SLEEP`): one sample = one wait. **Weight** =
+  cumulative wait time in nanoseconds.
+
+## What was pruned
+
+Subtrees whose total falls below the configured threshold (see
+header `prune_threshold_pct`) are dropped from the tree — measured
+in weight on a weighted profile, in samples otherwise, so a single
+huge allocation is never pruned for being seen once. What is
+pruned is rolled up into its parent's `+pruned` annotation in the
+same unit, so the totals are preserved even when the deeper
+detail isn't. **Absence is not zero** — if a
+path you expected to see is missing entirely, it was below the
+threshold for its parent.
+
+## Format notes
+
+- Frame labels are method signatures. The sanitiser replaces
+  semicolons and newlines inside names with `_` so each bullet
+  occupies exactly one line.
+- A label may carry a source line, as `Class.method:214`. It is
+  printed only when every sample at that node reported the same
+  line, so a line that is shown is the line — not one call site
+  of several. A frame with no line either was sampled at more
+  than one (a method called from several places in its caller,
+  or a hot loop spanning lines) or carries no line information
+  at all, as native and inlined frames do. **Absence of a line
+  is not absence of a location**; it means the tree cannot name
+  a single one.
+- A line is a starting point for reading, never a citation on
+  its own. Open the file before describing what the code does:
+  the line comes from the profiled build, which may not be the
+  checkout in front of you.
+- The list is plain CommonMark — every line is `- <stuff>` at
+  some indentation. Render it as a tree.
+- When the header carries `search_pattern`, every frame whose
+  name matches it ends with `«match»`, `search_matches` gives
+  the samples under the outermost matching frames and their
+  share of the total, and every frame on a path to a match is
+  kept even when it is below the prune threshold.
+
+## What you can do with this
+
+- Identify the dominant on-CPU / allocation / blocking call
+  paths by scanning the heaviest top-level bullets and walking
+  deeper.
+- Distinguish leaf hotspots (`self ≈ total`) from orchestration
+  nodes (`self << total`) at a glance.
+- Spot JVM tuning opportunities via the type tag: methods stuck
+  in `[C1]` or split `[C1: ..., C2: ...]` are candidates for
+  C2 promotion investigation.
+- Flag pruning-sensitive conclusions: a parent with a large
+  `+pruned` annotation has detail you're not seeing.
+- Suggest concrete code investigations or fixes for the worst
+  offenders, citing the call path (read by walking from the
+  bullet back to its less-indented ancestors) and, where one is
+  printed, opening the file at the line given.
+
+---
+
+event_type: jdk.JavaMonitorEnter
+unit: samples
+samples_total: 5959
+weight_unit: nanoseconds
+weight_total: 84023968018 (1m 24s Blocked)
+threads_mode: aggregated
+prune_threshold_pct: 2.0
+
+## How to analyze this profile
+
+### Goal
+
+Produce a blocking / contention report: where threads spent time waiting, what they were waiting on, and which call paths are the highest-impact candidates for contention reduction.
+
+**Critical framing:** the weight unit is **nanoseconds blocked**, not samples or bytes. This profile shows *waiters*. It does **not** show *who held the lock* — surfacing the holder is a follow-up step (look at concurrent CPU samples or thread-state events from the same window).
+
+### What to look for first
+
+1. **Heaviest leaves by `total` (which is nanoseconds blocked, not samples)** — these are the dominant wait sources.
+2. **The synthetic blocking-object frame at the top** — when present, it identifies the *class of the thing waited on*. For `JAVA_MONITOR_ENTER` / `JAVA_MONITOR_WAIT`, it's the contended monitor's class. For `THREAD_PARK`, it's the parker blocker (the argument to `LockSupport.park(blocker)`). For `THREAD_SLEEP`, there is no blocking object — that frame is absent and the leaf is `Thread.sleep` itself.
+3. **Classify each finding by event subtype**:
+   - **`JAVA_MONITOR_ENTER`** — contention on a synchronized block / method. The blocking-object class names what's contended.
+   - **`JAVA_MONITOR_WAIT`** — a thread that called `Object.wait()` and is parked on a condition. Usually intentional; check whether the wait timeout is reasonable.
+   - **`THREAD_PARK`** — `LockSupport.park` or `Unsafe.park` — used by `ReentrantLock`, `Semaphore`, `BlockingQueue.poll`, `CountDownLatch`, completable-future awaits. The blocker class hints at which.
+   - **`THREAD_SLEEP`** — `Thread.sleep(N)`. Almost always intentional, but a hot `sleep` in production code is usually a smell (polling, retry-with-backoff, throttle workaround).
+4. **The call path above the leaf** — tells you which application-level operation incurred the wait.
+
+### How to ground claims
+
+- Cite the **call path** for every finding, including the synthetic blocking-object class when present.
+- Cite the **numbers shown in the bullet**: the total `nanoseconds Blocked` for the frame and its `% of total`.
+- Specify the **event subtype** for each finding (monitor enter / monitor wait / park / sleep) — the fix kind differs.
+- **Do not invent file:line numbers**. The export has none. Refer to frames by their method signatures as printed.
+
+### Expected output shape
+
+Opening table of top wait sources (event subtype + blocking-object class if any + leaf method + `% of total wait`).
+
+Then numbered findings, **ordered by `% of total wait time`**, biggest first. Each section:
+
+- **Sites** — call path, leaf and blocking-object class highlighted.
+- **Event subtype** — monitor enter / monitor wait / park / sleep.
+- **What it's waiting on** — one sentence based on the blocking-object class and call path.
+- **The investigation / fix** — match the kind:
+  - Monitor enter contention → reduce lock scope, switch to `ReentrantLock` or `StampedLock`, partition the data, use lock-free / concurrent collections.
+  - Monitor wait → review timeout and predicate; check whether `notifyAll` vs `notify` is wrong.
+  - Park (lock / queue / future) → look at the queue / lock holder under load; consider a different synchronisation primitive.
+  - Sleep → identify why; usually replace with event-driven wait, exponential backoff with cap, or remove the poll altogether.
+- **Design cost** — one line. Concurrency changes have higher design cost than typical fixes — be honest.
+- **Estimated saving** — `% of total wait time`.
+
+### Smaller items to skip
+
+- Frames under **1 ms cumulative** wait — noise floor.
+- Intentional and reasonable waits (a thread parked on a work queue for a workload-shaped reason). Note once, move on.
+- Background-thread waits if the user's concern is request latency.
+
+### Gate question
+
+End with one closing question that lets the user redirect — for example: "The top contention is on a single monitor used by many request threads. The cleanest fix splits the data structure (real design hit, several files). Want me to start with that, or with the easier wins below it?"
+
+---
+
+Cite call paths by walking from the bullet back to its less-indented ancestors. Do not invent file:line numbers; the export has none.
+
+
+## Call tree
+
+- [root] — 5959 (100%) · 1m 24s (100%)
+  - java.lang.Thread#run:1474 [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+    - java.lang.Thread#runWith:1487 [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+      - java.util.concurrent.ThreadPoolExecutor$Worker#run:614 [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+        - java.util.concurrent.ThreadPoolExecutor#runWorker:1090 [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+          - java.util.concurrent.FutureTask#run:328 [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+            - java.util.concurrent.Executors$RunnableAdapter#call:545 [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+              - com.acme.checkout.Checkout$$Lambda#run [INT] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+                - com.acme.checkout.Checkout#lambda$main$1:71 [INT: 3217, C2: 2742] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+                  - com.acme.checkout.Checkout$SessionCache#touch:144 [INT: 3, C2: 5956] — 5959 (100.0%, self 0) · 1m 24s (100.0%, self )
+                    - com.acme.checkout.Checkout$SessionCache:144 [SYNTHETIC] — 5959 (100.0%, self 5959) · 1m 24s (100.0%, self 1m 24s)
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a18f01-34b6-7531-a0a2-eb6fcb82eda4/flamegraph-view?eventType=jdk.JavaMonitorEnter&graphMode=PRIMARY&useWeight=true&startEpochMs=1793400521942&endEpochMs=1793400552402
+Next:
+- jvm_threads {"profileId":"01a18f01-34b6-7531-a0a2-eb6fcb82eda4"} [MEDIUM]
+- flamegraph_export {"profileId":"01a18f01-34b6-7531-a0a2-eb6fcb82eda4","eventType":"jdk.JavaMonitorEnter","threadMode":true,"useWeight":true} [HEAVY]
+- timeline_hotWindows {"profileId":"01a18f01-34b6-7531-a0a2-eb6fcb82eda4","eventType":"jdk.JavaMonitorEnter","useWeight":true} [MEDIUM]
+Guidance:
+- Whether this is worse than it was is not visible in one profile: compare_list with a baseline profile's id, then compare_movements.

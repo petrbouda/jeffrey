@@ -1,0 +1,22 @@
+| event_type | start_timestamp | duration | samples | weight | weight_entity | stacktrace_hash | thread_hash | fields |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051929Z | 447 | 1 | NULL | NULL | NULL | 965725282007118323 | {"startTime":1793400583051,"duration":447,"eventThread":"GC Thread#1","gcId":37,"gcWorkerId":3,"name":"RebuildFreeList"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051902Z | 269 | 1 | NULL | NULL | NULL | -8777011522978241748 | {"startTime":1793400583051,"duration":269,"eventThread":"GC Thread#3","gcId":37,"gcWorkerId":2,"name":"RebuildFreeList"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051899Z | 474 | 1 | NULL | NULL | NULL | -8777011522978241748 | {"startTime":1793400583051,"duration":474,"eventThread":"GC Thread#3","gcId":37,"gcWorkerId":1,"name":"RebuildFreeList"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051892Z | 9016 | 1 | NULL | NULL | NULL | 3225536243191192900 | {"startTime":1793400583051,"duration":9016,"eventThread":"GC Thread#0","gcId":37,"gcWorkerId":0,"name":"RebuildFreeList"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051843Z | 591 | 1 | NULL | NULL | NULL | 3225536243191192900 | {"startTime":1793400583051,"duration":591,"eventThread":"GC Thread#0","gcId":37,"gcWorkerId":0,"name":"YoungFreeCSet"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051842Z | 341 | 1 | NULL | NULL | NULL | -8777011522978241748 | {"startTime":1793400583051,"duration":341,"eventThread":"GC Thread#3","gcId":37,"gcWorkerId":1,"name":"YoungFreeCSet"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051842Z | 551 | 1 | NULL | NULL | NULL | -5916214596991538362 | {"startTime":1793400583051,"duration":551,"eventThread":"GC Thread#2","gcId":37,"gcWorkerId":2,"name":"YoungFreeCSet"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051842Z | 485 | 1 | NULL | NULL | NULL | 965725282007118323 | {"startTime":1793400583051,"duration":485,"eventThread":"GC Thread#1","gcId":37,"gcWorkerId":3,"name":"YoungFreeCSet"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051842Z | 409 | 1 | NULL | NULL | NULL | 965725282007118323 | {"startTime":1793400583051,"duration":409,"eventThread":"GC Thread#1","gcId":37,"gcWorkerId":3,"name":"YoungFreeCSet"} |
+| jdk.GCPhaseParallel | 2026-10-30T22:49:43.051842Z | 225 | 1 | NULL | NULL | NULL | 3225536243191192900 | {"startTime":1793400583051,"duration":225,"eventThread":"GC Thread#0","gcId":37,"gcWorkerId":0,"name":"YoungFreeCSet"} |
+
+10 row(s) returned; more remain beyond the row cap
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a18f01-3837-7780-801b-7b52cb546b67/events?eventType=jdk.GCPhaseParallel
+Next:
+- jfr_describeEventType {"profileId":"01a18f01-3837-7780-801b-7b52cb546b67","eventType":"jdk.GCPhaseParallel"} [LIGHT]
+Guidance:
+- More events matched than the limit; these are the latest. Raise limit, narrow whereClause, or aggregate with jfr_executeQuery.
