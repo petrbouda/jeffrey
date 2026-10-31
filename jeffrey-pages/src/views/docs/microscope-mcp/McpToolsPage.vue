@@ -916,7 +916,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
 
       <p><strong>The other axis from a flamegraph.</strong> An allocation flamegraph ranks the call <em>sites</em> &mdash; where the allocating code is. This ranks the <em>types</em> allocated, and the two disagree usefully: <code>byte[]</code> and <code>char[]</code> at the top read very differently from a domain class, and one call site allocating many types looks nothing like one type coming from everywhere.</p>
 
-      <p><strong>Leak candidates come from <code>jdk.OldObjectSample</code></strong>, which is off in most recordings. Their absence says nothing about whether the application leaks, and the tool answers status <code>NOT_RECORDED</code> saying exactly that rather than reporting zero candidates &mdash; the difference between &ldquo;measured and found nothing&rdquo; and &ldquo;never measured&rdquo; is the whole finding.</p>
+      <p><strong>Leak candidates come from <code>jdk.OldObjectSample</code></strong>, which JFR&rsquo;s own settings record but an async-profiler recording carries only when asked for. Their absence says nothing about whether the application leaks, and the tool answers status <code>NOT_RECORDED</code> saying exactly that rather than reporting zero candidates &mdash; the difference between &ldquo;measured and found nothing&rdquo; and &ldquo;never measured&rdquo; is the whole finding.</p>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exMemory" language="json" />

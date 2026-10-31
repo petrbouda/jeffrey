@@ -25,5 +25,5 @@ never asked. The two are different findings and the tools distinguish them.
 the top read very differently from a domain class. `memory_leakCandidates` reads
 `jdk.OldObjectSample`: objects the JVM watched survive collections, which is leak evidence from a
 plain recording when nobody captured a dump and the process has gone. Its absence is not a clean
-bill of health — that sampler is off in most profiles, and the tool answers `NOT_RECORDED` rather
-than reporting zero candidates.
+bill of health — JFR's own settings record it, but an async-profiler recording carries none unless it
+was asked for, and the tool answers `NOT_RECORDED` rather than reporting zero candidates.

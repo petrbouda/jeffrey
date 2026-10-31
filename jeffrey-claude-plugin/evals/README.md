@@ -32,7 +32,7 @@ model time at list price; `--max-cost-usd` stops it at a ceiling.
 | `exceptions-to-the-throw-site` | "Why so many exceptions?" | `jvm_exceptions`, `jvm_exceptionSites` with the application's package, the throw site named and classified |
 | `heap-dump-what-holds-memory` | "What holds the memory in this .hprof?" | the import, a GC-root path behind the leak claim, one dump read as a state |
 | `help-what-is-here` | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
-| `record-exceptions-next-time` | "How do I record the exception types?" | `jdk.JavaExceptionThrow#enabled=true`, and that `settings=profile` does not turn it on |
+| `record-exceptions-next-time` | "How do I record the exception types?" | `jdk.JavaExceptionThrow#enabled=true`, and that `settings=profile` alone does not name every throw (off on JDK 21, throttled on 25) |
 | `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
 | `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (about 0.4% of it), no tuning from one fired rule |
 | `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
@@ -333,4 +333,29 @@ Against the 1.0.11 baseline (medians):
   changes since having touched them — except `exceptions-to-the-throw-site`, which read 123k → 151k
   with the same seven calls and $0.15 → $0.16. That is back where 1.0.6 measured it (157k): the 1.0.11
   figure is the one that stands out, and three runs do not say which is typical.
+
+**The JFR facts, checked on JDK 25** (plugin 1.0.15). The skills' settings were read from JDK 21's
+`.jfc` files; JDK 25's differ in three places, measured against its `lib/jfr/*.jfc` and a JVM that
+throws 200,000 exceptions in a second:
+- **`jdk.JavaExceptionThrow` is on, but throttled** (100/s under `default`, 300/s under `profile`;
+  JDK 21 leaves it off). `settings=profile` recorded 300 of the 200,000 throws; the skills' advice,
+  `#enabled=true`, recorded 180; `#enabled=true,…#throttle=off` recorded 200,043 on JDK 25 and 200,061
+  on JDK 21, which warns that `throttle` does not exist and ignores it. That pair is now the advice,
+  and `analyze-exceptions` treats JDK 25's per-type counts as a sample.
+- **Socket and file waits** are recorded from 1 ms under both settings, throttled, where JDK 21 uses
+  the lock thresholds (20 ms and 10 ms).
+- **`jdk.CPUTimeSample`** is off in both settings, and turning it on leaves `jdk.ExecutionSample` on:
+  a recording holds either or both, not one "instead" of the other.
+
+`jdk.OldObjectSample` turned out to be on in both settings on both JDKs, so the server's "off in most
+profiles" (`memory_leakCandidates`) and two docs pages were wrong too; an async-profiler recording is
+the one that lacks it.
+
+`record-exceptions-next-time` loaded no skill — the model answered from memory, with JDK 21's advice.
+`profile-run`'s description now claims "how to record what a recording lacks". Three runs each:
+
+| Case | Score | Skill | Gives the advice that works on JDK 25 | Cost |
+|---|---|---|---|---|
+| `record-exceptions-next-time` | 1.00 → 1.00 | — → `profile-run` | 0 of 3 → 3 of 3 | $0.06 → $0.07 |
+| `route-record-first` | 1.00 → 1.00 | `profile-run` | — | $0.08 → $0.08 |
 

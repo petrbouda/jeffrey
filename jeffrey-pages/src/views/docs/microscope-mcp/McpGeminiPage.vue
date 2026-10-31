@@ -50,7 +50,7 @@ gemini extensions install ./jeffrey/jeffrey-claude-plugin`;
 
 const manifest = `{
   "name": "microscope",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "settings": [
     {
       "name": "Jeffrey MCP endpoint",

@@ -10,9 +10,9 @@ types it did, with the export of the one that answers the same question in `foll
 `flamegraph_list` names every recorded type with its export defaults, and the standard groups the
 profiler did not capture; call it when those matter, not before every export. Starting points:
 
-- on-CPU time → `jdk.ExecutionSample`, or `jdk.CPUTimeSample` — JDK 25's CPU-time sampler (JEP 509)
-  writes that type instead, so a recording made with it holds no `ExecutionSample` at all. Ask for
-  either; a `NOT_RECORDED` answer offers the other.
+- on-CPU time → `jdk.ExecutionSample`, or `jdk.CPUTimeSample` — JDK 25's CPU-time sampler (JEP 509).
+  Both of the JDK's settings leave it off and `ExecutionSample` on, so a recording holds either or
+  both, depending on how it was started. Ask for either; a `NOT_RECORDED` answer offers the other.
 - allocation → `jdk.ObjectAllocationSample`, with `useWeight: true` to rank by bytes rather than call count
 - lock contention → `jdk.JavaMonitorEnter`, with `useWeight: true` (weight is nanoseconds blocked);
   `jdk.JavaMonitorWait`, `jdk.ThreadPark`, `jdk.ThreadSleep` and `jdk.VirtualThreadPinned` graph the

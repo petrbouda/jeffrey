@@ -54,7 +54,7 @@ onMounted(() => {
 
       <h2 id="events">Source Events</h2>
       <ul>
-        <li><code>jdk.OldObjectSample</code> — the old-object sampler. <strong>Off by default</strong>; enable it via the JFR <em>profile</em> settings or <code>-XX:+UnlockDiagnosticVMOptions -XX:+OldObjectSample</code>-style configuration to populate this page.</li>
+        <li><code>jdk.OldObjectSample</code> — the old-object sampler. JFR&rsquo;s own <em>default</em> and <em>profile</em> settings both record it, with stack traces only under <em>profile</em>; an async-profiler recording carries none unless it was asked for (<code>jfrsync</code> with a <code>.jfc</code> that enables it).</li>
       </ul>
 
       <DocsCallout type="info">

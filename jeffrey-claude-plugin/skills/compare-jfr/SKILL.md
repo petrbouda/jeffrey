@@ -91,7 +91,7 @@ precise either way.
 methods that grew and the ones that shrank, ranked by how much work moved with them.
 
 - on-CPU time → `jdk.ExecutionSample`, or `jdk.CPUTimeSample` for a recording made with JDK 25's
-  CPU-time sampler, which writes no `ExecutionSample` at all — take whichever `compare_list` reports
+  CPU-time sampler turned on (the JDK's settings leave it off) — take whichever `compare_list` reports
   in common
 - allocation → `jdk.ObjectAllocationSample` with `useWeight: true`, so the ranking is by bytes
   rather than by allocation count
