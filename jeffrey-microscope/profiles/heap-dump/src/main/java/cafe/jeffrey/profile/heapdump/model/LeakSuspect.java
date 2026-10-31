@@ -31,10 +31,15 @@ import java.util.List;
  * @param reason                human-readable reason this cluster was flagged
  * @param accumulationPoint     human-readable description of where memory accumulates
  *                              (e.g. "HashMap.table holding 50,000 entries")
- * @param pathSteps             reference chain to the accumulation point (populated by classloader-leak-chain analysis)
- * @param accumulationPointId   object ID of the deepest dominator still ≥ cluster threshold
+ * @param gcRootPath            what keeps the cluster root alive: the shortest strong path from a GC root
+ *                              to it, or, when it is a root itself, a one-step path naming its kind, thread
+ *                              and frame; null when no strong path was found
+ * @param accumulationPointId   object ID of the deepest object, down the cluster root's largest dominated
+ *                              child, that still retains most of the cluster
  * @param accumulationPointClass class name of the accumulation point
- * @param dominatedHistogram    top classes by retained size inside the cluster subtree
+ * @param dominatedHistogram    the classes the accumulation point directly dominates, by retained size,
+ *                              largest first and cut to the analyzer's limit
+ * @param dominatedClassCount   how many classes the accumulation point directly dominates, before the cut
  * @param leakScore             {@code heapPercentage × penalty(className)} — used for ranking
  * @param classLoaderId         object ID of the class loader that defined {@code className} (0 for bootstrap)
  * @param classLoaderClassName  class name of that class loader (e.g. {@code "<bootstrap>"} for bootstrap)
@@ -48,10 +53,11 @@ public record LeakSuspect(
         int instanceCount,
         String reason,
         String accumulationPoint,
-        List<PathStep> pathSteps,
+        GCRootPath gcRootPath,
         Long accumulationPointId,
         String accumulationPointClass,
         List<DominatedClassEntry> dominatedHistogram,
+        int dominatedClassCount,
         double leakScore,
         long classLoaderId,
         String classLoaderClassName

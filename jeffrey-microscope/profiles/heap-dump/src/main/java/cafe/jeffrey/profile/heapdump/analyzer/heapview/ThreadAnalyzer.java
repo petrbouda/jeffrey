@@ -201,6 +201,37 @@ public final class ThreadAnalyzer {
         return HeapThreadState.RUNNABLE;
     }
 
+    /**
+     * The name of one thread, read from its {@code name} field — for a caller naming the thread a GC
+     * root belongs to, without analysing every thread. Empty when the object has no name, or when the
+     * view has no dump to decode fields from.
+     */
+    public static Optional<String> nameOf(HeapView view, long threadInstanceId) throws SQLException {
+        List<InstanceFieldValue> fields;
+        try {
+            fields = view.readInstanceFields(threadInstanceId);
+        } catch (IllegalStateException noHprof) {
+            return Optional.empty();
+        }
+        Long ref = nameRef(fields);
+        if (ref == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(resolveName(view, ref, view.findStringContents(List.of(ref))));
+    }
+
+    /**
+     * The content of the thread-name String {@code stringRef}: from {@code names} when it was stored
+     * at index time, else decoded from the dump; null when neither has it.
+     */
+    private static String resolveName(HeapView view, long stringRef, Map<Long, String> names) throws SQLException {
+        String stored = names.get(stringRef);
+        if (stored != null) {
+            return stored;
+        }
+        return JavaStringDecoder.decode(view, stringRef).map(JavaStringDecoder.Decoded::content).orElse(null);
+    }
+
     /** The String the thread's {@code name} field points at, or null when it has none. */
     private static Long nameRef(List<InstanceFieldValue> fields) {
         for (InstanceFieldValue f : fields) {
@@ -226,15 +257,9 @@ public final class ThreadAnalyzer {
             switch (f.name()) {
                 case JdkFieldNames.THREAD_NAME -> {
                     if (f.value() instanceof Long stringRef && stringRef != 0L) {
-                        String stored = names.get(stringRef);
-                        if (stored != null) {
-                            name = stored;
-                        } else {
-                            Optional<JavaStringDecoder.Decoded> decoded =
-                                    JavaStringDecoder.decode(view, stringRef);
-                            if (decoded.isPresent()) {
-                                name = decoded.get().content();
-                            }
+                        String resolved = resolveName(view, stringRef, names);
+                        if (resolved != null) {
+                            name = resolved;
                         }
                     }
                 }

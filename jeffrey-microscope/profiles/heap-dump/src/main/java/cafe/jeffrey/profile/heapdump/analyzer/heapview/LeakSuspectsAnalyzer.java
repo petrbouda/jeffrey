@@ -19,17 +19,16 @@ package cafe.jeffrey.profile.heapdump.analyzer.heapview;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderLeakSummary;
-import cafe.jeffrey.profile.heapdump.model.DominatedClassEntry;
+import cafe.jeffrey.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspect;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
-import cafe.jeffrey.profile.heapdump.model.PathStep;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 /**
@@ -41,31 +40,106 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
  * (typically lazy, on first access).
  *
  * Heuristic (basic): the top instances by retained size whose retained size
- * exceeds a configurable percentage of the total heap. This is the same
- * starting heuristic MAT uses; the existing NetBeans-backed analyzer in
- * Jeffrey has additional classloader-cluster and accumulation-point logic
- * that is not yet ported (see field-level limitations below).
+ * exceeds a configurable percentage of the total heap, and that no other such
+ * instance dominates. This is the same starting heuristic MAT uses; the
+ * existing NetBeans-backed analyzer in Jeffrey has additional classloader-cluster
+ * logic that is not ported.
  *
- * Limitations vs the existing NetBeans-backed version (documented in the
- * model-level fields they map to):
- * <ul>
- *   <li>{@code accumulationPoint} / {@code accumulationPointId} /
- *       {@code accumulationPointClass}: null. The existing analyzer walks
- *       the dominated set looking for a clustering "neck" object (often a
- *       collection); deferring to a follow-up PR.</li>
- *   <li>{@code dominatedHistogram}: empty list. Computing this requires a
- *       per-suspect descendant scan which is straightforward but unmigrated.</li>
- *   <li>{@code pathSteps}: empty list. Once
- *       {@link PathToGCRootAnalyzer} is wired into this flow, populated.</li>
- *   <li>{@code reason}: a brief, generic message. The NetBeans path produces
- *       richer text including the dominated cluster's character.</li>
- * </ul>
+ * <p>One leak is one suspect. Retained size never grows down the dominator tree,
+ * so the objects a big retainer dominates on the way to its contents — a holder,
+ * its {@code ArrayList}, the list's {@code Object[]} — all clear the threshold
+ * too, and each would otherwise be listed as a suspect of its own, with the
+ * same bytes counted once per link. A candidate with an ancestor that is an
+ * instance that also clears the threshold is that instance's chain, not a second
+ * suspect, so the suspects' retained sets are disjoint and their sum is a real
+ * share of the graph. The report total uses the same shallow sizes as the dominator graph:
+ * instance sizes plus static-field footprints of class objects absent from the instance table.
+ * A candidate dominated by a class object (a static field) is
+ * still a suspect unless an instance above the class also qualifies: the class itself is never one.
+ *
+ * <p>Each suspect carries what a leak claim is checked by, so the answer that names it is enough to
+ * make the claim: what keeps it alive ({@link PathToGCRootAnalyzer#selfRoot} for a suspect that is a
+ * root itself, with its thread and frame, else the shortest strong path), where its memory
+ * accumulates and what that is made of ({@link SuspectClusters}).
  */
 public final class LeakSuspectsAnalyzer {
 
     /** Default suspect threshold: retained size must exceed 5% of total heap. */
     public static final double DEFAULT_THRESHOLD_PERCENT = 5.0;
     public static final int DEFAULT_TOP_N = 10;
+
+    /**
+     * The top instance retainers with no qualifying instance ancestor. The ancestor walk stops at
+     * the nearest instance; retained sizes cannot grow down a dominator chain. Class nodes do not
+     * suppress a candidate, but are walked past so they cannot conceal a qualifying instance above.
+     */
+    private static final String SUSPECTS_SQL = """
+            WITH RECURSIVE candidates AS (
+                SELECT r.instance_id, r.bytes, i.class_id
+                FROM retained_size r
+                JOIN instance i ON i.instance_id = r.instance_id
+                JOIN dominator built ON built.instance_id = r.instance_id
+                WHERE r.bytes >= ?
+            ), ancestors(instance_id, dominator_id) AS (
+                SELECT c.instance_id, d.dominator_id
+                FROM candidates c
+                JOIN dominator d ON d.instance_id = c.instance_id
+                UNION ALL
+                SELECT a.instance_id, d.dominator_id
+                FROM ancestors a
+                JOIN dominator d ON d.instance_id = a.dominator_id
+                LEFT JOIN instance holder ON holder.instance_id = a.dominator_id
+                WHERE a.dominator_id <> 0 AND holder.instance_id IS NULL
+            )
+            SELECT r.instance_id, r.bytes, c.class_id, c.name, c.classloader_id
+            FROM candidates r
+            LEFT JOIN class c ON r.class_id = c.class_id
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM ancestors a
+                JOIN instance holder ON holder.instance_id = a.dominator_id
+                JOIN retained_size held ON held.instance_id = holder.instance_id
+                WHERE a.instance_id = r.instance_id AND held.bytes >= ?)
+            ORDER BY r.bytes DESC, r.instance_id
+            LIMIT ?
+            """;
+
+    /** Matches the dominator builder's node-set accounting, including class-only static footprints. */
+    private static final String TOTAL_GRAPH_SHALLOW_SQL = """
+            SELECT coalesce(sum(shallow), 0)
+            FROM (
+                SELECT CAST(shallow_size AS BIGINT) AS shallow FROM instance
+                UNION ALL
+                SELECT CAST(static_fields_size AS BIGINT) FROM class
+                WHERE class_id NOT IN (SELECT instance_id FROM instance)
+            ) nodes
+            """;
+
+    private static final String REASON =
+            "One %s object retains %.1f%% of the heap, and no other suspect dominates it.";
+
+    private static final String ACCUMULATES_IN_SUSPECT = "The %s itself";
+
+    private static final String ACCUMULATES_BELOW = "A %s, %d %s below the suspect,";
+
+    /**
+     * The same, reached through a class object: a suspect above a class loader's bookkeeping names the
+     * class whose static field holds the memory, which is the code to read.
+     */
+    private static final String ACCUMULATES_THROUGH_STATIC =
+            "A %s, %d %s below the suspect through a static field of %s,";
+
+    private static final String HOLDS = " directly holds %,d objects of %d %s that retain %.1f%% of it.";
+
+    private static final String DESCENT_CAPPED = " The descent stopped after %d levels; the chain goes deeper.";
+
+    private static final String LEVEL = "level";
+
+    private static final String LEVELS = "levels";
+
+    private static final String CLASS = "class";
+
+    private static final String CLASSES = "classes";
 
     private LeakSuspectsAnalyzer() {
     }
@@ -88,27 +162,18 @@ public final class LeakSuspectsAnalyzer {
             throw new IllegalArgumentException("topN must be positive: topN=" + topN);
         }
 
-        long totalHeapSize = view.totalShallowSize();
+        long totalHeapSize = graphShallowSize(view);
         long thresholdBytes = (long) (totalHeapSize * (thresholdPercent / 100.0));
-
-        // Single SQL: top retainers above threshold, joined to class metadata.
-        // ORDER BY retained DESC, take topN.
-        String sql = "SELECT r.instance_id, r.bytes, c.class_id, c.name, c.classloader_id "
-                + "FROM retained_size r "
-                + "JOIN instance i ON i.instance_id = r.instance_id "
-                + "LEFT JOIN class c ON i.class_id = c.class_id "
-                + "WHERE r.bytes >= ? "
-                + "ORDER BY r.bytes DESC "
-                + "LIMIT ?";
 
         List<LeakSuspect> suspects = new ArrayList<>();
         long analyzedBytes = 0;
         Map<Long, LoaderAcc> byLoader = new HashMap<>();
         Map<Long, String> loaderNameCache = new HashMap<>();
 
-        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(sql)) {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(SUSPECTS_SQL)) {
             stmt.setLong(1, thresholdBytes);
-            stmt.setInt(2, topN);
+            stmt.setLong(2, thresholdBytes);
+            stmt.setInt(3, topN);
             try (ResultSet rs = stmt.executeQuery()) {
                 int rank = 1;
                 while (rs.next()) {
@@ -134,6 +199,9 @@ public final class LeakSuspectsAnalyzer {
                     double percent = totalHeapSize == 0 ? 0.0 : (retained * 100.0) / totalHeapSize;
                     double score = percent; // simple score: retained percentage
 
+                    GCRootPath rootPath = rootPath(view, instanceId);
+                    SuspectClusters.Cluster cluster = SuspectClusters.of(view, instanceId, className, retained);
+
                     suspects.add(new LeakSuspect(
                             rank++,
                             className,
@@ -142,10 +210,12 @@ public final class LeakSuspectsAnalyzer {
                             percent,
                             instanceCount,
                             buildReason(percent, className),
-                            null, // accumulationPoint
-                            List.<PathStep>of(),
-                            null, null,
-                            List.<DominatedClassEntry>of(),
+                            describe(cluster, retained),
+                            rootPath,
+                            cluster.objectId(),
+                            cluster.className(),
+                            cluster.contents(),
+                            cluster.classCount(),
                             score,
                             loaderId,
                             loaderName));
@@ -163,6 +233,13 @@ public final class LeakSuspectsAnalyzer {
                 .toList();
 
         return new LeakSuspectsReport(totalHeapSize, analyzedBytes, suspects, topLoaders);
+    }
+
+    private static long graphShallowSize(HeapView view) throws SQLException {
+        try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(TOTAL_GRAPH_SHALLOW_SQL);
+             ResultSet rs = stmt.executeQuery()) {
+            return rs.next() ? rs.getLong(1) : 0L;
+        }
     }
 
     private static String resolveLoaderName(
@@ -183,10 +260,39 @@ public final class LeakSuspectsAnalyzer {
         }
     }
 
+    /**
+     * What keeps the suspect alive: its own root, when it is one, else the shortest strong path from
+     * one; null when no strong path is found within the search limit.
+     */
+    private static GCRootPath rootPath(HeapView view, long instanceId) throws SQLException {
+        Optional<GCRootPath> self = PathToGCRootAnalyzer.selfRoot(view, instanceId);
+        if (self.isPresent()) {
+            return self.get();
+        }
+        List<GCRootPath> paths = PathToGCRootAnalyzer.findPaths(view, instanceId, true, 1);
+        return paths.isEmpty() ? null : paths.getFirst();
+    }
+
+    /** Where the suspect's memory accumulates, in a sentence. */
+    private static String describe(SuspectClusters.Cluster cluster, long suspectRetained) {
+        double share = suspectRetained == 0 ? 0.0 : (cluster.heldBytes() * 100.0) / suspectRetained;
+        String levels = cluster.depth() == 1 ? LEVEL : LEVELS;
+        String where;
+        if (cluster.depth() == 0) {
+            where = String.format(ACCUMULATES_IN_SUSPECT, cluster.className());
+        } else if (cluster.staticHolder() != null) {
+            where = String.format(ACCUMULATES_THROUGH_STATIC, cluster.className(), cluster.depth(), levels,
+                    cluster.staticHolder());
+        } else {
+            where = String.format(ACCUMULATES_BELOW, cluster.className(), cluster.depth(), levels);
+        }
+        String held = String.format(HOLDS, cluster.objects(), cluster.classCount(),
+                cluster.classCount() == 1 ? CLASS : CLASSES, share);
+        return where + held + (cluster.descentCapped() ? String.format(DESCENT_CAPPED, SuspectClusters.MAX_DESCENT) : "");
+    }
+
     private static String buildReason(double percent, String className) {
-        return String.format(
-                "Single instance of %s retains %.1f%% of the heap. Likely a leak suspect.",
-                className, percent);
+        return String.format(REASON, className, percent);
     }
 
     private static final class LoaderAcc {

@@ -68,6 +68,9 @@ public enum HeapDumpStatement {
     BULK_LOAD_STRING_CONTENT,
     BULK_LOAD_DOMINATOR,
     BULK_LOAD_RETAINED_SIZE,
+    CREATE_DOMINATOR_BUILD,
+    DELETE_DOMINATOR_BUILD,
+    RECORD_DOMINATOR_BUILD,
 
     // ---- corrections + temp tables ----
     CREATE_TEMP_CLASS_CHAIN_OOP,

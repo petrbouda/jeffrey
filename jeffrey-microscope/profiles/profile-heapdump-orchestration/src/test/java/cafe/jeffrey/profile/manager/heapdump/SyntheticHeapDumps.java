@@ -53,6 +53,14 @@ final class SyntheticHeapDumps {
 
     /** Writes the minimal dump to {@code dir/fileName} and returns its path. */
     static Path writeMinimalDump(Path dir, String fileName) throws IOException {
+        return writeDump(dir, fileName, false);
+    }
+
+    static Path writeThreadDump(Path dir, String fileName) throws IOException {
+        return writeDump(dir, fileName, true);
+    }
+
+    private static Path writeDump(Path dir, String fileName, boolean thread) throws IOException {
         ByteArrayOutputStream sink = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(sink);
 
@@ -61,10 +69,11 @@ final class SyntheticHeapDumps {
         out.writeInt(ID_SIZE);
         out.writeLong(0L);
 
-        writeRecord(out, HprofTag.Top.STRING, stringBody(HOLDER_CLASS_NAME_ID, "Holder"));
-        writeRecord(out, HprofTag.Top.STRING, stringBody(FIELD_NAME_ID, "next"));
+        writeRecord(out, HprofTag.Top.STRING,
+                stringBody(HOLDER_CLASS_NAME_ID, thread ? "java.lang.Thread" : "Holder"));
+        writeRecord(out, HprofTag.Top.STRING, stringBody(FIELD_NAME_ID, thread ? "name" : "next"));
         writeRecord(out, HprofTag.Top.LOAD_CLASS, loadClassBody());
-        writeRecord(out, HprofTag.Top.HEAP_DUMP_SEGMENT, heapSegmentBody());
+        writeRecord(out, HprofTag.Top.HEAP_DUMP_SEGMENT, heapSegmentBody(thread));
         writeRecord(out, HprofTag.Top.HEAP_DUMP_END, new byte[0]);
 
         Path path = dir.resolve(fileName);
@@ -97,7 +106,7 @@ final class SyntheticHeapDumps {
         return sink.toByteArray();
     }
 
-    private static byte[] heapSegmentBody() throws IOException {
+    private static byte[] heapSegmentBody(boolean thread) throws IOException {
         ByteArrayOutputStream sink = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(sink);
 
@@ -119,8 +128,12 @@ final class SyntheticHeapDumps {
         out.writeByte(HprofTag.BasicType.OBJECT);
 
         // GC root + one Holder instance with a null field value.
-        out.writeByte(HprofTag.Sub.ROOT_STICKY_CLASS);
+        out.writeByte(thread ? HprofTag.Sub.ROOT_THREAD_OBJECT : HprofTag.Sub.ROOT_STICKY_CLASS);
         out.writeLong(INSTANCE_ID);
+        if (thread) {
+            out.writeInt(1); // thread serial
+            out.writeInt(0); // no stack trace
+        }
 
         out.writeByte(HprofTag.Sub.INSTANCE_DUMP);
         out.writeLong(INSTANCE_ID);

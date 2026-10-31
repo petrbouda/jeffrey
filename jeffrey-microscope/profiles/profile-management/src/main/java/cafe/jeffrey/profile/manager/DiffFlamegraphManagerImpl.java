@@ -34,6 +34,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager {
 
@@ -189,6 +191,17 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
                     .ifPresent(secondary -> results.add(new EventSummaryResult(primary, secondary)));
         }
         return results;
+    }
+
+    @Override
+    public List<EventSummaryResult> graphableEventSummaries() {
+        Set<String> withStacks = primaryEventTypeRepository.eventSummaries().stream()
+                .filter(EventSummary::hasStacktrace)
+                .map(EventSummary::name)
+                .collect(Collectors.toSet());
+        return allEventSummaries().stream()
+                .filter(summary -> withStacks.contains(summary.code()))
+                .toList();
     }
 
     private static Optional<EventSummary> findEventType(List<EventSummary> secondary, String eventType) {

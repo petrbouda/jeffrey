@@ -162,7 +162,8 @@ A Jeffrey reachable from more than your machine can require a bearer token:
 
 The session-start check sends the token the tools send — under Claude Code only the plugin's
 setting, elsewhere `JEFFREY_MCP_TOKEN` — and says which of three things is wrong when a session
-opens: nothing answering, a missing or mismatched token (HTTP 401 — it names where this client takes
+opens in a JVM project (a Maven, Gradle, sbt or Mill build file at its root, or a recording or heap
+dump near it — anywhere else it stays silent): nothing answering, a missing or mismatched token (HTTP 401 — it names where this client takes
 the token from), or a refused host or origin (HTTP 403 — it quotes Jeffrey's own reason, which names
 the property to change).
 
@@ -234,49 +235,39 @@ prefixes are; the full table is in
 points into another's directory: a client that loads the skills from the server reads only the files
 a skill lists as its own.
 
-**Three agents.** `profile-analyst` is the general one. A single flamegraph export can run to 120,000 characters,
+**Two agents.** `profile-analyst` is the general one. A single flamegraph export can run to 120,000 characters,
 and a question usually takes several. The analyst runs a sequence and returns only the findings — the
 hot frames with their shares, or the retaining classes with their GC-root paths — leaving everything
 it read in its own context. The skills hand it the reading and keep what needs your conversation:
 mapping frames onto the checkout, the recommendation, and every question put to you.
 
-`heap-triage` is the heap specialist: it carries `analyze-heap` and `heap-sql`, runs the whole leak
+`heap-triage` is the heap specialist: it carries a handbook cut from `analyze-heap` and `heap-sql`, runs the whole leak
 route, and will build a missing dominator tree or report with `heap_prepare` rather than reporting an
 empty result.
 
-`profile-lead` is for the open-ended question — "why is this service slow", "review this recording" —
-where nobody has said which dimension to look at. It triages from `profiles_summary` itself, reads
-the capability gaps before anything else, and dispatches nothing until areas have been chosen:
-without them it returns the summary's `investigationAreas` — the menu Jeffrey builds of what the
-profile can answer, each area with its weight (LIGHT, MEDIUM or HEAVY) and the ones the evidence
-points at marked as suggested — for the caller to put to the user.
-With them it dispatches `profile-analyst` and `heap-triage` for those areas only and all at once,
-then merges what comes back: findings carry a
-stable id, so the same condition reported twice collapses into one, ranked by share of wall clock,
-of samples or of the heap. It holds the orientation tools and the two specialists, and no export
-tool of its own. Its `Agent` tool is the plain one: Claude Code ignores a type list on a subagent's
-`Agent` tool (it narrows only an agent run as the main thread with `claude --agent`), so that it
-dispatches to the two specialists and nothing else is a rule in its instructions.
+An open-ended question — "why is this service slow", "review this recording" — needs no agent of its
+own: the skill puts the profile's menu of investigation areas to you, and sends the areas you pick to
+the analysts in one message so they run at once, while it can still ask you.
 
-Claude Code gets them from the plugin as `microscope:profile-analyst`, `microscope:heap-triage` and
-`microscope:profile-lead`, restricted to the reading tools so they cannot touch your files, import
-a recording, pull one off the remote, move your editor or propose an edit. **Agent Plugins defines only
+Claude Code gets them from the plugin as `microscope:profile-analyst` and `microscope:heap-triage`,
+with no file tools and no writer that leaves Jeffrey's caches, so they
+cannot touch your files, import a recording, pull one off the remote, move your editor or propose
+an edit. They are not strictly read-only: `jvm_autoAnalysis` with `compute` and `heap_oql` with
+`includeRetainedSize` fill a cache, and `heap-triage` also runs `heap_prepare` to build a missing
+report — `profile-analyst` is denied that one. **Agent Plugins defines only
 skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
-[`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml),
-[`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) and
-[`codex/agents/profile-lead.toml`](codex/agents/profile-lead.toml) to `~/.codex/agents/` instead.
+[`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml) and
+[`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) to `~/.codex/agents/` instead.
 Those versions are sandboxed read-only, but their tool restriction is instruction-level rather than
 enforced.
 
-**Gemini CLI gets two of the three, also as files to copy** —
+**Gemini CLI gets both, also as files to copy** —
 [`gemini/agents/profile-analyst.md`](gemini/agents/profile-analyst.md) and
 [`gemini/agents/heap-triage.md`](gemini/agents/heap-triage.md) to `~/.gemini/agents/` for every
 repository, or `.gemini/agents/` for one; `/agents` then lists them. The extension cannot carry them
 even though Gemini reads an extension's `agents/`: it validates that frontmatter strictly and rejects
 any key it does not define, and the plugin's own agents carry Claude Code's `disallowedTools`,
-`skills` and `color`. There is no `profile-lead` for Gemini at all — a Gemini subagent may not
-dispatch another subagent, and dispatching the other two is that agent's whole job — so lead an
-open-ended investigation from the main conversation there.
+`skills` and `color`.
 
 **Prompts, skills and resources.** The server also serves the twelve skills over the protocol itself,
 as MCP prompts and over the MCP skills extension — the same files the plugin ships, copied onto the
@@ -293,7 +284,7 @@ a tool call on it.
 
 **How an answer reads.** Every tool but `ide_source` declares an `outputSchema` and answers a typed
 record in `structuredContent`: times are UTC epoch milliseconds (`…EpochMs`), enum values are upper
-case in answers and arguments alike, a heap `objectId` is a decimal string, "no data" is a `status`
+case in answers and arguments alike (bar `profiles_viewLink`'s `view`, a Microscope page path), a heap `objectId` is a decimal string, "no data" is a `status`
 with a `reason` rather than an error, a list that continues returns `hasMore` and a `nextCursor` to pass
 back as `cursor`, and `followUp.nextTools` are the next calls with their arguments filled in. An answer
 whose subject has a page in Microscope carries a `uiLink` to it — the skills hand it to the user with
@@ -384,14 +375,12 @@ jeffrey-claude-plugin/
 ├── skills/                   Twelve skills, read by all three formats
 ├── agents/
 │   ├── profile-analyst.md    Claude Code subagent
-│   ├── heap-triage.md        …the heap specialist
-│   └── profile-lead.md       …and the lead that triages, dispatches the two and merges their findings
+│   └── heap-triage.md        …and the heap specialist
 ├── codex/agents/
 │   ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
-│   ├── heap-triage.toml
-│   └── profile-lead.toml
+│   └── heap-triage.toml
 └── gemini/agents/
-    ├── profile-analyst.md    Two of them as Gemini CLI subagents, also installed by hand
+    ├── profile-analyst.md    The same two as Gemini CLI subagents, also installed by hand
     └── heap-triage.md
 ```
 
@@ -408,10 +397,16 @@ probe bounds itself at three seconds anyway.
 **Three agent directories, one set of agents.** `agents/` is Claude Code's, and the only one a plugin
 carries; `codex/` and `gemini/` hold the same analyst and heap specialist in the dialect each of those
 clients validates, to be copied by hand. Gemini does read an installed extension's `agents/`, and
-prints a validation error for each of the three Claude files, whose frontmatter its strict schema
+prints a validation error for each of the two Claude files, whose frontmatter its strict schema
 rejects — on ordinary commands, not only in debug mode. Nothing else follows from it: the extension
 loads, the server connects and the skills work. It is the cost of one directory that has to satisfy
 Claude Code, whose plugins read `agents/` and nothing else.
+
+**Written once, rendered three times.** None of the agent files, and none of the skill sections every
+skill shares (*Link what you name*, the tool-prefix sentence), is edited where it ships: each has one
+source under [`build/plugin/`](../build/plugin/), and `build/scripts/render-plugin.py` writes the
+copies — the Claude Code subagent with its tool lists spelled out from the server's tool snapshot,
+and the Codex and Gemini versions with the text only those clients need. CI runs it with `--check`.
 
 In both hand-copied sets the read-only promise rests on the *No writing* rule in the agent's own
 instructions rather than on a deny-list the client does not have.

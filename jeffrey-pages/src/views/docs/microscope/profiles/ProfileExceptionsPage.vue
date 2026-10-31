@@ -80,7 +80,7 @@ onMounted(() => {
       <h2 id="events">Source Events</h2>
       <ul>
         <li><code>jdk.ExceptionStatistics</code> — periodic cumulative throwable count (Rate Timeline, Overview; always enabled).</li>
-        <li><code>jdk.JavaExceptionThrow</code> — one event per throwable constructed, with its stack (Application and All Exceptions tabs; often disabled in the JFR configuration, in which case the tabs show a notice). An <code>Error</code> emits it too, beside its own event; the page collapses those back to one throw.</li>
+        <li><code>jdk.JavaExceptionThrow</code> — one event per throwable constructed, with its stack (Application and All Exceptions tabs). The JDK&rsquo;s own <em>default</em> and <em>profile</em> settings leave it off on JDK&nbsp;21, in which case the tabs show a notice, and throttle it on JDK&nbsp;25 (100/s and 300/s), so the per-type counts there are a sample; <code>jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off</code> records every throw on either. An <code>Error</code> emits it too, beside its own event; the page collapses those back to one throw.</li>
         <li><code>jdk.JavaErrorThrow</code> — individual Error throws (Errors tab; like the exception-throw event, may be disabled in the JFR configuration).</li>
       </ul>
 

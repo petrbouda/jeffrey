@@ -119,6 +119,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -209,6 +210,8 @@ public class HeapDumpMcpTools {
                     + " hops; weak references are not followed.";
     private static final String IS_GC_ROOT =
             "Object %s is itself a GC root (%s): it is kept alive directly, and no longer path was found.";
+    private static final String OF_THREAD = " of thread ";
+    private static final String AT_FRAME = " at ";
     /** How the string report ends a preview it cut from a longer string. */
     private static final String PREVIEW_ELLIPSIS = "\u2026";
     private static final String NO_METADATA = "The heap-dump index holds no metadata row.";
@@ -237,6 +240,13 @@ public class HeapDumpMcpTools {
     private static final String WHY_SUMMARY = "summarises the whole heap";
     private static final String WHY_REFERENCED = "opens the object its first reference field points to";
     private static final String WHY_ROOT = "opens the GC root that holds the path";
+    private static final String WHY_ACCUMULATED = "lists the objects the accumulation point holds, one by one";
+    private static final String WHY_PREPARE_MISSING = "builds the reports this dump does not have yet";
+    private static final String ALL_BUILT =
+            "Every stored report is built: heap_prepare and heap_status have nothing to add.";
+    private static final String SUSPECT_EVIDENCE =
+            "One dump shows a state, not growth: heap_diff against an earlier dump separates a leak from a "
+                    + "large working set.";
 
     private static final String OBSERVATION =
             "A size is an observation, not a cause: heap_getPathToGCRoot on an object id says why it is still "
@@ -264,18 +274,31 @@ public class HeapDumpMcpTools {
     }
 
     @Tool(description = "Summarises the heap dump: total live bytes, total live instances, number of "
-            + "classes and number of GC roots, and when the dump was taken as UTC epoch milliseconds - the "
-            + "overall heap state.")
+            + "classes and number of GC roots, when the dump was taken as UTC epoch milliseconds, whether the "
+            + "totals are complete (the parser's warningCount and truncated), and which reports heap_prepare "
+            + "stores are built (reportsBuilt) or not yet (reportsNotBuilt) - the overall heap state, and the "
+            + "one call that orients a heap investigation.")
     @McpOutputSchema(Summary.class)
     @McpToolMeta(cost = McpToolCost.CHEAP, requires = McpToolRequirement.HEAP_DUMP_INDEXED)
     public McpToolResult getHeapSummary() {
         HeapSummary summary = read("heap summary", delegate::getSummary);
+        SqlQueryResult metadata = sql(DUMP_METADATA_SQL, DUMP_METADATA_ROW_CAP);
+        MetadataRow row = metadata.rows().isEmpty() ? null
+                : new MetadataRow(metadata.columns(), metadata.rows().getFirst());
+        Set<HeapReport> stored = read("stored reports", delegate::storedReports);
+        List<HeapReport> built = HeapReport.storedKinds().stream().filter(stored::contains).toList();
+        List<HeapReport> notBuilt = HeapReport.storedKinds().stream().filter(report -> !stored.contains(report))
+                .toList();
         Summary answer = new Summary(profileId, summary.totalBytes(), summary.totalInstances(), summary.classCount(),
                 summary.gcRootCount(), summary.timestamp() == null ? null : summary.timestamp().toEpochMilli(),
+                row == null ? null : row.number(WARNING_COUNT), row == null ? null : row.flag(TRUNCATED),
+                built, notBuilt,
                 steps()
+                        .nextWhen(!notBuilt.isEmpty(), onProfile(PREPARE_TOOL).why(WHY_PREPARE_MISSING))
+                        .next(onProfile(LEAK_SUSPECTS_TOOL).why(WHY_LEAK_SUSPECTS))
                         .next(onProfile(HISTOGRAM_TOOL).why(WHY_HISTOGRAM))
                         .next(onProfile(DOMINATOR_ROOTS_TOOL).why(WHY_DOMINATOR_ROOTS))
-                        .next(onProfile(LEAK_SUSPECTS_TOOL).why(WHY_LEAK_SUSPECTS))
+                        .guidanceWhen(notBuilt.isEmpty(), ALL_BUILT)
                         .followUp(),
                 link(MicroscopeView.HEAP_DUMP_OVERVIEW));
         return footed(HeapOverviewAnswers.text(answer), answer, answer.followUp(), answer.uiLink(), null);
@@ -342,10 +365,13 @@ public class HeapDumpMcpTools {
         return footed(HeapReportAnswers.text(answer), answer, answer.followUp(), answer.uiLink(), null);
     }
 
-    @Tool(description = "Returns leak suspects found by heuristics: single objects with a disproportionate "
-            + "retained size, or classes whose many instances together hold significant memory, with the "
-            + "object ids of each cluster root and the class loaders involved. Reads the leak-suspect report "
-            + "heap_prepare builds; until it is built the status is NOT_RUN_YET.")
+    @Tool(description = "Returns the leak suspects: the objects retaining at least 5% of the heap that no other "
+            + "suspect dominates, one per retained cluster, largest first. Each carries what keeps it alive "
+            + "(gcRootPath: the shortest strong path from a GC root, or its own root's type, thread and frame), "
+            + "its accumulation point (the deepest object down its largest child that still retains most of it) "
+            + "and the classes that point holds, so a leak claim can be checked from this one answer; and the "
+            + "class loaders involved. Reads the leak-suspect report heap_prepare builds; until it is built the "
+            + "status is NOT_RUN_YET.")
     @McpOutputSchema(LeakSuspects.class)
     @McpToolMeta(cost = McpToolCost.CHEAP,
             requires = {McpToolRequirement.HEAP_DUMP_INDEXED, McpToolRequirement.HEAP_REPORTS})
@@ -362,12 +388,8 @@ public class HeapDumpMcpTools {
                     .map(loader -> new LoaderLeak(HeapObjectIds.format(loader.classLoaderId()),
                             loader.classLoaderClassName(), loader.totalRetainedSize(), loader.suspectCount()))
                     .toList();
-            Optional<String> first = suspects.stream()
-                    .map(suspect -> suspect.objectId() != null ? suspect.objectId() : suspect.accumulationPointObjectId())
-                    .filter(Objects::nonNull)
-                    .findFirst();
             answer = new LeakSuspects(ReportStatus.OK, null, profileId, report.totalHeapSize(), report.analyzedBytes(),
-                    suspects, loaders, objectSteps(first).guidance(OBSERVATION).followUp(), link);
+                    suspects, loaders, suspectSteps(suspects.stream().findFirst()), link);
         }
         return footed(HeapReportAnswers.text(answer), answer, answer.followUp(), answer.uiLink(), null);
     }
@@ -728,8 +750,11 @@ public class HeapDumpMcpTools {
         McpFollowUp referrers = steps().next(onObject(REFERRERS_TOOL, self).why(WHY_REFERRERS)).followUp();
         GcRootPaths answer;
         if (rootPaths.isEmpty() && rootKind != null) {
-            answer = new GcRootPaths(PathStatus.IS_GC_ROOT, IS_GC_ROOT.formatted(canonical, rootKind), profileId,
-                    canonical, rootKind, List.of(), referrers, objectLink(canonical));
+            Optional<GCRootPath> ownRoot = read("GC root holder", () -> delegate.selfRootPath(id));
+            String holder = ownRoot.map(HeapDumpMcpTools::holder).orElse(rootKind);
+            answer = new GcRootPaths(PathStatus.IS_GC_ROOT, IS_GC_ROOT.formatted(canonical, holder), profileId,
+                    canonical, rootKind, ownRoot.map(RootPath::of).map(List::of).orElse(List.of()), referrers,
+                    objectLink(canonical));
         } else if (rootPaths.isEmpty()) {
             answer = new GcRootPaths(PathStatus.NO_PATH, NO_PATH.formatted(canonical), profileId, canonical, null,
                     List.of(), referrers, objectLink(canonical));
@@ -926,12 +951,13 @@ public class HeapDumpMcpTools {
                 .map(entry -> new Contributor(entry.className(), entry.instanceCount(), entry.retainedSize(),
                         entry.percentOfCluster()))
                 .toList();
+        RootPath rootPath = suspect.gcRootPath() == null ? null : RootPath.of(suspect.gcRootPath());
+        int classes = Math.max(suspect.dominatedClassCount(), listOf(suspect.dominatedHistogram()).size());
         return new Suspect(suspect.rank(), suspect.className(), HeapObjectIds.formatNullable(suspect.objectId()),
                 suspect.retainedSize(), suspect.heapPercentage(), suspect.instanceCount(), suspect.reason(),
-                suspect.accumulationPoint(), HeapObjectIds.formatNullable(suspect.accumulationPointId()),
+                rootPath, suspect.accumulationPoint(), HeapObjectIds.formatNullable(suspect.accumulationPointId()),
                 suspect.accumulationPointClass(), suspect.leakScore(), HeapObjectIds.format(suspect.classLoaderId()),
-                suspect.classLoaderClassName(), contributors,
-                listOf(suspect.dominatedHistogram()).size() - contributors.size());
+                suspect.classLoaderClassName(), contributors, classes - contributors.size());
     }
 
     private static LoaderChain chain(ClassLoaderLeakChain chain) {
@@ -1013,6 +1039,35 @@ public class HeapDumpMcpTools {
                 .next(onProfile(PREPARE_TOOL).with(REPORT, report).why(WHY_PREPARE))
                 .next(onProfile(STATUS_TOOL).why(WHY_STATUS))
                 .followUp();
+    }
+
+    /**
+     * The calls that follow the leak suspects. A suspect already carries its GC-root path, so the path
+     * call is offered only for one that has none; what is left to read is the accumulation point's
+     * contents object by object, and who else references the suspect.
+     */
+    private McpFollowUp suspectSteps(Optional<Suspect> top) {
+        Optional<String> suspect = top.map(Suspect::objectId);
+        Optional<String> point = top.map(Suspect::accumulationPointObjectId);
+        boolean pathCarried = top.map(Suspect::gcRootPath).isPresent();
+        return steps()
+                .nextWhen(suspect.isPresent() && !pathCarried, onObject(PATH_TO_ROOT_TOOL, suspect).why(WHY_PATH))
+                .nextWhen(point.isPresent(), onObject(DOMINATOR_CHILDREN_TOOL, point).why(WHY_ACCUMULATED))
+                .nextWhen(suspect.isPresent(), onObject(REFERRERS_TOOL, suspect).why(WHY_REFERRERS))
+                .guidance(pathCarried ? SUSPECT_EVIDENCE : OBSERVATION)
+                .followUp();
+    }
+
+    /** A root's kind, with the thread and frame holding it where the dump records them. */
+    private static String holder(GCRootPath root) {
+        StringBuilder text = new StringBuilder(root.rootType());
+        if (root.threadName() != null) {
+            text.append(OF_THREAD).append(root.threadName());
+        }
+        if (root.stackFrame() != null) {
+            text.append(AT_FRAME).append(root.stackFrame());
+        }
+        return text.toString();
     }
 
     /** The calls that follow an object answer: why it is reachable and what it retains. */

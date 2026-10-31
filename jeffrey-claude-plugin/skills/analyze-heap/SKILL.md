@@ -39,11 +39,14 @@ retry on the JFR profile.
 
 ## 2. Orient before analysing
 
-- `heap_getDumpMetadata` — under `metadata`: HPROF version, id size, compressed-oops flag, record
-  count and `warningCount`. A non-zero `warningCount` means the parser skipped or truncated records, so
-  every total below is a lower bound; read the `parse_warning` table (the `heap-sql` skill)
-  before concluding anything from odd numbers.
-- `heap_getHeapSummary` — live bytes and instances, class count, GC-root count.
+- `heap_getHeapSummary` — one call: live bytes and instances, class count, GC-root count, the parser's
+  `warningCount` and `truncated`, and which stored reports are built (`reportsBuilt`) or not
+  (`reportsNotBuilt`). A non-zero `warningCount` means the parser skipped or truncated records, so every
+  total below is a lower bound; read the `parse_warning` table (the `heap-sql` skill) before concluding
+  anything from odd numbers. Call `heap_prepare` only when `reportsNotBuilt` names a report the
+  question needs.
+- `heap_getDumpMetadata` — the parser's details (HPROF version, id size, compressed-oops flag, record
+  count), when they matter.
 
 ## 3. Shallow is not retained
 
@@ -123,15 +126,18 @@ A question that names its area goes straight to the table below, without the men
 | Question | Sequence | Without the report |
 |---|---|---|
 | What is using the heap at all | `heap_getClassHistogram`, then `heap_getTopConsumers` for the same picture by package and class loader | The histogram alone |
-| What is leaking | `heap_getLeakSuspects` → `heap_getPathToGCRoot` on the object it names → `heap_getReferrers` to walk outwards | `heap_getDominatorTreeRoots` → `heap_getPathToGCRoot` on the largest roots |
+| What is leaking | `heap_getLeakSuspects` — each suspect carries its `gcRootPath`, its `accumulationPoint` and the `topContributors` it holds; `heap_getPathToGCRoot` only for a suspect whose `gcRootPath` is null, `heap_getReferrers` to walk outwards | `heap_getDominatorTreeRoots` → `heap_getPathToGCRoot` on the largest roots |
 | Which single objects are the biggest | `heap_getBiggestObjects` for the flat ranking; `heap_getDominatorTreeRoots` → `heap_getDominatorTreeChildren` to walk into one | The dominator tree already is the ranking |
 | Redeploys leak, or classes look duplicated | `heap_getClassLoaderLeakChains` — names the loader, the GC-root path keeping it alive and the pattern that matched (ThreadLocal, JDBC driver, JNI global, ServiceLoader, static logger, context class loader) | `heap_browseClassInstances` on the loader class → `heap_getPathToGCRoot` |
 | Where the waste is | `heap_getStringAnalysis` (duplicate and oversized strings), `heap_getCollectionAnalysis` (empty, singleton and oversized collections with fill ratios) | Histogram by `COUNT`, then `heap_browseClassInstances` |
 | What is in one particular class | `heap_browseClassInstances` → `heap_getInstanceDetail` → `heap_getPathToGCRoot` | — |
 | Who is rooting all this | `heap_getGCRootSummary`; `heap_getThreads` when a thread is the suspect | — |
 
-`heap_getPathToGCRoot` turns an observation into a cause: the histogram says a class is large, the
-path says *why those instances are still reachable*. Do not report a leak without one. The paths
+A GC-root path turns an observation into a cause: the histogram says a class is large, the path
+says *why those instances are still reachable*. Do not report a leak without one. A leak suspect
+already carries it (`gcRootPath`: the path, or, for a suspect that is itself a root, its
+`rootType`, `threadName` and `stackFrame`), so read it there instead of asking again;
+`heap_getPathToGCRoot` is for any other object. The paths
 skip weak and soft references, so an object reachable only through a `WeakHashMap` or a soft cache
 shows no path — that is the answer, not an error.
 
@@ -139,13 +145,19 @@ shows no path — that is the answer, not an error.
 
 Two agents can take a heap route and return only the findings — class, retained bytes, GC-root path —
 with everything they read left in their own context. **`heap-triage`** is the one built for this: it
-carries this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
+carries a handbook cut from this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
 missing rather than reporting an empty result. **`profile-analyst`** does the same reading but never
-builds anything, which suits a dump that is already prepared. The Claude Code plugin ships both; in
+runs `heap_prepare`, which suits a dump that is already prepared. The Claude Code plugin ships both; in
 Codex they are the custom agents under `codex/agents/`. Without one, read here.
 
-Delegate a whole route from step 5 — give it the `profileId` and the question — and send independent
-questions in one message so they run at once.
+Delegate only with a `profileId` in hand. Neither agent may import, so a dump the user named as a
+file is imported here first — `recordings_analyzeFile` with its absolute path, followed to the
+`profileId` as step 1 describes. An agent handed a path or a name instead looks a profile up in
+the catalogue, which can be another dump of the same name rather than the file the user meant.
+Then delegate a whole route from step 5 — give it the `profileId` and the user's question as asked,
+and let it pick the route: a brief that lists reports to cover ("the histogram, the consumers, the
+class loaders, the strings…") makes it read every one of them whether the question needs it or not.
+Send independent questions in one message so they run at once.
 
 Work here instead when a single tool answers the question, or when the user is walking the
 dominator tree with you object by object. Reading the real source behind a retaining field, and
@@ -157,13 +169,12 @@ every question to the user, stays here either way.
   makes a claim checkable.
 - Object ids are stable within one dump and meaningless across dumps. Carry the class name and
   the path between dumps, never an id.
-- **Two dumps settle it.** `heap_diff` compares this dump against an earlier one class by class, ranked
-by growth: it is the one tool that separates a leak from a large working set, which no single-dump
-report can do. Pass the earlier dump as the baseline — backwards, every growth reads as a shrink.
-Both dumps have to be indexed first, and the tool says which one is not.
-
-A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
+- A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
   say which of the two you are claiming, and ask for a second dump taken later when it matters.
+- **Two dumps settle it.** `heap_diff` compares this dump against an earlier one class by class,
+  ranked by growth: it is the one tool that separates a leak from a large working set, which no
+  single-dump report can do. Pass the earlier dump as the baseline — backwards, every growth reads
+  as a shrink. Both dumps have to be indexed first, and the tool says which one is not.
 - If the repository is open alongside, read the real source of the retaining field before naming
   a cause. Do not infer a code path from a class name.
 - Write it up in the `report` skill's shape: class name, retained bytes and the GC-root path
@@ -213,7 +224,10 @@ report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 For a question none of the tools above cover there are two languages, and they are not
 interchangeable. `heap_executeQuery` runs **SQL** against the index as it is stored — join `instance`
-to `class`, group by loader, correlate two tables; the `heap-sql` skill has the schema. `heap_oql`
+to `class`, group by loader, correlate two tables, read what the strings say. Load the **heap-sql**
+skill before the first query: it has the schema, and the traps the column names do not show (the
+`string` table is the HPROF name pool, not the `String` instances; `outbound_ref.field_id` counts the
+object's whole field layout). `heap_oql`
 runs **OQL** against the object graph the index implies — every instance of a type including its
 subclasses, the retained set of a selection, a filter over an object's own fields. The retained-set
 and `INSTANCEOF` forms have no SQL spelling at all.

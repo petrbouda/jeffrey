@@ -1,0 +1,22 @@
+| event_type | start_timestamp | duration | samples | weight | weight_entity | stacktrace_hash | thread_hash | fields |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.400672Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -6854574685189462884 | {"startTime":1793455191400,"eventThread":"checkout-worker-33","message":"For input string: \"SPRING-97\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.400403Z | NULL | 1 | NULL | NULL | 7886390286417109031 | 2836315167563219610 | {"startTime":1793455191400,"eventThread":"checkout-worker-32","message":"For input string: \"SPRING-80\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.388281Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -3788448937052820899 | {"startTime":1793455191388,"eventThread":"checkout-worker-31","message":"For input string: \"SPRING-73\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.388223Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -6854574685189462884 | {"startTime":1793455191388,"eventThread":"checkout-worker-33","message":"For input string: \"SPRING-9\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.388103Z | NULL | 1 | NULL | NULL | 7886390286417109031 | 2836315167563219610 | {"startTime":1793455191388,"eventThread":"checkout-worker-32","message":"For input string: \"SPRING-71\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.388086Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -3788448937052820899 | {"startTime":1793455191388,"eventThread":"checkout-worker-31","message":"For input string: \"SPRING-13\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.387996Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -4209964956316759034 | {"startTime":1793455191387,"eventThread":"checkout-worker-30","message":"For input string: \"SPRING-37\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.387986Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -3788448937052820899 | {"startTime":1793455191387,"eventThread":"checkout-worker-31","message":"For input string: \"SPRING-3\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.387705Z | NULL | 1 | NULL | NULL | 7886390286417109031 | -4209964956316759034 | {"startTime":1793455191387,"eventThread":"checkout-worker-30","message":"For input string: \"SPRING-71\"","thrownClass":"java.lang.NumberFormatException"} |
+| jdk.JavaExceptionThrow | 2026-10-31T13:59:51.375258Z | NULL | 1 | NULL | NULL | 7886390286417109031 | 2836315167563219610 | {"startTime":1793455191375,"eventThread":"checkout-worker-32","message":"For input string: \"SPRING-3\"","thrownClass":"java.lang.NumberFormatException"} |
+
+10 row(s) returned; more remain beyond the row cap
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19242-79fe-783d-a5a1-11b7711d8ee0/events?eventType=jdk.JavaExceptionThrow
+Next:
+- jfr_describeEventType {"profileId":"01a19242-79fe-783d-a5a1-11b7711d8ee0","eventType":"jdk.JavaExceptionThrow"} [LIGHT]
+Guidance:
+- More events matched than the limit; these are the latest. Raise limit, narrow whereClause, or aggregate with jfr_executeQuery.

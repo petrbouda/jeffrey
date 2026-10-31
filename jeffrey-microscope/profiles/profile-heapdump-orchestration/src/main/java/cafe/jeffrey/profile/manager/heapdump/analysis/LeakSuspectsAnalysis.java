@@ -29,6 +29,10 @@ public final class LeakSuspectsAnalysis implements CachedAnalysis<LeakSuspectsRe
 
     private static final String DISPLAY_NAME = "Leak suspects";
 
+    /** Candidate exclusion follows class-node dominator chains, holding frames use the exact trace, and an
+     * accumulation point reached through a class names the static holder. */
+    private static final int ANALYSIS_VERSION = 2;
+
     @Override
     public String fileName() {
         return FILE_NAME;
@@ -37,6 +41,11 @@ public final class LeakSuspectsAnalysis implements CachedAnalysis<LeakSuspectsRe
     @Override
     public Class<LeakSuspectsReport> type() {
         return LeakSuspectsReport.class;
+    }
+
+    @Override
+    public int analysisVersion() {
+        return ANALYSIS_VERSION;
     }
 
     @Override

@@ -2224,11 +2224,24 @@
           "profileId": {
             "type": "string"
           },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "search": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED"
+            ],
+            "type": "string"
           },
           "threadMode": {
             "type": "boolean"
@@ -2276,7 +2289,9 @@
           "followUp",
           "markdownChars",
           "profileId",
+          "reason",
           "search",
+          "status",
           "threadMode",
           "thresholdPct",
           "truncated",
@@ -5479,14 +5494,62 @@
           "profileId": {
             "type": "string"
           },
+          "reportsBuilt": {
+            "items": {
+              "enum": [
+                "STRINGS",
+                "DOMINATOR",
+                "THREADS",
+                "BIGGEST",
+                "COLLECTIONS",
+                "LEAKS",
+                "CLASSLOADERS",
+                "BIGGEST_COLLECTIONS",
+                "CONSUMERS",
+                "DUPLICATES"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reportsNotBuilt": {
+            "items": {
+              "enum": [
+                "STRINGS",
+                "DOMINATOR",
+                "THREADS",
+                "BIGGEST",
+                "COLLECTIONS",
+                "LEAKS",
+                "CLASSLOADERS",
+                "BIGGEST_COLLECTIONS",
+                "CONSUMERS",
+                "DUPLICATES"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
           "totalLiveBytes": {
             "type": "integer"
           },
           "totalLiveInstances": {
             "type": "integer"
           },
+          "truncated": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "uiLink": {
             "type": "string"
+          },
+          "warningCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -5495,9 +5558,13 @@
           "followUp",
           "gcRootCount",
           "profileId",
+          "reportsBuilt",
+          "reportsNotBuilt",
           "totalLiveBytes",
           "totalLiveInstances",
-          "uiLink"
+          "truncated",
+          "uiLink",
+          "warningCount"
         ],
         "type": "object"
       },
@@ -5852,6 +5919,83 @@
                 "className": {
                   "type": "string"
                 },
+                "gcRootPath": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "omittedSteps": {
+                      "type": "integer"
+                    },
+                    "rootClassName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rootObjectId": {
+                      "type": "string"
+                    },
+                    "rootType": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "stackFrame": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "steps": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "className": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fieldName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "objectId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "className",
+                          "fieldName",
+                          "objectId"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "threadName": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "omittedSteps",
+                    "rootClassName",
+                    "rootObjectId",
+                    "rootType",
+                    "stackFrame",
+                    "steps",
+                    "threadName"
+                  ],
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
                 "heapPercent": {
                   "type": "number"
                 },
@@ -5917,6 +6061,7 @@
                 "classLoaderClassName",
                 "classLoaderId",
                 "className",
+                "gcRootPath",
                 "heapPercent",
                 "instanceCount",
                 "leakScore",

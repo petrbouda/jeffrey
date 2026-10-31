@@ -40,13 +40,22 @@ Keep it short. Three findings that carry their evidence beat twelve that do not.
 Every quantitative claim names the call that produced it, with the profile id and the arguments
 that shaped the result:
 
-> `jdk.JavaMonitorEnter` on `com.example.SessionCache` accounts for 41.2 s of blocked time across a
-> 300 s recording — 13.7% of wall clock.
+> Threads blocked on `com.example.SessionCache` for 41.2 s in total over a 300 s recording — about
+> 13 contentions a second, each 10.8 ms on average.
 > Evidence: `blocking_monitors profileId=p-7c1` → `SessionCache` total 41,203 ms over 3,812
 > contentions; recording length from `profiles_summary` (`startedAtEpochMs` to
 > `finishedAtEpochMs`) = 300.4 s.
 
+Blocked time is summed over threads, so it is not a share of wall clock: eight threads blocked for
+the whole recording add up to eight times its length. Quote it as a total, a rate or a per-contention
+average, or as a share of the time the *blocked threads* existed — never "N% of wall clock".
+
 If you cannot name the call, you cannot make the claim. Delete it, or go and measure it.
+
+That holds for a figure the user hands you too — "most of the CPU is in X", "it blocks for about 80
+seconds". It is the question the report answers, not its evidence: when the profile is in Jeffrey,
+read each figure back with the call that measures it before writing it down, and report what that
+call said, even where it disagrees.
 
 A claim drawn from a file rather than a tool — an application log, a GC log or a crash file that
 `remote_fetchFile` put on this machine — names the file and the line instead, so the reader can open
@@ -130,8 +139,9 @@ before you believe a negative result, and carry every gap that touches the quest
 - `blocking_`, `io_` and `jvm_jit` read event types that are **threshold-gated**: a recording holds
   none either because nothing crossed the threshold or because the profiler was never asked. The
   tools answer `NOT_RECORDED` with a `reason` saying which, and the two are different sentences in
-  a report. Any `status` other than `OK` — `NOT_RECORDED`, `NOT_COMPUTED`, `NOT_RUN_YET`, `NO_TRACES`
-  — belongs under **Not assessed**, quoted with its `reason`.
+  a report. A status that says the data is missing — `NOT_RECORDED`, `NOT_COMPUTED`, `NOT_RUN_YET`,
+  `NO_TRACES`, `EMPTY` — belongs under **Not assessed**, quoted with its `reason`. Statuses such as
+  `COMPUTED`, `READY`, `DOWNLOADED` or `COMPLETED` are success, not gaps.
 - A feature in `disabledFeatures` — traces, the HTTP or JDBC dashboards, a heap dump — was never
   instrumented or captured. Its absence is a fact about the recording, not about the application.
 - A rule under `notEvaluated` in `jvm_autoAnalysis` had no events to run on. It did not pass.
@@ -197,9 +207,8 @@ If you did not locate the code, say so and give the frame rather than inventing 
 
 ## Where the report is written
 
-When a `profile-analyst`, `heap-triage` or `profile-lead` agent did the reading, it returns the
-findings with their evidence in this shape and stops there: it has no file tools and makes no
-recommendations. Mapping a frame onto the checkout, the recommendation, and every question put to
+When a `profile-analyst` or `heap-triage` agent did the reading, it returns the findings with their
+evidence in this shape and stops there: it has no file tools and makes no recommendations. Mapping a frame onto the checkout, the recommendation, and every question put to
 the user belong to the session that delegated — add them there, in the same shape, before the
 report goes to the reader.
 

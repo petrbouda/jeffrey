@@ -50,7 +50,7 @@ gemini extensions install ./jeffrey/jeffrey-claude-plugin`;
 
 const manifest = `{
   "name": "microscope",
-  "version": "1.0.4",
+  "version": "1.0.16",
   "settings": [
     {
       "name": "Jeffrey MCP endpoint",
@@ -169,7 +169,7 @@ const update = `gemini extensions update microscope`;
       <p>The endpoint already configured, a check that Jeffrey is serving when a session starts &mdash; the same one the Claude Code plugin runs, read from the same file &mdash; and the <router-link to="/docs/microscope-mcp/clients#the-skills">twelve skills</router-link>, which Gemini loads on its own when a question calls for one. <code>/skills</code> lists what a session actually loaded, and <code>gemini extensions list</code> prints them with the server and the endpoint setting from outside one.</p>
 
       <h2 id="the-agents">The Agents</h2>
-      <p>Gemini gets <strong>two of the <router-link to="/docs/microscope-mcp/clients#the-agents">three agents</router-link></strong>, and they are files to copy:</p>
+      <p>Gemini gets <strong>both <router-link to="/docs/microscope-mcp/clients#the-agents">agents</router-link></strong>, and they are files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
 
       <p><code>~/.gemini/agents/</code> makes them available in every repository; <code>.gemini/agents/</code> inside a checkout scopes them to that one, and <code>/agents</code> lists what loaded. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
@@ -180,7 +180,6 @@ const update = `gemini extensions update microscope`;
         Gemini prints a validation error for each of them &mdash; <em>Unrecognized key(s)</em>, then a line per tool pattern &mdash; and it prints them on ordinary commands, not only in debug mode. Nothing else follows from it: the extension loads, the server connects, the skills work. It is the cost of one directory that has to satisfy Claude Code, whose plugins read <code>agents/</code> and nothing else.
       </DocsCallout>
 
-      <p>There is <strong>no <code>profile-lead</code> for Gemini at all</strong>, and that is a property of the client rather than an omission: <strong>a Gemini subagent may not dispatch another subagent</strong>, and dispatching the other two is the whole of what the lead does. Ask an open-ended question in the main conversation instead; <code>analyze-jfr</code> carries the same triage order, and the two specialists work beneath it.</p>
 
       <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the <code>recordings_</code> writers, <code>remote_download</code>, <code>remote_fetchFile</code>, <code>heap_prepare</code>, <code>operations_cancel</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />

@@ -458,15 +458,17 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>flamegraph_list</code></td>
             <td><code>profileId</code></td>
-            <td><code>available</code> &mdash; the event types this profile can be graphed by, each with its sample and weight totals and the argument defaults that type is normally graphed with &mdash; plus <code>notRecorded</code>, the standard groups the profiler did not capture. Call it first &mdash; asking for a type the profile did not record returns an empty tree, not an error</td>
+            <td><code>available</code> &mdash; the event types this profile can be graphed by, each with its sample and weight totals and the argument defaults that type is normally graphed with &mdash; plus <code>notRecorded</code>, the standard groups the profiler did not capture. Call it first &mdash; asking for a type the profile did not record returns <code>status: NOT_RECORDED</code> with the recorded alternatives</td>
           </tr>
           <tr>
             <td><code>flamegraph_export</code></td>
             <td><code>profileId</code>, <code>eventType</code>, <code>detail?</code> (<code>SUMMARY</code>, <code>STANDARD</code>, <code>FULL</code>; <code>STANDARD</code>), <code>thresholdPct?</code> (0-100, configured default 2.0), <code>startEpochMs?</code>, <code>endEpochMs?</code>, <code>threadMode?</code>, <code>useWeight?</code>, <code>search?</code>, <code>excludeIdle?</code>, <code>excludeNonJava?</code></td>
-            <td>The call tree as Markdown, with the reading preamble for that event type. <code>detail</code> picks how much: <code>SUMMARY</code> is no tree at all but the top 25 frames by self (summed across every path they were called from) and the top 10 stacks written leaf first &mdash; a few kilobytes, the cheapest first look; <code>STANDARD</code> is the tree at the configured threshold; <code>FULL</code> is the tree at 0.5%, several times longer &mdash; on a large profile long enough to pass the 120,000-character cap and come back truncated, where <code>STANDARD</code> or a coarser <code>thresholdPct</code> fits. An explicit <code>thresholdPct</code> overrides the threshold either tree level implies. <code>search</code> marks every frame whose name matches it &mdash; as a regular expression, the way the UI&rsquo;s flamegraph search reads it, or as a literal substring &mdash; with <code>&laquo;match&raquo;</code>, adds <code>search_pattern</code> and <code>search_matches</code> (samples under the matches and their share) to the header, and keeps every frame on a path to a match even below <code>thresholdPct</code>; it does not filter samples. The record beside the Markdown names the event type, window, threshold and filters it was built with, <code>markdownChars</code> and <code>truncated</code>, and a <code>uiLink</code> to the same graph</td>
+            <td>The call tree as Markdown, with the reading preamble for that event type &mdash; or, for an event type this profile did not record, <code>status: NOT_RECORDED</code> with a <code>reason</code> naming the types it did and the export of the one that answers the same question as the next call, rather than an empty tree. <code>detail</code> picks how much: <code>SUMMARY</code> is no tree at all but the top 25 frames by self (summed across every path they were called from) and the top 10 stacks written leaf first &mdash; a few kilobytes, the cheapest first look; <code>STANDARD</code> is the tree at the configured threshold; <code>FULL</code> is the tree at 0.5%, several times longer &mdash; on a large profile long enough to pass the 120,000-character cap and come back truncated, where <code>STANDARD</code> or a coarser <code>thresholdPct</code> fits. An explicit <code>thresholdPct</code> overrides the threshold either tree level implies. <code>search</code> marks every frame whose name matches it &mdash; as a regular expression, the way the UI&rsquo;s flamegraph search reads it, or as a literal substring &mdash; with <code>&laquo;match&raquo;</code>, adds <code>search_pattern</code> and <code>search_matches</code> (samples under the matches and their share) to the header, and keeps every frame on a path to a match even below <code>thresholdPct</code>; it does not filter samples. The record beside the Markdown names the event type, window, threshold and filters it was built with, <code>markdownChars</code> and <code>truncated</code>, and a <code>uiLink</code> to the same graph</td>
           </tr>
         </tbody>
       </table>
+
+      <p><code>flamegraph_export</code> also accepts recorded imported dimensions and custom JFR event types that the standard grid omits, as long as they carry stack traces &mdash; a recorded type without stacks, such as a setting or a heap summary, answers <code>NOT_RECORDED</code> rather than an empty tree. A suggested alternative keeps the requested window, detail, thread mode, search and filters, and the weighting and threshold only when the caller set them: otherwise it takes its own type's defaults. Sleeping, parking and monitor waiting are distinct from lock contention and are never offered as substitutes for it.</p>
 
       <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>profiler.WallClockSample</code> for latency including off-CPU &mdash; async-profiler&rsquo;s event, so unlike its neighbours it carries no <code>jdk.</code> prefix. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path. Start with <code>detail: "SUMMARY"</code> when you do not yet know which path matters, and ask for the tree once you do.</p>
 
@@ -916,7 +918,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
 
       <p><strong>The other axis from a flamegraph.</strong> An allocation flamegraph ranks the call <em>sites</em> &mdash; where the allocating code is. This ranks the <em>types</em> allocated, and the two disagree usefully: <code>byte[]</code> and <code>char[]</code> at the top read very differently from a domain class, and one call site allocating many types looks nothing like one type coming from everywhere.</p>
 
-      <p><strong>Leak candidates come from <code>jdk.OldObjectSample</code></strong>, which is off in most recordings. Their absence says nothing about whether the application leaks, and the tool answers status <code>NOT_RECORDED</code> saying exactly that rather than reporting zero candidates &mdash; the difference between &ldquo;measured and found nothing&rdquo; and &ldquo;never measured&rdquo; is the whole finding.</p>
+      <p><strong>Leak candidates come from <code>jdk.OldObjectSample</code></strong>, which JFR&rsquo;s own settings record but an async-profiler recording carries only when asked for. Their absence says nothing about whether the application leaks, and the tool answers status <code>NOT_RECORDED</code> saying exactly that rather than reporting zero candidates &mdash; the difference between &ldquo;measured and found nothing&rdquo; and &ldquo;never measured&rdquo; is the whole finding.</p>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exMemory" language="json" />
@@ -1027,7 +1029,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>heap_getHeapSummary</code></td>
             <td><code>profileId</code></td>
-            <td>Total live bytes and instances, and the shape of the heap</td>
+            <td>Total live bytes and instances, and the shape of the heap; whether the totals are complete (the parser's <code>warningCount</code>, <code>truncated</code>) and which stored reports are built &mdash; the one call that orients a heap investigation, offering <code>heap_prepare</code> only when a report is missing</td>
           </tr>
           <tr>
             <td><code>heap_getClassHistogram</code></td>
@@ -1047,7 +1049,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>heap_getLeakSuspects</code></td>
             <td><code>profileId</code></td>
-            <td>Leak-suspect analysis, once <code>heap_prepare</code> or the UI has built it</td>
+            <td>One suspect per retained cluster (5% of the heap or more, dominated by no other suspect), each with what keeps it alive (<code>gcRootPath</code>: the path from a GC root, or its own root's type, thread and frame), its accumulation point and the classes that point holds. A null <code>gcRootPath</code> means no strong path was found within the bounded search; the result is inconclusive and does not prove that only weak or soft references reach the suspect. Available once <code>heap_prepare</code> or the UI has built the report</td>
           </tr>
           <tr>
             <td><code>heap_getClassLoaderLeakChains</code></td>

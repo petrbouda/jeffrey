@@ -82,8 +82,7 @@ mcp_servers.jeffrey.enabled = false`;
 
 const agentInstall = `mkdir -p ~/.codex/agents
 cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
-cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/
-cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-lead.toml ~/.codex/agents/`;
+cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
 
 const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
@@ -163,12 +162,12 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The endpoint already configured and the <router-link to="/docs/microscope-mcp/clients#the-skills">twelve skills</router-link>, which Codex picks up on its own and which you can also invoke directly with <code>$</code>, as <code>$analyze-jfr</code>; <code>/skills</code> lists what the session actually loaded. No startup check: hooks are not part of the Agent Plugins format, so a Codex session finds out that Jeffrey is down the way it always did.</p>
 
       <h2 id="the-analyst-agent">The Agents</h2>
-      <p><strong>A Codex plugin cannot carry the <router-link to="/docs/microscope-mcp/clients#the-agents">three agents</router-link>.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships all three as files to copy:</p>
+      <p><strong>A Codex plugin cannot carry the <router-link to="/docs/microscope-mcp/clients#the-agents">two agents</router-link>.</strong> Agent Plugins defines exactly two component types, skills and MCP servers; agents are not among them. So the plugin ships both as files to copy:</p>
       <DocsCodeBlock :code="agentInstall" language="bash" />
 
       <p><code>~/.codex/agents/</code> makes them available in every repository; <code>.codex/agents/</code> inside a checkout scopes them to that one. The skills look for an agent by name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
 
-      <p>One difference worth knowing: the Claude Code <code>profile-analyst</code> is denied the writing tools one by one in its own definition &mdash; the <code>recordings_</code> writers, the whole <code>remote_</code> family, <code>heap_prepare</code>, <code>operations_cancel</code> and the two <code>ide_</code> tools that act on the editor &mdash; and <code>heap-triage</code> and <code>profile-lead</code> are held to allow-lists, so none of them can create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the nine writers at the server instead:</p>
+      <p>One difference worth knowing: the Claude Code <code>profile-analyst</code> is denied the writing tools one by one in its own definition &mdash; the <code>recordings_</code> writers, the whole <code>remote_</code> family, <code>heap_prepare</code>, <code>operations_cancel</code> and the whole <code>ide_</code> family &mdash; and <code>heap-triage</code> is held to an allow-list, so neither can create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the nine writers at the server instead:</p>
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>

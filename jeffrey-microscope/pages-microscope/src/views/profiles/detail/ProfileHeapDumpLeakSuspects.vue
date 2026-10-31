@@ -168,6 +168,10 @@
                 </span>
               </div>
               <div class="va-stat">
+                <span class="va-stat-label">Kept Alive By</span>
+                <span class="va-stat-value">{{ keptAliveBy(suspect) }}</span>
+              </div>
+              <div class="va-stat">
                 <span class="va-stat-label">Class Loader</span>
                 <span class="va-stat-value font-monospace">
                   {{ simpleClassName(suspect.classLoaderClassName) }}
@@ -306,6 +310,17 @@ const summaryMetrics = computed(() => {
     }
   ];
 });
+
+const keptAliveBy = (suspect: LeakSuspect): string => {
+  const root = suspect.gcRootPath;
+  if (!root) {
+    return 'No strong path found within the search limit';
+  }
+  const thread = root.threadName ? ` of thread ${root.threadName}` : '';
+  const frame = root.stackFrame ? ` at ${root.stackFrame}` : '';
+  const hops = root.steps.length > 1 ? `, ${root.steps.length - 1} hop(s) from ${root.rootClassName}` : '';
+  return `${root.rootType}${thread}${frame}${hops}`;
+};
 
 const simpleClassName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');

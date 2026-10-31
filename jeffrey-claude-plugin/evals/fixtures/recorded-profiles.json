@@ -1,0 +1,10 @@
+{
+ "baseline": "01a19242-75fd-7700-858a-3a8aa32440a1",
+ "candidate": "01a19242-79fe-783d-a5a1-11b7711d8ee0",
+ "heap": "01a19242-7d5f-7d93-b7d1-5fd6510bed9c",
+ "heapDumpPath": "/tmp/jeffrey-eval/checkout.hprof",
+ "figures": {
+  "orders": 5825,
+  "promoOrders": 1446
+ }
+}

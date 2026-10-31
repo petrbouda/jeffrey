@@ -66,8 +66,9 @@ public class MemoryMcpTools {
 
     private static final String NO_LEAK_CANDIDATES =
             "This profile carries no jdk.OldObjectSample events, so the JVM tracked no surviving "
-                    + "objects. That sampler is off in most profiles and is enabled per recording - its "
-                    + "absence says nothing about whether the application leaks. A heap dump answers "
+                    + "objects. JFR's own settings record it, but an async-profiler recording has none "
+                    + "unless it was asked for - its absence says nothing about whether the application "
+                    + "leaks. A heap dump answers "
                     + "the same question from the other side; profiles_features says whether this "
                     + "profile has one.";
 

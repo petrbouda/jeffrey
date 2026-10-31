@@ -1,0 +1,17 @@
+Paths to GC Root for Object ID 30776066856:
+
+Path #1:
+  GC Root Type: Sticky class
+  -> <unknown>.? (ID: 30776252656)
+  -> java.util.LinkedHashMap.table (ID: 30776058288)
+  -> java.util.HashMap$Node[].[376] (ID: 30776060216)
+  -> java.util.LinkedHashMap$Entry.key (ID: 30776066816)
+  -> java.lang.Long (ID: 30776066856)
+
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19242-7d5f-7d93-b7d1-5fd6510bed9c/heap-dump/gc-root-path?objectId=30776066856
+Next:
+- heap_getReferrers {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30776066856"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30776252656"} [LIGHT]

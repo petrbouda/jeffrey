@@ -33,6 +33,12 @@
 # supportedVersions.
 #
 # Silent when Jeffrey is up: a session that is fine should not open with a status report.
+#
+# Silent, too, in a project that shows no sign of the JVM. The plugin is installed per user, so this
+# runs at the start of every session in every repository; without the check, a reader whose Jeffrey
+# was simply not running opened their Python or Go sessions with an instruction to tell them so. A
+# JVM build file at the project's root, or a recording or heap dump near it, is enough to be worth
+# the probe; anywhere else a tool call that fails says the same thing, when somebody makes one.
 
 set -uo pipefail
 
@@ -47,6 +53,21 @@ set -uo pipefail
 # Gemini CLI extension declares as its setting, so a Gemini reader who moved Jeffrey is answered by
 # the same line, and anyone else can export it.
 ENDPOINT="${CLAUDE_PLUGIN_OPTION_ENDPOINT_URL:-${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/mcp}}"
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-${GEMINI_PROJECT_DIR:-$PWD}}"
+JVM_BUILD_FILES='pom.xml build.gradle build.gradle.kts settings.gradle settings.gradle.kts build.sbt build.mill'
+
+looks_like_jvm_project() {
+  for file in $JVM_BUILD_FILES; do
+    [ -e "$PROJECT_DIR/$file" ] && return 0
+  done
+  [ -n "$(find "$PROJECT_DIR" -maxdepth 3 -type f \( -name '*.jfr' -o -name '*.hprof' -o -name '*.hprof.gz' \) \
+    -print -quit 2>/dev/null)" ]
+}
+
+if ! looks_like_jvm_project; then
+  exit 0
+fi
 
 if ! command -v curl >/dev/null 2>&1; then
   exit 0

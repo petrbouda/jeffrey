@@ -1,0 +1,35 @@
+Instances of java.lang.Long:
+
+Total Instances: 140,513
+
+OBJECT ID            DETAILS                                               SHALLOW SIZE
+---------------------------------------------------------------------------------------
+30774951224          {value=0xf0001}                                               24 B
+30774951440          {value=0x100001}                                              24 B
+30774951656          {value=0x60001}                                               24 B
+30774951944          {value=0xb0001}                                               24 B
+30774952136          {value=0x70001}                                               24 B
+30774952352          {value=0x90001}                                               24 B
+30774952584          {value=0x20001}                                               24 B
+30774952824          {value=0x10001}                                               24 B
+30774953056          {value=0xe0001}                                               24 B
+30774953288          {value=0xd0001}                                               24 B
+30774953488          {value=0xa0001}                                               24 B
+30774953688          {value=0x80001}                                               24 B
+30774954032          {value=0x30001}                                               24 B
+30774954824          {value=0x40001}                                               24 B
+30774955040          {value=0x50001}                                               24 B
+30774955280          {value=0xc0001}                                               24 B
+30776066600          {value=0x80a}                                                 24 B
+30776066664          {value=0x783}                                                 24 B
+30776066728          {value=0x781}                                                 24 B
+30776066792          {value=0x77c}                                                 24 B
+
+
+---
+Open in Microscope: http://localhost:8585/profiles/01a19242-7d5f-7d93-b7d1-5fd6510bed9c/heap-dump/histogram
+Link note: The histogram page lists the class; its instances open from the class's row there.
+Next:
+- heap_browseClassInstances {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","className":"java.lang.Long","limit":20,"cursor":"eyJ2ZXJzaW9uIjoxLCJmaWx0ZXJzIjoiNjIzZTkyMjJjN2VkM2MyZTgyYmRlYTc0MTJlNTJmNzI1MzBkYjM1MjAwM2RiNDg0NjBlOWUzOThlMjhkYTRjNCIsIm9mZnNldCI6MjB9"} [MEDIUM]
+- heap_getInstanceDetail {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30774951224"} [LIGHT]
+- heap_getPathToGCRoot {"profileId":"01a19242-7d5f-7d93-b7d1-5fd6510bed9c","objectId":"30774951224"} [MEDIUM]

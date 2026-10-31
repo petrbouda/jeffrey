@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpToolsDelegate;
+import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
@@ -42,6 +43,7 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Adapts a {@link HeapDumpManager} to the {@link HeapDumpToolsDelegate} contract the {@code heap_}
@@ -66,6 +68,16 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
             return Optional.empty();
         }
         return Optional.of(HprofTag.Sub.rootKindName(Integer.parseInt(rows.getFirst().getFirst().trim())));
+    }
+
+    @Override
+    public Optional<GCRootPath> selfRootPath(long objectId) {
+        return manager.getSelfRootPath(objectId);
+    }
+
+    @Override
+    public Set<HeapReport> storedReports() {
+        return HeapReport.storedIn(manager);
     }
 
     @Override

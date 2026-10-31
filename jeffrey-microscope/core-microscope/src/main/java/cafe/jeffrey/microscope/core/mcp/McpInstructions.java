@@ -139,8 +139,9 @@ final class McpInstructions {
                     + "profiles_get's source commit is compared with the checkout before frames are mapped "
                     + "to code, and profiles_viewLink ends an explanation - the reader opens it, it is never "
                     + "read back."),
-            new OrderRule(Set.of(FLAMEGRAPH), "flamegraph_list gives the eventType values flamegraph_export "
-                    + "accepts; call it before the first export."),
+            new OrderRule(Set.of(FLAMEGRAPH), "flamegraph_export takes any eventType this profile recorded - "
+                    + "profiles_summary's eventTypes and flamegraph_list name them - and a type it did not "
+                    + "record answers status NOT_RECORDED naming the ones it did, so no list call is needed first."),
             new OrderRule(Set.of(TIMELINE), "Before a flamegraph of anything bursty, timeline_hotWindows "
                     + "finds the window whose startEpochMs and endEpochMs make the export show the spike; "
                     + "timeline_zoom looks inside it or at a startup."),

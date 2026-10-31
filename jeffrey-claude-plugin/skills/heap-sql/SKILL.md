@@ -18,7 +18,7 @@ reports in SQL is slower and easier to get wrong.
 Reach for `heap_executeQuery` only for a question they do not cover. `heap_listTables` and
 `heap_describeTable` give the live schema.
 
-Tool names here omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
 
 ## The tables
 
@@ -28,13 +28,20 @@ Tool names here omit the prefix your client puts in front of them — `mcp__plug
   `super_class_id`, `classloader_id`, `instance_size`, `is_array`.
 - **`instance`** — `instance_id`, `class_id` (nullable for primitive arrays), `shallow_size`,
   `array_length`, `record_kind` (TINYINT: `0` instance, `1` object array, `2` primitive array).
-- **`outbound_ref`** — `source_id`, `target_id`, `field_kind`, `field_id`. The whole reference graph;
-  indexed on `target_id` only, so "who points at X" is a lookup and "what X points at" is a scan —
-  cheap once, slow when repeated per row.
+- **`outbound_ref`** — `source_id`, `target_id`, `field_kind`, `field_id`. `field_kind` `0` is an
+  instance field: `field_id` is its position in the object's whole layout — its own class's fields
+  first, then each superclass's, primitive fields counted too — so for a field the object's own class
+  declares it equals that field's `field_index` in `class_instance_field`. `1` is an array element
+  (`field_id` the element's index), `2` a static field (`source_id` the class object). The whole
+  reference graph; indexed on `target_id` only, so "who points at X" is a lookup and "what X points
+  at" is a scan — cheap once, slow when repeated per row.
 - **`gc_root`** — `instance_id`, `root_kind`, `thread_serial`, `frame_index`.
 - **`dominator`** — `instance_id`, `dominator_id`. **Built lazily** — empty until something asks for it.
 - **`retained_size`** — `instance_id`, `bytes`. Populated alongside `dominator`, so LEFT JOIN it and
   expect NULLs on a heap whose dominator tree has not been built.
+- A dump indexed by an earlier Microscope can hold an older dominator tree in both tables, which the
+  tools read as not built and replace on first use. Run `heap_getDominatorTreeRoots` (or
+  `heap_prepare`) before querying them, so the SQL reads the tree the tools do.
 - **`string`** — `string_id`, `value`. The HPROF **UTF-8 string pool** (class and field names), *not*
   the contents of Java `String` instances — those are in `string_content`.
 - **`string_content`** — `instance_id`, `content_length`, `content`. The decoded text of every
