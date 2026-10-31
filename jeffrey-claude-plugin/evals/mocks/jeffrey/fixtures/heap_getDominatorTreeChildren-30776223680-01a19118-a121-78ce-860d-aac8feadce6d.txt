@@ -1,0 +1,33 @@
+Dominator Tree Children of Object ID 30776223680:
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+class jdk.jfr.internal.StringPool                             91 B       257.6 KiB          30773987160
+java.lang.String                                              32 B       109.1 KiB          30774702768
+java.lang.invoke.MethodType                                   40 B        40.6 KiB          30773664992
+byte[]                                                        40 B        40.4 KiB          30773714416
+java.lang.String                                              32 B        33.9 KiB          30784296872
+java.lang.invoke.ResolvedMethodName                           24 B        33.1 KiB          30778067792
+byte[]                                                        72 B        27.1 KiB          31075598984
+java.util.concurrent.ConcurrentHashMap                        72 B        23.5 KiB          30777369464
+byte[]                                                        40 B        23.3 KiB          30784931520
+java.lang.module.ModuleDescriptor$Exports                     32 B        18.1 KiB          30774264896
+com.sun.tools.javac.util.Options$$Lambda+0x0000...            24 B        17.6 KiB          30777245896
+java.lang.Object[]                                            64 B        17.2 KiB          30773969688
+java.lang.constant.ClassDesc[]                                24 B        17.1 KiB          30776326680
+byte[]                                                       344 B        15.9 KiB          30773944112
+java.util.concurrent.ConcurrentHashMap$Node                   32 B        12.9 KiB          30773923280
+java.lang.Long                                                24 B        11.5 KiB          30777641904
+java.util.concurrent.ConcurrentHashMap$Node[]                 80 B         9.9 KiB          30777401272
+java.lang.String                                              32 B         9.8 KiB          30777458520
+java.lang.String                                              32 B         9.3 KiB          30777825184
+byte[]                                                        48 B         9.2 KiB          30774288160
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a19118-a121-78ce-860d-aac8feadce6d/heap-dump/dominator-tree
+Link note: The page opens at the dominator-tree roots; expand down to object 30776223680 there.
+Next:
+- heap_getDominatorTreeChildren {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30773987160"} [MEDIUM]
+- heap_getDominatorTreeChildren {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30776223680","limit":20,"cursor":"eyJ2ZXJzaW9uIjoxLCJmaWx0ZXJzIjoiZjYwNGNhMjI3MGViNGNhNzg2MmEzZTg3MzI0ZGMxODRkMTZmNDQ2YzQ1YTI3ZGIyOWJhOTVkMzU4OGY4YTAxMiIsIm9mZnNldCI6MjB9"} [MEDIUM]
+- heap_getPathToGCRoot {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30776223680"} [MEDIUM]

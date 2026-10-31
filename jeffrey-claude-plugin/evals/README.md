@@ -34,8 +34,8 @@ model time at list price; `--max-cost-usd` stops it at a ceiling.
 | `help-what-is-here` | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
 | `record-exceptions-next-time` | "How do I record the exception types?" | `jdk.JavaExceptionThrow#enabled=true`, and that `settings=profile` does not turn it on |
 | `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
-| `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (142 ms of 30.6 s), no tuning from one fired rule |
-| `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its 80.8 s of blocked time read as thread-time, never as a share of the recording |
+| `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (about 0.4% of it), no tuning from one fired rule |
+| `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
 | `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `advise-jfr`, `compare-jfr`, `profile-run`) and makes that skill's first call |
 
 ## Where the answers come from
@@ -187,3 +187,22 @@ mostly that base read again on every request, nearly all of it cache reads. So s
 main-conversation skills further moves little; the number of requests an answer takes is the lever,
 and that is the tools' shape — how many calls stand between the question and the first answer —
 rather than the skills' length.
+
+**An unrecorded flamegraph says so** (server change; plugin 1.0.11). `flamegraph_export` of an event
+type the profile did not record answered with an empty tree, which is why the skills and the server's
+instructions said to call `flamegraph_list` before every export. It now answers `status:
+NOT_RECORDED` naming the recorded types, with the export of the one that answers the same question
+as its next call, and the skills, the analyst's handbook and `McpInstructions` drop the list-first
+rule. The mocks were re-recorded from that build (a new recording of the same workload — figures
+quoted by the graders were made recording-independent). Before and after on that recording, the
+before arm with the old skills and the old `flamegraph_export` description, three runs each:
+
+| Case | Score | Jeffrey calls | Tokens in (main / agents) | Cost |
+|---|---|---|---|---|
+| `named-area-cpu` | 1.00 → 1.00 | 3 → 3 | 181k → 181k | $0.19 → $0.19 |
+| `two-areas-delegated` | 0.95 → 1.00 | 6 → 5 | 47k / 216k → 35k / 182k | $0.34 → $0.32 |
+
+The main conversation already went `profiles_list` → `profiles_summary` → `flamegraph_export` before
+the change, routing from the summary as `analyze-jfr` says, so its chain is at its minimum: the name
+lookup, the summary the route depends on, and the export. The analysts drop the list call. The
+baselines above this section were measured on the earlier recording.

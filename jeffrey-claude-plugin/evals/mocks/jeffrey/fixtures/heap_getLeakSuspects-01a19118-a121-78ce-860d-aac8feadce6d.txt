@@ -1,0 +1,40 @@
+Leak Suspects Report:
+
+Total Heap Size: 10.6 MiB
+Analyzed Bytes: 20.3 MiB
+
+Suspect #1: java.lang.Long
+  Reason: Single instance of java.lang.Long retains 63.5% of the heap. Likely a leak suspect.
+  Retained Size: 6.8 MiB (63.5%)
+  Leak Score: 63.5
+  Instance Count: 138,162
+  Class Loader: <bootstrap> (id=0)
+  Cluster Root Object ID: 30780031832
+
+Suspect #2: java.lang.Long
+  Reason: Single instance of java.lang.Long retains 63.5% of the heap. Likely a leak suspect.
+  Retained Size: 6.8 MiB (63.5%)
+  Leak Score: 63.5
+  Instance Count: 138,162
+  Class Loader: <bootstrap> (id=0)
+  Cluster Root Object ID: 30780484696
+
+Suspect #3: byte[]
+  Reason: Single instance of byte[] retains 63.5% of the heap. Likely a leak suspect.
+  Retained Size: 6.8 MiB (63.5%)
+  Leak Score: 63.5
+  Instance Count: 39,090
+  Class Loader: <bootstrap> (id=0)
+  Cluster Root Object ID: 30776223680
+
+Top Leaking Class Loaders (across all suspects):
+  - <bootstrap>: 20.3 MiB across 3 suspect(s)
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a19118-a121-78ce-860d-aac8feadce6d/heap-dump/leak-suspects
+Next:
+- heap_getPathToGCRoot {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30780031832"} [MEDIUM]
+- heap_getDominatorTreeChildren {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30780031832"} [MEDIUM]
+Guidance:
+- A size is an observation, not a cause: heap_getPathToGCRoot on an object id says why it is still reachable, which is what makes a leak claim checkable.

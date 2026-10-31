@@ -41,6 +41,7 @@ import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.model.WeightKind;
 import cafe.jeffrey.profile.model.WeightOption;
@@ -51,15 +52,17 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
  * Flamegraphs of one profile, rendered as the Markdown export rather than as the protobuf the browser
  * draws — the same call tree, written to be read.
  * <p>
- * {@link #list()} comes first on purpose: which event types a recording actually captured varies by
- * profiler configuration, and asking for a graph of an event type that was never recorded returns an
- * empty tree rather than an error. The list is the profile's own answer to "what can I graph".
+ * Which event types a recording actually captured varies by profiler configuration. {@link #list()} is
+ * the profile's own answer to "what can I graph", and an export of a type the recording never captured
+ * says so — status {@code NOT_RECORDED}, naming the types it did — rather than drawing an empty tree, so
+ * a caller that already knows the type it wants can export it without asking for the list first.
  * <p>
  * The export's Markdown stays the text the agent reads. Beside it, the structured record says what
  * the tree was built from — event type, window, threshold, detail, filters — with the next calls and
@@ -71,6 +74,7 @@ public class FlamegraphMcpTools {
 
     /** The tools and arguments this family's answers hand back as next calls. */
     private static final String EXPORT_TOOL = "flamegraph_export";
+    private static final String LIST_TOOL = "flamegraph_list";
     private static final String HOT_WINDOWS_TOOL = "timeline_hotWindows";
     private static final String THREADS_TOOL = "jvm_threads";
     private static final String FEATURES_TOOL = "profiles_features";
@@ -93,6 +97,15 @@ public class FlamegraphMcpTools {
     private static final String COMPARE_GUIDANCE =
             "Whether this is worse than it was is not visible in one profile: compare_list with a baseline "
                     + "profile's id, then compare_movements.";
+
+    private static final String ALTERNATIVE_WHY =
+            "the recorded event type that answers the same question as the one asked for";
+    private static final String LIST_WHY = "every event type this profile recorded, with its export defaults";
+    private static final String NOT_RECORDED_REASON =
+            "This profile recorded no %s samples, so there is no tree to draw. It recorded: %s.";
+
+    /** The two samplers of on-CPU time: a recording made with JDK 25's CPU-time sampler holds no ExecutionSample. */
+    private static final Set<Type> ON_CPU_TYPES = Set.of(Type.EXECUTION_SAMPLE, Type.CPU_TIME_SAMPLE);
 
     private static final String NOTHING_TO_GRAPH =
             "This profile has no flamegraph-capable event types. It may be a heap dump "
@@ -173,8 +186,8 @@ public class FlamegraphMcpTools {
             + "jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is "
             + "the tree at 0.5%, several times longer. The Markdown is the text; the structured "
             + "result records the event type, window, threshold and filters it was built with, and "
-            + "uiLink opens the same graph in Microscope. flamegraph_list names the event types "
-            + "this profile can graph.")
+            + "uiLink opens the same graph in Microscope. An event type this profile did not record "
+            + "answers status NOT_RECORDED, naming the types it did, rather than an empty tree.")
     @McpOutputSchema(FlamegraphExport.class)
     @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.MODERATE)
     public McpToolResult export(
@@ -223,6 +236,10 @@ public class FlamegraphMcpTools {
 
         Type type = requireEventType(eventType);
         ProfileInfo info = profileManager.info();
+        List<EventSummaryResult> recorded = recordedTypes();
+        if (recorded.stream().noneMatch(summary -> summary.code().equals(type.code()))) {
+            return notRecorded(info.id(), type, Detail.of(detail), recorded);
+        }
         EpochWindow window = requestedWindow(info, startEpochMs, endEpochMs);
         // With no window the whole recording is graphed on the millisecond base the link names it on,
         // so the graph and the page opened from the link cannot differ by a sub-millisecond remainder.
@@ -266,6 +283,8 @@ public class FlamegraphMcpTools {
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, null);
 
         FlamegraphExport export = new FlamegraphExport(
+                GraphStatus.OK,
+                null,
                 info.id(),
                 type.code(),
                 level,
@@ -281,6 +300,49 @@ public class FlamegraphMcpTools {
                 followUp,
                 uiLink);
         return McpToolResult.of(text.text(), export);
+    }
+
+    /** The event types this profile holds samples of — the summaries the flamegraph grid is drawn from. */
+    private List<EventSummaryResult> recordedTypes() {
+        return profileManager.flamegraphManager().eventSummaries().stream()
+                .filter(summary -> summary.primary() != null && summary.primary().samples() > 0)
+                .toList();
+    }
+
+    /**
+     * The answer to an export of a type the recording never captured: no tree, the types it did capture,
+     * and as the next call the export of a recorded type that answers the same question, when there is
+     * one — never a graph of something else, which the caller did not ask about.
+     */
+    private McpToolResult notRecorded(String profileId, Type type, Detail level, List<EventSummaryResult> recorded) {
+        String reason = recorded.isEmpty()
+                ? NOTHING_TO_GRAPH
+                : NOT_RECORDED_REASON.formatted(type.code(),
+                        String.join(", ", recorded.stream().map(EventSummaryResult::code).toList()));
+        EventSummaryResult alternative = recorded.stream()
+                .filter(summary -> answerTheSameQuestion(type, Type.fromCode(summary.code())))
+                .findFirst()
+                .orElse(null);
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .nextWhen(alternative != null, () -> NextCalls.to(EXPORT_TOOL)
+                        .with(PROFILE_ID, profileId)
+                        .with(EVENT_TYPE, alternative.code())
+                        .why(ALTERNATIVE_WHY))
+                .next(NextCalls.to(LIST_TOOL).with(PROFILE_ID, profileId).why(LIST_WHY))
+                .followUp();
+        String uiLink = UiLinks.view(profileId, GRID_VIEW);
+        LinkedOutput.Footed text = LinkedOutput.footed(reason, followUp, uiLink, null);
+        FlamegraphExport export = new FlamegraphExport(
+                GraphStatus.NOT_RECORDED, reason, profileId, type.code(), level, null, null,
+                false, weightedByDefault(type), false, false, null, 0, false, followUp, uiLink);
+        return McpToolResult.of(text.text(), export);
+    }
+
+    /** Whether a recorded type graphs the same thing as the one asked for: on-CPU time, allocation or blocking. */
+    private static boolean answerTheSameQuestion(Type asked, Type recorded) {
+        return (ON_CPU_TYPES.contains(asked) && ON_CPU_TYPES.contains(recorded))
+                || (asked.isAllocationEvent() && recorded.isAllocationEvent())
+                || (asked.isBlockingEvent() && recorded.isBlockingEvent());
     }
 
     /**
@@ -506,6 +568,12 @@ public class FlamegraphMcpTools {
      * @param window the window graphed; null when it was the whole recording
      */
     record FlamegraphExport(
+            @McpDescription("OK when the Markdown is the call tree; NOT_RECORDED when this profile holds no "
+                    + "samples of eventType, and reason names the types it does")
+            GraphStatus status,
+            @McpNullable
+            @McpDescription("Why there is no tree, naming the recorded event types; null when status is OK")
+            String reason,
             String profileId,
             String eventType,
             Detail detail,

@@ -1,5 +1,6 @@
 ---
-# The answer states what its shares are of: the export's 3,153 samples.
+# The answer states what its shares are of: the export's total sample count, whatever the recording.
 type: regex
-pattern: '3,?153'
+pattern: '\d[\d,]{2,}\s*(?:on-CPU\s+|CPU\s+|execution\s+)?samples'
+flags: i
 ---

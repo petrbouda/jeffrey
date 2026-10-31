@@ -8,7 +8,7 @@ says what each of its tools answers.
 | Family | Tools |
 |---|---|
 | `profiles_` | `list`, `summary` (identity, features, recorded event types and the top findings in one call — start here), `get`, `features`, `samplerHealth` (whether the samples can be trusted), `link` (the profile in the Jeffrey UI), `viewLink` (one named page) |
-| `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
+| `flamegraph_` | `export` (the call tree as Markdown; an unrecorded type answers `NOT_RECORDED`), `list` (every recorded type with its export defaults) |
 | `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport`, plus `attributeKeys`/`attributeValues`/`attributeSearch` |
 | `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `gcDetail`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `classLoading`, `exceptions`, `exceptionSites`, `system`, `security`, `container`, `configuration`, `flags` — the machine underneath the application |

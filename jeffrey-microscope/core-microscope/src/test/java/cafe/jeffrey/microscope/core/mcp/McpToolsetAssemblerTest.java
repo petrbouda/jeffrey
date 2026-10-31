@@ -83,6 +83,7 @@ import cafe.jeffrey.profile.mcp.McpToolNames;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.mcp.McpToolRequirement;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.profile.trace.export.TraceAiMarkdownBuilder;
@@ -1290,6 +1291,7 @@ class McpToolsetAssemblerTest {
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(600), Instant.EPOCH, true, false, "recording-1"));
 
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+            lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(executionSamples()));
             lenient().when(flamegraphManager.generateAiExport(any(), any())).thenAnswer(invocation -> {
                 AiExportConfig config = invocation.getArgument(1);
                 return export(config == null ? new AiExportConfig(CONFIGURED_THRESHOLD_PCT) : config);
@@ -1718,6 +1720,7 @@ class McpToolsetAssemblerTest {
                     "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+            when(flamegraphManager.eventSummaries()).thenReturn(List.of(executionSamples()));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("tree");
             when(contextCache.acquire("profile-1")).thenReturn(lease);
 
@@ -1772,4 +1775,10 @@ class McpToolsetAssemblerTest {
         }
     }
 
+    /** A recording that holds execution samples, so an export of them draws a tree. */
+    private static EventSummaryResult executionSamples() {
+        EventSummaryResult.SingleResult primary = new EventSummaryResult.SingleResult(
+                "jdk.ExecutionSample", "jdk.ExecutionSample", null, null, 1_000L, 0L, false, Map.of());
+        return new EventSummaryResult("jdk.ExecutionSample", "jdk.ExecutionSample", primary, null);
+    }
 }

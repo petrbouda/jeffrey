@@ -1,0 +1,13 @@
+Dominator Tree Children of Object ID 30776253096:
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+byte[]                                                       328 B         7.4 KiB          30776253640
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a19118-a121-78ce-860d-aac8feadce6d/heap-dump/dominator-tree
+Link note: The page opens at the dominator-tree roots; expand down to object 30776253096 there.
+Next:
+- heap_getDominatorTreeChildren {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30776253640"} [MEDIUM]
+- heap_getPathToGCRoot {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30776253096"} [MEDIUM]

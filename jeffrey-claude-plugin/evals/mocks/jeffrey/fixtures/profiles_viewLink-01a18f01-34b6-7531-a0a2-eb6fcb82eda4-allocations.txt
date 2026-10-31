@@ -1,1 +1,0 @@
-{"profileId":"01a18f01-34b6-7531-a0a2-eb6fcb82eda4","view":"allocations","objectId":null,"uiLink":"http://localhost:8586/profiles/01a18f01-34b6-7531-a0a2-eb6fcb82eda4/allocations"}

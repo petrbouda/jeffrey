@@ -2224,11 +2224,24 @@
           "profileId": {
             "type": "string"
           },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "search": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED"
+            ],
+            "type": "string"
           },
           "threadMode": {
             "type": "boolean"
@@ -2276,7 +2289,9 @@
           "followUp",
           "markdownChars",
           "profileId",
+          "reason",
           "search",
+          "status",
           "threadMode",
           "thresholdPct",
           "truncated",

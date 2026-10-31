@@ -2579,7 +2579,7 @@
   {
    "name": "flamegraph_export",
    "title": "Flamegraph: Export",
-   "description": "Exports a flamegraph as Markdown for reading: a nested call tree where every frame carries its total samples, its self samples and its JIT tier, under a preamble defining exactly what those numbers mean. The main tool for 'where does the time go'. Frames below the prune threshold are dropped and their weight rolled up into the parent, so the accounting stays exact. detail 'summary' answers in a few kilobytes with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the tree at the configured default threshold (2% unless jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is the tree at 0.5%, several times longer. The Markdown is the text; the structured result records the event type, window, threshold and filters it was built with, and uiLink opens the same graph in Microscope. flamegraph_list names the event types this profile can graph.",
+   "description": "Exports a flamegraph as Markdown for reading: a nested call tree where every frame carries its total samples, its self samples and its JIT tier, under a preamble defining exactly what those numbers mean. The main tool for 'where does the time go'. Frames below the prune threshold are dropped and their weight rolled up into the parent, so the accounting stays exact. detail 'summary' answers in a few kilobytes with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the tree at the configured default threshold (2% unless jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is the tree at 0.5%, several times longer. The Markdown is the text; the structured result records the event type, window, threshold and filters it was built with, and uiLink opens the same graph in Microscope. An event type this profile did not record answers status NOT_RECORDED, naming the types it did, rather than an empty tree.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -2644,6 +2644,21 @@
    "outputSchema": {
     "type": "object",
     "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_RECORDED"
+      ],
+      "description": "OK when the Markdown is the call tree; NOT_RECORDED when this profile holds no samples of eventType, and reason names the types it does"
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there is no tree, naming the recorded event types; null when status is OK"
+     },
      "profileId": {
       "type": "string"
      },
@@ -2775,6 +2790,8 @@
      }
     },
     "required": [
+     "status",
+     "reason",
      "profileId",
      "eventType",
      "detail",

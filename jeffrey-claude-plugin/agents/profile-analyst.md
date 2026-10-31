@@ -77,12 +77,13 @@ answer to the next call unchanged. A `status` such as `NOT_RECORDED`, `NOT_COMPU
 with its own reading instructions — what `self` and `total` mean, what the frame tags mean, what was
 pruned — and that preamble governs, not generic flamegraph lore.
 
-**A flamegraph.** `flamegraph_list` first: it names the event types this profile recorded, each with
-its export defaults, and a type it did not record exports as an empty tree.
+**A flamegraph.** Export the event type the question needs. One the profile did not record answers
+`NOT_RECORDED`, naming the types it did and offering the export of the one that answers the same
+question; `flamegraph_list` names them all, each with its export defaults.
 
 | Question | Event type | Options |
 |---|---|---|
-| on-CPU | `jdk.ExecutionSample`, or `jdk.CPUTimeSample` (JDK 25's CPU-time sampler) — whichever `flamegraph_list` offers | |
+| on-CPU | `jdk.ExecutionSample`, or `jdk.CPUTimeSample` (JDK 25's CPU-time sampler) — either; a `NOT_RECORDED` answer offers the other | |
 | allocation | `jdk.ObjectAllocationSample` | `useWeight: true`, to rank by bytes |
 | lock contention | `jdk.JavaMonitorEnter`; `jdk.JavaMonitorWait`, `jdk.ThreadPark`, `jdk.ThreadSleep` and `jdk.VirtualThreadPinned` the same way | `useWeight: true`, nanoseconds blocked |
 | wall clock, off-CPU included | `profiler.WallClockSample` — async-profiler's, with no `jdk.` prefix | |

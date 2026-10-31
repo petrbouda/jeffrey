@@ -96,7 +96,7 @@ class McpInstructionsTest {
         @Test
         void carriesTheCallOrderOfEveryFamily() {
             for (String rule : List.of(
-                    "flamegraph_list gives the eventType values flamegraph_export accepts",
+                    "flamegraph_export takes any eventType this profile recorded",
                     "compare_list comes before any other compare_ tool",
                     "traces_overview first",
                     "jvm_sections comes before the other jvm_ tools",

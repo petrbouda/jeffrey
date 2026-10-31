@@ -312,6 +312,7 @@ class FlamegraphMcpToolsTest {
         void exportableProfile() {
             when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+            when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("tree");
         }
 
@@ -381,6 +382,7 @@ class FlamegraphMcpToolsTest {
         void exportableProfile() {
             when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+            lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             lenient().when(flamegraphManager.generateAiExport(any(), any())).thenReturn(TREE);
         }
 
@@ -658,6 +660,7 @@ class FlamegraphMcpToolsTest {
                     "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
                     SUB_MS_START, SUB_MS_END, SUB_MS_START, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
+            when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("## Call tree");
         }
 
@@ -676,6 +679,75 @@ class FlamegraphMcpToolsTest {
             assertEquals(Duration.ZERO, params.getValue().timeRange().start());
             assertEquals(Duration.ofMillis(endMs - startMs), params.getValue().timeRange().end());
             assertTrue(export.get("window").isNull(), "no window was asked for");
+        }
+    }
+
+    /**
+     * An export of an event type the recording never captured: no tree to draw, so the answer says so
+     * and names what was recorded, instead of an empty tree a reader would take for "nothing was hot".
+     */
+    @Nested
+    class NotRecordedType {
+
+        private static final String CPU_TIME = EventTypeName.CPU_TIME_SAMPLE;
+        private static final String ALLOCATION = EventTypeName.OBJECT_ALLOCATION_SAMPLE;
+
+        private McpToolResult exportCpu() {
+            return tools().export(CPU, null, null, null, null, null, null, null, null, null);
+        }
+
+        @Test
+        void answersNotRecordedNamingWhatWasRecordedInsteadOfAnEmptyTree() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0), summary(ALLOCATION, 300, 9_000)));
+
+            McpToolResult result = exportCpu();
+            JsonNode export = conforming("export", result);
+
+            assertEquals("NOT_RECORDED", export.get("status").asString());
+            String reason = export.get("reason").asString();
+            assertTrue(reason.contains(CPU) && reason.contains(CPU_TIME) && reason.contains(ALLOCATION), reason);
+            assertEquals(0, export.get("markdownChars").asInt());
+            assertTrue(result.text().startsWith(reason), result.text());
+            MarkdownFooters.assertRenderedFrom(result.text(), export);
+            verify(flamegraphManager, never()).generateAiExport(any(), any());
+        }
+
+        /** JDK 25's CPU-time sampler writes CPUTimeSample instead: the export that answers "where is the CPU". */
+        @Test
+        void offersTheRecordedTypeThatAnswersTheSameQuestion() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(ALLOCATION, 300, 9_000), summary(CPU_TIME, 500, 0)));
+
+            JsonNode export = conforming("export", exportCpu());
+
+            assertEquals(List.of("flamegraph_export", "flamegraph_list"), nextTools(export));
+            JsonNode offered = export.get("followUp").get("nextTools").get(0).get("arguments");
+            assertEquals(CPU_TIME, offered.get("eventType").asString());
+            assertEquals(2, McpNextToolConformance.assertFollowable(export, reachable()));
+        }
+
+        @Test
+        void offersNoGraphOfSomethingElse() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(ALLOCATION, 300, 9_000)));
+
+            assertEquals(List.of("flamegraph_list"), nextTools(conforming("export", exportCpu())));
+        }
+
+        @Test
+        void aTypeWithNoSamplesIsNotRecorded() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(CPU, 0, 0), summary(CPU_TIME, 500, 0)));
+
+            assertEquals("NOT_RECORDED", conforming("export", exportCpu()).get("status").asString());
+        }
+
+        @Test
+        void aRecordedTypeIsDrawnAsBefore() {
+            profileOf(RecordingEventSource.JDK, List.of(summary(CPU, 500, 0)));
+            when(flamegraphManager.generateAiExport(any(), any())).thenReturn("## Call tree");
+
+            JsonNode export = conforming("export", exportCpu());
+
+            assertEquals("OK", export.get("status").asString());
+            assertTrue(export.get("reason").isNull());
         }
     }
 

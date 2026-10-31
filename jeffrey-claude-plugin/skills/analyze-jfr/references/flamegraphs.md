@@ -4,14 +4,15 @@ Which event type to graph for a question, and how to pick the window a graph is 
 
 ## Which event type
 
-`flamegraph_list` returns `available` — the event types this profile really recorded, each with
-the export defaults for that type — and `notRecorded`, the standard groups the profiler did not
-capture. Asking for a type it did not record returns an empty tree rather than an error, so check
-first. Starting points:
+Export the type the question needs straight away — `profiles_summary`'s `eventTypes` already says
+what was recorded. A type the profile did not record answers `status: NOT_RECORDED`, naming the
+types it did, with the export of the one that answers the same question in `followUp.nextTools`.
+`flamegraph_list` names every recorded type with its export defaults, and the standard groups the
+profiler did not capture; call it when those matter, not before every export. Starting points:
 
 - on-CPU time → `jdk.ExecutionSample`, or `jdk.CPUTimeSample` — JDK 25's CPU-time sampler (JEP 509)
-  writes that type instead, so a recording made with it holds no `ExecutionSample` at all. Take
-  whichever `flamegraph_list` offers rather than assuming the older one.
+  writes that type instead, so a recording made with it holds no `ExecutionSample` at all. Ask for
+  either; a `NOT_RECORDED` answer offers the other.
 - allocation → `jdk.ObjectAllocationSample`, with `useWeight: true` to rank by bytes rather than call count
 - lock contention → `jdk.JavaMonitorEnter`, with `useWeight: true` (weight is nanoseconds blocked);
   `jdk.JavaMonitorWait`, `jdk.ThreadPark`, `jdk.ThreadSleep` and `jdk.VirtualThreadPinned` graph the

@@ -1,0 +1,63 @@
+Dominator Tree Roots (top retained size holders):
+
+CLASS                                                 SHALLOW SIZE   RETAINED SIZE            OBJECT ID
+-------------------------------------------------------------------------------------------------------
+java.lang.Long                                                24 B         6.8 MiB          30780031832
+java.lang.Long                                                24 B       291.0 KiB          31075994120
+java.lang.Long                                                24 B       227.6 KiB          31077482384
+java.lang.String                                              32 B        96.8 KiB          31075892632
+java.lang.Long                                                24 B        94.6 KiB          31076801336
+java.util.HashMap$Node                                        32 B        72.0 KiB          30775687768
+jdk.internal.constant.ClassOrInterfaceDescImpl                24 B        64.2 KiB          30775726048
+java.util.concurrent.ConcurrentHashMap$Node                   32 B        56.5 KiB          30775674352
+java.lang.Long                                                24 B        54.3 KiB          30780233912
+java.lang.Long                                                24 B        53.0 KiB          31075994096
+java.util.ArrayList                                           32 B        50.8 KiB          30775690360
+jdk.internal.constant.MethodTypeDescImpl                      32 B        36.0 KiB          30775725224
+java.lang.Long                                                24 B        31.7 KiB          31075995464
+java.lang.Long                                                24 B        27.5 KiB          30779355776
+java.lang.Long                                                24 B        24.7 KiB          31075996496
+java.lang.Long                                                24 B        24.0 KiB          31076747224
+java.lang.Long                                                24 B        22.8 KiB          30780031808
+java.lang.String                                              32 B        21.6 KiB          31075993552
+java.lang.Long                                                24 B        16.9 KiB          31077202552
+char[]                                                    16.0 KiB        16.1 KiB          30775515184
+char[]                                                    16.0 KiB        16.1 KiB          30775482272
+java.lang.Long                                                24 B        14.7 KiB          31075998032
+java.lang.invoke.MethodType                                   40 B        14.0 KiB          30775659848
+java.lang.String                                              32 B        12.0 KiB          31075992712
+java.lang.invoke.LambdaForm$Name[]                            56 B        10.0 KiB          30775707784
+java.lang.Long                                                24 B         9.9 KiB          31077258968
+jdk.jfr.internal.AnnotationConstruct                          24 B         9.7 KiB          30775408520
+java.time.temporal.ChronoField                                48 B         9.1 KiB          30775679480
+java.util.concurrent.ConcurrentHashMap$Node                   32 B         8.8 KiB          30775726680
+java.util.concurrent.ConcurrentHashMap$Node[]              8.0 KiB         8.2 KiB          30775709176
+java.util.concurrent.ConcurrentHashMap$Node[]              8.0 KiB         8.0 KiB          30775614144
+jdk.jfr.internal.EventControl$NamedControl                    24 B         7.8 KiB          30775396568
+byte[]                                                        64 B         7.5 KiB          30775731296
+java.lang.Long                                                24 B         7.4 KiB          31076829264
+java.lang.Long                                                24 B         6.9 KiB          31076880704
+java.time.format.DateTimeFormatterBuilder$Numbe...            40 B         6.6 KiB          30775686672
+java.util.LinkedHashMap                                       64 B         6.0 KiB          30775686880
+byte[]                                                        32 B         5.7 KiB          31076604376
+jdk.internal.jimage.ImageReader$Directory                     40 B         5.4 KiB          30775695992
+java.time.temporal.ValueRange                                 48 B         5.3 KiB          30775679928
+java.lang.Long                                                24 B         5.1 KiB          31077174328
+java.lang.Long                                                24 B         5.0 KiB          31077336416
+java.lang.Long                                                24 B         4.9 KiB          31076936712
+java.lang.String                                              32 B         4.9 KiB          31075998592
+java.lang.Long                                                24 B         4.8 KiB          31077318752
+java.time.temporal.ValueRange                                 48 B         4.4 KiB          30775679128
+java.lang.Long                                                24 B         4.4 KiB          31076332736
+java.util.ArrayList                                           32 B         4.3 KiB          30779355424
+com.acme.checkout.Checkout$Order                              32 B         4.3 KiB          30779904136
+java.lang.String                                              32 B         4.0 KiB          31077375312
+
+More roots exist beyond these 50
+
+
+---
+Open in Microscope: http://localhost:8586/profiles/01a19118-a121-78ce-860d-aac8feadce6d/heap-dump/dominator-tree
+Next:
+- heap_getDominatorTreeChildren {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30780031832"} [MEDIUM]
+- heap_getPathToGCRoot {"profileId":"01a19118-a121-78ce-860d-aac8feadce6d","objectId":"30780031832"} [MEDIUM]
