@@ -144,8 +144,12 @@ missing rather than reporting an empty result. **`profile-analyst`** does the sa
 runs `heap_prepare`, which suits a dump that is already prepared. The Claude Code plugin ships both; in
 Codex they are the custom agents under `codex/agents/`. Without one, read here.
 
-Delegate a whole route from step 5 — give it the `profileId` and the question — and send independent
-questions in one message so they run at once.
+Delegate only with a `profileId` in hand. Neither agent may import, so a dump the user named as a
+file is imported here first — `recordings_analyzeFile` with its absolute path, followed to the
+`profileId` as step 1 describes. An agent handed a path or a name instead looks a profile up in
+the catalogue, which can be another dump of the same name rather than the file the user meant.
+Then delegate a whole route from step 5 — give it the `profileId` and the question — and send
+independent questions in one message so they run at once.
 
 Work here instead when a single tool answers the question, or when the user is walking the
 dominator tree with you object by object. Reading the real source behind a retaining field, and

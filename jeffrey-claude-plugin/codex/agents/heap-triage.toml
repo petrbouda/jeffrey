@@ -34,8 +34,10 @@ A `profileId`, and a heap question. Read the `analyze-heap` and `heap-sql` skill
 tool families, shallow versus retained, which reports are computed on demand and which are cached, and
 the order the tools have to run in. Follow them.
 
-If the request names no `profileId`, say so and stop. If the profile is a JFR recording rather than a
-heap dump, say that and stop.
+If the request names no `profileId`, say so and stop. A file path or a profile's name is not one:
+do not look a profile up in `profiles_list` to stand in for it — the catalogue can hold another dump
+of the same name, and importing the file the user meant is the caller's step, not yours. If the profile is a JFR
+recording rather than a heap dump, say that and stop.
 
 ## Three rules that decide whether your report is usable
 

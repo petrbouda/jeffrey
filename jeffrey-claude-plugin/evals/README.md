@@ -111,3 +111,9 @@ What it says:
   a case that loads `analyze-jfr` or `compare-jfr` reads 160k–200k across its turns — the skill, the tool
   list and the answers so far, read again (mostly from cache) on every turn. The skill's share of that
   is what the restructure is meant to cut.
+
+## Changes measured against it
+
+| Change | Case | Before | After | What moved |
+|---|---|---|---|---|
+| `analyze-heap` imports a named dump before delegating; `heap-triage` never looks a profile up by name (plugin 1.0.6) | `heap-dump-what-holds-memory` | 0.87 — the named file not imported in 7 of 10 runs | 1.00 — imported in 3 of 3, in the main conversation before the hand-off | `recordings_analyzeFile` → `Agent(heap-triage)` with its `profileId`; tool calls, tokens and cost unchanged (18 calls, 30k tokens in, $0.26) |
