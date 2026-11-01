@@ -8,7 +8,8 @@ answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere
 starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
 
 Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
-no "Implement fixes: not on offer", no sentence on why there is nothing to fix.
+no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before
+you write the offer: one that says it has not yet checked whether the class is here is not offered.
 
 - the working directory is a repository — a `.git` there (`Glob`), or `git rev-parse
   --show-toplevel` answering;

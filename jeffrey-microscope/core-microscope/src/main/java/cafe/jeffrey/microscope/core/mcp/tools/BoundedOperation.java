@@ -55,11 +55,11 @@ public final class BoundedOperation<V> {
     private static final String FAILED = "The %s operation failed: %s. Operation: %s";
 
     /**
-     * How much of the failed operation's snapshot the error text carries: half the result cap, so the
-     * message around it always fits, and a longer snapshot ends in the TRUNCATED line that marks a cut
-     * text answer.
+     * How much of the failed operation's snapshot the error text carries: half the limit of a tool that
+     * declares no large result — both tools that run through here are such — so the message around it
+     * fits, and a longer snapshot ends in the TRUNCATED line that marks a cut text answer.
      */
-    private static final int FAILED_SNAPSHOT_CHARS = McpToolOutput.MAX_CHARS / 2;
+    private static final int FAILED_SNAPSHOT_CHARS = McpToolOutput.UNDECLARED_MAX_CHARS / 2;
 
     private final OperationKind kind;
     private final BoundedJobs<String, V> jobs;
@@ -113,10 +113,19 @@ public final class BoundedOperation<V> {
         try {
             return jobs.awaitWithin(handle, answers.waitBudget(call, jobs.waitBudget()));
         } catch (RuntimeException failure) {
-            throw new ToolExecutionException(FAILED.formatted(kind.name(), failure.getMessage(),
-                    McpToolOutput.cappedWithin(Json.toString(operations.status(handle.operationId())),
-                            FAILED_SNAPSHOT_CHARS)), failure);
+            throw new ToolExecutionException(failureText(kind, failure.getMessage(),
+                    Json.toString(operations.status(handle.operationId()))), failure);
         }
+    }
+
+    /**
+     * What the agent is told when the operation failed: the failure and the operation as it stands,
+     * the whole within the limit of a tool that declares no large result — a failure message can be
+     * as long as the snapshot.
+     */
+    static String failureText(OperationKind kind, String failure, String snapshot) {
+        return McpToolOutput.cappedWithin(FAILED.formatted(kind.name(), failure,
+                McpToolOutput.cappedWithin(snapshot, FAILED_SNAPSHOT_CHARS)), McpToolOutput.UNDECLARED_MAX_CHARS);
     }
 
     /**

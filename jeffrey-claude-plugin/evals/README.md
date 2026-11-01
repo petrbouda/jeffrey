@@ -855,3 +855,37 @@ guessed one — without the ↗ mark (of 51 replies, six left a link unmarked: t
 the exceptions page three); `two-areas-delegated`'s analyst asked for a `threadMode` export no fixture
 holds; `route-two-revisions-not-profiled` once left out "record both the same way". None is a
 regression from the sizes; the mark is the one still slipping.
+
+## Plugin 1.0.26: links marked, failures within the limit
+
+- **The ↗ mark is checked before a reply is sent.** The shared link rule ends with a self-check: every
+  link text holds `↗`, a page named in passing included. `no-unmarked-link` now grades every analysis
+  case, not two. `analyze-exceptions` named "the Exceptions page" without the mark and the reply
+  copied it unmarked in three of three runs; the skill now spells the marked text.
+- **A failed operation's text stays within the undeclared limit.** `jvm_autoAnalysis` and `heap_oql`
+  carried up to 60,000 characters of operation snapshot in their error; the snapshot is now cut to
+  half of the 50,000 limit and the whole text to the limit, pinned by a test.
+- **Implement fixes is offered only after both checks ran.** One run offered it while saying it had
+  not yet looked for the class in the repository.
+- `named-area-cpu`'s `states-the-denominator` accepts the count with its event type named
+  ("3,118 `jdk.ExecutionSample` samples"), which the answer did state.
+
+Not done: seeding `flamegraph_export` with `threadMode`, `excludeIdle` and `search` so those calls
+have a fixture. A fixed mock is addressed by the required arguments alone, so the seeded per-thread
+call replaced the plain CPU graph in the fixture and in what `recorded-call-semantics` accepts. The
+grader is right to fail those calls: the mock cannot answer them, and the handbook leaves
+`threadMode` off.
+
+| | 1.0.25 | 1.0.26 |
+|---|---|---|
+| Mocked cases at the threshold | 14 of 17 | 15 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $9.27 | $9.28 |
+| Replies with an unmarked link | 6 of 51 | 2 of 51 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The misses, one run each and both judge splits: `compare-finds-the-regression`'s `honest-verdict`
+and `gc-pauses-in-proportion`'s `pauses-in-proportion`. The two unmarked replies linked the baseline
+and a comparison's event types. The live exceptions case first scored 0.93 — two runs loaded
+`analyze-exceptions` instead of `jfr-sql`, as at 1.0.17, and still answered with SQL — and 1.00 when
+run again.
