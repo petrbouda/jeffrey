@@ -306,6 +306,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>Six reports have to be built before they can be read.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are cached results, and until something computes one its tool says so. The skill maps each to the <code>heap_prepare</code> report that builds it, so the model prepares the dump and carries on rather than sending you to the browser &mdash; and knows to fall back to the UI when the installation has compute switched off.</li>
             <li>That the same question has an on-demand route which does not wait on the UI: the dominator tree into <code>heap_getPathToGCRoot</code>.</li>
             <li><strong>An open question gets the heap&rsquo;s own menu.</strong> &ldquo;Analyse this dump&rdquo; gets <code>profiles_summary</code>&rsquo;s <router-link to="/docs/microscope-mcp/tools#investigation-areas"><code>investigationAreas</code></router-link> for a heap dump &mdash; contents, retention and waste &mdash; with the areas still waiting for <code>heap_prepare</code> marked <code>NEEDS_PREPARATION</code> and prepared only when you choose them.</li>
+            <li><strong>It offers to implement the fix</strong> when a finding names code or configuration in the repository the agent runs in &mdash; the class that holds the retained memory, the cache that never evicts &mdash; as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#advise-jfr"><code>advise-jfr</code></a>, which edits only the changes you accept.</li>
           </ul>
         </section>
 
@@ -383,6 +384,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>The direction.</strong> The after run is the <code>profileId</code>; the before run is the <code>baselineProfileId</code>. Backwards, every regression reads as an improvement.</li>
             <li><strong>Ranked first, tree second.</strong> <code>compare_movements</code> attributes by self weight, so a change is charged to the method that moved rather than to every caller above it.</li>
             <li><strong>The limits, stated rather than assumed.</strong> Share and delta answer different questions and must be quoted as the one they are; one pair of recordings cannot separate a 5% move from run-to-run variance; and one event type&rsquo;s distribution is not a wall-clock benchmark, so a shifted CPU profile is never evidence that the application got faster end to end.</li>
+            <li><strong>It offers to implement the fix</strong> when a movement names code or configuration in the repository the agent runs in, as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#advise-jfr"><code>advise-jfr</code></a>, which edits only the changes you accept.</li>
           </ul>
         </section>
 
@@ -463,6 +465,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>The two runs differ in exactly one thing.</strong> Same JVM, same flags, same duration, same machine, same warm-up &mdash; and <strong>never in parallel</strong>, because two profiled JVMs on one machine contend for CPU and each records the other&rsquo;s interference as its own slowness. Alternating repeats when the machine is noisy or the difference is expected to be small.</li>
             <li><strong>The verdict first, then the uncertainty.</strong> One run each on a shared machine supports &ldquo;no obvious change&rdquo;; it does not support &ldquo;3% slower&rdquo;. A movement smaller than the gap between two runs of the <em>same</em> revision is noise, and the honest way to know that is to record the baseline twice.</li>
             <li><strong>Housekeeping is part of the measurement.</strong> The working tree is checked clean before revisions are switched and put back afterwards; a stash left behind is a worse outcome than an unanswered question.</li>
+            <li><strong>It offers to implement the fix</strong> once a regression is confirmed and its movement names code or configuration in the repository the agent runs in, as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#advise-jfr"><code>advise-jfr</code></a>, which edits only the changes you accept.</li>
           </ul>
         </section>
 

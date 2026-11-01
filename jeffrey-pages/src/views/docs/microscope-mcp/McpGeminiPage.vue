@@ -181,7 +181,7 @@ const update = `gemini extensions update microscope`;
       </DocsCallout>
 
 
-      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the <code>recordings_</code> writers, <code>remote_download</code>, <code>remote_fetchFile</code>, <code>heap_prepare</code>, <code>operations_cancel</code> and the two <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep those tools away from the whole session instead:</p>
+      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the three <code>recordings_</code> writers, the whole <code>remote_</code> family, <code>heap_prepare</code>, <code>operations_cancel</code> and all five <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep the nine tools that write away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />
 
       <h2 id="tool-names">Tool Names Are Spelled Differently</h2>
