@@ -31,6 +31,7 @@ import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.feature.FeatureType;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -93,8 +94,8 @@ enum InvestigationArea {
             AreaPage.firstOf(
                     shownWith(FeatureType.HTTP_SERVER_DASHBOARD, MicroscopeView.HTTP_OVERVIEW),
                     shownWith(FeatureType.GRPC_SERVER_DASHBOARD, MicroscopeView.GRPC_OVERVIEW),
-                    shownWith(FeatureType.HTTP_CLIENT_DASHBOARD, MicroscopeView.HTTP_OVERVIEW),
-                    shownWith(FeatureType.GRPC_CLIENT_DASHBOARD, MicroscopeView.GRPC_OVERVIEW),
+                    clientPage(FeatureType.HTTP_CLIENT_DASHBOARD, MicroscopeView.HTTP_OVERVIEW),
+                    clientPage(FeatureType.GRPC_CLIENT_DASHBOARD, MicroscopeView.GRPC_OVERVIEW),
                     shownWith(FeatureType.METHOD_TRACING_DASHBOARD, MicroscopeView.METHOD_TRACING_TIMESERIES))),
 
     DATABASE(InvestigationGroup.WAITING, "Database", "Which statements ran, and whether the pool made requests wait",
@@ -356,5 +357,12 @@ enum InvestigationArea {
 
     private static AreaPage.Shown shownWith(FeatureType feature, MicroscopeView view) {
         return new AreaPage.Shown(facts -> facts.enabled(feature), view);
+    }
+
+    private static final String MODE_PARAM = "mode";
+    private static final String CLIENT_MODE = "client";
+
+    private static AreaPage.Shown clientPage(FeatureType feature, MicroscopeView view) {
+        return new AreaPage.Shown(facts -> facts.enabled(feature), view, Map.of(MODE_PARAM, CLIENT_MODE));
     }
 }

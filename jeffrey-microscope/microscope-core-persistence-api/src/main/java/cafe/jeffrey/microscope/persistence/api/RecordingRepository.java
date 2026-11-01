@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.persistence.api;
 
 import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 
@@ -144,6 +145,12 @@ public interface RecordingRepository {
      * @param members the bundle's recordings, each with its files and {@link Recording#bundleId()} set
      */
     void insertBundle(Bundle bundle, List<Recording> members);
+
+    /** Creates a bundle around a standalone recording without changing its files or profiles. */
+    void attachRecordingToBundle(String recordingId, Bundle bundle);
+
+    /** Inserts a download-only file, or refreshes its metadata while keeping its id. */
+    void upsertBundleFile(BundleFile file);
 
     /**
      * @return every bundle with its download-only files; members are listed with the recordings

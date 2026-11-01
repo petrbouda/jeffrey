@@ -320,6 +320,28 @@ class InvestigationMenuTest {
                     .forEach(option -> UiLinkRoutes.assertResolves(option.uiLink()));
         }
 
+        @Test
+        void httpClientOnlyPageUsesClientMode() {
+            Facts facts = new Facts().disable(FeatureType.HTTP_SERVER_DASHBOARD,
+                    FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.GRPC_CLIENT_DASHBOARD,
+                    FeatureType.METHOD_TRACING_DASHBOARD);
+            InvestigationOption option = menu(facts).get(InvestigationArea.REQUESTS_AND_CALLS);
+            assertEquals(Availability.AVAILABLE, option.availability());
+            assertEquals("CLIENT", argument(option.nextTools().getFirst(), "direction"));
+            assertTrue(option.uiLink().contains("mode=client"), option.uiLink());
+        }
+
+        @Test
+        void grpcClientOnlyPageUsesClientMode() {
+            Facts facts = new Facts().disable(FeatureType.HTTP_SERVER_DASHBOARD,
+                    FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD,
+                    FeatureType.METHOD_TRACING_DASHBOARD);
+            InvestigationOption option = menu(facts).get(InvestigationArea.REQUESTS_AND_CALLS);
+            assertEquals(Availability.AVAILABLE, option.availability());
+            assertEquals("CLIENT", argument(option.nextTools().getFirst(), "direction"));
+            assertTrue(option.uiLink().contains("mode=client"), option.uiLink());
+        }
+
         /** A traced profile's Traces area links the operations page, where its slowest requests open. */
         @Test
         void tracesLinkTheOperationsPage() {

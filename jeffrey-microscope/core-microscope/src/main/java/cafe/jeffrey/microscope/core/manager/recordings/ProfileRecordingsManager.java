@@ -118,6 +118,11 @@ public class ProfileRecordingsManager implements RecordingsManager {
     }
 
     @Override
+    public void addDownloadedArtifacts(String recordingId, List<Path> artifacts, Map<String, String> originTags) {
+        core.addDownloadedArtifacts(recordingId, artifacts, originTags);
+    }
+
+    @Override
     public String createDownloadedBundle(
             String bundleName,
             List<Path> recordingFiles,

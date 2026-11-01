@@ -958,6 +958,7 @@
     },
     {
       "_meta": {
+        "anthropic/maxResultSizeChars": 120000,
         "jeffrey/cost": "EXPENSIVE"
       },
       "annotations": {

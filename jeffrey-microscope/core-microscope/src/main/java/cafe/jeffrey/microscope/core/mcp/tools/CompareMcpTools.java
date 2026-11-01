@@ -244,7 +244,7 @@ public class CompareMcpTools {
             + "structured result also records what was compared, including where a window landed on "
             + "each recording.")
     @McpOutputSchema(MovementRanking.class)
-    @McpToolMeta(cost = McpToolCost.EXPENSIVE)
+    @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.EXPENSIVE)
     public McpToolResult movements(
             @ToolParam(required = true, description = "Id of the profile to compare against — the baseline, normally "
                     + "the run from before the change.")

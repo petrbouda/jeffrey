@@ -823,18 +823,6 @@ public class RemoteMcpTools {
         // reader may not need a second recording at all.
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager, locator.currentAddress()).find(ref);
-        // Only a copy of a session a newer one has ended is the session: one of an instance's newest
-        // session stops where it stood then, and is downloaded again rather than handed back.
-        if (key.wholeSession() && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
-            DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
-            LOG.debug("Remote session was already downloaded: session_id={} recording_id={}",
-                    ref.sessionId(), copy.recordingId());
-            OperationHandle<String> operation = downloads.rememberCompleted(key, copy.recordingId());
-            DownloadFacts facts = DownloadFacts.here(copy.recordingId(), copy.profileId());
-            String operationId = registerDownload(key, chosen, operation, recordingId -> facts, base);
-            return answer(key, chosen, facts, operationId, base);
-        }
-
         Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
         if (prior.isPresent() && prior.get().failure() != null && !retryFailed) {
             throw prior.get().failure();
@@ -852,10 +840,21 @@ public class RemoteMcpTools {
         Landing landing = new Landing(key, preflight, selection, alreadyHere);
         boolean mayHaveChanged = key.mayHaveChanged(session, selection);
 
+        // A complete chunk set says nothing about missing artifacts or logs that grew. Read the
+        // session first, and let the download manager reconcile any requested artifacts in place.
+        if (key.wholeSession() && !mayHaveChanged
+                && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
+            DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
+            OperationHandle<String> operation = downloads.rememberCompleted(key, copy.recordingId());
+            DownloadFacts facts = DownloadFacts.here(copy.recordingId());
+            String operationId = registerDownload(key, chosen, operation, recordingId -> facts, base);
+            return answer(key, chosen, facts, operationId, base);
+        }
+
         // Handing back the recording an identical call already made, unless the answer may have moved
-        // on since: a part holding the newest recording of an instance's newest session — an
-        // open-ended window always does — is fetched again. Everything else is settled and is
-        // answered from what is here. A transfer still in flight is joined either way.
+        // on since: the newest recording or any requested artifacts. The manager reuses unchanged
+        // files while recovering missing artifacts and refreshing logs. A transfer still in flight
+        // is joined either way.
         if (prior.isPresent() && !mayHaveChanged) {
             String recordingId = prior.get().value();
             if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
@@ -900,7 +899,7 @@ public class RemoteMcpTools {
                                     Function<String, DownloadFacts> landed, String base) {
         String operationId = operation.operationId();
         Function<String, McpToolResult> finished = landed == null
-                ? recordingId -> answer(key, chosen, DownloadFacts.here(recordingId, null), operationId, base)
+                ? recordingId -> answer(key, chosen, DownloadFacts.here(recordingId), operationId, base)
                 : recordingId -> answer(key, chosen, landed.apply(recordingId), operationId, base);
         return operations.register(OperationKind.REMOTE_DOWNLOAD, operation, downloadResult(key), finished,
                 key.retryCall());
@@ -926,6 +925,7 @@ public class RemoteMcpTools {
                                  String operationId, String base) {
         McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
         LandedBundle bundle = LandedBundle.of(recordingsManager, facts.recordingId());
+        facts = facts.withProfileId(bundle.profileId(facts.recordingId()));
         CoveredSpan covered = CoveredSpan.of(recordingsManager, facts);
         String uiLink = facts.profileId() != null
                 ? UiLinks.profile(base, facts.profileId())
@@ -1141,20 +1141,27 @@ public class RemoteMcpTools {
                 return NONE;
             }
             if (!recording.get().inBundle()) {
-                return new LandedBundle(null, List.of(item(recording.get())));
+                return new LandedBundle(null, List.of(item(recordings, recording.get())));
             }
             String bundleId = recording.get().bundleId();
             List<BundleItem> items = recordings.findBundleMembers(bundleId).stream()
                     .sorted(Comparator.comparing((Recording member) -> !member.id().equals(recordingId))
                             .thenComparing(Recording::recordingName))
-                    .map(LandedBundle::item)
+                    .map(member -> item(recordings, member))
                     .toList();
             return new LandedBundle(bundleId, items);
         }
 
-        private static BundleItem item(Recording recording) {
+        private static BundleItem item(RecordingsManager recordings, Recording recording) {
+            String profileId = recording.hasProfile() && recordings.profile(recording.profileId())
+                    .map(profile -> profile.info().enabled()).orElse(false) ? recording.profileId() : null;
             return new BundleItem(recording.id(), recording.eventSource(), recording.recordingName(),
-                    recording.hasProfile() ? recording.profileId() : null);
+                    profileId);
+        }
+
+        String profileId(String recordingId) {
+            return items.stream().filter(item -> Objects.equals(item.recordingId(), recordingId))
+                    .map(BundleItem::profileId).filter(Objects::nonNull).findFirst().orElse(null);
         }
 
         List<String> heapDumpIds() {
@@ -1185,9 +1192,15 @@ public class RemoteMcpTools {
             Long coveredEndEpochMs,
             String wholeCopyNote) {
 
+        DownloadFacts withProfileId(String knownProfileId) {
+            return profileId != null || knownProfileId == null ? this
+                    : new DownloadFacts(status, reason, sessionName, project, recordingId, knownProfileId,
+                            recordingFiles, artifactFiles, sizeBytes, coveredStartEpochMs, coveredEndEpochMs, wholeCopyNote);
+        }
+
         /** A recording already here: what the local store knows of it, and nothing it would have to guess. */
-        static DownloadFacts here(String recordingId, String profileId) {
-            return new DownloadFacts(DownloadStatus.DOWNLOADED, null, null, null, recordingId, profileId,
+        static DownloadFacts here(String recordingId) {
+            return new DownloadFacts(DownloadStatus.DOWNLOADED, null, null, null, recordingId, null,
                     null, null, null, null, null, "");
         }
 
@@ -1342,9 +1355,10 @@ public class RemoteMcpTools {
         }
 
         /**
-         * Whether an answer retained from an earlier call may be short of this question: whether the
-         * part holds the newest recording of an instance's newest session. That file may have been
-         * copied during the profiler's dump, at a chunk boundary the arrival check cannot tell from
+         * Whether an answer retained from an earlier call may be short of this question: artifacts
+         * can be missing or have grown, and the part can hold the newest recording of an instance's
+         * newest session. That file may have been copied during the profiler's dump, at a chunk
+         * boundary the arrival check cannot tell from
          * the end ({@code JfrChunkChain}), and an open-ended window covers every chunk that lands
          * after it — it always holds the newest. Either is fetched again rather than handed back.
          *
@@ -1352,7 +1366,10 @@ public class RemoteMcpTools {
          *                  whole session
          */
         boolean mayHaveChanged(RecordingSession session, ChunkWindow.Selection selection) {
-            return session.openRecording()
+            boolean includesArtifacts = wholeSession()
+                    ? session.files().stream().anyMatch(RepositoryFiles::isArtifact)
+                    : !others(session.files()).isEmpty();
+            return includesArtifacts || session.openRecording()
                     .filter(newest -> selection == null || selection.files().contains(newest))
                     .isPresent();
         }

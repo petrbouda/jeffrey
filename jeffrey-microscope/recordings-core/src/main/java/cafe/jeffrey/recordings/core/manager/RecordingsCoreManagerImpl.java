@@ -62,6 +62,8 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsCoreManagerImpl.class);
 
+    private static final String ARTIFACT_NAME_SEPARATOR = "_";
+
     /** The kinds whose files carry their own metadata (format, window) to read when stored. */
     private static final Set<ProfileKind> PARSED_KINDS = Set.of(ProfileKind.JFR, ProfileKind.STACK_SAMPLES);
 
@@ -232,6 +234,59 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
                         + "fileCount={} tagCount={}",
                 bundleId, bundleName, members.size(), files.size(), originTags == null ? 0 : originTags.size());
         return members.getFirst().id();
+    }
+
+    @Override
+    public void addDownloadedArtifacts(String recordingId, List<Path> artifacts, Map<String, String> originTags) {
+        if (artifacts.isEmpty()) {
+            return;
+        }
+        Recording recording = recordingRepository.findRecording(recordingId)
+                .orElseThrow(() -> new IllegalArgumentException("Recording not found: " + recordingId));
+        Bundle bundle = bundleForArtifacts(recording);
+        List<Recording> members = recordingRepository.findBundleMembers(bundle.id());
+        for (Path artifact : artifacts) {
+            String filename = artifact.getFileName().toString();
+            if (ManagedFile.of(filename).isInitializable()) {
+                boolean alreadyStored = members.stream().flatMap(member -> member.files().stream())
+                        .anyMatch(file -> file.filename().equals(filename) && file.sizeInBytes() == fileSize(artifact));
+                if (alreadyStored) {
+                    continue;
+                }
+                String memberId = IDGenerator.generate();
+                Recording member = prepareRecording(memberId, bundle.bundleName() + ARTIFACT_NAME_SEPARATOR + filename,
+                        List.of(copyIntoStorage(memberId, artifact)), null, bundle.id());
+                recordingRepository.insertRecording(member, member.files().getFirst());
+                if (originTags != null && !originTags.isEmpty()) {
+                    recordingTagsRepository.insert(memberId, originTags);
+                }
+            } else {
+                StoredFile stored = copyIntoStorage(bundle.id(), artifact);
+                String fileId = bundle.files().stream().filter(file -> file.filename().equals(filename))
+                        .map(BundleFile::id).findFirst().orElseGet(IDGenerator::generate);
+                recordingRepository.upsertBundleFile(new BundleFile(fileId, bundle.id(), filename,
+                        ManagedFile.of(filename), clock.instant(), sizeOf(stored)));
+            }
+        }
+    }
+
+    private Bundle bundleForArtifacts(Recording recording) {
+        if (recording.inBundle()) {
+            return recordingRepository.findBundle(recording.bundleId())
+                    .orElseThrow(() -> new IllegalArgumentException("Downloaded recording has no bundle: " + recording.id()));
+        }
+        Bundle bundle = new Bundle(IDGenerator.generate(), recording.recordingName(), recording.groupId(),
+                clock.instant(), List.of());
+        recordingRepository.attachRecordingToBundle(recording.id(), bundle);
+        return bundle;
+    }
+
+    private static long fileSize(Path file) {
+        try {
+            return Files.size(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read downloaded artifact size: " + file, e);
+        }
     }
 
     private StoredFile copyIntoStorage(String ownerId, Path source) {

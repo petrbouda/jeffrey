@@ -572,6 +572,55 @@ class JdbcRecordingRepositoryTest {
         }
 
         @Test
+        void aStandaloneRecordingGainsABundleWithoutChangingItsFiles(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            String groupId = repository.insertGroup("incident");
+            RecordingFile file = new RecordingFile("jfr-file", "rec-legacy", "chunk.jfr", ManagedFile.JFR, FIXED_TIME, 1024);
+            repository.insertRecording(new Recording("rec-legacy", "checkout", groupId, RecordingEventSource.JDK,
+                    FIXED_TIME, null, null, false, null, null, List.of(file)), file);
+
+            repository.attachRecordingToBundle("rec-legacy", new Bundle(BUNDLE_ID, "checkout", groupId, FIXED_TIME, List.of()));
+
+            Recording member = repository.findBundleMembers(BUNDLE_ID).getFirst();
+            assertEquals("rec-legacy", member.id());
+            assertEquals(List.of(file), member.files());
+            assertNull(member.groupId());
+            assertEquals(groupId, repository.findBundle(BUNDLE_ID).orElseThrow().groupId());
+            assertEquals(1, repository.findAllRecordings().size());
+        }
+
+        @Test
+        void aFailedAttachmentDoesNotMoveARecordingOrLeaveAnOrphanBundle(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            insertBundle(repository, null);
+            Bundle another = new Bundle("another-bundle", "checkout", null, FIXED_TIME, List.of());
+
+            for (String recordingId : List.of("rec-jfr", "missing")) {
+                assertThrows(IllegalArgumentException.class, () -> repository.attachRecordingToBundle(recordingId, another));
+                assertTrue(repository.findBundle("another-bundle").isEmpty());
+                assertEquals(2, repository.findBundleMembers(BUNDLE_ID).size());
+            }
+        }
+
+        @Test
+        void refreshingADownloadOnlyFileKeepsItsIdAndUpdatesItsSize(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            insertBundle(repository, null);
+
+            repository.upsertBundleFile(new BundleFile("log-1", BUNDLE_ID, "gc.jvm-log", ManagedFile.JVM_LOG,
+                    FIXED_TIME.plusSeconds(60), 1024));
+            repository.upsertBundleFile(new BundleFile("log-2", BUNDLE_ID, "app.log", ManagedFile.APP_LOG,
+                    FIXED_TIME, 256));
+
+            List<BundleFile> files = repository.findBundle(BUNDLE_ID).orElseThrow().files();
+            assertEquals(2, files.size());
+            BundleFile refreshed = files.stream().filter(file -> file.id().equals("log-1")).findFirst().orElseThrow();
+            assertEquals(1024, refreshed.sizeInBytes());
+            assertEquals(FIXED_TIME.plusSeconds(60), refreshed.uploadedAt());
+            assertEquals(2, repository.findBundleMembers(BUNDLE_ID).size());
+        }
+
+        @Test
         void membersAreListedWithTheRecordingsAndCarryTheirBundle(DataSource dataSource) {
             JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
 
