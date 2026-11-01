@@ -46,6 +46,10 @@ menu from `profiles_summary` (step 3), never from this table.
 | Overall | Leak candidates | Objects that survived collections | `jdk.OldObjectSample` (JFR's profile settings) |
 | Overall | Exceptions | What the application threw, and from where | JFR's exception events (`jdk.ExceptionStatistics`, `jdk.JavaExceptionThrow`) |
 
+Each Code area opens on its flamegraph — Allocation and Lock contention with their table beside it.
+Any other recorded type with stacks (a second sampler, native allocation, method traces, custom
+events) is listed in `moreFlamegraphs`, beside the menu, each with the export that draws it.
+
 **A heap dump (`.hprof`)** — the index and most reports are built by `heap_prepare` the first time;
 an area waiting for it is offered as `NEEDS_PREPARATION`:
 

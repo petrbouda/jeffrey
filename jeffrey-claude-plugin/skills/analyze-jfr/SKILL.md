@@ -93,6 +93,13 @@ fired rules, the gaps the question needs, the not-recorded line — is text abov
 **Without a structured question tool** (Codex, Gemini CLI), write the menu as a table grouped by
 group — area, weight, what it answers, why it is suggested — then the not-recorded line, and stop.
 
+Every Code area opens on its flamegraph: CPU hotspots and Wall-clock time on the graph alone,
+Allocation and Lock contention on the graph and then their table — hand the graph to the analyst, as
+for CPU, and read the table here. **`moreFlamegraphs`** are the recorded types with stacks no area
+opens (a second sampler, native allocation, method traces, custom events): name them in one line
+above the question — "also graphable: <label> (N samples), …" — and a pick of one, under Other,
+sends its `export` unchanged.
+
 The user may pick several; take them in the order they gave, sending each area's `nextTools`
 unchanged. **Traces** is offered whenever the profile has traces, apart from the HTTP and gRPC
 dashboards under **Requests and calls**; a pick of it opens with `traces_overview`, and

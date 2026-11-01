@@ -706,3 +706,22 @@ an assumption, which `not-a-share-of-wall-clock` reads as a share of the recordi
 The miss this time is a run of `two-areas-delegated` in which `profile-analyst` asked for the CPU
 export with `excludeIdle: true`, a call no fixture holds; `lock-contention-not-wall-clock`, the 1.0.19
 miss, passed all three runs.
+
+## Plugin 1.0.21: every flamegraph offered
+
+- **Allocation and Lock contention open on their flamegraph**, as CPU hotspots and Wall-clock time do:
+  the allocation tree weighed by bytes and the lock tree by time blocked, each followed by its table
+  (`memory_allocations`, `blocking_overview`). An imported sample set's Allocation opens on the tree
+  alone, its bytes dimension having no JFR allocation events for the table.
+- **`moreFlamegraphs`** on `profiles_summary` lists every recorded type with stacks no area opens — a
+  second sampler, native allocation, method traces, custom events, thrown exceptions — most samples
+  first, at most ten, each with its export; `analyze-jfr` names them in a line above the menu. On the
+  candidate recording it lists eight, `jdk.JavaExceptionThrow` first, whose export draws the throw
+  sites.
+
+| | 1.0.20 | 1.0.21 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 16 | 16 of 16 |
+| Overall score | 1.00 | 1.00 |
+| Cost, including the judge | $7.44 | $7.43 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |

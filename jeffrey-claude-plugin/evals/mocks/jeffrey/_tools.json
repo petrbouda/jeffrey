@@ -1596,7 +1596,7 @@
   {
    "name": "profiles_summary",
    "title": "Profiles: Summary",
-   "description": "Returns the one-call orientation to a profile: its id, name and event source, the recording window (start and end as UTC epoch milliseconds), which analysis features it has data for, every event type it recorded with its totals, whether the auto-analysis rules have run (autoAnalysis) and their top findings, and capabilityGaps - in words, every question this recording cannot answer and which tools that leaves empty, and investigationAreas - the menu to put to the user when the question is open: each area it can answer with its weight, the evidence when suggested, and the calls that open it. A superset of profiles_features. Reads the cached auto-analysis and never runs it. Not included: the sampler's loss figures (profiles_samplerHealth), the source commit and the size on disk (profiles_get).",
+   "description": "Returns the one-call orientation to a profile: its id, name and event source, the recording window (start and end as UTC epoch milliseconds), which analysis features it has data for, every event type it recorded with its totals, whether the auto-analysis rules have run (autoAnalysis) and their top findings, and capabilityGaps - in words, every question this recording cannot answer and which tools that leaves empty, and investigationAreas - the menu to put to the user when the question is open: each area it can answer with its weight, the evidence when suggested, and the calls that open it, and moreFlamegraphs - every recorded type with stacks no area opens, each as a ready export. A superset of profiles_features. Reads the cached auto-analysis and never runs it. Not included: the sampler's loss figures (profiles_samplerHealth), the source commit and the size on disk (profiles_get).",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -1965,6 +1965,70 @@
       },
       "description": "The menu for an open question: every area this profile can be investigated in, with its weight, the evidence when suggested and the calls that open it, and the areas it cannot answer with what is missing - a heap dump's own areas for a heap dump, those needing heap_prepare first marked NEEDS_PREPARATION. Empty for perf counters"
      },
+     "moreFlamegraphs": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "eventType": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "samples": {
+         "type": "integer"
+        },
+        "export": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false,
+         "description": "The flamegraph_export that draws it; send it unchanged"
+        }
+       },
+       "required": [
+        "eventType",
+        "label",
+        "samples",
+        "export"
+       ],
+       "additionalProperties": false
+      },
+      "description": "Every recorded event type with stacks that no area opens on a flamegraph - native allocation, method traces, custom events, a second sampler of a kind - most samples first, each with the export that draws it; empty for a heap dump and perf counters"
+     },
+     "omittedFlamegraphs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many more such types there are past the list; flamegraph_list names them all"
+     },
      "followUp": {
       "type": "object",
       "properties": {
@@ -2036,6 +2100,8 @@
      "topFindings",
      "capabilityGaps",
      "investigationAreas",
+     "moreFlamegraphs",
+     "omittedFlamegraphs",
      "followUp",
      "uiLink"
     ],

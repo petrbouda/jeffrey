@@ -622,6 +622,30 @@ class ProfileMcpToolsTest {
                     CatalogueSpecs.profileScoped(BlockingMcpTools.class, "blocking"))) > 0);
         }
 
+        /**
+         * A type with stacks no area graphs - here a second CPU sampler beside the one CPU hotspots
+         * opens - is listed beside the menu with the export that draws it, and the types the areas open
+         * are not.
+         */
+        @Test
+        void summaryListsTheFlamegraphsNoAreaOpens() {
+            stubProfile(RecordingEventSource.JDK);
+            List<EventSummaryResult> recorded = List.of(
+                    recorded("jdk.ExecutionSample", 1_000), recorded("jdk.CPUTimeSample", 400));
+            when(flamegraphManager.eventSummaries()).thenReturn(recorded);
+            when(flamegraphManager.allEventSummaries()).thenReturn(recorded);
+            when(flamegraphManager.graphableEventSummaries()).thenReturn(recorded);
+
+            JsonNode summary = conforming("summary", tools().summary());
+
+            JsonNode more = summary.get("moreFlamegraphs");
+            assertEquals(1, more.size(), more.toString());
+            assertEquals("jdk.CPUTimeSample", more.get(0).get("eventType").asString());
+            assertEquals("flamegraph_export", more.get(0).get("export").get("tool").asString());
+            assertEquals("jdk.CPUTimeSample", more.get(0).get("export").get("arguments").get("eventType").asString());
+            assertEquals(0, summary.get("omittedFlamegraphs").asInt());
+        }
+
         /** An unindexed heap dump is offered its own areas, each opened by the preparation it waits for. */
         @Test
         void anUnindexedHeapDumpSummaryOffersItsAreasBehindThePreparation() {

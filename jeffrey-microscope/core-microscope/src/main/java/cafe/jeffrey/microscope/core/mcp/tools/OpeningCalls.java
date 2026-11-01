@@ -38,6 +38,8 @@ final class OpeningCalls {
     private static final String CPU_WHY = "the call tree of where the CPU went";
     private static final String WALL_WHY = "the call tree of where the time went, running or waiting";
     private static final String ALLOCATIONS_WHY = "which types were allocated most";
+    private static final String ALLOCATION_GRAPH_WHY = "the call tree of where the allocated bytes came from";
+    private static final String BLOCKING_GRAPH_WHY = "the call tree of where threads blocked, by time blocked";
     private static final String TRACES_WHY = "the slowest operations and how their latency splits";
     private static final String HTTP_WHY = "the served endpoints ranked by latency";
     private static final String GRPC_WHY = "the served gRPC methods ranked by latency";
@@ -118,12 +120,30 @@ final class OpeningCalls {
         return flamegraph(SampleKind.WALL, WALL_WHY);
     }
 
+    /**
+     * The allocation call tree, as CPU and wall-clock open on theirs, then the types table beside it. An
+     * imported sample set's bytes dimension has no JFR allocation events for the table to read, so it
+     * opens on the tree alone.
+     */
     static AreaCalls allocations() {
-        return one(MEMORY_ALLOCATIONS, ALLOCATIONS_WHY);
+        AreaCalls graph = flamegraph(SampleKind.ALLOCATION, ALLOCATION_GRAPH_WHY);
+        AreaCalls table = one(MEMORY_ALLOCATIONS, ALLOCATIONS_WHY);
+        return (facts, advertised) -> facts.eventSource().isFlamegraphOnlyImport()
+                ? graph.calls(facts, advertised)
+                : concat(graph.calls(facts, advertised), table.calls(facts, advertised));
     }
 
+    /** The lock call tree, weighed by time blocked, then the monitors and waits that held threads. */
     static AreaCalls locks() {
-        return one(FollowUpCalls.BLOCKING_OVERVIEW, BLOCKING_WHY);
+        AreaCalls graph = flamegraph(SampleKind.BLOCKING, BLOCKING_GRAPH_WHY);
+        AreaCalls table = one(FollowUpCalls.BLOCKING_OVERVIEW, BLOCKING_WHY);
+        return (facts, advertised) -> concat(graph.calls(facts, advertised), table.calls(facts, advertised));
+    }
+
+    private static List<McpNextTool> concat(List<McpNextTool> first, List<McpNextTool> second) {
+        List<McpNextTool> calls = new ArrayList<>(first);
+        calls.addAll(second);
+        return List.copyOf(calls);
     }
 
     static AreaCalls jit() {

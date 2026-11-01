@@ -37,6 +37,9 @@ import java.util.Set;
  * @param disabledFeatures   the features the profile has no data for
  * @param recordedEventTypes the event type codes with at least one sample
  * @param panels             every flamegraph panel the profile offers, recorded or not, in panel order
+ * @param graphable          every recorded event type with stacks, the set flamegraph_list offers: the
+ *                           panels' types and the ones no panel shows (native allocation, method
+ *                           traces, custom events, a second sampler of a kind)
  * @param jvmSections        every jvm_ section with whether its events were recorded
  * @param autoAnalysis       whether the rules ran
  * @param flagged            the rules that flagged something, most severe first
@@ -48,6 +51,7 @@ record ProfileFacts(
         Set<FeatureType> disabledFeatures,
         Set<String> recordedEventTypes,
         List<Sampled> panels,
+        List<Graphable> graphable,
         List<SectionAvailability> jvmSections,
         AutoAnalysisStatus autoAnalysis,
         List<McpFinding> flagged,
@@ -64,10 +68,15 @@ record ProfileFacts(
         }
     }
 
+    /** One recorded event type a flamegraph can be drawn from, as flamegraph_list names it. */
+    record Graphable(String eventType, String label, long samples) {
+    }
+
     ProfileFacts {
         disabledFeatures = Set.copyOf(disabledFeatures);
         recordedEventTypes = Set.copyOf(recordedEventTypes);
         panels = List.copyOf(panels);
+        graphable = List.copyOf(graphable);
         jvmSections = List.copyOf(jvmSections);
         flagged = List.copyOf(flagged);
         if (heap == null) {

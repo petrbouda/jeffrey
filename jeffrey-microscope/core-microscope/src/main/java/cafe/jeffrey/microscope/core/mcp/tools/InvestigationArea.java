@@ -55,13 +55,13 @@ enum InvestigationArea {
     ALLOCATION(InvestigationGroup.CODE, "Allocation", "Which types allocate most, then from where",
             new AreaSource.Samples(Set.of(SampleKind.ALLOCATION), Remedies.ALLOCATION),
             OpeningCalls.allocations(),
-            Set.of(AdvertisedFamilies.MEMORY),
+            Set.of(AdvertisedFamilies.FLAMEGRAPH, AdvertisedFamilies.MEMORY),
             Set.of("tlab")),
 
     LOCK_CONTENTION(InvestigationGroup.CODE, "Lock contention", "Which locks and waits held threads back",
             new AreaSource.Samples(Set.of(SampleKind.BLOCKING), Remedies.LOCKS),
             OpeningCalls.locks(),
-            Set.of(AdvertisedFamilies.BLOCKING),
+            Set.of(AdvertisedFamilies.FLAMEGRAPH, AdvertisedFamilies.BLOCKING),
             Set.of("lock_instances", "biased_locking")),
 
     /**

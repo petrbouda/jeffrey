@@ -236,7 +236,8 @@ public class ProfileMcpTools {
             + "auto-analysis rules have run (autoAnalysis) and their top findings, and capabilityGaps "
             + "- in words, every question this recording cannot answer and which tools that leaves "
             + "empty, and investigationAreas - the menu to put to the user when the question is open: each "
-            + "area it can answer with its weight, the evidence when suggested, and the calls that open it. "
+            + "area it can answer with its weight, the evidence when suggested, and the calls that open it, "
+            + "and moreFlamegraphs - every recorded type with stacks no area opens, each as a ready export. "
             + "A superset of profiles_features. Reads the cached auto-analysis and never runs "
             + "it. Not included: the sampler's loss figures (profiles_samplerHealth), the source "
             + "commit and the size on disk (profiles_get).")
@@ -254,6 +255,9 @@ public class ProfileMcpTools {
         List<FeatureType> disabled = disabledFeatures();
         List<RecordedEventType> eventTypes = recordedEventTypes();
         List<McpFinding> flagged = AutoAnalysisFindings.flagged(info.id(), results);
+        ProfileFacts facts = facts(info, disabled, eventTypes, status, flagged);
+        List<InvestigationOption> menu = InvestigationMenu.of(facts, advertised);
+        MoreFlamegraphs.Listing moreFlamegraphs = MoreFlamegraphs.of(facts, menu, advertised);
 
         return McpToolResult.of(new ProfileSummary(
                 info.id(),
@@ -267,7 +271,9 @@ public class ProfileMcpTools {
                 McpFindings.reachable(flagged, advertised::servesTool)
                         .stream().limit(TOP_FINDINGS_LIMIT).toList(),
                 capabilityGaps.gaps(disabled),
-                InvestigationMenu.of(facts(info, disabled, eventTypes, status, flagged), advertised),
+                menu,
+                moreFlamegraphs.listed(),
+                moreFlamegraphs.omitted(),
                 NextSteps.builder(advertised)
                         .nextWhen(status == AutoAnalysisStatus.NOT_COMPUTED, NextCalls.to(AUTO_ANALYSIS_TOOL)
                                 .with(PROFILE_ID, info.id())
@@ -371,6 +377,10 @@ public class ProfileMcpTools {
                                 panel.event().code(),
                                 panel.event().primary().samples()))
                         .toList(),
+                profileManager.flamegraphManager().graphableEventSummaries().stream()
+                        .map(summary -> new ProfileFacts.Graphable(
+                                summary.code(), summary.label(), summary.primary().samples()))
+                        .toList(),
                 sections.availability(),
                 status,
                 flagged,
@@ -423,6 +433,13 @@ public class ProfileMcpTools {
                     + "it cannot answer with what is missing - a heap dump's own areas for a heap dump, those "
                     + "needing heap_prepare first marked NEEDS_PREPARATION. Empty for perf counters")
             List<InvestigationOption> investigationAreas,
+            @McpDescription("Every recorded event type with stacks that no area opens on a flamegraph - native "
+                    + "allocation, method traces, custom events, a second sampler of a kind - most samples "
+                    + "first, each with the export that draws it; empty for a heap dump and perf counters")
+            List<MoreFlamegraphs.MoreFlamegraph> moreFlamegraphs,
+            @McpMinimum(0)
+            @McpDescription("How many more such types there are past the list; flamegraph_list names them all")
+            int omittedFlamegraphs,
             McpFollowUp followUp,
             @McpDescription("The profile's page in the Microscope UI, for the user")
             String uiLink) {

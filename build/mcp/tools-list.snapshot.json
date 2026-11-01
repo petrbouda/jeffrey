@@ -21430,11 +21430,68 @@
             },
             "type": "array"
           },
+          "moreFlamegraphs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "eventType": {
+                  "type": "string"
+                },
+                "export": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "samples": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "eventType",
+                "export",
+                "label",
+                "samples"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "name": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "omittedFlamegraphs": {
+            "minimum": 0,
+            "type": "integer"
           },
           "profileId": {
             "type": "string"
@@ -21549,7 +21606,9 @@
           "finishedAtEpochMs",
           "followUp",
           "investigationAreas",
+          "moreFlamegraphs",
           "name",
+          "omittedFlamegraphs",
           "profileId",
           "startedAtEpochMs",
           "topFindings",
