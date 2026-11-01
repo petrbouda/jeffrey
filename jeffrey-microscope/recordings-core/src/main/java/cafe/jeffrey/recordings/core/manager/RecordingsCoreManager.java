@@ -72,6 +72,9 @@ public interface RecordingsCoreManager {
             List<Path> artifactFiles,
             Map<String, String> originTags);
 
+    /** Adds fetched artifacts to an existing download's bundle, preserving its recording and profiles. */
+    void addDownloadedArtifacts(String recordingId, List<Path> artifacts, Map<String, String> originTags);
+
     void moveRecordingToGroup(String recordingId, String groupId);
 
     List<Recording> listRecordings();

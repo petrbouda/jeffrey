@@ -62,7 +62,7 @@ class McpToolCatalogueTest {
                     .collect(Collectors.toCollection(TreeSet::new));
 
             assertEquals(new TreeSet<>(List.of(
-                    "compare_flamegraph", "flamegraph_export", "heap_getDominatorTreeRoots", "jfr_executeQuery",
+                    "compare_flamegraph", "compare_movements", "flamegraph_export", "heap_getDominatorTreeRoots", "jfr_executeQuery",
                     "jvm_threadDump", "traces_operationExport", "traces_operationFlamegraphExport",
                     "traces_spanFlamegraphExport", "traces_traceExport")), heavy);
         }

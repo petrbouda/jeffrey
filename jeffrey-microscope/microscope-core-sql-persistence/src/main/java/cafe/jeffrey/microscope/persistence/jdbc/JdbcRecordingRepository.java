@@ -380,7 +380,7 @@ public class JdbcRecordingRepository implements RecordingRepository {
 
         databaseClient.inTransaction(() -> {
             databaseClient.insert(StatementLabel.INSERT_BUNDLE, sql, params);
-            bundle.files().forEach(this::insertBundleFile);
+            bundle.files().forEach(this::upsertBundleFile);
             for (Recording member : members) {
                 if (member.files().isEmpty()) {
                     throw new IllegalArgumentException("A bundle member needs at least one file: " + member.id());
@@ -391,11 +391,29 @@ public class JdbcRecordingRepository implements RecordingRepository {
         });
     }
 
-    private void insertBundleFile(BundleFile file) {
+    @Override
+    public void attachRecordingToBundle(String recordingId, Bundle bundle) {
+        //language=sql
+        String sql = "UPDATE recordings SET bundle_id = :bundle_id, group_id = NULL "
+                + "WHERE id = :recording_id AND bundle_id IS NULL";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue(PARAM_BUNDLE_ID, bundle.id()).addValue("recording_id", recordingId);
+        databaseClient.inTransaction(() -> {
+            insertBundle(bundle, List.of());
+            if (databaseClient.update(StatementLabel.UPDATE_RECORDING_BUNDLE, sql, params) != 1) {
+                throw new IllegalArgumentException("Standalone recording not found: " + recordingId);
+            }
+        });
+    }
+
+    @Override
+    public void upsertBundleFile(BundleFile file) {
         //language=SQL
         String sql = """
                 INSERT INTO bundle_files (id, bundle_id, filename, supported_type, uploaded_at, size_in_bytes)
-                    VALUES (:id, :bundle_id, :filename, :supported_type, :uploaded_at, :size_in_bytes)""";
+                    VALUES (:id, :bundle_id, :filename, :supported_type, :uploaded_at, :size_in_bytes)
+                    ON CONFLICT (id) DO UPDATE SET uploaded_at = EXCLUDED.uploaded_at,
+                        size_in_bytes = EXCLUDED.size_in_bytes""";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", file.id())

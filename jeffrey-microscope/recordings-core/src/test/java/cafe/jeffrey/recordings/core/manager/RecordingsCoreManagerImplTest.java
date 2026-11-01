@@ -21,6 +21,9 @@ import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -38,11 +41,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,6 +101,63 @@ class RecordingsCoreManagerImplTest {
             assertEquals(recordingId, stored.getValue().recordingId());
             assertEquals("app.jfr", stored.getValue().filename());
             assertEquals(CONTENT.length(), stored.getValue().sizeInBytes());
+        }
+    }
+
+    @Nested
+    class DownloadedArtifacts {
+
+        private void existingBundle(List<BundleFile> files) {
+            Recording primary = new Recording("rec-1", "checkout", null, RecordingEventSource.JDK,
+                    CLOCK.instant(), null, null, true, "profile-1", "checkout", List.of(), "bundle-1");
+            when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(primary));
+            when(recordingRepository.findBundle("bundle-1")).thenReturn(Optional.of(
+                    new Bundle("bundle-1", "checkout", null, CLOCK.instant(), files)));
+        }
+
+        @Test
+        void givesAStandaloneCopyABundleWhenItRecoversAnArtifact() throws IOException {
+            Recording standalone = new Recording("rec-1", "checkout", "incident", RecordingEventSource.JDK,
+                    CLOCK.instant(), null, null, true, "profile-1", "checkout", List.of());
+            when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(standalone));
+
+            manager.addDownloadedArtifacts("rec-1", List.of(sourceFile("app.log")), Map.of());
+
+            ArgumentCaptor<Bundle> bundle = ArgumentCaptor.forClass(Bundle.class);
+            verify(recordingRepository).attachRecordingToBundle(eq("rec-1"), bundle.capture());
+            assertEquals("incident", bundle.getValue().groupId());
+            ArgumentCaptor<BundleFile> stored = ArgumentCaptor.forClass(BundleFile.class);
+            verify(recordingRepository).upsertBundleFile(stored.capture());
+            assertEquals(bundle.getValue().id(), stored.getValue().bundleId());
+        }
+
+        @Test
+        void refreshesAGrowingLogWithoutChangingItsDownloadId() throws IOException {
+            existingBundle(List.of(new BundleFile("log-1", "bundle-1", "app.log", ManagedFile.APP_LOG,
+                    CLOCK.instant(), 1)));
+
+            manager.addDownloadedArtifacts("rec-1", List.of(sourceFile("app.log")), Map.of());
+
+            ArgumentCaptor<BundleFile> stored = ArgumentCaptor.forClass(BundleFile.class);
+            verify(recordingRepository).upsertBundleFile(stored.capture());
+            assertEquals("log-1", stored.getValue().id());
+            assertEquals(CONTENT.length(), stored.getValue().sizeInBytes());
+            assertEquals(CONTENT, Files.readString(tempDir.resolve("recordings/bundle-1-app.log")));
+        }
+
+        @Test
+        void addsARecoveredHeapDumpToTheExistingBundleWithItsOrigin() throws IOException {
+            existingBundle(List.of());
+            Map<String, String> tags = Map.of("origin.recording", "session-1");
+
+            manager.addDownloadedArtifacts("rec-1", List.of(sourceFile("heap.hprof")), tags);
+
+            ArgumentCaptor<Recording> added = ArgumentCaptor.forClass(Recording.class);
+            verify(recordingRepository).insertRecording(added.capture(), any(RecordingFile.class));
+            assertEquals("bundle-1", added.getValue().bundleId());
+            assertEquals("checkout_heap.hprof", added.getValue().recordingName());
+            assertEquals(RecordingEventSource.HEAP_DUMP, added.getValue().eventSource());
+            verify(recordingTagsRepository).insert(added.getValue().id(), tags);
         }
     }
 

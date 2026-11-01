@@ -926,6 +926,7 @@ public class RemoteMcpTools {
                                  String operationId, String base) {
         McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
         LandedBundle bundle = LandedBundle.of(recordingsManager, facts.recordingId());
+        facts = facts.withProfileId(bundle.profileId(facts.recordingId()));
         CoveredSpan covered = CoveredSpan.of(recordingsManager, facts);
         String uiLink = facts.profileId() != null
                 ? UiLinks.profile(base, facts.profileId())
@@ -1157,6 +1158,11 @@ public class RemoteMcpTools {
                     recording.hasProfile() ? recording.profileId() : null);
         }
 
+        String profileId(String recordingId) {
+            return items.stream().filter(item -> Objects.equals(item.recordingId(), recordingId))
+                    .map(BundleItem::profileId).filter(Objects::nonNull).findFirst().orElse(null);
+        }
+
         List<String> heapDumpIds() {
             return items.stream()
                     .filter(item -> item.eventSource().kind() == ProfileKind.HEAP_DUMP)
@@ -1184,6 +1190,12 @@ public class RemoteMcpTools {
             Long coveredStartEpochMs,
             Long coveredEndEpochMs,
             String wholeCopyNote) {
+
+        DownloadFacts withProfileId(String knownProfileId) {
+            return profileId != null || knownProfileId == null ? this
+                    : new DownloadFacts(status, reason, sessionName, project, recordingId, knownProfileId,
+                            recordingFiles, artifactFiles, sizeBytes, coveredStartEpochMs, coveredEndEpochMs, wholeCopyNote);
+        }
 
         /** A recording already here: what the local store knows of it, and nothing it would have to guess. */
         static DownloadFacts here(String recordingId, String profileId) {

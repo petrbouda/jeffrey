@@ -19,6 +19,8 @@ package cafe.jeffrey.recordings.core;
 
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 
@@ -38,14 +40,18 @@ import java.util.stream.Collectors;
  * <p>
  * Identical means: downloaded from the same remote session, by the same {@code origin.*} identity
  * tags the download would write, as a part or as the whole alike, and holding exactly the recording
- * files about to be fetched. The files are what decides it, not the window: a chunk's name carries
- * its start, and the profiler writes a file whole, so the same names on the same session are the same
- * bytes - while a session that grew has a new name in the set, and is fetched. A whole copy of a
+ * chunks about to be fetched. Their identity excludes the JFR or JFR/LZ4 suffix: compression changes
+ * a chunk's representation, not the recording it holds. A chunk's name carries its start, and the
+ * profiler writes a file whole, so the same chunk identities on the same session are the same data.
+ * A session that grew has a new name in the set, and is fetched. A whole copy of a
  * session taken while it was its instance's newest lacks {@link OriginContext#TAG_COMPLETE}, so once a
  * newer session has ended it, the whole download is made again and the copy that stands in for the
  * session is the complete one.
  */
 final class SameDownload {
+
+    private static final String EXTENSION_SEPARATOR = ".";
+    private static final Set<ManagedFile> CHUNK_TYPES = Set.of(ManagedFile.JFR, ManagedFile.JFR_LZ4);
 
     /** The tags that say where a copy came from and what it stands for; display names are left out. */
     private static final Set<String> IDENTITY_TAGS = Set.of(
@@ -65,15 +71,16 @@ final class SameDownload {
      * @param recordingFiles the names of the recording files it would fetch
      * @return the newest local recording that is the same download, if any
      */
-    static Optional<String> find(
+    static Optional<Recording> find(
             RecordingsCoreManager recordings, Map<String, String> originTags, Set<String> recordingFiles) {
 
         if (!originTags.containsKey(OriginContext.TAG_REMOTE_ADDRESS)
                 || !originTags.containsKey(OriginContext.TAG_RECORDING_ID)) {
             return Optional.empty();
         }
+        Set<String> wantedChunks = chunkIds(recordingFiles);
         List<Recording> local = recordings.listRecordings().stream()
-                .filter(recording -> recordingFiles.equals(fileNames(recording)))
+                .filter(recording -> wantedChunks.equals(chunkIds(fileNames(recording))))
                 .toList();
         if (local.isEmpty()) {
             return Optional.empty();
@@ -86,8 +93,32 @@ final class SameDownload {
                     Map<String, String> held = byKey(tags.get(recording.id()));
                     return wanted.equals(identity(held)) && part == held.containsKey(OriginContext.TAG_WINDOW);
                 })
-                .max(Comparator.comparing(Recording::createdAt, Comparator.nullsFirst(Comparator.<Instant>naturalOrder())))
-                .map(Recording::id);
+                .max(Comparator.comparing(Recording::createdAt, Comparator.nullsFirst(Comparator.<Instant>naturalOrder())));
+    }
+
+    private static Set<String> chunkIds(Set<String> names) {
+        return names.stream().map(name -> {
+            ManagedFile type = ManagedFile.of(name);
+            return CHUNK_TYPES.contains(type)
+                    ? name.substring(0, name.length() - type.fileExtension().length() - EXTENSION_SEPARATOR.length())
+                    : name;
+        }).collect(Collectors.toSet());
+    }
+
+    /** An existing chunk set can still need a missing dump or a log that has grown. */
+    static List<RepositoryFile> missingArtifacts(
+            RecordingsCoreManager recordings, Recording existing, List<RepositoryFile> requested) {
+        if (requested.isEmpty() || !existing.inBundle()) {
+            return requested;
+        }
+        Map<String, Long> held = new HashMap<>();
+        recordings.findBundle(existing.bundleId()).ifPresent(bundle -> bundle.files()
+                .forEach(file -> held.put(file.filename(), file.sizeInBytes())));
+        recordings.findBundleMembers(existing.bundleId()).forEach(member -> member.files()
+                .forEach(file -> held.put(file.filename(), file.sizeInBytes())));
+        return requested.stream()
+                .filter(file -> file.size() <= 0 || !Long.valueOf(file.size()).equals(held.get(file.name())))
+                .toList();
     }
 
     private static Set<String> fileNames(Recording recording) {

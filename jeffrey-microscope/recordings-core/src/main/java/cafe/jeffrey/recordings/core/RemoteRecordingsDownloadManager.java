@@ -29,6 +29,7 @@ import cafe.jeffrey.recordings.core.download.JfrChunkChain;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
@@ -277,25 +278,30 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         // The same chunks of the same session, already here: handed back rather than stored twice,
         // which analysed again would be a second profile of them.
         Set<String> recordingNames = recordingFiles.stream().map(RepositoryFile::name).collect(Collectors.toSet());
-        Optional<String> already = SameDownload.find(recordingsManager, originTags(recordingSession, part), recordingNames);
-        if (already.isPresent()) {
+        Optional<Recording> already = SameDownload.find(recordingsManager, originTags(recordingSession, part), recordingNames);
+        List<RepositoryFile> pendingArtifacts = already
+                .map(recording -> SameDownload.missingArtifacts(recordingsManager, recording, artifactFiles))
+                .orElse(artifactFiles);
+        List<RepositoryFile> pendingRecordings = already.isPresent() ? List.of() : recordingFiles;
+        if (already.isPresent() && pendingArtifacts.isEmpty()) {
             LOG.info("The same download is already here, returning it: sessionId={} recordingId={} recordings={}",
-                    recordingSessionId, already.get(), recordingFiles.size());
+                    recordingSessionId, already.get().id(), recordingFiles.size());
             progressCallback.onStart(0, 0);
             progressCallback.onComplete();
-            return already.get();
+            return already.get().id();
         }
 
-        long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();
-        int totalFiles = recordingFiles.size() + artifactFiles.size();
+        long totalBytes = Stream.concat(pendingRecordings.stream(), pendingArtifacts.stream())
+                .mapToLong(RepositoryFile::size).sum();
+        int totalFiles = pendingRecordings.size() + pendingArtifacts.size();
 
         LOG.info("Starting parallel download: sessionId={} recordings={} artifacts={} totalBytes={} maxConcurrent={}",
-                recordingSessionId, recordingFiles.size(), artifactFiles.size(), totalBytes, MAX_CONCURRENT_DOWNLOADS);
+                recordingSessionId, pendingRecordings.size(), pendingArtifacts.size(), totalBytes, MAX_CONCURRENT_DOWNLOADS);
 
         progressCallback.onStart(totalFiles, totalBytes);
 
         // Every file is announced up front so the UI can show the whole set before any of it arrives.
-        progressCallback.onFilesDiscovered(Stream.concat(recordingFiles.stream(), artifactFiles.stream())
+        progressCallback.onFilesDiscovered(Stream.concat(pendingRecordings.stream(), pendingArtifacts.stream())
                 .map(file -> FileProgress.pending(file.name(), file.size()))
                 .toList());
 
@@ -307,11 +313,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             // One transfer for both, now that the hub serves every kind of file through one call.
             // What still separates them is what a failure means, which is the two blocks below: a
             // missing recording fails the download, a missing artifact is noted and skipped.
-            List<CompletableFuture<Path>> recordingDownloads = recordingFiles.stream()
+            List<CompletableFuture<Path>> recordingDownloads = pendingRecordings.stream()
                     .map(file -> fetch(file, recordingSessionId, tempDir, downloadSemaphore, progressCallback))
                     .toList();
 
-            List<CompletableFuture<Path>> artifactDownloads = artifactFiles.stream()
+            List<CompletableFuture<Path>> artifactDownloads = pendingArtifacts.stream()
                     .map(file -> fetch(file, recordingSessionId, tempDir, downloadSemaphore, progressCallback)
                             .exceptionally(throwable -> artifactMissing(file, recordingSessionId, throwable, progressCallback)))
                     .toList();
@@ -340,8 +346,13 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             throwIfCancelled(progressCallback);
             progressCallback.onProcessing();
 
-            String recordingId = persistToRecordings(
-                    recordingSession, recordingPaths, artifactPaths, part);
+            String recordingId;
+            if (already.isPresent()) {
+                recordingId = already.get().id();
+                recordingsManager.addDownloadedArtifacts(recordingId, artifactPaths, originTags(recordingSession, part));
+            } else {
+                recordingId = persistToRecordings(recordingSession, recordingPaths, artifactPaths, part);
+            }
 
             progressCallback.onComplete();
             LOG.info("Parallel download completed: sessionId={} recordingId={} recordings={} artifacts={}",

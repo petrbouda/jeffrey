@@ -662,6 +662,7 @@ class McpToolsetAssemblerTest {
          * the agent is told is HEAVY to follow up with ({@code McpToolWeight}).
          */
         private static final Set<String> LARGE_RESULTS = Set.of(
+                "compare_movements",
                 "flamegraph_export",
                 "compare_flamegraph",
                 "traces_traceExport",

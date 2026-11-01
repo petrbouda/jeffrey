@@ -1624,6 +1624,28 @@ class RemoteMcpToolsTest {
         }
 
         @Test
+        void aReusedAnalysedWindowLinksItsExistingProfile() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+            Recording landed = landedRecording();
+            when(landed.id()).thenReturn("rec-window");
+            when(landed.recordingName()).thenReturn("checkout");
+            when(landed.hasProfile()).thenReturn(true);
+            when(landed.profileId()).thenReturn("profile-existing");
+            when(recordingsManager.findRecording("rec-window")).thenReturn(Optional.of(landed));
+
+            JsonNode result = StructuredAnswers.json(RemoteMcpTools.class, "download",
+                    tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(),
+                            NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+
+            assertEquals("profile-existing", result.path("profileId").asString());
+            assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(result));
+            assertTrue(result.path("uiLink").asString().endsWith("/profiles/profile-existing"));
+        }
+
+        @Test
         void aWindowIsNotAnsweredFromTheWholeSessionAlreadyHere() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");

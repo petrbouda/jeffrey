@@ -32,6 +32,8 @@ import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,6 +53,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 
@@ -572,7 +575,15 @@ class RemoteRecordingsDownloadManagerTest {
                     .toList();
             Recording existing = new Recording(EXISTING_ID, "checkout_2026-03-01T12-00-00Z_part", null,
                     RecordingEventSource.JDK, CREATED_AT, CREATED_AT, CREATED_AT.plusSeconds(60), true, "profile-1",
-                    "checkout", files);
+                    "checkout", files, "bundle-existing");
+            when(recordingsManager.findRecording(EXISTING_ID)).thenReturn(Optional.of(existing));
+            when(recordingsManager.findBundle("bundle-existing")).thenReturn(Optional.of(
+                    new Bundle("bundle-existing", "checkout", null, CREATED_AT, List.of())));
+            Recording heap = new Recording("heap-existing", "heap", null, RecordingEventSource.HEAP_DUMP,
+                    CREATED_AT, null, null, false, null, null, List.of(
+                    new RecordingFile("heap-file", "heap-existing", "heap.hprof", ManagedFile.HEAP_DUMP, CREATED_AT, 1024L)),
+                    "bundle-existing");
+            when(recordingsManager.findBundleMembers("bundle-existing")).thenReturn(List.of(existing, heap));
             when(recordingsManager.listRecordings()).thenReturn(List.of(existing));
             when(recordingsManager.tagsForRecordings(List.of(EXISTING_ID))).thenReturn(Map.of(EXISTING_ID,
                     tags.entrySet().stream().map(tag -> new RecordingTag(tag.getKey(), tag.getValue())).toList()));
@@ -594,6 +605,81 @@ class RemoteRecordingsDownloadManagerTest {
             assertEquals(EXISTING_ID, recordingId);
             verify(streamClient, never()).streamFile(any(), any(), any(), any());
             verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        @Test
+        void sameChunksStillFetchAnArtifactAbsentFromExistingCopy() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            Map<String, String> completeTags = sessionTags();
+            completeTags.put(OriginContext.TAG_COMPLETE, "true");
+            alreadyHere(completeTags, "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+            when(recordingsManager.findBundleMembers("bundle-existing")).thenReturn(List.of());
+
+            assertEquals(EXISTING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-4"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            ArgumentCaptor<List<Path>> recovered = capturedRecordingFiles();
+            verify(recordingsManager).addDownloadedArtifacts(eq(EXISTING_ID), recovered.capture(), any());
+            assertEquals(List.of("heap.hprof"), recovered.getValue().stream()
+                    .map(path -> path.getFileName().toString()).toList());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        @Test
+        void aStandaloneCopyKeepsItsRecordingWhenArtifactsAreRecovered() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            Map<String, String> completeTags = sessionTags();
+            completeTags.put(OriginContext.TAG_COMPLETE, "true");
+            alreadyHere(completeTags, "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+            Recording bundled = recordingsManager.listRecordings().getFirst();
+            Recording standalone = new Recording(bundled.id(), bundled.recordingName(), null,
+                    bundled.eventSource(), bundled.createdAt(), bundled.recordingStartedAt(), bundled.recordingFinishedAt(),
+                    true, "profile-1", "checkout", bundled.files());
+            when(recordingsManager.listRecordings()).thenReturn(List.of(standalone));
+
+            assertEquals(EXISTING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            verify(recordingsManager).addDownloadedArtifacts(eq(EXISTING_ID), anyList(), any());
+        }
+
+        @Test
+        void sameChunksRefreshAGrowingLogWithoutFetchingTheRecording() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR), file("log", "app.log", ManagedFile.APP_LOG)));
+            servesEveryFile();
+            Map<String, String> completeTags = sessionTags();
+            completeTags.put(OriginContext.TAG_COMPLETE, "true");
+            alreadyHere(completeTags, "profile-1.jfr");
+            when(recordingsManager.findBundle("bundle-existing")).thenReturn(Optional.of(new Bundle(
+                    "bundle-existing", "checkout", null, CREATED_AT, List.of(new BundleFile(
+                    "log-existing", "bundle-existing", "app.log", ManagedFile.APP_LOG, CREATED_AT, 128)))));
+
+            assertEquals(EXISTING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("log"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            verify(recordingsManager).addDownloadedArtifacts(eq(EXISTING_ID), anyList(), any());
+        }
+
+        @Test
+        void compressionDoesNotMakeAnIdenticalChunkASecondRecording() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    new RepositoryFileResponse("f-1", "profile-1.jfr.lz4", CREATED_AT.toEpochMilli(),
+                            1024L, ManagedFile.JFR_LZ4, false, true),
+                    new RepositoryFileResponse("f-2", "profile-2.jfr.lz4", CREATED_AT.plusSeconds(20).toEpochMilli(),
+                            1024L, ManagedFile.JFR_LZ4, false, true),
+                    new RepositoryFileResponse("f-3", "profile-3.jfr.lz4", CREATED_AT.plusSeconds(40).toEpochMilli(),
+                            1024L, ManagedFile.JFR_LZ4, false, true)));
+            servesEveryFile();
+            alreadyHere(partTags(), "profile-2.jfr", "profile-3.jfr");
+
+            String recordingId = manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null));
+
+            assertEquals(EXISTING_ID, recordingId);
         }
 
         /** A session that wrote another chunk since names it, so the set differs and it is fetched. */

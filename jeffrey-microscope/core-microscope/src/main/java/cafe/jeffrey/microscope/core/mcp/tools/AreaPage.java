@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.model.Type;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -55,7 +56,7 @@ interface AreaPage {
         return facts -> ordered.stream()
                 .filter(page -> page.when().test(facts))
                 .findFirst()
-                .map(page -> UiLinks.view(facts.profileId(), page.view()));
+                .map(page -> UiLinks.view(facts.profileId(), page.view(), page.query()));
     }
 
     /** One graph of one event type, as {@code flamegraph_export} links it with no option given. */
@@ -67,6 +68,14 @@ interface AreaPage {
     }
 
     /** A page and what the profile has to hold for it to show anything. */
-    record Shown(Predicate<ProfileFacts> when, MicroscopeView view) {
+    record Shown(Predicate<ProfileFacts> when, MicroscopeView view, Map<String, String> query) {
+
+        Shown(Predicate<ProfileFacts> when, MicroscopeView view) {
+            this(when, view, Map.of());
+        }
+
+        public Shown {
+            query = Map.copyOf(query);
+        }
     }
 }
