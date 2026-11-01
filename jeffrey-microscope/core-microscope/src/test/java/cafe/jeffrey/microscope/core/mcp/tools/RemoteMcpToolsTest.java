@@ -79,6 +79,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -263,9 +265,11 @@ class RemoteMcpToolsTest {
         RemoteConnection remote = mock(RemoteConnection.class);
         when(remote.info()).thenReturn(remoteInfo("production"));
         when(resolver.currentRemote()).thenReturn(Optional.of(remote));
-        when(recordingsManager.listRecordings()).thenReturn(List.of(new Recording(
+        Recording recording = new Recording(
                 recordingId, recordingId, null, RecordingEventSource.JDK, NOW, NOW, NOW,
-                profileId != null, profileId, profileId, List.of())));
+                profileId != null, profileId, profileId, List.of());
+        when(recordingsManager.listRecordings()).thenReturn(List.of(recording));
+        when(recordingsManager.findRecording(recordingId)).thenReturn(Optional.of(recording));
         List<RecordingTag> tags = new ArrayList<>(List.of(
                 new RecordingTag(OriginContext.TAG_REMOTE_ADDRESS, ADDRESS),
                 new RecordingTag("origin.workspaceId", ref.workspaceId()),
@@ -837,6 +841,92 @@ class RemoteMcpToolsTest {
     @Nested
     class Download {
 
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void aCompleteCopyStillReconcilesMissingArtifacts(boolean retry) {
+            localRecording("rec-existing", null, REF);
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-existing");
+            resolvesTo(projectWith(session(SESSION_ID, NOW,
+                    file("f-1", "recording.jfr", ManagedFile.JFR),
+                    file("heap", "heap.hprof", ManagedFile.HEAP_DUMP)), downloads));
+
+            complete(tools.download(REF.encode(), null, null, null, null, null, null, retry, RESOURCE_READ));
+
+            verify(downloads).downloadSession(SESSION_ID);
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void namedFilesReconcileAGrowingLogAfterASuccessfulDownload(boolean retry) {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-existing");
+            ProjectManager project = projectWith(session(SESSION_ID, NOW,
+                    file("f-1", "recording.jfr", ManagedFile.JFR),
+                    file("log", "app.log", ManagedFile.APP_LOG)), downloads);
+            resolvesTo(project);
+            noLocalRecordings();
+            Recording landed = landedRecording();
+            when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
+
+            complete(tools.download(REF.encode(), null, null, null, null, null,
+                    List.of("f-1", "log"), null, RESOURCE_READ));
+            when(project.repositoryManager().recordingSession(SESSION_ID)).thenReturn(session(SESSION_ID, NOW,
+                    file("f-1", "recording.jfr", ManagedFile.JFR),
+                    new RepositoryFile("log", "app.log", NOW, 2048L, false, null)));
+            complete(tools.download(REF.encode(), null, null, null, null, null,
+                    List.of("f-1", "log"), retry, RESOURCE_READ));
+
+            verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
+        }
+
+        @Test
+        void aDisabledProfileDoesNotReplaceTheAnalysisFollowUp() {
+            localRecording("rec-existing", "profile-building", REF);
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-existing");
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
+            when(recordingsManager.profile("profile-building").orElseThrow().info().enabled()).thenReturn(false);
+            Recording stored = new Recording("rec-existing", "checkout", null, RecordingEventSource.JDK,
+                    NOW, NOW, NOW, true, "profile-building", "checkout", List.of());
+            when(recordingsManager.findRecording("rec-existing")).thenReturn(Optional.of(stored));
+
+            JsonNode answer = StructuredAnswers.json(RemoteMcpTools.class, "download",
+                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+
+            assertTrue(answer.path("profileId").isNull(), answer.toString());
+            assertEquals(List.of("recordings_analyzeRecording"), StructuredAnswers.nextTools(answer));
+            assertTrue(answer.path("uiLink").asString().endsWith("/recordings"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(booleans = {false, true})
+        void aProfileThatBecomesUnavailableDuringPreflightIsNotOffered(boolean deleted) {
+            localRecording("rec-existing", "profile-1", REF);
+            ProfileInfo profileInfo = recordingsManager.profile("profile-1").orElseThrow().info();
+            Recording stored = new Recording("rec-existing", "checkout", null, RecordingEventSource.JDK,
+                    NOW, NOW, NOW, true, "profile-1", "checkout", List.of());
+            when(recordingsManager.findRecording("rec-existing")).thenReturn(Optional.of(stored));
+            RecordingSession session = jfrSession(SESSION_ID, NOW);
+            ProjectManager project = projectWith(session, null);
+            when(project.repositoryManager().recordingSession(SESSION_ID)).thenAnswer(_ -> {
+                if (deleted) {
+                    when(recordingsManager.profile("profile-1")).thenReturn(Optional.empty());
+                } else {
+                    when(profileInfo.enabled()).thenReturn(false);
+                }
+                return session;
+            });
+            resolvesTo(project);
+
+            JsonNode answer = StructuredAnswers.json(RemoteMcpTools.class, "download",
+                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+
+            assertTrue(answer.path("profileId").isNull(), answer.toString());
+            assertEquals(List.of("recordings_analyzeRecording"), StructuredAnswers.nextTools(answer));
+            assertTrue(answer.path("uiLink").asString().endsWith("/recordings"));
+        }
+
         private ProjectManager projectWith(RecordingSession session, RecordingsDownloadManager downloads) {
             RepositoryManager repo = mock(RepositoryManager.class);
             when(repo.recordingSession(SESSION_ID)).thenReturn(session);
@@ -985,11 +1075,12 @@ class RemoteMcpToolsTest {
         @Test
         void returnsTheExistingRecordingRatherThanFetchingItTwice() {
             localRecording("rec-existing", null, REF);
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-existing"), result);
-            nothingReadFromTheRemote();
+            verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
         }
 
         /**
@@ -1012,11 +1103,12 @@ class RemoteMcpToolsTest {
         @Test
         void pointsStraightAtAnalysisWhenTheSessionIsAlreadyAProfile() {
             localRecording("rec-existing", "profile-1", REF);
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("profile-1"), result);
-            nothingReadFromTheRemote();
+            verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
         }
 
         @Test
@@ -1324,11 +1416,12 @@ class RemoteMcpToolsTest {
             @Test
             void doesNotAskAboutASessionAlreadyHere() {
                 localRecording("rec-existing", null, REF);
+                resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
                 McpToolOutcome outcome = wholeSession(ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-existing"));
-                nothingReadFromTheRemote();
+                verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
             }
 
             /** A transfer already running for the whole session is joined, not questioned. */
@@ -1634,6 +1727,11 @@ class RemoteMcpToolsTest {
             when(landed.recordingName()).thenReturn("checkout");
             when(landed.hasProfile()).thenReturn(true);
             when(landed.profileId()).thenReturn("profile-existing");
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.enabled()).thenReturn(true);
+            ProfileManager profile = mock(ProfileManager.class);
+            when(profile.info()).thenReturn(profileInfo);
+            when(recordingsManager.profile("profile-existing")).thenReturn(Optional.of(profile));
             when(recordingsManager.findRecording("rec-window")).thenReturn(Optional.of(landed));
 
             JsonNode result = StructuredAnswers.json(RemoteMcpTools.class, "download",
@@ -2097,6 +2195,7 @@ class RemoteMcpToolsTest {
         @Test
         void aSessionAlreadyHereClaimsNoCountsItDidNotMake() {
             localRecording("rec-existing", null, REF);
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             JsonNode answer = StructuredAnswers.json(RemoteMcpTools.class, "download",
                     tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
@@ -2112,6 +2211,7 @@ class RemoteMcpToolsTest {
         @Test
         void aSessionAlreadyAnalysedLinksItsProfile() {
             localRecording("rec-existing", "profile-1", REF);
+            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             JsonNode answer = StructuredAnswers.json(RemoteMcpTools.class, "download",
                     tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
