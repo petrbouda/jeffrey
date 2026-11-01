@@ -118,7 +118,8 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
     private List<Process> processes() {
         return profileManager.systemResourcesManager().processes().stream()
                 .limit(PROCESSES_LIMIT)
-                .map(process -> new Process(process.pid(), process.commandLine()))
+                .map(process -> new Process(process.pid(), CommandLines.cut(process.commandLine()),
+                        CommandLines.chars(process.commandLine())))
                 .toList();
     }
 
@@ -129,7 +130,8 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
                 .map(process -> new LaunchedProcess(
                         span.map(recording -> recording.epochAt(process.timeOffsetMillis())).orElse(null),
                         process.pid(),
-                        process.command(),
+                        CommandLines.cut(process.command()),
+                        CommandLines.chars(process.command()),
                         process.thread()))
                 .toList();
     }
@@ -160,7 +162,11 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
             @McpNullable
             String pid,
             @McpNullable
-            String commandLine) {
+            @McpDescription(CommandLines.DESCRIPTION)
+            String commandLine,
+            @McpNullable
+            @McpDescription("The command line's full length in characters, before the cut")
+            Integer commandLineChars) {
     }
 
     /**
@@ -175,7 +181,11 @@ public record SystemSection(ProfileManager profileManager) implements JvmSection
             Long startedAtEpochMs,
             long pid,
             @McpNullable
+            @McpDescription(CommandLines.DESCRIPTION)
             String command,
+            @McpNullable
+            @McpDescription("The command's full length in characters, before the cut")
+            Integer commandChars,
             @McpNullable
             String thread) {
     }

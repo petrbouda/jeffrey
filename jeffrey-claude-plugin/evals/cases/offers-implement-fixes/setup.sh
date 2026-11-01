@@ -24,6 +24,9 @@ cat > src/main/java/com/acme/checkout/Checkout.java <<'CHECKOUT_JAVA'
 
 package com.acme.checkout;
 
+import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.trace.EventAttributes;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import com.sun.management.HotSpotDiagnosticMXBean;
 
 import java.lang.management.ManagementFactory;
@@ -37,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * The workload behind the microscope plugin's eval fixtures: a checkout service in miniature, with
@@ -47,9 +51,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   <li>allocation of a {@code HashMap} per line item;</li>
  *   <li>contention on the {@code SessionCache} monitor;</li>
  *   <li>exceptions as control flow — {@code NumberFormatException} from {@code CouponParser};</li>
- *   <li>a slow leak: {@code AuditLog} keeps every order it is given.</li>
+ *   <li>a slow leak: {@code AuditLog} keeps every order it is given;</li>
+ *   <li>traces: one checkout in {@value #TRACE_EVERY} is a {@code POST /checkout} exchange with a span per
+ *       step under it ({@code jeffrey-events} and {@code jeffrey-tracing}), sampled as a service would
+ *       be, so the slow ones are the requests that waited on {@code SessionCache}.</li>
  * </ul>
- * Run as a single source file: {@code java Checkout.java <baseline|candidate> <seconds> [heap-dump-path]}.
+ * Run as a single source file with the tracing jars on the class path:
+ * {@code java -cp jeffrey-events.jar:jeffrey-tracing-api.jar:jeffrey-tracing-thread-local.jar Checkout.java
+ * <baseline|candidate> <seconds> [heap-dump-path]}.
  * {@code build/scripts/record-plugin-eval-mocks.py} records it under JFR and imports it into Jeffrey.
  */
 public final class Checkout {
@@ -57,6 +66,12 @@ public final class Checkout {
     private static final int WORKERS = 4;
     private static final int LINES_PER_ORDER = 24;
     private static final String CANDIDATE = "candidate";
+    private static final int TRACE_EVERY = 50;
+    private static final String METHOD = "POST";
+    private static final String URI = "/checkout";
+    private static final String MEDIA_TYPE = "application/json";
+    private static final int OK = 200;
+    private static final String PROMO_PREFIX = "SPRING-";
 
     public static void main(String[] args) throws Exception {
         boolean candidate = CANDIDATE.equals(args[0]);
@@ -72,12 +87,14 @@ public final class Checkout {
         for (int i = 0; i < WORKERS; i++) {
             workers.submit(() -> {
                 PriceCalculator calculator = new PriceCalculator(candidate);
+                long handled = 0;
                 while (running.get()) {
                     Order order = Order.random();
-                    calculator.reprice(order);
-                    cache.touch(order.customer());
-                    CouponParser.discount(order.coupon());
-                    audit.record(order);
+                    if (++handled % TRACE_EVERY == 0) {
+                        traced(order, () -> checkout(order, calculator, cache, audit, Checkout::span));
+                    } else {
+                        checkout(order, calculator, cache, audit, Checkout::untraced);
+                    }
                 }
             });
         }
@@ -91,6 +108,56 @@ public final class Checkout {
         System.out.println("orders audited: " + audit.size());
     }
 
+    /** The steps of one checkout, each run through {@code step} — a span when the request is traced. */
+    private static void checkout(Order order, PriceCalculator calculator, SessionCache cache, AuditLog audit,
+                                 Step step) {
+        step.run("price.reprice", () -> calculator.reprice(order));
+        step.run("session.touch", () -> {
+            cache.touch(order.customer());
+            return null;
+        });
+        step.run("coupon.discount", () -> CouponParser.discount(order.coupon()));
+        step.run("audit.record", () -> {
+            audit.record(order);
+            return null;
+        });
+    }
+
+    /** The request as an inbound HTTP exchange: the trace's root span, the steps nested under it. */
+    private static void traced(Order order, Runnable body) {
+        HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+        exchange.begin();
+        try {
+            Tracer.inSpanOf(exchange, body);
+        } finally {
+            exchange.end();
+            if (exchange.shouldCommit()) {
+                exchange.method = METHOD;
+                exchange.uri = URI;
+                exchange.mediaType = MEDIA_TYPE;
+                exchange.statusCode = OK;
+                exchange.attributes = EventAttributes.create()
+                        .put("coupon", order.coupon().startsWith(PROMO_PREFIX) ? "promo" : "numeric")
+                        .put("lines", order.lineCents().size())
+                        .json();
+                exchange.commitSpan();
+            }
+        }
+    }
+
+    private static <R> R span(String name, Supplier<R> body) {
+        return Tracer.call(name, body);
+    }
+
+    private static <R> R untraced(String name, Supplier<R> body) {
+        return body.get();
+    }
+
+    @FunctionalInterface
+    interface Step {
+        <R> R run(String name, Supplier<R> body);
+    }
+
     record Order(String customer, String coupon, List<Long> lineCents) {
 
         static Order random() {
@@ -99,7 +166,7 @@ public final class Checkout {
             for (int i = 0; i < LINES_PER_ORDER; i++) {
                 lines.add(random.nextLong(100, 100_000));
             }
-            String coupon = random.nextInt(4) == 0 ? "SPRING-" + random.nextInt(100) : Integer.toString(random.nextInt(50));
+            String coupon = random.nextInt(4) == 0 ? PROMO_PREFIX + random.nextInt(100) : Integer.toString(random.nextInt(50));
             return new Order("customer-" + random.nextInt(200), coupon, lines);
         }
     }

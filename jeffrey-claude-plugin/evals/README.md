@@ -915,3 +915,40 @@ The misses, one run each, both against rules already written: `named-area-cpu` w
 fixes: not available" where the rule leaves the option out without a word, and
 `two-areas-delegated`'s analyst asked for a `threadMode` export the handbook leaves off and no
 fixture holds. The live SQL cases are untouched by this change (1.00 and 1.00 at 1.0.26).
+
+## Plugin 1.0.28: a traced workload, heap fixes, bounded command lines
+
+- **The workload is traced.** One checkout in 50 is a `POST /checkout` exchange (jeffrey-events) with
+  a span per step under it (jeffrey-tracing's `Tracer`), sampled as a service would be: about 2,300
+  traces a run, p50 74 µs, p95 12 ms. The slow ones waited on `SessionCache`, whose 12 ms busy-wait
+  holds its monitor. The recorder puts the tracing jars on the workload's class path, so Traces and
+  Requests and calls are now available in the eval profiles, and a re-recording replaced the files
+  in jeffrey-recordings. New case `slow-requests-from-traces`: the slow requests named from the
+  traces, with figures. `open-question-shows-menu` checks that Traces is the Pages table's first row.
+  It was not, in five of six runs, until the skill put the order as a numbered list with an example
+  table, with Traces above the ★ rows.
+- **Operation names reach the mocks.** `traces_slowestTraces` and `traces_operationExport` take the
+  operation's name, "POST /checkout", which cannot be part of a file name, so they had no mock. The
+  recorder now addresses such a fixture by the arguments that can, and pins the others with the
+  mock's `expect:` list of recorded values, as long as those still tell the answers apart. A query
+  the agent writes is never pinned, so the SQL tools stay unmocked.
+- **Implement fixes after a heap analysis.** `analyze-heap` carries the shared Implement fixes
+  section: a leak suspect's class, or the field holding its accumulation point, found in the
+  repository is an offer. `advise-jfr` has a heap route, where the change bounds, evicts or lets go
+  of the collection, verified by a second dump and `heap_diff`. New case
+  `heap-offers-implement-fixes`: three of three offered to bound the audit log's list.
+- **`jvm_system` command lines are cut** to 600 characters, keeping the start and the end, with
+  their full length beside them. One 37,893-character line had taken the answer to 42,000.
+- `compare-finds-the-regression`'s judge now accepts a latency claim read from the traces with their
+  sampling (median 74 → 114 µs). One inferred from CPU samples or the request count still fails.
+
+| | 1.0.27 | 1.0.28 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 17 | 18 of 19 |
+| Overall score | 1.00 | 1.00 |
+| Cost, including the judge | $9.15 | $11.11 |
+| Replies with an unmarked link | 0 of 51 | 2 of 57 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The miss: one run of `exceptions-to-the-throw-site` without its check before parsing. The two
+unmarked replies linked a profile by its baseline name and by its length.

@@ -695,7 +695,7 @@ const exPeak = `remote_download { "sessionRef": "h1Y2ZnLX...", "window": "PEAK" 
           <tr>
             <td><code>jvm_system</code></td>
             <td><code>profileId</code></td>
-            <td>Machine CPU against this JVM&rsquo;s own, what the difference leaves for everything else on the box, the peak context-switch rate, and the other processes running there</td>
+            <td>Machine CPU against this JVM&rsquo;s own, what the difference leaves for everything else on the box, the peak context-switch rate, and the other processes running there &mdash; each command line cut to its start and end (the executable, and a Java process&rsquo;s main class and arguments) with its full length beside it</td>
           </tr>
           <tr>
             <td><code>jvm_security</code></td>

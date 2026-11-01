@@ -17281,6 +17281,12 @@
                         "null"
                       ]
                     },
+                    "commandChars": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
                     "pid": {
                       "type": "integer"
                     },
@@ -17299,6 +17305,7 @@
                   },
                   "required": [
                     "command",
+                    "commandChars",
                     "pid",
                     "startedAtEpochMs",
                     "thread"
@@ -17338,6 +17345,12 @@
                         "null"
                       ]
                     },
+                    "commandLineChars": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
                     "pid": {
                       "type": [
                         "string",
@@ -17347,6 +17360,7 @@
                   },
                   "required": [
                     "commandLine",
+                    "commandLineChars",
                     "pid"
                   ],
                   "type": "object"

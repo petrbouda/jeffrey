@@ -23,7 +23,9 @@ all. Hand-written answers would test the skills against a server that does not e
 takes them from one that does:
 
 1. records the eval workload (`evals/fixtures/workload`) under JFR twice — `baseline`, then
-   `candidate` with its deliberate regression and a heap dump at the end;
+   `candidate` with its deliberate regression and a heap dump at the end — with jeffrey-events and
+   jeffrey-tracing on its class path (`TRACING_JARS`, built from `utilities/`), so the recordings carry
+   sampled traces;
 2. imports the three files into the Jeffrey at `--url` with `recordings_analyzeFile`, as a user would,
    and prepares the heap dump with `heap_prepare`;
 3. calls every tool the way a model following the skills would reach it: each tool whose required
@@ -68,6 +70,18 @@ from pathlib import Path
 
 PLUGIN_DIR = Path("jeffrey-claude-plugin")
 WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java"
+# What the workload's traces are written with: the HTTP exchange event, the Tracer, and where the Tracer keeps
+# the span in progress. Built by TRACING_BUILD; the workload runs on JDK 25, but the ThreadLocal storage is
+# what jeffrey-tracing's own starter brings, and a recording's spans do not depend on which one holds them.
+UTILITIES = Path("utilities")
+TRACING_JARS = (
+    UTILITIES / "jeffrey-events/target/jeffrey-events-1.0-SNAPSHOT.jar",
+    UTILITIES / "jeffrey-tracing-parent/jeffrey-tracing-api/target/jeffrey-tracing-api-1.0-SNAPSHOT.jar",
+    UTILITIES / "jeffrey-tracing-parent/jeffrey-tracing-thread-local/target/"
+                "jeffrey-tracing-thread-local-1.0-SNAPSHOT.jar",
+)
+TRACING_BUILD = ("mvn -f utilities/pom.xml -pl jeffrey-events,jeffrey-tracing-parent/jeffrey-tracing-thread-local "
+                 "-am package -DskipTests")
 MOCKS = PLUGIN_DIR / "evals/mocks/jeffrey"
 FIXTURES = MOCKS / "fixtures"
 RECORDED_PROFILES = PLUGIN_DIR / "evals/fixtures/recorded-profiles.json"
@@ -108,6 +122,9 @@ NOT_CALLED_FROM_ANSWERS = {
     "remote_download", "remote_fetchFile", "operations_cancel", "ide_link", "ide_open",
 }
 FILE_NAME_SAFE = re.compile(r"[A-Za-z0-9._-]+")
+# Text the agent writes itself rather than copies from an answer — a SQL or OQL query. A mock pinned to the
+# queries this script happened to run would abort every run that asks its own, so such a tool stays unmocked.
+COMPOSED_ARGUMENTS = {"query"}
 
 # The workload's own package, the way analyze-exceptions passes it, so the recorded throw sites name
 # their own frame — the first answer recorded for a key is the one a case gets.
@@ -227,12 +244,19 @@ def record_workload(java: str, work_dir: Path, seconds: int) -> dict[str, Path]:
     for path in files.values():
         path.unlink(missing_ok=True)
     for mode in ("baseline", "candidate"):
-        command = [java, f"-XX:StartFlightRecording={JFR_OPTIONS},filename={files[mode]}",
+        command = [java, "-cp", tracing_class_path(), f"-XX:StartFlightRecording={JFR_OPTIONS},filename={files[mode]}",
                    str(WORKLOAD.resolve()), mode, str(seconds)]
         if mode == "candidate":
             command.append(str(files["heap"]))
         subprocess.run(command, check=True, cwd=work_dir, stdout=subprocess.DEVNULL)
     return files
+
+
+def tracing_class_path() -> str:
+    missing = [str(jar) for jar in TRACING_JARS if not jar.is_file()]
+    if missing:
+        raise SystemExit(f"the workload's tracing jars are not built ({', '.join(missing)}); run: {TRACING_BUILD}")
+    return ":".join(str(jar.resolve()) for jar in TRACING_JARS)
 
 
 def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded) -> Profiles:
@@ -341,12 +365,31 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
             if tool not in recorded.fixed:
                 recorded.fixed[tool] = seen_by_model(answer)
                 recorded.inputs[tool][()] = arguments
-        elif all(FILE_NAME_SAFE.fullmatch(value) for value in key):
+        else:
+            # Keyed by every required value; write_mocks decides which can name a file.
             if key not in recorded.answers[tool]:
                 recorded.answers[tool][key] = seen_by_model(answer)
                 recorded.inputs[tool][key] = arguments
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
+
+
+def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | None:
+    """The required arguments a fixture's file name is built from, or None when they cannot tell its answers apart.
+
+    An argument whose every recorded value can be part of a file name addresses the fixture. One that cannot —
+    an operation's name, "POST /checkout" — is pinned instead, by the mock's `expect:` list of the values recorded,
+    which the harness enforces by aborting a run that passes another; that works only while the addressing
+    arguments still tell each answer apart, and only for text copied from an answer: free text with many values
+    (a class name per object) fails the first, a query the agent writes (`COMPOSED_ARGUMENTS`) the second, and
+    both stay unmocked.
+    """
+    named = [argument for index, argument in enumerate(required)
+             if all(FILE_NAME_SAFE.fullmatch(key[index]) for key in answers)]
+    if COMPOSED_ARGUMENTS & (set(required) - set(named)):
+        return None
+    projections = {tuple(key[required.index(argument)] for argument in named) for key in answers}
+    return named if len(projections) == len(answers) else None
 
 
 def write_mocks(tools: list[dict], recorded: Recorded) -> None:
@@ -361,13 +404,25 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
         (MOCKS / f"{tool}.md").write_text(f"---\ntype: fixed\n{guard}---\n\n{text}\n")
     # A tool none of whose calls could be keyed gets no mock, so the runs do not offer it at all
     # rather than offering one that answers every call with a missing fixture.
-    answered = {tool: answers for tool, answers in recorded.answers.items() if answers}
-    for tool, answers in sorted(answered.items()):
+    answered = {}
+    for tool, answers in sorted(recorded.answers.items()):
         required = sorted(schemas[tool].get("required", []))
-        placeholders = "-".join(f"{{input.{argument}}}" for argument in required)
-        (MOCKS / f"{tool}.md").write_text(f"---\ntype: fixed\n---\n\n{{{{file:fixtures/{tool}-{placeholders}.txt}}}}\n")
+        named = addressed(required, answers)
+        if named is None:
+            answers = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
+            named = addressed(required, answers)
+        if not answers:
+            continue
+        answered[tool] = answers
+        recorded.inputs[tool] = {key: recorded.inputs[tool][key] for key in answers}
+        placeholders = "-".join(f"{{input.{argument}}}" for argument in named)
+        expect = "".join(f"  {argument}: " + json.dumps(sorted({key[required.index(argument)] for key in answers}))
+                         + "\n" for argument in required if argument not in named)
+        (MOCKS / f"{tool}.md").write_text("---\ntype: fixed\n" + (f"expect:\n{expect}" if expect else "")
+                                          + f"---\n\n{{{{file:fixtures/{tool}-{placeholders}.txt}}}}\n")
         for key, text in answers.items():
-            (FIXTURES / f"{tool}-{'-'.join(key)}.txt").write_text(text + "\n")
+            name = "-".join(value for argument, value in zip(required, key) if argument in named)
+            (FIXTURES / f"{tool}-{name}.txt").write_text(text + "\n")
     mocked = set(recorded.fixed) | set(answered)
     listed = [tool for tool in tools if tool["name"] in mocked]
     (MOCKS / "_tools.json").write_text(json.dumps({"tools": listed}, indent=1, ensure_ascii=False) + "\n")

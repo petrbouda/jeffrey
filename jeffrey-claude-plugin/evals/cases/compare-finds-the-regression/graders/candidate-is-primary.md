@@ -1,6 +1,6 @@
 ---
 type: tool_used
 tool: mcp__plugin_microscope_jeffrey__compare_movements
-input_match: '(?=.*"profileId"\s*:\s*"01a196b7-f58b-7982-b0c3-91b2e4636c8d")(?=.*"baselineProfileId"\s*:\s*"01a196b7-f18e-7914-aba1-949624db177e")'
+input_match: '(?=.*"profileId"\s*:\s*"01a1978b-3b39-7b4a-a8d9-d2c9cd09fde6")(?=.*"baselineProfileId"\s*:\s*"01a1978b-348e-745a-8629-cab182c3a543")'
 min: 1
 ---

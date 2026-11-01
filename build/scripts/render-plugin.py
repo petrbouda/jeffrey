@@ -82,7 +82,7 @@ class SharedSentence:
 
 SHARED_SECTIONS = (
     SharedSection("shared/implement-fixes.md", "## Implement fixes", (
-        "analyze-jfr", "compare-jfr", "regression-check")),
+        "analyze-heap", "analyze-jfr", "compare-jfr", "regression-check")),
     SharedSection("shared/link-what-you-name.md", "## Link what you name", (
         "advise-jfr", "analyze-heap", "analyze-jfr", "analyze-remote", "compare-jfr", "heap-sql", "help",
         "jfr-sql", "profile-run", "regression-check")),

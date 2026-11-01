@@ -29,6 +29,7 @@ from unittest.mock import patch
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+MOCKS = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
 spec = importlib.util.spec_from_file_location('recorder', ROOT / 'build/scripts/record-plugin-eval-mocks.py')
 recorder = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = recorder
@@ -172,6 +173,41 @@ class ReplayContractTest(unittest.TestCase):
         self.assertEqual('COMPLETED', json.loads(recorded.answers['operations_status'][('slow-heap',)])['status'])
 
 
+class AddressingTest(unittest.TestCase):
+    """Which required arguments name a fixture, and which are pinned by the mock's expect: list."""
+
+    REQUIRED = ['eventType', 'kind', 'name', 'profileId']
+
+    def test_an_operation_name_is_pinned_while_the_safe_arguments_tell_the_answers_apart(self):
+        answers = {('jeffrey.HttpServerExchange', 'SERVER', 'POST /checkout', 'baseline'): 'a',
+                   ('jeffrey.HttpServerExchange', 'SERVER', 'POST /checkout', 'candidate'): 'b'}
+        self.assertEqual(['eventType', 'kind', 'profileId'], recorder.addressed(self.REQUIRED, answers))
+
+    def test_free_text_with_several_values_per_address_cannot_be_pinned(self):
+        answers = {('jeffrey.HttpServerExchange', 'SERVER', 'POST /checkout', 'candidate'): 'a',
+                   ('jeffrey.HttpServerExchange', 'SERVER', 'GET /orders/{id}', 'candidate'): 'b'}
+        self.assertIsNone(recorder.addressed(self.REQUIRED, answers))
+
+    def test_a_query_the_agent_writes_is_never_pinned(self):
+        answers = {('candidate', 'SELECT * FROM events LIMIT 10'): 'a'}
+        self.assertIsNone(recorder.addressed(['profileId', 'query'], answers))
+
+    def test_safe_values_address_the_fixture_whole(self):
+        answers = {('jdk.ExecutionSample', 'SERVER', 'checkout', 'candidate'): 'a'}
+        self.assertEqual(self.REQUIRED, recorder.addressed(self.REQUIRED, answers))
+
+    def test_the_recorded_mocks_pin_only_with_a_list_of_recorded_values(self):
+        for mock in sorted(MOCKS.glob('*.md')):
+            front = yaml.safe_load(mock.read_text().split('---')[1])
+            for argument, allowed in (front.get('expect') or {}).items():
+                with self.subTest(mock=mock.name, argument=argument):
+                    if mock.stem == 'recordings_analyzeFile':
+                        self.assertIsInstance(allowed, str)
+                    else:
+                        self.assertIsInstance(allowed, list)
+                        self.assertNotIn('{input.' + argument + '}', mock.read_text())
+
+
 class CheckedInContractTest(unittest.TestCase):
     def test_every_checked_in_case_uses_current_contract(self):
         mocks = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
@@ -245,21 +281,35 @@ class AnswerSizeTest(unittest.TestCase):
 
 
 class ScaffoldTest(unittest.TestCase):
+    """Every case that scaffolds the checkout repository embeds the recorded workload, byte for byte."""
+
+    @staticmethod
+    def scaffolds():
+        cases = ROOT / 'jeffrey-claude-plugin/evals/cases'
+        return sorted(script for script in cases.glob('*/setup.sh') if "<<'CHECKOUT_JAVA'" in script.read_text())
+
+    def test_the_implement_fixes_cases_scaffold_the_repository(self):
+        self.assertEqual(['heap-offers-implement-fixes', 'offers-implement-fixes'],
+                         [script.parent.name for script in self.scaffolds()])
+
     def test_the_scaffolded_repository_holds_the_recorded_workload_verbatim(self):
         workload = (ROOT / 'jeffrey-claude-plugin/evals/fixtures/workload/com/acme/checkout/Checkout.java').read_text()
-        script = (ROOT / 'jeffrey-claude-plugin/evals/cases/offers-implement-fixes/setup.sh').read_text()
-        embedded = re.search(r"<<'CHECKOUT_JAVA'\n(.*?)^CHECKOUT_JAVA$", script, re.S | re.M)
-        self.assertIsNotNone(embedded, 'setup.sh no longer embeds Checkout.java between its markers')
-        self.assertEqual(workload if workload.endswith('\n') else workload + '\n', embedded.group(1))
+        for script in self.scaffolds():
+            with self.subTest(case=script.parent.name):
+                embedded = re.search(r"<<'CHECKOUT_JAVA'\n(.*?)^CHECKOUT_JAVA$", script.read_text(), re.S | re.M)
+                self.assertIsNotNone(embedded, 'setup.sh no longer embeds Checkout.java between its markers')
+                self.assertEqual(workload if workload.endswith('\n') else workload + '\n', embedded.group(1))
 
-    def test_the_scaffold_builds_a_repository_with_the_class_the_profile_names(self):
-        script = ROOT / 'jeffrey-claude-plugin/evals/cases/offers-implement-fixes/setup.sh'
-        with tempfile.TemporaryDirectory() as temp:
-            subprocess.run(['bash', str(script)], cwd=temp, check=True, capture_output=True)
-            source = Path(temp) / 'src/main/java/com/acme/checkout/Checkout.java'
-            self.assertIn('busyWait', source.read_text())
-            head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=temp, check=True, capture_output=True, text=True)
-            self.assertRegex(head.stdout.strip(), r'^[0-9a-f]{40}$')
+    def test_the_scaffold_builds_a_repository_with_the_classes_the_profiles_name(self):
+        for script in self.scaffolds():
+            with self.subTest(case=script.parent.name), tempfile.TemporaryDirectory() as temp:
+                subprocess.run(['bash', str(script)], cwd=temp, check=True, capture_output=True)
+                source = (Path(temp) / 'src/main/java/com/acme/checkout/Checkout.java').read_text()
+                self.assertIn('busyWait', source)
+                self.assertIn('class AuditLog', source)
+                head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=temp, check=True, capture_output=True,
+                                      text=True)
+                self.assertRegex(head.stdout.strip(), r'^[0-9a-f]{40}$')
 
 
 class VerdictContractTest(unittest.TestCase):
