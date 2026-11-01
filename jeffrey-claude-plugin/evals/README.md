@@ -889,3 +889,29 @@ and `gc-pauses-in-proportion`'s `pauses-in-proportion`. The two unmarked replies
 and a comparison's event types. The live exceptions case first scored 0.93 — two runs loaded
 `analyze-exceptions` instead of `jfr-sql`, as at 1.0.17, and still answered with SQL — and 1.00 when
 run again.
+
+## Plugin 1.0.27: the recordings are compared, not the runs
+
+Both 1.0.26 misses were judge splits, and both pointed at text rather than noise.
+
+- **"The runs are comparable" failed `honest-verdict` twice.** Matching settings and lengths opened
+  the comparability section as a verdict about the runs, and the workload was qualified only after.
+  `compare-jfr` and `regression-check` now word it as what the evidence shows: the two were
+  *recorded the same way*, and whether they did the same work is not shown, in one sentence. Six of six
+  runs passed with that wording.
+- **`pauses-in-proportion` expected 130–140 ms**, the young pauses alone, and "under half a percent".
+  The recorded stop-the-world total is 150.9 ms (134.8 young plus the heap dump's 16.1 ms Full GC),
+  0.5% overhead, so the right answer failed. The judge now takes roughly 130–155 ms and about half a
+  percent.
+
+| | 1.0.26 | 1.0.27 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 17 | 15 of 17 |
+| Overall score | 0.99 | 1.00 |
+| Cost, including the judge | $9.28 | $9.15 |
+| Replies with an unmarked link | 2 of 51 | 0 of 51 |
+
+The misses, one run each, both against rules already written: `named-area-cpu` wrote "Implement
+fixes: not available" where the rule leaves the option out without a word, and
+`two-areas-delegated`'s analyst asked for a `threadMode` export the handbook leaves off and no
+fixture holds. The live SQL cases are untouched by this change (1.00 and 1.00 at 1.0.26).

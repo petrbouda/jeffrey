@@ -85,7 +85,9 @@ compare_quality(profileId=<candidate>, baselineProfileId=<baseline>)
 evidence, not a single comparability verdict: inspect `samplingConfiguration`, `findings`, each
 side's `samplerHealth`, and `truncation` using the interpretation in `compare-jfr`. Call both before
 quoting a delta. If no shared evidence supports the requested claim, explain why and re-record or
-stop that comparison.
+stop that comparison. Matching settings and lengths say the two were *recorded the same way*, not
+that they did the same work: never write "the runs are comparable" on its own — say which of the two
+the evidence shows, as `compare-jfr` words it.
 
 `durationNormalization.available=true` permits exposure scaling, not an assumption of equal load.
 `workloadNormalization.available=false` means the recorded server events cannot supply a complete

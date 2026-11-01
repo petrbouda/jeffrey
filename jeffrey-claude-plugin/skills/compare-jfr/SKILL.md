@@ -78,8 +78,13 @@ not a single comparability verdict. Assess the question using these fields:
   duration-normalized movements. State the denominator and the limitation.
 - `truncation`: omitted evidence is unknown, not a clean bill of health.
 
-Open the report with your assessment of what can be compared and its limitations. If no shared
-event type supports the requested comparison, report that gap and stop. Otherwise compare the
+Open the report with your assessment of what can be compared and its limitations. That assessment
+is about the **recordings**: matching settings, lengths and sampler health show the two were
+*recorded the same way*, never that the runs did the same work. Say both in one sentence — "recorded
+the same way (30.5 s against 30.4 s, all 89 shared types' settings match); whether both did the same
+work is not shown" — unless the user or the workload states it. Never write "the runs are
+comparable" on its own. If no shared event type supports the requested comparison, report that gap
+and stop. Otherwise compare the
 supported dimensions, and keep a workload regression claim separate from an observed movement.
 
 If the two runs came from different machines, different load levels or different JVM flags, say so
@@ -141,9 +146,9 @@ of the change.
   that the two builds perform identically: a change smaller than run-to-run variance is invisible
   to this method, and the report says so.
 
-Write the result in the `report` skill's shape: the comparability verdict first, then each movement
-with the `compare_movements` call and its figures, the confidence the comparability notes allow, and
-the two profile ids with which one was the baseline.
+Write the result in the `report` skill's shape: the comparability assessment first, worded as in
+§2, then each movement with the `compare_movements` call and its figures, the confidence the
+comparability notes allow, and the two profile ids with which one was the baseline.
 
 ## 6. Tie it back to the change
 
