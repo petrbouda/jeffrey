@@ -90,11 +90,43 @@ and `· covered` when the ledger already has it. A group with a single available
 group's question when that one has room, since a question needs two options. Everything else — the
 fired rules, the gaps the question needs, the not-recorded line — is text above the question.
 
+**Above the question, a Pages table** — the click-through view of the profile, before anything is
+analysed. One row per area with data (`AVAILABLE` or `NEEDS_PREPARATION`), in this order:
+
+1. **Traces**, whenever the profile has them — above the suggested areas too: a request's own time,
+   span by span, is the page a user most often wants and the one no flamegraph replaces, and a ★ says
+   where the evidence points, not which page comes first;
+2. the suggested ones, marked ★;
+3. the rest.
+
+Each row has its `title`, what its page shows in a few words, and `[↗ open](<its uiLink>)` — for a
+profile with traces and a suggested lock area, it starts:
+
+```
+| Page | Shows | |
+|---|---|---|
+| Traces | Slow requests, span by span | [↗ open](<its uiLink>) |
+| ★ Lock contention | Which locks held threads back | [↗ open](<its uiLink>) |
+``` A profile without traces says so
+in the not-recorded line, Traces named first with its `remedy`. Then
+`moreFlamegraphs` in one line — "Also graphable:" and each as `[<label> ↗](<its uiLink>)` with its
+samples, the rest as "N more". Only for an open question: when the user named an area, go straight
+there and link only the page the answer was read off.
+
 **Without a structured question tool** (Codex, Gemini CLI), write the menu as a table grouped by
-group — area, weight, what it answers, why it is suggested — then the not-recorded line, and stop.
+group — area, weight, what it answers, why it is suggested, `[↗ open](<its uiLink>)` — then the
+not-recorded line, and stop.
+
+Every Code area opens on its flamegraph: CPU hotspots and Wall-clock time on the graph alone,
+Allocation and Lock contention on the graph and then their table — hand the graph to the analyst, as
+for CPU, and read the table here. **`moreFlamegraphs`** are the recorded types with stacks no area
+opens (a second sampler, native allocation, method traces, custom events), in the Pages table's last
+line; a pick of one, under Other, sends its `export` unchanged.
 
 The user may pick several; take them in the order they gave, sending each area's `nextTools`
-unchanged. A pick that comes back `NOT_RECORDED` after all is reported as not assessed, and the next
+unchanged. **Traces** is offered whenever the profile has traces, apart from the HTTP and gRPC
+dashboards under **Requests and calls**; a pick of it opens with `traces_overview`, and
+`references/latency.md` has the rest. A pick that comes back `NOT_RECORDED` after all is reported as not assessed, and the next
 pick goes on.
 
 **Weight** is what an answer puts into this conversation: **LIGHT** one or two compact records,
@@ -106,7 +138,8 @@ spends to compute the answer.
 
 Close each answer with at most two follow-ups taken from its `followUp.nextTools` — each carries its
 `weight` and its `why` — and wait. In Claude Code put them as one `AskUserQuestion` with an option
-per follow-up and a "Stop here" option; elsewhere, one line each. A follow-up the user did not ask
+per follow-up, **Implement fixes** when a finding is in this repository (see *Implement fixes*
+below), and a "Stop here" option; elsewhere, one line each. A follow-up the user did not ask
 for is not run, however well the evidence points at it: "the allocation flamegraph would name the
 call sites (HEAVY)" is the sentence, not the export.
 
@@ -114,9 +147,14 @@ call sites (HEAVY)" is the sentence, not the export.
 
 Across the conversation keep a short block, updated after every answer:
 
-- **Covered** — each area answered, with its one-line result and its link;
+- **Covered** — each area answered: its one-line result, then `[↗ open](<its uiLink>)`;
+- **In progress** — areas handed to an analyst and not back yet;
 - **Open leads** — follow-ups offered and not yet taken;
 - **Not assessed** — areas the recording cannot answer, and picks that turned out `NOT_RECORDED`.
+
+Write it as that list, a bold label leading each line, and leave out a line with nothing in it. Not
+as a table: a table's first row is its header, and a ledger has none to give it, so the labels end
+up in rows under a blank one.
 
 When the user asks what else there is, show the menu again with the covered areas marked. The
 ledger is yours: nothing in it is sent to a tool, and the `report` skill builds its findings and its
@@ -137,6 +175,7 @@ from the menu, read three things from it and route:
 | Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
 | Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
 | Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
+| A memory warning is in `topFindings` (usage near 100%, a container limit) | `jvm_configuration` (`GC_HEAP_CONFIGURATION`) and `jvm_container` before reading it — a pre-touched heap reads as full; `references/jvm.md` |
 | `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
 | Two profiles of the same workload | `compare-jfr` |
 | The question is about exceptions, errors or timeouts in the application's code | `analyze-exceptions` |
@@ -233,13 +272,61 @@ become rates against the recording length, sampled and rule-based evidence is ca
 confidence, and what the profile could not answer goes in its own **Not assessed** section rather
 than passing as a clean result. Follow it for anything the user reads.
 
+## Implement fixes
+
+You are usually running inside the repository of the application that was profiled, so a finding
+can become a change to its code. When it can, offer that as an option labelled exactly
+**Implement fixes** — not "I can propose a change" in passing — beside the follow-ups that close the
+answer. In Claude Code close with `AskUserQuestion` whenever this option is on offer, a named area's
+answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
+starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
+
+Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
+no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before
+you write the offer: one that says it has not yet checked whether the class is here is not offered.
+
+- the working directory is a repository — a `.git` there (`Glob`), or `git rev-parse
+  --show-toplevel` answering;
+- at least one finding names something that repository holds — the class of the hot frame, the
+  throw site, a leak suspect's class or the field that holds its accumulation point (its
+  `gcRootPath` names the field, or the thread and `stackFrame` that hold it), the configuration file
+  (`logback.xml`, `application.yml`, a pool's settings): `Grep` or `Glob` for it finds a file there,
+  not only JDK, framework or library code.
+
+Then say how the code relates to the profile in the option's description: `profiles_get`'s
+`recordingCommit` against `git rev-parse HEAD` — "profiled at abc1234, HEAD is def5678" when they
+differ, "commit not recorded" when `recordingCommit` is null (a heap dump carries none). That
+qualifies the offer; it never removes it.
+
+The option's description names what it would change, at most two findings by place
+(say, logback.xml's caller data, the pricing class's line formatter, or the audit log's unbounded
+list). When the user asks what else there
+is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
+one multi-select **Implement fixes for:** question.
+
+Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
+the source rather than choosing evidence again, and keeps its own gate: the proposed change per
+finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
+pool size) is proposed as a value to change, not as an edit to code. After the build and the tests,
+offer **Re-profile and compare** — `profile-run` records the changed code, `compare-jfr` puts it
+against this profile — so the fix is measured rather than assumed. A heap finding is measured by a
+second dump taken under the same load and put against this one with `heap_diff`, the earlier dump as
+the baseline.
+
 ## Link what you name
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential — put its link right beside the name as a Markdown link, so the user opens it in one
-click: `[trace 7e34c5994dc96208](<its uiLink>)`. That holds in every reply, not only in a written
-report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
+a page named in passing ("the exceptions page"), the links most often left bare:
+`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
+and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
+a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
+it: every `](` closes a link text that holds `↗`.**
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

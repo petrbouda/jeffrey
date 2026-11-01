@@ -29,7 +29,11 @@ import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -552,6 +556,91 @@ class RemoteRecordingsDownloadManagerTest {
      * The UI's "download session" names every file, and that recording is the session; a pick of
      * some recording files is a part of it and carries the window tag like a window does.
      */
+    /**
+     * The same chunks of the same session, downloaded again: the copy already here is handed back, so
+     * analysing it does not make a second profile of the same recording.
+     */
+    @Nested
+    @DisplayName("A download repeated")
+    class RepeatedDownload {
+
+        private static final String EXISTING_ID = "already-here";
+
+        private void alreadyHere(Map<String, String> tags, String... fileNames) {
+            List<RecordingFile> files = Arrays.stream(fileNames)
+                    .map(name -> new RecordingFile(name, EXISTING_ID, name, ManagedFile.JFR, CREATED_AT, 1024L))
+                    .toList();
+            Recording existing = new Recording(EXISTING_ID, "checkout_2026-03-01T12-00-00Z_part", null,
+                    RecordingEventSource.JDK, CREATED_AT, CREATED_AT, CREATED_AT.plusSeconds(60), true, "profile-1",
+                    "checkout", files);
+            when(recordingsManager.listRecordings()).thenReturn(List.of(existing));
+            when(recordingsManager.tagsForRecordings(List.of(EXISTING_ID))).thenReturn(Map.of(EXISTING_ID,
+                    tags.entrySet().stream().map(tag -> new RecordingTag(tag.getKey(), tag.getValue())).toList()));
+        }
+
+        private Map<String, String> partTags() {
+            Map<String, String> tags = sessionTags();
+            tags.put(OriginContext.TAG_WINDOW, "an-earlier-span");
+            return tags;
+        }
+
+        @Test
+        void theSameChunksOfTheSameSessionAreHandedBackWithoutATransfer() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            alreadyHere(partTags(), "profile-2.jfr", "profile-3.jfr");
+
+            String recordingId = manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null));
+
+            assertEquals(EXISTING_ID, recordingId);
+            verify(streamClient, never()).streamFile(any(), any(), any(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        /** A session that wrote another chunk since names it, so the set differs and it is fetched. */
+        @Test
+        void aSessionThatGrewIsFetchedAgain() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            alreadyHere(partTags(), "profile-2.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null)));
+        }
+
+        /** The whole session is not the part that holds the same chunks, nor the part the whole. */
+        @Test
+        void aPartIsNeverHandedBackForTheWholeSession() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            alreadyHere(partTags(), "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
+        }
+
+        /**
+         * A whole copy taken while the session was its instance's newest is not complete; once a newer
+         * session has ended it, the download is made again so the complete copy stands in for it.
+         */
+        @Test
+        void aWholeCopyOfTheNewestSessionDoesNotStandInOnceItHasEnded() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            alreadyHere(sessionTags(), "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
+        }
+
+        @Test
+        void aCopyOfAnotherSessionIsNotTheSameDownload() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            Map<String, String> other = partTags();
+            other.put(OriginContext.TAG_RECORDING_ID, "another-session");
+            alreadyHere(other, "profile-2.jfr", "profile-3.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null)));
+        }
+    }
+
     @Nested
     @DisplayName("A part of a session")
     class PartOfASession {

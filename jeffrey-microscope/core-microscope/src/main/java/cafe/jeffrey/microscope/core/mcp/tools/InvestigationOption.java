@@ -59,7 +59,11 @@ record InvestigationOption(
         String remedy,
         @McpDescription("The calls that open the area, or that build its data first, ready to send; empty "
                 + "when it is not recorded")
-        List<McpNextTool> nextTools) {
+        List<McpNextTool> nextTools,
+        @McpNullable
+        @McpDescription("The area's page in the Microscope UI, for the user - a flamegraph area's exact graph; "
+                + "null when it is not recorded or has no page")
+        String uiLink) {
 
     enum Availability {
         AVAILABLE,
@@ -83,31 +87,35 @@ record InvestigationOption(
             throw new IllegalArgumentException(
                     "a suggested area is available and names its evidence: area=" + area);
         }
+        if (!recorded && uiLink != null) {
+            throw new IllegalArgumentException("an area not recorded has no page to show: area=" + area);
+        }
     }
 
     /** The option for an area this profile can answer, with the calls that open it. */
-    static InvestigationOption available(InvestigationArea area, List<McpNextTool> calls) {
+    static InvestigationOption available(InvestigationArea area, List<McpNextTool> calls, String uiLink) {
         return new InvestigationOption(area, area.group(), area.title(), area.question(),
-                Availability.AVAILABLE, heaviest(area, calls), false, null, null, null, calls);
+                Availability.AVAILABLE, heaviest(area, calls), false, null, null, null, calls, uiLink);
     }
 
     /** The option for an area whose data the profile holds but has to be built first, by these calls. */
-    static InvestigationOption needsPreparation(InvestigationArea area, AreaSource.Preparation preparation) {
+    static InvestigationOption needsPreparation(
+            InvestigationArea area, AreaSource.Preparation preparation, String uiLink) {
         return new InvestigationOption(area, area.group(), area.title(), area.question(),
                 Availability.NEEDS_PREPARATION, heaviest(area, preparation.calls()), false, null,
-                preparation.gap(), preparation.remedy(), preparation.calls());
+                preparation.gap(), preparation.remedy(), preparation.calls(), uiLink);
     }
 
     /** The option for an area the recording cannot answer. */
     static InvestigationOption notRecorded(InvestigationArea area, String gap, String remedy) {
         return new InvestigationOption(area, area.group(), area.title(), area.question(),
-                Availability.NOT_RECORDED, null, false, null, gap, remedy, List.of());
+                Availability.NOT_RECORDED, null, false, null, gap, remedy, List.of(), null);
     }
 
     /** The same option, pointed at by the evidence. */
     InvestigationOption suggestedBy(String evidence) {
         return new InvestigationOption(area, group, title, question, availability, weight, true, evidence,
-                gap, remedy, nextTools);
+                gap, remedy, nextTools, uiLink);
     }
 
     boolean isAvailable() {

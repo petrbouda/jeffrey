@@ -278,8 +278,8 @@ public class TracesMcpTools {
 
     @Tool(description = "Exports one operation as Markdown for reading: its latency percentiles, where "
             + "its time went broken down by span, and its slowest individual traces named as "
-            + "exemplars for traces_traceExport. The Markdown is the text; the structured result "
-            + "names the operation, the next calls and uiLink, the operation's page in Microscope. "
+            + "exemplars for traces_traceExport. The Markdown is the text and the structured "
+            + "result's markdown; the record also names the operation, the next calls and uiLink, the operation's page in Microscope. "
             + "An unknown operation is an error naming it.")
     @McpOutputSchema(OperationExport.class)
     @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.EXPENSIVE,
@@ -322,8 +322,9 @@ public class TracesMcpTools {
                 .followUp();
         String uiLink = operationUrl(name, kind, eventType, null);
         LinkedOutput.Footed text = LinkedOutput.footed(export, followUp, uiLink, null);
-        return McpToolResult.of(text.text(), new OperationExport(profileId(), operationId.name(),
-                operationId.kind(), operationId.eventType(), export.length(), text.truncated(), followUp, uiLink));
+        return McpToolResult.of(text.text(), McpToolOutput.withDocument(export, (document, cut) -> new OperationExport(
+                profileId(), operationId.name(), operationId.kind(), operationId.eventType(), export.length(),
+                document, cut || text.truncated(), followUp, uiLink)));
     }
 
     @Tool(description = "Returns what the application reported about itself while traces ran: every "
@@ -453,8 +454,8 @@ public class TracesMcpTools {
     @Tool(description = "Exports one trace as Markdown for reading: its span tree with self time and "
             + "critical path, the JVM context underneath it (GC pauses, monitor waits, parks), a "
             + "ranked accounting of where its wall-clock went, its I/O shape and its exceptions. "
-            + "Answers 'why was this request slow'. The Markdown is the text; the structured result "
-            + "names the next calls and uiLink, the trace's span waterfall in Microscope. An unknown "
+            + "Answers 'why was this request slow'. The Markdown is the text and the structured "
+            + "result's markdown; the record also names the next calls and uiLink, the trace's span waterfall in Microscope. An unknown "
             + "trace id is an error naming it.")
     @McpOutputSchema(TraceExport.class)
     @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.EXPENSIVE,
@@ -494,13 +495,13 @@ public class TracesMcpTools {
         McpFollowUp followUp = steps.followUp();
         String uiLink = traceUrl(traceId.trim());
         LinkedOutput.Footed text = LinkedOutput.footed(export, followUp, uiLink, null);
-        return McpToolResult.of(text.text(), new TraceExport(profileId(), traceId.trim(), export.length(),
-                text.truncated(), followUp, uiLink));
+        return McpToolResult.of(text.text(), McpToolOutput.withDocument(export, (document, cut) -> new TraceExport(
+                profileId(), traceId.trim(), export.length(), document, cut || text.truncated(), followUp, uiLink)));
     }
 
     @Tool(description = "Exports, as a Markdown flamegraph, the samples taken while one span was open. "
             + "Answers 'what code was running inside this span', which the span tree alone cannot "
-            + "say. The Markdown is the text; uiLink opens the trace's span waterfall, where the "
+            + "say. The Markdown is the text and the structured result's markdown; uiLink opens the trace's span waterfall, where the "
             + "span's graph is drawn, and uiLinkNote says what the link cannot choose. Ids that name "
             + "no span are an error. status NO_SELF_TIME: selfOnly left nothing, because the span's "
             + "children covered all of its time.")
@@ -549,7 +550,7 @@ public class TracesMcpTools {
             LinkedOutput.Footed text = LinkedOutput.footed(
                     STATUS_LINE.formatted(SpanFlamegraphStatus.NO_SELF_TIME, reason), followUp, uiLink, SPAN_LINK_NOTE);
             return McpToolResult.of(text.text(), new SpanFlamegraph(SpanFlamegraphStatus.NO_SELF_TIME, reason,
-                    profileId(), traceHex, spanHex, type.code(), true, perThread, useWeight, 0, false, followUp,
+                    profileId(), traceHex, spanHex, type.code(), true, perThread, useWeight, 0, null, false, followUp,
                     uiLink, SPAN_LINK_NOTE));
         }
 
@@ -559,14 +560,15 @@ public class TracesMcpTools {
                 .nextWhen(!self, spanCall(traceHex, spanHex, type, true, threadMode, useWeight).why(SELF_ONLY_WHY))
                 .followUp();
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, SPAN_LINK_NOTE);
-        return McpToolResult.of(text.text(), new SpanFlamegraph(SpanFlamegraphStatus.OK, null, profileId(),
-                traceHex, spanHex, type.code(), self, perThread, useWeight, markdown.length(), text.truncated(),
-                followUp, uiLink, SPAN_LINK_NOTE));
+        return McpToolResult.of(text.text(), McpToolOutput.withDocument(markdown, (document, cut) -> new SpanFlamegraph(
+                SpanFlamegraphStatus.OK, null, profileId(), traceHex, spanHex, type.code(), self, perThread,
+                useWeight, markdown.length(), document, cut || text.truncated(), followUp, uiLink, SPAN_LINK_NOTE)));
     }
 
     @Tool(description = "Exports, as a Markdown flamegraph, the samples taken while any trace of one "
             + "operation was running. Answers 'what does this kind of request spend its time on' "
-            + "across every occurrence, rather than in one exemplar. The Markdown is the text; "
+            + "across every occurrence, rather than in one exemplar. The Markdown is the text and "
+            + "the structured result's markdown; "
             + "uiLink opens the operation's flamegraphs tab in Microscope, and uiLinkNote says what "
             + "the link cannot choose. An unknown operation is an error naming it.")
     @McpOutputSchema(OperationFlamegraph.class)
@@ -603,9 +605,10 @@ public class TracesMcpTools {
                 .followUp();
         String uiLink = operationUrl(operation.name(), operation.kind(), operation.eventType(), FLAMES_TAB);
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, OPERATION_FLAMES_LINK_NOTE);
-        return McpToolResult.of(text.text(), new OperationFlamegraph(profileId(), operation.name(),
-                operation.kind(), operation.eventType(), type.code(), perThread, useWeight, markdown.length(),
-                text.truncated(), followUp, uiLink, OPERATION_FLAMES_LINK_NOTE));
+        return McpToolResult.of(text.text(), McpToolOutput.withDocument(markdown, (document, cut) -> new OperationFlamegraph(
+                profileId(), operation.name(), operation.kind(), operation.eventType(), type.code(), perThread,
+                useWeight, markdown.length(), document, cut || text.truncated(), followUp, uiLink,
+                OPERATION_FLAMES_LINK_NOTE)));
     }
 
     /**

@@ -17,6 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
@@ -44,165 +45,205 @@ enum InvestigationArea {
             new AreaSource.Samples(Set.of(SampleKind.CPU), Remedies.CPU),
             OpeningCalls.cpu(),
             Set.of(AdvertisedFamilies.FLAMEGRAPH),
-            Set.of("method_profiling")),
+            Set.of("method_profiling"),
+            AreaPage.flamegraph(SampleKind.CPU)),
 
     WALL_CLOCK(InvestigationGroup.CODE, "Wall-clock time", "Where the time went, running or waiting",
             new AreaSource.Samples(Set.of(SampleKind.WALL), Remedies.WALL),
             OpeningCalls.wall(),
             Set.of(AdvertisedFamilies.FLAMEGRAPH),
-            Set.of()),
+            Set.of(),
+            AreaPage.flamegraph(SampleKind.WALL)),
 
     ALLOCATION(InvestigationGroup.CODE, "Allocation", "Which types allocate most, then from where",
             new AreaSource.Samples(Set.of(SampleKind.ALLOCATION), Remedies.ALLOCATION),
             OpeningCalls.allocations(),
-            Set.of(AdvertisedFamilies.MEMORY),
-            Set.of("tlab")),
+            Set.of(AdvertisedFamilies.FLAMEGRAPH, AdvertisedFamilies.MEMORY),
+            Set.of("tlab"),
+            AreaPage.flamegraph(SampleKind.ALLOCATION)),
 
-    HOT_WINDOWS(InvestigationGroup.CODE, "When it happened", "Steady, a ramp or a spike, and the window to look at",
-            new AreaSource.Timeline(),
-            OpeningCalls::hotWindows,
-            Set.of(AdvertisedFamilies.TIMELINE),
-            Set.of()),
+    LOCK_CONTENTION(InvestigationGroup.CODE, "Lock contention", "Which locks and waits held threads back",
+            new AreaSource.Samples(Set.of(SampleKind.BLOCKING), Remedies.LOCKS),
+            OpeningCalls.locks(),
+            Set.of(AdvertisedFamilies.FLAMEGRAPH, AdvertisedFamilies.BLOCKING),
+            Set.of("lock_instances", "biased_locking"),
+            AreaPage.flamegraph(SampleKind.BLOCKING)),
+
+    /**
+     * Its own line whenever the profile has traces, rather than folded into the dashboards: a request's
+     * time span by span is a different question from an endpoint's figures, and a menu that never says
+     * "traces" is one a user does not pick them from.
+     */
+    TRACES(InvestigationGroup.WAITING, "Traces",
+            "Which requests were slow, and where each one's time went, span by span",
+            new AreaSource.Features(List.of(FeatureType.TRACES)),
+            OpeningCalls::traces,
+            Set.of(AdvertisedFamilies.TRACES),
+            Set.of(),
+            AreaPage.view(MicroscopeView.TRACES_OPERATIONS)),
 
     REQUESTS_AND_CALLS(InvestigationGroup.WAITING, "Requests and calls",
-            "Which requests and outbound calls took the time",
-            new AreaSource.Features(List.of(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD,
+            "Which endpoints, outbound calls and traced methods took the time",
+            new AreaSource.Features(List.of(FeatureType.HTTP_SERVER_DASHBOARD,
                     FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD,
                     FeatureType.GRPC_CLIENT_DASHBOARD, FeatureType.METHOD_TRACING_DASHBOARD)),
             OpeningCalls::requestsAndCalls,
-            Set.of(AdvertisedFamilies.TRACES, AdvertisedFamilies.HTTP, AdvertisedFamilies.GRPC,
-                    AdvertisedFamilies.METHOD_TRACING),
-            Set.of()),
+            Set.of(AdvertisedFamilies.HTTP, AdvertisedFamilies.GRPC, AdvertisedFamilies.METHOD_TRACING),
+            Set.of(),
+            AreaPage.firstOf(
+                    shownWith(FeatureType.HTTP_SERVER_DASHBOARD, MicroscopeView.HTTP_OVERVIEW),
+                    shownWith(FeatureType.GRPC_SERVER_DASHBOARD, MicroscopeView.GRPC_OVERVIEW),
+                    shownWith(FeatureType.HTTP_CLIENT_DASHBOARD, MicroscopeView.HTTP_OVERVIEW),
+                    shownWith(FeatureType.GRPC_CLIENT_DASHBOARD, MicroscopeView.GRPC_OVERVIEW),
+                    shownWith(FeatureType.METHOD_TRACING_DASHBOARD, MicroscopeView.METHOD_TRACING_TIMESERIES))),
 
     DATABASE(InvestigationGroup.WAITING, "Database", "Which statements ran, and whether the pool made requests wait",
             new AreaSource.Features(List.of(FeatureType.JDBC_STATEMENTS_DASHBOARD, FeatureType.JDBC_POOL_DASHBOARD)),
             OpeningCalls::database,
             Set.of(AdvertisedFamilies.JDBC),
-            Set.of()),
+            Set.of(),
+            AreaPage.firstOf(
+                    shownWith(FeatureType.JDBC_STATEMENTS_DASHBOARD, MicroscopeView.JDBC_STATEMENTS),
+                    shownWith(FeatureType.JDBC_POOL_DASHBOARD, MicroscopeView.JDBC_POOL))),
 
     IO_WAITING(InvestigationGroup.WAITING, "I/O waiting", "What it talked to over sockets and files, and how long it waited",
             new AreaSource.EventTypes(Events.IO, Remedies.IO),
             OpeningCalls::io,
             Set.of(AdvertisedFamilies.IO),
-            Set.of("file_io", "socket_io")),
-
-    LOCK_CONTENTION(InvestigationGroup.WAITING, "Lock contention", "Which locks and waits held threads back",
-            new AreaSource.Samples(Set.of(SampleKind.BLOCKING), Remedies.LOCKS),
-            OpeningCalls.locks(),
-            Set.of(AdvertisedFamilies.BLOCKING),
-            Set.of("lock_instances", "biased_locking")),
+            Set.of("file_io", "socket_io"),
+            AreaPage.firstOf(
+                    new AreaPage.Shown(facts -> facts.recordsAny(Events.SOCKET), MicroscopeView.SOCKET_IO),
+                    new AreaPage.Shown(facts -> facts.recordsAny(Events.FILE), MicroscopeView.FILE_IO))),
 
     GC_PAUSES(InvestigationGroup.JVM, "GC and pauses", "Whether collections and safepoints stopped the application",
             new AreaSource.JvmSectionsOf(Set.of(GcSection.ID, SafepointsSection.ID)),
             OpeningCalls::pauses,
             Set.of(AdvertisedFamilies.JVM),
-            Set.of("garbage_collection", "gc_summary", "gc_configuration", "heap", "vm_operations")),
+            Set.of("garbage_collection", "gc_summary", "gc_configuration", "heap", "vm_operations"),
+            AreaPage.view(MicroscopeView.GARBAGE_COLLECTION)),
 
     JIT(InvestigationGroup.JVM, "JIT compilation", "Slow compilations and deoptimisation",
             new AreaSource.JvmSectionsOf(Set.of(JitSection.ID)),
             OpeningCalls.jit(),
             Set.of(AdvertisedFamilies.JVM),
-            Set.of("code_cache", "compilations")),
+            Set.of("code_cache", "compilations"),
+            AreaPage.view(MicroscopeView.JIT_COMPILATION)),
 
     THREADS(InvestigationGroup.JVM, "Threads", "Which threads were busiest, and in which states",
             new AreaSource.JvmSectionsOf(Set.of(ThreadsSection.ID)),
             OpeningCalls.threads(),
             Set.of(AdvertisedFamilies.JVM),
-            Set.of("threads", "thread_dumps", "java_application")),
+            Set.of("threads", "thread_dumps", "java_application"),
+            AreaPage.view(MicroscopeView.THREAD_STATISTICS)),
 
     NATIVE_MEMORY(InvestigationGroup.JVM, "Native memory", "Memory outside the Java heap",
             new AreaSource.JvmSectionsOf(Set.of(NativeMemorySection.ID)),
             OpeningCalls.nativeMemory(),
             Set.of(AdvertisedFamilies.JVM),
-            Set.of("native_library")),
+            Set.of("native_library"),
+            AreaPage.view(MicroscopeView.NATIVE_MEMORY)),
 
     RULE_FINDINGS(InvestigationGroup.OVERALL, "Rule findings", "What Jeffrey's rules flag across the whole recording",
             new AreaSource.Rules(),
             OpeningCalls::rules,
             Set.of(AdvertisedFamilies.JVM),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.AUTO_ANALYSIS)),
 
     CONTAINER_AND_FLAGS(InvestigationGroup.OVERALL, "Container and flags", "Throttling, and what the JVM really ran with",
             new AreaSource.JvmSectionsOf(Set.of(ContainerSection.ID, ConfigurationSection.ID)),
             OpeningCalls::setup,
             Set.of(AdvertisedFamilies.JVM),
             Set.of("jvm_information", "environment_variables", "system_properties", "agent_information",
-                    "system_information", "processes")),
+                    "system_information", "processes"),
+            AreaPage.view(MicroscopeView.FLAGS)),
 
     LEAK_CANDIDATES(InvestigationGroup.OVERALL, "Leak candidates", "Objects that survived collections",
             new AreaSource.EventTypes(Events.OLD_OBJECTS, Remedies.LEAKS),
             OpeningCalls.leaks(),
             Set.of(AdvertisedFamilies.MEMORY),
-            Set.of("memoryleak")),
+            Set.of("memoryleak"),
+            AreaPage.view(MicroscopeView.MEMORY_LEAK_CANDIDATES)),
 
     EXCEPTIONS(InvestigationGroup.OVERALL, "Exceptions", "What the application threw, and from where",
             new AreaSource.JvmSectionsOf(Set.of(ExceptionsSection.ID)),
             OpeningCalls.exceptions(),
             Set.of(AdvertisedFamilies.JVM),
-            Set.of("exceptions")),
+            Set.of("exceptions"),
+            AreaPage.view(MicroscopeView.EXCEPTIONS)),
 
     HEAP_OVERVIEW(InvestigationGroup.HEAP_CONTENTS, "Heap overview", "How big the heap is, and how the dump was taken",
             AreaSource.HeapReports.indexOnly(),
             OpeningCalls.heapOverview(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_OVERVIEW)),
 
     CLASS_HISTOGRAM(InvestigationGroup.HEAP_CONTENTS, "Class histogram",
             "Which classes hold the most instances and bytes",
             AreaSource.HeapReports.indexOnly(),
             OpeningCalls.classHistogram(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_HISTOGRAM)),
 
     TOP_CONSUMERS(InvestigationGroup.HEAP_CONTENTS, "Top consumers", "Which packages and class loaders own the memory",
             new AreaSource.HeapReports(HeapReport.CONSUMERS),
             OpeningCalls.topConsumers(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_CONSUMERS)),
 
     BIGGEST_OBJECTS(InvestigationGroup.HEAP_CONTENTS, "Biggest objects", "Which single objects retain the most",
             new AreaSource.HeapReports(HeapReport.BIGGEST),
             OpeningCalls.biggestObjects(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_BIGGEST_OBJECTS)),
 
     LEAK_SUSPECTS(InvestigationGroup.HEAP_RETENTION, "Leak suspects", "What looks like a leak, and what holds it",
             new AreaSource.HeapReports(HeapReport.LEAKS),
             OpeningCalls.leakSuspects(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_LEAK_SUSPECTS)),
 
     DOMINATORS(InvestigationGroup.HEAP_RETENTION, "Dominator tree", "Which objects keep the most memory alive",
             AreaSource.HeapReports.indexOnly(),
             OpeningCalls.dominators(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_DOMINATOR_TREE)),
 
     CLASSLOADER_LEAKS(InvestigationGroup.HEAP_RETENTION, "Class loader leaks", "Which class loaders outlived their use",
             new AreaSource.HeapReports(HeapReport.CLASSLOADERS),
             OpeningCalls.classLoaderLeaks(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_CLASSLOADER_ANALYSIS)),
 
     GC_ROOTS(InvestigationGroup.HEAP_RETENTION, "GC roots and threads",
             "What anchors the heap, and what each thread holds",
             AreaSource.HeapReports.indexOnly(),
             OpeningCalls.gcRoots(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_GC_ROOTS)),
 
     STRING_WASTE(InvestigationGroup.HEAP_WASTE, "Duplicate strings", "Which strings are stored many times over",
             new AreaSource.HeapReports(HeapReport.STRINGS),
             OpeningCalls.stringWaste(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of()),
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_STRING_ANALYSIS)),
 
     COLLECTION_WASTE(InvestigationGroup.HEAP_WASTE, "Wasteful collections",
             "Which collections sit empty, near-empty or oversized",
             new AreaSource.HeapReports(HeapReport.COLLECTIONS),
             OpeningCalls.collectionWaste(),
             Set.of(AdvertisedFamilies.HEAP),
-            Set.of());
+            Set.of(),
+            AreaPage.view(MicroscopeView.HEAP_DUMP_COLLECTION_ANALYSIS));
 
     /**
      * Event types the areas read, in a holder of their own: an enum's constants are built before its
@@ -244,6 +285,7 @@ enum InvestigationArea {
     private final AreaCalls calls;
     private final Set<String> families;
     private final Set<String> topics;
+    private final AreaPage page;
 
     InvestigationArea(
             InvestigationGroup group,
@@ -252,7 +294,8 @@ enum InvestigationArea {
             AreaSource source,
             AreaCalls calls,
             Set<String> families,
-            Set<String> topics) {
+            Set<String> topics,
+            AreaPage page) {
 
         this.group = group;
         this.title = title;
@@ -261,6 +304,7 @@ enum InvestigationArea {
         this.calls = calls;
         this.families = families;
         this.topics = topics;
+        this.page = page;
     }
 
     InvestigationGroup group() {
@@ -303,5 +347,14 @@ enum InvestigationArea {
 
     Set<String> topics() {
         return topics;
+    }
+
+    /** The page the area is seen on, linked beside it in the menu. */
+    AreaPage page() {
+        return page;
+    }
+
+    private static AreaPage.Shown shownWith(FeatureType feature, MicroscopeView view) {
+        return new AreaPage.Shown(facts -> facts.enabled(feature), view);
     }
 }

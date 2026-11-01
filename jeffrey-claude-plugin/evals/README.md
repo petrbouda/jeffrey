@@ -10,7 +10,7 @@ order it says, finds what the recording holds, and writes it up by the `report` 
 ## Running them
 
 ```bash
-claude plugin eval ./jeffrey-claude-plugin --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
+claude plugin eval ./jeffrey-claude-plugin --scaffold --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
   --json /tmp/microscope-evals.json
 python3 build/scripts/summarize-plugin-evals.py /tmp/microscope-evals.json
 ```
@@ -66,7 +66,13 @@ python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8586/ap
 ```
 
 It refuses a Jeffrey that already holds profiles, and rewrites the profile ids the graders name to
-the new recording's.
+the new recording's. With `--reuse` it records from the files already in `--work-dir` — a copy of
+jeffrey-recordings' `plugin-evals/`, checked by checksum — instead of running the workload again, so
+the mocks follow a server change while the recording, and every figure the graders name, stay put.
+
+A mock replays what Claude Code hands the model, which for a result with `structuredContent` is that
+JSON and not the text content beside it; the recorder writes it so. Recorded from the text, the mocks
+once replayed a flamegraph tree the real model never received.
 
 What the mocks cannot do, so the cases stay away from it:
 
@@ -639,3 +645,310 @@ unless the question is about threads. Three runs:
 **The recording is kept.** The three files behind the mocks are in jeffrey-recordings
 (`plugin-evals/`), and `--load` checks them by checksum, so the live cases run on any machine.
 
+## Plugin 1.0.19: what a real analysis showed
+
+A real session — a UAT service's last hour, pulled off the remote and analysed — surfaced five
+defects the mocks could not:
+
+- **The analyst received no flamegraph.** Claude Code hands the model a result's
+  `structuredContent` when there is one, not its text, and the exports kept their Markdown in the
+  text only: the model got the record (`markdownChars`, the filters, the link) and no tree. The seven
+  Markdown exports (`flamegraph_export`, `compare_movements`, `compare_flamegraph`,
+  `traces_traceExport`, `traces_operationExport`, `traces_spanFlamegraphExport`,
+  `traces_operationFlamegraphExport`) now carry the document in the record's `markdown`, cut so the
+  record fits the 120,000-character cap, measured on the serialised JSON. Checked with `claude -p` against a running Microscope: the CPU export reached the model as
+  1,558 characters of metadata before and 14,198 characters with the tree after, and the hottest
+  frame was named; a `FULL` per-thread allocation export arrived inline at 120,000 characters,
+  `truncated: true`. The mocks were re-recorded (`--reuse`) as the model sees them.
+- **The download overstated its span.** A part's end was its last chunk's start plus one measured
+  chunk length — 19:31–20:31 for a profile of 49 minutes. Once the recording is here, the answer
+  reports the span read from the recording itself.
+- **A memory warning was interpreted without the heap's size.** `analyze-jfr` and the analyst now
+  read `jvm_configuration` (`GC_HEAP_CONFIGURATION`), the container limit and `AlwaysPreTouch` first.
+- **Repeated downloads made duplicate profiles** — four copies of one recording. A download whose
+  chunks are exactly those of a copy already here, the same part or a session that has not grown, is
+  handed back as that copy, from the UI and from an agent alike.
+- **The ledger rendered as a table under a blank header.** It is a labelled list now, with an
+  **In progress** line for areas an analyst still holds.
+
+Measured on 1.0.19 with the re-recorded mocks, three runs a case, `--threshold 1`:
+
+| | 1.0.17 baseline | 1.0.19 |
+|---|---|---|
+| Mocked cases at the threshold | 14 of 16 | 15 of 16 |
+| Overall score | 0.99 | 1.00 |
+| Cost, including the judge | $7.64 | $7.56 |
+| Live SQL cases | 0.93 and 1.00 | 1.00 and 1.00 |
+
+The one miss is a run of `lock-contention-not-wall-clock` that wrote, of the 80.5 s blocked across 4
+threads, "each thread spent about 66% of the recording waiting" — a per-thread average it labelled as
+an assumption, which `not-a-share-of-wall-clock` reads as a share of the recording.
+
+## Plugin 1.0.20: links the user can see, and Traces by name
+
+- **Links are written out.** Claude Code renders a Markdown link as its name alone, the URL hidden
+  behind it, so a real session's "GC dashboard" and "summary" read as plain words and were lost when
+  copied. Every skill and agent now writes the full URL beside the name. Two new graders hold
+  `named-area-cpu` and `gc-pauses-in-proportion` to it — a `http://localhost:…/profiles/` URL in the
+  answer, and no `](http`; both passed in all six runs.
+- **Traces is an area of its own.** It was folded into Requests and calls, so the menu never said
+  "traces". To keep four groups of four, When it happened is no longer an area — every whole-recording
+  export already offers `timeline_hotWindows` as its next call — and Lock contention moves into Code
+  with the other sample kinds. Waiting is Traces, Requests and calls, Database and I/O.
+
+| | 1.0.19 | 1.0.20 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 16 | 15 of 16 |
+| Overall score | 1.00 | 1.00 |
+| Cost, including the judge | $7.56 | $7.44 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The miss this time is a run of `two-areas-delegated` in which `profile-analyst` asked for the CPU
+export with `excludeIdle: true`, a call no fixture holds; `lock-contention-not-wall-clock`, the 1.0.19
+miss, passed all three runs.
+
+## Plugin 1.0.21: every flamegraph offered
+
+- **Allocation and Lock contention open on their flamegraph**, as CPU hotspots and Wall-clock time do:
+  the allocation tree weighed by bytes and the lock tree by time blocked, each followed by its table
+  (`memory_allocations`, `blocking_overview`). An imported sample set's Allocation opens on the tree
+  alone, its bytes dimension having no JFR allocation events for the table.
+- **`moreFlamegraphs`** on `profiles_summary` lists every recorded type with stacks no area opens — a
+  second sampler, native allocation, method traces, custom events, thrown exceptions — most samples
+  first, at most ten, each with its export; `analyze-jfr` names them in a line above the menu. On the
+  candidate recording it lists eight, `jdk.JavaExceptionThrow` first, whose export draws the throw
+  sites.
+
+| | 1.0.20 | 1.0.21 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 16 | 16 of 16 |
+| Overall score | 1.00 | 1.00 |
+| Cost, including the judge | $7.44 | $7.43 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+## Plugin 1.0.22: links marked with ↗, and a Pages table
+
+- **Links are Markdown links marked with `↗`** — `[CPU flamegraph ↗](…)` in prose, `[↗ open](…)` in
+  a table — replacing 1.0.20's bare URLs, which the user found too long. The mark is what tells a
+  reader the text is a link. `shows-a-marked-link` and `no-unmarked-link` replace the bare-URL
+  graders.
+- **Every menu area with data carries a `uiLink`** to the page it is seen on — a flamegraph area the
+  exact graph its export draws (the same URL as `flamegraph_export`'s own, checked live) — and so does
+  every `moreFlamegraphs` entry. `analyze-jfr` and `analyze-heap` put them in a Pages table above the
+  menu, Traces first whenever the profile has them (its link the operations page), and a profile
+  without traces names Traces first in the not-recorded line; `open-question-shows-menu` gains
+  `shows-the-pages`. The eval recording has no traces, so the order is held by
+  `InvestigationMenuTest`, not by a case.
+
+| | 1.0.21 | 1.0.22 |
+|---|---|---|
+| Mocked cases at the threshold | 16 of 16 | 14 of 16 |
+| Overall score | 1.00 | 0.99 |
+| Cost, including the judge | $7.43 | $7.80 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+What the two misses were, one run each:
+
+- **`gc-pauses-in-proportion`:** the reply linked the profile itself as `[checkout candidate](…)`,
+  without the mark; every other link in it was marked. A new grader, so 1.0.21 was never held to it.
+- **`compare-finds-the-regression`:** `honest-verdict` failed a verdict that led with "the bigger
+  regression is allocation". In that run `compare_quality`'s answer — 80,458 characters, mostly the
+  two profiles' 94 and 89 event types and 89 sampling settings — passed Claude Code's MCP output
+  limit, was saved to a file the run was not allowed to read, and the comparison went on without
+  its quality check. The answer is that size in every run: a server defect to bound, not this
+  plugin change.
+
+## Plugin 1.0.23: Implement fixes
+
+- **The analysis skills offer to implement the fix** (`analyze-jfr`, `compare-jfr`,
+  `regression-check`, one shared section): when the agent runs in a repository and a finding names
+  something it holds — the hot frame's class, the throw site, a configuration file — the answer
+  closes with an option labelled **Implement fixes**, beside the follow-ups, saying how the checkout
+  relates to the profiled commit. Picked, it hands the findings to `advise-jfr`, which skips choosing
+  evidence, proposes each change, edits only what the user accepts, and offers **Re-profile and
+  compare** afterwards. Nothing is edited before the choice.
+- **`offers-implement-fixes`** is the first case with a working tree: its `setup.sh` (run with
+  `--scaffold`) commits the recorded workload's `Checkout.java` into the run's directory —
+  byte-for-byte, held by `test-plugin-eval-mocks.py`. A judge checks that the option is offered by
+  name with the code it would change; `tool_used` graders that nothing was edited or written.
+  `named-area-cpu`, with no checkout, gains `no-fixes-without-the-code`.
+- The link rule names the profile's own link, the one most often left unmarked.
+
+Run with `--scaffold` from now on; without it the new case starts in an empty directory and its
+offer is rightly withheld.
+
+| | 1.0.22 | 1.0.23 |
+|---|---|---|
+| Mocked cases at the threshold | 14 of 16 | 15 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $7.80 | $8.88 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The two misses, one run each: `route-write-it-up` asked `flamegraph_export` for `detail: SUMMARY`
+with a `search`, a call no fixture holds; `offers-implement-fixes` offered the fix in a sentence the
+first regex grader did not accept, since replaced by the judge (three further runs: offered in all
+three, one run failing `recorded-call-semantics` on a thread-view call no fixture holds). No link
+was left unmarked in any run.
+
+## Plugin 1.0.24: compare_quality within the client's limit
+
+`compare_quality` answered with 80,458 characters on the eval pair — each side's 89–94 event types
+in full (settings, extras and the same denominator sentence on every row) and all 89 matching
+sampling settings, both sides' maps per type. It declares no large result, so Claude Code applies its
+default MCP output limit (about 25,000 tokens), and a 1.0.22 comparison run had the answer filed to a
+file it was not allowed to read and went on without the quality check. Schema 3:
+
+- each side's `eventTypes` are a slim `ComparedEvent` (type, label, samples, weight, unit); what the
+  samples count is stated once, as `eventCountDefinition`; settings live only in
+  `samplingConfiguration`;
+- `samplingConfiguration` lists only the `MISMATCH` and `UNKNOWN` types, mismatches first;
+  `matchingSettings` counts the rest;
+- the document has its own limit, 60,000 characters, under the client's: past it whole
+  rows go and `truncation` says so (`outputLimitChars` reports it).
+
+On the eval pair the answer is 26,987 characters with every list complete; through `claude -p` it
+arrives inline, `matchingSettings: 89`. `compare-jfr` reads the new fields. Two text fixes rode
+along: the Implement fixes section says to leave the option out without a word when it does not
+apply (two runs had announced "not on offer"), and the link rule names every profile, the baseline
+too.
+
+| | 1.0.23 | 1.0.24 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 17 | 16 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $8.88 | $9.23 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+`compare-finds-the-regression` and `route-did-my-change-regress` 1.00, three runs each. The miss was
+`named-area-cpu`, before the two text fixes; re-run after them, three runs: no announced decline,
+one baseline link left unmarked.
+
+## Plugin 1.0.25: every undeclared answer within the client's limit
+
+A survey of the recorded answers found `compare_quality`'s defect in other tools. A tool that
+declares no large result is held by Claude Code to its default MCP limit, 25,000 tokens;
+measured through `claude -p`, a 42,000-character answer arrived inline, while 75,000 (`profiles_evidence`)
+and 120,000 (`jvm_flags`) were saved to a file the agent could not read. `jvm_flags` was the vogon-das
+"no heap-size flag showed up in the part of the flag list I could read".
+
+- **Two limits by declaration:** 50,000 characters for every tool that declares no large result —
+  the shared page fit, each tool's own page check, the evidence budget — and 120,000 only for those
+  that do (`jvm_threadDump`, `jfr_executeQuery`).
+  `test-plugin-eval-mocks.py` holds every recorded answer of an undeclared tool under it.
+- **`jvm_flags`** lists the flags somebody or the JVM set, counts the defaults (`defaultFlags`), and
+  takes `name` to find any flag, a default included: 120,000 → 2,536 characters on the eval profile.
+- **`profiles_evidence`** (schema 3) keeps the flagged findings in full, most severe first, and the
+  passes as finding ids (`passedRules`); event rows state what samples count once
+  (`eventCountDefinition`): 75,000 → 35,304, every list complete, inline.
+- **`profiles_list` rows carry their profile's `uiLink`.** The baseline had no link of its own, so
+  replies linked the list page or a guessed URL.
+
+| | 1.0.24 | 1.0.25 |
+|---|---|---|
+| Mocked cases at the threshold | 16 of 17 | 14 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $9.23 | $9.27 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The misses, one run each: `named-area-cpu` linked the baseline — by its own link now, no longer a
+guessed one — without the ↗ mark (of 51 replies, six left a link unmarked: the baseline three times,
+the exceptions page three); `two-areas-delegated`'s analyst asked for a `threadMode` export no fixture
+holds; `route-two-revisions-not-profiled` once left out "record both the same way". None is a
+regression from the sizes; the mark is the one still slipping.
+
+## Plugin 1.0.26: links marked, failures within the limit
+
+- **The ↗ mark is checked before a reply is sent.** The shared link rule ends with a self-check: every
+  link text holds `↗`, a page named in passing included. `no-unmarked-link` now grades every analysis
+  case, not two. `analyze-exceptions` named "the Exceptions page" without the mark and the reply
+  copied it unmarked in three of three runs; the skill now spells the marked text.
+- **A failed operation's text stays within the undeclared limit.** `jvm_autoAnalysis` and `heap_oql`
+  carried up to 60,000 characters of operation snapshot in their error; the snapshot is now cut to
+  half of the 50,000 limit and the whole text to the limit, pinned by a test.
+- **Implement fixes is offered only after both checks ran.** One run offered it while saying it had
+  not yet looked for the class in the repository.
+- `named-area-cpu`'s `states-the-denominator` accepts the count with its event type named
+  ("3,118 `jdk.ExecutionSample` samples"), which the answer did state.
+
+Not done: seeding `flamegraph_export` with `threadMode`, `excludeIdle` and `search` so those calls
+have a fixture. A fixed mock is addressed by the required arguments alone, so the seeded per-thread
+call replaced the plain CPU graph in the fixture and in what `recorded-call-semantics` accepts. The
+grader is right to fail those calls: the mock cannot answer them, and the handbook leaves
+`threadMode` off.
+
+| | 1.0.25 | 1.0.26 |
+|---|---|---|
+| Mocked cases at the threshold | 14 of 17 | 15 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $9.27 | $9.28 |
+| Replies with an unmarked link | 6 of 51 | 2 of 51 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The misses, one run each and both judge splits: `compare-finds-the-regression`'s `honest-verdict`
+and `gc-pauses-in-proportion`'s `pauses-in-proportion`. The two unmarked replies linked the baseline
+and a comparison's event types. The live exceptions case first scored 0.93 — two runs loaded
+`analyze-exceptions` instead of `jfr-sql`, as at 1.0.17, and still answered with SQL — and 1.00 when
+run again.
+
+## Plugin 1.0.27: the recordings are compared, not the runs
+
+Both 1.0.26 misses were judge splits, and both pointed at text rather than noise.
+
+- **"The runs are comparable" failed `honest-verdict` twice.** Matching settings and lengths opened
+  the comparability section as a verdict about the runs, and the workload was qualified only after.
+  `compare-jfr` and `regression-check` now word it as what the evidence shows: the two were
+  *recorded the same way*, and whether they did the same work is not shown, in one sentence. Six of six
+  runs passed with that wording.
+- **`pauses-in-proportion` expected 130–140 ms**, the young pauses alone, and "under half a percent".
+  The recorded stop-the-world total is 150.9 ms (134.8 young plus the heap dump's 16.1 ms Full GC),
+  0.5% overhead, so the right answer failed. The judge now takes roughly 130–155 ms and about half a
+  percent.
+
+| | 1.0.26 | 1.0.27 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 17 | 15 of 17 |
+| Overall score | 0.99 | 1.00 |
+| Cost, including the judge | $9.28 | $9.15 |
+| Replies with an unmarked link | 2 of 51 | 0 of 51 |
+
+The misses, one run each, both against rules already written: `named-area-cpu` wrote "Implement
+fixes: not available" where the rule leaves the option out without a word, and
+`two-areas-delegated`'s analyst asked for a `threadMode` export the handbook leaves off and no
+fixture holds. The live SQL cases are untouched by this change (1.00 and 1.00 at 1.0.26).
+
+## Plugin 1.0.28: a traced workload, heap fixes, bounded command lines
+
+- **The workload is traced.** One checkout in 50 is a `POST /checkout` exchange (jeffrey-events) with
+  a span per step under it (jeffrey-tracing's `Tracer`), sampled as a service would be: about 2,300
+  traces a run, p50 74 µs, p95 12 ms. The slow ones waited on `SessionCache`, whose 12 ms busy-wait
+  holds its monitor. The recorder puts the tracing jars on the workload's class path, so Traces and
+  Requests and calls are now available in the eval profiles, and a re-recording replaced the files
+  in jeffrey-recordings. New case `slow-requests-from-traces`: the slow requests named from the
+  traces, with figures. `open-question-shows-menu` checks that Traces is the Pages table's first row.
+  It was not, in five of six runs, until the skill put the order as a numbered list with an example
+  table, with Traces above the ★ rows.
+- **Operation names reach the mocks.** `traces_slowestTraces` and `traces_operationExport` take the
+  operation's name, "POST /checkout", which cannot be part of a file name, so they had no mock. The
+  recorder now addresses such a fixture by the arguments that can, and pins the others with the
+  mock's `expect:` list of recorded values, as long as those still tell the answers apart. A query
+  the agent writes is never pinned, so the SQL tools stay unmocked.
+- **Implement fixes after a heap analysis.** `analyze-heap` carries the shared Implement fixes
+  section: a leak suspect's class, or the field holding its accumulation point, found in the
+  repository is an offer. `advise-jfr` has a heap route, where the change bounds, evicts or lets go
+  of the collection, verified by a second dump and `heap_diff`. New case
+  `heap-offers-implement-fixes`: three of three offered to bound the audit log's list.
+- **`jvm_system` command lines are cut** to 600 characters, keeping the start and the end, with
+  their full length beside them. One 37,893-character line had taken the answer to 42,000.
+- `compare-finds-the-regression`'s judge now accepts a latency claim read from the traces with their
+  sampling (median 74 → 114 µs). One inferred from CPU samples or the request count still fails.
+
+| | 1.0.27 | 1.0.28 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 17 | 18 of 19 |
+| Overall score | 1.00 | 1.00 |
+| Cost, including the judge | $9.15 | $11.11 |
+| Replies with an unmarked link | 0 of 51 | 2 of 57 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The miss: one run of `exceptions-to-the-throw-site` without its check before parsing. The two
+unmarked replies linked a profile by its baseline name and by its length.

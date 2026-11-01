@@ -45,6 +45,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.ThreadsSection;
 import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
@@ -75,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -204,6 +206,8 @@ public class JvmMcpTools {
             + "ran with are unknown.";
     private static final String CONFIGURATION_WHY =
             "reports the collector, heap and compiler settings the JVM applied, which do not need flag events";
+    /** The origin JFR's flag events give a flag nobody set. */
+    private static final String DEFAULT_ORIGIN = "Default";
     private static final String ORIGIN_GUIDANCE = "An origin of 'Default' means nobody set the flag; "
             + "'Ergonomic' means the JVM chose it from the machine it started on, which is why it can "
             + "differ between environments.";
@@ -736,19 +740,24 @@ public class JvmMcpTools {
                 threadDumpFollowUp(index, state, bound, matching, shown), link);
         ThreadDump answer = wanted == 0
                 ? page.apply(0)
-                : FittingPage.largest(wanted, page, JvmMcpTools::fits).orElseGet(() -> page.apply(0));
+                : FittingPage.largest(wanted, page, JvmMcpTools::fitsDeclared).orElseGet(() -> page.apply(0));
         return McpToolResult.of(answer);
     }
 
     @Tool(description = "Returns the JVM flags this run actually used, grouped by where each value came "
-            + "from - a default, the command line, or the JVM's own ergonomics - with each change's "
-            + "time as UTC epoch milliseconds. The only place that distinguishes a flag someone set from "
-            + "one the JVM chose; a deployment manifest is evidence of neither. jvm_configuration reports "
-            + "the resulting collector and heap settings; this reports the switches. status is NO_FLAGS "
-            + "when the recording carries no flag events.")
+            + "from - the command line, management, or the JVM's own ergonomics - with each change's "
+            + "time as UTC epoch milliseconds. The flags left at their default are counted "
+            + "(defaultFlags), not listed: name finds any flag, defaults included. The only place that "
+            + "distinguishes a flag someone set from one the JVM chose; a deployment manifest is evidence "
+            + "of neither. jvm_configuration reports the resulting collector and heap settings; this "
+            + "reports the switches. status is NO_FLAGS when the recording carries no flag events.")
     @McpToolMeta(cost = McpToolCost.CHEAP)
     @McpOutputSchema(Flags.class)
-    public McpToolResult flags() {
+    public McpToolResult flags(
+            @ToolParam(required = false, description = "Part of a flag name, case-insensitive, e.g. 'PreTouch' "
+                    + "or 'G1': every flag whose name contains it, at its default or not. Omit for every flag "
+                    + "that is not at its default. The heap's size is in jvm_configuration, not here.")
+            String name) {
         String profileId = profileId();
         String link = viewLink(FLAGS_VIEW);
         FlagsData flags = profileManager.flagsManager().getAllFlags();
@@ -756,7 +765,7 @@ public class JvmMcpTools {
             McpFollowUp followUp = NextSteps.builder(advertised)
                     .next(onProfile(CONFIGURATION_TOOL).why(CONFIGURATION_WHY))
                     .followUp();
-            return McpToolResult.of(new Flags(FlagsStatus.NO_FLAGS, NO_FLAGS, profileId, 0, 0, Map.of(), 0,
+            return McpToolResult.of(new Flags(FlagsStatus.NO_FLAGS, NO_FLAGS, profileId, 0, 0, 0, Map.of(), 0,
                     followUp, link));
         }
 
@@ -765,14 +774,31 @@ public class JvmMcpTools {
                 .next(onProfile(JIT_TOOL).why(FLAGS_JIT_WHY))
                 .guidance(ORIGIN_GUIDANCE)
                 .followUp();
+        // The JVM knows some 650 flags, nearly all at their default; listed with their descriptions they
+        // passed the client's limit, and the agent read the part that fitted. The ones somebody or the
+        // JVM set are what advice is measured against; a default is found by name.
+        String wanted = name == null || name.isBlank() ? null : name.trim().toLowerCase(Locale.ROOT);
         List<OriginFlag> ordered = new ArrayList<>();
-        flags.flagsByOrigin().forEach((origin, details) ->
-                details.forEach(detail -> ordered.add(new OriginFlag(origin, flag(detail)))));
-        // Every flag the JVM knows, with its description, can outgrow the answer limit; the groups are
-        // ordered command line first and defaults last, so a cut drops defaults before anything set.
+        int defaults = 0;
+        for (Map.Entry<String, List<JvmFlagDetail>> group : flags.flagsByOrigin().entrySet()) {
+            boolean atDefault = DEFAULT_ORIGIN.equals(group.getKey());
+            for (JvmFlagDetail detail : group.getValue()) {
+                if (atDefault) {
+                    defaults++;
+                }
+                boolean listed = wanted == null
+                        ? !atDefault
+                        : detail.name() != null && detail.name().toLowerCase(Locale.ROOT).contains(wanted);
+                if (listed) {
+                    ordered.add(new OriginFlag(group.getKey(), flag(detail)));
+                }
+            }
+        }
+        int defaultFlags = defaults;
         Flags answer = FittingPage.largest(ordered.size(),
-                        shown -> flagsAnswer(flags, ordered, shown, profileId, followUp, link), JvmMcpTools::fits)
-                .orElseGet(() -> flagsAnswer(flags, ordered, 0, profileId, followUp, link));
+                        shown -> flagsAnswer(flags, ordered, shown, defaultFlags, profileId, followUp, link),
+                        JvmMcpTools::fits)
+                .orElseGet(() -> flagsAnswer(flags, ordered, 0, defaultFlags, profileId, followUp, link));
         return McpToolResult.of(answer);
     }
 
@@ -886,14 +912,14 @@ public class JvmMcpTools {
     }
 
     private static Flags flagsAnswer(
-            FlagsData flags, List<OriginFlag> ordered, int shown, String profileId, McpFollowUp followUp,
-            String link) {
+            FlagsData flags, List<OriginFlag> ordered, int shown, int defaultFlags, String profileId,
+            McpFollowUp followUp, String link) {
         Map<String, List<Flag>> byOrigin = new LinkedHashMap<>();
         for (OriginFlag entry : ordered.subList(0, shown)) {
             byOrigin.computeIfAbsent(entry.origin(), origin -> new ArrayList<>()).add(entry.flag());
         }
-        return new Flags(FlagsStatus.OK, null, profileId, flags.totalFlags(), flags.changedFlags(), byOrigin,
-                ordered.size() - shown, followUp, link);
+        return new Flags(FlagsStatus.OK, null, profileId, flags.totalFlags(), flags.changedFlags(), defaultFlags,
+                byOrigin, ordered.size() - shown, followUp, link);
     }
 
     private static Flag flag(JvmFlagDetail detail) {
@@ -921,7 +947,13 @@ public class JvmMcpTools {
     }
 
     /** Whether an answer whose text is its own JSON stays inside the response limit. */
+    /** Whether an answer of a tool that declares no large result fits the client's limit for it. */
     private static boolean fits(Record answer) {
+        return Json.toString(answer).length() <= McpToolOutput.UNDECLARED_MAX_CHARS;
+    }
+
+    /** Whether an answer of a tool that declares {@code maxResultSizeChars} fits the result limit. */
+    private static boolean fitsDeclared(Record answer) {
         return Json.toString(answer).length() <= McpToolOutput.MAX_CHARS;
     }
 
@@ -1138,7 +1170,13 @@ public class JvmMcpTools {
             String profileId,
             int totalFlags,
             int changedFlags,
+            @McpMinimum(0)
+            @McpDescription("Flags left at their default: counted, not listed unless name matches them")
+            int defaultFlags,
+            @McpDescription("The flags listed - every one not at its default, or every one name matches - by "
+                    + "origin, the command line first")
             Map<String, List<Flag>> flagsByOrigin,
+            @McpDescription("Listed flags left out to fit the answer; 0 when every one is here")
             int omittedFlags,
             McpFollowUp followUp,
             @McpDescription("The flags page in the Microscope UI, for the user")

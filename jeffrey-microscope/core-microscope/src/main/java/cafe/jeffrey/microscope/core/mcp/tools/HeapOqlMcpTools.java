@@ -214,7 +214,7 @@ public class HeapOqlMcpTools {
         List<OqlRow> rows = result.results().stream().map(OqlRow::of).toList();
         return FittingPage.largest(rows.size(),
                         shown -> page(page, result, rows.subList(0, shown), shown < rows.size(), operationId, operation),
-                        answer -> Json.toString(answer).length() <= McpToolOutput.MAX_CHARS)
+                        answer -> Json.toString(answer).length() <= McpToolOutput.UNDECLARED_MAX_CHARS)
                 .orElseThrow(() -> new ToolExecutionException(ROW_TOO_LARGE));
     }
 

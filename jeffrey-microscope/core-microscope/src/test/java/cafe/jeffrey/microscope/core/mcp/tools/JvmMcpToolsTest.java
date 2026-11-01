@@ -141,6 +141,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -2018,7 +2019,7 @@ class JvmMcpToolsTest {
         void aProfileWithoutFlagEventsSaysSoWithAStatus() {
             recorded();
 
-            JsonNode out = conforming("flags", tools().flags());
+            JsonNode out = conforming("flags", tools().flags(null));
 
             assertEquals("NO_FLAGS", out.get("status").asString());
             assertEquals(Set.of("jvm_configuration"), nextTools(out));
@@ -2035,7 +2036,7 @@ class JvmMcpToolsTest {
                             List.of("2g"), true, "Maximum heap size",
                             List.of(new FlagValueChange("4g", changedAt))))), 1, 1));
 
-            JsonNode out = conforming("flags", tools().flags());
+            JsonNode out = conforming("flags", tools().flags(null));
 
             JsonNode flag = out.get("flagsByOrigin").get("Command line").get(0);
             assertEquals(changedAt, flag.get("changeHistory").get(0).get("changedAtEpochMs").asLong());
@@ -2044,29 +2045,75 @@ class JvmMcpToolsTest {
             assertEquals(2, McpNextToolConformance.assertFollowable(out, reachable()));
         }
 
-        /** Every flag with its description can outgrow the answer; defaults go first. */
+        /**
+         * The flags somebody or the JVM set are listed whole; the hundreds left at their default are
+         * counted, which kept the answer under the client's limit where a full list was saved to a file.
+         */
         @Test
-        void cutsTheDefaultsFirstWhenTheFlagsOutgrowTheAnswer() {
+        void listsTheFlagsThatWereSetAndCountsTheDefaults() {
             recorded();
+            when(flagsManager.getAllFlags()).thenReturn(manyDefaults());
+
+            McpToolResult result = assertInstanceOf(McpToolResult.class, tools().flags(null));
+            JsonNode out = conforming("flags", result);
+
+            assertTrue(result.text().length() <= McpToolOutput.UNDECLARED_MAX_CHARS, "length " + result.text().length());
+            assertEquals(Set.of("Command line", "Ergonomic"), fieldNames(out.get("flagsByOrigin")));
+            assertEquals(800, out.get("defaultFlags").asInt());
+            assertEquals(0, out.get("omittedFlags").asInt());
+        }
+
+        /** A default is found by name: the heap size nobody set is the question a memory warning asks. */
+        @Test
+        void aNameFindsAFlagAtItsDefault() {
+            recorded();
+            when(flagsManager.getAllFlags()).thenReturn(manyDefaults());
+
+            JsonNode out = conforming("flags", tools().flags("heapsize"));
+
+            JsonNode found = out.get("flagsByOrigin");
+            assertEquals(Set.of("Ergonomic", "Default"), fieldNames(found), found.toString());
+            assertEquals("MaxHeapSize", found.get("Ergonomic").get(0).get("name").asString());
+            assertEquals("InitialHeapSize", found.get("Default").get(0).get("name").asString());
+            assertEquals(800, out.get("defaultFlags").asInt());
+        }
+
+        /** Even the flags matched by name are cut to the client's limit, and the cut is counted. */
+        @Test
+        void aNameMatchingEveryFlagIsCutToTheLimit() {
+            recorded();
+            when(flagsManager.getAllFlags()).thenReturn(manyDefaults());
+
+            McpToolResult result = assertInstanceOf(McpToolResult.class, tools().flags("flag"));
+            JsonNode out = conforming("flags", result);
+
+            assertTrue(result.text().length() <= McpToolOutput.UNDECLARED_MAX_CHARS, "length " + result.text().length());
+            int matching = 799;
+            int shown = out.get("flagsByOrigin").get("Default").size();
+            assertEquals(matching - shown, out.get("omittedFlags").asInt(), "Flag1 to Flag799 match; InitialHeapSize does not");
+            assertTrue(shown > 0 && shown < matching, "shown " + shown);
+        }
+
+        private FlagsData manyDefaults() {
             String description = "x".repeat(400);
             List<JvmFlagDetail> defaults = new ArrayList<>();
-            for (int i = 0; i < 800; i++) {
+            defaults.add(new JvmFlagDetail("InitialHeapSize", "0", "ulong", "Default", List.of(), false, description, List.of()));
+            for (int i = 1; i < 800; i++) {
                 defaults.add(new JvmFlagDetail("Flag" + i, "0", "int", "Default", List.of(), false, description, List.of()));
             }
             Map<String, List<JvmFlagDetail>> byOrigin = new LinkedHashMap<>();
-            byOrigin.put("Command line", List.of(new JvmFlagDetail("Xmx", "4g", "ulong", "Command line",
+            byOrigin.put("Command line", List.of(new JvmFlagDetail("UseG1GC", "true", "bool", "Command line",
                     List.of(), false, null, null)));
+            byOrigin.put("Ergonomic", List.of(new JvmFlagDetail("MaxHeapSize", "2147483648", "ulong", "Ergonomic",
+                    List.of(), false, "Maximum heap size", List.of())));
             byOrigin.put("Default", defaults);
-            when(flagsManager.getAllFlags()).thenReturn(new FlagsData(byOrigin, 801, 0));
+            return new FlagsData(byOrigin, 802, 0);
+        }
 
-            McpToolResult result = assertInstanceOf(McpToolResult.class, tools().flags());
-            JsonNode out = conforming("flags", result);
-
-            assertTrue(result.text().length() <= McpToolOutput.MAX_CHARS, "length " + result.text().length());
-            assertEquals(1, out.get("flagsByOrigin").get("Command line").size());
-            int shownDefaults = out.get("flagsByOrigin").get("Default").size();
-            assertEquals(800 - shownDefaults, out.get("omittedFlags").asInt());
-            assertTrue(shownDefaults < 800, "shown " + shownDefaults);
+        private Set<String> fieldNames(JsonNode node) {
+            Set<String> names = new LinkedHashSet<>();
+            node.propertyNames().forEach(names::add);
+            return names;
         }
     }
 

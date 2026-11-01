@@ -640,6 +640,8 @@ class TracesMcpToolsTest {
             assertEquals(TRACE_ID, out.get("traceId").asString());
             assertTrue(out.get("uiLink").asString().contains("trace=" + TRACE_ID), out.get("uiLink").asString());
             assertFalse(out.get("truncated").asBoolean());
+            String markdown = out.get("markdown").asString();
+            assertTrue(markdown.contains(NAME) && result.text().startsWith(markdown), markdown);
         }
 
         @Test
@@ -774,6 +776,7 @@ class TracesMcpToolsTest {
             assertEquals(List.of("traces_spanFlamegraphExport", "traces_traceExport"), StructuredAnswers.nextTools(out));
             assertFalse(StructuredAnswers.call(out, "traces_spanFlamegraphExport").has("selfOnly"));
             assertEquals(0, out.get("markdownChars").asInt());
+            assertTrue(out.get("markdown").isNull(), out.toString());
         }
 
         /** Ids that name no span of this profile are the caller's to correct, not an empty answer. */

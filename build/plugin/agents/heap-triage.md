@@ -243,7 +243,9 @@ Two rules on the figures themselves:
 The caller hands your findings to the user, and the link beside each one is how the user opens what
 you found in one click. Whenever a finding names something Microscope can open — a flamegraph, a
 trace, an operation, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
-object, a differential — put its link right beside the name, exactly as a tool returned it.
+object, a differential — make the name a Markdown link marked with `↗`, `[name ↗](<its uiLink>)`,
+with the URL exactly as a tool returned it: the caller hands it to the user, whose terminal shows
+the marked name as the link and hides the URL.
 
 - Take the link from the answer the thing came from: a row's own `uiLink` when the answer gave it
   one (a trace, an operation, an exemplar), otherwise the answer's `uiLink`. Quote the `uiLinkNote`

@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.EventSummary;
@@ -47,6 +48,7 @@ import tools.jackson.databind.JsonNode;
 import java.time.Instant;
 import java.time.Clock;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -85,7 +87,7 @@ class ProfileEvidenceMcpToolsTest {
         RecordingCommitResolver commits = mock(RecordingCommitResolver.class);
         when(commits.resolve("recording-p")).thenReturn(Optional.of("abc123"));
         JsonNode result = tools(manager, commits).evidence(null).structuredContent();
-        assertEquals(2, result.get("schemaVersion").asInt());
+        assertEquals(3, result.get("schemaVersion").asInt());
         assertEquals("recording-p", result.get("profile").get("recordingId").asString());
         assertEquals("abc123", result.get("profile").get("recordingCommit").asString());
         assertEquals("whole-recording", result.get("filters").get("scope").asString());
@@ -273,7 +275,7 @@ class ProfileEvidenceMcpToolsTest {
         // The replay, and the finding's own call to compare_list with both profiles.
         assertEquals(2, McpNextToolConformance.assertFollowable(result, specsOf(CompareMcpTools.class, "compare")));
         assertEquals("compare_list", result.get("findings").get(0).get("nextTool").get("tool").asString());
-        assertEquals(2, result.get("schemaVersion").asInt());
+        assertEquals(3, result.get("schemaVersion").asInt());
         assertEquals(CLOCK.millis(), result.get("generatedAtEpochMs").asLong());
         assertFalse(result.has("replay"), result.toString());
         JsonNode replay = result.get("followUp").get("nextTools").get(0);
@@ -343,10 +345,44 @@ class ProfileEvidenceMcpToolsTest {
                 new AutoAnalysisResult("Missing Events", AnalysisResult.Severity.NA, null, null,
                         null, null, "gc")));
         JsonNode result = tools(manager, mock(RecordingCommitResolver.class)).evidence(null).structuredContent();
-        assertEquals(1, result.get("findings").size());
-        assertEquals("gc:gc-check", result.get("findings").get(0).get("id").asString());
-        assertEquals("OK", result.get("findings").get(0).get("severity").asString());
+        assertEquals(0, result.get("findings").size(), "a pass is not a finding to cite");
+        assertEquals("gc:gc-check", result.get("passedRules").get(0).asString(), "but keeps its finding identity");
         assertEquals("Missing Events", result.get("notEvaluatedRules").get(0).asString());
+    }
+
+    /**
+     * The flagged findings come most severe first, the passes as ids, and each event row cites its own
+     * figures while what the samples count is said once: the document a full catalogue once doubled.
+     */
+    @Test
+    void flaggedFindingsLeadAndPassesAndEventRowsStayCompact() {
+        ProfileManager manager = manager("p");
+        List<AutoAnalysisResult> results = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            results.add(new AutoAnalysisResult("Pass " + i, AnalysisResult.Severity.OK, "Nothing found",
+                    "Passed with a long enough explanation to cost something on every row", null, "0", "gc"));
+        }
+        results.add(new AutoAnalysisResult("Info Rule", AnalysisResult.Severity.INFO, "e", "s", null, "10", "gc"));
+        results.add(new AutoAnalysisResult("Warn Rule", AnalysisResult.Severity.WARNING, "e", "s", null, "80", "gc"));
+        when(manager.autoAnalysisManager().analysisResults()).thenReturn(results);
+        List<EventSummaryResult> events = new ArrayList<>();
+        for (int i = 0; i < 90; i++) {
+            events.add(event("jdk.SomeEvent" + i, 10 + i, 0));
+        }
+        when(manager.flamegraphManager().allEventSummaries()).thenReturn(events);
+
+        McpToolResult answer = tools(manager, mock(RecordingCommitResolver.class)).evidence(null);
+        JsonNode result = answer.structuredContent();
+
+        McpSchemaConformance.assertConforms(result, schemaOf("evidence", Integer.class));
+        assertTrue(answer.structuredChars() <= McpToolOutput.UNDECLARED_MAX_CHARS, "chars " + answer.structuredChars());
+        assertEquals("WARNING", result.get("findings").get(0).get("severity").asString());
+        assertEquals("INFO", result.get("findings").get(1).get("severity").asString());
+        assertEquals(60, result.get("passedRules").size());
+        assertEquals("COMPLETE", result.get("truncation").get("eventTypes").get("reason").asString());
+        JsonNode row = result.get("eventTypes").get(0);
+        assertFalse(row.has("denominatorDefinition") || row.has("unit"), row.toString());
+        assertFalse(result.get("eventCountDefinition").asString().isBlank());
     }
 
     @Test
@@ -372,6 +408,62 @@ class ProfileEvidenceMcpToolsTest {
         assertEquals("MISMATCH", result.get("samplingConfiguration").get(0).get("status").asString());
         assertEquals(100, result.get("primary").get("samplerHealth").get("denominator").asLong());
         assertEquals(20.0, result.get("primary").get("samplerHealth").get("lostSharePct").asDouble());
+    }
+
+    /** Settings that match are a count: listing them repeated both sides' settings for every type. */
+    @Test
+    void qualityCountsMatchingSettingsAndListsOnlyTheOnesThatDiffer() {
+        ProfileManager primary = manager("primary");
+        ProfileManager baseline = manager("baseline");
+        when(primary.flamegraphManager().allEventSummaries()).thenReturn(List.of(configured("10 ms"),
+                configured("jdk.ObjectAllocationSample", "300/s")));
+        when(baseline.flamegraphManager().allEventSummaries()).thenReturn(List.of(configured("20 ms"),
+                configured("jdk.ObjectAllocationSample", "300/s")));
+
+        JsonNode result = new CompareMcpTools(primary, id -> baseline, CLOCK, EVERY_FAMILY)
+                .quality("baseline").structuredContent();
+
+        McpSchemaConformance.assertConforms(result, schemaOf(CompareMcpTools.class, "quality", String.class));
+        assertEquals(1, result.get("samplingConfiguration").size());
+        assertEquals("jdk.ExecutionSample", result.get("samplingConfiguration").get(0).get("eventType").asString());
+        assertEquals(1, result.get("matchingSettings").asInt());
+        JsonNode event = result.get("primary").get("eventTypes").get(0);
+        assertFalse(event.has("settings") || event.has("denominatorDefinition"), event.toString());
+        assertEquals(1000, event.get("samples").asLong());
+        assertFalse(result.get("eventCountDefinition").asString().isBlank());
+    }
+
+    /**
+     * A pair with hundreds of event types stays inside the verdict's own limit, well under the result
+     * limit, by dropping whole rows and saying so - a client that applies its default limit to an
+     * undeclared tool would otherwise file the answer away where the agent cannot read it.
+     */
+    @Test
+    void qualityOfAPairWithManyEventTypesStaysUnderItsOwnLimit() {
+        ProfileManager primary = manager("primary");
+        ProfileManager baseline = manager("baseline");
+        List<EventSummaryResult> many = new ArrayList<>();
+        for (int i = 0; i < 400; i++) {
+            many.add(event("com.acme.event.SomewhatLongCustomEventName" + i, 10 + i, 4096));
+        }
+        when(primary.flamegraphManager().allEventSummaries()).thenReturn(many);
+        when(baseline.flamegraphManager().allEventSummaries()).thenReturn(many);
+
+        McpToolResult answer = new CompareMcpTools(primary, id -> baseline, CLOCK, EVERY_FAMILY).quality("baseline");
+        JsonNode result = answer.structuredContent();
+
+        assertTrue(answer.structuredChars() <= ComparisonQuality.OUTPUT_LIMIT_CHARS,
+                "chars " + answer.structuredChars());
+        assertEquals(ComparisonQuality.OUTPUT_LIMIT_CHARS, result.get("outputLimitChars").asInt());
+        JsonNode cut = result.get("truncation").get("baseline.eventTypes");
+        assertEquals(400, cut.get("total").asInt());
+        assertTrue(cut.get("omitted").asInt() > 0, cut.toString());
+        McpSchemaConformance.assertConforms(result, schemaOf(CompareMcpTools.class, "quality", String.class));
+    }
+
+    private static EventSummaryResult configured(String eventType, String throttle) {
+        return new EventSummaryResult(new EventSummary(eventType, "Allocation", RecordingEventSource.JDK,
+                null, 500, 0, true, false, List.of(), Map.of(), Map.of("throttle", throttle)));
     }
 
     private static EventSummaryResult configured(String period) {

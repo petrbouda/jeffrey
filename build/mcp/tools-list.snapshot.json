@@ -594,6 +594,9 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -676,6 +679,7 @@
           "excludeIdle",
           "excludeNonJava",
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "thresholdPct",
@@ -1069,6 +1073,9 @@
           "limit": {
             "type": "integer"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -1143,6 +1150,7 @@
           "excludeNonJava",
           "followUp",
           "limit",
+          "markdown",
           "markdownChars",
           "profileId",
           "truncated",
@@ -1191,20 +1199,8 @@
                 "items": {
                   "additionalProperties": false,
                   "properties": {
-                    "calculated": {
-                      "type": "boolean"
-                    },
-                    "denominatorDefinition": {
-                      "type": "string"
-                    },
                     "eventType": {
                       "type": "string"
-                    },
-                    "extras": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
                     },
                     "label": {
                       "type": [
@@ -1215,21 +1211,6 @@
                     "samples": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "settings": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
-                    },
-                    "source": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "unit": {
-                      "type": "string"
                     },
                     "weight": {
                       "type": [
@@ -1245,15 +1226,9 @@
                     }
                   },
                   "required": [
-                    "calculated",
-                    "denominatorDefinition",
                     "eventType",
-                    "extras",
                     "label",
                     "samples",
-                    "settings",
-                    "source",
-                    "unit",
                     "weight",
                     "weightUnit"
                   ],
@@ -1506,6 +1481,9 @@
             ],
             "type": "object"
           },
+          "eventCountDefinition": {
+            "type": "string"
+          },
           "eventOverlapMeaning": {
             "type": "string"
           },
@@ -1654,6 +1632,10 @@
           "generatedAtEpochMs": {
             "type": "integer"
           },
+          "matchingSettings": {
+            "minimum": 0,
+            "type": "integer"
+          },
           "onlyInBaseline": {
             "items": {
               "type": "string"
@@ -1676,20 +1658,8 @@
                 "items": {
                   "additionalProperties": false,
                   "properties": {
-                    "calculated": {
-                      "type": "boolean"
-                    },
-                    "denominatorDefinition": {
-                      "type": "string"
-                    },
                     "eventType": {
                       "type": "string"
-                    },
-                    "extras": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
                     },
                     "label": {
                       "type": [
@@ -1700,21 +1670,6 @@
                     "samples": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "settings": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
-                    },
-                    "source": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "unit": {
-                      "type": "string"
                     },
                     "weight": {
                       "type": [
@@ -1730,15 +1685,9 @@
                     }
                   },
                   "required": [
-                    "calculated",
-                    "denominatorDefinition",
                     "eventType",
-                    "extras",
                     "label",
                     "samples",
-                    "settings",
-                    "source",
-                    "unit",
                     "weight",
                     "weightUnit"
                   ],
@@ -2066,11 +2015,13 @@
           "baseline",
           "commonEventTypes",
           "durationNormalization",
+          "eventCountDefinition",
           "eventOverlapMeaning",
           "findingSchemaVersion",
           "findings",
           "followUp",
           "generatedAtEpochMs",
+          "matchingSettings",
           "onlyInBaseline",
           "onlyInPrimary",
           "outputLimitChars",
@@ -2218,6 +2169,12 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -2287,6 +2244,7 @@
           "excludeIdle",
           "excludeNonJava",
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "reason",
@@ -14072,6 +14030,9 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "name": {
+            "type": "string"
+          },
           "profileId": {
             "type": "string"
           }
@@ -14085,6 +14046,10 @@
         "additionalProperties": false,
         "properties": {
           "changedFlags": {
+            "type": "integer"
+          },
+          "defaultFlags": {
+            "minimum": 0,
             "type": "integer"
           },
           "flagsByOrigin": {
@@ -14243,6 +14208,7 @@
         },
         "required": [
           "changedFlags",
+          "defaultFlags",
           "flagsByOrigin",
           "followUp",
           "omittedFlags",
@@ -17315,6 +17281,12 @@
                         "null"
                       ]
                     },
+                    "commandChars": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
                     "pid": {
                       "type": "integer"
                     },
@@ -17333,6 +17305,7 @@
                   },
                   "required": [
                     "command",
+                    "commandChars",
                     "pid",
                     "startedAtEpochMs",
                     "thread"
@@ -17372,6 +17345,12 @@
                         "null"
                       ]
                     },
+                    "commandLineChars": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
                     "pid": {
                       "type": [
                         "string",
@@ -17381,6 +17360,7 @@
                   },
                   "required": [
                     "commandLine",
+                    "commandLineChars",
                     "pid"
                   ],
                   "type": "object"
@@ -19967,15 +19947,15 @@
             },
             "type": "array"
           },
+          "eventCountDefinition": {
+            "type": "string"
+          },
           "eventTypes": {
             "items": {
               "additionalProperties": false,
               "properties": {
                 "calculated": {
                   "type": "boolean"
-                },
-                "denominatorDefinition": {
-                  "type": "string"
                 },
                 "eventType": {
                   "type": "string"
@@ -20008,9 +19988,6 @@
                     "null"
                   ]
                 },
-                "unit": {
-                  "type": "string"
-                },
                 "weight": {
                   "type": [
                     "integer",
@@ -20026,14 +20003,12 @@
               },
               "required": [
                 "calculated",
-                "denominatorDefinition",
                 "eventType",
                 "extras",
                 "label",
                 "samples",
                 "settings",
                 "source",
-                "unit",
                 "weight",
                 "weightUnit"
               ],
@@ -20225,6 +20200,12 @@
           },
           "outputLimitChars": {
             "type": "integer"
+          },
+          "passedRules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "profile": {
             "additionalProperties": false,
@@ -20447,6 +20428,7 @@
         "required": [
           "autoAnalysis",
           "capabilityGaps",
+          "eventCountDefinition",
           "eventTypes",
           "filters",
           "findingEvidenceUnits",
@@ -20456,6 +20438,7 @@
           "generatedAtEpochMs",
           "notEvaluatedRules",
           "outputLimitChars",
+          "passedRules",
           "profile",
           "samplerHealth",
           "samplingSettingsScope",
@@ -20926,6 +20909,9 @@
                     "null"
                   ]
                 },
+                "uiLink": {
+                  "type": "string"
+                },
                 "workspaceId": {
                   "type": [
                     "string",
@@ -20944,6 +20930,7 @@
                 "ready",
                 "recordedEpochMs",
                 "recordingId",
+                "uiLink",
                 "workspaceId"
               ],
               "type": "object"
@@ -21280,11 +21267,11 @@
                     "CPU_HOTSPOTS",
                     "WALL_CLOCK",
                     "ALLOCATION",
-                    "HOT_WINDOWS",
+                    "LOCK_CONTENTION",
+                    "TRACES",
                     "REQUESTS_AND_CALLS",
                     "DATABASE",
                     "IO_WAITING",
-                    "LOCK_CONTENTION",
                     "GC_PAUSES",
                     "JIT",
                     "THREADS",
@@ -21385,6 +21372,12 @@
                 "title": {
                   "type": "string"
                 },
+                "uiLink": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "weight": {
                   "enum": [
                     "LIGHT",
@@ -21409,7 +21402,65 @@
                 "remedy",
                 "suggested",
                 "title",
+                "uiLink",
                 "weight"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "moreFlamegraphs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "eventType": {
+                  "type": "string"
+                },
+                "export": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "samples": {
+                  "type": "integer"
+                },
+                "uiLink": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "eventType",
+                "export",
+                "label",
+                "samples",
+                "uiLink"
               ],
               "type": "object"
             },
@@ -21420,6 +21471,10 @@
               "string",
               "null"
             ]
+          },
+          "omittedFlamegraphs": {
+            "minimum": 0,
+            "type": "integer"
           },
           "profileId": {
             "type": "string"
@@ -21534,7 +21589,9 @@
           "finishedAtEpochMs",
           "followUp",
           "investigationAreas",
+          "moreFlamegraphs",
           "name",
+          "omittedFlamegraphs",
           "profileId",
           "startedAtEpochMs",
           "topFindings",
@@ -26464,6 +26521,9 @@
           "kind": {
             "type": "string"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -26484,6 +26544,7 @@
           "eventType",
           "followUp",
           "kind",
+          "markdown",
           "markdownChars",
           "name",
           "profileId",
@@ -26609,6 +26670,9 @@
           "kind": {
             "type": "string"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -26642,6 +26706,7 @@
           "followUp",
           "graphEventType",
           "kind",
+          "markdown",
           "markdownChars",
           "name",
           "profileId",
@@ -27328,6 +27393,12 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -27378,6 +27449,7 @@
         "required": [
           "eventType",
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "reason",
@@ -27476,6 +27548,9 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -27494,6 +27569,7 @@
         },
         "required": [
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "traceId",

@@ -21,6 +21,8 @@ that each one accounts for — never by how confident the wording sounds. Each i
 > **Interpretation** — what the figures mean, and why this explanation rather than another.
 >
 > **Recommendation** — the change, at a named location; or "none yet", and what would be needed.
+> When the location is in the repository the agent runs in, end it with "— apply with *Implement
+> fixes*", the option that hands it to `advise-jfr`.
 >
 > **Confidence** — high, medium or low, and what would raise it.
 >
@@ -169,9 +171,10 @@ ids, the epoch-millisecond window and the cursor that answer was about.
 **Give the reader the link — for everything the report names.** Every answer about something
 Microscope has a page for carries a `uiLink` — the same profile and view, with the same event type,
 filters, window, search and baseline — and a row that names its own thing (a trace, an operation, an
-exemplar) carries its own. Put each link beside the name it opens, as a Markdown link: the finding's
-**Link** line, and every trace, operation, class, endpoint or page named anywhere in the text, so
-nothing the reader might want to see needs looking up. Quote the `uiLinkNote` when there is one,
+exemplar) carries its own. Make each name a Markdown link marked with `↗` — `[name ↗](<its uiLink>)`,
+never the bare URL, since a terminal shows the marked name as the link and hides the URL: the
+finding's **Link** line, and every trace, operation, class, endpoint or page named anywhere in the
+text, so nothing the reader might want to see needs looking up. Quote the `uiLinkNote` when there is one,
 saying what the page does not reproduce. No link in hand for a profile page → `profiles_viewLink`;
 never build or edit a URL. It is for the person reading; never fetch it or read it back. Nothing is
 exported to a file: the data is in the answers, the picture is behind the link.

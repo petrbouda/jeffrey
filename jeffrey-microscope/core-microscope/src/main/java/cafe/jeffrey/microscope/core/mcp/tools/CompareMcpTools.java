@@ -240,8 +240,8 @@ public class CompareMcpTools {
             + "make it slower'. Movements are attributed by SELF weight, so a change is charged to "
             + "the method that actually moved rather than to every caller above it, and the baseline "
             + "is scaled onto the primary's recording length. The Markdown ranking is the text and "
-            + "opens with a comparability section that qualifies every finding below it; the "
-            + "structured result records what was compared, including where a window landed on "
+            + "the structured result's markdown, and opens with a comparability section that qualifies every finding below it; the "
+            + "structured result also records what was compared, including where a window landed on "
             + "each recording.")
     @McpOutputSchema(MovementRanking.class)
     @McpToolMeta(cost = McpToolCost.EXPENSIVE)
@@ -293,19 +293,19 @@ public class CompareMcpTools {
         String uiLink = graphLink(baseline, request, window);
         String uiLinkNote = joinNotes(RANKING_LINK_NOTE, baselineCutNote(baseline, window));
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, uiLinkNote);
-        return McpToolResult.of(text.text(), new MovementRanking(
+        return McpToolResult.of(text.text(), McpToolOutput.withDocument(markdown, (document, cut) -> new MovementRanking(
                 primaryId, baselineId, request.type().code(), rows, window.compared(),
                 useWeight, request.excludesIdle(), request.excludesNonJava(),
-                markdown.length(), text.truncated(),
-                followUp, uiLink, uiLinkNote));
+                markdown.length(), document, cut || text.truncated(),
+                followUp, uiLink, uiLinkNote)));
     }
 
     @Tool(description = "Exports the differential flamegraph of two profiles as Markdown: the merged "
             + "call tree, every frame carrying what the primary spends there, what the baseline "
             + "spent, and the movement between them - the call paths a method flagged by "
             + "compare_movements moved through. Subtrees in which nothing moved are pruned, so "
-            + "absence here means 'did not change', not 'not present'. The Markdown is the text; "
-            + "the structured result records what was compared, including where a window landed on "
+            + "absence here means 'did not change', not 'not present'. The Markdown is the text and "
+            + "the structured result's markdown, which also records what was compared, including where a window landed on "
             + "each recording.")
     @McpOutputSchema(DifferentialExport.class)
     @McpToolMeta(maxResultSizeChars = McpToolOutput.MAX_CHARS, cost = McpToolCost.EXPENSIVE)
@@ -359,18 +359,19 @@ public class CompareMcpTools {
         String uiLink = graphLink(baseline, request, window);
         String uiLinkNote = baselineCutNote(baseline, window);
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, uiLinkNote);
-        return McpToolResult.of(text.text(), new DifferentialExport(
+        return McpToolResult.of(text.text(), McpToolOutput.withDocument(markdown, (document, cut) -> new DifferentialExport(
                 primaryId, baselineId, request.type().code(), thresholdPct, compared,
                 useWeight, request.excludesIdle(), request.excludesNonJava(),
-                markdown.length(), text.truncated(),
-                followUp, uiLink, uiLinkNote));
+                markdown.length(), document, cut || text.truncated(),
+                followUp, uiLink, uiLinkNote)));
     }
 
     @Tool(description = "Assesses the recording evidence behind a comparison: both identities and "
-            + "durations, event overlap, stored sampling-setting differences, reported CPU-time "
-            + "sample loss and observed server-event volumes. A whole-recording current-state "
-            + "snapshot, with bounded complete records and omission counts. Reports per-workload "
-            + "normalization unavailable when complete operation counts are not established.")
+            + "durations, event overlap, each side's event volumes, the event types whose stored sampling "
+            + "settings differ (matching ones are counted, not listed), reported CPU-time sample loss and "
+            + "observed server-event volumes. A whole-recording current-state snapshot, kept compact, "
+            + "with bounded complete records and omission counts. Reports per-workload normalization "
+            + "unavailable when complete operation counts are not established.")
     @McpOutputSchema(ComparisonQuality.QualityDocument.class)
     @McpToolMeta(cost = McpToolCost.CHEAP)
     public McpToolResult quality(
@@ -723,9 +724,11 @@ public class CompareMcpTools {
             Boolean useWeight,
             boolean excludeIdle,
             boolean excludeNonJava,
-            @McpDescription("Characters of the Markdown ranking, before the text cap")
+            @McpDescription("Characters of the Markdown ranking, before any cap")
             int markdownChars,
-            @McpDescription("Whether the Markdown was cut to fit the text cap with its footer")
+            @McpDescription("The Markdown ranking itself, the document the text carries")
+            String markdown,
+            @McpDescription("Whether the Markdown was cut to fit the result cap, here or in the text with its footer")
             boolean truncated,
             McpFollowUp followUp,
             @McpDescription("The differential flamegraph this ranking was read from in the Microscope UI - same "
@@ -737,7 +740,8 @@ public class CompareMcpTools {
     }
 
     /**
-     * What a differential flamegraph export compared, beside the Markdown tree that is its text.
+     * A differential flamegraph export: the Markdown tree, in the record as well as in the text, beside
+     * what it compared.
      */
     record DifferentialExport(
             String profileId,
@@ -755,10 +759,12 @@ public class CompareMcpTools {
             Boolean useWeight,
             boolean excludeIdle,
             boolean excludeNonJava,
-            @McpDescription("Characters of the Markdown export, before the text cap")
+            @McpDescription("Characters of the Markdown export, before any cap")
             int markdownChars,
-            @McpDescription("Whether the Markdown was cut to fit the text cap with its footer; a coarser "
-                    + "thresholdPct fits")
+            @McpDescription("The Markdown export - the differential call tree itself, the document the text carries")
+            String markdown,
+            @McpDescription("Whether the Markdown was cut to fit the result cap, here or in the text with its "
+                    + "footer; a coarser thresholdPct fits")
             boolean truncated,
             McpFollowUp followUp,
             @McpDescription("The same differential flamegraph in the Microscope UI - same baseline, event type, "

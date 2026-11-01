@@ -32,11 +32,11 @@ menu from `profiles_summary` (step 3), never from this table.
 | Code | CPU hotspots | Which code burned the CPU | async-profiler `event=cpu` (or `event=ctimer` in a container), or JFR's `jdk.ExecutionSample` / `jdk.CPUTimeSample` |
 | Code | Wall-clock time | Where the time went, running or waiting | async-profiler `wall=10ms` |
 | Code | Allocation | Which types allocate most, then from where | async-profiler `alloc=512k`, or JFR's `jdk.ObjectAllocationSample` |
-| Code | When it happened | Steady, a ramp or a spike, and the window to look at | per-sample timestamps (a JFR or OTLP profile) |
-| Waiting | Requests and calls | Which requests and outbound calls took the time — traces, HTTP and gRPC, server and client, traced methods | the application instrumented with jeffrey-events; for traced methods `jdk.MethodTrace` / `jdk.MethodTiming` with a method filter |
+| Code | Lock contention | Which locks and waits held threads back | async-profiler `lock=10ms`, or JFR's `jdk.JavaMonitorEnter` and `jdk.ThreadPark` |
+| Waiting | Traces | Which requests were slow, and where each one's time went, span by span | the application instrumented with Jeffrey tracing |
+| Waiting | Requests and calls | Which endpoints, outbound calls and traced methods took the time — HTTP and gRPC, server and client | the application instrumented with jeffrey-events; for traced methods `jdk.MethodTrace` / `jdk.MethodTiming` with a method filter |
 | Waiting | Database | Which statements ran, and whether the pool made requests wait | jeffrey-events JDBC instrumentation |
 | Waiting | I/O waiting | Sockets and files, and how long it waited | `jdk.SocketRead`, `jdk.SocketWrite`, `jdk.FileRead`, `jdk.FileWrite` |
-| Waiting | Lock contention | Which locks and waits held threads back | async-profiler `lock=10ms`, or JFR's `jdk.JavaMonitorEnter` and `jdk.ThreadPark` |
 | JVM | GC and pauses | Whether collections and safepoints stopped the application | JFR's GC and safepoint events (default settings) |
 | JVM | JIT compilation | Slow compilations and deoptimisation | JFR's compiler events |
 | JVM | Threads | Which threads were busiest, and in which states | JFR's thread events |
@@ -45,6 +45,10 @@ menu from `profiles_summary` (step 3), never from this table.
 | Overall | Container and flags | Throttling, and what the JVM really ran with | JFR's container and configuration events |
 | Overall | Leak candidates | Objects that survived collections | `jdk.OldObjectSample` (JFR's profile settings) |
 | Overall | Exceptions | What the application threw, and from where | JFR's exception events (`jdk.ExceptionStatistics`, `jdk.JavaExceptionThrow`) |
+
+Each Code area opens on its flamegraph — Allocation and Lock contention with their table beside it.
+Any other recorded type with stacks (a second sampler, native allocation, method traces, custom
+events) is listed in `moreFlamegraphs`, beside the menu, each with the export that draws it.
 
 **A heap dump (`.hprof`)** — the index and most reports are built by `heap_prepare` the first time;
 an area waiting for it is offered as `NEEDS_PREPARATION`:
@@ -96,9 +100,15 @@ Nothing here? Say so, and offer the two ways in: a recording file on this machin
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential — put its link right beside the name as a Markdown link, so the user opens it in one
-click: `[trace 7e34c5994dc96208](<its uiLink>)`. That holds in every reply, not only in a written
-report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
+a page named in passing ("the exceptions page"), the links most often left bare:
+`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
+and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
+a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
+it: every `](` closes a link text that holds `↗`.**
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

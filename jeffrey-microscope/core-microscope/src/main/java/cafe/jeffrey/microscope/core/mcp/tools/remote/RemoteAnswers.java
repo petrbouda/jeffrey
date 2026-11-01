@@ -303,12 +303,15 @@ public final class RemoteAnswers {
             @McpDescription("Bytes transferred, or to transfer while RUNNING; null when not counted")
             Long sizeBytes,
             @McpNullable
-            @McpDescription("Where the first downloaded chunk of a part starts, as UTC epoch milliseconds; null "
-                    + "for the whole session")
+            @McpDescription("Where the downloaded recording's data starts, as UTC epoch milliseconds: read from "
+                    + "the recording itself once it is here, else where a part's first chunk starts; null when "
+                    + "neither is known")
             Long coveredStartEpochMs,
             @McpNullable
-            @McpDescription("Where the last downloaded chunk of a part ends, as UTC epoch milliseconds; null for "
-                    + "the whole session and for a last chunk nothing bounds")
+            @McpDescription("Where the downloaded recording's data ends, as UTC epoch milliseconds: read from the "
+                    + "recording itself once it is here. Before that, a part's estimate - its last chunk's start "
+                    + "plus one measured chunk length, more than a last chunk cut short holds - and null for the "
+                    + "whole session and for a last chunk nothing bounds")
             Long coveredEndEpochMs,
             @McpNullable
             @McpDescription("What a predefined window picked and why; null when the call named the part itself or "

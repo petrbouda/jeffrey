@@ -164,8 +164,8 @@ Write it in the `report` skill's shape:
 - **Confidence per finding**, and what caps it (sampled throws, a commit mismatch, a site whose
   stack was not recorded).
 
-Put each site's Microscope page beside its name — the answer's `uiLink` opens the Exceptions page;
-never build a URL by hand.
+Put each site's Microscope page beside its name — the answer's `uiLink` opens the Exceptions page,
+its link text marked `Exceptions page ↗` like every other link; never build a URL by hand.
 
 Then ask which findings to apply, and **wait**. In Claude Code use `AskUserQuestion`, one
 multi-select option per finding when there are at most four; with more, list them numbered.

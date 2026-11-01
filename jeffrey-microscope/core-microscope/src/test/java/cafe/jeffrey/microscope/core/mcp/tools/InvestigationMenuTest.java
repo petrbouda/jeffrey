@@ -29,8 +29,14 @@ import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolWeight;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.shared.common.Json;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +51,7 @@ import java.util.stream.Collectors;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,6 +64,8 @@ class InvestigationMenuTest {
     private static final String WALL = "profiler.WallClockSample";
     private static final String ALLOCATION = "jdk.ObjectAllocationSample";
     private static final String MONITOR = "jdk.JavaMonitorEnter";
+    private static final Set<String> WEIGHTED = Set.of(ALLOCATION, MONITOR);
+    private static final EpochWindow RECORDING = new EpochWindow(1_000L, 61_000L);
     private static final List<String> JVM_SECTION_IDS =
             List.of("gc", "safepoints", "jit", "threads", "nativeMemory", "container", "configuration", "exceptions");
     private static final Set<HeapReport> EVERY_STORED_REPORT = Set.of(HeapReport.CONSUMERS, HeapReport.BIGGEST,
@@ -68,8 +77,17 @@ class InvestigationMenuTest {
         private final Set<FeatureType> disabled = new HashSet<>();
         private final Set<String> eventTypes = new HashSet<>(Set.of(
                 "jdk.SocketRead", "jdk.FileWrite", "jdk.OldObjectSample"));
-        private final Map<String, Long> samples = new LinkedHashMap<>(Map.of(
-                EXECUTION, 1_000L, CPU_TIME, 0L, WALL, 5_000L, ALLOCATION, 500L, MONITOR, 300L));
+        /** In the grid's own panel order, which decides the panel an area graphs first. */
+        private final Map<String, Long> samples = new LinkedHashMap<>();
+
+        Facts() {
+            samples.put(EXECUTION, 1_000L);
+            samples.put(CPU_TIME, 0L);
+            samples.put(WALL, 5_000L);
+            samples.put(ALLOCATION, 500L);
+            samples.put(MONITOR, 300L);
+        }
+        private final Map<String, Long> unpanelled = new LinkedHashMap<>();
         private final Set<String> missingSections = new HashSet<>();
         private AutoAnalysisStatus status = AutoAnalysisStatus.COMPUTED;
         private final List<McpFinding> flagged = new ArrayList<>();
@@ -77,6 +95,12 @@ class InvestigationMenuTest {
 
         Facts samples(String eventType, long count) {
             samples.put(eventType, count);
+            return this;
+        }
+
+        /** A recorded type with stacks that no panel shows: a custom event, a native sampler. */
+        Facts graphable(String eventType, long count) {
+            unpanelled.put(eventType, count);
             return this;
         }
 
@@ -120,7 +144,8 @@ class InvestigationMenuTest {
             Map<String, SampleKind> kinds = Map.of(EXECUTION, SampleKind.CPU, CPU_TIME, SampleKind.CPU,
                     WALL, SampleKind.WALL, ALLOCATION, SampleKind.ALLOCATION, MONITOR, SampleKind.BLOCKING);
             List<ProfileFacts.Sampled> panels = samples.entrySet().stream()
-                    .map(entry -> new ProfileFacts.Sampled(kinds.get(entry.getKey()), entry.getKey(), entry.getValue()))
+                    .map(entry -> new ProfileFacts.Sampled(kinds.get(entry.getKey()), entry.getKey(), entry.getValue(),
+                            WEIGHTED.contains(entry.getKey())))
                     .toList();
             Set<String> recorded = new HashSet<>(eventTypes);
             samples.forEach((type, count) -> {
@@ -132,8 +157,25 @@ class InvestigationMenuTest {
                     .map(id -> new SectionAvailability(id, id, "jvm_" + id, !missingSections.contains(id),
                             List.of("jdk." + id)))
                     .toList();
-            return new ProfileFacts(PROFILE_ID, source, disabled, recorded, panels, sections, status, flagged, heap);
+            List<ProfileFacts.Graphable> graphable = new ArrayList<>();
+            samples.forEach((type, count) -> graphable.add(
+                    new ProfileFacts.Graphable(type, type + " label", count, WEIGHTED.contains(type))));
+            unpanelled.forEach((type, count) -> graphable.add(
+                    new ProfileFacts.Graphable(type, type + " label", count, false)));
+            return new ProfileFacts(PROFILE_ID, source, disabled, recorded, panels, graphable, sections, status,
+                    flagged, heap, RECORDING);
         }
+    }
+
+    /** The links are absolute, built against the request being served, as on the MCP endpoint. */
+    @BeforeEach
+    void bindRequest() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
+    @AfterEach
+    void releaseRequest() {
+        RequestContextHolder.resetRequestAttributes();
     }
 
     private static Map<InvestigationArea, InvestigationOption> menu(Facts facts) {
@@ -232,10 +274,112 @@ class InvestigationMenuTest {
             assertEquals(List.of("jvm_gc", "jvm_safepoints"), tools(menu.get(InvestigationArea.GC_PAUSES)));
             assertEquals(List.of("jdbc_overview", "jdbc_pools"), tools(menu.get(InvestigationArea.DATABASE)));
             assertEquals(List.of("io_overview", "io_overview"), tools(menu.get(InvestigationArea.IO_WAITING)));
-            assertEquals(List.of("traces_overview"), tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)));
+            assertEquals(List.of("traces_overview"), tools(menu.get(InvestigationArea.TRACES)));
+            assertEquals(List.of("http_overview", "grpc_overview", "http_overview", "grpc_overview",
+                    "methodtracing_overview"), tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)));
             assertEquals(List.of("jvm_exceptions"), tools(menu.get(InvestigationArea.EXCEPTIONS)));
-            McpNextTool timeline = menu.get(InvestigationArea.HOT_WINDOWS).nextTools().getFirst();
-            assertEquals(WALL, Json.toTree(timeline.arguments()).get("eventType").asString());
+        }
+
+        /**
+         * Allocation and lock contention open on their call tree as CPU and wall-clock do, with their
+         * table beside it, so a pick of either reads the graph and the ranking at once.
+         */
+        @Test
+        void allocationAndLocksOpenOnTheirGraphThenTheirTable() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts());
+
+            List<McpNextTool> allocation = menu.get(InvestigationArea.ALLOCATION).nextTools();
+            assertEquals(List.of("flamegraph_export", "memory_allocations"), tools(menu.get(InvestigationArea.ALLOCATION)));
+            assertEquals(ALLOCATION, argument(allocation.getFirst(), "eventType"));
+            List<McpNextTool> locks = menu.get(InvestigationArea.LOCK_CONTENTION).nextTools();
+            assertEquals(List.of("flamegraph_export", "blocking_overview"), tools(menu.get(InvestigationArea.LOCK_CONTENTION)));
+            assertEquals(MONITOR, argument(locks.getFirst(), "eventType"));
+            assertFalse(Json.toTree(allocation.getFirst().arguments()).has("useWeight"),
+                    "the export weighs by the event type's own default, bytes for allocation");
+        }
+
+        /**
+         * Each area links the page it is seen on, a flamegraph area the exact graph its export draws -
+         * event type, default weighting, the whole recording - and an area not recorded links nothing.
+         */
+        @Test
+        void eachAvailableAreaLinksItsPage() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts().disable(FeatureType.TRACES));
+
+            String cpu = menu.get(InvestigationArea.CPU_HOTSPOTS).uiLink();
+            assertTrue(cpu.contains("/profiles/" + PROFILE_ID + "/flamegraph-view?") && cpu.contains("eventType=" + EXECUTION)
+                    && cpu.contains("startEpochMs=1000") && cpu.contains("endEpochMs=61000"), cpu);
+            assertFalse(cpu.contains("useWeight"), cpu);
+            assertTrue(menu.get(InvestigationArea.ALLOCATION).uiLink().contains("useWeight=true"));
+            assertTrue(menu.get(InvestigationArea.GC_PAUSES).uiLink().endsWith("/profiles/" + PROFILE_ID + "/garbage-collection"));
+            assertTrue(menu.get(InvestigationArea.REQUESTS_AND_CALLS).uiLink().endsWith("/technologies/http/overview"));
+            assertTrue(menu.get(InvestigationArea.IO_WAITING).uiLink().endsWith("/socket-io"));
+            assertNull(menu.get(InvestigationArea.TRACES).uiLink(), "not recorded, so no page to show");
+            menu.values().stream()
+                    .filter(option -> option.availability() != Availability.NOT_RECORDED)
+                    .forEach(option -> UiLinkRoutes.assertResolves(option.uiLink()));
+        }
+
+        /** A traced profile's Traces area links the operations page, where its slowest requests open. */
+        @Test
+        void tracesLinkTheOperationsPage() {
+            InvestigationOption traces = menu(new Facts()).get(InvestigationArea.TRACES);
+
+            assertEquals(Availability.AVAILABLE, traces.availability());
+            assertTrue(traces.uiLink().endsWith("/profiles/" + PROFILE_ID + "/traces/operations"), traces.uiLink());
+            UiLinkRoutes.assertResolves(traces.uiLink());
+        }
+
+        @Test
+        void aHeapDumpsAreasLinkTheirReports() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts().heapDump(
+                    new HeapState(true, true, EVERY_STORED_REPORT)));
+
+            assertTrue(menu.get(InvestigationArea.LEAK_SUSPECTS).uiLink().endsWith("/heap-dump/leak-suspects"));
+            menu.values().forEach(option -> UiLinkRoutes.assertResolves(option.uiLink()));
+        }
+
+        /** An imported bytes dimension holds no JFR allocation events, so the types table has nothing. */
+        @Test
+        void anImportedAllocationOpensOnItsGraphAlone() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts().source(RecordingEventSource.PPROF));
+
+            assertEquals(List.of("flamegraph_export"), tools(menu.get(InvestigationArea.ALLOCATION)));
+        }
+
+        /**
+         * A traced request's time span by span and an endpoint's figures are two questions, so a
+         * profile with both offers both, each under its own name.
+         */
+        @Test
+        void tracesAndTheDashboardsAreTwoAreas() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts());
+
+            assertEquals(Availability.AVAILABLE, menu.get(InvestigationArea.TRACES).availability());
+            assertEquals("Traces", menu.get(InvestigationArea.TRACES).title());
+            assertEquals(Availability.AVAILABLE, menu.get(InvestigationArea.REQUESTS_AND_CALLS).availability());
+            assertFalse(tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)).contains("traces_overview"));
+        }
+
+        @Test
+        void aProfileWithoutTracesNamesTheInstrumentationThatRecordsThem() {
+            InvestigationOption traces = menu(new Facts().disable(FeatureType.TRACES)).get(InvestigationArea.TRACES);
+
+            assertEquals(Availability.NOT_RECORDED, traces.availability());
+            assertTrue(traces.gap().contains("no traces"), traces.gap());
+            assertNotNull(traces.remedy());
+            assertTrue(traces.nextTools().isEmpty());
+        }
+
+        /** The menu holds the four kinds of sample in Code, and no area of its own for when they landed. */
+        @Test
+        void codeIsTheFourSampleKinds() {
+            List<InvestigationArea> code = Arrays.stream(InvestigationArea.values())
+                    .filter(area -> area.group() == InvestigationGroup.CODE)
+                    .toList();
+
+            assertEquals(List.of(InvestigationArea.CPU_HOTSPOTS, InvestigationArea.WALL_CLOCK,
+                    InvestigationArea.ALLOCATION, InvestigationArea.LOCK_CONTENTION), code);
         }
 
         @Test
@@ -243,6 +387,8 @@ class InvestigationMenuTest {
             Map<InvestigationArea, InvestigationOption> menu = menu(new Facts());
 
             assertEquals(McpToolWeight.HEAVY, menu.get(InvestigationArea.CPU_HOTSPOTS).weight());
+            assertEquals(McpToolWeight.HEAVY, menu.get(InvestigationArea.ALLOCATION).weight());
+            assertEquals(McpToolWeight.HEAVY, menu.get(InvestigationArea.LOCK_CONTENTION).weight());
             assertEquals(McpToolWeight.MEDIUM, menu.get(InvestigationArea.GC_PAUSES).weight());
             assertEquals(McpToolWeight.MEDIUM, menu.get(InvestigationArea.CONTAINER_AND_FLAGS).weight());
         }
@@ -267,7 +413,7 @@ class InvestigationMenuTest {
         }
 
         @Test
-        void requestsFallBackToEveryRecordedDashboardWithoutTraces() {
+        void requestsListEveryRecordedDashboardWithoutTraces() {
             List<McpNextTool> calls = menu(new Facts().disable(FeatureType.TRACES))
                     .get(InvestigationArea.REQUESTS_AND_CALLS).nextTools();
 
@@ -297,7 +443,7 @@ class InvestigationMenuTest {
                     .get(InvestigationArea.REQUESTS_AND_CALLS);
 
             assertEquals(Availability.NOT_RECORDED, requests.availability());
-            assertTrue(requests.gap().contains("no traces"), requests.gap());
+            assertTrue(requests.gap().contains("no served requests"), requests.gap());
         }
 
         @Test
@@ -516,7 +662,7 @@ class InvestigationMenuTest {
         @Test
         void refusesAnAvailableAreaWithoutCalls() {
             assertThrows(IllegalArgumentException.class,
-                    () -> InvestigationOption.available(InvestigationArea.JIT, List.of()));
+                    () -> InvestigationOption.available(InvestigationArea.JIT, List.of(), null));
         }
 
         @Test
@@ -524,6 +670,69 @@ class InvestigationMenuTest {
             InvestigationOption gap = InvestigationOption.notRecorded(InvestigationArea.JIT, "no jit", null);
 
             assertThrows(IllegalArgumentException.class, () -> gap.suggestedBy("a rule"));
+        }
+    }
+    /** The recorded types with stacks that no area opens, listed beside the menu with their export. */
+    @Nested
+    class MoreFlamegraphsBesideTheMenu {
+
+        private MoreFlamegraphs.Listing listing(Facts facts, AdvertisedFamilies advertised) {
+            ProfileFacts built = facts.build();
+            return MoreFlamegraphs.of(built, InvestigationMenu.of(built, advertised), advertised);
+        }
+
+        private List<String> listedTypes(MoreFlamegraphs.Listing listing) {
+            return listing.listed().stream().map(MoreFlamegraphs.MoreFlamegraph::eventType).toList();
+        }
+
+        @Test
+        void listsWhatNoAreaGraphsMostSamplesFirst() {
+            MoreFlamegraphs.Listing listing = listing(new Facts()
+                    .samples(CPU_TIME, 800)
+                    .graphable("profiler.Malloc", 300)
+                    .graphable("com.acme.CheckoutEvent", 40), EVERY_FAMILY);
+
+            assertEquals(List.of(CPU_TIME, "profiler.Malloc", "com.acme.CheckoutEvent"), listedTypes(listing),
+                    "the second CPU sampler, native allocation and a custom event; not the types the areas open");
+            assertEquals(0, listing.omitted());
+            McpNextTool export = listing.listed().getFirst().export();
+            assertEquals("flamegraph_export", export.tool());
+            assertEquals(CPU_TIME, argument(export, "eventType"));
+            assertEquals(PROFILE_ID, argument(export, "profileId"));
+            assertEquals(McpToolWeight.HEAVY, export.weight());
+            String uiLink = listing.listed().getFirst().uiLink();
+            assertTrue(uiLink.contains("eventType=" + CPU_TIME), uiLink);
+            UiLinkRoutes.assertResolves(uiLink);
+        }
+
+        @Test
+        void anUnrecordedTypeIsNotListed() {
+            assertTrue(listing(new Facts().graphable("profiler.Malloc", 0), EVERY_FAMILY).listed().isEmpty());
+        }
+
+        @Test
+        void listsAtMostTenAndCountsTheRest() {
+            Facts facts = new Facts();
+            for (int i = 0; i < MoreFlamegraphs.MAX_LISTED + 3; i++) {
+                facts.graphable("com.acme.Event" + i, 100 + i);
+            }
+
+            MoreFlamegraphs.Listing listing = listing(facts, EVERY_FAMILY);
+
+            assertEquals(MoreFlamegraphs.MAX_LISTED, listing.listed().size());
+            assertEquals(3, listing.omitted());
+            assertEquals("com.acme.Event12", listing.listed().getFirst().eventType());
+        }
+
+        @Test
+        void nothingIsListedWhenFlamegraphsAreNotServed() {
+            Set<String> families = new HashSet<>(EVERY_FAMILY.families());
+            families.remove(AdvertisedFamilies.FLAMEGRAPH);
+
+            MoreFlamegraphs.Listing listing = listing(new Facts().graphable("profiler.Malloc", 300),
+                    new AdvertisedFamilies(families));
+
+            assertEquals(MoreFlamegraphs.Listing.NONE, listing);
         }
     }
 }

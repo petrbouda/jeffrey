@@ -1,15 +1,15 @@
 {
- "baseline": "01a19334-eede-702a-8f73-06a758aeb429",
- "candidate": "01a19334-f2e8-7e26-909f-6374da10c563",
- "heap": "01a19334-f651-798c-8817-2a68246b6ced",
+ "baseline": "01a1978b-348e-745a-8629-cab182c3a543",
+ "candidate": "01a1978b-3b39-7b4a-a8d9-d2c9cd09fde6",
+ "heap": "01a1978b-40fa-75ae-b69b-d0f867c665f3",
  "heapDumpPath": "/tmp/jeffrey-eval/checkout.hprof",
  "figures": {
-  "orders": 5775,
-  "promoOrders": 1427
+  "orders": 5822,
+  "promoOrders": 1441
  },
  "files": {
-  "checkout-baseline.jfr": "136e632e83fc5603dd6880c8be0919f41ea03a8628df953df0bfe9037ac0e941",
-  "checkout-candidate.jfr": "7f72eed3ce87e00a1ab215defbe00807a6b97d1c005d4dd52f802cdd927e8c74",
-  "checkout.hprof": "a484be60bdada2925afb6aab41477eb26013c9738c7a8b3f45baf305b7b5acd8"
+  "checkout-baseline.jfr": "dd35c8532fec0a289286211ca8ad0dad09284933c3c5619f900ee92682a1c7fc",
+  "checkout-candidate.jfr": "dc63e2d4f3e6fd0bb5a053e0c280605833b528c28164e4f8849090a4be16a0de",
+  "checkout.hprof": "e5e6d03e0f4dafbaa67192943e1edb20ab02de7a412289c175b2ccd54718ad04"
  }
 }

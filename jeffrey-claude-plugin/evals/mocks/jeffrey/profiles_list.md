@@ -2,22 +2,4 @@
 type: fixed
 ---
 
-Returned 3 of 3 matching profiles.
-
-| profile_id | recording_id | name | project | event source | recorded | duration | ready | modified |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 01a19334-f651-798c-8817-2a68246b6ced | 01a19334-f63e-7e0b-99a5-e4676afd49cd | checkout heap dump | (quick analysis) | HEAP_DUMP | 2026-10-31T18:24:44.113643Z | PT0S | yes | no |
-| 01a19334-f2e8-7e26-909f-6374da10c563 | 01a19334-f2db-79f4-b7cb-1bb5b2f09f7d | checkout candidate | (quick analysis) | JDK | 2026-10-31T18:24:11.648246Z | PT30.47555S | yes | no |
-| 01a19334-eede-702a-8f73-06a758aeb429 | 01a19334-eebc-7dd7-a5ac-64517bc68d80 | checkout baseline | (quick analysis) | JDK | 2026-10-31T18:23:40.942111Z | PT30.422815S | yes | no |
-
-Names longer than 256 characters are shortened with an ellipsis; nameTruncated marks them in structuredContent.
-
-A `modified` profile has had frames renamed or collapsed, so its frame names may differ from the source code.
-
-A profile listed as `building` is still being parsed. Pass its recording_id to recordings_status to check progress.
-
-
-End of the matching catalogue (hasMore=false).
-
----
-Open in Microscope: http://localhost:8590/recordings
+{"status":"OK","reason":null,"profiles":[{"profileId":"01a1978b-40fa-75ae-b69b-d0f867c665f3","recordingId":"01a1978b-40e7-7423-afbb-8a0e91a4b4cd","name":"checkout heap dump","nameTruncated":false,"projectId":null,"workspaceId":null,"eventSource":"HEAP_DUMP","recordedEpochMs":1793543848186,"durationMs":0,"ready":"YES","modified":false,"uiLink":"http://localhost:8586/profiles/01a1978b-40fa-75ae-b69b-d0f867c665f3"},{"profileId":"01a1978b-3b39-7b4a-a8d9-d2c9cd09fde6","recordingId":"01a1978b-3b28-7ad5-8f34-4bebf026ee99","name":"checkout candidate","nameTruncated":false,"projectId":null,"workspaceId":null,"eventSource":"JDK","recordedEpochMs":1793543423174,"durationMs":30542,"ready":"YES","modified":false,"uiLink":"http://localhost:8586/profiles/01a1978b-3b39-7b4a-a8d9-d2c9cd09fde6"},{"profileId":"01a1978b-348e-745a-8629-cab182c3a543","recordingId":"01a1978b-346b-7cd0-9606-fc38e7358b91","name":"checkout baseline","nameTruncated":false,"projectId":null,"workspaceId":null,"eventSource":"JDK","recordedEpochMs":1793543392435,"durationMs":30452,"ready":"YES","modified":false,"uiLink":"http://localhost:8586/profiles/01a1978b-348e-745a-8629-cab182c3a543"}],"returned":3,"total":3,"hasMore":false,"nextCursor":null,"complete":true,"followUp":{"nextTools":[],"guidance":[]},"uiLink":"http://localhost:8586/recordings"}

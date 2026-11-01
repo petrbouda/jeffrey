@@ -287,7 +287,7 @@ public class DuckDbMcpTools {
                 }
             });
             return FittingPage.largest(rows.cells().size(),
-                            count -> rows.first(count).queryAnswer(this::queryFollowUp), Answer::fits)
+                            count -> rows.first(count).queryAnswer(this::queryFollowUp), Answer::fitsDeclared)
                     .orElseGet(() -> rows.none().queryAnswer(this::queryFollowUp))
                     .result();
         } catch (SQLException e) {
@@ -602,8 +602,18 @@ public class DuckDbMcpTools {
      */
     private record Answer(String text, Record record) {
 
+        /** Within the client's limit for a tool that declares no large result. */
         boolean fits() {
-            return text.length() <= McpToolOutput.MAX_CHARS && Json.toString(record).length() <= McpToolOutput.MAX_CHARS;
+            return within(McpToolOutput.UNDECLARED_MAX_CHARS);
+        }
+
+        /** Within the result limit, for jfr_executeQuery, which declares it. */
+        boolean fitsDeclared() {
+            return within(McpToolOutput.MAX_CHARS);
+        }
+
+        private boolean within(int limit) {
+            return text.length() <= limit && Json.toString(record).length() <= limit;
         }
 
         McpToolResult result() {

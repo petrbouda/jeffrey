@@ -109,6 +109,10 @@
         },
         "modified": {
          "type": "boolean"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The profile's page in the Microscope UI, for the user; link the profile with it whenever it is named"
         }
        },
        "required": [
@@ -122,7 +126,8 @@
         "recordedEpochMs",
         "durationMs",
         "ready",
-        "modified"
+        "modified",
+        "uiLink"
        ],
        "additionalProperties": false
       }
@@ -542,7 +547,7 @@
   {
    "name": "profiles_evidence",
    "title": "Profiles: Evidence",
-   "description": "Returns a versioned evidence snapshot of the profile's current state as one JSON document: recording identity, build, whole-recording units and denominators, stored sampling settings, whether the auto-analysis rules have run and their evaluated findings, capability gaps, the call that replays it and complete-record omission counts. Instants are UTC epoch milliseconds. A live snapshot, not an immutable archive: the returned document is what preserves this observation. Computes and changes nothing.",
+   "description": "Returns a versioned evidence snapshot of the profile's current state as one JSON document: recording identity, build, whole-recording units and denominators, stored sampling settings, whether the auto-analysis rules have run, the findings they flagged and the ids of the rules that passed, capability gaps, the call that replays it and complete-record omission counts. Instants are UTC epoch milliseconds. A live snapshot, not an immutable archive: the returned document is what preserves this observation. Computes and changes nothing.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -847,6 +852,10 @@
      "findingEvidenceUnits": {
       "type": "string"
      },
+     "eventCountDefinition": {
+      "type": "string",
+      "description": "What each eventTypes row's samples count, and in what unit"
+     },
      "truncation": {
       "type": "object",
       "additionalProperties": {
@@ -978,7 +987,15 @@
         "nextTool"
        ],
        "additionalProperties": false
-      }
+      },
+      "description": "The rules that flagged something - INFO, WARNING or CRITICAL - most severe first"
+     },
+     "passedRules": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "The finding id of every rule that ran and passed"
      },
      "capabilityGaps": {
       "type": "array",
@@ -1036,9 +1053,6 @@
          "type": "integer",
          "minimum": 0
         },
-        "unit": {
-         "type": "string"
-        },
         "weight": {
          "type": [
           "integer",
@@ -1053,9 +1067,6 @@
         },
         "calculated": {
          "type": "boolean"
-        },
-        "denominatorDefinition": {
-         "type": "string"
         },
         "settings": {
          "type": "object",
@@ -1075,11 +1086,9 @@
         "label",
         "source",
         "samples",
-        "unit",
         "weight",
         "weightUnit",
         "calculated",
-        "denominatorDefinition",
         "settings",
         "extras"
        ],
@@ -1104,9 +1113,11 @@
      "samplerHealth",
      "autoAnalysis",
      "findingEvidenceUnits",
+     "eventCountDefinition",
      "truncation",
      "outputLimitChars",
      "findings",
+     "passedRules",
      "capabilityGaps",
      "notEvaluatedRules",
      "eventTypes",
@@ -1596,7 +1607,7 @@
   {
    "name": "profiles_summary",
    "title": "Profiles: Summary",
-   "description": "Returns the one-call orientation to a profile: its id, name and event source, the recording window (start and end as UTC epoch milliseconds), which analysis features it has data for, every event type it recorded with its totals, whether the auto-analysis rules have run (autoAnalysis) and their top findings, and capabilityGaps - in words, every question this recording cannot answer and which tools that leaves empty, and investigationAreas - the menu to put to the user when the question is open: each area it can answer with its weight, the evidence when suggested, and the calls that open it. A superset of profiles_features. Reads the cached auto-analysis and never runs it. Not included: the sampler's loss figures (profiles_samplerHealth), the source commit and the size on disk (profiles_get).",
+   "description": "Returns the one-call orientation to a profile: its id, name and event source, the recording window (start and end as UTC epoch milliseconds), which analysis features it has data for, every event type it recorded with its totals, whether the auto-analysis rules have run (autoAnalysis) and their top findings, and capabilityGaps - in words, every question this recording cannot answer and which tools that leaves empty, and investigationAreas - the menu to put to the user when the question is open: each area it can answer with its weight, the evidence when suggested, and the calls that open it, and moreFlamegraphs - every recorded type with stacks no area opens, each as a ready export. A superset of profiles_features. Reads the cached auto-analysis and never runs it. Not included: the sampler's loss figures (profiles_samplerHealth), the source commit and the size on disk (profiles_get).",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -1816,11 +1827,11 @@
           "CPU_HOTSPOTS",
           "WALL_CLOCK",
           "ALLOCATION",
-          "HOT_WINDOWS",
+          "LOCK_CONTENTION",
+          "TRACES",
           "REQUESTS_AND_CALLS",
           "DATABASE",
           "IO_WAITING",
-          "LOCK_CONTENTION",
           "GC_PAUSES",
           "JIT",
           "THREADS",
@@ -1946,6 +1957,13 @@
           "additionalProperties": false
          },
          "description": "The calls that open the area, or that build its data first, ready to send; empty when it is not recorded"
+        },
+        "uiLink": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "description": "The area's page in the Microscope UI, for the user - a flamegraph area's exact graph; null when it is not recorded or has no page"
         }
        },
        "required": [
@@ -1959,11 +1977,81 @@
         "evidence",
         "gap",
         "remedy",
-        "nextTools"
+        "nextTools",
+        "uiLink"
        ],
        "additionalProperties": false
       },
       "description": "The menu for an open question: every area this profile can be investigated in, with its weight, the evidence when suggested and the calls that open it, and the areas it cannot answer with what is missing - a heap dump's own areas for a heap dump, those needing heap_prepare first marked NEEDS_PREPARATION. Empty for perf counters"
+     },
+     "moreFlamegraphs": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "eventType": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        },
+        "samples": {
+         "type": "integer"
+        },
+        "export": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false,
+         "description": "The flamegraph_export that draws it; send it unchanged"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The same graph in the Microscope flamegraph view, for the user"
+        }
+       },
+       "required": [
+        "eventType",
+        "label",
+        "samples",
+        "export",
+        "uiLink"
+       ],
+       "additionalProperties": false
+      },
+      "description": "Every recorded event type with stacks that no area opens on a flamegraph - native allocation, method traces, custom events, a second sampler of a kind - most samples first, each with the export that draws it; empty for a heap dump and perf counters"
+     },
+     "omittedFlamegraphs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many more such types there are past the list; flamegraph_list names them all"
      },
      "followUp": {
       "type": "object",
@@ -2036,6 +2124,8 @@
      "topFindings",
      "capabilityGaps",
      "investigationAreas",
+     "moreFlamegraphs",
+     "omittedFlamegraphs",
      "followUp",
      "uiLink"
     ],
@@ -2885,7 +2975,7 @@
   {
    "name": "flamegraph_export",
    "title": "Flamegraph: Export",
-   "description": "Exports a flamegraph as Markdown for reading: a nested call tree where every frame carries its total samples, its self samples and its JIT tier, under a preamble defining exactly what those numbers mean. The main tool for 'where does the time go'. Frames below the prune threshold are dropped and their weight rolled up into the parent, so the accounting stays exact. detail 'summary' answers in a few kilobytes with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the tree at the configured default threshold (2% unless jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is the tree at 0.5%, several times longer. The Markdown is the text; the structured result records the event type, window, threshold and filters it was built with, and uiLink opens the same graph in Microscope. An event type this profile did not record answers status NOT_RECORDED, naming the types it did, rather than an empty tree.",
+   "description": "Exports a flamegraph as Markdown for reading: a nested call tree where every frame carries its total samples, its self samples and its JIT tier, under a preamble defining exactly what those numbers mean. The main tool for 'where does the time go'. Frames below the prune threshold are dropped and their weight rolled up into the parent, so the accounting stays exact. detail 'summary' answers in a few kilobytes with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the tree at the configured default threshold (2% unless jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is the tree at 0.5%, several times longer. The Markdown is the text and the structured result's markdown, beside the event type, window, threshold and filters it was built with, and uiLink opens the same graph in Microscope. An event type this profile did not record answers status NOT_RECORDED, naming the types it did, rather than an empty tree.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3030,11 +3120,18 @@
      },
      "markdownChars": {
       "type": "integer",
-      "description": "Characters of the Markdown export, before the text cap"
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The Markdown export - the call tree itself, the document the text carries; null when status is NOT_RECORDED"
      },
      "truncated": {
       "type": "boolean",
-      "description": "Whether the Markdown was cut to fit the text cap with its footer; a coarser detail or thresholdPct fits"
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer; a coarser detail or thresholdPct fits"
      },
      "followUp": {
       "type": "object",
@@ -3109,6 +3206,7 @@
      "excludeNonJava",
      "search",
      "markdownChars",
+     "markdown",
      "truncated",
      "followUp",
      "uiLink"
@@ -3329,7 +3427,7 @@
   {
    "name": "compare_flamegraph",
    "title": "Compare: Flamegraph",
-   "description": "Exports the differential flamegraph of two profiles as Markdown: the merged call tree, every frame carrying what the primary spends there, what the baseline spent, and the movement between them - the call paths a method flagged by compare_movements moved through. Subtrees in which nothing moved are pruned, so absence here means 'did not change', not 'not present'. The Markdown is the text; the structured result records what was compared, including where a window landed on each recording.",
+   "description": "Exports the differential flamegraph of two profiles as Markdown: the merged call tree, every frame carrying what the primary spends there, what the baseline spent, and the movement between them - the call paths a method flagged by compare_movements moved through. Subtrees in which nothing moved are pruned, so absence here means 'did not change', not 'not present'. The Markdown is the text and the structured result's markdown, which also records what was compared, including where a window landed on each recording.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3465,11 +3563,15 @@
      },
      "markdownChars": {
       "type": "integer",
-      "description": "Characters of the Markdown export, before the text cap"
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown export - the differential call tree itself, the document the text carries"
      },
      "truncated": {
       "type": "boolean",
-      "description": "Whether the Markdown was cut to fit the text cap with its footer; a coarser thresholdPct fits"
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer; a coarser thresholdPct fits"
      },
      "followUp": {
       "type": "object",
@@ -3547,6 +3649,7 @@
      "excludeIdle",
      "excludeNonJava",
      "markdownChars",
+     "markdown",
      "truncated",
      "followUp",
      "uiLink",
@@ -3849,7 +3952,7 @@
   {
    "name": "compare_movements",
    "title": "Compare: Movements",
-   "description": "Ranks the methods that moved between two profiles: those the primary spends more in (a regression) and those it spends less in. The main tool for 'did my change make it slower'. Movements are attributed by SELF weight, so a change is charged to the method that actually moved rather than to every caller above it, and the baseline is scaled onto the primary's recording length. The Markdown ranking is the text and opens with a comparability section that qualifies every finding below it; the structured result records what was compared, including where a window landed on each recording.",
+   "description": "Ranks the methods that moved between two profiles: those the primary spends more in (a regression) and those it spends less in. The main tool for 'did my change make it slower'. Movements are attributed by SELF weight, so a change is charged to the method that actually moved rather than to every caller above it, and the baseline is scaled onto the primary's recording length. The Markdown ranking is the text and the structured result's markdown, and opens with a comparability section that qualifies every finding below it; the structured result also records what was compared, including where a window landed on each recording.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3982,11 +4085,15 @@
      },
      "markdownChars": {
       "type": "integer",
-      "description": "Characters of the Markdown ranking, before the text cap"
+      "description": "Characters of the Markdown ranking, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown ranking itself, the document the text carries"
      },
      "truncated": {
       "type": "boolean",
-      "description": "Whether the Markdown was cut to fit the text cap with its footer"
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer"
      },
      "followUp": {
       "type": "object",
@@ -4061,6 +4168,7 @@
      "excludeIdle",
      "excludeNonJava",
      "markdownChars",
+     "markdown",
      "truncated",
      "followUp",
      "uiLink",
@@ -4081,7 +4189,7 @@
   {
    "name": "compare_quality",
    "title": "Compare: Quality",
-   "description": "Assesses the recording evidence behind a comparison: both identities and durations, event overlap, stored sampling-setting differences, reported CPU-time sample loss and observed server-event volumes. A whole-recording current-state snapshot, with bounded complete records and omission counts. Reports per-workload normalization unavailable when complete operation counts are not established.",
+   "description": "Assesses the recording evidence behind a comparison: both identities and durations, event overlap, each side's event volumes, the event types whose stored sampling settings differ (matching ones are counted, not listed), reported CPU-time sample loss and observed server-event volumes. A whole-recording current-state snapshot, kept compact, with bounded complete records and omission counts. Reports per-workload normalization unavailable when complete operation counts are not established.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -4127,6 +4235,10 @@
      },
      "eventOverlapMeaning": {
       "type": "string"
+     },
+     "eventCountDefinition": {
+      "type": "string",
+      "description": "What each side's eventTypes samples count"
      },
      "primary": {
       "type": "object",
@@ -4345,18 +4457,9 @@
             "null"
            ]
           },
-          "source": {
-           "type": [
-            "string",
-            "null"
-           ]
-          },
           "samples": {
            "type": "integer",
            "minimum": 0
-          },
-          "unit": {
-           "type": "string"
           },
           "weight": {
            "type": [
@@ -4369,38 +4472,14 @@
             "string",
             "null"
            ]
-          },
-          "calculated": {
-           "type": "boolean"
-          },
-          "denominatorDefinition": {
-           "type": "string"
-          },
-          "settings": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
-          },
-          "extras": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
           }
          },
          "required": [
           "eventType",
           "label",
-          "source",
           "samples",
-          "unit",
           "weight",
-          "weightUnit",
-          "calculated",
-          "denominatorDefinition",
-          "settings",
-          "extras"
+          "weightUnit"
          ],
          "additionalProperties": false
         }
@@ -4631,18 +4710,9 @@
             "null"
            ]
           },
-          "source": {
-           "type": [
-            "string",
-            "null"
-           ]
-          },
           "samples": {
            "type": "integer",
            "minimum": 0
-          },
-          "unit": {
-           "type": "string"
           },
           "weight": {
            "type": [
@@ -4655,38 +4725,14 @@
             "string",
             "null"
            ]
-          },
-          "calculated": {
-           "type": "boolean"
-          },
-          "denominatorDefinition": {
-           "type": "string"
-          },
-          "settings": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
-          },
-          "extras": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
           }
          },
          "required": [
           "eventType",
           "label",
-          "source",
           "samples",
-          "unit",
           "weight",
-          "weightUnit",
-          "calculated",
-          "denominatorDefinition",
-          "settings",
-          "extras"
+          "weightUnit"
          ],
          "additionalProperties": false
         }
@@ -4975,7 +5021,13 @@
         "baselineSettings"
        ],
        "additionalProperties": false
-      }
+      },
+      "description": "The common event types whose stored settings differ (MISMATCH) or are missing on one side (UNKNOWN), mismatches first, with both sides' settings"
+     },
+     "matchingSettings": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many common event types have matching stored settings; they are not listed"
      },
      "commonEventTypes": {
       "type": "array",
@@ -5005,6 +5057,7 @@
      "semantics",
      "samplingSettingsScope",
      "eventOverlapMeaning",
+     "eventCountDefinition",
      "primary",
      "baseline",
      "followUp",
@@ -5015,6 +5068,7 @@
      "outputLimitChars",
      "findings",
      "samplingConfiguration",
+     "matchingSettings",
      "commonEventTypes",
      "onlyInPrimary",
      "onlyInBaseline"
@@ -5307,6 +5361,344 @@
     "openWorldHint": false
    },
    "_meta": {
+    "jeffrey/cost": "MODERATE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
+   }
+  },
+  {
+   "name": "traces_operationExport",
+   "title": "Traces: Operation Export",
+   "description": "Exports one operation as Markdown for reading: its latency percentiles, where its time went broken down by span, and its slowest individual traces named as exemplars for traces_traceExport. The Markdown is the text and the structured result's markdown; the record also names the operation, the next calls and uiLink, the operation's page in Microscope. An unknown operation is an error naming it.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "name": {
+      "type": "string",
+      "description": "Operation name, e.g. 'GET /orders'"
+     },
+     "kind": {
+      "type": "string",
+      "description": "Span kind of the operation's root, e.g. 'SERVER' or 'CLIENT'",
+      "enum": [
+       "SERVER",
+       "CLIENT",
+       "INTERNAL",
+       "PRODUCER",
+       "CONSUMER"
+      ]
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'"
+     }
+    },
+    "required": [
+     "profileId",
+     "name",
+     "kind",
+     "eventType"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "kind": {
+      "type": "string"
+     },
+     "eventType": {
+      "type": "string"
+     },
+     "markdownChars": {
+      "type": "integer",
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown export itself, the document the text carries"
+     },
+     "truncated": {
+      "type": "boolean",
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The operation in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "profileId",
+     "name",
+     "kind",
+     "eventType",
+     "markdownChars",
+     "markdown",
+     "truncated",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "anthropic/maxResultSizeChars": 120000,
+    "jeffrey/cost": "EXPENSIVE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
+   }
+  },
+  {
+   "name": "traces_operationFlamegraphExport",
+   "title": "Traces: Operation Flamegraph Export",
+   "description": "Exports, as a Markdown flamegraph, the samples taken while any trace of one operation was running. Answers 'what does this kind of request spend its time on' across every occurrence, rather than in one exemplar. The Markdown is the text and the structured result's markdown; uiLink opens the operation's flamegraphs tab in Microscope, and uiLinkNote says what the link cannot choose. An unknown operation is an error naming it.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "name": {
+      "type": "string",
+      "description": "Operation name, e.g. 'GET /orders'"
+     },
+     "kind": {
+      "type": "string",
+      "description": "Span kind of the operation's root, e.g. 'SERVER'",
+      "enum": [
+       "SERVER",
+       "CLIENT",
+       "INTERNAL",
+       "PRODUCER",
+       "CONSUMER"
+      ]
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'"
+     },
+     "graphEventType": {
+      "type": "string",
+      "description": "Event type to graph, e.g. 'jdk.ExecutionSample'. Different from eventType, which identifies the operation: this one names the samples to draw, and flamegraph_list names the ones this profile recorded."
+     },
+     "threadMode": {
+      "type": "boolean",
+      "description": "Split the graph per thread instead of aggregating"
+     },
+     "useWeight": {
+      "type": "boolean",
+      "description": "Weigh frames by event weight instead of sample count"
+     }
+    },
+    "required": [
+     "profileId",
+     "name",
+     "kind",
+     "eventType",
+     "graphEventType"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "kind": {
+      "type": "string"
+     },
+     "eventType": {
+      "type": "string"
+     },
+     "graphEventType": {
+      "type": "string"
+     },
+     "threadMode": {
+      "type": "boolean"
+     },
+     "useWeight": {
+      "type": [
+       "boolean",
+       "null"
+      ],
+      "description": "Whether frames were weighed rather than counted; null for the event type's default"
+     },
+     "markdownChars": {
+      "type": "integer",
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown export itself, the document the text carries"
+     },
+     "truncated": {
+      "type": "boolean",
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The operation's flamegraphs tab in the Microscope UI, for the user"
+     },
+     "uiLinkNote": {
+      "type": "string",
+      "description": "What uiLink cannot reproduce: the tab draws its own panels, not this event type and flags"
+     }
+    },
+    "required": [
+     "profileId",
+     "name",
+     "kind",
+     "eventType",
+     "graphEventType",
+     "threadMode",
+     "useWeight",
+     "markdownChars",
+     "markdown",
+     "truncated",
+     "followUp",
+     "uiLink",
+     "uiLinkNote"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "anthropic/maxResultSizeChars": 120000,
     "jeffrey/cost": "MODERATE",
     "jeffrey/requires": [
      "TRACES"
@@ -5728,6 +6120,538 @@
    },
    "_meta": {
     "jeffrey/cost": "MODERATE"
+   }
+  },
+  {
+   "name": "traces_slowestTraces",
+   "title": "Traces: Slowest Traces",
+   "description": "Returns individual traces of one operation, slowest first, with the ids traces_traceExport takes and each trace's start as UTC epoch milliseconds. An operation this profile does not hold is an error naming it.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "name": {
+      "type": "string",
+      "description": "Operation name, e.g. 'GET /orders'"
+     },
+     "kind": {
+      "type": "string",
+      "description": "Span kind of the operation's root, e.g. 'SERVER'",
+      "enum": [
+       "SERVER",
+       "CLIENT",
+       "INTERNAL",
+       "PRODUCER",
+       "CONSUMER"
+      ]
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Event type that opened the trace"
+     },
+     "limit": {
+      "type": "integer",
+      "description": "Maximum number of traces to return (default 20, maximum 1000); fewer when they do not fit the answer",
+      "default": 20,
+      "minimum": 1,
+      "maximum": 1000
+     }
+    },
+    "required": [
+     "profileId",
+     "name",
+     "kind",
+     "eventType"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "kind": {
+      "type": "string"
+     },
+     "eventType": {
+      "type": "string"
+     },
+     "traces": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "traceId": {
+         "type": "string",
+         "description": "The trace id as a hex string, the one traces_traceExport takes"
+        },
+        "rootName": {
+         "type": "string"
+        },
+        "rootKind": {
+         "type": "string"
+        },
+        "rootEventType": {
+         "type": "string"
+        },
+        "startEpochMs": {
+         "type": "integer",
+         "description": "When the trace started, as UTC epoch milliseconds"
+        },
+        "durationNanos": {
+         "type": "integer"
+        },
+        "spanCount": {
+         "type": "integer"
+        },
+        "errorCount": {
+         "type": "integer"
+        },
+        "hasPlatformSpan": {
+         "type": "boolean",
+         "description": "Whether a span of this trace was synthesised from a platform event, such as a socket read"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "This trace's span waterfall in the Microscope UI, for the user"
+        }
+       },
+       "required": [
+        "traceId",
+        "rootName",
+        "rootKind",
+        "rootEventType",
+        "startEpochMs",
+        "durationNanos",
+        "spanCount",
+        "errorCount",
+        "hasPlatformSpan",
+        "uiLink"
+       ],
+       "additionalProperties": false
+      },
+      "description": "The operation's traces, slowest first"
+     },
+     "omittedTraces": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "Traces left out to fit the answer; null when the list reached limit and more may exist"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The operation's slowest traces in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "profileId",
+     "name",
+     "kind",
+     "eventType",
+     "traces",
+     "omittedTraces",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
+   }
+  },
+  {
+   "name": "traces_spanFlamegraphExport",
+   "title": "Traces: Span Flamegraph Export",
+   "description": "Exports, as a Markdown flamegraph, the samples taken while one span was open. Answers 'what code was running inside this span', which the span tree alone cannot say. The Markdown is the text and the structured result's markdown; uiLink opens the trace's span waterfall, where the span's graph is drawn, and uiLinkNote says what the link cannot choose. Ids that name no span are an error. status NO_SELF_TIME: selfOnly left nothing, because the span's children covered all of its time.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "traceId": {
+      "type": "string",
+      "description": "Trace id as a 16-character hex string"
+     },
+     "spanId": {
+      "type": "string",
+      "description": "Span id as a 16-character hex string, from the span tree in traces_traceExport"
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Event type to graph, e.g. 'jdk.ExecutionSample' for on-CPU time or 'jdk.ObjectAllocationSample' for allocation. flamegraph_list names the ones this profile recorded."
+     },
+     "selfOnly": {
+      "type": "boolean",
+      "description": "Cut the span's children out of the window, so the graph shows only the work the span did itself"
+     },
+     "threadMode": {
+      "type": "boolean",
+      "description": "Split the graph per thread instead of aggregating"
+     },
+     "useWeight": {
+      "type": "boolean",
+      "description": "Weigh frames by event weight instead of sample count"
+     }
+    },
+    "required": [
+     "profileId",
+     "traceId",
+     "spanId",
+     "eventType"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NO_SELF_TIME"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there is no graph; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "traceId": {
+      "type": "string"
+     },
+     "spanId": {
+      "type": "string"
+     },
+     "eventType": {
+      "type": "string"
+     },
+     "selfOnly": {
+      "type": "boolean"
+     },
+     "threadMode": {
+      "type": "boolean"
+     },
+     "useWeight": {
+      "type": [
+       "boolean",
+       "null"
+      ],
+      "description": "Whether frames were weighed rather than counted; null for the event type's default"
+     },
+     "markdownChars": {
+      "type": "integer",
+      "description": "Characters of the Markdown export, before any cap; 0 when there is no graph"
+     },
+     "markdown": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The Markdown export itself, the document the text carries; null when there is no graph"
+     },
+     "truncated": {
+      "type": "boolean",
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The trace's span waterfall in the Microscope UI, where the span's flamegraph is drawn"
+     },
+     "uiLinkNote": {
+      "type": "string",
+      "description": "What uiLink cannot reproduce: the span, event type and flags are chosen on the page"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "traceId",
+     "spanId",
+     "eventType",
+     "selfOnly",
+     "threadMode",
+     "useWeight",
+     "markdownChars",
+     "markdown",
+     "truncated",
+     "followUp",
+     "uiLink",
+     "uiLinkNote"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "anthropic/maxResultSizeChars": 120000,
+    "jeffrey/cost": "MODERATE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
+   }
+  },
+  {
+   "name": "traces_traceExport",
+   "title": "Traces: Trace Export",
+   "description": "Exports one trace as Markdown for reading: its span tree with self time and critical path, the JVM context underneath it (GC pauses, monitor waits, parks), a ranked accounting of where its wall-clock went, its I/O shape and its exceptions. Answers 'why was this request slow'. The Markdown is the text and the structured result's markdown; the record also names the next calls and uiLink, the trace's span waterfall in Microscope. An unknown trace id is an error naming it.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "traceId": {
+      "type": "string",
+      "description": "Trace id as a 16-character hex string, from traces_slowestTraces"
+     }
+    },
+    "required": [
+     "profileId",
+     "traceId"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string"
+     },
+     "traceId": {
+      "type": "string"
+     },
+     "markdownChars": {
+      "type": "integer",
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown export itself, the document the text carries"
+     },
+     "truncated": {
+      "type": "boolean",
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The trace's span waterfall in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "profileId",
+     "traceId",
+     "markdownChars",
+     "markdown",
+     "truncated",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "anthropic/maxResultSizeChars": 120000,
+    "jeffrey/cost": "EXPENSIVE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
    }
   },
   {
@@ -7858,13 +8782,17 @@
   {
    "name": "jvm_flags",
    "title": "JVM: Flags",
-   "description": "Returns the JVM flags this run actually used, grouped by where each value came from - a default, the command line, or the JVM's own ergonomics - with each change's time as UTC epoch milliseconds. The only place that distinguishes a flag someone set from one the JVM chose; a deployment manifest is evidence of neither. jvm_configuration reports the resulting collector and heap settings; this reports the switches. status is NO_FLAGS when the recording carries no flag events.",
+   "description": "Returns the JVM flags this run actually used, grouped by where each value came from - the command line, management, or the JVM's own ergonomics - with each change's time as UTC epoch milliseconds. The flags left at their default are counted (defaultFlags), not listed: name finds any flag, defaults included. The only place that distinguishes a flag someone set from one the JVM chose; a deployment manifest is evidence of neither. jvm_configuration reports the resulting collector and heap settings; this reports the switches. status is NO_FLAGS when the recording carries no flag events.",
    "inputSchema": {
     "type": "object",
     "properties": {
      "profileId": {
       "type": "string",
       "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "name": {
+      "type": "string",
+      "description": "Part of a flag name, case-insensitive, e.g. 'PreTouch' or 'G1': every flag whose name contains it, at its default or not. Omit for every flag that is not at its default. The heap's size is in jvm_configuration, not here."
      }
     },
     "required": [
@@ -7896,6 +8824,11 @@
      },
      "changedFlags": {
       "type": "integer"
+     },
+     "defaultFlags": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Flags left at their default: counted, not listed unless name matches them"
      },
      "flagsByOrigin": {
       "type": "object",
@@ -7975,10 +8908,12 @@
         ],
         "additionalProperties": false
        }
-      }
+      },
+      "description": "The flags listed - every one not at its default, or every one name matches - by origin, the command line first"
      },
      "omittedFlags": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Listed flags left out to fit the answer; 0 when every one is here"
      },
      "followUp": {
       "type": "object",
@@ -8045,6 +8980,7 @@
      "profileId",
      "totalFlags",
      "changedFlags",
+     "defaultFlags",
      "flagsByOrigin",
      "omittedFlags",
      "followUp",
@@ -11294,12 +12230,21 @@
            "type": [
             "string",
             "null"
-           ]
+           ],
+           "description": "Cut to at most 600 characters, keeping its start and its end (the executable, and a Java process's main class and arguments) around \"…\"; the full length is in the Chars field beside it"
+          },
+          "commandLineChars": {
+           "type": [
+            "integer",
+            "null"
+           ],
+           "description": "The command line's full length in characters, before the cut"
           }
          },
          "required": [
           "pid",
-          "commandLine"
+          "commandLine",
+          "commandLineChars"
          ],
          "additionalProperties": false
         },
@@ -11323,7 +12268,15 @@
            "type": [
             "string",
             "null"
-           ]
+           ],
+           "description": "Cut to at most 600 characters, keeping its start and its end (the executable, and a Java process's main class and arguments) around \"…\"; the full length is in the Chars field beside it"
+          },
+          "commandChars": {
+           "type": [
+            "integer",
+            "null"
+           ],
+           "description": "The command's full length in characters, before the cut"
           },
           "thread": {
            "type": [
@@ -11336,6 +12289,7 @@
           "startedAtEpochMs",
           "pid",
           "command",
+          "commandChars",
           "thread"
          ],
          "additionalProperties": false
@@ -12125,6 +13079,382 @@
      "section",
      "title",
      "dashboard",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE"
+   }
+  },
+  {
+   "name": "http_endpoint",
+   "title": "HTTP: Endpoint",
+   "description": "Returns one endpoint in detail: the same percentiles, status codes, methods and slowest requests as http_overview, narrowed to a single URI. An unknown URI is an error naming it. status NOT_RECORDED: the recording did not capture that direction's exchange events.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "uri": {
+      "type": "string",
+      "description": "The URI exactly as the server recorded it, e.g. '/api/orders'. Take it from the endpoints list in http_overview."
+     },
+     "direction": {
+      "type": "string",
+      "description": "Which side the endpoint belongs to: SERVER (the default) or CLIENT - the one http_overview listed it under.",
+      "enum": [
+       "SERVER",
+       "CLIENT"
+      ]
+     }
+    },
+    "required": [
+     "profileId",
+     "uri"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_RECORDED"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there is no detail; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "direction": {
+      "type": "string",
+      "enum": [
+       "SERVER",
+       "CLIENT"
+      ]
+     },
+     "uri": {
+      "type": "string"
+     },
+     "header": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "requestCount": {
+        "type": "integer"
+       },
+       "maxResponseTimeNanos": {
+        "type": "integer"
+       },
+       "p99ResponseTimeNanos": {
+        "type": "integer"
+       },
+       "p95ResponseTimeNanos": {
+        "type": "integer"
+       },
+       "successRate": {
+        "type": "number",
+        "description": "Share of requests answered without a 4xx or 5xx, from 0 to 1"
+       },
+       "count5xx": {
+        "type": "integer"
+       },
+       "count4xx": {
+        "type": "integer"
+       },
+       "totalBytesTransferred": {
+        "type": [
+         "integer",
+         "null"
+        ],
+        "description": "Bytes in both directions; null when no request carried a size"
+       },
+       "totalBytesReceived": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "totalBytesSent": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "requestCount",
+       "maxResponseTimeNanos",
+       "p99ResponseTimeNanos",
+       "p95ResponseTimeNanos",
+       "successRate",
+       "count5xx",
+       "count4xx",
+       "totalBytesTransferred",
+       "totalBytesReceived",
+       "totalBytesSent"
+      ],
+      "additionalProperties": false,
+      "description": "The endpoint's totals; null when status is NOT_RECORDED"
+     },
+     "endpoint": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "uri": {
+        "type": "string"
+       },
+       "requestCount": {
+        "type": "integer"
+       },
+       "maxResponseTimeNanos": {
+        "type": "integer"
+       },
+       "p99ResponseTimeNanos": {
+        "type": "integer"
+       },
+       "p95ResponseTimeNanos": {
+        "type": "integer"
+       },
+       "successRate": {
+        "type": "number",
+        "description": "Share of requests answered without a 4xx or 5xx, from 0 to 1"
+       },
+       "count4xx": {
+        "type": "integer"
+       },
+       "count5xx": {
+        "type": "integer"
+       },
+       "totalBytesTransferred": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "totalBytesReceived": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "totalBytesSent": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "uri",
+       "requestCount",
+       "maxResponseTimeNanos",
+       "p99ResponseTimeNanos",
+       "p95ResponseTimeNanos",
+       "successRate",
+       "count4xx",
+       "count5xx",
+       "totalBytesTransferred",
+       "totalBytesReceived",
+       "totalBytesSent"
+      ],
+      "additionalProperties": false,
+      "description": "The endpoint's own row; null when status is NOT_RECORDED"
+     },
+     "statusCodes": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "code": {
+         "type": "integer"
+        },
+        "count": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "code",
+        "count"
+       ],
+       "additionalProperties": false
+      }
+     },
+     "methods": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "method": {
+         "type": "string"
+        },
+        "count": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "method",
+        "count"
+       ],
+       "additionalProperties": false
+      }
+     },
+     "slowRequests": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "uri": {
+         "type": "string"
+        },
+        "method": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "description": "The HTTP method; null when the event did not carry one"
+        },
+        "responseTimeNanos": {
+         "type": "integer"
+        },
+        "statusCode": {
+         "type": "integer"
+        },
+        "requestSizeBytes": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "responseSizeBytes": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "host": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "port": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "atEpochMs": {
+         "type": "integer",
+         "description": "When the request started, as UTC epoch milliseconds"
+        }
+       },
+       "required": [
+        "uri",
+        "method",
+        "responseTimeNanos",
+        "statusCode",
+        "requestSizeBytes",
+        "responseSizeBytes",
+        "host",
+        "port",
+        "atEpochMs"
+       ],
+       "additionalProperties": false
+      }
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The endpoint in the Microscope endpoints view, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "direction",
+     "uri",
+     "header",
+     "endpoint",
+     "statusCodes",
+     "methods",
+     "slowRequests",
      "followUp",
      "uiLink"
     ],
@@ -16264,6 +17594,641 @@
      "eventType",
      "keys",
      "omittedKeys",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
+   }
+  },
+  {
+   "name": "traces_attributeSearch",
+   "title": "Traces: Attribute Search",
+   "description": "Returns the individual traces carrying one attribute value, slowest first, with the ids traces_traceExport takes and each trace's start as UTC epoch milliseconds: 'find the traces where tenant is acme and tell me why they were slow'. It returns traces, not a comparison between populations - traces_attributeValues compares the values. Paged: pass nextCursor back as cursor, with the same condition, while hasMore is true. status NO_MATCH: no trace matched this condition.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "key": {
+      "type": "string",
+      "description": "The attribute key name, from traces_attributeKeys"
+     },
+     "operator": {
+      "type": "string",
+      "description": "How to match: EQ (the default), NOT_EQ, CONTAINS, GT, GTE, LT, LTE, or EXISTS for 'carried the key at all'",
+      "enum": [
+       "EQ",
+       "NOT_EQ",
+       "NONE_EQ",
+       "CONTAINS",
+       "GT",
+       "GTE",
+       "LT",
+       "LTE",
+       "EXISTS"
+      ]
+     },
+     "value": {
+      "type": "string",
+      "description": "The value to match. Not needed for EXISTS."
+     },
+     "source": {
+      "type": "string",
+      "description": "Key source as traces_attributeKeys reported it: ATTRIBUTE (the default), EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE, NOTIFICATION_SHAPE",
+      "enum": [
+       "ATTRIBUTE",
+       "EVENT_FIELD",
+       "SPAN_SHAPE",
+       "NOTIFICATION_ATTRIBUTE",
+       "NOTIFICATION_SHAPE"
+      ]
+     },
+     "owner": {
+      "type": "string",
+      "description": "Key owner, required for an EVENT_FIELD"
+     },
+     "scope": {
+      "type": "string",
+      "description": "TRACE (the default) matches when any span of the trace satisfies the condition; SPAN requires one single span to satisfy it",
+      "enum": [
+       "TRACE",
+       "SPAN"
+      ]
+     },
+     "limit": {
+      "type": "integer",
+      "description": "Maximum number of traces to return (default 25, maximum 200); fewer when they do not fit the answer",
+      "default": 25,
+      "minimum": 1,
+      "maximum": 200
+     },
+     "cursor": {
+      "type": "string",
+      "description": "The nextCursor of the previous page, with the same condition; omit for the first page"
+     }
+    },
+    "required": [
+     "profileId",
+     "key"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NO_MATCH"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why nothing matched; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "key": {
+      "type": "string"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "ATTRIBUTE",
+       "EVENT_FIELD",
+       "SPAN_SHAPE",
+       "NOTIFICATION_ATTRIBUTE",
+       "NOTIFICATION_SHAPE"
+      ]
+     },
+     "owner": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "operator": {
+      "type": "string",
+      "enum": [
+       "EQ",
+       "NOT_EQ",
+       "NONE_EQ",
+       "CONTAINS",
+       "GT",
+       "GTE",
+       "LT",
+       "LTE",
+       "EXISTS"
+      ]
+     },
+     "value": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "scope": {
+      "type": "string",
+      "enum": [
+       "TRACE",
+       "SPAN"
+      ]
+     },
+     "matches": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "trace": {
+         "type": "object",
+         "properties": {
+          "traceId": {
+           "type": "string",
+           "description": "The trace id as a hex string, the one traces_traceExport takes"
+          },
+          "rootName": {
+           "type": "string"
+          },
+          "rootKind": {
+           "type": "string"
+          },
+          "rootEventType": {
+           "type": "string"
+          },
+          "startEpochMs": {
+           "type": "integer",
+           "description": "When the trace started, as UTC epoch milliseconds"
+          },
+          "durationNanos": {
+           "type": "integer"
+          },
+          "spanCount": {
+           "type": "integer"
+          },
+          "errorCount": {
+           "type": "integer"
+          },
+          "hasPlatformSpan": {
+           "type": "boolean",
+           "description": "Whether a span of this trace was synthesised from a platform event, such as a socket read"
+          },
+          "uiLink": {
+           "type": "string",
+           "description": "This trace's span waterfall in the Microscope UI, for the user"
+          }
+         },
+         "required": [
+          "traceId",
+          "rootName",
+          "rootKind",
+          "rootEventType",
+          "startEpochMs",
+          "durationNanos",
+          "spanCount",
+          "errorCount",
+          "hasPlatformSpan",
+          "uiLink"
+         ],
+         "additionalProperties": false
+        },
+        "hits": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "carrier": {
+            "type": "string",
+            "enum": [
+             "SPAN",
+             "NOTIFICATION"
+            ]
+           },
+           "spanId": {
+            "type": [
+             "string",
+             "null"
+            ],
+            "description": "The span as a hex string; null when a notification matched outside any span"
+           },
+           "key": {
+            "type": "string"
+           },
+           "value": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "carrier",
+           "spanId",
+           "key",
+           "value"
+          ],
+          "additionalProperties": false
+         }
+        }
+       },
+       "required": [
+        "trace",
+        "hits"
+       ],
+       "additionalProperties": false
+      },
+      "description": "This page of matching traces, slowest first"
+     },
+     "totalMatching": {
+      "type": "integer",
+      "description": "Traces matching the condition, across every page"
+     },
+     "hasMore": {
+      "type": "boolean"
+     },
+     "nextCursor": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Pass as cursor, with the same condition, for the next page; null when hasMore is false"
+     },
+     "stats": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "traces": {
+        "type": "integer"
+       },
+       "tracesWithErrors": {
+        "type": "integer"
+       },
+       "totalNanos": {
+        "type": "integer"
+       },
+       "p50Nanos": {
+        "type": "integer"
+       },
+       "p95Nanos": {
+        "type": "integer"
+       },
+       "maxNanos": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "traces",
+       "tracesWithErrors",
+       "totalNanos",
+       "p50Nanos",
+       "p95Nanos",
+       "maxNanos"
+      ],
+      "additionalProperties": false,
+      "description": "Every matched trace summarised, durations in nanoseconds; null when status is NO_MATCH"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "This search - the same condition and scope - in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "key",
+     "source",
+     "owner",
+     "operator",
+     "value",
+     "scope",
+     "matches",
+     "totalMatching",
+     "hasMore",
+     "nextCursor",
+     "stats",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE",
+    "jeffrey/requires": [
+     "TRACES"
+    ]
+   }
+  },
+  {
+   "name": "traces_attributeValues",
+   "title": "Traces: Attribute Values",
+   "description": "Breaks one attribute key into its values, each with how many traces carried it and that value's own latency in nanoseconds - total, p50, p95, max - and error count. Answers 'it is slow for one customer': a value whose p95 stands apart from the rest names the population, which an operation-level percentile averages away. Trace counts do not sum to the profile's total, because a trace whose spans recorded two values counts under both. omittedValues counts the values left out by limit. status NO_VALUES: the key was not recorded in this scope.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "key": {
+      "type": "string",
+      "description": "The attribute key name, from traces_attributeKeys"
+     },
+     "source": {
+      "type": "string",
+      "description": "Where the key comes from, as traces_attributeKeys reported it: ATTRIBUTE (the default), EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE or NOTIFICATION_SHAPE",
+      "enum": [
+       "ATTRIBUTE",
+       "EVENT_FIELD",
+       "SPAN_SHAPE",
+       "NOTIFICATION_ATTRIBUTE",
+       "NOTIFICATION_SHAPE"
+      ]
+     },
+     "owner": {
+      "type": "string",
+      "description": "The owner from traces_attributeKeys - for an EVENT_FIELD this is the event type declaring it, and it is required there. Omit when the key row showed none."
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Optional event type to restrict to"
+     },
+     "sort": {
+      "type": "string",
+      "description": "Order by one of: TOTAL_TIME (default), TRACES, P50, P95, MAX, ERRORS, VALUE",
+      "enum": [
+       "TOTAL_TIME",
+       "TRACES",
+       "P50",
+       "P95",
+       "MAX",
+       "ERRORS",
+       "VALUE"
+      ]
+     },
+     "limit": {
+      "type": "integer",
+      "description": "Maximum number of values to return (default 25, maximum 200)",
+      "default": 25,
+      "minimum": 1,
+      "maximum": 200
+     }
+    },
+    "required": [
+     "profileId",
+     "key"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NO_VALUES"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there are no values; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "key": {
+      "type": "string"
+     },
+     "source": {
+      "type": "string",
+      "enum": [
+       "ATTRIBUTE",
+       "EVENT_FIELD",
+       "SPAN_SHAPE",
+       "NOTIFICATION_ATTRIBUTE",
+       "NOTIFICATION_SHAPE"
+      ]
+     },
+     "owner": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "eventType": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The event type the values were narrowed to; null for the whole profile"
+     },
+     "values": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "value": {
+         "type": "string"
+        },
+        "traceCount": {
+         "type": "integer"
+        },
+        "totalNanos": {
+         "type": "integer"
+        },
+        "p50Nanos": {
+         "type": "integer"
+        },
+        "p95Nanos": {
+         "type": "integer"
+        },
+        "maxNanos": {
+         "type": "integer"
+        },
+        "errorTraces": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "value",
+        "traceCount",
+        "totalNanos",
+        "p50Nanos",
+        "p95Nanos",
+        "maxNanos",
+        "errorTraces"
+       ],
+       "additionalProperties": false
+      },
+      "description": "The values, in the order asked for. A trace that carried two values counts under both"
+     },
+     "distinctValues": {
+      "type": "integer",
+      "description": "How many distinct values the key has in this scope"
+     },
+     "omittedValues": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "Values left out of values, counted from distinctValues; null when status is NO_VALUES"
+     },
+     "tracesWithoutKey": {
+      "type": "integer",
+      "description": "Traces that never carried the key"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The key's value breakdown in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "key",
+     "source",
+     "owner",
+     "eventType",
+     "values",
+     "distinctValues",
+     "omittedValues",
+     "tracesWithoutKey",
      "followUp",
      "uiLink"
     ],

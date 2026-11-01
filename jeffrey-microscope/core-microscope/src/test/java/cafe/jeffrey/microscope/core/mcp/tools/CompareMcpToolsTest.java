@@ -705,6 +705,7 @@ class CompareMcpToolsTest {
             assertEquals(CPU_EVENT, out.get("eventType").asString());
             assertEquals(DEFAULT_MOVEMENT_LIMIT, out.get("limit").asInt());
             assertEquals(MOVEMENTS_MARKDOWN.length(), out.get("markdownChars").asInt());
+            assertEquals(MOVEMENTS_MARKDOWN, out.get("markdown").asString());
             assertEquals(List.of("compare_quality", "compare_flamegraph"), nextTools(out));
             assertEquals(1, out.get("followUp").get("guidance").size());
             assertEquals(2, McpNextToolConformance.assertFollowable(out, reachable()));
@@ -787,6 +788,7 @@ class CompareMcpToolsTest {
             assertFalse(result.text().contains("Link note:"), result.text());
             assertTrue(out.get("thresholdPct").isNull());
             assertEquals(DIFF_EXPORT_MARKDOWN.length(), out.get("markdownChars").asInt());
+            assertEquals(DIFF_EXPORT_MARKDOWN, out.get("markdown").asString());
         }
 
         /**

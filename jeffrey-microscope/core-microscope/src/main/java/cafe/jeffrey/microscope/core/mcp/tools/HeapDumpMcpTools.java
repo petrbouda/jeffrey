@@ -882,7 +882,7 @@ public class HeapDumpMcpTools {
         List<List<String>> rows = result.rows().stream().map(HeapDumpMcpTools::cutCells).toList();
         return McpToolResult.of(FittingPage.largest(rows.size(),
                         shown -> queryResult(result, rows.subList(0, shown), result.capped() || shown < rows.size()),
-                        answer -> Json.toString(answer).length() <= McpToolOutput.MAX_CHARS)
+                        answer -> Json.toString(answer).length() <= McpToolOutput.UNDECLARED_MAX_CHARS)
                 .orElseThrow(() -> new ToolExecutionException(ROW_TOO_WIDE)));
     }
 

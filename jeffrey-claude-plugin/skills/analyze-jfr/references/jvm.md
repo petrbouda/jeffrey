@@ -30,7 +30,7 @@ other half is usually in another family.
 | `jvm_nativeMemory` | RSS and its growth, direct buffers, NMT categories — memory outside the Java heap |
 | `jvm_container` | cgroup limits and whether the scheduler throttled the process |
 | `jvm_configuration` | What the JVM was started with, in the UI's own tabs; one `section` at a time (`JVM_INFORMATION` … `VIRTUALIZATION_INFORMATION`) |
-| `jvm_flags` | The flag list with each value's **origin** — default, command line, or the JVM's own ergonomics |
+| `jvm_flags` | The flags somebody or the JVM set, with each value's **origin** — command line, management, or the JVM's own ergonomics; the defaults are counted (`defaultFlags`), and `name` finds any flag, a default included (`name: PreTouch`) |
 | `jvm_threadDumps` | The dumps together: recurring deadlocks, monitors threads queued on, threads stuck across dumps; a cut keeps the latest dumps and counts the rest in `omittedRows` |
 | `jvm_threadDump` | One dump in full, every thread with its state and stack |
 | `jvm_gcDetail` | The GC pages beneath the overview, one `page` at a time: `TENURING`, `IHOP`, `G1` (regions, evacuation failures), `ZGC` (stalls), `STRING_TABLES`, `FINALIZERS`, `REFERENCES`, `PHASES`, `PLAB`, `CONFIGURATION` |
@@ -58,6 +58,13 @@ What the tools know and a hand-written query does not:
   somebody set from one the JVM's ergonomics chose, and the two justify very different advice.
   `jvm_configuration` is the companion read: the collector, heap and compiler settings that resulted.
   A tuning claim is worth making against those values, never against a deployment manifest.
+- **A memory warning is read against the heap's sizing, never alone.** Usage near 100% of a
+  container or a machine says how much is committed, not how much is live. Read the heap's size
+  first — `jvm_configuration` with `section: GC_HEAP_CONFIGURATION` (initial and maximum heap) — and
+  the limit it sits under (`jvm_container`), and check `jvm_flags` with `name: AlwaysPreTouch`: a heap
+  pre-touched to its maximum is committed from start-up and reads as full while the live data
+  after a young collection (`jvm_gc`) is a fraction of it. A warning interpreted without those
+  figures is a guess; say which figure is missing rather than leaving the guess as a finding.
 - **"Is it my JVM or the box?"** is `jvm_system`, and it is worth asking before trusting any
   flamegraph. It reports the machine's CPU and this JVM's separately, and the gap is everything else
   running there. A profile whose own CPU is modest while the machine is saturated describes an

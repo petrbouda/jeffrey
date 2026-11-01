@@ -187,8 +187,8 @@ public class FlamegraphMcpTools {
             + "with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the "
             + "tree at the configured default threshold (2% unless "
             + "jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is "
-            + "the tree at 0.5%, several times longer. The Markdown is the text; the structured "
-            + "result records the event type, window, threshold and filters it was built with, and "
+            + "the tree at 0.5%, several times longer. The Markdown is the text and the structured "
+            + "result's markdown, beside the event type, window, threshold and filters it was built with, and "
             + "uiLink opens the same graph in Microscope. An event type this profile did not record "
             + "answers status NOT_RECORDED, naming the types it did, rather than an empty tree.")
     @McpOutputSchema(FlamegraphExport.class)
@@ -288,7 +288,7 @@ public class FlamegraphMcpTools {
         McpFollowUp followUp = followUp(info.id(), type, window, threadMode, weighted, excludeIdle, excludeNonJava);
         LinkedOutput.Footed text = LinkedOutput.footed(markdown, followUp, uiLink, null);
 
-        FlamegraphExport export = new FlamegraphExport(
+        FlamegraphExport export = McpToolOutput.withDocument(markdown, (document, cut) -> new FlamegraphExport(
                 GraphStatus.OK,
                 null,
                 info.id(),
@@ -302,9 +302,10 @@ public class FlamegraphMcpTools {
                 Boolean.TRUE.equals(excludeNonJava),
                 searchPattern,
                 markdown.length(),
-                text.truncated(),
+                document,
+                cut || text.truncated(),
                 followUp,
-                uiLink);
+                uiLink));
         return McpToolResult.of(text.text(), export);
     }
 
@@ -342,7 +343,7 @@ public class FlamegraphMcpTools {
         FlamegraphExport export = new FlamegraphExport(
                 GraphStatus.NOT_RECORDED, reason, profileId, type.code(), options.detail(),
                 options.thresholdPct(), options.window(), options.threadMode(), options.useWeight(),
-                options.excludeIdle(), options.excludeNonJava(), options.search(), 0, false, followUp, uiLink);
+                options.excludeIdle(), options.excludeNonJava(), options.search(), 0, null, false, followUp, uiLink);
         return McpToolResult.of(text.text(), export);
     }
 
@@ -393,11 +394,7 @@ public class FlamegraphMcpTools {
      * allocation and blocking, counted otherwise.
      */
     private boolean weightedByDefault(Type type) {
-        return catalog.panels().stream()
-                .filter(panel -> panel.event().code().equals(type.code()))
-                .findFirst()
-                .map(panel -> panel.weight().defaultOn())
-                .orElseGet(() -> type.isAllocationEvent() || type.isBlockingEvent());
+        return FlamegraphCatalog.weightedByDefault(catalog.panels(), type);
     }
 
     /**
@@ -604,8 +601,9 @@ public class FlamegraphMcpTools {
     }
 
     /**
-     * What a flamegraph export was built from, beside the Markdown that is its text. The tree itself
-     * is only in the text: the record is the metadata a caller can act on.
+     * A flamegraph export: the Markdown tree, in the record as well as in the text, beside what it was
+     * built from. The record carries the tree because a host may give the model only the structured
+     * content.
      *
      * @param window the window graphed; null when it was the whole recording
      */
@@ -635,10 +633,14 @@ public class FlamegraphMcpTools {
             @McpNullable
             @McpDescription("The pattern whose frames are marked «match»; null when none was given")
             String search,
-            @McpDescription("Characters of the Markdown export, before the text cap")
+            @McpDescription("Characters of the Markdown export, before any cap")
             int markdownChars,
-            @McpDescription("Whether the Markdown was cut to fit the text cap with its footer; a coarser "
-                    + "detail or thresholdPct fits")
+            @McpNullable
+            @McpDescription("The Markdown export - the call tree itself, the document the text carries; null "
+                    + "when status is NOT_RECORDED")
+            String markdown,
+            @McpDescription("Whether the Markdown was cut to fit the result cap, here or in the text with its "
+                    + "footer; a coarser detail or thresholdPct fits")
             boolean truncated,
             McpFollowUp followUp,
             @McpDescription("The same graph in the Microscope flamegraph view - same event type, flags, window "

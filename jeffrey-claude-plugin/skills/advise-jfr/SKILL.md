@@ -1,8 +1,8 @@
 ---
 name: advise-jfr
-description: Turns a Jeffrey profile into concrete code changes in the current repository — maps the hottest CPU, wall-clock, allocation and blocking frames, the slowest traces, the waiting on locks and I/O, and the database and HTTP work to real source, recommends minimal behaviour-preserving edits, applies them on request and verifies with the tests and a re-profile. Use whenever the user asks what to change, optimise or fix based on a profile, JFR recording, flamegraph or trace, why an endpoint is slow and what to do about it, or a hotspot is known and the question is what to do about it.
+description: Turns a Jeffrey profile into concrete code changes in the current repository — maps the hottest CPU, wall-clock, allocation and blocking frames, the slowest traces, the waiting on locks and I/O, the database and HTTP work, and a heap dump's leak suspects to real source, recommends minimal behaviour-preserving edits, applies them on request and verifies with the tests and a re-profile. Use whenever the user asks what to change, optimise or fix based on a profile, JFR recording, flamegraph or trace, why an endpoint is slow and what to do about it, or a hotspot is known and the question is what to do about it.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *)
-argument-hint: "[profile-id | recording-file] [cpu|wall|alloc|lock|latency|waiting|memory]"
+argument-hint: "[profile-id | recording-file] [cpu|wall|alloc|lock|latency|waiting|memory|heap]"
 ---
 
 # From a profile to a code change
@@ -14,8 +14,8 @@ checks that it helped.
 
 Requested scope: `$ARGUMENTS` — substituted by Claude Code; where a client does not substitute it,
 take the same scope from the request itself. A profile id or a recording file, then optionally one
-area (`cpu`, `wall`, `alloc`, `lock`, `latency`, `waiting`, `memory`). Empty means the profile the
-conversation is about (or the most recently modified one in `profiles_list`) and whatever evidence
+area (`cpu`, `wall`, `alloc`, `lock`, `latency`, `waiting`, `memory`, `heap`). Empty means the
+profile the conversation is about (or the most recently modified one in `profiles_list`) and whatever evidence
 it actually carries.
 
 Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
@@ -31,6 +31,11 @@ before the recommendation has been read cannot be reviewed on its own terms. Tra
 - [ ] 5. Recommendation written, code and configuration findings kept apart — STOP
 - [ ] 6. Accepted edits made, built, tested, re-profiled where possible
 ```
+
+**Started from Implement fixes** — another skill's analysis handed over the profile id and its
+findings, each with its frame or setting, its figures and its link. Resolve the commit (step 1),
+skip choosing the evidence (step 2: the user already chose it there), and start at reading the
+source for those findings. The gate in step 5 stays: nothing is edited before the user picks.
 
 ## 1. Resolve the profile and its commit
 
@@ -98,6 +103,7 @@ can act on.
 | `waiting`, locks | `blocking_overview` → `blocking_monitors` | The monitor class names the lock; find the `synchronized` block or `Lock` in the checkout. `blocking_pinnedThreads` points at a `synchronized` block on a carrier thread |
 | `waiting`, I/O | `io_overview` (`SOCKET`, `FILE`) → `io_endpoints` → `io_slowest` | The target names the dependency or file; the fix is at the **calling** code — fewer round trips, batching, caching, or not waiting |
 | `memory` | `memory_allocations` | The types ranked here are the other axis from the allocation flamegraph; take a type back to the `alloc` export to find the site |
+| `heap`, a dump | `heap_getLeakSuspects` | Each suspect carries its class, its `gcRootPath` (the fields from a root, or the thread and `stackFrame` that hold it) and its `accumulationPoint`: the class and field name the holder. Find where that collection is filled and nothing takes from it — the change bounds it, evicts, or lets go of the reference. One dump shows a state, not a trend: say whether the finding is a leak or a large working set, and `heap_diff` against an earlier dump when it matters |
 | database | `jdbc_overview` → `jdbc_statementGroup` | The statement text names the query; find where it is issued. `jdbc_pools` is a configuration finding, not a code one — see step 5 |
 | HTTP, gRPC | `http_overview` / `grpc_overview` (`direction`: `SERVER` or `CLIENT`) | An inbound endpoint is your handler; an outbound call is a dependency, and the change is at the call site |
 | when, not where | `timeline_hotWindows` | Not a finding on its own. It gives `startEpochMs`/`endEpochMs` to scope an export to, which is what makes a burst visible that a whole-recording graph averages away |
@@ -191,7 +197,13 @@ For each accepted finding:
    change that is not there. Report the delta on the frames you changed.
 4. Never claim a saving you did not measure. Without a re-profile, the estimate is capped at the
    frame's own `total` share: a change cannot save more time than the frame used.
-5. A configuration finding is verified differently, and usually not by you: a pool size or a flag
+5. With no reproduction at hand, offer **Re-profile and compare** rather than skipping the
+   measurement: the `profile-run` skill records the changed code, and `compare-jfr` puts the new
+   profile against the one the finding came from.
+6. A heap finding is verified by a second dump taken under the same load after the change, put
+   against the one the finding came from with `heap_diff` (the earlier dump as the baseline): the
+   suspect's class should stop growing. A build and green tests do not show that.
+7. A configuration finding is verified differently, and usually not by you: a pool size or a flag
    takes effect on the next run of the application, not on the next test. Say what to watch for in
    that run — the timeout count back to zero, the throttling gone — rather than reporting it fixed.
 
@@ -213,9 +225,15 @@ batch it, cache it or stop waiting for it, not to optimise code you do not own.
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential — put its link right beside the name as a Markdown link, so the user opens it in one
-click: `[trace 7e34c5994dc96208](<its uiLink>)`. That holds in every reply, not only in a written
-report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
+a page named in passing ("the exceptions page"), the links most often left bare:
+`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
+and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
+a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
+it: every `](` closes a link text that holds `↗`.**
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

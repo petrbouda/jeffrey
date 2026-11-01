@@ -146,6 +146,25 @@ class ProfilesMcpToolsTest {
         }
 
         /**
+         * Each row links its own profile, so a profile that was only listed - a comparison's baseline -
+         * is linked from the answer it came from rather than from the list's page or a URL guessed.
+         */
+        @Test
+        void eachRowLinksItsProfile() {
+            when(coreRepositories.findAllProfiles())
+                    .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1"), profile("p-2", true)));
+
+            JsonNode data = tools.list(null, null, null).structuredContent();
+
+            McpSchemaConformance.assertConforms(data, SCHEMA);
+            for (JsonNode row : data.get("profiles")) {
+                String uiLink = row.get("uiLink").asString();
+                assertTrue(uiLink.endsWith("/profiles/" + row.get("profileId").asString()), uiLink);
+                UiLinkRoutes.assertResolves(uiLink);
+            }
+        }
+
+        /**
          * The table's ISO strings are for reading; the structured row carries the same instants as
          * UTC epoch milliseconds and the span in milliseconds, so a caller never parses a date.
          */

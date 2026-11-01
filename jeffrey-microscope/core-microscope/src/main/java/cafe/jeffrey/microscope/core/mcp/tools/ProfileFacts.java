@@ -23,7 +23,6 @@ import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -38,10 +37,15 @@ import java.util.Set;
  * @param disabledFeatures   the features the profile has no data for
  * @param recordedEventTypes the event type codes with at least one sample
  * @param panels             every flamegraph panel the profile offers, recorded or not, in panel order
+ * @param graphable          every recorded event type with stacks, the set flamegraph_list offers: the
+ *                           panels' types and the ones no panel shows (native allocation, method
+ *                           traces, custom events, a second sampler of a kind)
  * @param jvmSections        every jvm_ section with whether its events were recorded
  * @param autoAnalysis       whether the rules ran
  * @param flagged            the rules that flagged something, most severe first
  * @param heap               how far a heap dump is prepared; {@link HeapState#NOT_A_HEAP_DUMP} for any other profile
+ * @param wholeRecording     the recording's span, which a link to one of its flamegraphs is drawn over;
+ *                           null when the profile has none
  */
 record ProfileFacts(
         String profileId,
@@ -49,26 +53,36 @@ record ProfileFacts(
         Set<FeatureType> disabledFeatures,
         Set<String> recordedEventTypes,
         List<Sampled> panels,
+        List<Graphable> graphable,
         List<SectionAvailability> jvmSections,
         AutoAnalysisStatus autoAnalysis,
         List<McpFinding> flagged,
-        HeapState heap) {
+        HeapState heap,
+        EpochWindow wholeRecording) {
 
     /**
-     * One flamegraph panel: what it measures, its event type, and how many samples it holds (zero for
-     * a panel the profile did not record).
+     * One flamegraph panel: what it measures, its event type, how many samples it holds (zero for a
+     * panel the profile did not record), and whether its graph is weighed by default.
      */
-    record Sampled(SampleKind kind, String eventType, long samples) {
+    record Sampled(SampleKind kind, String eventType, long samples, boolean weighted) {
 
         boolean recorded() {
             return samples > 0;
         }
     }
 
+    /**
+     * One recorded event type a flamegraph can be drawn from, as flamegraph_list names it, and whether
+     * its graph is weighed by default.
+     */
+    record Graphable(String eventType, String label, long samples, boolean weighted) {
+    }
+
     ProfileFacts {
         disabledFeatures = Set.copyOf(disabledFeatures);
         recordedEventTypes = Set.copyOf(recordedEventTypes);
         panels = List.copyOf(panels);
+        graphable = List.copyOf(graphable);
         jvmSections = List.copyOf(jvmSections);
         flagged = List.copyOf(flagged);
         if (heap == null) {
@@ -133,12 +147,5 @@ record ProfileFacts(
     /** The panels of the kind the profile did not record, for saying what is missing. */
     List<Sampled> unrecorded(SampleKind kind) {
         return panels.stream().filter(panel -> panel.kind() == kind && !panel.recorded()).toList();
-    }
-
-    /** The recorded panel with the most samples, the one a timeline is drawn from. */
-    Optional<Sampled> busiest() {
-        return panels.stream()
-                .filter(Sampled::recorded)
-                .max(Comparator.comparingLong(Sampled::samples));
     }
 }

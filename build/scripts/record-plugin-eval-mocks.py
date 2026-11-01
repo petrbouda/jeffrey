@@ -23,7 +23,9 @@ all. Hand-written answers would test the skills against a server that does not e
 takes them from one that does:
 
 1. records the eval workload (`evals/fixtures/workload`) under JFR twice — `baseline`, then
-   `candidate` with its deliberate regression and a heap dump at the end;
+   `candidate` with its deliberate regression and a heap dump at the end — with jeffrey-events and
+   jeffrey-tracing on its class path (`TRACING_JARS`, built from `utilities/`), so the recordings carry
+   sampled traces;
 2. imports the three files into the Jeffrey at `--url` with `recordings_analyzeFile`, as a user would,
    and prepares the heap dump with `heap_prepare`;
 3. calls every tool the way a model following the skills would reach it: each tool whose required
@@ -68,6 +70,18 @@ from pathlib import Path
 
 PLUGIN_DIR = Path("jeffrey-claude-plugin")
 WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java"
+# What the workload's traces are written with: the HTTP exchange event, the Tracer, and where the Tracer keeps
+# the span in progress. Built by TRACING_BUILD; the workload runs on JDK 25, but the ThreadLocal storage is
+# what jeffrey-tracing's own starter brings, and a recording's spans do not depend on which one holds them.
+UTILITIES = Path("utilities")
+TRACING_JARS = (
+    UTILITIES / "jeffrey-events/target/jeffrey-events-1.0-SNAPSHOT.jar",
+    UTILITIES / "jeffrey-tracing-parent/jeffrey-tracing-api/target/jeffrey-tracing-api-1.0-SNAPSHOT.jar",
+    UTILITIES / "jeffrey-tracing-parent/jeffrey-tracing-thread-local/target/"
+                "jeffrey-tracing-thread-local-1.0-SNAPSHOT.jar",
+)
+TRACING_BUILD = ("mvn -f utilities/pom.xml -pl jeffrey-events,jeffrey-tracing-parent/jeffrey-tracing-thread-local "
+                 "-am package -DskipTests")
 MOCKS = PLUGIN_DIR / "evals/mocks/jeffrey"
 FIXTURES = MOCKS / "fixtures"
 RECORDED_PROFILES = PLUGIN_DIR / "evals/fixtures/recorded-profiles.json"
@@ -108,6 +122,9 @@ NOT_CALLED_FROM_ANSWERS = {
     "remote_download", "remote_fetchFile", "operations_cancel", "ide_link", "ide_open",
 }
 FILE_NAME_SAFE = re.compile(r"[A-Za-z0-9._-]+")
+# Text the agent writes itself rather than copies from an answer — a SQL or OQL query. A mock pinned to the
+# queries this script happened to run would abort every run that asks its own, so such a tool stays unmocked.
+COMPOSED_ARGUMENTS = {"query"}
 
 # The workload's own package, the way analyze-exceptions passes it, so the recorded throw sites name
 # their own frame — the first answer recorded for a key is the one a case gets.
@@ -208,18 +225,38 @@ def text_of(answer: dict) -> str:
     return "\n".join(part["text"] for part in answer.get("content", []) if part.get("type") == "text")
 
 
+def seen_by_model(answer: dict) -> str:
+    """What Claude Code hands the model for this answer, which is what a mock must replay.
+
+    A result with structuredContent reaches the model as that JSON, not as its text content: a
+    Markdown export recorded by its text alone once replayed a tree the real model never saw, and the
+    evals passed while every live flamegraph arrived as metadata. Only a text-only answer is its text.
+    """
+    structured = answer.get("structuredContent")
+    if structured is None:
+        return text_of(answer)
+    return json.dumps(structured, ensure_ascii=False, separators=(",", ":"))
+
+
 def record_workload(java: str, work_dir: Path, seconds: int) -> dict[str, Path]:
     work_dir.mkdir(parents=True, exist_ok=True)
     files = recorded_files(work_dir)
     for path in files.values():
         path.unlink(missing_ok=True)
     for mode in ("baseline", "candidate"):
-        command = [java, f"-XX:StartFlightRecording={JFR_OPTIONS},filename={files[mode]}",
+        command = [java, "-cp", tracing_class_path(), f"-XX:StartFlightRecording={JFR_OPTIONS},filename={files[mode]}",
                    str(WORKLOAD.resolve()), mode, str(seconds)]
         if mode == "candidate":
             command.append(str(files["heap"]))
         subprocess.run(command, check=True, cwd=work_dir, stdout=subprocess.DEVNULL)
     return files
+
+
+def tracing_class_path() -> str:
+    missing = [str(jar) for jar in TRACING_JARS if not jar.is_file()]
+    if missing:
+        raise SystemExit(f"the workload's tracing jars are not built ({', '.join(missing)}); run: {TRACING_BUILD}")
+    return ":".join(str(jar.resolve()) for jar in TRACING_JARS)
 
 
 def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded) -> Profiles:
@@ -233,18 +270,18 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
             raise RuntimeError(f"no profileId after importing {path}: {text_of(final)[:400]}")
         if kind == "heap":
             # The one import a case repeats: the heap case names this file, so its answer is the mock.
-            recorded.fixed["recordings_analyzeFile"] = text_of(answer)
+            recorded.fixed["recordings_analyzeFile"] = seen_by_model(answer)
             recorded.inputs["recordings_analyzeFile"][()] = {"path": str(path)}
             operation = (answer.get("structuredContent") or {}).get(OPERATION_ID)
             if operation:
-                recorded.answers["operations_status"][(operation,)] = text_of(final)
+                recorded.answers["operations_status"][(operation,)] = seen_by_model(final)
                 recorded.inputs["operations_status"][(operation,)] = {OPERATION_ID: operation}
     profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"])
     jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
     # so a heap_prepare recorded while it was still running would tell the model to poll a preparation
     # that, in every other answer, has already finished.
-    recorded.answers["heap_prepare"][(profiles.heap,)] = text_of(
+    recorded.answers["heap_prepare"][(profiles.heap,)] = seen_by_model(
         jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     recorded.inputs["heap_prepare"][(profiles.heap,)] = {PROFILE_ID: profiles.heap}
     return profiles
@@ -326,14 +363,33 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
             continue
         if not key:
             if tool not in recorded.fixed:
-                recorded.fixed[tool] = text_of(answer)
+                recorded.fixed[tool] = seen_by_model(answer)
                 recorded.inputs[tool][()] = arguments
-        elif all(FILE_NAME_SAFE.fullmatch(value) for value in key):
+        else:
+            # Keyed by every required value; write_mocks decides which can name a file.
             if key not in recorded.answers[tool]:
-                recorded.answers[tool][key] = text_of(answer)
+                recorded.answers[tool][key] = seen_by_model(answer)
                 recorded.inputs[tool][key] = arguments
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
+
+
+def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | None:
+    """The required arguments a fixture's file name is built from, or None when they cannot tell its answers apart.
+
+    An argument whose every recorded value can be part of a file name addresses the fixture. One that cannot —
+    an operation's name, "POST /checkout" — is pinned instead, by the mock's `expect:` list of the values recorded,
+    which the harness enforces by aborting a run that passes another; that works only while the addressing
+    arguments still tell each answer apart, and only for text copied from an answer: free text with many values
+    (a class name per object) fails the first, a query the agent writes (`COMPOSED_ARGUMENTS`) the second, and
+    both stay unmocked.
+    """
+    named = [argument for index, argument in enumerate(required)
+             if all(FILE_NAME_SAFE.fullmatch(key[index]) for key in answers)]
+    if COMPOSED_ARGUMENTS & (set(required) - set(named)):
+        return None
+    projections = {tuple(key[required.index(argument)] for argument in named) for key in answers}
+    return named if len(projections) == len(answers) else None
 
 
 def write_mocks(tools: list[dict], recorded: Recorded) -> None:
@@ -348,13 +404,25 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
         (MOCKS / f"{tool}.md").write_text(f"---\ntype: fixed\n{guard}---\n\n{text}\n")
     # A tool none of whose calls could be keyed gets no mock, so the runs do not offer it at all
     # rather than offering one that answers every call with a missing fixture.
-    answered = {tool: answers for tool, answers in recorded.answers.items() if answers}
-    for tool, answers in sorted(answered.items()):
+    answered = {}
+    for tool, answers in sorted(recorded.answers.items()):
         required = sorted(schemas[tool].get("required", []))
-        placeholders = "-".join(f"{{input.{argument}}}" for argument in required)
-        (MOCKS / f"{tool}.md").write_text(f"---\ntype: fixed\n---\n\n{{{{file:fixtures/{tool}-{placeholders}.txt}}}}\n")
+        named = addressed(required, answers)
+        if named is None:
+            answers = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
+            named = addressed(required, answers)
+        if not answers:
+            continue
+        answered[tool] = answers
+        recorded.inputs[tool] = {key: recorded.inputs[tool][key] for key in answers}
+        placeholders = "-".join(f"{{input.{argument}}}" for argument in named)
+        expect = "".join(f"  {argument}: " + json.dumps(sorted({key[required.index(argument)] for key in answers}))
+                         + "\n" for argument in required if argument not in named)
+        (MOCKS / f"{tool}.md").write_text("---\ntype: fixed\n" + (f"expect:\n{expect}" if expect else "")
+                                          + f"---\n\n{{{{file:fixtures/{tool}-{placeholders}.txt}}}}\n")
         for key, text in answers.items():
-            (FIXTURES / f"{tool}-{'-'.join(key)}.txt").write_text(text + "\n")
+            name = "-".join(value for argument, value in zip(required, key) if argument in named)
+            (FIXTURES / f"{tool}-{name}.txt").write_text(text + "\n")
     mocked = set(recorded.fixed) | set(answered)
     listed = [tool for tool in tools if tool["name"] in mocked]
     (MOCKS / "_tools.json").write_text(json.dumps({"tools": listed}, indent=1, ensure_ascii=False) + "\n")
@@ -508,6 +576,9 @@ def main() -> int:
     parser.add_argument("--seconds", type=int, default=30)
     parser.add_argument("--load", action="store_true",
                         help="import the recorded files into an empty Jeffrey for the live cases, and record nothing")
+    parser.add_argument("--reuse", action="store_true",
+                        help="record the mocks from the files already in --work-dir (a clone of the recordings "
+                             "repository) instead of running the workload again")
     options = parser.parse_args()
     jeffrey = Jeffrey(options.url)
     catalogue = (jeffrey.call("profiles_list", {}).get("structuredContent") or {}).get("profiles") or []
@@ -519,7 +590,12 @@ def main() -> int:
     if options.load:
         return load(jeffrey, options.work_dir.resolve())
     tools = jeffrey.tools()
-    files = record_workload(options.java, options.work_dir.resolve(), options.seconds)
+    if options.reuse:
+        files = verified_files(options.work_dir.resolve())
+        if files is None:
+            return 1
+    else:
+        files = record_workload(options.java, options.work_dir.resolve(), options.seconds)
     recorded = Recorded()
     profiles = import_profiles(jeffrey, files, recorded)
     print(f"profiles: {profiles}", file=sys.stderr)
@@ -558,24 +634,34 @@ def unpack_heap_dump(work_dir: Path) -> None:
             shutil.copyfileobj(source, target)
 
 
-def load(jeffrey: Jeffrey, work_dir: Path) -> int:
-    """The live cases' Jeffrey: the recordings the mocks were taken from, imported under the same names,
-    refused when they are not the files the mocks were recorded from (their checksums) or do not answer
-    the figures the graders name."""
+def verified_files(work_dir: Path) -> dict[str, Path] | None:
+    """The recording the mocks were taken from, as a recording left it in work_dir or a clone of the
+    recordings repository holds it; None, with the reason printed, when a file is missing or is not
+    that recording (its checksum)."""
     unpack_heap_dump(work_dir)
     files = recorded_files(work_dir)
     missing = [str(path) for path in files.values() if not path.exists()]
     if missing:
-        print(f"--load imports the files a recording left in --work-dir, or a clone of {RECORDINGS_REPO}; "
-              f"missing: {missing}", file=sys.stderr)
-        return 1
-    recorded = json.loads(RECORDED_PROFILES.read_text())
-    sums = recorded.get("files") or {}
+        print(f"--load and --reuse take the files a recording left in --work-dir, or a clone of "
+              f"{RECORDINGS_REPO}; missing: {missing}", file=sys.stderr)
+        return None
+    sums = json.loads(RECORDED_PROFILES.read_text()).get("files") or {}
     wrong = [path.name for path in files.values() if path.name in sums and sha256_of(path) != sums[path.name]]
     if wrong:
         print(f"these files are not the recording the mocks were taken from: {wrong} (see {RECORDINGS_REPO})",
               file=sys.stderr)
+        return None
+    return files
+
+
+def load(jeffrey: Jeffrey, work_dir: Path) -> int:
+    """The live cases' Jeffrey: the recordings the mocks were taken from, imported under the same names,
+    refused when they are not the files the mocks were recorded from (their checksums) or do not answer
+    the figures the graders name."""
+    files = verified_files(work_dir)
+    if files is None:
         return 1
+    recorded = json.loads(RECORDED_PROFILES.read_text())
     profiles = import_profiles(jeffrey, files, Recorded())
     expected = recorded.get("figures") or {}
     measured = measure_figures(jeffrey, profiles)

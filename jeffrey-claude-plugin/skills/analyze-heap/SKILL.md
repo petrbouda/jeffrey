@@ -112,7 +112,9 @@ and `HEAP_WASTE`, each area with a `title`, the `question` it answers, its `weig
 `availability`. In Claude Code put it as `AskUserQuestion`: one multi-select question per group
 (headers Contents, Retention, Waste), the `title` as each option's label and `weight · question` as
 its description; a group with a single area joins another group's question. Without a structured
-question tool, a table grouped the same way.
+question tool, a table grouped the same way. Above the question, a Pages table: one row per area
+with data, its `title`, what its page shows in a few words, and `[↗ open](<its uiLink>)` — a page
+whose report is not built yet says so when it opens.
 
 - **`AVAILABLE`** — its `nextTools` read the area now; send them unchanged when it is chosen.
 - **`NEEDS_PREPARATION`** — offer it with "needs heap_prepare (slow)" and its `gap`. Its `nextTools`
@@ -182,13 +184,61 @@ every question to the user, stays here either way.
   section for every report that was not computed rather than an empty ranking passed off as
   "nothing retains memory".
 
+## Implement fixes
+
+You are usually running inside the repository of the application that was profiled, so a finding
+can become a change to its code. When it can, offer that as an option labelled exactly
+**Implement fixes** — not "I can propose a change" in passing — beside the follow-ups that close the
+answer. In Claude Code close with `AskUserQuestion` whenever this option is on offer, a named area's
+answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
+starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
+
+Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
+no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before
+you write the offer: one that says it has not yet checked whether the class is here is not offered.
+
+- the working directory is a repository — a `.git` there (`Glob`), or `git rev-parse
+  --show-toplevel` answering;
+- at least one finding names something that repository holds — the class of the hot frame, the
+  throw site, a leak suspect's class or the field that holds its accumulation point (its
+  `gcRootPath` names the field, or the thread and `stackFrame` that hold it), the configuration file
+  (`logback.xml`, `application.yml`, a pool's settings): `Grep` or `Glob` for it finds a file there,
+  not only JDK, framework or library code.
+
+Then say how the code relates to the profile in the option's description: `profiles_get`'s
+`recordingCommit` against `git rev-parse HEAD` — "profiled at abc1234, HEAD is def5678" when they
+differ, "commit not recorded" when `recordingCommit` is null (a heap dump carries none). That
+qualifies the offer; it never removes it.
+
+The option's description names what it would change, at most two findings by place
+(say, logback.xml's caller data, the pricing class's line formatter, or the audit log's unbounded
+list). When the user asks what else there
+is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
+one multi-select **Implement fixes for:** question.
+
+Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
+the source rather than choosing evidence again, and keeps its own gate: the proposed change per
+finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
+pool size) is proposed as a value to change, not as an edit to code. After the build and the tests,
+offer **Re-profile and compare** — `profile-run` records the changed code, `compare-jfr` puts it
+against this profile — so the fix is measured rather than assumed. A heap finding is measured by a
+second dump taken under the same load and put against this one with `heap_diff`, the earlier dump as
+the baseline.
+
 ## Link what you name
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential — put its link right beside the name as a Markdown link, so the user opens it in one
-click: `[trace 7e34c5994dc96208](<its uiLink>)`. That holds in every reply, not only in a written
-report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
+a page named in passing ("the exceptions page"), the links most often left bare:
+`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
+and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
+a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
+it: every `](` closes a link text that holds `↗`.**
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

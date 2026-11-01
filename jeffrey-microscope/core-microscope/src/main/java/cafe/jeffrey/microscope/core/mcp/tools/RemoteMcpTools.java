@@ -393,8 +393,8 @@ public class RemoteMcpTools {
     }
 
     private static boolean fits(PageCandidate candidate) {
-        return candidate.text().length() <= McpToolOutput.MAX_CHARS
-                && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.MAX_CHARS;
+        return candidate.text().length() <= McpToolOutput.UNDECLARED_MAX_CHARS
+                && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.UNDECLARED_MAX_CHARS;
     }
 
     /**
@@ -926,6 +926,7 @@ public class RemoteMcpTools {
                                  String operationId, String base) {
         McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
         LandedBundle bundle = LandedBundle.of(recordingsManager, facts.recordingId());
+        CoveredSpan covered = CoveredSpan.of(recordingsManager, facts);
         String uiLink = facts.profileId() != null
                 ? UiLinks.profile(base, facts.profileId())
                 : facts.recordingId() != null
@@ -935,8 +936,8 @@ public class RemoteMcpTools {
                 facts.sessionName(), facts.project(), key.startEpochMs(), key.endEpochMs(),
                 key.fileIds() == null ? List.of() : key.fileIds(), facts.recordingId(), facts.profileId(),
                 bundle.bundleId(), bundle.items(),
-                facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), facts.coveredStartEpochMs(),
-                facts.coveredEndEpochMs(), chosen, operationId, operation, followUp(key, facts, bundle, operationId),
+                facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), covered.startEpochMs(),
+                covered.endEpochMs(), chosen, operationId, operation, followUp(key, facts, bundle, operationId),
                 uiLink));
     }
 
@@ -1098,6 +1099,29 @@ public class RemoteMcpTools {
      * the transfer that follows starts from the same read within the same budget.
      */
     private record SessionRead(McpDeadline responseDeadline, DownloadPreflight preflight) {
+    }
+
+    /**
+     * The span a download reports. The chunks' names say only when each one started, so before the
+     * recording is here its end is an estimate: the last chunk's start plus one measured chunk length,
+     * which overstates a last chunk cut short by a session that ended or a JVM that stopped. Once the
+     * recording is stored, its own metadata says where its data starts and ends, and that measured
+     * span replaces the estimate - whole session or part.
+     */
+    private record CoveredSpan(Long startEpochMs, Long endEpochMs) {
+
+        static CoveredSpan of(RecordingsManager recordings, DownloadFacts facts) {
+            CoveredSpan estimated = new CoveredSpan(facts.coveredStartEpochMs(), facts.coveredEndEpochMs());
+            if (facts.recordingId() == null) {
+                return estimated;
+            }
+            return recordings.findRecording(facts.recordingId())
+                    .filter(recording -> recording.recordingStartedAt() != null
+                            && recording.recordingFinishedAt() != null)
+                    .map(recording -> new CoveredSpan(recording.recordingStartedAt().toEpochMilli(),
+                            recording.recordingFinishedAt().toEpochMilli()))
+                    .orElse(estimated);
+        }
     }
 
     /**
