@@ -56,9 +56,13 @@ dump. `mocks/jeffrey/_tools.json` is that Jeffrey's real `tools/list`, so each m
 real description and input schema.
 
 To re-record after a change to what the tools return — the answers describe the build they were
-recorded from — start a Jeffrey with an empty home directory and run:
+recorded from — start a Jeffrey with an empty home directory and run the recorder. A recording from
+scratch runs the workload with jeffrey-events and jeffrey-tracing on its class path (the recorder's
+tracing jars), so build those first; `--reuse` and `--load` run no workload and need none:
 
 ```bash
+mvn -f utilities/pom.xml -pl jeffrey-events,jeffrey-tracing-parent/jeffrey-tracing-thread-local \
+  -am package -DskipTests
 java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffrey-eval-home \
   -Dserver.port=8586 -jar build/build-microscope/target/microscope.jar &
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8586/api/mcp \
