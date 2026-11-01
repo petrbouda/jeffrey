@@ -4178,7 +4178,7 @@
   {
    "name": "compare_quality",
    "title": "Compare: Quality",
-   "description": "Assesses the recording evidence behind a comparison: both identities and durations, event overlap, stored sampling-setting differences, reported CPU-time sample loss and observed server-event volumes. A whole-recording current-state snapshot, with bounded complete records and omission counts. Reports per-workload normalization unavailable when complete operation counts are not established.",
+   "description": "Assesses the recording evidence behind a comparison: both identities and durations, event overlap, each side's event volumes, the event types whose stored sampling settings differ (matching ones are counted, not listed), reported CPU-time sample loss and observed server-event volumes. A whole-recording current-state snapshot, kept compact, with bounded complete records and omission counts. Reports per-workload normalization unavailable when complete operation counts are not established.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -4224,6 +4224,10 @@
      },
      "eventOverlapMeaning": {
       "type": "string"
+     },
+     "eventCountDefinition": {
+      "type": "string",
+      "description": "What each side's eventTypes samples count"
      },
      "primary": {
       "type": "object",
@@ -4442,18 +4446,9 @@
             "null"
            ]
           },
-          "source": {
-           "type": [
-            "string",
-            "null"
-           ]
-          },
           "samples": {
            "type": "integer",
            "minimum": 0
-          },
-          "unit": {
-           "type": "string"
           },
           "weight": {
            "type": [
@@ -4466,38 +4461,14 @@
             "string",
             "null"
            ]
-          },
-          "calculated": {
-           "type": "boolean"
-          },
-          "denominatorDefinition": {
-           "type": "string"
-          },
-          "settings": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
-          },
-          "extras": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
           }
          },
          "required": [
           "eventType",
           "label",
-          "source",
           "samples",
-          "unit",
           "weight",
-          "weightUnit",
-          "calculated",
-          "denominatorDefinition",
-          "settings",
-          "extras"
+          "weightUnit"
          ],
          "additionalProperties": false
         }
@@ -4728,18 +4699,9 @@
             "null"
            ]
           },
-          "source": {
-           "type": [
-            "string",
-            "null"
-           ]
-          },
           "samples": {
            "type": "integer",
            "minimum": 0
-          },
-          "unit": {
-           "type": "string"
           },
           "weight": {
            "type": [
@@ -4752,38 +4714,14 @@
             "string",
             "null"
            ]
-          },
-          "calculated": {
-           "type": "boolean"
-          },
-          "denominatorDefinition": {
-           "type": "string"
-          },
-          "settings": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
-          },
-          "extras": {
-           "type": "object",
-           "additionalProperties": {
-            "type": "string"
-           }
           }
          },
          "required": [
           "eventType",
           "label",
-          "source",
           "samples",
-          "unit",
           "weight",
-          "weightUnit",
-          "calculated",
-          "denominatorDefinition",
-          "settings",
-          "extras"
+          "weightUnit"
          ],
          "additionalProperties": false
         }
@@ -5072,7 +5010,13 @@
         "baselineSettings"
        ],
        "additionalProperties": false
-      }
+      },
+      "description": "The common event types whose stored settings differ (MISMATCH) or are missing on one side (UNKNOWN), mismatches first, with both sides' settings"
+     },
+     "matchingSettings": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many common event types have matching stored settings; they are not listed"
      },
      "commonEventTypes": {
       "type": "array",
@@ -5102,6 +5046,7 @@
      "semantics",
      "samplingSettingsScope",
      "eventOverlapMeaning",
+     "eventCountDefinition",
      "primary",
      "baseline",
      "followUp",
@@ -5112,6 +5057,7 @@
      "outputLimitChars",
      "findings",
      "samplingConfiguration",
+     "matchingSettings",
      "commonEventTypes",
      "onlyInPrimary",
      "onlyInBaseline"

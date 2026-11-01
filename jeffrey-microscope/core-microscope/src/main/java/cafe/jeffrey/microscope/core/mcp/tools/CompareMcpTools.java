@@ -367,10 +367,11 @@ public class CompareMcpTools {
     }
 
     @Tool(description = "Assesses the recording evidence behind a comparison: both identities and "
-            + "durations, event overlap, stored sampling-setting differences, reported CPU-time "
-            + "sample loss and observed server-event volumes. A whole-recording current-state "
-            + "snapshot, with bounded complete records and omission counts. Reports per-workload "
-            + "normalization unavailable when complete operation counts are not established.")
+            + "durations, event overlap, each side's event volumes, the event types whose stored sampling "
+            + "settings differ (matching ones are counted, not listed), reported CPU-time sample loss and "
+            + "observed server-event volumes. A whole-recording current-state snapshot, kept compact, "
+            + "with bounded complete records and omission counts. Reports per-workload normalization "
+            + "unavailable when complete operation counts are not established.")
     @McpOutputSchema(ComparisonQuality.QualityDocument.class)
     @McpToolMeta(cost = McpToolCost.CHEAP)
     public McpToolResult quality(

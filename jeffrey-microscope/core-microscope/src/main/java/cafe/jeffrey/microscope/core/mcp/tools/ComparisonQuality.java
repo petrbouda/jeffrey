@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -28,6 +29,7 @@ import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -38,11 +40,25 @@ import java.util.Set;
 final class ComparisonQuality {
 
     /** Bumped when the shape of the document changes; read beside the evidence snapshot's own. */
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
     private static final int FINDING_SCHEMA_VERSION = 1;
 
     /** Records per collection. Fixed rather than a caller's choice: the verdict is a page, not a dump. */
     private static final int MAX_ROWS = 100;
+
+    /**
+     * The most the verdict serialises to. Well under {@link McpToolOutput#MAX_CHARS}: the tool declares
+     * no large result, so a client applies its default limit to it — Claude Code's is about 25,000
+     * tokens, which an 80,000-character verdict passed, and the client then filed the answer away where
+     * the agent could not read it, so the comparison went on without its quality check. Sixty thousand
+     * characters of JSON is under that limit with room to spare; past it, whole rows go, and
+     * {@code truncation} says so.
+     */
+    static final int OUTPUT_LIMIT_CHARS = 60_000;
+
+    private static final String EVENT_COUNT_DEFINITION =
+            "Each side's samples are all recorded events of the type over the whole recording; not a filtered "
+                    + "call-tree denominator";
 
     private static final String TOOL_NAME = "compare_quality";
     private static final String PROFILE_ID = "profileId";
@@ -86,8 +102,33 @@ final class ComparisonQuality {
         MISMATCH
     }
 
+    /**
+     * One event type whose stored settings do not match across the pair — a mismatch, or one side with
+     * none — with both sides' settings. A type whose settings match is counted, not listed.
+     */
     record SamplingConfiguration(String eventType, SettingsStatus status,
                                  Map<String, String> primarySettings, Map<String, String> baselineSettings) {
+    }
+
+    /**
+     * What one side recorded of one event type: the volume a comparison weighs. Its settings are in
+     * {@code samplingConfiguration}, compared with the other side's, rather than repeated per side.
+     */
+    record ComparedEvent(
+            String eventType,
+            @McpNullable
+            String label,
+            @McpMinimum(0)
+            long samples,
+            @McpNullable
+            Long weight,
+            @McpNullable
+            String weightUnit) {
+
+        static ComparedEvent of(ProfileEvidence.EventEvidence event) {
+            return new ComparedEvent(event.eventType(), event.label(), event.samples(), event.weight(),
+                    event.weightUnit());
+        }
     }
 
     /** One side of the pair: its identity, as in the evidence snapshot, with what was recorded for it. */
@@ -95,10 +136,10 @@ final class ComparisonQuality {
             ProfileEvidence.Identity profile,
             ProfileEvidence.SamplerHealth samplerHealth,
             List<ProfileEvidence.WorkloadEvents> observedWorkloadEvents,
-            List<ProfileEvidence.EventEvidence> eventTypes) {
+            List<ComparedEvent> eventTypes) {
 
         ComparedProfile withRows(List<ProfileEvidence.WorkloadEvents> observedWorkloadEvents,
-                                 List<ProfileEvidence.EventEvidence> eventTypes) {
+                                 List<ComparedEvent> eventTypes) {
             return new ComparedProfile(profile, samplerHealth, observedWorkloadEvents, eventTypes);
         }
     }
@@ -132,6 +173,8 @@ final class ComparisonQuality {
             String semantics,
             String samplingSettingsScope,
             String eventOverlapMeaning,
+            @McpDescription("What each side's eventTypes samples count")
+            String eventCountDefinition,
             ComparedProfile primary,
             ComparedProfile baseline,
             McpFollowUp followUp,
@@ -142,7 +185,12 @@ final class ComparisonQuality {
             Map<String, EvidenceOutput.Truncation> truncation,
             int outputLimitChars,
             List<McpFinding> findings,
+            @McpDescription("The common event types whose stored settings differ (MISMATCH) or are missing on "
+                    + "one side (UNKNOWN), mismatches first, with both sides' settings")
             List<SamplingConfiguration> samplingConfiguration,
+            @McpMinimum(0)
+            @McpDescription("How many common event types have matching stored settings; they are not listed")
+            int matchingSettings,
             List<String> commonEventTypes,
             List<String> onlyInPrimary,
             List<String> onlyInBaseline) {
@@ -153,9 +201,10 @@ final class ComparisonQuality {
                                  List<SamplingConfiguration> samplingConfiguration, List<String> commonEventTypes,
                                  List<String> onlyInPrimary, List<String> onlyInBaseline) {
             return new QualityDocument(schemaVersion, findingSchemaVersion, generatedAtEpochMs, serverVersion, scope,
-                    semantics, samplingSettingsScope, eventOverlapMeaning, primary, baseline, followUp,
-                    uiLink, workloadNormalization, durationNormalization, truncation, outputLimitChars, findings,
-                    samplingConfiguration, commonEventTypes, onlyInPrimary, onlyInBaseline);
+                    semantics, samplingSettingsScope, eventOverlapMeaning, eventCountDefinition, primary, baseline,
+                    followUp, uiLink, workloadNormalization, durationNormalization, truncation, outputLimitChars,
+                    findings, samplingConfiguration, matchingSettings, commonEventTypes, onlyInPrimary,
+                    onlyInBaseline);
         }
     }
 
@@ -182,6 +231,7 @@ final class ComparisonQuality {
         Map<String, ProfileEvidence.EventEvidence> primaryByType = byType(primaryEvents);
         Map<String, ProfileEvidence.EventEvidence> baselineByType = byType(baselineEvents);
         List<SamplingConfiguration> settings = new ArrayList<>();
+        int matching = 0;
         List<McpFinding> findings = new ArrayList<>();
         Set<String> common = new LinkedHashSet<>(primaryByType.keySet());
         common.retainAll(baselineByType.keySet());
@@ -190,7 +240,11 @@ final class ComparisonQuality {
             ProfileEvidence.EventEvidence right = baselineByType.get(type);
             SettingsStatus status = left.settings().isEmpty() || right.settings().isEmpty() ? SettingsStatus.UNKNOWN
                     : left.settings().equals(right.settings()) ? SettingsStatus.MATCHING_SNAPSHOT : SettingsStatus.MISMATCH;
-            settings.add(new SamplingConfiguration(type, status, left.settings(), right.settings()));
+            if (status == SettingsStatus.MATCHING_SNAPSHOT) {
+                matching++;
+            } else {
+                settings.add(new SamplingConfiguration(type, status, left.settings(), right.settings()));
+            }
             if (status == SettingsStatus.MISMATCH) {
                 findings.add(McpFinding.of(CONFIGURATION_CATEGORY, type)
                         .severity(McpFinding.Severity.WARNING).title("Recorded event settings differ")
@@ -202,6 +256,7 @@ final class ComparisonQuality {
                         .build());
             }
         }
+        settings.sort(Comparator.comparing(row -> row.status() != SettingsStatus.MISMATCH));
         Set<String> onlyPrimary = new LinkedHashSet<>(primaryByType.keySet());
         onlyPrimary.removeAll(common);
         Set<String> onlyBaseline = new LinkedHashSet<>(baselineByType.keySet());
@@ -209,11 +264,11 @@ final class ComparisonQuality {
 
         QualityDocument skeleton = new QualityDocument(SCHEMA_VERSION, FINDING_SCHEMA_VERSION, clock.millis(),
                 AbstractMcpStreamableHttpController.serverVersion(), ProfileEvidence.WHOLE_RECORDING, SEMANTICS,
-                ProfileEvidence.SETTINGS_SCOPE, EVENT_OVERLAP_MEANING, primarySide, baselineSide, followUp,
-                CompareMcpTools.pairLink(primary.info().id(), baseline.info().id()),
+                ProfileEvidence.SETTINGS_SCOPE, EVENT_OVERLAP_MEANING, EVENT_COUNT_DEFINITION, primarySide,
+                baselineSide, followUp, CompareMcpTools.pairLink(primary.info().id(), baseline.info().id()),
                 new WorkloadNormalization(false, NO_WORKLOAD_NORMALIZATION), duration, Map.of(),
-                McpToolOutput.MAX_CHARS, List.of(), List.of(), List.of(), List.of(), List.of());
-        EvidenceOutput output = new EvidenceOutput(skeleton, MAX_ROWS);
+                OUTPUT_LIMIT_CHARS, List.of(), List.of(), matching, List.of(), List.of(), List.of());
+        EvidenceOutput output = new EvidenceOutput(skeleton, MAX_ROWS, OUTPUT_LIMIT_CHARS);
         List<McpFinding> keptFindings = output.rows(FINDINGS, findings);
         List<SamplingConfiguration> keptSettings = output.rows(SAMPLING_CONFIGURATION, settings);
         List<String> keptCommon = output.rows(COMMON_EVENT_TYPES, List.copyOf(common));
@@ -223,8 +278,10 @@ final class ComparisonQuality {
                 output.rows(PRIMARY_WORKLOAD, ProfileEvidence.workload(primaryEvents));
         List<ProfileEvidence.WorkloadEvents> baselineWorkload =
                 output.rows(BASELINE_WORKLOAD, ProfileEvidence.workload(baselineEvents));
-        List<ProfileEvidence.EventEvidence> primaryTypes = output.rows(PRIMARY_EVENT_TYPES, primaryEvents);
-        List<ProfileEvidence.EventEvidence> baselineTypes = output.rows(BASELINE_EVENT_TYPES, baselineEvents);
+        List<ComparedEvent> primaryTypes = output.rows(PRIMARY_EVENT_TYPES,
+                primaryEvents.stream().map(ComparedEvent::of).toList());
+        List<ComparedEvent> baselineTypes = output.rows(BASELINE_EVENT_TYPES,
+                baselineEvents.stream().map(ComparedEvent::of).toList());
         return McpToolResult.of(skeleton.withRows(output.truncation(),
                 primarySide.withRows(primaryWorkload, primaryTypes),
                 baselineSide.withRows(baselineWorkload, baselineTypes),

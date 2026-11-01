@@ -62,10 +62,11 @@ Read its `notes`, and stop to think when:
 Then call `compare_quality` with the same two ids before quoting a delta. It returns evidence,
 not a single comparability verdict. Assess the question using these fields:
 
-- `samplingConfiguration` and `findings`: a `MATCHING_SNAPSHOT` supports comparison of that event
-  type; `MISMATCH` or `UNKNOWN` means its event volumes need qualification. Check each side's
-  `samplerHealth` for sample loss too. A matching snapshot does not prove unchanged settings
-  throughout either recording.
+- `samplingConfiguration`, `matchingSettings` and `findings`: `samplingConfiguration` lists only the
+  common types whose stored settings are `MISMATCH` or `UNKNOWN` — their event volumes need
+  qualification — and `matchingSettings` counts the ones that match, which supports comparing them.
+  Check each side's `samplerHealth` for sample loss too. A matching snapshot does not prove
+  unchanged settings throughout either recording.
 - `commonEventTypes`, `onlyInPrimary` and `onlyInBaseline`: compare shared evidence. A type absent
   on one side is not evidence that the application stopped doing that work.
 - `durationNormalization.available`: recording-exposure scaling is possible when true. It does
@@ -171,7 +172,8 @@ answer. In Claude Code close with `AskUserQuestion` whenever this option is on o
 answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
 starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
 
-Offer it only when both hold, or it is noise:
+Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
+no "Implement fixes: not on offer", no sentence on why there is nothing to fix.
 
 - the working directory is a repository — a `.git` there (`Glob`), or `git rev-parse
   --show-toplevel` answering;
@@ -203,8 +205,8 @@ Whenever a reply names something Microscope can open — the profile, a flamegra
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
-Every link carries the mark — the profile's own too, the one most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link
 the user sees: a terminal that renders links shows the text alone, clickable, with the URL behind
 it, and an unmarked name reads as plain words. That holds in every reply, not only in a written
 report: a finding, a ranked list, a follow-up offer, a sentence in passing.

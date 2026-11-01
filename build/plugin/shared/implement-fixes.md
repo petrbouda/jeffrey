@@ -7,7 +7,8 @@ answer. In Claude Code close with `AskUserQuestion` whenever this option is on o
 answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
 starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
 
-Offer it only when both hold, or it is noise:
+Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
+no "Implement fixes: not on offer", no sentence on why there is nothing to fix.
 
 - the working directory is a repository — a `.git` there (`Glob`), or `git rev-parse
   --show-toplevel` answering;

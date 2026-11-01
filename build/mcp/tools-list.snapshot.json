@@ -1199,20 +1199,8 @@
                 "items": {
                   "additionalProperties": false,
                   "properties": {
-                    "calculated": {
-                      "type": "boolean"
-                    },
-                    "denominatorDefinition": {
-                      "type": "string"
-                    },
                     "eventType": {
                       "type": "string"
-                    },
-                    "extras": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
                     },
                     "label": {
                       "type": [
@@ -1223,21 +1211,6 @@
                     "samples": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "settings": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
-                    },
-                    "source": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "unit": {
-                      "type": "string"
                     },
                     "weight": {
                       "type": [
@@ -1253,15 +1226,9 @@
                     }
                   },
                   "required": [
-                    "calculated",
-                    "denominatorDefinition",
                     "eventType",
-                    "extras",
                     "label",
                     "samples",
-                    "settings",
-                    "source",
-                    "unit",
                     "weight",
                     "weightUnit"
                   ],
@@ -1514,6 +1481,9 @@
             ],
             "type": "object"
           },
+          "eventCountDefinition": {
+            "type": "string"
+          },
           "eventOverlapMeaning": {
             "type": "string"
           },
@@ -1662,6 +1632,10 @@
           "generatedAtEpochMs": {
             "type": "integer"
           },
+          "matchingSettings": {
+            "minimum": 0,
+            "type": "integer"
+          },
           "onlyInBaseline": {
             "items": {
               "type": "string"
@@ -1684,20 +1658,8 @@
                 "items": {
                   "additionalProperties": false,
                   "properties": {
-                    "calculated": {
-                      "type": "boolean"
-                    },
-                    "denominatorDefinition": {
-                      "type": "string"
-                    },
                     "eventType": {
                       "type": "string"
-                    },
-                    "extras": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
                     },
                     "label": {
                       "type": [
@@ -1708,21 +1670,6 @@
                     "samples": {
                       "minimum": 0,
                       "type": "integer"
-                    },
-                    "settings": {
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "type": "object"
-                    },
-                    "source": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "unit": {
-                      "type": "string"
                     },
                     "weight": {
                       "type": [
@@ -1738,15 +1685,9 @@
                     }
                   },
                   "required": [
-                    "calculated",
-                    "denominatorDefinition",
                     "eventType",
-                    "extras",
                     "label",
                     "samples",
-                    "settings",
-                    "source",
-                    "unit",
                     "weight",
                     "weightUnit"
                   ],
@@ -2074,11 +2015,13 @@
           "baseline",
           "commonEventTypes",
           "durationNormalization",
+          "eventCountDefinition",
           "eventOverlapMeaning",
           "findingSchemaVersion",
           "findings",
           "followUp",
           "generatedAtEpochMs",
+          "matchingSettings",
           "onlyInBaseline",
           "onlyInPrimary",
           "outputLimitChars",

@@ -83,8 +83,20 @@ final class EvidenceOutput {
      * @param rowLimit the most rows any one collection keeps
      */
     EvidenceOutput(Record skeleton, int rowLimit) {
+        this(skeleton, rowLimit, McpToolOutput.MAX_CHARS);
+    }
+
+    /**
+     * @param outputLimitChars the most the whole document may serialise to, metadata reserve included;
+     *                         at most {@link McpToolOutput#MAX_CHARS}
+     */
+    EvidenceOutput(Record skeleton, int rowLimit, int outputLimitChars) {
+        if (outputLimitChars > McpToolOutput.MAX_CHARS || outputLimitChars <= METADATA_RESERVE) {
+            throw new IllegalArgumentException("an evidence budget lies between the metadata reserve and the "
+                    + "result limit: outputLimitChars=" + outputLimitChars);
+        }
         this.rowLimit = rowLimit;
-        this.budget = McpToolOutput.MAX_CHARS - METADATA_RESERVE;
+        this.budget = outputLimitChars - METADATA_RESERVE;
         this.used = Json.toString(skeleton).length();
     }
 

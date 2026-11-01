@@ -789,3 +789,36 @@ with a `search`, a call no fixture holds; `offers-implement-fixes` offered the f
 first regex grader did not accept, since replaced by the judge (three further runs: offered in all
 three, one run failing `recorded-call-semantics` on a thread-view call no fixture holds). No link
 was left unmarked in any run.
+
+## Plugin 1.0.24: compare_quality within the client's limit
+
+`compare_quality` answered with 80,458 characters on the eval pair — each side's 89–94 event types
+in full (settings, extras and the same denominator sentence on every row) and all 89 matching
+sampling settings, both sides' maps per type. It declares no large result, so Claude Code applies its
+default MCP output limit (about 25,000 tokens), and a 1.0.22 comparison run had the answer filed to a
+file it was not allowed to read and went on without the quality check. Schema 3:
+
+- each side's `eventTypes` are a slim `ComparedEvent` (type, label, samples, weight, unit); what the
+  samples count is stated once, as `eventCountDefinition`; settings live only in
+  `samplingConfiguration`;
+- `samplingConfiguration` lists only the `MISMATCH` and `UNKNOWN` types, mismatches first;
+  `matchingSettings` counts the rest;
+- the document has its own limit, 60,000 characters, under the client's: past it whole
+  rows go and `truncation` says so (`outputLimitChars` reports it).
+
+On the eval pair the answer is 26,987 characters with every list complete; through `claude -p` it
+arrives inline, `matchingSettings: 89`. `compare-jfr` reads the new fields. Two text fixes rode
+along: the Implement fixes section says to leave the option out without a word when it does not
+apply (two runs had announced "not on offer"), and the link rule names every profile, the baseline
+too.
+
+| | 1.0.23 | 1.0.24 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 17 | 16 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $8.88 | $9.23 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+`compare-finds-the-regression` and `route-did-my-change-regress` 1.00, three runs each. The miss was
+`named-area-cpu`, before the two text fixes; re-run after them, three runs: no announced decline,
+one baseline link left unmarked.
