@@ -32,6 +32,11 @@ before the recommendation has been read cannot be reviewed on its own terms. Tra
 - [ ] 6. Accepted edits made, built, tested, re-profiled where possible
 ```
 
+**Started from Implement fixes** — another skill's analysis handed over the profile id and its
+findings, each with its frame or setting, its figures and its link. Resolve the commit (step 1),
+skip choosing the evidence (step 2: the user already chose it there), and start at reading the
+source for those findings. The gate in step 5 stays: nothing is edited before the user picks.
+
 ## 1. Resolve the profile and its commit
 
 Start from `profiles_list`, or `recordings_analyzeFile` when the user named a file (the
@@ -191,7 +196,10 @@ For each accepted finding:
    change that is not there. Report the delta on the frames you changed.
 4. Never claim a saving you did not measure. Without a re-profile, the estimate is capped at the
    frame's own `total` share: a change cannot save more time than the frame used.
-5. A configuration finding is verified differently, and usually not by you: a pool size or a flag
+5. With no reproduction at hand, offer **Re-profile and compare** rather than skipping the
+   measurement: the `profile-run` skill records the changed code, and `compare-jfr` puts the new
+   profile against the one the finding came from.
+6. A configuration finding is verified differently, and usually not by you: a pool size or a flag
    takes effect on the next run of the application, not on the next test. Say what to watch for in
    that run — the timeout count back to zero, the throttling gone — rather than reporting it fixed.
 
@@ -215,10 +223,11 @@ Whenever a reply names something Microscope can open — the profile, a flamegra
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
-Never write the bare URL. The `↗` is what makes it a link the user sees: a terminal that renders
-links shows the text alone, clickable, with the URL behind it, and an unmarked name reads as plain
-words. That holds in every reply, not only in a written report: a finding, a ranked list, a
-follow-up offer, a sentence in passing.
+Every link carries the mark — the profile's own too, the one most often left bare:
+`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link
+the user sees: a terminal that renders links shows the text alone, clickable, with the URL behind
+it, and an unmarked name reads as plain words. That holds in every reply, not only in a written
+report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

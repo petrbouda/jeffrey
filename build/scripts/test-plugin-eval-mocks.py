@@ -216,6 +216,24 @@ class CheckedInContractTest(unittest.TestCase):
         self.assertIsNone(re.fullmatch(pattern, '{"eventType":"jdk.ObjectAllocationSample","useWeight":true}'))
 
 
+class ScaffoldTest(unittest.TestCase):
+    def test_the_scaffolded_repository_holds_the_recorded_workload_verbatim(self):
+        workload = (ROOT / 'jeffrey-claude-plugin/evals/fixtures/workload/com/acme/checkout/Checkout.java').read_text()
+        script = (ROOT / 'jeffrey-claude-plugin/evals/cases/offers-implement-fixes/setup.sh').read_text()
+        embedded = re.search(r"<<'CHECKOUT_JAVA'\n(.*?)^CHECKOUT_JAVA$", script, re.S | re.M)
+        self.assertIsNotNone(embedded, 'setup.sh no longer embeds Checkout.java between its markers')
+        self.assertEqual(workload if workload.endswith('\n') else workload + '\n', embedded.group(1))
+
+    def test_the_scaffold_builds_a_repository_with_the_class_the_profile_names(self):
+        script = ROOT / 'jeffrey-claude-plugin/evals/cases/offers-implement-fixes/setup.sh'
+        with tempfile.TemporaryDirectory() as temp:
+            subprocess.run(['bash', str(script)], cwd=temp, check=True, capture_output=True)
+            source = Path(temp) / 'src/main/java/com/acme/checkout/Checkout.java'
+            self.assertIn('busyWait', source.read_text())
+            head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=temp, check=True, capture_output=True, text=True)
+            self.assertRegex(head.stdout.strip(), r'^[0-9a-f]{40}$')
+
+
 class VerdictContractTest(unittest.TestCase):
     def test_false_slowdown_is_explicitly_a_semantic_failure(self):
         graders = ROOT / 'jeffrey-claude-plugin/evals/cases/compare-finds-the-regression/graders'

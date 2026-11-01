@@ -10,7 +10,7 @@ order it says, finds what the recording holds, and writes it up by the `report` 
 ## Running them
 
 ```bash
-claude plugin eval ./jeffrey-claude-plugin --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
+claude plugin eval ./jeffrey-claude-plugin --scaffold --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
   --json /tmp/microscope-evals.json
 python3 build/scripts/summarize-plugin-evals.py /tmp/microscope-evals.json
 ```
@@ -757,3 +757,35 @@ What the two misses were, one run each:
   limit, was saved to a file the run was not allowed to read, and the comparison went on without
   its quality check. The answer is that size in every run: a server defect to bound, not this
   plugin change.
+
+## Plugin 1.0.23: Implement fixes
+
+- **The analysis skills offer to implement the fix** (`analyze-jfr`, `compare-jfr`,
+  `regression-check`, one shared section): when the agent runs in a repository and a finding names
+  something it holds — the hot frame's class, the throw site, a configuration file — the answer
+  closes with an option labelled **Implement fixes**, beside the follow-ups, saying how the checkout
+  relates to the profiled commit. Picked, it hands the findings to `advise-jfr`, which skips choosing
+  evidence, proposes each change, edits only what the user accepts, and offers **Re-profile and
+  compare** afterwards. Nothing is edited before the choice.
+- **`offers-implement-fixes`** is the first case with a working tree: its `setup.sh` (run with
+  `--scaffold`) commits the recorded workload's `Checkout.java` into the run's directory —
+  byte-for-byte, held by `test-plugin-eval-mocks.py`. A judge checks that the option is offered by
+  name with the code it would change; `tool_used` graders that nothing was edited or written.
+  `named-area-cpu`, with no checkout, gains `no-fixes-without-the-code`.
+- The link rule names the profile's own link, the one most often left unmarked.
+
+Run with `--scaffold` from now on; without it the new case starts in an empty directory and its
+offer is rightly withheld.
+
+| | 1.0.22 | 1.0.23 |
+|---|---|---|
+| Mocked cases at the threshold | 14 of 16 | 15 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $7.80 | $8.88 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The two misses, one run each: `route-write-it-up` asked `flamegraph_export` for `detail: SUMMARY`
+with a `search`, a call no fixture holds; `offers-implement-fixes` offered the fix in a sentence the
+first regex grader did not accept, since replaced by the judge (three further runs: offered in all
+three, one run failing `recorded-call-semantics` on a thread-view call no fixture holds). No link
+was left unmarked in any run.

@@ -21,6 +21,8 @@ that each one accounts for — never by how confident the wording sounds. Each i
 > **Interpretation** — what the figures mean, and why this explanation rather than another.
 >
 > **Recommendation** — the change, at a named location; or "none yet", and what would be needed.
+> When the location is in the repository the agent runs in, end it with "— apply with *Implement
+> fixes*", the option that hands it to `advise-jfr`.
 >
 > **Confidence** — high, medium or low, and what would raise it.
 >

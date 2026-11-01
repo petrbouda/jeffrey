@@ -101,10 +101,11 @@ Whenever a reply names something Microscope can open — the profile, a flamegra
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
-Never write the bare URL. The `↗` is what makes it a link the user sees: a terminal that renders
-links shows the text alone, clickable, with the URL behind it, and an unmarked name reads as plain
-words. That holds in every reply, not only in a written report: a finding, a ranked list, a
-follow-up offer, a sentence in passing.
+Every link carries the mark — the profile's own too, the one most often left bare:
+`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link
+the user sees: a terminal that renders links shows the text alone, clickable, with the URL behind
+it, and an unmarked name reads as plain words. That holds in every reply, not only in a written
+report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that
