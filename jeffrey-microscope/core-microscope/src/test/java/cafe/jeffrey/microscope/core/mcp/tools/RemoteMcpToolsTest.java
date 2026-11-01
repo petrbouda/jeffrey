@@ -1599,6 +1599,30 @@ class RemoteMcpToolsTest {
             verify(downloads, never()).downloadSession(any());
         }
 
+        /**
+         * The chunk names give only starts, so the last chunk's end is an estimate of one chunk
+         * length; once the recording is stored, its own metadata says where the data ends, and a last
+         * chunk cut short is reported as short as it is.
+         */
+        @Test
+        void aLandedWindowReportsTheSpanTheRecordingItselfHolds() {
+            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
+            when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
+            resolvesTo(projectWith(fourChunks(), downloads));
+            noLocalRecordings();
+            Recording landed = landedRecording();
+            when(landed.recordingStartedAt()).thenReturn(NOW.plusSeconds(151));
+            when(landed.recordingFinishedAt()).thenReturn(NOW.plusSeconds(400));
+            when(recordingsManager.findRecording("rec-window")).thenReturn(Optional.of(landed));
+
+            String result = complete(tools.download(REF.encode(), null, null, null,
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+
+            assertTrue(result.contains("\"coveredStartEpochMs\":" + NOW.plusSeconds(151).toEpochMilli()), result);
+            assertTrue(result.contains("\"coveredEndEpochMs\":" + NOW.plusSeconds(400).toEpochMilli()),
+                    "not the estimated " + NOW.plusSeconds(450).toEpochMilli() + ": " + result);
+        }
+
         @Test
         void aWindowIsNotAnsweredFromTheWholeSessionAlreadyHere() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);

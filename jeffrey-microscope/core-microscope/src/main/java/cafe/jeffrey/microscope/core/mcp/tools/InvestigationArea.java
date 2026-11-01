@@ -58,20 +58,31 @@ enum InvestigationArea {
             Set.of(AdvertisedFamilies.MEMORY),
             Set.of("tlab")),
 
-    HOT_WINDOWS(InvestigationGroup.CODE, "When it happened", "Steady, a ramp or a spike, and the window to look at",
-            new AreaSource.Timeline(),
-            OpeningCalls::hotWindows,
-            Set.of(AdvertisedFamilies.TIMELINE),
+    LOCK_CONTENTION(InvestigationGroup.CODE, "Lock contention", "Which locks and waits held threads back",
+            new AreaSource.Samples(Set.of(SampleKind.BLOCKING), Remedies.LOCKS),
+            OpeningCalls.locks(),
+            Set.of(AdvertisedFamilies.BLOCKING),
+            Set.of("lock_instances", "biased_locking")),
+
+    /**
+     * Its own line whenever the profile has traces, rather than folded into the dashboards: a request's
+     * time span by span is a different question from an endpoint's figures, and a menu that never says
+     * "traces" is one a user does not pick them from.
+     */
+    TRACES(InvestigationGroup.WAITING, "Traces",
+            "Which requests were slow, and where each one's time went, span by span",
+            new AreaSource.Features(List.of(FeatureType.TRACES)),
+            OpeningCalls::traces,
+            Set.of(AdvertisedFamilies.TRACES),
             Set.of()),
 
     REQUESTS_AND_CALLS(InvestigationGroup.WAITING, "Requests and calls",
-            "Which requests and outbound calls took the time",
-            new AreaSource.Features(List.of(FeatureType.TRACES, FeatureType.HTTP_SERVER_DASHBOARD,
+            "Which endpoints, outbound calls and traced methods took the time",
+            new AreaSource.Features(List.of(FeatureType.HTTP_SERVER_DASHBOARD,
                     FeatureType.GRPC_SERVER_DASHBOARD, FeatureType.HTTP_CLIENT_DASHBOARD,
                     FeatureType.GRPC_CLIENT_DASHBOARD, FeatureType.METHOD_TRACING_DASHBOARD)),
             OpeningCalls::requestsAndCalls,
-            Set.of(AdvertisedFamilies.TRACES, AdvertisedFamilies.HTTP, AdvertisedFamilies.GRPC,
-                    AdvertisedFamilies.METHOD_TRACING),
+            Set.of(AdvertisedFamilies.HTTP, AdvertisedFamilies.GRPC, AdvertisedFamilies.METHOD_TRACING),
             Set.of()),
 
     DATABASE(InvestigationGroup.WAITING, "Database", "Which statements ran, and whether the pool made requests wait",
@@ -85,12 +96,6 @@ enum InvestigationArea {
             OpeningCalls::io,
             Set.of(AdvertisedFamilies.IO),
             Set.of("file_io", "socket_io")),
-
-    LOCK_CONTENTION(InvestigationGroup.WAITING, "Lock contention", "Which locks and waits held threads back",
-            new AreaSource.Samples(Set.of(SampleKind.BLOCKING), Remedies.LOCKS),
-            OpeningCalls.locks(),
-            Set.of(AdvertisedFamilies.BLOCKING),
-            Set.of("lock_instances", "biased_locking")),
 
     GC_PAUSES(InvestigationGroup.JVM, "GC and pauses", "Whether collections and safepoints stopped the application",
             new AreaSource.JvmSectionsOf(Set.of(GcSection.ID, SafepointsSection.ID)),

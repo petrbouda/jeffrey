@@ -38,7 +38,6 @@ final class OpeningCalls {
     private static final String CPU_WHY = "the call tree of where the CPU went";
     private static final String WALL_WHY = "the call tree of where the time went, running or waiting";
     private static final String ALLOCATIONS_WHY = "which types were allocated most";
-    private static final String HOT_WINDOWS_WHY = "when the samples landed: steady, ramp or spike";
     private static final String TRACES_WHY = "the slowest operations and how their latency splits";
     private static final String HTTP_WHY = "the served endpoints ranked by latency";
     private static final String GRPC_WHY = "the served gRPC methods ranked by latency";
@@ -221,22 +220,19 @@ final class OpeningCalls {
                 .orElse(List.of());
     }
 
-    static List<McpNextTool> hotWindows(ProfileFacts facts, AdvertisedFamilies advertised) {
-        return facts.busiest()
-                .map(panel -> List.of(onProfile(facts, FollowUpCalls.TIMELINE_HOT_WINDOWS)
-                        .with(FollowUpCalls.EVENT_TYPE, panel.eventType())
-                        .why(HOT_WINDOWS_WHY)))
-                .orElse(List.of());
-    }
-
-    /**
-     * The traces when the profile has them and they are served; otherwise each dashboard the profile
-     * recorded — the served endpoints first, then the calls it made, then the traced methods.
-     */
-    static List<McpNextTool> requestsAndCalls(ProfileFacts facts, AdvertisedFamilies advertised) {
+    /** The traces' overview, when the profile has traces and the traces_ family is served. */
+    static List<McpNextTool> traces(ProfileFacts facts, AdvertisedFamilies advertised) {
         if (facts.enabled(FeatureType.TRACES) && advertised.servesTool(TRACES_OVERVIEW)) {
             return List.of(onProfile(facts, TRACES_OVERVIEW).why(TRACES_WHY));
         }
+        return List.of();
+    }
+
+    /**
+     * Each dashboard the profile recorded — the served endpoints first, then the calls it made, then
+     * the traced methods. Traces are an area of their own.
+     */
+    static List<McpNextTool> requestsAndCalls(ProfileFacts facts, AdvertisedFamilies advertised) {
         List<McpNextTool> calls = new ArrayList<>();
         if (facts.enabled(FeatureType.HTTP_SERVER_DASHBOARD)) {
             calls.add(onProfile(facts, FollowUpCalls.HTTP_OVERVIEW).with(FollowUpCalls.DIRECTION, SERVER)

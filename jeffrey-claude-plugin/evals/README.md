@@ -66,7 +66,13 @@ python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8586/ap
 ```
 
 It refuses a Jeffrey that already holds profiles, and rewrites the profile ids the graders name to
-the new recording's.
+the new recording's. With `--reuse` it records from the files already in `--work-dir` — a copy of
+jeffrey-recordings' `plugin-evals/`, checked by checksum — instead of running the workload again, so
+the mocks follow a server change while the recording, and every figure the graders name, stay put.
+
+A mock replays what Claude Code hands the model, which for a result with `structuredContent` is that
+JSON and not the text content beside it; the recorder writes it so. Recorded from the text, the mocks
+once replayed a flamegraph tree the real model never received.
 
 What the mocks cannot do, so the cases stay away from it:
 
@@ -639,3 +645,64 @@ unless the question is about threads. Three runs:
 **The recording is kept.** The three files behind the mocks are in jeffrey-recordings
 (`plugin-evals/`), and `--load` checks them by checksum, so the live cases run on any machine.
 
+## Plugin 1.0.19: what a real analysis showed
+
+A real session — a UAT service's last hour, pulled off the remote and analysed — surfaced five
+defects the mocks could not:
+
+- **The analyst received no flamegraph.** Claude Code hands the model a result's
+  `structuredContent` when there is one, not its text, and the exports kept their Markdown in the
+  text only: the model got the record (`markdownChars`, the filters, the link) and no tree. The seven
+  Markdown exports (`flamegraph_export`, `compare_movements`, `compare_flamegraph`,
+  `traces_traceExport`, `traces_operationExport`, `traces_spanFlamegraphExport`,
+  `traces_operationFlamegraphExport`) now carry the document in the record's `markdown`, cut so the
+  record fits the 120,000-character cap, measured on the serialised JSON. Checked with `claude -p` against a running Microscope: the CPU export reached the model as
+  1,558 characters of metadata before and 14,198 characters with the tree after, and the hottest
+  frame was named; a `FULL` per-thread allocation export arrived inline at 120,000 characters,
+  `truncated: true`. The mocks were re-recorded (`--reuse`) as the model sees them.
+- **The download overstated its span.** A part's end was its last chunk's start plus one measured
+  chunk length — 19:31–20:31 for a profile of 49 minutes. Once the recording is here, the answer
+  reports the span read from the recording itself.
+- **A memory warning was interpreted without the heap's size.** `analyze-jfr` and the analyst now
+  read `jvm_configuration` (`GC_HEAP_CONFIGURATION`), the container limit and `AlwaysPreTouch` first.
+- **Repeated downloads made duplicate profiles** — four copies of one recording. A download whose
+  chunks are exactly those of a copy already here, the same part or a session that has not grown, is
+  handed back as that copy, from the UI and from an agent alike.
+- **The ledger rendered as a table under a blank header.** It is a labelled list now, with an
+  **In progress** line for areas an analyst still holds.
+
+Measured on 1.0.19 with the re-recorded mocks, three runs a case, `--threshold 1`:
+
+| | 1.0.17 baseline | 1.0.19 |
+|---|---|---|
+| Mocked cases at the threshold | 14 of 16 | 15 of 16 |
+| Overall score | 0.99 | 1.00 |
+| Cost, including the judge | $7.64 | $7.56 |
+| Live SQL cases | 0.93 and 1.00 | 1.00 and 1.00 |
+
+The one miss is a run of `lock-contention-not-wall-clock` that wrote, of the 80.5 s blocked across 4
+threads, "each thread spent about 66% of the recording waiting" — a per-thread average it labelled as
+an assumption, which `not-a-share-of-wall-clock` reads as a share of the recording.
+
+## Plugin 1.0.20: links the user can see, and Traces by name
+
+- **Links are written out.** Claude Code renders a Markdown link as its name alone, the URL hidden
+  behind it, so a real session's "GC dashboard" and "summary" read as plain words and were lost when
+  copied. Every skill and agent now writes the full URL beside the name. Two new graders hold
+  `named-area-cpu` and `gc-pauses-in-proportion` to it — a `http://localhost:…/profiles/` URL in the
+  answer, and no `](http`; both passed in all six runs.
+- **Traces is an area of its own.** It was folded into Requests and calls, so the menu never said
+  "traces". To keep four groups of four, When it happened is no longer an area — every whole-recording
+  export already offers `timeline_hotWindows` as its next call — and Lock contention moves into Code
+  with the other sample kinds. Waiting is Traces, Requests and calls, Database and I/O.
+
+| | 1.0.19 | 1.0.20 |
+|---|---|---|
+| Mocked cases at the threshold | 15 of 16 | 15 of 16 |
+| Overall score | 1.00 | 1.00 |
+| Cost, including the judge | $7.56 | $7.44 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The miss this time is a run of `two-areas-delegated` in which `profile-analyst` asked for the CPU
+export with `excludeIdle: true`, a call no fixture holds; `lock-contention-not-wall-clock`, the 1.0.19
+miss, passed all three runs.

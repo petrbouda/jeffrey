@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -232,10 +233,45 @@ class InvestigationMenuTest {
             assertEquals(List.of("jvm_gc", "jvm_safepoints"), tools(menu.get(InvestigationArea.GC_PAUSES)));
             assertEquals(List.of("jdbc_overview", "jdbc_pools"), tools(menu.get(InvestigationArea.DATABASE)));
             assertEquals(List.of("io_overview", "io_overview"), tools(menu.get(InvestigationArea.IO_WAITING)));
-            assertEquals(List.of("traces_overview"), tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)));
+            assertEquals(List.of("traces_overview"), tools(menu.get(InvestigationArea.TRACES)));
+            assertEquals(List.of("http_overview", "grpc_overview", "http_overview", "grpc_overview",
+                    "methodtracing_overview"), tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)));
             assertEquals(List.of("jvm_exceptions"), tools(menu.get(InvestigationArea.EXCEPTIONS)));
-            McpNextTool timeline = menu.get(InvestigationArea.HOT_WINDOWS).nextTools().getFirst();
-            assertEquals(WALL, Json.toTree(timeline.arguments()).get("eventType").asString());
+        }
+
+        /**
+         * A traced request's time span by span and an endpoint's figures are two questions, so a
+         * profile with both offers both, each under its own name.
+         */
+        @Test
+        void tracesAndTheDashboardsAreTwoAreas() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts());
+
+            assertEquals(Availability.AVAILABLE, menu.get(InvestigationArea.TRACES).availability());
+            assertEquals("Traces", menu.get(InvestigationArea.TRACES).title());
+            assertEquals(Availability.AVAILABLE, menu.get(InvestigationArea.REQUESTS_AND_CALLS).availability());
+            assertFalse(tools(menu.get(InvestigationArea.REQUESTS_AND_CALLS)).contains("traces_overview"));
+        }
+
+        @Test
+        void aProfileWithoutTracesNamesTheInstrumentationThatRecordsThem() {
+            InvestigationOption traces = menu(new Facts().disable(FeatureType.TRACES)).get(InvestigationArea.TRACES);
+
+            assertEquals(Availability.NOT_RECORDED, traces.availability());
+            assertTrue(traces.gap().contains("no traces"), traces.gap());
+            assertNotNull(traces.remedy());
+            assertTrue(traces.nextTools().isEmpty());
+        }
+
+        /** The menu holds the four kinds of sample in Code, and no area of its own for when they landed. */
+        @Test
+        void codeIsTheFourSampleKinds() {
+            List<InvestigationArea> code = Arrays.stream(InvestigationArea.values())
+                    .filter(area -> area.group() == InvestigationGroup.CODE)
+                    .toList();
+
+            assertEquals(List.of(InvestigationArea.CPU_HOTSPOTS, InvestigationArea.WALL_CLOCK,
+                    InvestigationArea.ALLOCATION, InvestigationArea.LOCK_CONTENTION), code);
         }
 
         @Test
@@ -267,7 +303,7 @@ class InvestigationMenuTest {
         }
 
         @Test
-        void requestsFallBackToEveryRecordedDashboardWithoutTraces() {
+        void requestsListEveryRecordedDashboardWithoutTraces() {
             List<McpNextTool> calls = menu(new Facts().disable(FeatureType.TRACES))
                     .get(InvestigationArea.REQUESTS_AND_CALLS).nextTools();
 
@@ -297,7 +333,7 @@ class InvestigationMenuTest {
                     .get(InvestigationArea.REQUESTS_AND_CALLS);
 
             assertEquals(Availability.NOT_RECORDED, requests.availability());
-            assertTrue(requests.gap().contains("no traces"), requests.gap());
+            assertTrue(requests.gap().contains("no served requests"), requests.gap());
         }
 
         @Test

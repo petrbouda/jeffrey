@@ -594,6 +594,9 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -676,6 +679,7 @@
           "excludeIdle",
           "excludeNonJava",
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "thresholdPct",
@@ -1069,6 +1073,9 @@
           "limit": {
             "type": "integer"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -1143,6 +1150,7 @@
           "excludeNonJava",
           "followUp",
           "limit",
+          "markdown",
           "markdownChars",
           "profileId",
           "truncated",
@@ -2218,6 +2226,12 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -2287,6 +2301,7 @@
           "excludeIdle",
           "excludeNonJava",
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "reason",
@@ -21280,11 +21295,11 @@
                     "CPU_HOTSPOTS",
                     "WALL_CLOCK",
                     "ALLOCATION",
-                    "HOT_WINDOWS",
+                    "LOCK_CONTENTION",
+                    "TRACES",
                     "REQUESTS_AND_CALLS",
                     "DATABASE",
                     "IO_WAITING",
-                    "LOCK_CONTENTION",
                     "GC_PAUSES",
                     "JIT",
                     "THREADS",
@@ -26464,6 +26479,9 @@
           "kind": {
             "type": "string"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -26484,6 +26502,7 @@
           "eventType",
           "followUp",
           "kind",
+          "markdown",
           "markdownChars",
           "name",
           "profileId",
@@ -26609,6 +26628,9 @@
           "kind": {
             "type": "string"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -26642,6 +26664,7 @@
           "followUp",
           "graphEventType",
           "kind",
+          "markdown",
           "markdownChars",
           "name",
           "profileId",
@@ -27328,6 +27351,12 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -27378,6 +27407,7 @@
         "required": [
           "eventType",
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "reason",
@@ -27476,6 +27506,9 @@
             ],
             "type": "object"
           },
+          "markdown": {
+            "type": "string"
+          },
           "markdownChars": {
             "type": "integer"
           },
@@ -27494,6 +27527,7 @@
         },
         "required": [
           "followUp",
+          "markdown",
           "markdownChars",
           "profileId",
           "traceId",

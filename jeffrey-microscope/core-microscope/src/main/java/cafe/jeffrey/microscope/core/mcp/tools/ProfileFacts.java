@@ -23,7 +23,6 @@ import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -133,12 +132,5 @@ record ProfileFacts(
     /** The panels of the kind the profile did not record, for saying what is missing. */
     List<Sampled> unrecorded(SampleKind kind) {
         return panels.stream().filter(panel -> panel.kind() == kind && !panel.recorded()).toList();
-    }
-
-    /** The recorded panel with the most samples, the one a timeline is drawn from. */
-    Optional<Sampled> busiest() {
-        return panels.stream()
-                .filter(Sampled::recorded)
-                .max(Comparator.comparingLong(Sampled::samples));
     }
 }

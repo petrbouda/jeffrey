@@ -17,7 +17,9 @@
 
 package cafe.jeffrey.profile.mcp;
 
+import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -87,6 +89,35 @@ class McpToolOutputTest {
     @Test
     void cappedWithinRefusesABudgetTooSmallForItsOwnNote() {
         assertThrows(IllegalArgumentException.class, () -> McpToolOutput.cappedWithin("x".repeat(100), 10));
+    }
+
+    @Nested
+    class WithDocument {
+
+        record Carrier(String document, boolean truncated) {
+        }
+
+        @Test
+        void carriesADocumentThatFitsWhole() {
+            Carrier carrier = McpToolOutput.withDocument("# a tree", Carrier::new);
+
+            assertEquals(new Carrier("# a tree", false), carrier);
+            assertEquals(new Carrier("", false), McpToolOutput.withDocument(null, Carrier::new));
+        }
+
+        /** Measured on the serialised record, so a document JSON lengthens is cut to what fits. */
+        @Test
+        void cutsTheDocumentSoTheSerialisedRecordFits() {
+            String document = "\"\n".repeat(McpToolOutput.MAX_CHARS / 3);
+
+            Carrier carrier = McpToolOutput.withDocument(document, Carrier::new);
+
+            int chars = McpToolResult.of(carrier).structuredChars();
+            assertTrue(carrier.truncated());
+            assertTrue(chars <= McpToolOutput.MAX_CHARS, "chars " + chars);
+            assertTrue(chars > McpToolOutput.MAX_CHARS - 200, "cut no further than it must: chars " + chars);
+            assertTrue(carrier.document().contains("TRUNCATED"), "the cut is announced");
+        }
     }
 
     /**

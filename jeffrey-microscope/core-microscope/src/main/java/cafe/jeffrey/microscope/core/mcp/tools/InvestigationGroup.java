@@ -23,10 +23,14 @@ package cafe.jeffrey.microscope.core.mcp.tools;
  */
 enum InvestigationGroup {
 
-    /** Where the samples land in the code, and when. */
+    /**
+     * Where each kind of sample lands in the code: CPU, wall-clock, allocation, lock contention.
+     * When it happened is not an area of its own: an answer about a whole recording offers the hot
+     * windows as its next call.
+     */
     CODE(MenuSubject.RECORDING),
 
-    /** What the application waited on: requests and calls, the database, I/O, locks. */
+    /** What the application waited on: its traced requests, its requests and calls, the database, I/O. */
     WAITING(MenuSubject.RECORDING),
 
     /** The runtime underneath: collections, compilation, threads, native memory. */

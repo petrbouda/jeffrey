@@ -81,7 +81,15 @@ public record McpToolResult(String text, ObjectNode structuredContent) implement
      * the copy the accessor makes; a text-only result never exceeds.
      */
     public boolean exceeds(int maxChars) {
-        return structuredContent != null && McpJson.toString(structuredContent).length() > maxChars;
+        return structuredChars() > maxChars;
+    }
+
+    /**
+     * How many characters the structured content serialises to, as the dispatcher measures it against
+     * its limit; 0 for a text-only result. For a server sizing a record to fit before it returns it.
+     */
+    public int structuredChars() {
+        return structuredContent == null ? 0 : McpJson.toString(structuredContent).length();
     }
 
     /** Whether a machine-readable object was supplied, without building a copy to find out. */

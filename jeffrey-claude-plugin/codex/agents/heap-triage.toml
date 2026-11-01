@@ -173,7 +173,9 @@ about how these numbers were obtained.
 The caller hands your findings to the user, and the link beside each one is how the user opens what
 you found in one click. Whenever a finding names something Microscope can open — a flamegraph, a
 trace, an operation, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
-object, a differential — put its link right beside the name, exactly as a tool returned it.
+object, a differential — put its full URL right beside the name as plain text, exactly as a tool
+returned it, never as a Markdown link with the name in square brackets: the caller shows it to the user in a terminal that hides the URL
+of such a link.
 
 - Take the link from the answer the thing came from: a row's own `uiLink` when the answer gave it
   one (a trace, an operation, an exemplar), otherwise the answer's `uiLink`. Quote the `uiLinkNote`

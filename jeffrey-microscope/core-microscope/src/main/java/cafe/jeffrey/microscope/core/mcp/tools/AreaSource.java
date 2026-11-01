@@ -220,25 +220,6 @@ sealed interface AreaSource {
         }
     }
 
-    /** Samples over time: per-sample timestamps and at least one recorded panel to draw. */
-    record Timeline() implements AreaSource {
-
-        @Override
-        public boolean available(ProfileFacts facts) {
-            return facts.enabled(FeatureType.TIMESERIES) && facts.busiest().isPresent();
-        }
-
-        @Override
-        public String gap(ProfileFacts facts) {
-            return ProfileCapabilityGaps.featureGap(FeatureType.TIMESERIES).gap();
-        }
-
-        @Override
-        public String remedy() {
-            return ProfileCapabilityGaps.featureGap(FeatureType.TIMESERIES).remedy();
-        }
-    }
-
     /**
      * A heap dump's index, and one report stored beside it. Available while the profile still has its
      * dump; readable once the index is built and the report is stored, prepared by heap_prepare until

@@ -1816,11 +1816,11 @@
           "CPU_HOTSPOTS",
           "WALL_CLOCK",
           "ALLOCATION",
-          "HOT_WINDOWS",
+          "LOCK_CONTENTION",
+          "TRACES",
           "REQUESTS_AND_CALLS",
           "DATABASE",
           "IO_WAITING",
-          "LOCK_CONTENTION",
           "GC_PAUSES",
           "JIT",
           "THREADS",
@@ -2885,7 +2885,7 @@
   {
    "name": "flamegraph_export",
    "title": "Flamegraph: Export",
-   "description": "Exports a flamegraph as Markdown for reading: a nested call tree where every frame carries its total samples, its self samples and its JIT tier, under a preamble defining exactly what those numbers mean. The main tool for 'where does the time go'. Frames below the prune threshold are dropped and their weight rolled up into the parent, so the accounting stays exact. detail 'summary' answers in a few kilobytes with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the tree at the configured default threshold (2% unless jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is the tree at 0.5%, several times longer. The Markdown is the text; the structured result records the event type, window, threshold and filters it was built with, and uiLink opens the same graph in Microscope. An event type this profile did not record answers status NOT_RECORDED, naming the types it did, rather than an empty tree.",
+   "description": "Exports a flamegraph as Markdown for reading: a nested call tree where every frame carries its total samples, its self samples and its JIT tier, under a preamble defining exactly what those numbers mean. The main tool for 'where does the time go'. Frames below the prune threshold are dropped and their weight rolled up into the parent, so the accounting stays exact. detail 'summary' answers in a few kilobytes with the top 25 frames by self and the top 10 paths; 'standard' (the default) is the tree at the configured default threshold (2% unless jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct changes it); 'full' is the tree at 0.5%, several times longer. The Markdown is the text and the structured result's markdown, beside the event type, window, threshold and filters it was built with, and uiLink opens the same graph in Microscope. An event type this profile did not record answers status NOT_RECORDED, naming the types it did, rather than an empty tree.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3030,11 +3030,18 @@
      },
      "markdownChars": {
       "type": "integer",
-      "description": "Characters of the Markdown export, before the text cap"
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The Markdown export - the call tree itself, the document the text carries; null when status is NOT_RECORDED"
      },
      "truncated": {
       "type": "boolean",
-      "description": "Whether the Markdown was cut to fit the text cap with its footer; a coarser detail or thresholdPct fits"
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer; a coarser detail or thresholdPct fits"
      },
      "followUp": {
       "type": "object",
@@ -3109,6 +3116,7 @@
      "excludeNonJava",
      "search",
      "markdownChars",
+     "markdown",
      "truncated",
      "followUp",
      "uiLink"
@@ -3329,7 +3337,7 @@
   {
    "name": "compare_flamegraph",
    "title": "Compare: Flamegraph",
-   "description": "Exports the differential flamegraph of two profiles as Markdown: the merged call tree, every frame carrying what the primary spends there, what the baseline spent, and the movement between them - the call paths a method flagged by compare_movements moved through. Subtrees in which nothing moved are pruned, so absence here means 'did not change', not 'not present'. The Markdown is the text; the structured result records what was compared, including where a window landed on each recording.",
+   "description": "Exports the differential flamegraph of two profiles as Markdown: the merged call tree, every frame carrying what the primary spends there, what the baseline spent, and the movement between them - the call paths a method flagged by compare_movements moved through. Subtrees in which nothing moved are pruned, so absence here means 'did not change', not 'not present'. The Markdown is the text and the structured result's markdown, which also records what was compared, including where a window landed on each recording.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3465,11 +3473,15 @@
      },
      "markdownChars": {
       "type": "integer",
-      "description": "Characters of the Markdown export, before the text cap"
+      "description": "Characters of the Markdown export, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown export - the differential call tree itself, the document the text carries"
      },
      "truncated": {
       "type": "boolean",
-      "description": "Whether the Markdown was cut to fit the text cap with its footer; a coarser thresholdPct fits"
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer; a coarser thresholdPct fits"
      },
      "followUp": {
       "type": "object",
@@ -3547,6 +3559,7 @@
      "excludeIdle",
      "excludeNonJava",
      "markdownChars",
+     "markdown",
      "truncated",
      "followUp",
      "uiLink",
@@ -3849,7 +3862,7 @@
   {
    "name": "compare_movements",
    "title": "Compare: Movements",
-   "description": "Ranks the methods that moved between two profiles: those the primary spends more in (a regression) and those it spends less in. The main tool for 'did my change make it slower'. Movements are attributed by SELF weight, so a change is charged to the method that actually moved rather than to every caller above it, and the baseline is scaled onto the primary's recording length. The Markdown ranking is the text and opens with a comparability section that qualifies every finding below it; the structured result records what was compared, including where a window landed on each recording.",
+   "description": "Ranks the methods that moved between two profiles: those the primary spends more in (a regression) and those it spends less in. The main tool for 'did my change make it slower'. Movements are attributed by SELF weight, so a change is charged to the method that actually moved rather than to every caller above it, and the baseline is scaled onto the primary's recording length. The Markdown ranking is the text and the structured result's markdown, and opens with a comparability section that qualifies every finding below it; the structured result also records what was compared, including where a window landed on each recording.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3982,11 +3995,15 @@
      },
      "markdownChars": {
       "type": "integer",
-      "description": "Characters of the Markdown ranking, before the text cap"
+      "description": "Characters of the Markdown ranking, before any cap"
+     },
+     "markdown": {
+      "type": "string",
+      "description": "The Markdown ranking itself, the document the text carries"
      },
      "truncated": {
       "type": "boolean",
-      "description": "Whether the Markdown was cut to fit the text cap with its footer"
+      "description": "Whether the Markdown was cut to fit the result cap, here or in the text with its footer"
      },
      "followUp": {
       "type": "object",
@@ -4061,6 +4078,7 @@
      "excludeIdle",
      "excludeNonJava",
      "markdownChars",
+     "markdown",
      "truncated",
      "followUp",
      "uiLink",

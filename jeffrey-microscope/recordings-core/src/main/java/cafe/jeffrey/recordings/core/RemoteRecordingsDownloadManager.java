@@ -49,6 +49,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -272,6 +273,18 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         List<RepositoryFile> artifactFiles = files.stream()
                 .filter(RepositoryFiles::isArtifact)
                 .toList();
+
+        // The same chunks of the same session, already here: handed back rather than stored twice,
+        // which analysed again would be a second profile of them.
+        Set<String> recordingNames = recordingFiles.stream().map(RepositoryFile::name).collect(Collectors.toSet());
+        Optional<String> already = SameDownload.find(recordingsManager, originTags(recordingSession, part), recordingNames);
+        if (already.isPresent()) {
+            LOG.info("The same download is already here, returning it: sessionId={} recordingId={} recordings={}",
+                    recordingSessionId, already.get(), recordingFiles.size());
+            progressCallback.onStart(0, 0);
+            progressCallback.onComplete();
+            return already.get();
+        }
 
         long totalBytes = files.stream().mapToLong(RepositoryFile::size).sum();
         int totalFiles = recordingFiles.size() + artifactFiles.size();
@@ -598,8 +611,16 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             RecordingSession session, List<Path> recordingPaths, List<Path> artifactPaths,
             ChunkWindow.Selection window) {
 
-        String recordingSessionId = session.id();
-        Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
+        return recordingsManager.createDownloadedBundle(
+                recordingName(session, window), recordingPaths, artifactPaths, originTags(session, window));
+    }
+
+    /**
+     * The {@code origin.*} tags a download of the session, or of the part {@code window} covers, is
+     * stored with: what matches it back to the session, and what a repeat of it is recognised by.
+     */
+    private Map<String, String> originTags(RecordingSession session, ChunkWindow.Selection window) {
+        Map<String, String> originTags = originContext.toTagMap(session.id());
         originTags.put(OriginContext.TAG_SESSION_STARTED_AT, Long.toString(session.createdAt().toEpochMilli()));
         if (session.instanceId() != null) {
             originTags.put(OriginContext.TAG_INSTANCE_ID, session.instanceId());
@@ -611,8 +632,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             // newest may keep adding chunks, and a copy of it answers for it as it stood then.
             originTags.put(OriginContext.TAG_COMPLETE, Boolean.TRUE.toString());
         }
-        return recordingsManager.createDownloadedBundle(
-                recordingName(session, window), recordingPaths, artifactPaths, originTags);
+        return originTags;
     }
 
     private static String windowTag(ChunkWindow.Selection window) {

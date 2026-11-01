@@ -414,6 +414,8 @@ class FlamegraphMcpToolsTest {
             assertTrue(export.get("excludeNonJava").asBoolean());
             assertFalse(export.get("excludeIdle").asBoolean());
             assertEquals(TREE.length(), export.get("markdownChars").asInt());
+            assertEquals(TREE, export.get("markdown").asString(),
+                    "a host that hands the model only the structured content still gives it the tree");
             assertFalse(export.get("truncated").asBoolean());
             assertFalse(export.has("uiLinkNote"), "the link reproduces every export, so there is nothing to note");
             assertFalse(result.text().contains("Link note:"), result.text());
@@ -532,10 +534,32 @@ class FlamegraphMcpToolsTest {
             when(flamegraphManager.generateAiExport(any(), any()))
                     .thenReturn("x".repeat(McpToolOutput.MAX_CHARS + 10));
 
-            JsonNode export = conforming("export", export(null, null, null, null));
+            McpToolResult result = export(null, null, null, null);
+            JsonNode export = conforming("export", result);
 
             assertTrue(export.get("truncated").asBoolean());
             assertEquals(McpToolOutput.MAX_CHARS + 10, export.get("markdownChars").asInt());
+            assertTrue(result.structuredChars() <= McpToolOutput.MAX_CHARS, "chars " + result.structuredChars());
+            assertTrue(export.get("markdown").asString().contains("TRUNCATED"), "the record's cut is announced");
+        }
+
+        /**
+         * JSON doubles a newline or a quote, so a document whose text fits can still overflow the record
+         * that carries it: the record's copy is cut on its serialised length and says so, while the text
+         * keeps the whole document.
+         */
+        @Test
+        void aDocumentThatFitsAsTextButNotEscapedIsCutInTheRecordOnly() {
+            String escaped = "\"\n".repeat(50_000);
+            when(flamegraphManager.generateAiExport(any(), any())).thenReturn(escaped);
+
+            McpToolResult result = export(null, null, null, null);
+            JsonNode export = conforming("export", result);
+
+            assertTrue(result.text().startsWith(escaped), "the text holds the whole document");
+            assertTrue(result.structuredChars() <= McpToolOutput.MAX_CHARS, "chars " + result.structuredChars());
+            assertTrue(export.get("truncated").asBoolean());
+            assertTrue(export.get("markdown").asString().length() < escaped.length());
         }
 
         /**
@@ -715,6 +739,7 @@ class FlamegraphMcpToolsTest {
             String reason = export.get("reason").asString();
             assertTrue(reason.contains(CPU) && reason.contains(CPU_TIME) && reason.contains(ALLOCATION), reason);
             assertEquals(0, export.get("markdownChars").asInt());
+            assertTrue(export.get("markdown").isNull(), "no tree to carry");
             assertTrue(result.text().startsWith(reason), result.text());
             MarkdownFooters.assertRenderedFrom(result.text(), export);
             verify(flamegraphManager, never()).generateAiExport(any(), any());

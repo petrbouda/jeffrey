@@ -107,7 +107,9 @@ the frames inside one slow span. One population slow and the rest fine: `traces_
 **The machine underneath.** `jvm_sections` first. `jvm_gc` says whether pauses matter; their cause is
 allocation, which the allocation flamegraph names. Pauses that are not GC are `jvm_safepoints`. An
 empty slow-compilation list in `jvm_jit` means nothing compiled slowly, not that nothing compiled.
-`jvm_flags` gives each value's origin and comes before any tuning claim. "My JVM or the box" is
+`jvm_flags` gives each value's origin and comes before any tuning claim. A memory warning is read
+against the heap's size — `jvm_configuration` `GC_HEAP_CONFIGURATION` — and `AlwaysPreTouch`, never
+alone: a pre-touched heap reads as full from start-up. "My JVM or the box" is
 `jvm_system`; "it stopped responding" is `jvm_threadDumps`; throttling is `jvm_container`. The waiting
 a CPU graph cannot see is `blocking_overview` → `blocking_monitors`, and `io_overview` (`SOCKET` or
 `FILE`) → `io_endpoints` → `io_slowest`. Those events are threshold-gated: none recorded can mean
@@ -184,7 +186,9 @@ Two rules that decide whether the report is usable:
 The caller hands your findings to the user, and the link beside each one is how the user opens what
 you found in one click. Whenever a finding names something Microscope can open — a flamegraph, a
 trace, an operation, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
-object, a differential — put its link right beside the name, exactly as a tool returned it.
+object, a differential — put its full URL right beside the name as plain text, exactly as a tool
+returned it, never as a Markdown link with the name in square brackets: the caller shows it to the user in a terminal that hides the URL
+of such a link.
 
 - Take the link from the answer the thing came from: a row's own `uiLink` when the answer gave it
   one (a trace, an operation, an exemplar), otherwise the answer's `uiLink`. Quote the `uiLinkNote`

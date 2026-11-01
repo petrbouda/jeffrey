@@ -58,6 +58,13 @@ What the tools know and a hand-written query does not:
   somebody set from one the JVM's ergonomics chose, and the two justify very different advice.
   `jvm_configuration` is the companion read: the collector, heap and compiler settings that resulted.
   A tuning claim is worth making against those values, never against a deployment manifest.
+- **A memory warning is read against the heap's sizing, never alone.** Usage near 100% of a
+  container or a machine says how much is committed, not how much is live. Read the heap's size
+  first — `jvm_configuration` with `section: GC_HEAP_CONFIGURATION` (initial and maximum heap) — and
+  the limit it sits under (`jvm_container`), and check `jvm_flags` for `AlwaysPreTouch`: a heap
+  pre-touched to its maximum is committed from start-up and reads as full while the live data
+  after a young collection (`jvm_gc`) is a fraction of it. A warning interpreted without those
+  figures is a guess; say which figure is missing rather than leaving the guess as a finding.
 - **"Is it my JVM or the box?"** is `jvm_system`, and it is worth asking before trusting any
   flamegraph. It reports the machine's CPU and this JVM's separately, and the gap is everything else
   running there. A profile whose own CPU is modest while the machine is saturated describes an

@@ -202,11 +202,15 @@ files of the bundle. Each answers `status: DOWNLOADED` with the JFR recording's 
 `bundleId`, and `items` — every item that is analysed on its own, the session's recording first, each
 with its `recordingId`, `eventSource` (`JDK` or `ASYNC_PROFILER` for the recording, `HEAP_DUMP`,
 `PERF_COUNTERS`), `name` and `profileId` once it has one; when there are heap dumps the answer's
-guidance names them. A part of a session reports `coveredStartEpochMs` / `coveredEndEpochMs`, the span
-its files cover. A part is a bundle of its own: it is never answered from a whole-session copy that
+guidance names them. `coveredStartEpochMs` / `coveredEndEpochMs` are the span the recording holds,
+read from its own data once it is here — a last chunk cut short ends where its data does, not one
+chunk length past its start — so quote these, not the window asked for. A part is a bundle of its own: it is never answered from a whole-session copy that
 is already here, and Microscope's Recordings page marks it as a part, with its span, so it never reads as the whole
 session. A whole session is answered from the copy already here only when that copy was taken after a
-newer session ended it; a copy of the instance's newest session is downloaded again as a new bundle.
+newer session ended it; a copy of the instance's newest session is downloaded again as a new bundle
+once the session has written another chunk. A download whose chunks are exactly those of a copy
+already here — the same part, or the newest session that has not grown — is handed back as that copy,
+with its `profileId` in `items` when it was analysed, so analysing it again builds no second profile.
 
 It does **not** build a profile; `recordings_analyzeRecording(recordingId)` does that, one item at a
 time, and returns the `profileId` every analysis tool takes. The `recordingId` at the top of the
@@ -301,9 +305,12 @@ the moment it goes. Leave a profile the user asked to keep, or one another skill
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential — put its link right beside the name as a Markdown link, so the user opens it in one
-click: `[trace 7e34c5994dc96208](<its uiLink>)`. That holds in every reply, not only in a written
-report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — write the full URL right beside the name, as plain
+text: `trace 7e34c5994dc96208 — http://localhost:8585/profiles/…`, and in a table a column holding
+the bare URL. Never write it as a Markdown link, the name in square brackets and the URL in
+parentheses: a terminal that renders links shows only the name and hides the URL, so the user
+cannot see there is a link, and copying the answer loses it. That holds in every reply, not only in
+a written report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

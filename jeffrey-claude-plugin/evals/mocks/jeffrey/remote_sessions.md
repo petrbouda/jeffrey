@@ -2,11 +2,4 @@
 type: fixed
 ---
 
-No recording sessions matched on the remote.
-
-Returned 0 of 0 observed sessions. complete=true; hasMore=false. Live view: a cursor continues after the last returned row among observed sessions. Newer insertions require a fresh scan. Missing remote scopes remain incomplete even when hasMore=false. Long display names and failure details are shortened; sessionRef identities are preserved.
-
----
-Open in Microscope: http://localhost:8590/remote
-Next:
-- remote_status {} [MEDIUM]
+{"status":"EMPTY","reason":"No recording sessions matched on the remote.","sessions":[],"returned":0,"total":0,"observedTotal":0,"hasMore":false,"nextCursor":null,"complete":true,"failures":[],"followUp":{"nextTools":[{"tool":"remote_status","arguments":{},"why":"shows which remote is configured and whether it answers","weight":"MEDIUM"}],"guidance":[]},"uiLink":"http://localhost:8586/remote"}

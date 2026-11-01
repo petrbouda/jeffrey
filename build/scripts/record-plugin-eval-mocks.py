@@ -208,6 +208,19 @@ def text_of(answer: dict) -> str:
     return "\n".join(part["text"] for part in answer.get("content", []) if part.get("type") == "text")
 
 
+def seen_by_model(answer: dict) -> str:
+    """What Claude Code hands the model for this answer, which is what a mock must replay.
+
+    A result with structuredContent reaches the model as that JSON, not as its text content: a
+    Markdown export recorded by its text alone once replayed a tree the real model never saw, and the
+    evals passed while every live flamegraph arrived as metadata. Only a text-only answer is its text.
+    """
+    structured = answer.get("structuredContent")
+    if structured is None:
+        return text_of(answer)
+    return json.dumps(structured, ensure_ascii=False, separators=(",", ":"))
+
+
 def record_workload(java: str, work_dir: Path, seconds: int) -> dict[str, Path]:
     work_dir.mkdir(parents=True, exist_ok=True)
     files = recorded_files(work_dir)
@@ -233,18 +246,18 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
             raise RuntimeError(f"no profileId after importing {path}: {text_of(final)[:400]}")
         if kind == "heap":
             # The one import a case repeats: the heap case names this file, so its answer is the mock.
-            recorded.fixed["recordings_analyzeFile"] = text_of(answer)
+            recorded.fixed["recordings_analyzeFile"] = seen_by_model(answer)
             recorded.inputs["recordings_analyzeFile"][()] = {"path": str(path)}
             operation = (answer.get("structuredContent") or {}).get(OPERATION_ID)
             if operation:
-                recorded.answers["operations_status"][(operation,)] = text_of(final)
+                recorded.answers["operations_status"][(operation,)] = seen_by_model(final)
                 recorded.inputs["operations_status"][(operation,)] = {OPERATION_ID: operation}
     profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"])
     jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
     # so a heap_prepare recorded while it was still running would tell the model to poll a preparation
     # that, in every other answer, has already finished.
-    recorded.answers["heap_prepare"][(profiles.heap,)] = text_of(
+    recorded.answers["heap_prepare"][(profiles.heap,)] = seen_by_model(
         jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     recorded.inputs["heap_prepare"][(profiles.heap,)] = {PROFILE_ID: profiles.heap}
     return profiles
@@ -326,11 +339,11 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
             continue
         if not key:
             if tool not in recorded.fixed:
-                recorded.fixed[tool] = text_of(answer)
+                recorded.fixed[tool] = seen_by_model(answer)
                 recorded.inputs[tool][()] = arguments
         elif all(FILE_NAME_SAFE.fullmatch(value) for value in key):
             if key not in recorded.answers[tool]:
-                recorded.answers[tool][key] = text_of(answer)
+                recorded.answers[tool][key] = seen_by_model(answer)
                 recorded.inputs[tool][key] = arguments
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
@@ -508,6 +521,9 @@ def main() -> int:
     parser.add_argument("--seconds", type=int, default=30)
     parser.add_argument("--load", action="store_true",
                         help="import the recorded files into an empty Jeffrey for the live cases, and record nothing")
+    parser.add_argument("--reuse", action="store_true",
+                        help="record the mocks from the files already in --work-dir (a clone of the recordings "
+                             "repository) instead of running the workload again")
     options = parser.parse_args()
     jeffrey = Jeffrey(options.url)
     catalogue = (jeffrey.call("profiles_list", {}).get("structuredContent") or {}).get("profiles") or []
@@ -519,7 +535,12 @@ def main() -> int:
     if options.load:
         return load(jeffrey, options.work_dir.resolve())
     tools = jeffrey.tools()
-    files = record_workload(options.java, options.work_dir.resolve(), options.seconds)
+    if options.reuse:
+        files = verified_files(options.work_dir.resolve())
+        if files is None:
+            return 1
+    else:
+        files = record_workload(options.java, options.work_dir.resolve(), options.seconds)
     recorded = Recorded()
     profiles = import_profiles(jeffrey, files, recorded)
     print(f"profiles: {profiles}", file=sys.stderr)
@@ -558,24 +579,34 @@ def unpack_heap_dump(work_dir: Path) -> None:
             shutil.copyfileobj(source, target)
 
 
-def load(jeffrey: Jeffrey, work_dir: Path) -> int:
-    """The live cases' Jeffrey: the recordings the mocks were taken from, imported under the same names,
-    refused when they are not the files the mocks were recorded from (their checksums) or do not answer
-    the figures the graders name."""
+def verified_files(work_dir: Path) -> dict[str, Path] | None:
+    """The recording the mocks were taken from, as a recording left it in work_dir or a clone of the
+    recordings repository holds it; None, with the reason printed, when a file is missing or is not
+    that recording (its checksum)."""
     unpack_heap_dump(work_dir)
     files = recorded_files(work_dir)
     missing = [str(path) for path in files.values() if not path.exists()]
     if missing:
-        print(f"--load imports the files a recording left in --work-dir, or a clone of {RECORDINGS_REPO}; "
-              f"missing: {missing}", file=sys.stderr)
-        return 1
-    recorded = json.loads(RECORDED_PROFILES.read_text())
-    sums = recorded.get("files") or {}
+        print(f"--load and --reuse take the files a recording left in --work-dir, or a clone of "
+              f"{RECORDINGS_REPO}; missing: {missing}", file=sys.stderr)
+        return None
+    sums = json.loads(RECORDED_PROFILES.read_text()).get("files") or {}
     wrong = [path.name for path in files.values() if path.name in sums and sha256_of(path) != sums[path.name]]
     if wrong:
         print(f"these files are not the recording the mocks were taken from: {wrong} (see {RECORDINGS_REPO})",
               file=sys.stderr)
+        return None
+    return files
+
+
+def load(jeffrey: Jeffrey, work_dir: Path) -> int:
+    """The live cases' Jeffrey: the recordings the mocks were taken from, imported under the same names,
+    refused when they are not the files the mocks were recorded from (their checksums) or do not answer
+    the figures the graders name."""
+    files = verified_files(work_dir)
+    if files is None:
         return 1
+    recorded = json.loads(RECORDED_PROFILES.read_text())
     profiles = import_profiles(jeffrey, files, Recorded())
     expected = recorded.get("figures") or {}
     measured = measure_figures(jeffrey, profiles)

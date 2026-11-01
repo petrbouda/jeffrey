@@ -94,7 +94,9 @@ fired rules, the gaps the question needs, the not-recorded line — is text abov
 group — area, weight, what it answers, why it is suggested — then the not-recorded line, and stop.
 
 The user may pick several; take them in the order they gave, sending each area's `nextTools`
-unchanged. A pick that comes back `NOT_RECORDED` after all is reported as not assessed, and the next
+unchanged. **Traces** is offered whenever the profile has traces, apart from the HTTP and gRPC
+dashboards under **Requests and calls**; a pick of it opens with `traces_overview`, and
+`references/latency.md` has the rest. A pick that comes back `NOT_RECORDED` after all is reported as not assessed, and the next
 pick goes on.
 
 **Weight** is what an answer puts into this conversation: **LIGHT** one or two compact records,
@@ -114,9 +116,14 @@ call sites (HEAVY)" is the sentence, not the export.
 
 Across the conversation keep a short block, updated after every answer:
 
-- **Covered** — each area answered, with its one-line result and its link;
+- **Covered** — each area answered: its one-line result, then its page's full URL;
+- **In progress** — areas handed to an analyst and not back yet;
 - **Open leads** — follow-ups offered and not yet taken;
 - **Not assessed** — areas the recording cannot answer, and picks that turned out `NOT_RECORDED`.
+
+Write it as that list, a bold label leading each line, and leave out a line with nothing in it. Not
+as a table: a table's first row is its header, and a ledger has none to give it, so the labels end
+up in rows under a blank one.
 
 When the user asks what else there is, show the menu again with the covered areas marked. The
 ledger is yours: nothing in it is sent to a tool, and the `report` skill builds its findings and its
@@ -137,6 +144,7 @@ from the menu, read three things from it and route:
 | Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
 | Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
 | Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
+| A memory warning is in `topFindings` (usage near 100%, a container limit) | `jvm_configuration` (`GC_HEAP_CONFIGURATION`) and `jvm_container` before reading it — a pre-touched heap reads as full; `references/jvm.md` |
 | `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
 | Two profiles of the same workload | `compare-jfr` |
 | The question is about exceptions, errors or timeouts in the application's code | `analyze-exceptions` |
@@ -237,9 +245,12 @@ than passing as a clean result. Follow it for anything the user reads.
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential — put its link right beside the name as a Markdown link, so the user opens it in one
-click: `[trace 7e34c5994dc96208](<its uiLink>)`. That holds in every reply, not only in a written
-report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — write the full URL right beside the name, as plain
+text: `trace 7e34c5994dc96208 — http://localhost:8585/profiles/…`, and in a table a column holding
+the bare URL. Never write it as a Markdown link, the name in square brackets and the URL in
+parentheses: a terminal that renders links shows only the name and hides the URL, so the user
+cannot see there is a link, and copying the answer loses it. That holds in every reply, not only in
+a written report: a finding, a ranked list, a follow-up offer, a sentence in passing.
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

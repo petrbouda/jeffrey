@@ -29,15 +29,18 @@ import java.util.List;
 /**
  * What the {@code traces_} operation, trace and notification tools answer with. Each is the tool's
  * whole answer: its figures, its status where it can have none, the next calls and the Microscope page
- * that shows the same thing. The Markdown exports keep their Markdown as the text; their record says
- * what the export was built from.
+ * that shows the same thing. The Markdown exports carry their Markdown both as the text and in the
+ * record, since a host may give the model only the structured content, and the record says what the
+ * export was built from.
  */
 public final class TraceAnswers {
 
     private static final String REASON = "Why there is nothing to list; null when status is OK";
-    private static final String MARKDOWN_CHARS = "Characters of the Markdown export, before the text cap";
+    private static final String MARKDOWN_CHARS = "Characters of the Markdown export, before any cap";
+    private static final String MARKDOWN = "The Markdown export itself, the document the text carries";
     private static final String TRACE_LINK = "This trace's span waterfall in the Microscope UI, for the user";
-    private static final String TRUNCATED = "Whether the Markdown was cut to fit the text cap with its footer";
+    private static final String TRUNCATED = "Whether the Markdown was cut to fit the result cap, here or in the "
+            + "text with its footer";
 
     private TraceAnswers() {
     }
@@ -235,12 +238,14 @@ public final class TraceAnswers {
             String uiLink) {
     }
 
-    /** What a trace export was built from, beside the Markdown that is its text. */
+    /** A trace export: its Markdown, in the record as well as in the text, and what it was built from. */
     public record TraceExport(
             String profileId,
             String traceId,
             @McpDescription(MARKDOWN_CHARS)
             int markdownChars,
+            @McpDescription(MARKDOWN)
+            String markdown,
             @McpDescription(TRUNCATED)
             boolean truncated,
             McpFollowUp followUp,
@@ -248,7 +253,7 @@ public final class TraceAnswers {
             String uiLink) {
     }
 
-    /** What an operation export was built from, beside the Markdown that is its text. */
+    /** An operation export: its Markdown, in the record as well as in the text, and what it was built from. */
     public record OperationExport(
             String profileId,
             String name,
@@ -256,6 +261,8 @@ public final class TraceAnswers {
             String eventType,
             @McpDescription(MARKDOWN_CHARS)
             int markdownChars,
+            @McpDescription(MARKDOWN)
+            String markdown,
             @McpDescription(TRUNCATED)
             boolean truncated,
             McpFollowUp followUp,
@@ -263,7 +270,7 @@ public final class TraceAnswers {
             String uiLink) {
     }
 
-    /** What a span flamegraph was built from, beside the Markdown that is its text. */
+    /** A span flamegraph: its Markdown, in the record as well as in the text, and what it was built from. */
     public record SpanFlamegraph(
             SpanFlamegraphStatus status,
             @McpNullable
@@ -280,6 +287,9 @@ public final class TraceAnswers {
             Boolean useWeight,
             @McpDescription(MARKDOWN_CHARS + "; 0 when there is no graph")
             int markdownChars,
+            @McpNullable
+            @McpDescription(MARKDOWN + "; null when there is no graph")
+            String markdown,
             @McpDescription(TRUNCATED)
             boolean truncated,
             McpFollowUp followUp,
@@ -289,7 +299,7 @@ public final class TraceAnswers {
             String uiLinkNote) {
     }
 
-    /** What an operation flamegraph was built from, beside the Markdown that is its text. */
+    /** An operation flamegraph: its Markdown, in the record as well as in the text, and what it was built from. */
     public record OperationFlamegraph(
             String profileId,
             String name,
@@ -302,6 +312,8 @@ public final class TraceAnswers {
             Boolean useWeight,
             @McpDescription(MARKDOWN_CHARS)
             int markdownChars,
+            @McpDescription(MARKDOWN)
+            String markdown,
             @McpDescription(TRUNCATED)
             boolean truncated,
             McpFollowUp followUp,
