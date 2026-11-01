@@ -216,6 +216,34 @@ class CheckedInContractTest(unittest.TestCase):
         self.assertIsNone(re.fullmatch(pattern, '{"eventType":"jdk.ObjectAllocationSample","useWeight":true}'))
 
 
+class AnswerSizeTest(unittest.TestCase):
+    """A tool that declares no large result is held by the client to its default limit (Claude Code:
+    25,000 tokens), past which the answer is saved where the agent may not read it; the server keeps such
+    answers under McpToolOutput.UNDECLARED_MAX_CHARS. The mocks are a real Jeffrey's answers to every call
+    the recorder reaches, so a tool that outgrows it shows here on the next re-record."""
+
+    UNDECLARED_MAX_CHARS = 50_000
+
+    def test_every_recorded_answer_of_an_undeclared_tool_fits_the_clients_limit(self):
+        mocks = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
+        tools = json.loads((mocks / '_tools.json').read_text())['tools']
+        declared = {tool['name'] for tool in tools
+                    if (tool.get('_meta') or {}).get('anthropic/maxResultSizeChars')}
+        undeclared = {tool['name'] for tool in tools} - declared
+        oversized = []
+        for fixture in list((mocks / 'fixtures').glob('*.txt')) + list(mocks.glob('*.md')):
+            tool = next((name for name in undeclared
+                         if fixture.stem == name or fixture.name.startswith(name + '-')), None)
+            if tool is None:
+                continue
+            body = fixture.read_text()
+            if fixture.suffix == '.md':
+                body = body.split('---', 2)[-1].strip()
+            if len(body) > self.UNDECLARED_MAX_CHARS:
+                oversized.append(f'{fixture.name}: {len(body)}')
+        self.assertEqual([], oversized)
+
+
 class ScaffoldTest(unittest.TestCase):
     def test_the_scaffolded_repository_holds_the_recorded_workload_verbatim(self):
         workload = (ROOT / 'jeffrey-claude-plugin/evals/fixtures/workload/com/acme/checkout/Checkout.java').read_text()

@@ -14030,6 +14030,9 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "name": {
+            "type": "string"
+          },
           "profileId": {
             "type": "string"
           }
@@ -14043,6 +14046,10 @@
         "additionalProperties": false,
         "properties": {
           "changedFlags": {
+            "type": "integer"
+          },
+          "defaultFlags": {
+            "minimum": 0,
             "type": "integer"
           },
           "flagsByOrigin": {
@@ -14201,6 +14208,7 @@
         },
         "required": [
           "changedFlags",
+          "defaultFlags",
           "flagsByOrigin",
           "followUp",
           "omittedFlags",
@@ -19925,15 +19933,15 @@
             },
             "type": "array"
           },
+          "eventCountDefinition": {
+            "type": "string"
+          },
           "eventTypes": {
             "items": {
               "additionalProperties": false,
               "properties": {
                 "calculated": {
                   "type": "boolean"
-                },
-                "denominatorDefinition": {
-                  "type": "string"
                 },
                 "eventType": {
                   "type": "string"
@@ -19966,9 +19974,6 @@
                     "null"
                   ]
                 },
-                "unit": {
-                  "type": "string"
-                },
                 "weight": {
                   "type": [
                     "integer",
@@ -19984,14 +19989,12 @@
               },
               "required": [
                 "calculated",
-                "denominatorDefinition",
                 "eventType",
                 "extras",
                 "label",
                 "samples",
                 "settings",
                 "source",
-                "unit",
                 "weight",
                 "weightUnit"
               ],
@@ -20183,6 +20186,12 @@
           },
           "outputLimitChars": {
             "type": "integer"
+          },
+          "passedRules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "profile": {
             "additionalProperties": false,
@@ -20405,6 +20414,7 @@
         "required": [
           "autoAnalysis",
           "capabilityGaps",
+          "eventCountDefinition",
           "eventTypes",
           "filters",
           "findingEvidenceUnits",
@@ -20414,6 +20424,7 @@
           "generatedAtEpochMs",
           "notEvaluatedRules",
           "outputLimitChars",
+          "passedRules",
           "profile",
           "samplerHealth",
           "samplingSettingsScope",
@@ -20884,6 +20895,9 @@
                     "null"
                   ]
                 },
+                "uiLink": {
+                  "type": "string"
+                },
                 "workspaceId": {
                   "type": [
                     "string",
@@ -20902,6 +20916,7 @@
                 "ready",
                 "recordedEpochMs",
                 "recordingId",
+                "uiLink",
                 "workspaceId"
               ],
               "type": "object"

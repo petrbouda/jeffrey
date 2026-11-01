@@ -822,3 +822,36 @@ too.
 `compare-finds-the-regression` and `route-did-my-change-regress` 1.00, three runs each. The miss was
 `named-area-cpu`, before the two text fixes; re-run after them, three runs: no announced decline,
 one baseline link left unmarked.
+
+## Plugin 1.0.25: every undeclared answer within the client's limit
+
+A survey of the recorded answers found `compare_quality`'s defect in other tools. A tool that
+declares no large result is held by Claude Code to its default MCP limit, 25,000 tokens;
+measured through `claude -p`, a 42,000-character answer arrived inline, while 75,000 (`profiles_evidence`)
+and 120,000 (`jvm_flags`) were saved to a file the agent could not read. `jvm_flags` was the vogon-das
+"no heap-size flag showed up in the part of the flag list I could read".
+
+- **Two limits by declaration:** 50,000 characters for every tool that declares no large result —
+  the shared page fit, each tool's own page check, the evidence budget — and 120,000 only for those
+  that do (`jvm_threadDump`, `jfr_executeQuery`).
+  `test-plugin-eval-mocks.py` holds every recorded answer of an undeclared tool under it.
+- **`jvm_flags`** lists the flags somebody or the JVM set, counts the defaults (`defaultFlags`), and
+  takes `name` to find any flag, a default included: 120,000 → 2,536 characters on the eval profile.
+- **`profiles_evidence`** (schema 3) keeps the flagged findings in full, most severe first, and the
+  passes as finding ids (`passedRules`); event rows state what samples count once
+  (`eventCountDefinition`): 75,000 → 35,304, every list complete, inline.
+- **`profiles_list` rows carry their profile's `uiLink`.** The baseline had no link of its own, so
+  replies linked the list page or a guessed URL.
+
+| | 1.0.24 | 1.0.25 |
+|---|---|---|
+| Mocked cases at the threshold | 16 of 17 | 14 of 17 |
+| Overall score | 0.99 | 0.99 |
+| Cost, including the judge | $9.23 | $9.27 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+The misses, one run each: `named-area-cpu` linked the baseline — by its own link now, no longer a
+guessed one — without the ↗ mark (of 51 replies, six left a link unmarked: the baseline three times,
+the exceptions page three); `two-areas-delegated`'s analyst asked for a `threadMode` export no fixture
+holds; `route-two-revisions-not-profiled` once left out "record both the same way". None is a
+regression from the sizes; the mark is the one still slipping.

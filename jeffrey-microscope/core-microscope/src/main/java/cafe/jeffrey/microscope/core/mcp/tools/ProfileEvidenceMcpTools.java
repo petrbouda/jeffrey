@@ -22,6 +22,8 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisFindings;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
@@ -43,6 +45,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.time.Clock;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -55,8 +58,36 @@ public class ProfileEvidenceMcpTools {
     }
 
     /**
-     * The evidence snapshot. {@code truncation} names each bounded collection — findings,
-     * capabilityGaps, notEvaluatedRules, eventTypes — with what it held and returned.
+     * What one event type recorded, as the snapshot cites it. What its samples count, and their unit,
+     * are the same for every type and stated once, in {@code eventCountDefinition}.
+     */
+    record EvidenceEvent(
+            String eventType,
+            @McpNullable
+            String label,
+            @McpNullable
+            String source,
+            @McpMinimum(0)
+            long samples,
+            @McpNullable
+            Long weight,
+            @McpNullable
+            String weightUnit,
+            boolean calculated,
+            Map<String, String> settings,
+            Map<String, String> extras) {
+
+        static EvidenceEvent of(ProfileEvidence.EventEvidence event) {
+            return new EvidenceEvent(event.eventType(), event.label(), event.source(), event.samples(),
+                    event.weight(), event.weightUnit(), event.calculated(), event.settings(), event.extras());
+        }
+    }
+
+    /**
+     * The evidence snapshot. {@code truncation} names each bounded collection — findings, passedRules,
+     * capabilityGaps, notEvaluatedRules, eventTypes — with what it held and returned. A rule that passed
+     * is its finding id in {@code passedRules}: evaluated and clear, with nothing more to cite, where a
+     * full finding for each pass once made up half the document.
      * {@code followUp.nextTools} holds the call that reads the same current state again.
      */
     record EvidenceDocument(
@@ -74,28 +105,34 @@ public class ProfileEvidenceMcpTools {
             @McpDescription("Whether the auto-analysis rules have run; findings are theirs only when COMPUTED")
             AutoAnalysisStatus autoAnalysis,
             String findingEvidenceUnits,
+            @McpDescription("What each eventTypes row's samples count, and in what unit")
+            String eventCountDefinition,
             Map<String, EvidenceOutput.Truncation> truncation,
             int outputLimitChars,
+            @McpDescription("The rules that flagged something - INFO, WARNING or CRITICAL - most severe first")
             List<McpFinding> findings,
+            @McpDescription("The finding id of every rule that ran and passed")
+            List<String> passedRules,
             List<ProfileCapabilityGaps.CapabilityGap> capabilityGaps,
             List<String> notEvaluatedRules,
-            List<ProfileEvidence.EventEvidence> eventTypes,
+            List<EvidenceEvent> eventTypes,
             @McpDescription("The profile's page in the Microscope UI, for the user")
             String uiLink) {
 
         /** This document with its bounded collections, and the counts that say how they were bounded. */
         EvidenceDocument withRows(Map<String, EvidenceOutput.Truncation> truncation, List<McpFinding> findings,
-                                  List<ProfileCapabilityGaps.CapabilityGap> capabilityGaps,
-                                  List<String> notEvaluatedRules, List<ProfileEvidence.EventEvidence> eventTypes) {
+                                  List<String> passedRules, List<ProfileCapabilityGaps.CapabilityGap> capabilityGaps,
+                                  List<String> notEvaluatedRules, List<EvidenceEvent> eventTypes) {
             return new EvidenceDocument(schemaVersion, findingSchemaVersion, generatedAtEpochMs, serverVersion,
                     semantics, samplingSettingsScope, profile, filters, followUp, samplerHealth,
-                    autoAnalysis, findingEvidenceUnits, truncation, outputLimitChars, findings,
+                    autoAnalysis, findingEvidenceUnits, eventCountDefinition, truncation, outputLimitChars,
+                    findings, passedRules,
                     capabilityGaps, notEvaluatedRules, eventTypes, uiLink);
         }
     }
 
     /** Bumped when the shape of the document changes, so a saved snapshot says what it was written to. */
-    private static final int SCHEMA_VERSION = 2;
+    private static final int SCHEMA_VERSION = 3;
     private static final int FINDING_SCHEMA_VERSION = 1;
 
     /** Records per collection before the output budget has anything to say about it. */
@@ -116,7 +153,10 @@ public class ProfileEvidenceMcpTools {
                     + "state again, not an immutable historical version";
     private static final String FINDING_EVIDENCE_UNITS =
             "JMC score is the rule score; other evidence keeps its source-defined units";
+    private static final String EVENT_COUNT_DEFINITION =
+            "Samples: all recorded events of the type over the whole recording; not a filtered call-tree denominator";
     private static final String FINDINGS = "findings";
+    private static final String PASSED_RULES = "passedRules";
     private static final String CAPABILITY_GAPS = "capabilityGaps";
     private static final String NOT_EVALUATED_RULES = "notEvaluatedRules";
     private static final String EVENT_TYPES = "eventTypes";
@@ -142,8 +182,9 @@ public class ProfileEvidenceMcpTools {
 
     @Tool(description = "Returns a versioned evidence snapshot of the profile's current state as one "
             + "JSON document: recording identity, build, whole-recording units and denominators, "
-            + "stored sampling settings, whether the auto-analysis rules have run and their evaluated "
-            + "findings, capability gaps, the call that replays it and complete-record omission "
+            + "stored sampling settings, whether the auto-analysis rules have run, the findings they "
+            + "flagged and the ids of the rules that passed, capability gaps, the call that replays it "
+            + "and complete-record omission "
             + "counts. Instants are UTC epoch milliseconds. A live snapshot, not an immutable archive: "
             + "the returned document is what preserves this observation. Computes and changes nothing.")
     @McpOutputSchema(EvidenceDocument.class)
@@ -172,14 +213,23 @@ public class ProfileEvidenceMcpTools {
                 ProfileEvidence.identity(manager.info(), commits.resolve(manager.info().recordingId()).orElse(null)),
                 new EvidenceFilters(ProfileEvidence.WHOLE_RECORDING, ALL, ALL, false, false),
                 followUp, ProfileEvidence.samplerHealth(manager), status,
-                FINDING_EVIDENCE_UNITS, Map.of(), McpToolOutput.MAX_CHARS,
-                List.of(), List.of(), List.of(), List.of(), UiLinks.profile(profileId));
+                FINDING_EVIDENCE_UNITS, EVENT_COUNT_DEFINITION, Map.of(), McpToolOutput.UNDECLARED_MAX_CHARS,
+                List.of(), List.of(), List.of(), List.of(), List.of(), UiLinks.profile(profileId));
         EvidenceOutput output = new EvidenceOutput(skeleton, rows);
-        List<McpFinding> findings = output.rows(FINDINGS, McpFindings.reachable(
-                AutoAnalysisFindings.findings(profileId, analysis), advertised::servesTool));
+        List<McpFinding> evaluated = McpFindings.reachable(
+                AutoAnalysisFindings.findings(profileId, analysis), advertised::servesTool);
+        List<McpFinding> findings = output.rows(FINDINGS, evaluated.stream()
+                .filter(finding -> finding.severity() != McpFinding.Severity.OK)
+                .sorted(Comparator.comparing(McpFinding::severity))
+                .toList());
+        List<String> passed = output.rows(PASSED_RULES, evaluated.stream()
+                .filter(finding -> finding.severity() == McpFinding.Severity.OK)
+                .map(McpFinding::id)
+                .toList());
         List<ProfileCapabilityGaps.CapabilityGap> gaps = output.rows(CAPABILITY_GAPS, capabilityGaps.gaps(disabled));
         List<String> notEvaluated = output.rows(NOT_EVALUATED_RULES, AutoAnalysisFindings.notEvaluated(analysis));
-        List<ProfileEvidence.EventEvidence> events = output.rows(EVENT_TYPES, ProfileEvidence.events(manager));
-        return McpToolResult.of(skeleton.withRows(output.truncation(), findings, gaps, notEvaluated, events));
+        List<EvidenceEvent> events = output.rows(EVENT_TYPES,
+                ProfileEvidence.events(manager).stream().map(EvidenceEvent::of).toList());
+        return McpToolResult.of(skeleton.withRows(output.truncation(), findings, passed, gaps, notEvaluated, events));
     }
 }

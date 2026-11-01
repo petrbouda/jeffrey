@@ -87,7 +87,7 @@ class ProfileEvidenceMcpToolsTest {
         RecordingCommitResolver commits = mock(RecordingCommitResolver.class);
         when(commits.resolve("recording-p")).thenReturn(Optional.of("abc123"));
         JsonNode result = tools(manager, commits).evidence(null).structuredContent();
-        assertEquals(2, result.get("schemaVersion").asInt());
+        assertEquals(3, result.get("schemaVersion").asInt());
         assertEquals("recording-p", result.get("profile").get("recordingId").asString());
         assertEquals("abc123", result.get("profile").get("recordingCommit").asString());
         assertEquals("whole-recording", result.get("filters").get("scope").asString());
@@ -345,10 +345,44 @@ class ProfileEvidenceMcpToolsTest {
                 new AutoAnalysisResult("Missing Events", AnalysisResult.Severity.NA, null, null,
                         null, null, "gc")));
         JsonNode result = tools(manager, mock(RecordingCommitResolver.class)).evidence(null).structuredContent();
-        assertEquals(1, result.get("findings").size());
-        assertEquals("gc:gc-check", result.get("findings").get(0).get("id").asString());
-        assertEquals("OK", result.get("findings").get(0).get("severity").asString());
+        assertEquals(0, result.get("findings").size(), "a pass is not a finding to cite");
+        assertEquals("gc:gc-check", result.get("passedRules").get(0).asString(), "but keeps its finding identity");
         assertEquals("Missing Events", result.get("notEvaluatedRules").get(0).asString());
+    }
+
+    /**
+     * The flagged findings come most severe first, the passes as ids, and each event row cites its own
+     * figures while what the samples count is said once: the document a full catalogue once doubled.
+     */
+    @Test
+    void flaggedFindingsLeadAndPassesAndEventRowsStayCompact() {
+        ProfileManager manager = manager("p");
+        List<AutoAnalysisResult> results = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            results.add(new AutoAnalysisResult("Pass " + i, AnalysisResult.Severity.OK, "Nothing found",
+                    "Passed with a long enough explanation to cost something on every row", null, "0", "gc"));
+        }
+        results.add(new AutoAnalysisResult("Info Rule", AnalysisResult.Severity.INFO, "e", "s", null, "10", "gc"));
+        results.add(new AutoAnalysisResult("Warn Rule", AnalysisResult.Severity.WARNING, "e", "s", null, "80", "gc"));
+        when(manager.autoAnalysisManager().analysisResults()).thenReturn(results);
+        List<EventSummaryResult> events = new ArrayList<>();
+        for (int i = 0; i < 90; i++) {
+            events.add(event("jdk.SomeEvent" + i, 10 + i, 0));
+        }
+        when(manager.flamegraphManager().allEventSummaries()).thenReturn(events);
+
+        McpToolResult answer = tools(manager, mock(RecordingCommitResolver.class)).evidence(null);
+        JsonNode result = answer.structuredContent();
+
+        McpSchemaConformance.assertConforms(result, schemaOf("evidence", Integer.class));
+        assertTrue(answer.structuredChars() <= McpToolOutput.UNDECLARED_MAX_CHARS, "chars " + answer.structuredChars());
+        assertEquals("WARNING", result.get("findings").get(0).get("severity").asString());
+        assertEquals("INFO", result.get("findings").get(1).get("severity").asString());
+        assertEquals(60, result.get("passedRules").size());
+        assertEquals("COMPLETE", result.get("truncation").get("eventTypes").get("reason").asString());
+        JsonNode row = result.get("eventTypes").get(0);
+        assertFalse(row.has("denominatorDefinition") || row.has("unit"), row.toString());
+        assertFalse(result.get("eventCountDefinition").asString().isBlank());
     }
 
     @Test

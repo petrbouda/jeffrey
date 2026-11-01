@@ -98,7 +98,10 @@ public class ProfilesMcpTools {
             @McpDescription("Recording span in milliseconds; null when the recording span is unknown")
             Long durationMs,
             Readiness ready,
-            boolean modified) {
+            boolean modified,
+            @McpDescription("The profile's page in the Microscope UI, for the user; link the profile with it "
+                    + "whenever it is named")
+            String uiLink) {
     }
 
     /** A page of the catalogue, which a cursor continues past its last row. */
@@ -193,7 +196,7 @@ public class ProfilesMcpTools {
                     profile.projectId(), profile.workspaceId(), source,
                     started == null ? null : started.toEpochMilli(),
                     spanKnown ? profile.duration().toMillis() : null,
-                    ready, profile.modified()));
+                    ready, profile.modified(), UiLinks.profile(profile.id())));
             table.row(profile.id(), profile.recordingId(), name,
                     profile.projectId() == null ? QUICK_ANALYSIS_PROJECT : profile.projectId(),
                     source, started == null ? null : started.toString(),
@@ -277,7 +280,7 @@ public class ProfilesMcpTools {
 
     private record Page(String text, ProfilePage structured) {
         boolean fits() {
-            return text.length() <= McpToolOutput.MAX_CHARS && Json.toString(structured).length() <= McpToolOutput.MAX_CHARS;
+            return text.length() <= McpToolOutput.UNDECLARED_MAX_CHARS && Json.toString(structured).length() <= McpToolOutput.UNDECLARED_MAX_CHARS;
         }
 
         McpToolResult result() {

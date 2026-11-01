@@ -109,6 +109,10 @@
         },
         "modified": {
          "type": "boolean"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The profile's page in the Microscope UI, for the user; link the profile with it whenever it is named"
         }
        },
        "required": [
@@ -122,7 +126,8 @@
         "recordedEpochMs",
         "durationMs",
         "ready",
-        "modified"
+        "modified",
+        "uiLink"
        ],
        "additionalProperties": false
       }
@@ -542,7 +547,7 @@
   {
    "name": "profiles_evidence",
    "title": "Profiles: Evidence",
-   "description": "Returns a versioned evidence snapshot of the profile's current state as one JSON document: recording identity, build, whole-recording units and denominators, stored sampling settings, whether the auto-analysis rules have run and their evaluated findings, capability gaps, the call that replays it and complete-record omission counts. Instants are UTC epoch milliseconds. A live snapshot, not an immutable archive: the returned document is what preserves this observation. Computes and changes nothing.",
+   "description": "Returns a versioned evidence snapshot of the profile's current state as one JSON document: recording identity, build, whole-recording units and denominators, stored sampling settings, whether the auto-analysis rules have run, the findings they flagged and the ids of the rules that passed, capability gaps, the call that replays it and complete-record omission counts. Instants are UTC epoch milliseconds. A live snapshot, not an immutable archive: the returned document is what preserves this observation. Computes and changes nothing.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -847,6 +852,10 @@
      "findingEvidenceUnits": {
       "type": "string"
      },
+     "eventCountDefinition": {
+      "type": "string",
+      "description": "What each eventTypes row's samples count, and in what unit"
+     },
      "truncation": {
       "type": "object",
       "additionalProperties": {
@@ -978,7 +987,15 @@
         "nextTool"
        ],
        "additionalProperties": false
-      }
+      },
+      "description": "The rules that flagged something - INFO, WARNING or CRITICAL - most severe first"
+     },
+     "passedRules": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "The finding id of every rule that ran and passed"
      },
      "capabilityGaps": {
       "type": "array",
@@ -1036,9 +1053,6 @@
          "type": "integer",
          "minimum": 0
         },
-        "unit": {
-         "type": "string"
-        },
         "weight": {
          "type": [
           "integer",
@@ -1053,9 +1067,6 @@
         },
         "calculated": {
          "type": "boolean"
-        },
-        "denominatorDefinition": {
-         "type": "string"
         },
         "settings": {
          "type": "object",
@@ -1075,11 +1086,9 @@
         "label",
         "source",
         "samples",
-        "unit",
         "weight",
         "weightUnit",
         "calculated",
-        "denominatorDefinition",
         "settings",
         "extras"
        ],
@@ -1104,9 +1113,11 @@
      "samplerHealth",
      "autoAnalysis",
      "findingEvidenceUnits",
+     "eventCountDefinition",
      "truncation",
      "outputLimitChars",
      "findings",
+     "passedRules",
      "capabilityGaps",
      "notEvaluatedRules",
      "eventTypes",
@@ -7901,13 +7912,17 @@
   {
    "name": "jvm_flags",
    "title": "JVM: Flags",
-   "description": "Returns the JVM flags this run actually used, grouped by where each value came from - a default, the command line, or the JVM's own ergonomics - with each change's time as UTC epoch milliseconds. The only place that distinguishes a flag someone set from one the JVM chose; a deployment manifest is evidence of neither. jvm_configuration reports the resulting collector and heap settings; this reports the switches. status is NO_FLAGS when the recording carries no flag events.",
+   "description": "Returns the JVM flags this run actually used, grouped by where each value came from - the command line, management, or the JVM's own ergonomics - with each change's time as UTC epoch milliseconds. The flags left at their default are counted (defaultFlags), not listed: name finds any flag, defaults included. The only place that distinguishes a flag someone set from one the JVM chose; a deployment manifest is evidence of neither. jvm_configuration reports the resulting collector and heap settings; this reports the switches. status is NO_FLAGS when the recording carries no flag events.",
    "inputSchema": {
     "type": "object",
     "properties": {
      "profileId": {
       "type": "string",
       "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "name": {
+      "type": "string",
+      "description": "Part of a flag name, case-insensitive, e.g. 'PreTouch' or 'G1': every flag whose name contains it, at its default or not. Omit for every flag that is not at its default. The heap's size is in jvm_configuration, not here."
      }
     },
     "required": [
@@ -7939,6 +7954,11 @@
      },
      "changedFlags": {
       "type": "integer"
+     },
+     "defaultFlags": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Flags left at their default: counted, not listed unless name matches them"
      },
      "flagsByOrigin": {
       "type": "object",
@@ -8018,10 +8038,12 @@
         ],
         "additionalProperties": false
        }
-      }
+      },
+      "description": "The flags listed - every one not at its default, or every one name matches - by origin, the command line first"
      },
      "omittedFlags": {
-      "type": "integer"
+      "type": "integer",
+      "description": "Listed flags left out to fit the answer; 0 when every one is here"
      },
      "followUp": {
       "type": "object",
@@ -8088,6 +8110,7 @@
      "profileId",
      "totalFlags",
      "changedFlags",
+     "defaultFlags",
      "flagsByOrigin",
      "omittedFlags",
      "followUp",

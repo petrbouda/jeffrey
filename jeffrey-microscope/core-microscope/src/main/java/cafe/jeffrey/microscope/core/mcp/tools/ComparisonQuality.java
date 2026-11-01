@@ -47,14 +47,12 @@ final class ComparisonQuality {
     private static final int MAX_ROWS = 100;
 
     /**
-     * The most the verdict serialises to. Well under {@link McpToolOutput#MAX_CHARS}: the tool declares
-     * no large result, so a client applies its default limit to it — Claude Code's is about 25,000
-     * tokens, which an 80,000-character verdict passed, and the client then filed the answer away where
-     * the agent could not read it, so the comparison went on without its quality check. Sixty thousand
-     * characters of JSON is under that limit with room to spare; past it, whole rows go, and
-     * {@code truncation} says so.
+     * The most the verdict serialises to: the client's limit for a tool that declares no large result
+     * ({@link McpToolOutput#UNDECLARED_MAX_CHARS}). An 80,000-character verdict passed Claude Code's,
+     * and the client filed the answer away where the agent could not read it, so the comparison went on
+     * without its quality check. Past it, whole rows go, and {@code truncation} says so.
      */
-    static final int OUTPUT_LIMIT_CHARS = 60_000;
+    static final int OUTPUT_LIMIT_CHARS = McpToolOutput.UNDECLARED_MAX_CHARS;
 
     private static final String EVENT_COUNT_DEFINITION =
             "Each side's samples are all recorded events of the type over the whole recording; not a filtered "

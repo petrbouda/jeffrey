@@ -36,11 +36,12 @@ final class FittingPage {
     }
 
     /**
-     * Whether an answer whose text is its own JSON fits the response size limit: the text and the
-     * structured content are the same document, so measuring one measures both.
+     * Whether an answer whose text is its own JSON fits the client's limit for a tool that declares no
+     * large result ({@link McpToolOutput#UNDECLARED_MAX_CHARS}): the text and the structured content are
+     * the same document, so measuring one measures both.
      */
     static boolean fits(Record answer) {
-        return Json.toString(answer).length() <= McpToolOutput.MAX_CHARS;
+        return Json.toString(answer).length() <= McpToolOutput.UNDECLARED_MAX_CHARS;
     }
 
     /**

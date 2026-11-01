@@ -42,6 +42,16 @@ public final class McpToolOutput {
      */
     public static final int MAX_CHARS = 120_000;
 
+    /**
+     * The most an answer of a tool that declares no {@code maxResultSizeChars} may carry. A client
+     * applies its own default limit to such a tool — Claude Code's is 25,000 tokens, past which it
+     * saves the result to a file and hands the agent an error instead (measured: 42,000 characters of
+     * JSON inline; 75,000 and 120,000 saved) — so these answers are sized well under it, leaving room
+     * for JSON dense in tokens. A tool whose answer is a long document declares {@link #MAX_CHARS}
+     * instead, and with it the client's larger allowance.
+     */
+    public static final int UNDECLARED_MAX_CHARS = 50_000;
+
     private static final String EMPTY_TEXT = "";
 
     private McpToolOutput() {

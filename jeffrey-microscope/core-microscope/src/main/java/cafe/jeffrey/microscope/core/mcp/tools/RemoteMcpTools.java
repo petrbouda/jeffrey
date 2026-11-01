@@ -393,8 +393,8 @@ public class RemoteMcpTools {
     }
 
     private static boolean fits(PageCandidate candidate) {
-        return candidate.text().length() <= McpToolOutput.MAX_CHARS
-                && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.MAX_CHARS;
+        return candidate.text().length() <= McpToolOutput.UNDECLARED_MAX_CHARS
+                && Json.toString(candidate.structuredContent()).length() <= McpToolOutput.UNDECLARED_MAX_CHARS;
     }
 
     /**

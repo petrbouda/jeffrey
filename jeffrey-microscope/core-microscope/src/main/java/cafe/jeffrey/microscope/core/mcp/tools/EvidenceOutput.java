@@ -82,8 +82,9 @@ final class EvidenceOutput {
      * @param skeleton the document with every collection this will bound still empty
      * @param rowLimit the most rows any one collection keeps
      */
+    /** Bounded to the client's limit for a tool that declares no large result. */
     EvidenceOutput(Record skeleton, int rowLimit) {
-        this(skeleton, rowLimit, McpToolOutput.MAX_CHARS);
+        this(skeleton, rowLimit, McpToolOutput.UNDECLARED_MAX_CHARS);
     }
 
     /**

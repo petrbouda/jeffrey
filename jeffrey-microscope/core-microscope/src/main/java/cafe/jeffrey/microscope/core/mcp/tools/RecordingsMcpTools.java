@@ -1047,8 +1047,8 @@ public class RecordingsMcpTools {
     /** A rendered page: the Markdown table for the model beside the record. */
     private record ListPage(String text, RecordingPage structured) {
         boolean fits() {
-            return text.length() <= McpToolOutput.MAX_CHARS
-                    && Json.toString(structured).length() <= McpToolOutput.MAX_CHARS;
+            return text.length() <= McpToolOutput.UNDECLARED_MAX_CHARS
+                    && Json.toString(structured).length() <= McpToolOutput.UNDECLARED_MAX_CHARS;
         }
 
         McpToolResult result() {

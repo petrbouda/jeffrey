@@ -70,6 +70,7 @@ import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.mcp.McpNextToolConformance;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.function.ThrowingSupplier;
 import tools.jackson.databind.JsonNode;
@@ -1193,8 +1194,25 @@ class RecordingsMcpToolsTest {
 
             assertEquals(100, page(0, null).path("returned").asInt());
             assertEquals(100, page(-4, null).path("returned").asInt());
-            assertEquals(1_000, page(5_000, null).path("returned").asInt());
-            assertEquals(1_000, tableRows(text(5_000, null)));
+        }
+
+        /**
+         * A large limit is held to the cap and then to the client's limit for a tool that declares no
+         * large result: a thousand rows do not fit, so the page holds what does and continues by cursor,
+         * the table showing exactly the rows the record counts.
+         */
+        @Test
+        void aLargeLimitIsCutToTheClientsLimitAndContinues() {
+            when(recordingsManager.listRecordings()).thenReturn(recordings(1_500));
+
+            McpToolResult result = tools.list(5_000, null);
+            JsonNode first = page(5_000, null);
+
+            int returned = first.path("returned").asInt();
+            assertTrue(returned > 100 && returned < 1_000, "returned " + returned);
+            assertTrue(result.text().length() <= McpToolOutput.UNDECLARED_MAX_CHARS, "length " + result.text().length());
+            assertTrue(first.path("hasMore").asBoolean());
+            assertEquals(returned, tableRows(text(5_000, null)));
         }
 
         /** The Markdown table ends with the footer rendered from the same record, next calls included. */
