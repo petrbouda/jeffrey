@@ -93,11 +93,17 @@ final class InvestigationMenu {
         if (preparation.isPresent()) {
             return served(preparation.get().calls(), advertised).isEmpty()
                     ? Optional.empty()
-                    : Optional.of(InvestigationOption.needsPreparation(area, preparation.get()));
+                    : Optional.of(InvestigationOption.needsPreparation(area, preparation.get(), page(area, facts)));
         }
         List<McpNextTool> calls = served(area.calls().calls(facts, advertised), advertised);
         // Its data is there but no call to it is served: not something this installation can offer.
-        return calls.isEmpty() ? Optional.empty() : Optional.of(InvestigationOption.available(area, calls));
+        return calls.isEmpty()
+                ? Optional.empty()
+                : Optional.of(InvestigationOption.available(area, calls, page(area, facts)));
+    }
+
+    private static String page(InvestigationArea area, ProfileFacts facts) {
+        return area.page().uiLink(facts).orElse(null);
     }
 
     private static List<McpNextTool> served(List<McpNextTool> calls, AdvertisedFamilies advertised) {

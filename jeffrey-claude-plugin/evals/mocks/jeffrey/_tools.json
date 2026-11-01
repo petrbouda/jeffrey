@@ -1946,6 +1946,13 @@
           "additionalProperties": false
          },
          "description": "The calls that open the area, or that build its data first, ready to send; empty when it is not recorded"
+        },
+        "uiLink": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "description": "The area's page in the Microscope UI, for the user - a flamegraph area's exact graph; null when it is not recorded or has no page"
         }
        },
        "required": [
@@ -1959,7 +1966,8 @@
         "evidence",
         "gap",
         "remedy",
-        "nextTools"
+        "nextTools",
+        "uiLink"
        ],
        "additionalProperties": false
       },
@@ -2012,13 +2020,18 @@
          ],
          "additionalProperties": false,
          "description": "The flamegraph_export that draws it; send it unchanged"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The same graph in the Microscope flamegraph view, for the user"
         }
        },
        "required": [
         "eventType",
         "label",
         "samples",
-        "export"
+        "export",
+        "uiLink"
        ],
        "additionalProperties": false
       },

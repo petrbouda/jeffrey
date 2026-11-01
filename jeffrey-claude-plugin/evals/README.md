@@ -725,3 +725,35 @@ miss, passed all three runs.
 | Overall score | 1.00 | 1.00 |
 | Cost, including the judge | $7.44 | $7.43 |
 | Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+## Plugin 1.0.22: links marked with ↗, and a Pages table
+
+- **Links are Markdown links marked with `↗`** — `[CPU flamegraph ↗](…)` in prose, `[↗ open](…)` in
+  a table — replacing 1.0.20's bare URLs, which the user found too long. The mark is what tells a
+  reader the text is a link. `shows-a-marked-link` and `no-unmarked-link` replace the bare-URL
+  graders.
+- **Every menu area with data carries a `uiLink`** to the page it is seen on — a flamegraph area the
+  exact graph its export draws (the same URL as `flamegraph_export`'s own, checked live) — and so does
+  every `moreFlamegraphs` entry. `analyze-jfr` and `analyze-heap` put them in a Pages table above the
+  menu, Traces first whenever the profile has them (its link the operations page), and a profile
+  without traces names Traces first in the not-recorded line; `open-question-shows-menu` gains
+  `shows-the-pages`. The eval recording has no traces, so the order is held by
+  `InvestigationMenuTest`, not by a case.
+
+| | 1.0.21 | 1.0.22 |
+|---|---|---|
+| Mocked cases at the threshold | 16 of 16 | 14 of 16 |
+| Overall score | 1.00 | 0.99 |
+| Cost, including the judge | $7.43 | $7.80 |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+
+What the two misses were, one run each:
+
+- **`gc-pauses-in-proportion`:** the reply linked the profile itself as `[checkout candidate](…)`,
+  without the mark; every other link in it was marked. A new grader, so 1.0.21 was never held to it.
+- **`compare-finds-the-regression`:** `honest-verdict` failed a verdict that led with "the bigger
+  regression is allocation". In that run `compare_quality`'s answer — 80,458 characters, mostly the
+  two profiles' 94 and 89 event types and 89 sampling settings — passed Claude Code's MCP output
+  limit, was saved to a file the run was not allowed to read, and the comparison went on without
+  its quality check. The answer is that size in every run: a server defect to bound, not this
+  plugin change.

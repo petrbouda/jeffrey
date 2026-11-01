@@ -394,11 +394,7 @@ public class FlamegraphMcpTools {
      * allocation and blocking, counted otherwise.
      */
     private boolean weightedByDefault(Type type) {
-        return catalog.panels().stream()
-                .filter(panel -> panel.event().code().equals(type.code()))
-                .findFirst()
-                .map(panel -> panel.weight().defaultOn())
-                .orElseGet(() -> type.isAllocationEvent() || type.isBlockingEvent());
+        return FlamegraphCatalog.weightedByDefault(catalog.panels(), type);
     }
 
     /**

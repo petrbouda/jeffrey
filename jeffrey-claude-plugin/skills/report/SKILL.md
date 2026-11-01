@@ -169,10 +169,10 @@ ids, the epoch-millisecond window and the cursor that answer was about.
 **Give the reader the link — for everything the report names.** Every answer about something
 Microscope has a page for carries a `uiLink` — the same profile and view, with the same event type,
 filters, window, search and baseline — and a row that names its own thing (a trace, an operation, an
-exemplar) carries its own. Put each link beside the name it opens, as the full URL in plain text —
-never a Markdown link with the name in square brackets, which a terminal shows as the name alone with the URL hidden and which is lost
-when the report is copied: the finding's **Link** line, and every trace, operation, class, endpoint
-or page named anywhere in the text, so nothing the reader might want to see needs looking up. Quote the `uiLinkNote` when there is one,
+exemplar) carries its own. Make each name a Markdown link marked with `↗` — `[name ↗](<its uiLink>)`,
+never the bare URL, since a terminal shows the marked name as the link and hides the URL: the
+finding's **Link** line, and every trace, operation, class, endpoint or page named anywhere in the
+text, so nothing the reader might want to see needs looking up. Quote the `uiLinkNote` when there is one,
 saying what the page does not reproduce. No link in hand for a profile page → `profiles_viewLink`;
 never build or edit a URL. It is for the person reading; never fetch it or read it back. Nothing is
 exported to a file: the data is in the answers, the picture is behind the link.

@@ -29,8 +29,14 @@ import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolWeight;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.shared.common.Json;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +64,8 @@ class InvestigationMenuTest {
     private static final String WALL = "profiler.WallClockSample";
     private static final String ALLOCATION = "jdk.ObjectAllocationSample";
     private static final String MONITOR = "jdk.JavaMonitorEnter";
+    private static final Set<String> WEIGHTED = Set.of(ALLOCATION, MONITOR);
+    private static final EpochWindow RECORDING = new EpochWindow(1_000L, 61_000L);
     private static final List<String> JVM_SECTION_IDS =
             List.of("gc", "safepoints", "jit", "threads", "nativeMemory", "container", "configuration", "exceptions");
     private static final Set<HeapReport> EVERY_STORED_REPORT = Set.of(HeapReport.CONSUMERS, HeapReport.BIGGEST,
@@ -69,8 +77,16 @@ class InvestigationMenuTest {
         private final Set<FeatureType> disabled = new HashSet<>();
         private final Set<String> eventTypes = new HashSet<>(Set.of(
                 "jdk.SocketRead", "jdk.FileWrite", "jdk.OldObjectSample"));
-        private final Map<String, Long> samples = new LinkedHashMap<>(Map.of(
-                EXECUTION, 1_000L, CPU_TIME, 0L, WALL, 5_000L, ALLOCATION, 500L, MONITOR, 300L));
+        /** In the grid's own panel order, which decides the panel an area graphs first. */
+        private final Map<String, Long> samples = new LinkedHashMap<>();
+
+        Facts() {
+            samples.put(EXECUTION, 1_000L);
+            samples.put(CPU_TIME, 0L);
+            samples.put(WALL, 5_000L);
+            samples.put(ALLOCATION, 500L);
+            samples.put(MONITOR, 300L);
+        }
         private final Map<String, Long> unpanelled = new LinkedHashMap<>();
         private final Set<String> missingSections = new HashSet<>();
         private AutoAnalysisStatus status = AutoAnalysisStatus.COMPUTED;
@@ -128,7 +144,8 @@ class InvestigationMenuTest {
             Map<String, SampleKind> kinds = Map.of(EXECUTION, SampleKind.CPU, CPU_TIME, SampleKind.CPU,
                     WALL, SampleKind.WALL, ALLOCATION, SampleKind.ALLOCATION, MONITOR, SampleKind.BLOCKING);
             List<ProfileFacts.Sampled> panels = samples.entrySet().stream()
-                    .map(entry -> new ProfileFacts.Sampled(kinds.get(entry.getKey()), entry.getKey(), entry.getValue()))
+                    .map(entry -> new ProfileFacts.Sampled(kinds.get(entry.getKey()), entry.getKey(), entry.getValue(),
+                            WEIGHTED.contains(entry.getKey())))
                     .toList();
             Set<String> recorded = new HashSet<>(eventTypes);
             samples.forEach((type, count) -> {
@@ -141,11 +158,24 @@ class InvestigationMenuTest {
                             List.of("jdk." + id)))
                     .toList();
             List<ProfileFacts.Graphable> graphable = new ArrayList<>();
-            samples.forEach((type, count) -> graphable.add(new ProfileFacts.Graphable(type, type + " label", count)));
-            unpanelled.forEach((type, count) -> graphable.add(new ProfileFacts.Graphable(type, type + " label", count)));
+            samples.forEach((type, count) -> graphable.add(
+                    new ProfileFacts.Graphable(type, type + " label", count, WEIGHTED.contains(type))));
+            unpanelled.forEach((type, count) -> graphable.add(
+                    new ProfileFacts.Graphable(type, type + " label", count, false)));
             return new ProfileFacts(PROFILE_ID, source, disabled, recorded, panels, graphable, sections, status,
-                    flagged, heap);
+                    flagged, heap, RECORDING);
         }
+    }
+
+    /** The links are absolute, built against the request being served, as on the MCP endpoint. */
+    @BeforeEach
+    void bindRequest() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
+    @AfterEach
+    void releaseRequest() {
+        RequestContextHolder.resetRequestAttributes();
     }
 
     private static Map<InvestigationArea, InvestigationOption> menu(Facts facts) {
@@ -266,6 +296,47 @@ class InvestigationMenuTest {
             assertEquals(MONITOR, argument(locks.getFirst(), "eventType"));
             assertFalse(Json.toTree(allocation.getFirst().arguments()).has("useWeight"),
                     "the export weighs by the event type's own default, bytes for allocation");
+        }
+
+        /**
+         * Each area links the page it is seen on, a flamegraph area the exact graph its export draws -
+         * event type, default weighting, the whole recording - and an area not recorded links nothing.
+         */
+        @Test
+        void eachAvailableAreaLinksItsPage() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts().disable(FeatureType.TRACES));
+
+            String cpu = menu.get(InvestigationArea.CPU_HOTSPOTS).uiLink();
+            assertTrue(cpu.contains("/profiles/" + PROFILE_ID + "/flamegraph-view?") && cpu.contains("eventType=" + EXECUTION)
+                    && cpu.contains("startEpochMs=1000") && cpu.contains("endEpochMs=61000"), cpu);
+            assertFalse(cpu.contains("useWeight"), cpu);
+            assertTrue(menu.get(InvestigationArea.ALLOCATION).uiLink().contains("useWeight=true"));
+            assertTrue(menu.get(InvestigationArea.GC_PAUSES).uiLink().endsWith("/profiles/" + PROFILE_ID + "/garbage-collection"));
+            assertTrue(menu.get(InvestigationArea.REQUESTS_AND_CALLS).uiLink().endsWith("/technologies/http/overview"));
+            assertTrue(menu.get(InvestigationArea.IO_WAITING).uiLink().endsWith("/socket-io"));
+            assertNull(menu.get(InvestigationArea.TRACES).uiLink(), "not recorded, so no page to show");
+            menu.values().stream()
+                    .filter(option -> option.availability() != Availability.NOT_RECORDED)
+                    .forEach(option -> UiLinkRoutes.assertResolves(option.uiLink()));
+        }
+
+        /** A traced profile's Traces area links the operations page, where its slowest requests open. */
+        @Test
+        void tracesLinkTheOperationsPage() {
+            InvestigationOption traces = menu(new Facts()).get(InvestigationArea.TRACES);
+
+            assertEquals(Availability.AVAILABLE, traces.availability());
+            assertTrue(traces.uiLink().endsWith("/profiles/" + PROFILE_ID + "/traces/operations"), traces.uiLink());
+            UiLinkRoutes.assertResolves(traces.uiLink());
+        }
+
+        @Test
+        void aHeapDumpsAreasLinkTheirReports() {
+            Map<InvestigationArea, InvestigationOption> menu = menu(new Facts().heapDump(
+                    new HeapState(true, true, EVERY_STORED_REPORT)));
+
+            assertTrue(menu.get(InvestigationArea.LEAK_SUSPECTS).uiLink().endsWith("/heap-dump/leak-suspects"));
+            menu.values().forEach(option -> UiLinkRoutes.assertResolves(option.uiLink()));
         }
 
         /** An imported bytes dimension holds no JFR allocation events, so the types table has nothing. */
@@ -591,7 +662,7 @@ class InvestigationMenuTest {
         @Test
         void refusesAnAvailableAreaWithoutCalls() {
             assertThrows(IllegalArgumentException.class,
-                    () -> InvestigationOption.available(InvestigationArea.JIT, List.of()));
+                    () -> InvestigationOption.available(InvestigationArea.JIT, List.of(), null));
         }
 
         @Test
@@ -629,6 +700,9 @@ class InvestigationMenuTest {
             assertEquals(CPU_TIME, argument(export, "eventType"));
             assertEquals(PROFILE_ID, argument(export, "profileId"));
             assertEquals(McpToolWeight.HEAVY, export.weight());
+            String uiLink = listing.listed().getFirst().uiLink();
+            assertTrue(uiLink.contains("eventType=" + CPU_TIME), uiLink);
+            UiLinkRoutes.assertResolves(uiLink);
         }
 
         @Test

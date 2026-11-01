@@ -53,7 +53,9 @@ final class MoreFlamegraphs {
             String label,
             long samples,
             @McpDescription("The flamegraph_export that draws it; send it unchanged")
-            McpNextTool export) {
+            McpNextTool export,
+            @McpDescription("The same graph in the Microscope flamegraph view, for the user")
+            String uiLink) {
     }
 
     /**
@@ -95,7 +97,8 @@ final class MoreFlamegraphs {
                         NextCalls.to(FollowUpCalls.FLAMEGRAPH_EXPORT)
                                 .with(FollowUpCalls.PROFILE_ID, facts.profileId())
                                 .with(FollowUpCalls.EVENT_TYPE, type.eventType())
-                                .why(WHY.formatted(labelOf(type)))))
+                                .why(WHY.formatted(labelOf(type))),
+                        AreaPage.flamegraphLink(facts, type.eventType(), type.weighted())))
                 .toList();
         return new Listing(listed, rest.size() - listed.size());
     }

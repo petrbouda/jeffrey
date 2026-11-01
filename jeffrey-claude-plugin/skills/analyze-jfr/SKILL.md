@@ -90,15 +90,25 @@ and `· covered` when the ledger already has it. A group with a single available
 group's question when that one has room, since a question needs two options. Everything else — the
 fired rules, the gaps the question needs, the not-recorded line — is text above the question.
 
+**Above the question, a Pages table** — the click-through view of the profile, before anything is
+analysed. One row per area with data (`AVAILABLE` or `NEEDS_PREPARATION`): **Traces** first whenever
+the profile has them — a request's own time, span by span, is the page a user most often wants and the
+one no flamegraph replaces — then the suggested ones, marked ★, then the rest; each with its `title`,
+what its page shows in a few words, and `[↗ open](<its uiLink>)`. A profile without traces says so
+in the not-recorded line, Traces named first with its `remedy`. Then
+`moreFlamegraphs` in one line — "Also graphable:" and each as `[<label> ↗](<its uiLink>)` with its
+samples, the rest as "N more". Only for an open question: when the user named an area, go straight
+there and link only the page the answer was read off.
+
 **Without a structured question tool** (Codex, Gemini CLI), write the menu as a table grouped by
-group — area, weight, what it answers, why it is suggested — then the not-recorded line, and stop.
+group — area, weight, what it answers, why it is suggested, `[↗ open](<its uiLink>)` — then the
+not-recorded line, and stop.
 
 Every Code area opens on its flamegraph: CPU hotspots and Wall-clock time on the graph alone,
 Allocation and Lock contention on the graph and then their table — hand the graph to the analyst, as
 for CPU, and read the table here. **`moreFlamegraphs`** are the recorded types with stacks no area
-opens (a second sampler, native allocation, method traces, custom events): name them in one line
-above the question — "also graphable: <label> (N samples), …" — and a pick of one, under Other,
-sends its `export` unchanged.
+opens (a second sampler, native allocation, method traces, custom events), in the Pages table's last
+line; a pick of one, under Other, sends its `export` unchanged.
 
 The user may pick several; take them in the order they gave, sending each area's `nextTools`
 unchanged. **Traces** is offered whenever the profile has traces, apart from the HTTP and gRPC
@@ -123,7 +133,7 @@ call sites (HEAVY)" is the sentence, not the export.
 
 Across the conversation keep a short block, updated after every answer:
 
-- **Covered** — each area answered: its one-line result, then its page's full URL;
+- **Covered** — each area answered: its one-line result, then `[↗ open](<its uiLink>)`;
 - **In progress** — areas handed to an analyst and not back yet;
 - **Open leads** — follow-ups offered and not yet taken;
 - **Not assessed** — areas the recording cannot answer, and picks that turned out `NOT_RECORDED`.
@@ -252,12 +262,12 @@ than passing as a clean result. Follow it for anything the user reads.
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential, a catalogue row, a ledger entry — write the full URL right beside the name, as plain
-text: `trace 7e34c5994dc96208 — http://localhost:8585/profiles/…`, and in a table a column holding
-the bare URL. Never write it as a Markdown link, the name in square brackets and the URL in
-parentheses: a terminal that renders links shows only the name and hides the URL, so the user
-cannot see there is a link, and copying the answer loses it. That holds in every reply, not only in
-a written report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Never write the bare URL. The `↗` is what makes it a link the user sees: a terminal that renders
+links shows the text alone, clickable, with the URL behind it, and an unmarked name reads as plain
+words. That holds in every reply, not only in a written report: a finding, a ranked list, a
+follow-up offer, a sentence in passing.
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

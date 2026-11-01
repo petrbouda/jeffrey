@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
@@ -83,5 +84,18 @@ final class FlamegraphCatalog {
 
     static boolean isRecorded(FlamegraphPanel panel) {
         return panel.event().primary().samples() > 0;
+    }
+
+    /**
+     * The weighting an export uses when the caller does not say: the default the grid draws the event
+     * type with, and for a type the grid does not list, the managers' own rule - weighed for allocation
+     * and blocking, counted otherwise. One rule for the export and for every link to its graph.
+     */
+    static boolean weightedByDefault(List<FlamegraphPanel> panels, Type type) {
+        return panels.stream()
+                .filter(panel -> panel.event().code().equals(type.code()))
+                .findFirst()
+                .map(panel -> panel.weight().defaultOn())
+                .orElseGet(() -> type.isAllocationEvent() || type.isBlockingEvent());
     }
 }

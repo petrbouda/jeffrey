@@ -21400,6 +21400,12 @@
                 "title": {
                   "type": "string"
                 },
+                "uiLink": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "weight": {
                   "enum": [
                     "LIGHT",
@@ -21424,6 +21430,7 @@
                 "remedy",
                 "suggested",
                 "title",
+                "uiLink",
                 "weight"
               ],
               "type": "object"
@@ -21471,13 +21478,17 @@
                 },
                 "samples": {
                   "type": "integer"
+                },
+                "uiLink": {
+                  "type": "string"
                 }
               },
               "required": [
                 "eventType",
                 "export",
                 "label",
-                "samples"
+                "samples",
+                "uiLink"
               ],
               "type": "object"
             },

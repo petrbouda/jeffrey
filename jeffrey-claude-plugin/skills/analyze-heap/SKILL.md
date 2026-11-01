@@ -112,7 +112,9 @@ and `HEAP_WASTE`, each area with a `title`, the `question` it answers, its `weig
 `availability`. In Claude Code put it as `AskUserQuestion`: one multi-select question per group
 (headers Contents, Retention, Waste), the `title` as each option's label and `weight · question` as
 its description; a group with a single area joins another group's question. Without a structured
-question tool, a table grouped the same way.
+question tool, a table grouped the same way. Above the question, a Pages table: one row per area
+with data, its `title`, what its page shows in a few words, and `[↗ open](<its uiLink>)` — a page
+whose report is not built yet says so when it opens.
 
 - **`AVAILABLE`** — its `nextTools` read the area now; send them unchanged when it is chosen.
 - **`NEEDS_PREPARATION`** — offer it with "needs heap_prepare (slow)" and its `gap`. Its `nextTools`
@@ -186,12 +188,12 @@ every question to the user, stays here either way.
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
 trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
-differential, a catalogue row, a ledger entry — write the full URL right beside the name, as plain
-text: `trace 7e34c5994dc96208 — http://localhost:8585/profiles/…`, and in a table a column holding
-the bare URL. Never write it as a Markdown link, the name in square brackets and the URL in
-parentheses: a terminal that renders links shows only the name and hides the URL, so the user
-cannot see there is a link, and copying the answer loses it. That holds in every reply, not only in
-a written report: a finding, a ranked list, a follow-up offer, a sentence in passing.
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Never write the bare URL. The `↗` is what makes it a link the user sees: a terminal that renders
+links shows the text alone, clickable, with the URL behind it, and an unmarked name reads as plain
+words. That holds in every reply, not only in a written report: a finding, a ranked list, a
+follow-up offer, a sentence in passing.
 
 - Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
   operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that

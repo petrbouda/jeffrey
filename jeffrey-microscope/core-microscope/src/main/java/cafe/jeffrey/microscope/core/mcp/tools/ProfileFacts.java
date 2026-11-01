@@ -44,6 +44,8 @@ import java.util.Set;
  * @param autoAnalysis       whether the rules ran
  * @param flagged            the rules that flagged something, most severe first
  * @param heap               how far a heap dump is prepared; {@link HeapState#NOT_A_HEAP_DUMP} for any other profile
+ * @param wholeRecording     the recording's span, which a link to one of its flamegraphs is drawn over;
+ *                           null when the profile has none
  */
 record ProfileFacts(
         String profileId,
@@ -55,21 +57,25 @@ record ProfileFacts(
         List<SectionAvailability> jvmSections,
         AutoAnalysisStatus autoAnalysis,
         List<McpFinding> flagged,
-        HeapState heap) {
+        HeapState heap,
+        EpochWindow wholeRecording) {
 
     /**
-     * One flamegraph panel: what it measures, its event type, and how many samples it holds (zero for
-     * a panel the profile did not record).
+     * One flamegraph panel: what it measures, its event type, how many samples it holds (zero for a
+     * panel the profile did not record), and whether its graph is weighed by default.
      */
-    record Sampled(SampleKind kind, String eventType, long samples) {
+    record Sampled(SampleKind kind, String eventType, long samples, boolean weighted) {
 
         boolean recorded() {
             return samples > 0;
         }
     }
 
-    /** One recorded event type a flamegraph can be drawn from, as flamegraph_list names it. */
-    record Graphable(String eventType, String label, long samples) {
+    /**
+     * One recorded event type a flamegraph can be drawn from, as flamegraph_list names it, and whether
+     * its graph is weighed by default.
+     */
+    record Graphable(String eventType, String label, long samples, boolean weighted) {
     }
 
     ProfileFacts {

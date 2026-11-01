@@ -31,6 +31,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
@@ -42,6 +43,7 @@ import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.profile.mcp.finding.McpFinding;
 import cafe.jeffrey.profile.mcp.finding.McpFindings;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
@@ -363,6 +365,7 @@ public class ProfileMcpTools {
             List<McpFinding> flagged) {
 
         boolean stackSampleImport = info.eventSource().isFlamegraphOnlyImport();
+        List<FlamegraphPanel> panels = catalog.panels();
         return new ProfileFacts(
                 info.id(),
                 info.eventSource(),
@@ -371,22 +374,25 @@ public class ProfileMcpTools {
                         .filter(type -> type.samples() > 0)
                         .map(RecordedEventType::name)
                         .collect(Collectors.toSet()),
-                catalog.panels().stream()
+                panels.stream()
                         .map(panel -> new ProfileFacts.Sampled(
                                 SampleKind.of(panel, stackSampleImport),
                                 panel.event().code(),
-                                panel.event().primary().samples()))
+                                panel.event().primary().samples(),
+                                panel.weight().defaultOn()))
                         .toList(),
                 profileManager.flamegraphManager().graphableEventSummaries().stream()
                         .map(summary -> new ProfileFacts.Graphable(
-                                summary.code(), summary.label(), summary.primary().samples()))
+                                summary.code(), summary.label(), summary.primary().samples(),
+                                FlamegraphCatalog.weightedByDefault(panels, Type.fromCode(summary.code()))))
                         .toList(),
                 sections.availability(),
                 status,
                 flagged,
                 info.eventSource().kind() == ProfileKind.HEAP_DUMP
                         ? ProfileFacts.HeapState.of(profileManager.heapDumpManager())
-                        : ProfileFacts.HeapState.NOT_A_HEAP_DUMP);
+                        : ProfileFacts.HeapState.NOT_A_HEAP_DUMP,
+                RecordingSpan.of(info).map(RecordingSpan::whole).orElse(null));
     }
 
     /**
