@@ -193,7 +193,7 @@ onMounted(() => {
       <ul>
         <li><strong>Creating a workspace</strong> — a workspace appears when the provisioner first provisions a project into it.</li>
         <li><strong>Renaming a workspace</strong> — a workspace's name is its reference id, the name of its folder on the share, and is not editable.</li>
-        <li><strong>Renaming a project</strong> — a project's name is its folder on the share and its id, so the project's Settings show it read-only.</li>
+        <li><strong>Renaming a project</strong> — a project's name is its folder on the share and its id, so it cannot be renamed.</li>
         <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>
         <li><strong>More than one remote</strong> — Microscope reaches exactly one.</li>
         <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (the SAS token or Entra identity of the Azure file share); there's no separate workspace-level token.</li>
