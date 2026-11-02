@@ -57,14 +57,14 @@ onMounted(() => {
           cta-text="Open Microscope docs"
         />
         <DocsProductCard
-          to="/docs/hub"
-          title="Hub"
-          role="Maintenance · Multi-workspace"
-          description="The maintenance service of the shared recording volume. Runs retention and compression as scheduled jobs, with Storage and Scheduler pages; Microscope reads the volume itself."
-          icon="bi bi-cloud"
-          :components="serverComponents"
-          cta-text="Open Server docs"
-          variant="secondary"
+          to="/docs/microscope-mcp"
+          title="Microscope MCP"
+          role="Server · Coding agents"
+          description="The MCP server inside Microscope. Connect an interactive coding agent that speaks MCP 2026-07-28 — Claude Code on its v2 MCP runtime, Codex v0.147.0+ with its global mcp_2026_07_28 feature flag on — in your own repository and let it read every profile you have analysed: flamegraphs, traces, heap dumps and the DuckDB tables behind them, alongside your source code."
+          icon="bi bi-plugin"
+          :components="mcpComponents"
+          cta-text="Open Microscope MCP docs"
+          variant="tertiary"
         />
         <DocsProductCard
           to="/docs/provisioner"
@@ -107,14 +107,14 @@ onMounted(() => {
           variant="senary"
         />
         <DocsProductCard
-          to="/docs/microscope-mcp"
-          title="Microscope MCP"
-          role="Server · Coding agents"
-          description="The MCP server inside Microscope. Connect an interactive coding agent that speaks MCP 2026-07-28 — Claude Code on its v2 MCP runtime, Codex v0.147.0+ with its global mcp_2026_07_28 feature flag on — in your own repository and let it read every profile you have analysed: flamegraphs, traces, heap dumps and the DuckDB tables behind them, alongside your source code."
-          icon="bi bi-plugin"
-          :components="mcpComponents"
-          cta-text="Open Microscope MCP docs"
-          variant="tertiary"
+          to="/docs/hub"
+          title="Hub"
+          role="Maintenance · Multi-workspace"
+          description="The maintenance service of the shared recording volume. Runs retention and compression as scheduled jobs, with Storage and Scheduler pages; Microscope reads the volume itself."
+          icon="bi bi-cloud"
+          :components="serverComponents"
+          cta-text="Open Server docs"
+          variant="secondary"
         />
       </div>
     </div>

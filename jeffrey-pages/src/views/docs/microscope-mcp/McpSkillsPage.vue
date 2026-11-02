@@ -811,10 +811,6 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
   color: #495057;
 }
 
-.skill-trap :deep(.docs-code-block) {
-  margin-bottom: 0;
-}
-
 /* ============================
    Responsive
    ============================ */

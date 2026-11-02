@@ -417,23 +417,6 @@
   text-decoration: underline;
 }
 
-.section-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin: 1.5rem -1rem 1rem -1rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  position: relative;
-}
-
-.section-header h3 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: white;
-  margin: 0;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-
 .example-item {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
@@ -595,7 +578,6 @@ pre code {
   .categories-grid {
     grid-template-columns: 1fr;
   }
-
 
   .content-section {
     padding: 1rem;

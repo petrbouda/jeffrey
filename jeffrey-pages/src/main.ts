@@ -19,9 +19,8 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
-// Import Bootstrap CSS and JS
+// Bootstrap CSS (no Bootstrap JS: every interactive widget is a Vue component)
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 // Import custom styles
 import './styles/global.css';

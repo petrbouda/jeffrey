@@ -17,7 +17,7 @@
 
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import type { DocSection, DocPage, AdjacentPages, DocPageWithCategory, CurrentPageInfo } from '@/types/docs';
+import type { DocSection, DocPage, AdjacentPages, DocPageWithCategory, SearchableDoc } from '@/types/docs';
 
 export interface BreadcrumbItem {
   label: string
@@ -589,8 +589,8 @@ export function pageHref(sectionPath: string, page: DocPage): string {
   return `/docs/${sectionPath}/${page.path ?? ''}`;
 }
 
-export function getAllDocs(): { title: string; section: string; path: string }[] {
-  const docs: { title: string; section: string; path: string }[] = [];
+export function getAllDocs(): SearchableDoc[] {
+  const docs: SearchableDoc[] = [];
   docsNavigation.forEach(section => {
     section.children.forEach(page => {
       if (page.children) {
@@ -611,18 +611,6 @@ export function getAllDocs(): { title: string; section: string; path: string }[]
     });
   });
   return docs;
-}
-
-export function findCurrentPage(category: string, page: string): CurrentPageInfo | null {
-  const section = docsNavigation.find(s => s.path === category);
-  if (!section) {return null;}
-  const pageInfo = section.children.find(p => p.path === page);
-  if (!pageInfo) {return null;}
-  return {
-    ...pageInfo,
-    section: section.title,
-    sectionPath: section.path
-  };
 }
 
 // Resolve adjacent (prev/next) pages by route URL.
@@ -739,32 +727,11 @@ export function getBreadcrumbs(routePath: string): BreadcrumbItem[] {
 export function useDocsNavigation() {
   const route = useRoute();
 
-  const currentCategory = computed(() => {
-    const parts = route.path.split('/');
-    return parts[2] || '';
-  });
-
-  const currentPage = computed(() => {
-    const parts = route.path.split('/');
-    return parts[3] || '';
-  });
-
-  const currentPageInfo = computed(() => {
-    return findCurrentPage(currentCategory.value, currentPage.value);
-  });
-
   const adjacentPages = computed(() => {
     return getAdjacentPages(route.path);
   });
 
   return {
-    docsNavigation,
-    currentCategory,
-    currentPage,
-    currentPageInfo,
-    adjacentPages,
-    findCurrentPage,
-    getAdjacentPages,
-    getAllDocs
+    adjacentPages
   };
 }

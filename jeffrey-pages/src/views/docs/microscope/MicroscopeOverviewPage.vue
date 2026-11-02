@@ -221,17 +221,6 @@ onMounted(() => {
   color: #fff;
 }
 
-.hero .hero-cta-ghost {
-  color: #4338ca;
-  background: #fff;
-  border: 1px solid #c7d2fe;
-}
-
-.hero .hero-cta-ghost:hover {
-  background: #f5f3ff;
-  color: #4338ca;
-}
-
 /* ============ VALUE TILES ============ */
 .value-tiles {
   display: grid;
@@ -300,35 +289,6 @@ onMounted(() => {
 
 .tile-mcp .value-icon     { background: #cffafe; color: #0e7490; }
 .tile-mcp:hover           { border-color: #67e8f9; }
-
-/* ============ USECASE LIST ============ */
-.usecase-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.75rem 0 0.5rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.4rem;
-}
-
-.usecase-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.85rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #334155;
-  line-height: 1.5;
-}
-
-.usecase-list li i {
-  color: #10b981;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {

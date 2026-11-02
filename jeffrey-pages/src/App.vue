@@ -55,9 +55,6 @@ const closeMenu = () => {
             <router-link to="/release-notes" class="nav-link" @click="closeMenu">Release Notes</router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/blog" class="nav-link" @click="closeMenu">Blog</router-link>
-          </li>
-          <li class="nav-item">
             <a href="https://www.linkedin.com/in/petr-bouda/" class="nav-link" target="_blank">Contact</a>
           </li>
         </ul>

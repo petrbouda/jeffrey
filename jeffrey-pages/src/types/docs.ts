@@ -49,11 +49,6 @@ export interface DocPageWithCategory extends DocPage {
   section: string;
 }
 
-export interface CurrentPageInfo extends DocPage {
-  section: string;
-  sectionPath: string;
-}
-
 export interface SearchableDoc {
   title: string;
   section: string;

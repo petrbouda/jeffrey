@@ -3458,7 +3458,6 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-
 .gs-cmd-label {
   font-size: 0.95rem;
   font-weight: 600;
@@ -3743,20 +3742,6 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 .feature-highlight-link:hover {
   background: rgba(94, 100, 255, 0.16);
   text-decoration: none;
-}
-
-.feature-visual {
-  background: #f1f3f5;
-  border-radius: 16px;
-  aspect-ratio: 4/3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #adb5bd;
-  font-size: 0.9rem;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-  gap: 8px;
 }
 
 /* Image Gallery */

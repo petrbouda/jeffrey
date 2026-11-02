@@ -183,13 +183,6 @@
   padding: 1rem;
 }
 
-.section-header h3 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #2c3e50;
-  margin: 0;
-}
-
 .methods-grid {
   display: flex;
   flex-direction: column;
@@ -314,7 +307,6 @@
 .step {
   margin-bottom: 1rem;
 }
-
 
 .step-content {
   flex: 1;
