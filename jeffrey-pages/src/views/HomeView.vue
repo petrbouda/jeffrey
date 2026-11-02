@@ -1049,12 +1049,7 @@ function copyCmd(): void {
 .eco-card--provisioner { --eco-a: #f43f5e; --eco-b: #e11d48; }
 .eco-card--plugin { --eco-a: #fb923c; --eco-b: #ea580c; }
 .eco-card--jib { --eco-a: #6366f1; --eco-b: #4f46e5; }
-.eco-card--hub {
-  --eco-a: #a855f7;
-  --eco-b: #7c3aed;
-  background: linear-gradient(135deg, #faf5ff 0%, #fff 70%);
-  border-color: rgba(168, 85, 247, 0.35);
-}
+.eco-card--hub { --eco-a: #a855f7; --eco-b: #7c3aed; }
 
 .eco-ic {
   flex-shrink: 0;
