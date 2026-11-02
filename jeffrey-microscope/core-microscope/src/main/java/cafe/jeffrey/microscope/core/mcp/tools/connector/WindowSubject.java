@@ -35,7 +35,6 @@ import java.util.Objects;
  */
 public record WindowSubject(RecordingSession session, String connector, String project, Instant now) {
 
-    private static final Duration ONE_MINUTE = Duration.ofMinutes(1);
 
     public WindowSubject {
         Objects.requireNonNull(session, "session");
@@ -79,15 +78,6 @@ public record WindowSubject(RecordingSession session, String connector, String p
     /** The session's chunks: their spans, their length, the first, the latest and the largest. */
     public SessionChunks chunks() {
         return SessionChunks.of(session);
-    }
-
-    /** How long the session has lasted, in whole minutes rounded up; null with no recorded start. */
-    Long spanMinutes() {
-        if (start() == null) {
-            return null;
-        }
-        long millis = Math.max(0, Duration.between(start(), end()).toMillis());
-        return Math.max(1, (millis + ONE_MINUTE.toMillis() - 1) / ONE_MINUTE.toMillis());
     }
 
     String size() {

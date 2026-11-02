@@ -41,8 +41,6 @@ public final class McpDiagnostics {
     /** The probe budget when the property is not set, spelt as the ISO-8601 text the property takes. */
     public static final String DEFAULT_PROBE_TIMEOUT_TEXT = "PT2S";
 
-    public static final Duration DEFAULT_PROBE_TIMEOUT = Duration.parse(DEFAULT_PROBE_TIMEOUT_TEXT);
-
     private final MicroscopeCoreRepositories repositories;
     private final ConnectorManager connectorManager;
     private final ExternalMcpProperties properties;

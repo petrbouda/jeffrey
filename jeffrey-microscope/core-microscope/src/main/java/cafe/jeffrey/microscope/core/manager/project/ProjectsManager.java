@@ -47,12 +47,4 @@ public interface ProjectsManager {
         return project(projectId);
     }
 
-    /**
-     * Find all distinct namespaces across all projects.
-     * Used by UI to provide namespace filtering options.
-     *
-     * @return list of distinct namespace names (excluding null values)
-     */
-    List<String> findAllNamespaces();
-
 }

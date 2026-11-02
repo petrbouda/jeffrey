@@ -18,23 +18,8 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-
-import java.util.Optional;
 
 public interface WorkspaceManager {
-
-    /**
-     * Returns the cached workspace snapshot captured when this manager was resolved.
-     * Never makes a network call.
-     */
-    WorkspaceInfo localInfo();
-
-    /**
-     * Returns a fresh workspace snapshot from the connector.
-     * May involve a network call; falls back to OFFLINE status on failure.
-     */
-    WorkspaceInfo resolveInfo();
 
     /**
      * Returns the projects manager for managing multiple projects within the workspace.

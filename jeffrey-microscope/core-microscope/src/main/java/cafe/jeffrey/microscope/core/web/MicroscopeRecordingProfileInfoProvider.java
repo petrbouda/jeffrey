@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web;
 
+import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -49,7 +50,7 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
     }
 
     @Override
-    public List<RecordingProfile> profiles(Recording recording) {
+    public List<RecordingProfileResponse> profiles(Recording recording) {
         if (!recording.hasProfile()) {
             return List.of();
         }
@@ -58,7 +59,7 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
                 .toList();
     }
 
-    private RecordingProfile recordingProfile(Recording recording, ProfileInfo profile) {
+    private RecordingProfileResponse recordingProfile(Recording recording, ProfileInfo profile) {
         ProfileInitProgress initProgress = initProgress(recordingsManager.initProgress(recording, profile.id()));
 
         ProfileManager profileManager = recordingsManager.profile(profile.id()).orElse(null);
@@ -66,9 +67,9 @@ public class MicroscopeRecordingProfileInfoProvider implements RecordingProfileI
             // The profile row exists but nothing can be read from it yet -- the state a recording is
             // in while its very first stages run. The progress is still worth reporting: it is the
             // only thing that distinguishes this from a profile that failed to build at all.
-            return new RecordingProfile(profile.id(), profile.name(), 0L, false, 0L, initProgress);
+            return new RecordingProfileResponse(profile.id(), profile.name(), 0L, false, 0L, initProgress);
         }
-        return new RecordingProfile(
+        return new RecordingProfileResponse(
                 profile.id(),
                 profileManager.info().name(),
                 profileManager.sizeInBytes(),

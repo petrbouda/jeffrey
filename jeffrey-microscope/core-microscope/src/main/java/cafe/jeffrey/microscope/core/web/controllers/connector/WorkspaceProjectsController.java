@@ -31,8 +31,7 @@ import cafe.jeffrey.microscope.core.web.dto.workspace.Mappers;
 import java.util.List;
 
 /**
- * Lists a workspace's projects on the connector. The projects' profiles are listed by
- * {@code WorkspaceProjectProfilesController}.
+ * Lists a workspace's projects on the connector.
  */
 @RestController
 @RequestMapping("/api/internal/connector/workspaces/{workspaceId}/projects")

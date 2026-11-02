@@ -24,6 +24,7 @@ import Badge from '@shared/components/Badge.vue';
 import type { ProfileInitProgress } from '@/services/api/model/recordings/Recording';
 import { failedStageLabel, hasFailed, isInitializing, toTimelineSteps } from './profileInitChips';
 import { recordingKindOf } from './recordingKinds';
+import { startMove } from './recordingDrag';
 import InitFailedNote from './InitFailedNote.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 
@@ -130,14 +131,6 @@ const handleClick = () => {
     return;
   }
   emit('click');
-};
-
-const onDragStart = (event: DragEvent) => {
-  if (!props.draggable || !event.dataTransfer) {
-    return;
-  }
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', props.recordingId);
 };
 
 const formatRelativeTime = (timestamp: number) => {
@@ -334,7 +327,7 @@ onBeforeUnmount(() => {
           class="recording-drag-handle"
           draggable="true"
           title="Drag to move to another group"
-          @dragstart="onDragStart"
+          @dragstart="startMove($event, { kind: 'recording', id: recordingId })"
           @dragend="emit('dragend')"
           @click.stop
         >

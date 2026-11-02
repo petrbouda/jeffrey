@@ -26,9 +26,6 @@ import { recordingKindOf, type RecordingKindKey } from './recordingKinds';
  * and file counts, and the size of everything it holds.
  */
 
-/** The drag payload a group chip reads to tell a bundle from a recording card. */
-export const BUNDLE_DRAG_PREFIX = 'bundle:';
-
 /** Where an item sits in its bundle: the recording first, as the connector_download answer lists it. */
 const KIND_ORDER: Record<RecordingKindKey, number> = {
   JFR: 0,

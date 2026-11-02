@@ -21,15 +21,13 @@ import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
-import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider.RecordingProfile;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Recording list item shared between deployments. {@code profiles} lists every profile built from the
- * recording, newest first, from the deployment's
- * {@link cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider}. The flat {@code profile*}
+ * Recording list item. {@code profiles} lists every profile built from the recording, newest first,
+ * as the {@link cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider} reports them. The flat {@code profile*}
  * fields describe the newest of them, the one a caller asking for "the recording's profile" gets, and
  * are empty for a recording with no profile.
  *
@@ -60,7 +58,7 @@ public record RecordingResponse(
 
     public static RecordingResponse from(
             Recording recording,
-            List<RecordingProfile> profiles,
+            List<RecordingProfileResponse> profiles,
             List<RecordingTag> tags) {
 
         List<RecordingFileResponse> fileResponses = recording.files().stream()
@@ -72,7 +70,7 @@ public record RecordingResponse(
                         f.recordingFileType().description()))
                 .toList();
 
-        Optional<RecordingProfile> newest = profiles.stream().findFirst();
+        Optional<RecordingProfileResponse> newest = profiles.stream().findFirst();
 
         return new RecordingResponse(
                 recording.id(),
@@ -84,12 +82,12 @@ public record RecordingResponse(
                 recording.recordingDuration().toMillis(),
                 recording.profileId(),
                 recording.hasProfile(),
-                newest.map(RecordingProfile::sizeInBytes).orElse(0L),
-                newest.map(RecordingProfile::modified).orElse(false),
-                newest.map(RecordingProfile::createdAt).orElse(0L),
+                newest.map(RecordingProfileResponse::sizeInBytes).orElse(0L),
+                newest.map(RecordingProfileResponse::modified).orElse(false),
+                newest.map(RecordingProfileResponse::createdAt).orElse(0L),
                 recording.profileName(),
-                newest.map(RecordingProfile::initProgress).orElse(ProfileInitProgress.NONE),
-                profiles.stream().map(RecordingProfileResponse::from).toList(),
+                newest.map(RecordingProfileResponse::initProgress).orElse(ProfileInitProgress.NONE),
+                profiles,
                 fileResponses,
                 tags.stream().map(RecordingTagResponse::from).toList(),
                 recording.bundleId());

@@ -96,9 +96,4 @@ public class ConnectorProjectsManager implements ProjectsManager {
     private ProjectManager toProjectManager(ConnectorProjectResponse project) {
         return projectManagerFactory.create(connector, clients, project);
     }
-
-    @Override
-    public List<String> findAllNamespaces() {
-        return List.of();
-    }
 }

@@ -31,6 +31,7 @@ import RecordingFileRow from './RecordingFileRow.vue';
 import RecordingInitStatus from './RecordingInitStatus.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
 import { recordingKindOf } from './recordingKinds';
+import { startMove } from './recordingDrag';
 
 const props = withDefaults(
   defineProps<{
@@ -62,14 +63,6 @@ const emit = defineEmits<{
 const fileType = computed(
   () => props.recording.files?.[0]?.type ?? recordingKindOf(props.recording.eventSource).fileType
 );
-
-const onDragStart = (event: DragEvent) => {
-  if (!props.draggable || !event.dataTransfer) {
-    return;
-  }
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', props.recording.id);
-};
 </script>
 
 <template>
@@ -112,7 +105,7 @@ const onDragStart = (event: DragEvent) => {
             class="recording-drag-handle"
             draggable="true"
             title="Drag to move to another group"
-            @dragstart="onDragStart"
+            @dragstart="startMove($event, { kind: 'recording', id: recording.id })"
             @dragend="emit('dragend')"
           >
             <i class="bi bi-grip-vertical"></i>

@@ -18,12 +18,15 @@
 package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
-import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider.RecordingProfile;
 
 /**
  * One profile built from a recording, as the recordings list shows it.
  *
- * @param createdAt when the profile was created, as epoch millis
+ * @param createdAt    when the profile was created (analyzed), as epoch millis. Lets the UI sort
+ *                     profiles by analysis time rather than upload time.
+ * @param initProgress how far initialization has got, so the list can show a profile being built
+ *                     rather than only a profile that exists; {@link ProfileInitProgress#NONE} when
+ *                     none is given
  */
 public record RecordingProfileResponse(
         String profileId,
@@ -33,13 +36,7 @@ public record RecordingProfileResponse(
         long createdAt,
         ProfileInitProgress initProgress) {
 
-    public static RecordingProfileResponse from(RecordingProfile profile) {
-        return new RecordingProfileResponse(
-                profile.profileId(),
-                profile.profileName(),
-                profile.sizeInBytes(),
-                profile.modified(),
-                profile.createdAt(),
-                profile.initProgress());
+    public RecordingProfileResponse {
+        initProgress = initProgress == null ? ProfileInitProgress.NONE : initProgress;
     }
 }

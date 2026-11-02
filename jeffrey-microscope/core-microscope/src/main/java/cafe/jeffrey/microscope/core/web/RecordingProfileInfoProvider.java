@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web;
 
+import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 
 import java.util.List;
@@ -33,24 +34,5 @@ public interface RecordingProfileInfoProvider {
      * Every profile built from the recording, newest first: a recording can be initialized again, and
      * each initialization is a profile of its own. Empty for a recording never initialized.
      */
-    List<RecordingProfile> profiles(Recording recording);
-
-    /**
-     * @param createdAt    when the profile was created (analyzed), as epoch millis. Lets the UI sort
-     *                     profiles by analysis time rather than upload time.
-     * @param initProgress how far initialization has got, so the list can show a profile being built
-     *                     rather than only a profile that exists
-     */
-    record RecordingProfile(
-            String profileId,
-            String profileName,
-            long sizeInBytes,
-            boolean modified,
-            long createdAt,
-            ProfileInitProgress initProgress) {
-
-        public RecordingProfile {
-            initProgress = initProgress == null ? ProfileInitProgress.NONE : initProgress;
-        }
-    }
+    List<RecordingProfileResponse> profiles(Recording recording);
 }

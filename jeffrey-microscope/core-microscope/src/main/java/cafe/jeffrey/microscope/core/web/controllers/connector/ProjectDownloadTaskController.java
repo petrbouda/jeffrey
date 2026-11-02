@@ -80,8 +80,6 @@ public class ProjectDownloadTaskController {
                 resolver.resolve(workspaceId, projectId).recordingsDownloadManager();
 
         DownloadTask task = new DownloadTask(
-                workspaceId,
-                projectId,
                 request.sessionId(),
                 request.recordingIds(),
                 taskRegistry.getClock());

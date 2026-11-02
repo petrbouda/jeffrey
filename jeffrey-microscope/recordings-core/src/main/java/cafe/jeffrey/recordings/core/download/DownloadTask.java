@@ -38,8 +38,6 @@ import java.util.function.Consumer;
 public class DownloadTask implements ProgressCallback {
 
     private final String taskId;
-    private final String workspaceId;
-    private final String projectId;
     private final String sessionId;
     private final List<String> fileIds;
     private final Clock clock;
@@ -61,14 +59,10 @@ public class DownloadTask implements ProgressCallback {
     private volatile String errorMessage;
 
     public DownloadTask(
-            String workspaceId,
-            String projectId,
             String sessionId,
             List<String> fileIds,
             Clock clock) {
         this.taskId = UUID.randomUUID().toString();
-        this.workspaceId = workspaceId;
-        this.projectId = projectId;
         this.sessionId = sessionId;
         this.fileIds = List.copyOf(fileIds);
         this.clock = clock;
@@ -89,14 +83,6 @@ public class DownloadTask implements ProgressCallback {
 
     public String getTaskId() {
         return taskId;
-    }
-
-    public String getWorkspaceId() {
-        return workspaceId;
-    }
-
-    public String getProjectId() {
-        return projectId;
     }
 
     public String getSessionId() {

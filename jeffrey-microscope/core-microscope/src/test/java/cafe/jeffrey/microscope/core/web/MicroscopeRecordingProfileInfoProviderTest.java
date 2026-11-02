@@ -31,7 +31,7 @@ import cafe.jeffrey.profile.common.pipeline.StageStatus;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
-import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider.RecordingProfile;
+import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -93,8 +93,8 @@ class MicroscopeRecordingProfileInfoProviderTest {
                 null, null, CLOCK.instant(), false, false, RECORDING_ID);
     }
 
-    private RecordingProfile onlyProfile(Recording recording) {
-        List<RecordingProfile> profiles = provider().profiles(recording);
+    private RecordingProfileResponse onlyProfile(Recording recording) {
+        List<RecordingProfileResponse> profiles = provider().profiles(recording);
         assertEquals(1, profiles.size());
         return profiles.getFirst();
     }
@@ -113,10 +113,10 @@ class MicroscopeRecordingProfileInfoProviderTest {
     void listsEveryProfileOfTheRecording() {
         when(recordingsManager.profile(any())).thenReturn(Optional.empty());
 
-        List<RecordingProfile> profiles = provider().profiles(recordingWithProfiles(NEWER_PROFILE_ID, PROFILE_ID));
+        List<RecordingProfileResponse> profiles = provider().profiles(recordingWithProfiles(NEWER_PROFILE_ID, PROFILE_ID));
 
         assertEquals(List.of(NEWER_PROFILE_ID, PROFILE_ID),
-                profiles.stream().map(RecordingProfile::profileId).toList());
+                profiles.stream().map(RecordingProfileResponse::profileId).toList());
         assertEquals("name-" + NEWER_PROFILE_ID, profiles.getFirst().profileName());
     }
 
@@ -125,7 +125,7 @@ class MicroscopeRecordingProfileInfoProviderTest {
     void profileWithoutRunHasNoProgress() {
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.empty());
 
-        RecordingProfile info = onlyProfile(recordingWithProfile());
+        RecordingProfileResponse info = onlyProfile(recordingWithProfile());
 
         assertNull(info.initProgress().state());
         assertTrue(info.initProgress().stages().isEmpty());

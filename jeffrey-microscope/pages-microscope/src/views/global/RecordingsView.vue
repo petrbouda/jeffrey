@@ -385,7 +385,8 @@ import type { RecordingTag } from '@/services/api/model/recordings/Recording';
 import type { RecordingOrigin } from '@/components/recordings/RecordingOriginChip.vue';
 import type Bundle from '@/services/api/model/recordings/Bundle';
 import { recordingKindOf, type RecordingKindKey } from '@/components/recordings/recordingKinds';
-import { BUNDLE_DRAG_PREFIX, compareMembers } from '@/components/recordings/bundleSummary';
+import { compareMembers } from '@/components/recordings/bundleSummary';
+import { droppedItem } from '@/components/recordings/recordingDrag';
 import {
   splitColumns,
   type BundleWithMembers,
@@ -1240,14 +1241,15 @@ const onChipDragLeave = (event: DragEvent, key: string) => {
 const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
   event.preventDefault();
   dragOverGroupKey.value = null;
-  const recordingId = event.dataTransfer?.getData('text/plain');
-  if (!recordingId) {
+  const item = droppedItem(event);
+  if (!item) {
     return;
   }
-  if (recordingId.startsWith(BUNDLE_DRAG_PREFIX)) {
-    await moveBundle(recordingId.slice(BUNDLE_DRAG_PREFIX.length), targetGroupId);
+  if (item.kind === 'bundle') {
+    await moveBundle(item.id, targetGroupId);
     return;
   }
+  const recordingId = item.id;
   const recording = allRecordings.value.find(r => r.id === recordingId);
   if (!recording) {
     return;

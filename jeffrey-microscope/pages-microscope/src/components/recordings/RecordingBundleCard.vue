@@ -33,7 +33,8 @@ import type Recording from '@/services/api/model/recordings/Recording';
 import BundleMemberRow from './BundleMemberRow.vue';
 import RecordingFileGroupList from './RecordingFileGroupList.vue';
 import RecordingOriginChip, { type RecordingOrigin } from './RecordingOriginChip.vue';
-import { BUNDLE_DRAG_PREFIX, bundleItemsLabel, bundleSize, memberBadges } from './bundleSummary';
+import { bundleItemsLabel, bundleSize, memberBadges } from './bundleSummary';
+import { startMove } from './recordingDrag';
 
 const props = withDefaults(
   defineProps<{
@@ -82,14 +83,6 @@ const totalBytes = computed(() => bundleSize(props.bundle, props.members));
 const itemsLabel = computed(() => bundleItemsLabel(props.bundle, props.members));
 
 const listed = computed(() => props.listedMembers ?? props.members);
-
-const onDragStart = (event: DragEvent) => {
-  if (!props.draggable || !event.dataTransfer) {
-    return;
-  }
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', BUNDLE_DRAG_PREFIX + props.bundle.id);
-};
 </script>
 
 <template>
@@ -144,7 +137,7 @@ const onDragStart = (event: DragEvent) => {
           class="recording-drag-handle"
           draggable="true"
           title="Drag to move to another group"
-          @dragstart="onDragStart"
+          @dragstart="startMove($event, { kind: 'bundle', id: bundle.id })"
           @dragend="emit('dragend')"
           @click.stop
         >

@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
-import cafe.jeffrey.microscope.connector.api.DiscoveryClient;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
@@ -29,7 +28,6 @@ import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 
 import java.util.List;
 import cafe.jeffrey.shared.notification.NotificationType;
@@ -60,27 +58,6 @@ public class ConnectorWorkspaceManager implements WorkspaceManager {
         this.workspaceRepository = workspaceRepository;
         this.clients = clients;
         this.projectManagerFactory = projectManagerFactory;
-    }
-
-    @Override
-    public WorkspaceInfo localInfo() {
-        return workspaceInfo;
-    }
-
-    @Override
-    public WorkspaceInfo resolveInfo() {
-        try {
-            DiscoveryClient.WorkspaceResult result = clients.discovery().workspace(workspaceInfo.id());
-            return switch (result.status()) {
-                case AVAILABLE -> result.info();
-                case UNAVAILABLE -> workspaceInfo.withStatus(WorkspaceStatus.UNAVAILABLE);
-                case OFFLINE -> workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
-                case UNKNOWN -> throw new IllegalStateException("Unknown connector workspace status");
-            };
-        } catch (Exception e) {
-            LOG.warn("Cannot reach the connector, marking as offline: workspaceId={}", workspaceInfo.id());
-            return workspaceInfo.withStatus(WorkspaceStatus.OFFLINE);
-        }
     }
 
     @Override
