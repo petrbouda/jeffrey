@@ -1,0 +1,154 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * The hero card at the top of the docs overview pages: an eyebrow pill, a title,
+ * a lede and optional call-to-action buttons. Import it inside a page's scoped
+ * <style> after docs-page.css. Defaults give the compact Microscope hero; a page
+ * tunes it by overriding the custom properties on its own `.hero` rule.
+ */
+.hero {
+  --hero-tint: 94, 100, 255;
+  --hero-glow-alpha: 0.12;
+  --hero-accent: #5e64ff;
+  --hero-margin-bottom: 2rem;
+  --hero-padding: 2rem 2rem 1.85rem;
+  --hero-padding-mobile: 1.6rem 1.2rem;
+  --hero-title-size: 1.85rem;
+  --hero-title-size-mobile: 1.5rem;
+  --hero-lede-margin: 0;
+  --hero-lede-size-mobile: 0.95rem;
+  --hero-cta-from: #5e64ff;
+  --hero-cta-to: #4338ca;
+  --hero-cta-shadow: 94, 100, 255;
+
+  margin: 0.25rem 0 var(--hero-margin-bottom);
+  padding: var(--hero-padding);
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(var(--hero-tint), 0.10) 0%, rgba(var(--hero-tint), 0) 60%),
+    linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(124, 58, 237, var(--hero-glow-alpha)) 0%, rgba(124, 58, 237, 0) 70%);
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--hero-accent);
+  background: #ede9fe;
+  border-radius: 999px;
+}
+
+.hero-eyebrow i {
+  font-size: 0.8rem;
+}
+
+.hero-title {
+  margin: 0 0 0.6rem;
+  font-size: var(--hero-title-size);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.hero-lede {
+  margin: var(--hero-lede-margin);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: #475569;
+  max-width: 60ch;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.hero .hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  white-space: nowrap;
+}
+
+.hero .hero-cta:hover {
+  transform: translateY(-1px);
+}
+
+.hero .hero-cta-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--hero-cta-from) 0%, var(--hero-cta-to) 100%);
+  box-shadow: 0 4px 14px rgba(var(--hero-cta-shadow), 0.35);
+}
+
+.hero .hero-cta-primary:hover {
+  box-shadow: 0 6px 18px rgba(var(--hero-cta-shadow), 0.45);
+  color: #fff;
+}
+
+.hero .hero-cta-ghost {
+  color: #6d28d9;
+  background: #fff;
+  border: 1px solid #c4b5fd;
+}
+
+.hero .hero-cta-ghost:hover {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--hero-padding-mobile);
+  }
+
+  .hero-title {
+    font-size: var(--hero-title-size-mobile);
+  }
+
+  .hero-lede {
+    font-size: var(--hero-lede-size-mobile);
+  }
+}

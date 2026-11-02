@@ -162,63 +162,10 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+@import '@/views/docs/docs-hero.css';
 
-/* ============ HERO ============ */
 .hero {
-  margin: 0.25rem 0 1.5rem;
-  padding: 2rem 2rem 1.85rem;
-  background:
-    radial-gradient(120% 100% at 100% 0%, rgba(94, 100, 255, 0.10) 0%, rgba(94, 100, 255, 0) 60%),
-    linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  position: relative;
-  overflow: hidden;
-}
-
-.hero::before {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -10%;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, rgba(124, 58, 237, 0) 70%);
-  pointer-events: none;
-}
-
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.75rem;
-  padding: 0.3rem 0.65rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #5e64ff;
-  background: #ede9fe;
-  border-radius: 999px;
-}
-
-.hero-eyebrow i { font-size: 0.8rem; }
-
-.hero-title {
-  margin: 0 0 0.6rem;
-  font-size: 1.85rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #0f172a;
-  line-height: 1.15;
-}
-
-.hero-lede {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.55;
-  color: #475569;
-  max-width: 60ch;
+  --hero-margin-bottom: 1.5rem;
 }
 
 /* ============ HERO PROMO (embedded "Tour with Examples" CTA) ============ */
@@ -441,9 +388,6 @@ onMounted(() => {
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
-  .hero { padding: 1.6rem 1.2rem; }
-  .hero-title { font-size: 1.5rem; }
-  .hero-lede { font-size: 0.95rem; }
   .hero .hero-promo { flex-wrap: wrap; }
   .install-tiles { grid-template-columns: 1fr; }
 }

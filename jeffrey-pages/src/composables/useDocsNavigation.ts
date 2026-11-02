@@ -19,14 +19,14 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import type { DocSection, DocPage, AdjacentPages, DocPageWithCategory, SearchableDoc } from '@/types/docs';
 
-export interface BreadcrumbItem {
+interface BreadcrumbItem {
   label: string
   to?: string
 }
 
 export type Product = 'microscope' | 'microscope-mcp' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
 
-export interface ProductInfo {
+interface ProductInfo {
   id: Product;
   title: string;
   icon: string;
@@ -99,7 +99,7 @@ const INTELLIJ_PLUGIN_SEGMENTS = new Set(['intellij-plugin']);
 // events/profiles pages).
 const TRACING_SEGMENTS = new Set(['tracing']);
 
-export const microscopeNavigation: DocSection[] = [
+const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
   // so the most-used links sit at the root of the sidebar. Synthetic section paths
   // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic
@@ -242,7 +242,7 @@ export const microscopeNavigation: DocSection[] = [
   }
 ];
 
-export const microscopeMcpNavigation: DocSection[] = [
+const microscopeMcpNavigation: DocSection[] = [
   // Standalone product section for the MCP integration — the server that lets an outside coding
   // agent (anything that speaks MCP 2026-07-28) read the profiles this Microscope has
   // analysed. Single-page entries use synthetic `_` paths with absolute `to:` children; groups
@@ -292,7 +292,7 @@ export const microscopeMcpNavigation: DocSection[] = [
   }
 ];
 
-export const hubNavigation: DocSection[] = [
+const hubNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Hub" group
   // so the most-used links sit at the root of the sidebar. Synthetic section paths
   // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic
@@ -358,7 +358,7 @@ export const hubNavigation: DocSection[] = [
   }
 ];
 
-export const provisionerNavigation: DocSection[] = [
+const provisionerNavigation: DocSection[] = [
   // Standalone product section for the Provisioner. Overview is promoted to the root
   // of the sidebar (synthetic `_` path); the remaining pages follow as single entries.
   {
@@ -395,7 +395,7 @@ export const provisionerNavigation: DocSection[] = [
   }
 ];
 
-export const jibNavigation: DocSection[] = [
+const jibNavigation: DocSection[] = [
   // Standalone product section for Jeffrey JIB. Overview is promoted to the root of the
   // sidebar (synthetic `_` path); the remaining pages follow as single entries.
   {
@@ -426,7 +426,7 @@ export const jibNavigation: DocSection[] = [
   }
 ];
 
-export const intellijPluginNavigation: DocSection[] = [
+const intellijPluginNavigation: DocSection[] = [
   // Standalone product section for the IntelliJ Plugin. Overview is promoted to the root of the
   // sidebar (synthetic `_` path); the remaining pages follow as single entries.
   {
@@ -455,7 +455,7 @@ export const intellijPluginNavigation: DocSection[] = [
   }
 ];
 
-export const tracingNavigation: DocSection[] = [
+const tracingNavigation: DocSection[] = [
   // Standalone product section for Jeffrey Tracing. Single-page entries use synthetic
   // `_` paths with absolute `to:` children; multi-page groups render as collapsible sections.
   {
@@ -545,7 +545,7 @@ export const tracingNavigation: DocSection[] = [
 ];
 
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
+const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -622,7 +622,7 @@ export function getAllDocs(): SearchableDoc[] {
 // separate sidebars, so the last Microscope page must NOT chain into the first
 // Server page (and vice versa). Routes that don't belong to either product
 // (e.g. /docs/getting-started/…) default to Microscope, matching DocsSidebar.
-export function getAdjacentPages(routePath: string): AdjacentPages {
+function getAdjacentPages(routePath: string): AdjacentPages {
   const product = getProductForPath(routePath) ?? 'microscope';
   const sections = navigationForProduct(product);
   const allPages: DocPageWithCategory[] = [];

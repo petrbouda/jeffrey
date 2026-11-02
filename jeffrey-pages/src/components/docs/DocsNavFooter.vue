@@ -26,7 +26,7 @@ const { adjacentPages } = useDocsNavigation();
     <router-link
       v-if="adjacentPages.prev?.to"
       :to="adjacentPages.prev.to"
-      class="nav-link prev"
+      class="docs-nav-link docs-nav-link--prev"
     >
       <i class="bi bi-arrow-left"></i>
       <div class="nav-text">
@@ -39,7 +39,7 @@ const { adjacentPages } = useDocsNavigation();
     <router-link
       v-if="adjacentPages.next?.to"
       :to="adjacentPages.next.to"
-      class="nav-link next"
+      class="docs-nav-link docs-nav-link--next"
     >
       <div class="nav-text">
         <span class="nav-label">Next</span>
@@ -52,5 +52,95 @@ const { adjacentPages } = useDocsNavigation();
 </template>
 
 <style scoped>
-@import '@/views/docs/docs-page.css';
+.docs-nav-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.docs-nav-link {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 45%;
+  padding: 1rem 1.25rem;
+  overflow: hidden;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: inherit;
+  text-decoration: none;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.docs-nav-link:hover {
+  background: linear-gradient(135deg, rgba(94, 100, 255, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+}
+
+.docs-nav-link:focus-visible {
+  outline: 2px solid #5e64ff;
+  outline-offset: 2px;
+}
+
+.docs-nav-link--prev:hover {
+  transform: translateX(-4px);
+}
+
+.docs-nav-link--next {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.docs-nav-link--next:hover {
+  transform: translateX(4px);
+}
+
+.docs-nav-link i {
+  font-size: 1.25rem;
+  color: #5e64ff;
+}
+
+.nav-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+}
+
+.nav-title {
+  font-weight: 600;
+  color: #343a40;
+}
+
+.nav-section {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.15rem;
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .docs-nav-footer {
+    flex-direction: column;
+  }
+
+  .docs-nav-link {
+    max-width: 100%;
+    font-size: 1rem;
+  }
+}
 </style>

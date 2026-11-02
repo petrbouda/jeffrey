@@ -16,43 +16,234 @@
 -->
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
-interface HeroBullet {
+const MICROSCOPE_JAR_URL = 'https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar';
+const COPIED_FEEDBACK_MS = 1400;
+
+// ---------- Hero constellation ----------
+
+// Node coordinates live in the cosmos SVG viewBox (0 0 100 92); the core sits at (CORE_X, CORE_Y).
+const COSMOS_HEIGHT = 92;
+const CORE_X = 50;
+const CORE_Y = 46;
+
+interface CosmosNode {
+  id: string;
+  name: string;
+  sub: string;
   icon: string;
-  text: string;
+  tip: string;
+  to: string;
+  x: number;
+  y: number;
+  color: string;
+  // Seconds; offsets the float animation and the pulse speed so nodes don't move in lockstep.
+  delay: number;
+  big?: boolean;
+  // Bottom nodes open their tooltip upwards.
+  tipUp?: boolean;
 }
 
-const microscopeHeroBullets: HeroBullet[] = [
-  { icon: 'bi-fire', text: 'Interactive flamegraphs or specialized dashboards' },
-  { icon: 'bi-arrows-collapse', text: 'Differential flamegraphs across profiles' },
-  { icon: 'bi-droplet-half', text: 'JFR and heap dumps — one analyzer' },
-  { icon: 'bi-plug', text: 'Pull from the Azure file share holding your recordings, or analyze a JFR file standalone' }
+const cosmosNodes: CosmosNode[] = [
+  {
+    id: 'microscope', name: 'Microscope', sub: 'for you', icon: 'bi-search', big: true,
+    tip: 'Flamegraphs, differential views, sub-second timelines, heap dumps and JVM dashboards from your JFR recordings.',
+    to: '/docs/microscope', x: 24, y: 17, color: 'var(--ms)', delay: 0
+  },
+  {
+    id: 'mcp', name: 'Microscope MCP', sub: 'for your coding agent', icon: 'bi-stars', big: true,
+    tip: '112 tools over MCP for Claude Code, Codex and any MCP client. Jeffrey never calls a model itself.',
+    to: '/docs/microscope-mcp', x: 76, y: 21, color: 'var(--mcp)', delay: 1.4
+  },
+  {
+    id: 'hub', name: 'Hub', sub: 'shared volume', icon: 'bi-cloud',
+    tip: 'Runs in Kubernetes. Retention, cleanup and LZ4 compression of the volume your services record into.',
+    to: '/docs/hub', x: 15, y: 55, color: 'var(--ember)', delay: 2.6
+  },
+  {
+    id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack',
+    tip: 'Jump from any flamegraph frame to the source line in your open IntelliJ, Java and Kotlin.',
+    to: '/docs/intellij-plugin', x: 85, y: 59, color: 'var(--ide)', delay: 0.8
+  },
+  {
+    id: 'provisioner', name: 'Provisioner', sub: 'session bootstrap', icon: 'bi-terminal', tipUp: true,
+    tip: 'A native CLI. One HOCON file lays out sessions and writes the JVM argfile that starts your app under the profiler.',
+    to: '/docs/provisioner', x: 29, y: 84, color: 'var(--amber)', delay: 3.2
+  },
+  {
+    id: 'jib', name: 'Jeffrey JIB', sub: 'build-time', icon: 'bi-box-seam', tipUp: true,
+    tip: 'A Jib extension that wraps the container entrypoint, so profiling starts before your app does.',
+    to: '/docs/jib', x: 71, y: 86, color: 'var(--amber)', delay: 2
+  }
 ];
 
-type AgentLineKind = 'prompt' | 'tool' | 'result';
+const hoveredNode = ref<string | null>(null);
 
-interface AgentLine {
-  kind: AgentLineKind;
-  text: string;
-  highlight?: string;
-  suffix?: string;
+function nodeStyle(node: CosmosNode): Record<string, string> {
+  return {
+    left: `${node.x}%`,
+    top: `${(node.y / COSMOS_HEIGHT) * 100}%`,
+    '--node-color': node.color,
+    '--delay': `-${node.delay}s`
+  };
 }
 
-// A short, illustrative agent session shown in the right hero half.
-const agentSession: AgentLine[] = [
-  { kind: 'prompt', text: 'Why is checkout slow? perf/checkout.jfr' },
-  { kind: 'tool', text: '', highlight: 'recordings_analyzeFile → flamegraph_export' },
-  { kind: 'result', text: '38% of CPU in PriceCalculator.applyRules', suffix: ' — Pattern.compile per request' },
-  { kind: 'tool', text: '', highlight: 'ide_resolve → PriceCalculator.java:87' }
+function pulsePath(node: CosmosNode): string {
+  return `M${CORE_X},${CORE_Y} L${node.x},${node.y}`;
+}
+
+// ---------- Starfield ----------
+
+const STAR_RGB = '120, 86, 40';
+const STAR_DENSITY_PX2 = 5200;
+const STAR_SEED = 11;
+const STAR_RESIZE_DEBOUNCE_MS = 150;
+const MAX_DEVICE_PIXEL_RATIO = 2;
+
+const skyCanvas = ref<HTMLCanvasElement | null>(null);
+let resizeTimer: number | undefined;
+
+// Deterministic generator so the sky looks the same on every visit.
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return state / 2147483647;
+  };
+}
+
+function drawSky(): void {
+  const canvas = skyCanvas.value;
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const random = seededRandom(STAR_SEED);
+  const count = Math.round((rect.width * rect.height) / STAR_DENSITY_PX2);
+  for (let i = 0; i < count; i++) {
+    const x = random() * rect.width;
+    const y = random() * rect.height;
+    const size = random() * 1.1 + 0.2;
+    ctx.fillStyle = `rgba(${STAR_RGB}, ${0.08 + random() * 0.22})`;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function onResize(): void {
+  window.clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(drawSky, STAR_RESIZE_DEBOUNCE_MS);
+}
+
+onMounted(() => {
+  drawSky();
+  window.addEventListener('resize', onResize);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize);
+  window.clearTimeout(resizeTimer);
+});
+
+// ---------- Pipeline route ----------
+
+// Positions are percentages of the route box (viewBox 0 0 1000 300).
+interface RouteStation {
+  name: string;
+  sub: string;
+  icon: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
+interface NoteSegment {
+  text: string;
+  strong?: boolean;
+}
+
+// A dashed side note hanging under a station: who helps it, or what else it accepts.
+interface RouteNote {
+  icon: string;
+  color: string;
+  parts: NoteSegment[];
+  x: number;
+  y: number;
+}
+
+interface RouteHop {
+  label: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
+const ROUTE_PATH = 'M10 180 L110 180 C 210 180, 270 60, 370 60 S 530 180, 630 180 S 790 60, 890 60 L990 60';
+const ROUTE_PULSE_BEGINS = ['0s', '-2s', '-4s'];
+const ROUTE_DASHES = ['M110 208 L110 248', 'M370 88 L370 138', 'M630 208 L630 248', 'M890 88 L890 138'];
+
+const routeStations: RouteStation[] = [
+  { name: 'Your services', sub: 'JFR · async-profiler', icon: 'bi-boxes', color: 'var(--ember)', x: 11, y: 60 },
+  { name: 'Shared volume', sub: '/mnt/jeffrey-home', icon: 'bi-hdd-stack', color: 'var(--amber)', x: 37, y: 20 },
+  { name: 'Microscope', sub: 'flamegraphs · dashboards', icon: 'bi-search', color: 'var(--ms)', x: 63, y: 60 },
+  { name: 'Coding agent', sub: 'Claude Code · Codex', icon: 'bi-stars', color: 'var(--mcp)', x: 89, y: 20 }
 ];
 
-const agentClients: string[] = ['Claude Code', 'Codex', 'Gemini CLI · soon', 'any MCP client'];
+const routeHops: RouteHop[] = [
+  { label: 'record', color: 'var(--ember)', x: 24, y: 40 },
+  { label: 'Connector', color: 'var(--ms)', x: 50, y: 40 },
+  { label: 'MCP', color: 'var(--mcp)', x: 76, y: 40 }
+];
 
-type Tab = 'microscope' | 'mcp' | 'plugin' | 'server';
+const routeNotes: RouteNote[] = [
+  {
+    icon: 'bi-terminal', color: 'var(--ember)', x: 11, y: 86.7,
+    parts: [{ text: 'Provisioner', strong: true }, { text: ' or ' }, { text: 'JIB', strong: true }, { text: ' starts them' }]
+  },
+  {
+    icon: 'bi-cloud', color: 'var(--ember)', x: 37, y: 50,
+    parts: [{ text: 'Jeffrey Hub', strong: true }, { text: ' keeps it tidy' }]
+  },
+  {
+    icon: 'bi-file-earmark-arrow-up', color: 'var(--ms)', x: 63, y: 86.7,
+    parts: [{ text: 'or drop in a ' }, { text: '.jfr file', strong: true }]
+  },
+  {
+    icon: 'bi-code-slash', color: 'var(--mcp)', x: 89, y: 50,
+    parts: [{ text: 'Investigates', strong: true }, { text: ' and ' }, { text: 'changes the code', strong: true }]
+  }
+];
+
+// On narrow screens the route becomes a vertical timeline: each station, then its note, then the hop to the next.
+const routeSteps = routeStations.map((station, i) => ({
+  station,
+  note: routeNotes[i],
+  hop: routeHops[i]
+}));
+
+function positionStyle(item: { x: number; y: number; color?: string }): Record<string, string> {
+  const style: Record<string, string> = { '--x': `${item.x}%`, '--y': `${item.y}%` };
+  if (item.color) {
+    style['--c'] = item.color;
+  }
+  return style;
+}
+
+// ---------- Product showcase ----------
+
+type Tab = 'microscope' | 'mcp' | 'plugin' | 'hub';
 
 interface TopologyNode {
-  kind: 'apps' | 'volume' | 'server';
   icon: string;
   label: string;
   code?: string;
@@ -65,7 +256,7 @@ interface MarketplaceInstall {
   name: string;
   sub: string;
   iconPath: string;
-  badges: { label: string; variant?: 'free' | 'compat' | 'default' }[];
+  badges: string[];
 }
 
 interface ProductTab {
@@ -86,8 +277,6 @@ interface ProductTab {
   docsRoute: string;
   cta: string;
 }
-
-const activeTab = ref<Tab>('microscope');
 
 const productTabs: ProductTab[] = [
   {
@@ -110,7 +299,7 @@ const productTabs: ProductTab[] = [
       desc: 'No Hub required. Drop it on your laptop, drop in a JFR file, browse.',
       cmd: 'docker run -it --network host petrbouda/microscope-examples'
     },
-    docsRoute: '/docs/microscope/overview',
+    docsRoute: '/docs/microscope',
     cta: 'Read Microscope docs'
   },
   {
@@ -156,18 +345,14 @@ const productTabs: ProductTab[] = [
         name: 'Jeffrey Microscope',
         sub: 'JetBrains Marketplace · by Petr Bouda',
         iconPath: '/images/release-notes/v0.10.0/plugin-icon.svg',
-        badges: [
-          { label: 'FREE', variant: 'free' },
-          { label: 'Apache 2.0' },
-          { label: 'IDEA 2025.1+', variant: 'compat' }
-        ]
+        badges: ['FREE', 'Apache 2.0', 'IDEA 2025.1+']
       }
     },
     docsRoute: '/docs/intellij-plugin',
     cta: 'Read plugin docs'
   },
   {
-    id: 'server',
+    id: 'hub',
     name: 'Jeffrey Hub',
     icon: 'bi-cloud-fill',
     tagline: 'Maintenance service for the shared recording volume.',
@@ -184,9 +369,9 @@ const productTabs: ProductTab[] = [
       title: 'Deploys to Kubernetes',
       desc: 'Hub runs alongside your services on the shared volume they record into.',
       topology: [
-        { kind: 'apps', icon: 'bi-app-indicator', label: 'Your services', em: '+ provisioner' },
-        { kind: 'volume', icon: 'bi-hdd-stack', code: '/mnt/jeffrey-home', label: 'shared volume' },
-        { kind: 'server', icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'Scheduler jobs' }
+        { icon: 'bi-app-indicator', label: 'Your services', em: '+ provisioner' },
+        { icon: 'bi-hdd-stack', code: '/mnt/jeffrey-home', label: 'shared volume' },
+        { icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'Scheduler jobs' }
       ]
     },
     docsRoute: '/docs/hub/deployment',
@@ -194,1532 +379,1348 @@ const productTabs: ProductTab[] = [
   }
 ];
 
-interface EcoProduct {
-  id: string;
-  name: string;
-  role: string;
-  desc: string;
-  icon: string;
-  chips: string[];
-  to: string;
-}
-
-// The rest of the Jeffrey ecosystem — companion products shown under the
-// Microscope + Microscope MCP hero.
-const ecosystem: EcoProduct[] = [
-  {
-    id: 'provisioner',
-    name: 'Provisioner',
-    role: 'Standalone · Session bootstrap',
-    icon: 'bi-terminal',
-    desc: 'One HOCON file lays out your workspace, project and session tree, registers sessions on the shared volume, and generates the JVM argfile that starts your app under the profiler.',
-    chips: ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'],
-    to: '/docs/provisioner'
-  },
-  {
-    id: 'jib',
-    name: 'Jeffrey JIB',
-    role: 'Standalone · Build-time',
-    icon: 'bi-box-seam',
-    desc: 'A Jib (Gradle/Maven) extension that wraps your container entrypoint so Jeffrey profiling starts before your app does — no command override, and the provisioner and async-profiler ride along in their own image layer.',
-    chips: ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'],
-    to: '/docs/jib'
-  },
-  {
-    id: 'plugin',
-    name: 'IntelliJ Plugin',
-    role: 'IDE · Companion',
-    icon: 'bi-window-stack',
-    desc: 'Jump from any Microscope flame-graph frame straight to the source line in your open IntelliJ — Java and Kotlin — or pull inline source back into the profile.',
-    chips: ['Open in IDE', 'Inline source', 'Multi-IDE', 'Marketplace'],
-    to: '/docs/intellij-plugin'
-  },
-  {
-    id: 'hub',
-    name: 'Jeffrey Hub',
-    role: 'Kubernetes · Maintenance',
-    icon: 'bi-cloud-fill',
-    desc: 'Maintains the shared volume your services write JFR recordings, heap dumps and logs into — retention, cleanup and LZ4 compression as scheduled jobs. Microscope, and your agent through it, reads that volume from the Azure file share.',
-    chips: ['Kubernetes', 'Shared volume', 'Retention', 'Compression'],
-    to: '/docs/hub/overview'
-  }
-];
+const activeTab = ref<Tab>('microscope');
+const copied = ref(false);
 
 const active = computed(() => productTabs.find(p => p.id === activeTab.value)!);
 
-function copyCmd(): void {
-  if (active.value.deployment.cmd) {
-    navigator.clipboard.writeText(active.value.deployment.cmd);
+function selectTab(id: Tab): void {
+  activeTab.value = id;
+}
+
+function onTabKeydown(event: KeyboardEvent, index: number): void {
+  const moves: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
+  const move = moves[event.key];
+  if (move === undefined) {
+    return;
+  }
+  event.preventDefault();
+  const next = productTabs[(index + move + productTabs.length) % productTabs.length];
+  selectTab(next.id);
+  document.getElementById(`home-tab-${next.id}`)?.focus();
+}
+
+async function copyCmd(): Promise<void> {
+  const cmd = active.value.deployment.cmd;
+  if (!cmd) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(cmd);
+    copied.value = true;
+    window.setTimeout(() => {
+      copied.value = false;
+    }, COPIED_FEEDBACK_MS);
+  } catch {
+    copied.value = false;
   }
 }
 </script>
 
 <template>
-  <!-- Dual Hero: Microscope for you, Microscope MCP for your coding agent -->
-  <section class="dual-hero">
-    <div class="hero-half hero-microscope">
-      <div class="hero-half-bg">
-        <div class="bg-grid"></div>
-        <div class="bg-glow bg-glow--microscope"></div>
-      </div>
-      <div class="hero-half-content">
-        <div class="product-eyebrow eyebrow--microscope">
-          <span class="eyebrow-icon"><i class="bi bi-search-heart-fill"></i></span>
-          <span class="eyebrow-text">
-            <strong class="eyebrow-name">Jeffrey Microscope</strong>
-            <span class="eyebrow-tag">for you</span>
-          </span>
+  <div class="home">
+    <!-- Hero: the Jeffrey mark at the centre of its product constellation -->
+    <section class="hero">
+      <canvas ref="skyCanvas" class="sky" aria-hidden="true"></canvas>
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <span class="kicker">JVM performance analyst · self-hosted</span>
+          <h1 class="hero-title"><span class="hero-title-dim">Profile your JVM</span><br />with runtime data.</h1>
+          <p class="lede">
+            Jeffrey turns JFR recordings and heap dumps into flamegraphs, timeseries and JVM dashboards.
+            You read them in Microscope, and your coding agent reads the same profile over MCP.
+          </p>
+          <div class="ctas">
+            <router-link to="/docs/microscope/quick-start" class="hero-cta hero-cta--primary">
+              Get started <i class="bi bi-arrow-right"></i>
+            </router-link>
+            <router-link to="/docs/microscope-mcp/claude-code" class="hero-cta hero-cta--agent">
+              <i class="bi bi-stars"></i> Connect your agent
+            </router-link>
+          </div>
+          <div class="formats">
+            <span>JFR</span><span>HPROF</span><span>pprof</span><span>OTLP</span><span>Apache-2.0</span>
+            <a :href="MICROSCOPE_JAR_URL">microscope.jar <i class="bi bi-download"></i></a>
+          </div>
         </div>
-        <h1 class="product-title">
-          Analyze recordings<br/>
-          <span class="title-accent title-accent--microscope">on your desk.</span>
-        </h1>
-        <p class="product-subtitle">
-          A deep analyzer for JFR recordings and heap dumps. Upload a file, or declare
-          a remote — the Azure file share holding your recordings — and pull them directly.
-        </p>
-        <ul class="bullet-list">
-          <li v-for="(b, i) in microscopeHeroBullets" :key="i">
-            <i class="bi" :class="b.icon"></i>
-            <span>{{ b.text }}</span>
-          </li>
-        </ul>
-        <div class="cta-row">
-          <router-link to="/docs/microscope/overview" class="cta cta--primary cta--microscope">
-            <span>Explore Microscope</span>
-            <i class="bi bi-arrow-right"></i>
-          </router-link>
-          <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar" class="cta cta--ghost">
-            <i class="bi bi-download"></i>
-            <span>Download JAR</span>
-          </a>
-        </div>
-      </div>
-    </div>
 
-    <div class="hero-half hero-ai">
-      <div class="hero-half-bg">
-        <div class="bg-grid"></div>
-        <div class="bg-glow bg-glow--ai"></div>
-      </div>
-      <div class="hero-half-content">
-        <div class="product-eyebrow eyebrow--ai">
-          <span class="eyebrow-icon"><i class="bi bi-stars"></i></span>
-          <span class="eyebrow-text">
-            <strong class="eyebrow-name">Microscope MCP</strong>
-            <span class="eyebrow-tag">for your coding agent</span>
-          </span>
-        </div>
-        <h1 class="product-title">
-          Let your agent<br/>
-          <span class="title-accent title-accent--ai">read the profile.</span>
-        </h1>
-        <p class="product-subtitle">
-          The same analysis, served over MCP to Claude Code, Codex and any MCP client —
-          so hot frames land next to your source code.
-        </p>
-        <div class="agent-term" aria-label="Example coding-agent session">
-          <div class="agent-term-bar">
-            <span class="agent-term-dot"></span>
-            <span class="agent-term-dot"></span>
-            <span class="agent-term-dot"></span>
-            <span class="agent-term-title">claude</span>
-            <span class="agent-term-endpoint">● /api/mcp</span>
-          </div>
-          <div class="agent-term-body">
-            <div v-for="(line, i) in agentSession" :key="i" class="agent-line" :class="`agent-line--${line.kind}`">
-              <template v-if="line.kind === 'tool'">⏺ <b>{{ line.highlight }}</b></template>
-              <template v-else-if="line.kind === 'result'"><b>{{ line.text }}</b>{{ line.suffix }}</template>
-              <template v-else>{{ line.text }}</template>
-            </div>
-          </div>
-        </div>
-        <div class="agent-clients">
-          <span v-for="c in agentClients" :key="c" class="agent-client">{{ c }}</span>
-        </div>
-        <div class="cta-row">
-          <router-link to="/docs/microscope-mcp/claude-code" class="cta cta--primary cta--ai">
-            <span>Connect your agent</span>
-            <i class="bi bi-arrow-right"></i>
-          </router-link>
-          <router-link to="/docs/microscope-mcp" class="cta cta--ghost">
-            <i class="bi bi-book"></i>
-            <span>MCP docs</span>
+        <div class="cosmos" aria-label="The Jeffrey product family">
+          <svg class="cosmos-links" viewBox="0 0 100 92" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <ellipse class="ring" :cx="CORE_X" :cy="CORE_Y" rx="34" ry="31" />
+            <ellipse class="ring ring--outer" :cx="CORE_X" :cy="CORE_Y" rx="47" ry="43" />
+            <line
+              v-for="node in cosmosNodes"
+              :key="`edge-${node.id}`"
+              class="edge"
+              :class="{ 'edge--on': hoveredNode === node.id }"
+              :x1="CORE_X" :y1="CORE_Y" :x2="node.x" :y2="node.y"
+              :style="{ stroke: node.color }"
+            />
+            <circle
+              v-for="node in cosmosNodes"
+              :key="`pulse-${node.id}`"
+              class="pulse"
+              r=".7"
+              :style="{ fill: node.color }"
+            >
+              <animateMotion :dur="`${3 + node.delay}s`" repeatCount="indefinite" :path="pulsePath(node)" />
+            </circle>
+          </svg>
+          <div class="core"><img src="/images/jeffrey-icon.svg" alt="" /></div>
+          <router-link
+            v-for="node in cosmosNodes"
+            :key="node.id"
+            :to="node.to"
+            class="node"
+            :class="[`node--${node.id}`, { 'node--big': node.big, 'node--tip-up': node.tipUp }]"
+            :style="nodeStyle(node)"
+            @mouseenter="hoveredNode = node.id"
+            @mouseleave="hoveredNode = null"
+            @focus="hoveredNode = node.id"
+            @blur="hoveredNode = null"
+          >
+            <span class="node-card">
+              <span class="node-ic"><i class="bi" :class="node.icon"></i></span>
+              <span><b>{{ node.name }}</b><small>{{ node.sub }}</small></span>
+            </span>
+            <span class="tip">
+              {{ node.tip }}
+              <strong>Open docs <i class="bi bi-arrow-up-right"></i></strong>
+            </span>
           </router-link>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="hero-seam">
-      <div class="seam-link">
-        <span class="seam-cable seam-cable--microscope">
-          <span class="seam-dot seam-dot--microscope"></span>
-        </span>
-        <div class="seam-pill">
-          <i class="bi bi-arrow-left-right seam-arrow"></i>
+    <div class="wrap"><div class="divider" aria-hidden="true"><img src="/images/jeffrey-icon.svg" alt="" /></div></div>
+
+    <!-- How the parts connect: one curved route from your services to your coding agent -->
+    <section class="pipeline" aria-labelledby="pipeline-title">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="pipeline-title">One JFR pipeline. Every part works alone.</h2>
+          <p>Your services record to a shared volume. Microscope reads it, or any JFR file you drop in, and your coding agent turns the findings into a code change.</p>
         </div>
-        <span class="seam-cable seam-cable--ai">
-          <span class="seam-dot seam-dot--ai"></span>
-        </span>
-      </div>
-    </div>
-  </section>
-
-  <!-- The rest of the Jeffrey ecosystem -->
-  <section class="ecosystem">
-    <div class="container-wide">
-      <div class="eco-head">
-        <span class="eco-rule"></span>
-        <span class="eco-eyebrow"><i class="bi bi-grid-1x2-fill"></i> The Jeffrey ecosystem</span>
-        <span class="eco-rule eco-rule--r"></span>
-      </div>
-      <div class="eco-grid">
-        <router-link
-          v-for="p in ecosystem"
-          :key="p.id"
-          :to="p.to"
-          class="eco-card"
-          :class="`eco-card--${p.id}`"
-        >
-          <div class="eco-ic"><i class="bi" :class="p.icon"></i></div>
-          <div class="eco-body">
-            <div class="eco-title">
-              <span>{{ p.name }}</span>
+        <div class="route">
+          <svg class="route-svg" viewBox="0 0 1000 300" aria-hidden="true">
+            <defs>
+              <linearGradient id="home-route-gradient" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="990" y2="0">
+                <stop offset="0" style="stop-color: var(--ember); stop-opacity: 0" />
+                <stop offset="0.1" style="stop-color: var(--ember)" />
+                <stop offset="0.37" style="stop-color: var(--amber)" />
+                <stop offset="0.63" style="stop-color: var(--ms)" />
+                <stop offset="0.9" style="stop-color: var(--mcp)" />
+                <stop offset="1" style="stop-color: var(--mcp); stop-opacity: 0" />
+              </linearGradient>
+            </defs>
+            <path v-for="dash in ROUTE_DASHES" :key="dash" class="route-dash" :d="dash" />
+            <path class="route-glow" :d="ROUTE_PATH" />
+            <path id="home-route-path" class="route-line" :d="ROUTE_PATH" />
+            <circle v-for="begin in ROUTE_PULSE_BEGINS" :key="begin" class="pulse route-pulse" r="4">
+              <animateMotion dur="6s" repeatCount="indefinite" :begin="begin">
+                <mpath href="#home-route-path" />
+              </animateMotion>
+            </circle>
+          </svg>
+          <template v-for="step in routeSteps" :key="step.station.name">
+            <div class="station" :style="positionStyle(step.station)">
+              <span class="station-ic"><i class="bi" :class="step.station.icon"></i></span>
+              <span><b>{{ step.station.name }}</b><small>{{ step.station.sub }}</small></span>
             </div>
-            <div class="eco-role">{{ p.role }}</div>
-            <p class="eco-desc">{{ p.desc }}</p>
-            <div class="eco-chips">
-              <span v-for="c in p.chips" :key="c" class="eco-chip">{{ c }}</span>
-            </div>
-          </div>
-        </router-link>
+            <span class="route-note" :style="positionStyle(step.note)">
+              <i class="bi" :class="step.note.icon"></i>
+              <span>
+                <template v-for="(part, i) in step.note.parts" :key="i">
+                  <b v-if="part.strong">{{ part.text }}</b><template v-else>{{ part.text }}</template>
+                </template>
+              </span>
+            </span>
+            <span v-if="step.hop" class="hop" :style="positionStyle(step.hop)">{{ step.hop.label }}</span>
+          </template>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Tabbed showcase -->
-  <section class="tab-showcase" :data-active="activeTab">
-    <div class="container-wide">
-      <div class="tab-bar">
-        <button
-          v-for="t in productTabs"
-          :key="t.id"
-          class="tab-btn"
-          :class="[`tab-btn--${t.id}`, { active: activeTab === t.id }]"
-          @click="activeTab = t.id"
-        >
-          <i class="bi" :class="t.icon"></i>
-          <span class="tab-name">{{ t.name }}</span>
-        </button>
-      </div>
+    <div class="wrap"><div class="divider" aria-hidden="true"><img src="/images/jeffrey-icon.svg" alt="" /></div></div>
 
-      <div class="tab-panel" :key="activeTab">
-        <div class="tab-panel-header">
-          <h2>{{ active.tagline }}</h2>
-          <p>{{ active.oneLiner }}</p>
+    <!-- Every product, in detail -->
+    <section id="products" class="showcase" :data-active="activeTab">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 class="section-title-lg">Every product, in detail.</h2>
+        </div>
+        <div class="tabbar" role="tablist" aria-label="Products">
+          <button
+            v-for="(t, i) in productTabs"
+            :id="`home-tab-${t.id}`"
+            :key="t.id"
+            type="button"
+            role="tab"
+            class="tab"
+            :aria-selected="activeTab === t.id"
+            :tabindex="activeTab === t.id ? 0 : -1"
+            aria-controls="home-tab-panel"
+            @click="selectTab(t.id)"
+            @keydown="onTabKeydown($event, i)"
+          >
+            <i class="bi" :class="t.icon"></i>
+            <span>{{ t.name }}</span>
+          </button>
         </div>
 
-        <div class="tab-panel-body">
-          <div class="tab-feature-grid">
-            <article class="tab-feature" v-for="f in active.features" :key="f.title">
-              <div class="tab-feature-icon" :class="`tab-feature-icon--${activeTab}`">
-                <i class="bi" :class="f.icon"></i>
-              </div>
-              <h4>{{ f.title }}</h4>
-              <p>{{ f.desc }}</p>
-            </article>
+        <div id="home-tab-panel" :key="activeTab" class="panel" role="tabpanel" :aria-labelledby="`home-tab-${activeTab}`">
+          <div class="panel-head">
+            <h3>{{ active.tagline }}</h3>
+            <p>{{ active.oneLiner }}</p>
           </div>
+          <div class="panel-body">
+            <div class="features">
+              <article v-for="f in active.features" :key="f.title" class="feature">
+                <span class="feature-ic"><i class="bi" :class="f.icon"></i></span>
+                <h4>{{ f.title }}</h4>
+                <p>{{ f.desc }}</p>
+              </article>
+            </div>
 
-          <aside class="tab-deployment" :class="`tab-deployment--${activeTab}`">
-            <span class="dep-eyebrow">{{ active.deployment.eyebrow }}</span>
-            <h4>{{ active.deployment.title }}</h4>
-            <p>{{ active.deployment.desc }}</p>
-            <div class="dep-topology" v-if="active.deployment.topology">
-              <template v-for="(node, i) in active.deployment.topology" :key="i">
-                <div class="topo-row" :class="`topo-row--${node.kind}`">
+            <aside class="dep">
+              <span class="dep-eyebrow">{{ active.deployment.eyebrow }}</span>
+              <h4>{{ active.deployment.title }}</h4>
+              <p>{{ active.deployment.desc }}</p>
+
+              <ol v-if="active.deployment.topology" class="topo">
+                <li v-for="(node, i) in active.deployment.topology" :key="i">
                   <i class="bi" :class="node.icon"></i>
                   <span>
                     <code v-if="node.code">{{ node.code }}</code>
-                    {{ node.label }}<em v-if="node.em"> {{ node.em }}</em>
+                    <b v-else>{{ node.label }}</b>
+                    <template v-if="node.code">{{ ` ${node.label}` }}</template>
+                    <em v-if="node.em">{{ ` ${node.em}` }}</em>
                     <span v-if="node.badge" class="topo-badge">{{ node.badge }}</span>
                   </span>
-                </div>
-                <div class="topo-arrow" v-if="i < active.deployment.topology.length - 1">
-                  <i class="bi bi-arrow-down"></i>
-                </div>
-              </template>
-            </div>
-            <a
-              v-else-if="active.deployment.marketplace"
-              :href="active.deployment.marketplace.url"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="dep-marketplace"
-            >
-              <span class="dep-marketplace-corner">New in 0.10.0</span>
-              <div class="dep-marketplace-head">
-                <div class="dep-marketplace-icon">
-                  <img :src="active.deployment.marketplace.iconPath" :alt="active.deployment.marketplace.name + ' icon'">
-                </div>
-                <div class="dep-marketplace-titlewrap">
-                  <div class="dep-marketplace-title">{{ active.deployment.marketplace.name }}</div>
-                  <div class="dep-marketplace-sub">{{ active.deployment.marketplace.sub }}</div>
-                </div>
-              </div>
-              <div class="dep-marketplace-badges">
-                <span
-                  v-for="b in active.deployment.marketplace.badges"
-                  :key="b.label"
-                  class="dep-marketplace-badge"
-                  :class="b.variant ? `dep-marketplace-badge--${b.variant}` : ''"
-                >{{ b.label }}</span>
-              </div>
-              <div class="dep-marketplace-cta">
-                <span>Install from JetBrains Marketplace</span>
-                <i class="bi bi-arrow-right"></i>
-              </div>
-            </a>
-            <div class="dep-cmd" v-else-if="active.deployment.cmd">
-              <code>{{ active.deployment.cmd }}</code>
-              <button class="dep-copy" @click="copyCmd" title="Copy">
-                <i class="bi bi-clipboard"></i>
-              </button>
-            </div>
-            <router-link :to="active.docsRoute" class="dep-cta" :class="`dep-cta--${activeTab}`">
-              {{ active.cta }} <i class="bi bi-arrow-right"></i>
-            </router-link>
-          </aside>
-        </div>
-      </div>
-    </div>
-  </section>
+                </li>
+              </ol>
 
-  <!-- How they connect -->
-  <section class="connect">
-    <div class="container-wide">
-      <div class="connect-inner">
-        <span class="connect-eyebrow"><i class="bi bi-link-45deg"></i> How they connect</span>
-        <h2>One JFR pipeline. Every half works alone.</h2>
-        <p>
-          Your services write recordings to a shared volume that Jeffrey Hub keeps tidy. Microscope pulls
-          them from that volume on an Azure file share — or works with a JFR file you drop in. You read it
-          in the browser; your coding agent reads it over MCP.
-        </p>
-        <div class="connect-flow">
-          <div class="cf-node cf-node-apps">
-            <i class="bi bi-app-indicator"></i>
-            <span>Your services</span>
-          </div>
-          <div class="cf-arrow">
-            <span>record</span>
-          </div>
-          <div class="cf-node cf-node-server">
-            <i class="bi bi-hdd-stack"></i>
-            <span>Shared volume</span>
-            <small class="cf-node-note">kept tidy by Jeffrey Hub</small>
-          </div>
-          <div class="cf-arrow cf-arrow-volume">
-            <span>Azure Files</span>
-          </div>
-          <div class="cf-node cf-node-microscope">
-            <i class="bi bi-search-heart-fill"></i>
-            <span>Microscope</span>
-          </div>
-          <div class="cf-arrow cf-arrow-mcp">
-            <span>MCP</span>
-          </div>
-          <div class="cf-node cf-node-ai">
-            <i class="bi bi-stars"></i>
-            <span>Coding agent</span>
+              <a
+                v-else-if="active.deployment.marketplace"
+                :href="active.deployment.marketplace.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="market"
+              >
+                <img :src="active.deployment.marketplace.iconPath" :alt="`${active.deployment.marketplace.name} icon`" />
+                <span>
+                  <b>{{ active.deployment.marketplace.name }}</b>
+                  <small>{{ active.deployment.marketplace.sub }}</small>
+                </span>
+                <span class="market-badges">
+                  <em v-for="badge in active.deployment.marketplace.badges" :key="badge">{{ badge }}</em>
+                </span>
+              </a>
+
+              <div v-else-if="active.deployment.cmd" class="cmd">
+                <pre><code>{{ active.deployment.cmd }}</code></pre>
+                <button
+                  type="button"
+                  class="copy"
+                  :class="{ 'copy--done': copied }"
+                  :aria-label="copied ? 'Copied' : 'Copy command'"
+                  @click="copyCmd"
+                >
+                  <i class="bi" :class="copied ? 'bi-check2' : 'bi-clipboard'"></i>
+                </button>
+              </div>
+
+              <router-link :to="active.docsRoute" class="dep-cta">
+                {{ active.cta }} <i class="bi bi-arrow-right"></i>
+              </router-link>
+            </aside>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-
+    </section>
+  </div>
 </template>
 
 <style scoped>
-/* ============ DUAL HERO ============ */
-.dual-hero {
+/* Constellation homepage: warm-paper sky, the Jeffrey mark at the centre of its products,
+   then the pipeline as one curved route, then a tabbed product deep-dive. */
+.home {
+  --night: #faf7f2;
+  --surface: #ffffff;
+  --surface-2: #f6f1ea;
+  --line: rgba(48, 32, 12, 0.09);
+  --line-2: rgba(48, 32, 12, 0.16);
+  --text: #17130e;
+  --muted: #5f584e;
+  --faint: #91887b;
+  --flame: #ff6d00;
+  --amber: #f59e0b;
+  --ember: #e4570b;
+  --flame-ink: #1b0c00;
+  --on-accent: #ffffff;
+  --ms: #2f6bff;
+  --ms-deep: #1d3fd8;
+  --mcp: #0fa572;
+  --mcp-deep: #0b7a55;
+  --ide: #8b5cf6;
+  --core-top: #ffffff;
+  --core-bottom: #fff1e4;
+  --shadow-card: 0 1px 2px rgba(48, 32, 12, 0.06), 0 16px 36px -18px rgba(48, 32, 12, 0.28);
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  background: var(--night);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  padding-bottom: 96px;
+}
+
+/* Neutralise Bootstrap's reboot inside the page. :where() keeps these one class strong:
+   enough to beat Bootstrap's element rules, weak enough for every component rule below to win. */
+.home :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.home :where(h1, h2, h3, h4, p) {
+  margin: 0;
+}
+
+.home h1, .home h2, .home h3 {
+  text-wrap: balance;
+}
+
+.home :focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+.kicker {
+  font: 600 12px/1.4 var(--font-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+
+/* ============ Hero ============ */
+.hero {
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 640px;
   overflow: hidden;
 }
 
-.hero-half {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  padding: 5rem 3.5rem 7.5rem;
-  overflow: hidden;
-}
-
-.hero-ai {
-  background: linear-gradient(135deg, #03140f 0%, #072e25 50%, #065f46 100%);
-  color: #fff;
-}
-
-.hero-microscope {
-  background: linear-gradient(135deg, #061528 0%, #0e2a4d 50%, #1e3a8a 100%);
-  color: #fff;
-}
-
-.hero-half-bg {
+.hero::before {
+  content: '';
   position: absolute;
   inset: 0;
+  background: radial-gradient(40% 55% at 74% 50%, rgba(255, 109, 0, 0.13), transparent 70%);
   pointer-events: none;
 }
 
-.bg-grid {
+.sky {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
-.bg-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.55;
-}
-
-.bg-glow--ai {
-  width: 460px;
-  height: 460px;
-  background: radial-gradient(circle, #34d399 0%, transparent 70%);
-  top: 10%;
-  right: -120px;
-}
-
-.bg-glow--microscope {
-  width: 460px;
-  height: 460px;
-  background: radial-gradient(circle, #38bdf8 0%, transparent 70%);
-  bottom: 10%;
-  left: -120px;
-}
-
-.hero-half-content {
+.hero-grid {
   position: relative;
-  z-index: 2;
-  max-width: 540px;
-  margin-left: auto;       /* default: right-aligned (used by the LEFT half so content sits toward the seam) */
-  display: flex;
-  flex-direction: column;
-}
-
-.hero-ai .hero-half-content {
-  margin-left: 0;
-  margin-right: auto;      /* RIGHT half: left-aligned so content sits toward the seam */
-}
-
-.product-eyebrow {
-  display: inline-flex;
-  align-self: flex-start;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
   align-items: center;
-  gap: 1rem;
-  padding: 0.7rem 1.5rem 0.7rem 0.7rem;
-  border-radius: 16px;
-  margin-bottom: 2rem;
-  backdrop-filter: blur(8px);
+  padding-top: 48px;
+  padding-bottom: 40px;
 }
 
-.eyebrow-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  color: #fff;
-  flex-shrink: 0;
+.hero-copy {
+  display: grid;
+  gap: 24px;
+  align-content: center;
 }
 
-.eyebrow-text {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  line-height: 1.05;
-}
-
-.eyebrow-name {
-  font-size: 1.3rem;
+.hero-title {
+  font-size: clamp(30px, 3.4vw, 50px);
   font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.005em;
-}
-
-.eyebrow-tag {
-  font-style: normal;
-  font-weight: 600;
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.eyebrow--ai {
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.45);
-  box-shadow: 0 6px 24px rgba(52, 211, 153, 0.22);
-}
-
-.eyebrow--ai .eyebrow-icon {
-  background: linear-gradient(135deg, #34d399, #059669);
-  box-shadow: 0 4px 14px rgba(52, 211, 153, 0.5);
-}
-
-.eyebrow--ai .eyebrow-tag {
-  color: #6ee7b7;
-}
-
-.eyebrow--microscope {
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  box-shadow: 0 6px 24px rgba(56, 189, 248, 0.22);
-}
-
-.eyebrow--microscope .eyebrow-icon {
-  background: linear-gradient(135deg, #38bdf8, #2563eb);
-  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.5);
-}
-
-.eyebrow--microscope .eyebrow-tag {
-  color: #7dd3fc;
-}
-
-.product-title {
-  font-size: 3.1rem;
-  font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.02em;
-  margin-bottom: 1.4rem;
 }
 
-.title-accent {
-  background-clip: text;
+.hero-title-dim {
+  background: linear-gradient(180deg, var(--text), color-mix(in srgb, var(--text) 55%, var(--night)));
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
 
-.title-accent--ai {
-  background-image: linear-gradient(135deg, #a7f3d0 0%, #34d399 50%, #22d3ee 100%);
+.lede {
+  font-size: 18px;
+  color: var(--muted);
+  max-width: 54ch;
 }
 
-.title-accent--microscope {
-  background-image: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #6366f1 100%);
-}
-
-.product-subtitle {
-  font-size: 1.05rem;
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.78);
-  margin-bottom: 1.75rem;
-  max-width: 480px;
-}
-
-.bullet-list {
-  list-style: none;
-  padding: 0;
-  margin: auto 0 1.85rem;
+.ctas {
   display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
-.bullet-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  font-size: 0.97rem;
-  color: rgba(255, 255, 255, 0.88);
-  line-height: 1.45;
-}
-
-.bullet-list i {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 0.95rem;
-}
-
-
-.hero-microscope .bullet-list i { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
-
-.cta-row {
-  display: flex;
-  gap: 0.85rem;
   flex-wrap: wrap;
+  gap: 12px;
 }
 
-.cta {
+.hero-cta {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1.5rem;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.hero-cta i {
+  font-size: 16px;
+  transition: transform 0.15s;
+}
+
+.hero-cta--primary {
+  background: rgba(255, 109, 0, 0.22);
+  border-color: rgba(255, 109, 0, 0.65);
+  color: var(--ember);
   font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-.cta--primary {
-  color: #fff;
+.hero-cta--primary:hover {
+  background: var(--flame);
+  border-color: var(--flame);
+  color: var(--flame-ink);
+  box-shadow: 0 8px 22px -12px var(--flame);
 }
 
-.cta--ai {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-  box-shadow: 0 6px 24px rgba(52, 211, 153, 0.4);
+.hero-cta--primary:hover i {
+  transform: translateX(3px);
 }
 
-.cta--ai:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(52, 211, 153, 0.5);
-  color: #fff;
+.hero-cta--agent {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: var(--line-2);
+  color: var(--text);
 }
 
-/* Example coding-agent session in the right hero half */
-.agent-term {
-  background: rgba(2, 6, 23, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
-  margin-bottom: 1.1rem;
+.hero-cta--agent i {
+  color: var(--mcp);
 }
 
-.agent-term-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0.55rem 0.85rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 0.72rem;
-  color: #94a3b8;
+.hero-cta--agent:hover {
+  border-color: color-mix(in srgb, var(--mcp) 55%, transparent);
+  background: color-mix(in srgb, var(--mcp) 10%, transparent);
 }
 
-.agent-term-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.agent-term-title {
-  margin-left: 0.4rem;
-}
-
-.agent-term-endpoint {
-  margin-left: auto;
-  color: #34d399;
-}
-
-.agent-term-body {
-  padding: 0.75rem 0.95rem 0.85rem;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 0.76rem;
-  line-height: 1.7;
-  color: #cbd5e1;
-}
-
-.agent-line--prompt { color: #fff; }
-.agent-line--prompt::before { content: '› '; color: #34d399; }
-.agent-line--tool { color: #7dd3fc; }
-.agent-line--tool b { color: #fcd34d; font-weight: 500; }
-.agent-line--result {
-  color: #94a3b8;
-  padding-left: 0.7rem;
-  border-left: 2px solid rgba(255, 255, 255, 0.12);
-  margin: 0.1rem 0 0.3rem 0.2rem;
-}
-.agent-line--result b { color: #fff; font-weight: 500; }
-
-.agent-clients {
+.formats {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1.6rem;
+  gap: 8px 20px;
+  font: 13px var(--font-mono);
+  color: var(--faint);
 }
 
-.agent-client {
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.86);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 7px;
-  padding: 0.2rem 0.6rem;
+.formats a {
+  color: var(--muted);
+  border-bottom: 1px dashed var(--line-2);
 }
 
-.cta--microscope {
-  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-  box-shadow: 0 6px 24px rgba(56, 189, 248, 0.4);
+.formats a:hover {
+  color: var(--text);
 }
 
-.cta--microscope:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(56, 189, 248, 0.5);
-  color: #fff;
-}
-
-.cta--ghost {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-}
-
-.cta--ghost:hover {
-  background: rgba(255, 255, 255, 0.13);
-  border-color: rgba(255, 255, 255, 0.35);
-  color: #fff;
-}
-
-/* Seam between halves */
-.hero-seam {
-  position: absolute;
-  bottom: 2.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.7rem;
-  width: min(620px, 90%);
-  pointer-events: none;
-}
-
-.seam-link {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 0;
-}
-
-.seam-cable {
+/* ============ Constellation ============ */
+.cosmos {
   position: relative;
-  flex: 1;
-  height: 2px;
-  border-radius: 2px;
+  width: 100%;
+  max-width: 720px;
+  justify-self: center;
+  aspect-ratio: 100 / 92;
 }
 
-/* Microscope sits on the LEFT and Microscope MCP on the RIGHT —
-   the seam cables flip so each gradient still leans into its adjacent half. */
-.seam-cable--microscope {
-  background: linear-gradient(90deg, rgba(125, 211, 252, 0) 0%, rgba(125, 211, 252, 0.55) 100%);
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
-}
-
-.seam-cable--ai {
-  background: linear-gradient(90deg, rgba(110, 231, 183, 0.55) 0%, rgba(110, 231, 183, 0) 100%);
-  box-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
-}
-
-.seam-dot {
+.cosmos-links {
   position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ring {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-dasharray: 0.6 1.4;
+  stroke-width: 0.18;
+}
+
+.ring--outer {
+  stroke: var(--line);
+}
+
+.edge {
+  stroke-width: 0.3;
+  opacity: 0.6;
+  transition: opacity 0.2s, stroke-width 0.2s;
+}
+
+.edge--on {
+  opacity: 1;
+  stroke-width: 0.5;
+}
+
+.pulse {
+  opacity: 0.9;
+}
+
+.core {
+  position: absolute;
+  left: 50%;
   top: 50%;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  transform: translateY(-50%);
-  animation: seamDotPulse 2.6s ease-in-out infinite;
+  width: 25%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 26%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--core-top), var(--core-bottom));
+  border: 1px solid rgba(255, 109, 0, 0.3);
+  box-shadow: 0 0 0 12px rgba(255, 109, 0, 0.05), 0 0 0 28px rgba(255, 109, 0, 0.03),
+    0 0 110px rgba(255, 109, 0, 0.32), var(--shadow-card);
+  animation: breathe 5s ease-in-out infinite;
 }
 
-.seam-dot--ai {
-  left: 0;
-  background: #6ee7b7;
-  box-shadow: 0 0 0 2px rgba(110, 231, 183, 0.18), 0 0 14px rgba(52, 211, 153, 0.7);
+.core img {
+  width: 56%;
+  height: 56%;
 }
 
-.seam-dot--microscope {
-  right: 0;
-  background: #7dd3fc;
-  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.18), 0 0 14px rgba(56, 189, 248, 0.7);
-  animation-delay: 1.3s;
+@keyframes breathe {
+  50% {
+    box-shadow: 0 0 0 16px rgba(255, 109, 0, 0.06), 0 0 0 36px rgba(255, 109, 0, 0.03),
+      0 0 150px rgba(255, 109, 0, 0.42), var(--shadow-card);
+  }
 }
 
-@keyframes seamDotPulse {
-  0%, 100% { opacity: 0.85; transform: translateY(-50%) scale(1); }
-  50% { opacity: 1; transform: translateY(-50%) scale(1.25); }
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 2;
 }
 
-.seam-pill {
-  flex-shrink: 0;
-  display: inline-flex;
+.node-card {
+  display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
+  padding: 11px 16px 11px 11px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  white-space: nowrap;
+  animation: float 7s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.node-ic {
   width: 36px;
   height: 36px;
-  margin: 0 0.85rem;
-  background: rgba(15, 15, 26, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  backdrop-filter: blur(8px);
-  color: #fff;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 0 4px rgba(99, 102, 241, 0.08);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  background: var(--surface-2);
+  color: var(--ember);
 }
 
-.seam-arrow {
-  font-size: 1rem;
-  background: linear-gradient(90deg, #7dd3fc 0%, #6ee7b7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.node b {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 500;
 }
 
-/* ============ ECOSYSTEM ============ */
-.ecosystem {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 4.5rem 0 1rem;
+.node small {
+  display: block;
+  font-size: 12px;
+  color: var(--faint);
 }
 
-.eco-head {
+.node--big .node-card {
+  padding: 14px 20px 14px 14px;
+}
+
+.node--big .node-ic {
+  width: 44px;
+  height: 44px;
+  font-size: 20px;
+  color: var(--on-accent);
+}
+
+.node--big b {
+  font-size: 16px;
+}
+
+.node--microscope .node-ic {
+  background: linear-gradient(135deg, var(--ms), var(--ms-deep));
+}
+
+.node--mcp .node-ic {
+  background: linear-gradient(135deg, var(--mcp), var(--mcp-deep));
+}
+
+.node--microscope .node-card {
+  box-shadow: 0 0 40px color-mix(in srgb, var(--ms) 22%, transparent), var(--shadow-card);
+}
+
+.node--mcp .node-card {
+  box-shadow: 0 0 40px color-mix(in srgb, var(--mcp) 22%, transparent), var(--shadow-card);
+}
+
+.node:hover .node-card,
+.node:focus-visible .node-card {
+  border-color: var(--node-color, var(--ember));
+  background: var(--surface);
+}
+
+.node:focus-visible {
+  outline: none;
+}
+
+.tip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  width: 250px;
+  transform: translate(-50%, 4px);
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s;
+  z-index: 5;
+}
+
+.tip strong {
   display: flex;
   align-items: center;
-  gap: 1.1rem;
-  margin-bottom: 2.2rem;
+  gap: 4px;
+  margin-top: 6px;
+  font-weight: 500;
+  color: var(--node-color, var(--ember));
 }
 
-.eco-rule {
+.node--tip-up .tip {
+  top: auto;
+  bottom: calc(100% + 10px);
+}
+
+.node:hover .tip,
+.node:focus-visible .tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.node:hover,
+.node:focus-visible {
+  z-index: 6;
+}
+
+/* ============ Divider ============ */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(440px, 100%);
+  margin: 44px auto;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #cbd5e1);
+  background: linear-gradient(90deg, transparent, var(--line-2));
 }
 
-.eco-rule--r {
-  background: linear-gradient(90deg, #cbd5e1, transparent);
+.divider::after {
+  background: linear-gradient(90deg, var(--line-2), transparent);
 }
 
-.eco-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: #6366f1;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-radius: 999px;
-  padding: 0.45rem 1.1rem;
-  white-space: nowrap;
+.divider img {
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 0 8px rgba(255, 109, 0, 0.55));
 }
 
-.eco-grid {
+/* ============ Section heads ============ */
+.section-head {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.1rem;
-}
-
-.eco-card {
-  display: flex;
-  gap: 1.1rem;
-  padding: 1.4rem;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  text-decoration: none;
-  color: inherit;
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-}
-
-.eco-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
-  border-color: var(--eco-a);
-}
-
-.eco-card--provisioner { --eco-a: #f43f5e; --eco-b: #e11d48; }
-.eco-card--plugin { --eco-a: #fb923c; --eco-b: #ea580c; }
-.eco-card--jib { --eco-a: #6366f1; --eco-b: #4f46e5; }
-.eco-card--hub { --eco-a: #a855f7; --eco-b: #7c3aed; }
-
-.eco-ic {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  color: #fff;
-  background: linear-gradient(135deg, var(--eco-a), var(--eco-b));
-}
-
-.eco-body { min-width: 0; }
-
-.eco-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 0.15rem;
-}
-
-.eco-role {
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--eco-a);
-  margin: 0 0 0.55rem;
-}
-
-.eco-desc {
-  font-size: 0.88rem;
-  color: #475569;
-  line-height: 1.55;
-  margin: 0 0 0.85rem;
-}
-
-.eco-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.eco-chip {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #64748b;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 0.13rem 0.5rem;
-}
-
-/* ============ TAB SHOWCASE ============ */
-.tab-showcase {
-  padding: 4rem 0 5rem;
-  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-  position: relative;
-}
-
-.tab-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  background: #fff;
-  border-radius: 14px;
-  padding: 0.5rem;
-  max-width: 900px;
-  margin: 0 auto 3rem;
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
-  border: 1px solid #e2e8f0;
-}
-
-.tab-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-  padding: 0.85rem 1.25rem;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  color: #64748b;
-  transition: all 0.25s;
-  font-family: inherit;
-}
-
-.tab-btn i { font-size: 1.05rem; }
-
-.tab-btn:hover { color: #1e293b; }
-
-.tab-btn--server.active {
-  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(168, 85, 247, 0.35);
-}
-
-.tab-btn--microscope.active {
-  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(56, 189, 248, 0.35);
-}
-
-.tab-btn--mcp.active {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(52, 211, 153, 0.35);
-}
-
-.tab-btn--plugin.active {
-  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.35);
-}
-
-.tab-panel {
-  animation: tabFade 0.35s ease-out;
-}
-
-@keyframes tabFade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.tab-panel-header {
+  gap: 12px;
+  justify-items: center;
   text-align: center;
-  margin-bottom: 2.5rem;
-}
-
-.tab-panel-header h2 {
-  font-size: 2.2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.5rem;
-  color: #0f172a;
-}
-
-.tab-panel-header p {
-  font-size: 1.05rem;
-  color: #475569;
+  max-width: 760px;
   margin: 0 auto;
-  max-width: 1080px;
 }
 
-.tab-panel-body {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: 2rem;
-  align-items: start;
-}
-
-.tab-feature-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.tab-feature {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 1.4rem;
-  transition: all 0.2s;
-}
-
-.tab-feature:hover {
-  border-color: #c7d2fe;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.07);
-}
-
-.tab-feature-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.15rem;
-  color: #fff;
-  margin-bottom: 0.85rem;
-}
-
-.tab-feature-icon--server { background: linear-gradient(135deg, #a855f7, #7c3aed); }
-.tab-feature-icon--microscope { background: linear-gradient(135deg, #38bdf8, #2563eb); }
-.tab-feature-icon--plugin { background: linear-gradient(135deg, #fb923c, #ea580c); }
-.tab-feature-icon--mcp { background: linear-gradient(135deg, #34d399, #059669); }
-
-.tab-feature h4 {
-  font-size: 1rem;
+.section-head h2 {
+  font-size: clamp(26px, 2.8vw, 38px);
   font-weight: 700;
-  margin: 0 0 0.35rem;
-  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-.tab-feature p {
-  font-size: 0.88rem;
-  color: #475569;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.tab-deployment {
-  border-radius: 16px;
-  padding: 1.75rem;
-}
-
-.dep-topology {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.35rem;
-  margin-bottom: 1.4rem;
-}
-
-.topo-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.85rem;
-  background: #fff;
-  border: 1px solid #e9d5ff;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  color: #0f172a;
-}
-
-.topo-row i {
-  font-size: 1.05rem;
-  color: #7c3aed;
-}
-
-.topo-row em {
-  font-style: normal;
-  color: #64748b;
-  font-weight: 400;
-  font-size: 0.8rem;
-}
-
-.topo-badge {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 0.55rem;
-  padding: 0.18rem 0.55rem;
-  background: rgba(14, 165, 233, 0.12);
-  color: #0284c7;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.topo-row code {
-  background: rgba(124, 58, 237, 0.08);
-  padding: 0.05rem 0.35rem;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.82rem;
-  color: #6d28d9;
-}
-
-.topo-row--volume i { color: #f59e0b; }
-.topo-row--server i { color: #7c3aed; }
-
-.topo-arrow {
-  display: flex;
-  justify-content: center;
-  color: rgba(124, 58, 237, 0.5);
-  font-size: 0.85rem;
+.section-head .section-title-lg {
+  font-size: clamp(34px, 4.4vw, 58px);
   line-height: 1;
 }
 
-.tab-deployment--server {
-  background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
-  border: 1px solid #e9d5ff;
+.section-head p {
+  color: var(--muted);
+  max-width: 62ch;
 }
 
-.tab-deployment--microscope {
-  background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
-  border: 1px solid #bae6fd;
+/* ============ Pipeline route ============ */
+.route {
+  position: relative;
+  max-width: 1180px;
+  margin: 36px auto 0;
+  aspect-ratio: 1000 / 300;
 }
 
-.tab-deployment--mcp {
-  background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
-  border: 1px solid #a7f3d0;
+.route-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-.tab-deployment--plugin {
-  background: linear-gradient(180deg, #fff7ed 0%, #fff 100%);
-  border: 1px solid #fed7aa;
+.route-glow {
+  fill: none;
+  stroke: url(#home-route-gradient);
+  stroke-width: 12;
+  stroke-linecap: round;
+  opacity: 0.14;
+}
+
+.route-line {
+  fill: none;
+  stroke: url(#home-route-gradient);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.route-dash {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 6;
+}
+
+.route-pulse {
+  fill: var(--amber);
+}
+
+.station,
+.hop,
+.route-note {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.station {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 12px 12px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 0 40px -10px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow-card);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.station-ic {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, var(--surface)), var(--c));
+}
+
+.station b {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.station small {
+  display: block;
+  font: 12px/1.4 var(--font-mono);
+  color: var(--faint);
+}
+
+.hop {
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c);
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: var(--night);
+  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+}
+
+.route-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--line-2);
+}
+
+.route-note i {
+  color: var(--c);
+}
+
+.route-note b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ============ Product showcase ============ */
+.showcase {
+  --tab-accent: var(--ember);
+}
+
+.showcase[data-active='microscope'] {
+  --tab-accent: var(--ms);
+}
+
+.showcase[data-active='mcp'] {
+  --tab-accent: var(--mcp);
+}
+
+.showcase[data-active='plugin'] {
+  --tab-accent: var(--ide);
+}
+
+.showcase[data-active='hub'] {
+  --tab-accent: var(--ember);
+}
+
+.tabbar {
+  display: flex;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 32px auto;
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--text);
+  background: color-mix(in srgb, var(--tab-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--tab-accent) 50%, transparent);
+}
+
+.tab[aria-selected='true'] i {
+  color: var(--tab-accent);
+}
+
+.panel {
+  animation: rise 0.35s ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0.4;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel-head {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.panel-head h3 {
+  font-size: clamp(24px, 2.6vw, 34px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.panel-head p {
+  color: var(--muted);
+  max-width: 64ch;
+}
+
+.panel-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.feature {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 20px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(48, 32, 12, 0.04);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.feature:hover {
+  border-color: color-mix(in srgb, var(--tab-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--tab-accent) 4%, var(--surface));
+}
+
+.feature-ic {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: var(--tab-accent);
+  background: color-mix(in srgb, var(--tab-accent) 13%, transparent);
+}
+
+.feature h4 {
+  font-size: 15.5px;
+  font-weight: 500;
+}
+
+.feature p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.dep {
+  position: sticky;
+  top: 90px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 26px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tab-accent) 10%, var(--surface)), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tab-accent) 35%, transparent);
+  box-shadow: 0 0 60px -24px color-mix(in srgb, var(--tab-accent) 45%, transparent), var(--shadow-card);
 }
 
 .dep-eyebrow {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  font: 600 11px/1 var(--font-mono);
   letter-spacing: 0.16em;
-  display: block;
-  margin-bottom: 0.4rem;
-}
-
-.tab-deployment--server .dep-eyebrow { color: #7c3aed; }
-.tab-deployment--microscope .dep-eyebrow { color: #0284c7; }
-.tab-deployment--plugin .dep-eyebrow { color: #c2410c; }
-.tab-deployment--mcp .dep-eyebrow { color: #047857; }
-
-.tab-deployment h4 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  color: #0f172a;
-}
-
-.tab-deployment p {
-  font-size: 0.92rem;
-  color: #475569;
-  line-height: 1.55;
-  margin: 0 0 1.25rem;
-}
-
-.dep-cmd {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #0f172a;
-  color: #e0e7ff;
-  border-radius: 10px;
-  padding: 0.7rem 0.9rem;
-  margin-bottom: 1.25rem;
-  font-family: 'Courier New', monospace;
-  font-size: 0.78rem;
-}
-
-.dep-cmd code {
-  flex: 1;
-  background: transparent;
-  color: inherit;
-  min-width: 0;
-  user-select: all;
-  overflow: auto;
-  white-space: pre;
-}
-
-.dep-copy {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #e0e7ff;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.dep-copy:hover { background: rgba(255, 255, 255, 0.2); }
-
-/* Marketplace install card (plugin deployment variant) */
-.dep-marketplace {
-  position: relative;
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  background: linear-gradient(180deg, #0f172a 0%, #1f1409 100%);
-  border-radius: 14px;
-  padding: 1.2rem 1.1rem 1.1rem;
-  margin-bottom: 1.25rem;
-  border: 1px solid rgba(249, 115, 22, 0.4);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(249, 115, 22, 0.12);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.dep-marketplace:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(249, 115, 22, 0.25);
-}
-
-.dep-marketplace-corner {
-  position: absolute;
-  top: 0.7rem;
-  right: 0.7rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(249, 115, 22, 0.22);
-  border: 1px solid rgba(249, 115, 22, 0.55);
-  color: #fdba74;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--tab-accent);
 }
 
-.dep-marketplace-head {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.9rem;
-}
-
-.dep-marketplace-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #fff7ed, #fed7aa);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.3);
-}
-
-.dep-marketplace-icon img { width: 30px; height: 30px; }
-
-.dep-marketplace-titlewrap { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-
-.dep-marketplace-title {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.01em;
-}
-
-.dep-marketplace-sub { color: rgba(255, 255, 255, 0.6); font-size: 0.78rem; }
-
-.dep-marketplace-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
-
-.dep-marketplace-badge {
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.dep-marketplace-badge--free {
-  background: rgba(34, 197, 94, 0.18);
-  border-color: rgba(34, 197, 94, 0.5);
-  color: #86efac;
-}
-
-.dep-marketplace-badge--compat {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.5);
-  color: #7dd3fc;
-}
-
-.dep-marketplace-cta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.7rem 0.95rem;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
-  color: #fff;
+.dep h4 {
+  font-size: 22px;
   font-weight: 700;
-  font-size: 0.88rem;
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.35);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.dep p {
+  font-size: 14.5px;
+  color: var(--muted);
+}
+
+.cmd {
+  position: relative;
+  margin-top: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+}
+
+.cmd pre {
+  margin: 0;
+  padding: 14px 48px 14px 14px;
+  overflow-x: auto;
+  font: 12.5px/1.7 var(--font-mono);
+}
+
+.cmd code {
+  color: var(--text);
+  font: inherit;
+}
+
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.copy:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.copy--done {
+  color: var(--mcp);
+  border-color: var(--mcp);
+}
+
+.topo {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 22px;
+}
+
+.topo li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--night);
+  border: 1px solid var(--line-2);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.topo li > i {
+  font-size: 18px;
+  color: var(--tab-accent);
+}
+
+.topo li b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.topo li code {
+  color: var(--text);
+  font: 12.5px var(--font-mono);
+}
+
+.topo li em {
+  font-style: normal;
+  color: var(--faint);
+}
+
+.topo li + li::before {
+  content: '';
+  position: absolute;
+  left: 22px;
+  top: -22px;
+  height: 22px;
+  border-left: 2px dashed color-mix(in srgb, var(--tab-accent) 50%, transparent);
+}
+
+.topo-badge {
+  margin-left: 6px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font: 600 10.5px/1 var(--font-mono);
+  background: color-mix(in srgb, var(--tab-accent) 13%, transparent);
+  color: var(--tab-accent);
+}
+
+.market {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: var(--r-sm);
+  background: var(--night);
+  border: 1px solid var(--line-2);
+  transition: border-color 0.15s;
+}
+
+.market:hover {
+  border-color: var(--tab-accent);
+}
+
+.market img {
+  width: 36px;
+  height: 36px;
+}
+
+.market b {
+  display: block;
+  font-weight: 500;
+}
+
+.market small {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.market-badges {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.market-badges em {
+  padding: 5px 8px;
+  border-radius: 5px;
+  font: 600 11px/1 var(--font-mono);
+  font-style: normal;
+  background: var(--surface-2);
+  color: var(--muted);
 }
 
 .dep-cta {
+  margin-top: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.7rem 1.1rem;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: all 0.2s;
-  color: #fff;
-}
-
-.dep-cta--server { background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); }
-.dep-cta--microscope { background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%); }
-.dep-cta--plugin { background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%); }
-.dep-cta--mcp { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
-
-.dep-cta:hover { transform: translateY(-1px); color: #fff; }
-
-/* ============ CONNECT ============ */
-.connect {
-  background: #fff;
-  padding: 5rem 0;
-}
-
-.connect-inner {
-  text-align: center;
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-.connect-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: #6366f1;
-  padding: 0.3rem 0.85rem;
-  background: rgba(99, 102, 241, 0.1);
-  border-radius: 999px;
-  margin-bottom: 1rem;
-}
-
-.connect h2 {
-  font-size: 2.1rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.85rem;
-  color: #0f172a;
-}
-
-.connect p {
-  font-size: 1.05rem;
-  color: #475569;
-  line-height: 1.7;
-  margin: 0 0 2.5rem;
-}
-
-.connect-flow {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
-  align-items: center;
-  gap: 1.5rem;
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-.cf-node {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 1.1rem 0.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #0f172a;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-}
-
-.cf-node i {
-  font-size: 1.4rem;
-}
-
-.cf-node-apps i { color: #475569; }
-.cf-node-server i { color: #a855f7; }
-.cf-node-microscope i { color: #38bdf8; }
-.cf-node-ai i { color: #059669; }
-
-.cf-node-ai {
-  background: linear-gradient(180deg, #ecfdf5 0%, #fff 100%);
-  border-color: #a7f3d0;
-}
-
-.cf-node-server {
-  background: linear-gradient(180deg, #faf5ff 0%, #fff 100%);
-  border-color: #e9d5ff;
-}
-
-.cf-node-microscope {
-  background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
-  border-color: #bae6fd;
-}
-
-.cf-arrow {
-  position: relative;
-  height: 2px;
-  background: linear-gradient(90deg, #cbd5e1, #94a3b8);
-  min-width: 90px;
-}
-
-.cf-arrow::after {
-  content: '';
-  position: absolute;
-  right: -2px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-left: 6px solid #94a3b8;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-}
-
-.cf-arrow span {
-  position: absolute;
-  left: 50%;
-  top: -1.4rem;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #6366f1;
-  background: #eef2ff;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-}
-
-.cf-node-note {
-  font-size: 0.7rem;
+  gap: 8px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--tab-accent);
 }
 
-.cf-arrow-volume span {
-  color: #0284c7;
-  background: #f0f9ff;
+.dep-cta i {
+  transition: transform 0.15s;
 }
 
-.cf-arrow-mcp span {
-  color: #047857;
-  background: #ecfdf5;
+.dep-cta:hover i {
+  transform: translateX(3px);
 }
 
-/* ============ RESPONSIVE ============ */
-@media (max-width: 1100px) {
-  .product-title { font-size: 2.5rem; }
-  .hero-half { padding: 4rem 2.5rem 6.5rem; }
-  .tab-panel-body { grid-template-columns: minmax(0, 1fr); }
-  .tab-deployment { position: static; }
-  .tab-feature-grid { grid-template-columns: 1fr; }
-  .connect-flow { grid-template-columns: 1fr; gap: 1rem; }
-  .cf-arrow { display: none; }
-}
-
-@media (max-width: 880px) {
-  .dual-hero { grid-template-columns: 1fr; min-height: auto; }
-  .hero-half { padding: 4rem 2rem; }
-  .hero-half-content { max-width: none; }
-  .hero-microscope .hero-half-content { margin: 0; }
-  .hero-ai .hero-half-content { margin: 0; }
-  .hero-seam {
-    bottom: auto;
-    top: 50%;
-    transform: translate(-50%, -50%);
+/* ============ Responsive ============ */
+@media (max-width: 1099px) {
+  .route {
+    aspect-ratio: auto;
+    width: fit-content;
+    max-width: 100%;
+    margin: 28px auto 0;
+    padding-left: 30px;
+    display: grid;
+    gap: 14px;
+    justify-items: start;
   }
-  .product-title { font-size: 2.1rem; }
-  .tab-panel-header h2 { font-size: 1.7rem; }
-  .eco-grid { grid-template-columns: 1fr; }
+
+  .route::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 24px;
+    bottom: 24px;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(var(--ember), var(--amber), var(--ms), var(--mcp));
+  }
+
+  .route-svg {
+    display: none;
+  }
+
+  .station,
+  .hop,
+  .route-note {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+  }
+
+  .station {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .route-note {
+    margin-left: 16px;
+    white-space: normal;
+  }
 }
 
-@media (max-width: 960px) {
-  .tab-bar { grid-template-columns: 1fr 1fr; }
+@media (max-width: 1099px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cosmos {
+    margin-top: 12px;
+  }
 }
 
-@media (max-width: 760px) {
-  .tab-bar { grid-template-columns: 1fr; }
+@media (max-width: 1023px) {
+  .panel-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dep {
+    position: static;
+  }
 }
 
-@media (max-width: 480px) {
-  .hero-half { padding: 3rem 1.25rem; }
-  .product-title { font-size: 1.8rem; }
-  .cta { padding: 0.75rem 1.1rem; font-size: 0.9rem; }
+@media (max-width: 759px) {
+  .wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (max-width: 679px) {
+  .cosmos {
+    aspect-ratio: auto;
+    max-width: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .cosmos-links {
+    display: none;
+  }
+
+  .core {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 120px;
+    margin: 24px 0 36px;
+  }
+
+  .node {
+    position: relative;
+    left: auto !important;
+    top: auto !important;
+    transform: none;
+    min-width: 0;
+  }
+
+  .node--big {
+    grid-column: 1 / -1;
+  }
+
+  .node-card {
+    height: 100%;
+    white-space: normal;
+    animation: none;
+  }
+
+  .tip {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .core,
+  .node-card,
+  .panel {
+    animation: none;
+  }
+
+  .pulse {
+    display: none;
+  }
 }
 </style>
