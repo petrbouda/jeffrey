@@ -79,7 +79,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * megabytes, and base64 through a JSON-RPC message would spend the client's whole context on a file
  * neither side ever reads. The consequence is the constraint stated in every tool description here —
  * the path is resolved by the Jeffrey process, so the file has to be on the machine Jeffrey runs on.
- * That is the normal case (a CLI session and a Jeffrey on one laptop) and a container or a remote
+ * That is the normal case (a CLI session and a Jeffrey on one laptop) and a container or a connector
  * Jeffrey is the case where it does not hold.
  * <p>
  * Advertised whenever the MCP server is, unless {@code jeffrey.microscope.mcp.families} or the preset
@@ -352,7 +352,7 @@ public class RecordingsMcpTools {
     }
 
     @Tool(description = "Analyses a recording that is already in Jeffrey's Quick Analysis store but has "
-            + "no profile yet - one uploaded through the web UI, one pulled in by remote_download, or "
+            + "no profile yet - one uploaded through the web UI, one pulled in by connector_download, or "
             + "one recordings_list shows without a profileId. Returns status READY with the profile "
             + "id every other tool takes, or status RUNNING when parsing outlasts the call, which "
             + "recordings_status follows - a client that declared the MCP tasks extension gets a task "
@@ -379,7 +379,7 @@ public class RecordingsMcpTools {
 
     /*
      * The one tool in this family that takes something away. It is the other half of downloading a
-     * window of a remote session: the remote is the copy of record, Microscope holds what is being read,
+     * window of a connector session: the connector is the copy of record, Microscope holds what is being read,
      * and a window profile that has answered its question has no reason to stay. The only tool that
      * declares itself destructive: the family's hint says it writes, and a client that asks before a
      * destructive call should get to ask here. Deleting twice is refused, not repeated, so it is not
@@ -389,15 +389,15 @@ public class RecordingsMcpTools {
      */
     @McpToolHints(readOnly = false, destructive = true, idempotent = false)
     @Tool(description = "Deletes a recording from the Quick Analysis store together with the profile "
-            + "built from it, its files and everything analysed out of it - a window of the remote "
-            + "session pulled in by remote_download, a partial look taken before the real window, a "
-            + "file imported twice. A recording on the remote is untouched: remote_download can pull it "
+            + "built from it, its files and everything analysed out of it - a window of the connector "
+            + "session pulled in by connector_download, a partial look taken before the real window, a "
+            + "file imported twice. A recording on the connector is untouched: connector_download can pull it "
             + "again. The profile id stops working the moment this returns. status NOT_CONFIRMED: "
             + "the user declined, and nothing was deleted.")
     @McpOutputSchema(RecordingDeletion.class)
     @McpToolMeta(cost = McpToolCost.CHEAP)
     public McpToolOutcome delete(
-            @ToolParam(required = true, description = "Recording id from recordings_list, remote_download or "
+            @ToolParam(required = true, description = "Recording id from recordings_list, connector_download or "
                     + "recordings_analyzeFile. A profile id is not accepted; recordings_list shows which "
                     + "recording a profile belongs to")
             String recordingId,
@@ -462,7 +462,7 @@ public class RecordingsMcpTools {
     /*
      * Reads. Its family is registered as writing because the tools that build a profile sit in
      * it, and a member that only reports has to say so for itself — the same inheritance that let
-     * remote_download offer a cross-machine transfer as a safe read, running the other way.
+     * connector_download offer a cross-machine transfer as a safe read, running the other way.
      */
     @McpToolHints
     @Tool(description = "Returns the recordings in the Quick Analysis store, newest first, analysed or "
@@ -559,7 +559,7 @@ public class RecordingsMcpTools {
     /*
      * Reads. Its family is registered as writing because the tools that build a profile sit in
      * it, and a member that only reports has to say so for itself — the same inheritance that let
-     * remote_download offer a cross-machine transfer as a safe read, running the other way.
+     * connector_download offer a cross-machine transfer as a safe read, running the other way.
      */
     @McpToolHints
     @Tool(description = "Reports how far the analysis of a recording has got, stage by stage, and the "

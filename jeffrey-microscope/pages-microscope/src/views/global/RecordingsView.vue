@@ -369,29 +369,30 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import RecordingsClient from '@remote/services/api/RecordingsClient';
+import RecordingsClient from '@/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
-import RecordingCard from '@remote/components/RecordingCard.vue';
-import RecordingBundleCard from '@remote/components/RecordingBundleCard.vue';
+import RecordingCard from '@/components/recordings/RecordingCard.vue';
+import RecordingBundleCard from '@/components/recordings/RecordingBundleCard.vue';
 import EditNameModal from '@/components/EditNameModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import SingleRecordingRow from '@remote/components/SingleRecordingRow.vue';
+import SingleRecordingRow from '@/components/recordings/SingleRecordingRow.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
-import type RecordingGroup from '@remote/services/api/model/RecordingGroup';
-import type Recording from '@remote/services/api/model/Recording';
-import type { RecordingTag } from '@remote/services/api/model/Recording';
-import type { RecordingOrigin } from '@remote/components/RecordingOriginChip.vue';
-import type Bundle from '@remote/services/api/model/Bundle';
-import { recordingKindOf, type RecordingKindKey } from '@remote/components/recordingKinds';
-import { BUNDLE_DRAG_PREFIX, compareMembers } from '@remote/components/bundleSummary';
+import type RecordingGroup from '@/services/api/model/recordings/RecordingGroup';
+import type Recording from '@/services/api/model/recordings/Recording';
+import type { RecordingTag } from '@/services/api/model/recordings/Recording';
+import type { RecordingOrigin } from '@/components/recordings/RecordingOriginChip.vue';
+import type Bundle from '@/services/api/model/recordings/Bundle';
+import { recordingKindOf, type RecordingKindKey } from '@/components/recordings/recordingKinds';
+import { compareMembers } from '@/components/recordings/bundleSummary';
+import { droppedItem } from '@/components/recordings/recordingDrag';
 import {
   splitColumns,
   type BundleWithMembers,
   type ProfileItem,
   type RecordingColumns
-} from '@remote/components/recordingColumns';
+} from '@/components/recordings/recordingColumns';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
 import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
@@ -782,11 +783,11 @@ const buildOrigin = (recordingTags: RecordingTag[] | undefined): RecordingOrigin
   const sys = Object.fromEntries(
     tags.filter(t => t.key.startsWith('origin.')).map(t => [t.key, t.value])
   );
-  if (!sys['origin.remote']) {
+  if (!sys['origin.connector']) {
     return undefined;
   }
   return {
-    remote: sys['origin.remote'],
+    connector: sys['origin.connector'],
     workspace: sys['origin.workspace'] ?? '',
     project: sys['origin.project'] ?? ''
   };
@@ -1240,14 +1241,15 @@ const onChipDragLeave = (event: DragEvent, key: string) => {
 const onChipDrop = async (event: DragEvent, targetGroupId: string | null) => {
   event.preventDefault();
   dragOverGroupKey.value = null;
-  const recordingId = event.dataTransfer?.getData('text/plain');
-  if (!recordingId) {
+  const item = droppedItem(event);
+  if (!item) {
     return;
   }
-  if (recordingId.startsWith(BUNDLE_DRAG_PREFIX)) {
-    await moveBundle(recordingId.slice(BUNDLE_DRAG_PREFIX.length), targetGroupId);
+  if (item.kind === 'bundle') {
+    await moveBundle(item.id, targetGroupId);
     return;
   }
+  const recordingId = item.id;
   const recording = allRecordings.value.find(r => r.id === recordingId);
   if (!recording) {
     return;

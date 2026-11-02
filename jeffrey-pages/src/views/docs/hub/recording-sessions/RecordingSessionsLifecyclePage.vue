@@ -75,7 +75,7 @@ onMounted(() => {
               <ul class="lifecycle-details">
                 <li>Select specific JFR chunks to download</li>
                 <li>Download all session artifacts</li>
-                <li>Can be deleted from Microscope on a writable remote</li>
+                <li>Can be deleted from Microscope on a writable connector</li>
               </ul>
             </div>
           </div>

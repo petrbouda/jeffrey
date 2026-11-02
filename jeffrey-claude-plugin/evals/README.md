@@ -89,7 +89,7 @@ What the mocks cannot do, so the cases stay away from it:
 - **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class
   (`Checkout$Order`) can key none: `heap_browseClassInstances` for one answers that the name "is not a
   plain file-name segment", which a model reads as Jeffrey refusing the class.
-- **The remote and the IDE.** The recording Jeffrey has no remote and no IntelliJ attached.
+- **The connector and the IDE.** The recording Jeffrey has no connector and no IntelliJ attached.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
 
@@ -651,7 +651,7 @@ unless the question is about threads. Three runs:
 
 ## Plugin 1.0.19: what a real analysis showed
 
-A real session — a UAT service's last hour, pulled off the remote and analysed — surfaced five
+A real session — a UAT service's last hour, pulled off the connector and analysed — surfaced five
 defects the mocks could not:
 
 - **The analyst received no flamegraph.** Claude Code hands the model a result's

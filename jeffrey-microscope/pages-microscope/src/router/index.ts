@@ -66,12 +66,14 @@ const router = createRouter({
         }
       ]
     },
-    // The remote is browsed on one page, /remote, its picks held in the query. The paths of the
-    // former project pages still open: they redirect to the browser at the same project or instance
+    // The connector is browsed on one page, /connector, its picks held in the query. The paths of the
+    // former Remote page and project pages still open: they redirect to the browser at the same
+    // project or instance
+    { path: '/remote', redirect: to => ({ path: '/connector', query: to.query }) },
     {
       path: '/remote/workspaces/:workspaceId/projects/:projectId/instances/:instanceId',
       redirect: to => ({
-        path: '/remote',
+        path: '/connector',
         query: {
           workspaceId: to.params.workspaceId,
           projectId: to.params.projectId,
@@ -82,13 +84,13 @@ const router = createRouter({
     {
       path: '/remote/workspaces/:workspaceId/projects/:projectId/:rest(.*)*',
       redirect: to => ({
-        path: '/remote',
+        path: '/connector',
         query: { workspaceId: to.params.workspaceId, projectId: to.params.projectId }
       })
     },
     {
       path: '/remote/workspaces/:workspaceId/:rest(.*)*',
-      redirect: to => ({ path: '/remote', query: { workspaceId: to.params.workspaceId } })
+      redirect: to => ({ path: '/connector', query: { workspaceId: to.params.workspaceId } })
     },
     {
       path: '/:pathMatch(.*)*',

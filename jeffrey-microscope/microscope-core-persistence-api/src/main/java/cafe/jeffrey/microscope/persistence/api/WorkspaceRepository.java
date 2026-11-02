@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.persistence.api;
 import java.util.List;
 
 /**
- * Local-only repository for managing a single remote workspace stored in the local database.
+ * Local-only repository for managing a single connector workspace stored in the local database.
  */
 public interface WorkspaceRepository {
 

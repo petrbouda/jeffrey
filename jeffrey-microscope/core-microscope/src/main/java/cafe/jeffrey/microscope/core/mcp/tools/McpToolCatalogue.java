@@ -60,8 +60,8 @@ public final class McpToolCatalogue {
             new ToolClass(HeapComputeMcpTools.class, AdvertisedFamilies.HEAP),
             new ToolClass(RecordingsMcpTools.class, AdvertisedFamilies.RECORDINGS),
             new ToolClass(IdeMcpTools.class, AdvertisedFamilies.IDE),
-            new ToolClass(RemoteMcpTools.class, AdvertisedFamilies.REMOTE),
-            new ToolClass(RemoteArtifactsMcpTools.class, AdvertisedFamilies.REMOTE));
+            new ToolClass(ConnectorMcpTools.class, AdvertisedFamilies.CONNECTOR),
+            new ToolClass(ConnectorArtifactsMcpTools.class, AdvertisedFamilies.CONNECTOR));
 
     private static final McpToolWeights WEIGHTS = McpToolWeights.read(CLASSES);
 

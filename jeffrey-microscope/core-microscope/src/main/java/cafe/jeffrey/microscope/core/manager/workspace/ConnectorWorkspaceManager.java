@@ -1,0 +1,112 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.manager.workspace;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.connector.api.ConnectorClients;
+import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
+import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
+import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+
+import java.util.List;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+
+public class ConnectorWorkspaceManager implements WorkspaceManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ConnectorWorkspaceManager.class);
+
+    private final MicroscopeJeffreyDirs jeffreyDirs;
+    private final ConnectorInfo connector;
+    private final WorkspaceInfo workspaceInfo;
+    private final WorkspaceRepository workspaceRepository;
+    private final ConnectorClients clients;
+    private final ConnectorProjectManagerFactory projectManagerFactory;
+
+    public ConnectorWorkspaceManager(
+            MicroscopeJeffreyDirs jeffreyDirs,
+            ConnectorInfo connector,
+            WorkspaceInfo workspaceInfo,
+            WorkspaceRepository workspaceRepository,
+            ConnectorClients clients,
+            ConnectorProjectManagerFactory projectManagerFactory) {
+
+        this.jeffreyDirs = jeffreyDirs;
+        this.connector = connector;
+        this.workspaceInfo = workspaceInfo;
+        this.workspaceRepository = workspaceRepository;
+        this.clients = clients;
+        this.projectManagerFactory = projectManagerFactory;
+    }
+
+    @Override
+    public ProjectsManager projectsManager() {
+        return new ConnectorProjectsManager(connector, workspaceInfo, clients, projectManagerFactory);
+    }
+
+    @Override
+    public void delete() {
+        // Refused before anything local goes: the connector delete below is best-effort, so a
+        // refusal there would still wipe this workspace's profiles and answer success
+        if (connector.address().readOnly()) {
+            throw Exceptions.invalidRequest("Cannot delete workspace " + workspaceInfo.id()
+                    + ": the connector is declared read-only");
+        }
+
+        // Best-effort: drop the workspace on the connector.
+        try {
+            clients.discovery().deleteWorkspace(workspaceInfo.id());
+        } catch (Exception e) {
+            LOG.warn("Connector DeleteWorkspace failed; continuing with local cleanup: workspaceId={}",
+                    workspaceInfo.id(), e);
+
+            // The caller gets 204 either way, so from the outside this delete looks complete while
+            // the connector still holds the workspace. The next listing shows it again.
+            Notifications.of(NotificationType.WORKSPACE_DELETE_PARTIAL)
+                    .attribute("workspaceId", workspaceInfo.id())
+                    .errorType(e)
+                    .emit();
+        }
+
+        // Local cleanup: profiles and recordings tied to this workspace.
+        List<String> profileIds = workspaceRepository.delete();
+        for (String profileId : profileIds) {
+            try {
+                FileSystemUtils.removeDirectory(jeffreyDirs.profileDir(profileId));
+            } catch (Exception e) {
+                LOG.warn("Failed to delete profile directory: profileId={}", profileId, e);
+
+                // The row is already gone, so nothing points at this directory any more: it will sit
+                // on disk taking space until somebody goes looking for it by hand.
+                Notifications.of(NotificationType.PROFILE_DIR_ORPHANED)
+                        .attribute("profileId", profileId)
+                        .attribute("workspaceId", workspaceInfo.id())
+                        .errorType(e)
+                        .emit();
+            }
+        }
+
+        LOG.info("Deleted workspace: workspaceId={} deletedProfiles={}", workspaceInfo.id(), profileIds.size());
+    }
+}

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -31,20 +31,20 @@ import java.util.Optional;
  * Checks the Recordings store first, then falls back to a direct DB
  * lookup against the microscope-core profile repository.
  *
- * <p>For workspace-scoped profiles, asks the configured remote, the only
+ * <p>For workspace-scoped profiles, asks the configured connector, the only
  * place such a profile can come from.
  */
 public class ProfileManagerResolver {
 
-    private final RemoteManager remoteManager;
+    private final ConnectorManager connectorManager;
     private final RecordingsManager recordingsManager;
     private final MicroscopeCoreRepositories localCoreRepositories;
 
     public ProfileManagerResolver(
-            RemoteManager remoteManager,
+            ConnectorManager connectorManager,
             RecordingsManager recordingsManager,
             MicroscopeCoreRepositories localCoreRepositories) {
-        this.remoteManager = remoteManager;
+        this.connectorManager = connectorManager;
         this.recordingsManager = recordingsManager;
         this.localCoreRepositories = localCoreRepositories;
     }
@@ -68,8 +68,8 @@ public class ProfileManagerResolver {
         }
 
         ProfileInfo profileInfo = profileInfoOpt.get();
-        return remoteManager.current()
-                .flatMap(remote -> remote.project(profileInfo.workspaceId(), profileInfo.projectId()))
+        return connectorManager.current()
+                .flatMap(connector -> connector.project(profileInfo.workspaceId(), profileInfo.projectId()))
                 .flatMap(pm -> pm.profilesManager().profile(profileId));
     }
 }

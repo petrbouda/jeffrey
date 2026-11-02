@@ -136,7 +136,7 @@ const microscopeNavigation: DocSection[] = [
   },
   {
     // A standalone tool: it builds an async-profiler command and stores nothing, so it
-    // sits at the root rather than under Remote.
+    // sits at the root rather than under Connector.
     title: 'Profiler Builder',
     path: '_microscope-profiler-builder',
     icon: 'bi-cpu',
@@ -192,8 +192,8 @@ const microscopeNavigation: DocSection[] = [
     children: [{ title: 'IntelliJ Plugin docs', to: '/docs/intellij-plugin' }]
   },
   {
-    title: 'Remote',
-    path: '_microscope-remote',
+    title: 'Connector',
+    path: '_microscope-connector',
     icon: 'bi-cloud',
     children: [
       { title: 'Workspaces', to: '/docs/microscope/workspaces' },

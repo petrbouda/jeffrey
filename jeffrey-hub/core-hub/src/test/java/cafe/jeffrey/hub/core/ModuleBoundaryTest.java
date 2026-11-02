@@ -38,7 +38,7 @@ class ModuleBoundaryTest {
     private static final Path HUB_ROOT = Path.of("..").toAbsolutePath().normalize();
 
     private static final Pattern MICROSCOPE_IMPORT = Pattern.compile(
-            "^import (static )?cafe\\.jeffrey\\.(microscope|hub\\.client|recordings|storage|profile|shared\\.ui\\.hub|shared\\.notification)\\.");
+            "^import (static )?cafe\\.jeffrey\\.(microscope|hub\\.client|recordings|storage|profile|shared\\.notification)\\.");
 
     /**
      * MCP belongs to Microscope only: the hub has no MCP endpoint and reads no recording for an agent, so

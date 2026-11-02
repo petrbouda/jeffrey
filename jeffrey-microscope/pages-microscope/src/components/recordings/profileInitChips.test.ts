@@ -1,0 +1,209 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { describe, expect, it } from 'vitest';
+import { groupStatus } from '@shared/services/timelineStatus';
+import type { ProfileInitProgress, ProfileInitStage } from '@/services/api/model/recordings/Recording';
+import {
+  HEAP_DUMP_INIT_CHIPS,
+  PROFILE_INIT_CHIPS,
+  failedStageLabel,
+  hasFailed,
+  isInitializing,
+  toTimelineSteps
+} from './profileInitChips';
+import { recordingKindOf } from './recordingKinds';
+
+const stage = (
+  id: string,
+  status: ProfileInitStage['status'],
+  extra: Partial<ProfileInitStage> = {}
+): ProfileInitStage => ({
+  id,
+  status,
+  durationMs: null,
+  elapsedMs: null,
+  ...extra
+});
+
+const progress = (
+  state: ProfileInitProgress['state'],
+  stages: ProfileInitStage[]
+): ProfileInitProgress => ({ state, stages });
+
+/** Every stage the backend declares, so nothing can quietly stop being shown. */
+const ALL_STAGE_IDS = [
+  'profile-info',
+  'parse',
+  'flush',
+  'method-trace-weights',
+  'recluster',
+  'traces',
+  'checkpoint',
+  'warmup'
+];
+
+describe('PROFILE_INIT_CHIPS', () => {
+  it('covers every stage the pipeline declares exactly once', () => {
+    const covered = PROFILE_INIT_CHIPS.flatMap(chip => chip.stepIds);
+
+    expect([...covered].sort()).toEqual([...ALL_STAGE_IDS].sort());
+    expect(new Set(covered).size).toBe(covered.length);
+  });
+
+  it('stays narrow enough to read on one line', () => {
+    expect(PROFILE_INIT_CHIPS.length).toBeLessThanOrEqual(5);
+  });
+});
+
+/** Every stage the heap-dump pipeline declares (HeapDumpStages.DEFINITION), in its order. */
+const ALL_HEAP_DUMP_STAGE_IDS = [
+  'load',
+  'parse',
+  'index',
+  'strings',
+  'dominator',
+  'threads',
+  'biggest',
+  'collections',
+  'leaks',
+  'classloaders',
+  'biggest-collections',
+  'consumers',
+  'duplicates'
+];
+
+describe('HEAP_DUMP_INIT_CHIPS', () => {
+  it('covers every stage the heap-dump pipeline declares exactly once', () => {
+    const covered = HEAP_DUMP_INIT_CHIPS.flatMap(chip => chip.stepIds);
+
+    expect([...covered].sort()).toEqual([...ALL_HEAP_DUMP_STAGE_IDS].sort());
+    expect(new Set(covered).size).toBe(covered.length);
+  });
+
+  it('is what a heap dump gets, and only a heap dump', () => {
+    expect(recordingKindOf('HEAP_DUMP').chips).toBe(HEAP_DUMP_INIT_CHIPS);
+    expect(recordingKindOf('JDK').chips).toBe(PROFILE_INIT_CHIPS);
+    expect(recordingKindOf(undefined).chips).toBe(PROFILE_INIT_CHIPS);
+  });
+
+  it('names the heap-dump phase a failure happened in', () => {
+    const failed = progress('failed', [stage('index', 'completed'), stage('dominator', 'failed')]);
+
+    expect(failedStageLabel(failed, HEAP_DUMP_INIT_CHIPS)).toBe('Analyze');
+  });
+});
+
+describe('toTimelineSteps', () => {
+  it('has nothing to render without a run', () => {
+    expect(toTimelineSteps(undefined, 1_000)).toEqual([]);
+  });
+
+  it('keeps the duration of a finished stage', () => {
+    const steps = toTimelineSteps(
+      progress('completed', [stage('parse', 'completed', { durationMs: 250 })]),
+      1_000
+    );
+
+    expect(steps).toEqual([{ id: 'parse', status: 'completed', durationMs: 250 }]);
+  });
+
+  /**
+   * The backend reports how long the running stage has been going; the components want when it
+   * started, so the caller's ticking clock keeps counting between refreshes instead of freezing.
+   */
+  it('turns the reported elapsed time back into a start time', () => {
+    const steps = toTimelineSteps(
+      progress('running', [stage('parse', 'in_progress', { elapsedMs: 400 })]),
+      1_000
+    );
+
+    expect(steps[0].startMs).toBe(600);
+  });
+
+  it('treats a running stage with no elapsed time as having just started', () => {
+    const steps = toTimelineSteps(progress('running', [stage('parse', 'in_progress')]), 1_000);
+
+    expect(steps[0].startMs).toBe(1_000);
+  });
+});
+
+describe('run state', () => {
+  it('is initializing only while the run is running', () => {
+    expect(isInitializing(progress('running', []))).toBe(true);
+    expect(isInitializing(progress('completed', []))).toBe(false);
+    expect(isInitializing(progress(null, []))).toBe(false);
+    expect(isInitializing(undefined)).toBe(false);
+  });
+
+  it('recognises a failed run', () => {
+    expect(hasFailed(progress('failed', []))).toBe(true);
+    expect(hasFailed(progress('completed', []))).toBe(false);
+    expect(hasFailed(undefined)).toBe(false);
+  });
+
+  it('names the chip a failure happened in, not the raw stage id', () => {
+    const failed = progress('failed', [stage('recluster', 'failed')]);
+
+    expect(failedStageLabel(failed)).toBe('Cluster');
+  });
+
+  it('has no stage to name when nothing failed', () => {
+    expect(failedStageLabel(progress('completed', [stage('parse', 'completed')]))).toBeNull();
+  });
+});
+
+describe('chips over a real run', () => {
+  it('shows a recording with no spans as having skipped its traces, not finished them', () => {
+    const steps = toTimelineSteps(
+      progress('completed', [
+        stage('profile-info', 'completed', { durationMs: 1 }),
+        stage('parse', 'completed', { durationMs: 900 }),
+        stage('flush', 'completed', { durationMs: 20 }),
+        stage('recluster', 'completed', { durationMs: 120 }),
+        stage('traces', 'skipped'),
+        stage('checkpoint', 'completed', { durationMs: 10 }),
+        stage('warmup', 'completed', { durationMs: 2 })
+      ]),
+      10_000
+    );
+
+    const traces = PROFILE_INIT_CHIPS.find(chip => chip.id === 'traces')!;
+    const parse = PROFILE_INIT_CHIPS.find(chip => chip.id === 'parse')!;
+
+    expect(groupStatus(traces.stepIds, steps)).toBe('done');
+    expect(steps.find(s => s.id === 'traces')!.status).toBe('skipped');
+    expect(groupStatus(parse.stepIds, steps)).toBe('done');
+  });
+
+  it('marks only the chip containing the failure as failed', () => {
+    const steps = toTimelineSteps(
+      progress('failed', [
+        stage('profile-info', 'completed', { durationMs: 1 }),
+        stage('parse', 'failed'),
+        stage('flush', 'pending')
+      ]),
+      10_000
+    );
+
+    const parse = PROFILE_INIT_CHIPS.find(chip => chip.id === 'parse')!;
+    const flush = PROFILE_INIT_CHIPS.find(chip => chip.id === 'flush')!;
+
+    expect(groupStatus(parse.stepIds, steps)).toBe('failed');
+    expect(groupStatus(flush.stepIds, steps)).toBe('pending');
+  });
+});

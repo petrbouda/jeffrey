@@ -32,7 +32,7 @@ public interface ProjectsManager {
     List<ProjectManager> findAll();
 
     /**
-     * Lists projects without converting a remote failure into an empty UI result.
+     * Lists projects without converting a connector failure into an empty UI result.
      */
     default List<ProjectManager> findAllOrThrow() {
         return findAll();
@@ -41,18 +41,10 @@ public interface ProjectsManager {
     Optional<ProjectManager> project(String projectId);
 
     /**
-     * Finds a project without converting a remote failure into a missing project.
+     * Finds a project without converting a connector failure into a missing project.
      */
     default Optional<ProjectManager> projectOrThrow(String projectId) {
         return project(projectId);
     }
-
-    /**
-     * Find all distinct namespaces across all projects.
-     * Used by UI to provide namespace filtering options.
-     *
-     * @return list of distinct namespace names (excluding null values)
-     */
-    List<String> findAllNamespaces();
 
 }

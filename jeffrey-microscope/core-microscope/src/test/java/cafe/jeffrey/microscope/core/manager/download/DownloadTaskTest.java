@@ -40,7 +40,7 @@ class DownloadTaskTest {
 
     @BeforeEach
     void setUp() {
-        task = new DownloadTask("ws-1", "proj-1", "session-1", List.of("f1", "f2"), FIXED_CLOCK);
+        task = new DownloadTask("session-1", List.of("f1", "f2"), FIXED_CLOCK);
     }
 
     @Nested

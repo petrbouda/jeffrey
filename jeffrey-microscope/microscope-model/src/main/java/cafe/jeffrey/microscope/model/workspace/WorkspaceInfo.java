@@ -40,10 +40,4 @@ public record WorkspaceInfo(
                 id, referenceId, repositoryId, name,
                 newLocation, baseLocation, createdAt, status);
     }
-
-    public WorkspaceInfo withStatus(WorkspaceStatus newStatus) {
-        return new WorkspaceInfo(
-                id, referenceId, repositoryId, name,
-                location, baseLocation, createdAt, newStatus);
-    }
 }

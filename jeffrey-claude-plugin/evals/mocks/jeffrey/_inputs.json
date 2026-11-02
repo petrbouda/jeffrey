@@ -1541,11 +1541,11 @@
   "arguments": {}
  },
  {
-  "tool": "remote_sessions",
+  "tool": "connector_sessions",
   "arguments": {}
  },
  {
-  "tool": "remote_status",
+  "tool": "connector_status",
   "arguments": {}
  },
  {

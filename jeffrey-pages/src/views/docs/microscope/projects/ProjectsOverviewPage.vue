@@ -57,13 +57,13 @@ onMounted(() => {
       <DocsCallout type="tip">
         <strong>Just want to analyse a JFR file?</strong> Skip projects entirely — drop the file on the global
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page.
-        Projects are for staying connected to live applications through the remote (the Azure file share that holds the recording volume).
+        Projects are for staying connected to live applications through the connector (the Azure file share that holds the recording volume).
       </DocsCallout>
 
       <h2 id="browsing-projects">Browsing a Project</h2>
       <p>
         A project has no page of its own: it is browsed on the
-        <router-link to="/docs/microscope/workspaces">Remote</router-link> page, whose columns follow
+        <router-link to="/docs/microscope/workspaces">Connector</router-link> page, whose columns follow
         the share's folders &mdash; <strong>Workspaces</strong>, <strong>Projects</strong>,
         <strong>Instances</strong>, <strong>Sessions</strong>. Pick a workspace and its projects are
         listed with their names and the folder's creation date; a workspace holding a single project
@@ -74,10 +74,10 @@ onMounted(() => {
       </p>
       <p>
         The page's address follows what is picked
-        (<code>/remote?workspaceId=…&amp;projectId=…&amp;instanceId=…&amp;sessionId=…</code>), so a link
+        (<code>/connector?workspaceId=…&amp;projectId=…&amp;instanceId=…&amp;sessionId=…</code>), so a link
         opens the same project, instance or session. The address of the former project pages
-        (<code>/remote/workspaces/&lt;workspace&gt;/projects/&lt;project&gt;/…</code>) still works and
-        leads to the same place on the Remote page.
+        (<code>/connector/workspaces/&lt;workspace&gt;/projects/&lt;project&gt;/…</code>) still works and
+        leads to the same place on the Connector page.
       </p>
 
       <DocsCallout type="info">
@@ -93,8 +93,8 @@ onMounted(() => {
         A project's name is its folder on the share, given by the provisioner, and it is also the
         project's id, so a project cannot be renamed. The picked project carries a
         <strong>delete</strong> button in the Projects column; a confirmation step protects against
-        accidents. Deleting is final: the remote removes the project's directory on the workspace
-        volume, and there is no restore. A read-only remote shows no delete button.
+        accidents. Deleting is final: the connector removes the project's directory on the workspace
+        volume, and there is no restore. A read-only connector shows no delete button.
       </p>
 
       <h2 id="creating-projects">Creating Projects</h2>
@@ -102,8 +102,8 @@ onMounted(() => {
         Projects are not created in Microscope. A project appears when a JVM started by the
         <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> creates its folder &mdash;
         named by the project <code>name</code> the provisioner was configured with, which is also the project's id:
-        the remote is read from the shared filesystem on every request, so the next time
-        Microscope syncs with the remote the project shows up under its workspace, together with
+        the connector is read from the shared filesystem on every request, so the next time
+        Microscope syncs with the connector the project shows up under its workspace, together with
         its instances and recording sessions.
       </p>
     </div>

@@ -33,7 +33,7 @@ Analyze changed files to determine affected modules and run only the relevant te
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
    - `shared/common/` -> also test `jeffrey-hub/core-hub`, `jeffrey-microscope/profiles/profile-management`
    - `shared/persistence/` -> also test all `*-sql-persistence` modules
-   - `shared/volume/` -> also test `jeffrey-hub/core-hub`, `jeffrey-microscope/volume-client`, `jeffrey-microscope/azure-files-volume`
+   - `shared/volume/` -> also test `jeffrey-hub/core-hub`, `jeffrey-microscope/volume-connector`, `jeffrey-microscope/azure-files-connector`
 
 4. **Run targeted tests**:
    ```bash

@@ -37,4 +37,4 @@ Run this agent after:
 - Adding or modifying REST resources or endpoints
 - Changing Java DTOs or record types used in API responses
 - Adding or updating TypeScript API clients or model types
-- Changing the remote workspace REST API (`ui-remote`)
+- Changing the connector REST API (`/api/internal/connector/**`, `core-microscope/.../web/controllers/connector/`)

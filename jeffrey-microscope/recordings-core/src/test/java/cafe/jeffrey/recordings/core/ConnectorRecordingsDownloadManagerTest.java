@@ -1,0 +1,945 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.recordings.core;
+
+import cafe.jeffrey.microscope.connector.api.FileStreamClient;
+import cafe.jeffrey.microscope.connector.api.ProjectScope;
+import cafe.jeffrey.microscope.connector.api.RepositoryClient;
+import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
+import cafe.jeffrey.microscope.connector.api.dto.RepositoryFileResponse;
+import cafe.jeffrey.microscope.connector.api.manager.TempDirProvider;
+import cafe.jeffrey.recordings.core.download.FileProgress;
+import cafe.jeffrey.recordings.core.download.JfrChunks;
+import cafe.jeffrey.recordings.core.download.ProgressCallback;
+import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.shared.common.filesystem.TempDirectory;
+import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.storage.recording.api.file.Bundle;
+import cafe.jeffrey.storage.recording.api.file.BundleFile;
+import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Covers what every download path owes its caller: the id of the recording it created, and a
+ * recording holding every file that was asked for.
+ * <p>
+ * Nothing here merges. A session's recording files are fetched one at a time and kept as the
+ * several files the recording is made of, so the assertions are about which files were fetched
+ * and which ones reached storage.
+ */
+class ConnectorRecordingsDownloadManagerTest {
+
+    private static final String SESSION_ID = "session-1";
+    private static final ProjectScope SCOPE = new ProjectScope("ws-1", "p-1");
+    private static final String RECORDING_ID = "local-recording-1";
+    private static final String PROJECT_NAME = "checkout";
+    private static final Instant CREATED_AT = Instant.parse("2026-03-01T12:00:00Z");
+
+    private final RepositoryClient repositoryClient = mock(RepositoryClient.class);
+    private final FileStreamClient streamClient = mock(FileStreamClient.class);
+    private final RecordingsCoreManager recordingsManager = mock(RecordingsCoreManager.class);
+
+    private final OriginContext originContext =
+            new OriginContext("cfg-prod", "Production", "ws-1", "p-1", PROJECT_NAME);
+
+    @TempDir
+    Path tempRoot;
+
+    private ConnectorRecordingsDownloadManager manager;
+
+    @BeforeEach
+    void setUp() {
+        TempDirProvider tempDirProvider = () -> new TempDirectory(tempRoot.resolve("download"));
+        manager = new ConnectorRecordingsDownloadManager(
+                tempDirProvider, streamClient, repositoryClient, recordingsManager, originContext, SCOPE);
+
+        when(recordingsManager.createDownloadedBundle(any(), anyList(), anyList(), any()))
+                .thenReturn(RECORDING_ID);
+    }
+
+    /**
+     * What every recording of the session is tagged with: where it came from, plus the session's
+     * start and instance — kept here because the recording's name is only a label.
+     */
+    private Map<String, String> sessionTags() {
+        Map<String, String> tags = new LinkedHashMap<>(originContext.toTagMap(SESSION_ID));
+        tags.put(OriginContext.TAG_SESSION_STARTED_AT, Long.toString(CREATED_AT.toEpochMilli()));
+        tags.put(OriginContext.TAG_INSTANCE_ID, "inst-1");
+        return tags;
+    }
+
+    /**
+     * Serves every recording and artifact file the hub is asked for. Each transfer hands the
+     * consumer its own bytes, the way the real client does.
+     */
+    private void servesEveryFile() {
+        doAnswer(invocation -> {
+            String fileId = invocation.getArgument(2);
+            return feedAs(fileId, listedNameOf(fileId), invocation.getArgument(3));
+        }).when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), any(), any());
+    }
+
+    /**
+     * A progress channel that can be cancelled and remembers whether it was told the download
+     * failed — the distinction the wrapping of a future's exception used to hide.
+     */
+    private static final class RecordingProgress implements ProgressCallback {
+
+        private volatile boolean cancelled;
+        private volatile boolean cancelOnFileStart;
+        private volatile boolean errored;
+
+        /**
+         * Cancels from inside a transfer rather than before one, so the exception is raised on a
+         * worker and reaches the download wrapped, the way a reader's cancellation does.
+         */
+        private void cancelOnceATransferStarts() {
+            cancelOnFileStart = true;
+        }
+
+        @Override
+        public void onStart(int totalFiles, long totalBytes) {
+        }
+
+        @Override
+        public void onFilesDiscovered(List<FileProgress> pendingFiles) {
+        }
+
+        @Override
+        public void onFileStart(String fileName, long fileSize) {
+            if (cancelOnFileStart) {
+                cancelled = true;
+            }
+        }
+
+        @Override
+        public void onFileProgress(String fileName, long bytesDownloaded) {
+        }
+
+        @Override
+        public void onFileComplete(String fileName) {
+        }
+
+        @Override
+        public void onFileError(String fileName, String errorMessage) {
+        }
+
+        @Override
+        public void onProcessing() {
+        }
+
+        @Override
+        public void onComplete() {
+        }
+
+        @Override
+        public void onError(String errorMessage) {
+            errored = true;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
+    }
+
+    /**
+     * What the session's listing calls this file — which is the name the hub sends back when
+     * nothing has renamed it since.
+     */
+    private String listedNameOf(String fileId) {
+        return repositoryClient.recordingSession(SCOPE, SESSION_ID).files().stream()
+                .filter(file -> file.id().equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("no fixture file with id " + fileId))
+                .name();
+    }
+
+    /**
+     * Serves the file under a name of the hub's choosing, the way the hub does once the
+     * compression job has replaced a chunk with its archive. A {@code .jfr} arrives as one whole
+     * chunk, which is what the receiver checks before it keeps one.
+     */
+    private static Object feedAs(
+            String fileId, String sentAs, FileStreamClient.InputStreamConsumer consumer) throws Exception {
+
+        byte[] content = ("bytes-of-" + fileId).getBytes(StandardCharsets.UTF_8);
+        return feed(sentAs.endsWith(".jfr") ? JfrChunks.whole(content) : content, sentAs, consumer);
+    }
+
+    private static Object feed(byte[] bytes, String sentAs, FileStreamClient.InputStreamConsumer consumer)
+            throws Exception {
+
+        try (InputStream in = new ByteArrayInputStream(bytes)) {
+            consumer.accept(in, new FileStreamClient.TransferredFile(sentAs, bytes.length));
+        }
+        return null;
+    }
+
+    private static RepositoryFileResponse file(
+            String id, String name, ManagedFile type) {
+        return file(id, name, type, CREATED_AT);
+    }
+
+    /** A file as the connector lists it; the download decides from the session, never from its newest flag. */
+    private static RepositoryFileResponse file(
+            String id, String name, ManagedFile type, Instant createdAt) {
+        return new RepositoryFileResponse(
+                id, name, createdAt.toEpochMilli(), 1024L, type, false, type == ManagedFile.JFR);
+    }
+
+    /** A chunk a profiler was stopped before it wrote anything into. */
+    private static RepositoryFileResponse emptyFile(String id, String name, Instant createdAt) {
+        return new RepositoryFileResponse(id, name, createdAt.toEpochMilli(), 0L, ManagedFile.JFR, false, true);
+    }
+
+    /** A session a newer one in its instance has ended: it holds all it ever will. */
+    private static RecordingSessionResponse session(RepositoryFileResponse... files) {
+        return session(false, files);
+    }
+
+    /** The instance's newest session, which may still add chunks. */
+    private static RecordingSessionResponse newestSession(RepositoryFileResponse... files) {
+        return session(true, files);
+    }
+
+    private static RecordingSessionResponse session(boolean newest, RepositoryFileResponse... files) {
+        return new RecordingSessionResponse(
+                SESSION_ID, "session-name", "inst-1",
+                CREATED_AT.toEpochMilli(), CREATED_AT.plusSeconds(60).toEpochMilli(),
+                newest, 60_000L, List.of(files), false, files.length, sizeOf(files));
+    }
+
+    /** What the hub reports alongside the files, measured from them. */
+    private static long sizeOf(RepositoryFileResponse... files) {
+        return Arrays.stream(files)
+                .map(RepositoryFileResponse::size)
+                .filter(Objects::nonNull)
+                .mapToLong(Long::longValue)
+                .sum();
+    }
+
+    private static RecordingSessionResponse threeChunks() {
+        return session(
+                file("f-1", "profile-1.jfr", ManagedFile.JFR, CREATED_AT),
+                file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
+                file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40)),
+                file("f-4", "heap.hprof", ManagedFile.HEAP_DUMP));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ArgumentCaptor<List<Path>> capturedRecordingFiles() {
+        return ArgumentCaptor.forClass(List.class);
+    }
+
+    @Nested
+    @DisplayName("Downloading a session")
+    class DownloadSession {
+
+        @Test
+        void returnsTheIdOfTheRecordingItCreated() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "recording.jfr", ManagedFile.JFR)));
+            servesEveryFile();
+
+            assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
+        }
+
+        /** The whole copy of a session a newer one ended is the session for good, and is tagged complete. */
+        @Test
+        void tagsTheRecordingWithTheUpstreamSessionId() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+
+            manager.downloadSession(SESSION_ID);
+
+            Map<String, String> expectedTags = sessionTags();
+            expectedTags.put(OriginContext.TAG_COMPLETE, "true");
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
+        }
+
+        /**
+         * A copy of the newest session holds the chunks it had then: it must never be handed back
+         * as the session, so it carries no complete tag.
+         */
+        @Test
+        void theNewestSessionsCopyIsNotTaggedComplete() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(newestSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
+            servesEveryFile();
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, String>> tags = ArgumentCaptor.forClass(Map.class);
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), tags.capture());
+            assertFalse(tags.getValue().containsKey(OriginContext.TAG_COMPLETE));
+        }
+
+        /**
+         * The listing a reader holds is older than the transfer it asks for, and in between the
+         * compression job can replace a chunk with its archive. The bytes that arrive are then
+         * the archive's, so the name has to be the archive's too: written as {@code .jfr}, an LZ4
+         * frame is read as a raw recording and fails on the chunk magic, because compression is
+         * recognised by the extension and nothing sniffs the frame.
+         */
+        @Test
+        @DisplayName("keeps a file under the name the hub sent, not the one the listing had")
+        void keepsTheNameTheTransferCarried() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR)));
+            doAnswer(invocation -> feedAs(
+                    invocation.getArgument(2), "profile-1.jfr.lz4", invocation.getArgument(3)))
+                    .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), any(), any());
+            ArgumentCaptor<List<Path>> recordingFiles = capturedRecordingFiles();
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(
+                    any(), recordingFiles.capture(), anyList(), any());
+
+            assertEquals(
+                    List.of("profile-1.jfr.lz4"),
+                    recordingFiles.getValue().stream().map(path -> path.getFileName().toString()).toList());
+        }
+
+        /**
+         * The name arrives over the wire from a machine this one does not control, and is about to
+         * be resolved into a directory. It is reduced to a single path element first, so one
+         * carrying {@code ../} writes beside its siblings instead of above them.
+         */
+        @Test
+        @DisplayName("a transferred name cannot climb out of the directory it lands in")
+        void reducesATransferredNameToASinglePathElement() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR)));
+            doAnswer(invocation -> feedAs(
+                    invocation.getArgument(2), "../../escaped.jfr", invocation.getArgument(3)))
+                    .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), any(), any());
+            ArgumentCaptor<List<Path>> recordingFiles = capturedRecordingFiles();
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(
+                    any(), recordingFiles.capture(), anyList(), any());
+
+            Path landed = recordingFiles.getValue().getFirst();
+            assertEquals("escaped.jfr", landed.getFileName().toString());
+            assertTrue(landed.normalize().startsWith(tempRoot),
+                    "a name off the wire must not reach outside the download directory: " + landed);
+        }
+
+        /**
+         * The heart of it: every chunk of the session reaches storage as a file of its own. Before,
+         * the hub concatenated them and this was one file — which is what made a skipped chunk
+         * invisible and what cost the hub a full decompress and recompress of the session.
+         */
+        @Test
+        @DisplayName("fetches every recording file separately and keeps them all")
+        void keepsEveryChunkAsItsOwnFile() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ArgumentCaptor<List<Path>> recordingFiles = capturedRecordingFiles();
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-3"), any());
+            verify(recordingsManager).createDownloadedBundle(
+                    any(), recordingFiles.capture(), anyList(), any());
+
+            assertEquals(
+                    List.of("profile-1.jfr", "profile-2.jfr", "profile-3.jfr"),
+                    recordingFiles.getValue().stream()
+                            .map(path -> path.getFileName().toString())
+                            .sorted()
+                            .toList());
+        }
+
+        @Test
+        @DisplayName("brings the session's artifacts alongside them")
+        void bringsArtifactsAlongside() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ArgumentCaptor<List<Path>> artifacts = capturedRecordingFiles();
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-4"), any());
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), artifacts.capture(), any());
+            assertEquals(List.of("heap.hprof"), artifacts.getValue().stream()
+                    .map(path -> path.getFileName().toString())
+                    .toList());
+        }
+    }
+
+    @Nested
+    @DisplayName("When a file does not arrive")
+    class Failures {
+
+        /**
+         * A zero-byte chunk is left behind by a profiler stopped before it wrote an event — a
+         * killed container, a shutdown that was not graceful — and it is the last chunk that gets
+         * it. The hub refuses to serve one, so asking for it fails the whole session's download;
+         * the rest of the session is worth having without it.
+         */
+        @Test
+        @DisplayName("an empty chunk is left out rather than failing the download")
+        void anEmptyChunkIsLeftOut() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR, CREATED_AT),
+                    emptyFile("f-2", "profile-2.jfr", CREATED_AT.plusSeconds(20))));
+            servesEveryFile();
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+            ArgumentCaptor<List<Path>> recordings = capturedRecordingFiles();
+            verify(recordingsManager)
+                    .createDownloadedBundle(any(), recordings.capture(), anyList(), any());
+            assertEquals(
+                    List.of("profile-1.jfr"),
+                    recordings.getValue().stream().map(path -> path.getFileName().toString()).toList());
+        }
+
+        /**
+         * And when emptiness is all the session has, there is nothing to download: the refusal is
+         * the same one a session with no recording at all gets, rather than a recording of no
+         * files.
+         */
+        @Test
+        @DisplayName("a session of nothing but empty chunks is refused")
+        void aSessionOfNothingButEmptyChunksIsRefused() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    emptyFile("f-1", "profile-1.jfr", CREATED_AT)));
+
+            assertThrows(RuntimeException.class, () -> manager.downloadSession(SESSION_ID));
+
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        /**
+         * A recording taken while the profiler was still writing it into place arrives as a prefix
+         * of itself. Kept, it would parse as a recording that stops early; it fails the download
+         * instead, saying to ask again.
+         */
+        @Test
+        void aRecordingThatArrivedCutShortFailsTheDownload() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(newestSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20))));
+            servesEveryFile();
+            doAnswer(invocation -> feed(JfrChunks.cutShort(), "profile-2.jfr", invocation.getArgument(3)))
+                    .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+
+            CompletionException e = assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
+
+            assertTrue(e.getCause().getMessage().contains("incomplete"), e.getCause().getMessage());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        /**
+         * A recording file that did not arrive fails the download. Dropping it the way a missing
+         * artifact is dropped would leave a profile with a hole in it that reads as a quiet stretch
+         * — the same defect the contiguity rule exists to prevent, reached by a different route.
+         */
+        @Test
+        @DisplayName("a missing recording file fails the whole download")
+        void aMissingRecordingFileIsFatal() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            doThrow(new IllegalStateException("hub went away"))
+                    .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+
+            assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
+
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        /**
+         * Cancelled once a transfer is already running, so the CancellationException is raised
+         * inside a future and comes back wrapped in a CompletionException — which is every
+         * cancellation a reader can actually cause, the checks before the first transfer being the
+         * only ones that throw on the calling thread. Read as it comes back it is indistinguishable
+         * from a failure: the download reports itself failed, flipping a task the reader had just
+         * cancelled, and raises a notification for a stop the reader asked for.
+         */
+        @Test
+        @DisplayName("a transfer cancelled midway reports cancellation, not failure")
+        void aCancelledTransferIsNotAFailure() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            RecordingProgress progress = new RecordingProgress();
+            progress.cancelOnceATransferStarts();
+
+            assertThrows(CancellationException.class,
+                    () -> manager.downloadRecordingsWithProgress(SESSION_ID, List.of("f-1", "f-2", "f-3"), progress));
+
+            assertFalse(progress.errored, "a cancelled download must not be reported as an error");
+        }
+
+        /**
+         * An artifact is supplementary, so the recording is still worth having without it — but the
+         * result looks complete, which is why it is reported rather than merely logged.
+         */
+        @Test
+        @DisplayName("a missing artifact is tolerated and the recording still lands")
+        void aMissingArtifactIsTolerated() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            doThrow(new IllegalStateException("no heap dump here"))
+                    .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-4"), any());
+            ArgumentCaptor<List<Path>> artifacts = capturedRecordingFiles();
+
+            assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), artifacts.capture(), any());
+            assertTrue(artifacts.getValue().isEmpty(), "the lost artifact is simply absent");
+        }
+    }
+
+    /**
+     * The UI's "download session" names every file, and that recording is the session; a pick of
+     * some recording files is a part of it and carries the window tag like a window does.
+     */
+    /**
+     * The same chunks of the same session, downloaded again: the copy already here is handed back, so
+     * analysing it does not make a second profile of the same recording.
+     */
+    @Nested
+    @DisplayName("A download repeated")
+    class RepeatedDownload {
+
+        private static final String EXISTING_ID = "already-here";
+
+        private void alreadyHere(Map<String, String> tags, String... fileNames) {
+            List<RecordingFile> files = Arrays.stream(fileNames)
+                    .map(name -> new RecordingFile(name, EXISTING_ID, name, ManagedFile.JFR, CREATED_AT, 1024L))
+                    .toList();
+            Recording existing = new Recording(EXISTING_ID, "checkout_2026-03-01T12-00-00Z_part", null,
+                    RecordingEventSource.JDK, CREATED_AT, CREATED_AT, CREATED_AT.plusSeconds(60), true, "profile-1",
+                    "checkout", files, "bundle-existing");
+            when(recordingsManager.findRecording(EXISTING_ID)).thenReturn(Optional.of(existing));
+            when(recordingsManager.findBundle("bundle-existing")).thenReturn(Optional.of(
+                    new Bundle("bundle-existing", "checkout", null, CREATED_AT, List.of())));
+            Recording heap = new Recording("heap-existing", "heap", null, RecordingEventSource.HEAP_DUMP,
+                    CREATED_AT, null, null, false, null, null, List.of(
+                    new RecordingFile("heap-file", "heap-existing", "heap.hprof", ManagedFile.HEAP_DUMP, CREATED_AT, 1024L)),
+                    "bundle-existing");
+            when(recordingsManager.findBundleMembers("bundle-existing")).thenReturn(List.of(existing, heap));
+            when(recordingsManager.listRecordings()).thenReturn(List.of(existing));
+            when(recordingsManager.tagsForRecordings(List.of(EXISTING_ID))).thenReturn(Map.of(EXISTING_ID,
+                    tags.entrySet().stream().map(tag -> new RecordingTag(tag.getKey(), tag.getValue())).toList()));
+        }
+
+        private Map<String, String> partTags() {
+            Map<String, String> tags = sessionTags();
+            tags.put(OriginContext.TAG_WINDOW, "an-earlier-span");
+            return tags;
+        }
+
+        @Test
+        void theSameChunksOfTheSameSessionAreHandedBackWithoutATransfer() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            alreadyHere(partTags(), "profile-2.jfr", "profile-3.jfr");
+
+            String recordingId = manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null));
+
+            assertEquals(EXISTING_ID, recordingId);
+            verify(streamClient, never()).streamFile(any(), any(), any(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        @Test
+        void sameChunksStillFetchAnArtifactAbsentFromExistingCopy() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            Map<String, String> completeTags = sessionTags();
+            completeTags.put(OriginContext.TAG_COMPLETE, "true");
+            alreadyHere(completeTags, "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+            when(recordingsManager.findBundleMembers("bundle-existing")).thenReturn(List.of());
+
+            assertEquals(EXISTING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-4"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            ArgumentCaptor<List<Path>> recovered = capturedRecordingFiles();
+            verify(recordingsManager).addDownloadedArtifacts(eq(EXISTING_ID), recovered.capture(), any());
+            assertEquals(List.of("heap.hprof"), recovered.getValue().stream()
+                    .map(path -> path.getFileName().toString()).toList());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        @Test
+        void aStandaloneCopyKeepsItsRecordingWhenArtifactsAreRecovered() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            Map<String, String> completeTags = sessionTags();
+            completeTags.put(OriginContext.TAG_COMPLETE, "true");
+            alreadyHere(completeTags, "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+            Recording bundled = recordingsManager.listRecordings().getFirst();
+            Recording standalone = new Recording(bundled.id(), bundled.recordingName(), null,
+                    bundled.eventSource(), bundled.createdAt(), bundled.recordingStartedAt(), bundled.recordingFinishedAt(),
+                    true, "profile-1", "checkout", bundled.files());
+            when(recordingsManager.listRecordings()).thenReturn(List.of(standalone));
+
+            assertEquals(EXISTING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            verify(recordingsManager).addDownloadedArtifacts(eq(EXISTING_ID), anyList(), any());
+        }
+
+        @Test
+        void sameChunksRefreshAGrowingLogWithoutFetchingTheRecording() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR), file("log", "app.log", ManagedFile.APP_LOG)));
+            servesEveryFile();
+            Map<String, String> completeTags = sessionTags();
+            completeTags.put(OriginContext.TAG_COMPLETE, "true");
+            alreadyHere(completeTags, "profile-1.jfr");
+            when(recordingsManager.findBundle("bundle-existing")).thenReturn(Optional.of(new Bundle(
+                    "bundle-existing", "checkout", null, CREATED_AT, List.of(new BundleFile(
+                    "log-existing", "bundle-existing", "app.log", ManagedFile.APP_LOG, CREATED_AT, 128)))));
+
+            assertEquals(EXISTING_ID, manager.downloadSession(SESSION_ID));
+
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("log"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            verify(recordingsManager).addDownloadedArtifacts(eq(EXISTING_ID), anyList(), any());
+        }
+
+        @Test
+        void compressionDoesNotMakeAnIdenticalChunkASecondRecording() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    new RepositoryFileResponse("f-1", "profile-1.jfr.lz4", CREATED_AT.toEpochMilli(),
+                            1024L, ManagedFile.JFR_LZ4, false, true),
+                    new RepositoryFileResponse("f-2", "profile-2.jfr.lz4", CREATED_AT.plusSeconds(20).toEpochMilli(),
+                            1024L, ManagedFile.JFR_LZ4, false, true),
+                    new RepositoryFileResponse("f-3", "profile-3.jfr.lz4", CREATED_AT.plusSeconds(40).toEpochMilli(),
+                            1024L, ManagedFile.JFR_LZ4, false, true)));
+            servesEveryFile();
+            alreadyHere(partTags(), "profile-2.jfr", "profile-3.jfr");
+
+            String recordingId = manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null));
+
+            assertEquals(EXISTING_ID, recordingId);
+        }
+
+        /** A session that wrote another chunk since names it, so the set differs and it is fetched. */
+        @Test
+        void aSessionThatGrewIsFetchedAgain() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            alreadyHere(partTags(), "profile-2.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null)));
+        }
+
+        /** The whole session is not the part that holds the same chunks, nor the part the whole. */
+        @Test
+        void aPartIsNeverHandedBackForTheWholeSession() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            alreadyHere(partTags(), "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
+        }
+
+        /**
+         * A whole copy taken while the session was its instance's newest is not complete; once a newer
+         * session has ended it, the download is made again so the complete copy stands in for it.
+         */
+        @Test
+        void aWholeCopyOfTheNewestSessionDoesNotStandInOnceItHasEnded() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            alreadyHere(sessionTags(), "profile-1.jfr", "profile-2.jfr", "profile-3.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadSession(SESSION_ID));
+        }
+
+        @Test
+        void aCopyOfAnotherSessionIsNotTheSameDownload() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            Map<String, String> other = partTags();
+            other.put(OriginContext.TAG_RECORDING_ID, "another-session");
+            alreadyHere(other, "profile-2.jfr", "profile-3.jfr");
+
+            assertEquals(RECORDING_ID, manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(25), null)));
+        }
+    }
+
+    @Nested
+    @DisplayName("A part of a session")
+    class PartOfASession {
+
+        private static final Instant SESSION_END = CREATED_AT.plusSeconds(60);
+
+        @Test
+        void aWindowFetchesOnlyTheCoveringFilesAndNothingElse() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+
+            String recordingId = manager.downloadWindow(SESSION_ID,
+                    new ChunkWindow(CREATED_AT.plusSeconds(25), CREATED_AT.plusSeconds(35)));
+
+            assertEquals(RECORDING_ID, recordingId);
+            verify(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-1"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-3"), any());
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-4"), any());
+        }
+
+        @Test
+        void aWindowIsTaggedWithTheSpanItsFilesCoverAndNamedAsAPart() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ArgumentCaptor<String> recordingName = ArgumentCaptor.forClass(String.class);
+
+            manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(45), null));
+
+            Map<String, String> expectedTags = sessionTags();
+            expectedTags.put(OriginContext.TAG_WINDOW,
+                    CREATED_AT.plusSeconds(40).toEpochMilli() + "-" + SESSION_END.toEpochMilli());
+            verify(recordingsManager).createDownloadedBundle(
+                    recordingName.capture(), anyList(), anyList(), eq(expectedTags));
+            assertEquals("checkout_2026-03-01T12-00-00Z_part", recordingName.getValue());
+        }
+
+        @Test
+        void aWindowNoFileCoversIsRefused() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+
+            assertThrows(IllegalArgumentException.class, () -> manager.downloadWindow(SESSION_ID,
+                    new ChunkWindow(SESSION_END.plusSeconds(600), SESSION_END.plusSeconds(1200))));
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        /**
+         * The newest chunk of the newest session is a chunk like any other: it is on the volume
+         * whole, and a window inside it fetches it, tagged to one measured chunk past its start.
+         */
+        @Test
+        void aWindowInsideTheNewestChunkOfTheNewestSessionFetchesIt() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(newestSession(
+                    file("f-1", "profile-1.jfr", ManagedFile.JFR),
+                    file("f-2", "profile-2.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(20)),
+                    file("f-3", "profile-3.jfr", ManagedFile.JFR, CREATED_AT.plusSeconds(40))));
+            servesEveryFile();
+
+            manager.downloadWindow(SESSION_ID, new ChunkWindow(CREATED_AT.plusSeconds(45), CREATED_AT.plusSeconds(55)));
+
+            Map<String, String> expectedTags = sessionTags();
+            expectedTags.put(OriginContext.TAG_WINDOW,
+                    CREATED_AT.plusSeconds(40).toEpochMilli() + "-" + SESSION_END.toEpochMilli());
+            verify(recordingsManager).createDownloadedBundle(any(), anyList(), anyList(), eq(expectedTags));
+            verify(streamClient, never()).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
+        }
+
+        /**
+         * A label only: the facts behind it — the session's start, its instance, when it was
+         * downloaded — are kept in the tags and the recording's own columns.
+         */
+        @Test
+        void aWholeSessionIsNamedAfterTheProjectAndTheSessionStart() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ArgumentCaptor<String> recordingName = ArgumentCaptor.forClass(String.class);
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(
+                    recordingName.capture(), anyList(), anyList(), any());
+            assertEquals("checkout_2026-03-01T12-00-00Z", recordingName.getValue());
+        }
+
+        /** A project's name keeps its letters whatever their script; only separators are replaced. */
+        @Test
+        void aProjectNameKeepsLettersOfAnyScript() {
+            manager = new ConnectorRecordingsDownloadManager(
+                    () -> new TempDirectory(tempRoot.resolve("download")), streamClient, repositoryClient,
+                    recordingsManager, new OriginContext("cfg-prod", "Production", "ws-1", "p-1", "Zahlungsdienst Ü/Ost"),
+                    SCOPE);
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ArgumentCaptor<String> recordingName = ArgumentCaptor.forClass(String.class);
+
+            manager.downloadSession(SESSION_ID);
+
+            verify(recordingsManager).createDownloadedBundle(
+                    recordingName.capture(), anyList(), anyList(), any());
+            assertEquals("Zahlungsdienst-Ü-Ost_2026-03-01T12-00-00Z", recordingName.getValue());
+        }
+
+        /**
+         * An id the session does not hold used to be dropped by the filter that picked the files,
+         * returning a recording made of the rest with nothing saying a file had been asked for and
+         * not brought. The hub caught it while it still saw whole selections; it serves one file
+         * per call now, so the refusal lives here beside the gap check.
+         */
+        @Test
+        void anIdTheSessionDoesNotHoldIsRefusedRatherThanDropped() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2", "f-mistyped")));
+
+            assertTrue(e.getMessage().contains("f-mistyped"), e.getMessage());
+            verify(streamClient, never()).streamFile(any(), any(), any(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+
+        /**
+         * A gapped pick still yields a recording claiming a span half of which it does not hold:
+         * the window is taken across the files, so the hole is invisible in the result whether or
+         * not the files were joined. Refused before the transfer rather than after it.
+         */
+        @Test
+        void aPickWithAChunkSkippedIsRefusedBeforeAnythingIsTransferred() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-3")));
+
+            assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
+            verify(streamClient, never()).streamFile(any(), any(), any(), any());
+            verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
+        }
+
+        @Test
+        void aPickWithAChunkSkippedIsRefusedOnTheProgressPathToo() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            ProgressCallback progress = mock(ProgressCallback.class);
+
+            assertThrows(IllegalArgumentException.class, () -> manager.downloadRecordingsWithProgress(
+                    SESSION_ID, List.of("f-1", "f-3"), progress));
+
+            verify(streamClient, never()).streamFile(any(), any(), any(), any());
+            verify(progress, never()).onStart(anyInt(), anyLong());
+        }
+
+        @Test
+        void anUnbrokenRunOfChunksIsAccepted() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+
+            assertEquals(RECORDING_ID, manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2")));
+        }
+
+        @Test
+        void namingEveryFileIsTheWholeSessionAndNamingSomeIsAPart() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<Map<String, String>> tags = ArgumentCaptor.forClass(Map.class);
+
+            manager.downloadRecordings(SESSION_ID, List.of("f-1", "f-2", "f-3", "f-4"));
+            manager.downloadRecordings(SESSION_ID, List.of("f-2", "f-4"));
+
+            verify(recordingsManager, times(2))
+                    .createDownloadedBundle(any(), anyList(), anyList(), tags.capture());
+            assertFalse(tags.getAllValues().get(0).containsKey(OriginContext.TAG_WINDOW));
+            assertEquals(CREATED_AT.plusSeconds(20).toEpochMilli() + "-" + CREATED_AT.plusSeconds(40).toEpochMilli(),
+                    tags.getAllValues().get(1).get(OriginContext.TAG_WINDOW));
+        }
+    }
+
+    @Nested
+    @DisplayName("Reporting progress")
+    class WithProgress {
+
+        @Test
+        void returnsTheIdOfTheRecordingItCreated() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
+                    file("f-1", "recording.jfr", ManagedFile.JFR)));
+            servesEveryFile();
+            ProgressCallback progress = mock(ProgressCallback.class);
+
+            String recordingId = manager.downloadRecordingsWithProgress(
+                    SESSION_ID, List.of("f-1"), progress);
+
+            assertEquals(RECORDING_ID, recordingId);
+            verify(progress).onComplete();
+        }
+
+        /**
+         * Every file is counted, recordings included. It used to report one file for the whole set
+         * of chunks, so the bar jumped the moment the first frame arrived.
+         */
+        @Test
+        @DisplayName("counts every file, not one for the recording and one per artifact")
+        void countsEveryFile() {
+            when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(threeChunks());
+            servesEveryFile();
+            ProgressCallback progress = mock(ProgressCallback.class);
+
+            manager.downloadRecordingsWithProgress(
+                    SESSION_ID, List.of("f-1", "f-2", "f-3", "f-4"), progress);
+
+            verify(progress).onStart(eq(4), anyLong());
+            verify(progress).onFileComplete("profile-1.jfr");
+            verify(progress).onFileComplete("profile-2.jfr");
+            verify(progress).onFileComplete("profile-3.jfr");
+            verify(progress).onFileComplete("heap.hprof");
+        }
+    }
+}

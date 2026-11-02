@@ -133,7 +133,7 @@
             <!--
                 After spring-boot-dependencies on purpose: the SDK shares Reactor and Jackson 2 with the
                 rest of the build, and those stay on Boot's versions. Only Microscope's Azure Files
-                source (azure-files-volume) uses it.
+                connector (azure-files-connector) uses it.
             -->
             <dependency>
                 <groupId>com.azure</groupId>
@@ -211,27 +211,22 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>remote-client</artifactId>
+                <artifactId>connector-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>volume-client</artifactId>
+                <artifactId>volume-connector</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>azure-files-volume</artifactId>
+                <artifactId>azure-files-connector</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>recordings-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>ui-remote</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpDeadlineTest {
 
-    private static final String ELAPSED = "Remote test response deadline elapsed";
+    private static final String ELAPSED = "Connector test response deadline elapsed";
 
     /** A clock that never moves, so what is left of a deadline is exactly what it was armed with. */
     private static final LongSupplier FROZEN = () -> 0L;
@@ -64,13 +64,13 @@ class McpDeadlineTest {
             assertEquals(Duration.ofSeconds(5), left);
         }
 
-        /** An elapsed deadline is the remote being too slow, reported as the remote would report it. */
+        /** An elapsed deadline is the connector being too slow, reported as the connector would report it. */
         @Test
-        void refusesAnElapsedDeadlineAsTheRemoteBeingUnavailable() {
+        void refusesAnElapsedDeadlineAsTheConnectorBeingUnavailable() {
             JeffreyException refused = assertThrows(JeffreyException.class,
                     () -> deadlineIn(Duration.ZERO).remainingWithin(Duration.ofSeconds(5), ELAPSED));
 
-            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, refused.getCode());
+            assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, refused.getCode());
             assertEquals(ELAPSED, refused.getMessage());
         }
 

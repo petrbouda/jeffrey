@@ -1,0 +1,108 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import type { StageChipGroup } from '@shared/components/StageChips.vue';
+import type { TimelineStep } from '@shared/types/processing';
+import type { ProfileInitProgress } from '@/services/api/model/recordings/Recording';
+
+/**
+ * How the eight stages of profile initialization are shown on a recording card.
+ *
+ * Five chips, not eight: `profile-info` and `checkpoint` are bookkeeping that finishes in
+ * milliseconds and would only crowd the row, so they ride along with the neighbour whose outcome
+ * they share, and `method-trace-weights` is skipped outright by every recording that traced no
+ * methods. The backend still times all eight — this is a display grouping, and the timeline
+ * elsewhere can show them in full.
+ */
+export const PROFILE_INIT_CHIPS: StageChipGroup[] = [
+  { id: 'parse', label: 'Parse', stepIds: ['profile-info', 'parse'] },
+  { id: 'flush', label: 'Flush', stepIds: ['flush'] },
+  { id: 'cluster', label: 'Cluster', stepIds: ['method-trace-weights', 'recluster'] },
+  { id: 'traces', label: 'Traces', stepIds: ['traces'] },
+  { id: 'warmup', label: 'Warm-up', stepIds: ['checkpoint', 'warmup'] }
+];
+
+/**
+ * How the thirteen stages of heap-dump initialization are shown on a heap dump's card: one chip per
+ * phase of the Heap Dump Overview's timeline, so the row and the page that later shows the same run
+ * in full group it the same way. Index is the atomic index build, surfaced by the backend as three
+ * stages; Analyze and Hotspots are the cached reports.
+ */
+export const HEAP_DUMP_INIT_CHIPS: StageChipGroup[] = [
+  { id: 'index', label: 'Index', stepIds: ['load', 'parse', 'index'] },
+  {
+    id: 'analyze',
+    label: 'Analyze',
+    stepIds: ['strings', 'dominator', 'threads', 'biggest', 'collections', 'leaks']
+  },
+  {
+    id: 'hotspots',
+    label: 'Hotspots',
+    stepIds: ['classloaders', 'biggest-collections', 'consumers', 'duplicates']
+  }
+];
+
+/**
+ * Converts what the list reports into what the chips render.
+ *
+ * The backend sends how long the running stage has been going; the components want when it started,
+ * so a caller ticking the clock can keep counting without asking again.
+ *
+ * @param now epoch millis, used to turn the reported elapsed time back into a start time
+ */
+export function toTimelineSteps(
+  progress: ProfileInitProgress | undefined,
+  now: number
+): TimelineStep[] {
+  if (!progress || !progress.stages) {
+    return [];
+  }
+
+  return progress.stages.map(stage => {
+    const step: TimelineStep = { id: stage.id, status: stage.status };
+    if (stage.durationMs != null) {
+      step.durationMs = stage.durationMs;
+    }
+    if (stage.status === 'in_progress') {
+      step.startMs = now - (stage.elapsedMs ?? 0);
+    }
+    return step;
+  });
+}
+
+/** Whether initialization is still going, which is what decides if the list needs to keep polling. */
+export function isInitializing(progress: ProfileInitProgress | undefined): boolean {
+  return progress?.state === 'running';
+}
+
+/** Whether initialization ended badly, which the card shows instead of a spinner. */
+export function hasFailed(progress: ProfileInitProgress | undefined): boolean {
+  return progress?.state === 'failed';
+}
+
+/** The stage that failed, so the card can name it rather than only saying something went wrong. */
+export function failedStageLabel(
+  progress: ProfileInitProgress | undefined,
+  groups: StageChipGroup[] = PROFILE_INIT_CHIPS
+): string | null {
+  const failed = progress?.stages?.find(stage => stage.status === 'failed');
+  if (!failed) {
+    return null;
+  }
+  const group = groups.find(chip => chip.stepIds.includes(failed.id));
+  return group ? group.label : failed.id;
+}

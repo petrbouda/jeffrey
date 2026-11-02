@@ -9,11 +9,11 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__recordings_analyzeFile
   - mcp__plugin_microscope_jeffrey__recordings_analyzeRecording
   - mcp__plugin_microscope_jeffrey__recordings_delete
-  - mcp__plugin_microscope_jeffrey__remote_status
-  - mcp__plugin_microscope_jeffrey__remote_sessions
-  - mcp__plugin_microscope_jeffrey__remote_download
-  - mcp__plugin_microscope_jeffrey__remote_files
-  - mcp__plugin_microscope_jeffrey__remote_fetchFile
+  - mcp__plugin_microscope_jeffrey__connector_status
+  - mcp__plugin_microscope_jeffrey__connector_sessions
+  - mcp__plugin_microscope_jeffrey__connector_download
+  - mcp__plugin_microscope_jeffrey__connector_files
+  - mcp__plugin_microscope_jeffrey__connector_fetchFile
   - mcp__plugin_microscope_jeffrey__ide_link
   - mcp__plugin_microscope_jeffrey__ide_open
   - mcp__plugin_microscope_jeffrey__ide_resolve
@@ -24,11 +24,11 @@ disallowedTools:
   - mcp__jeffrey__recordings_analyzeFile
   - mcp__jeffrey__recordings_analyzeRecording
   - mcp__jeffrey__recordings_delete
-  - mcp__jeffrey__remote_status
-  - mcp__jeffrey__remote_sessions
-  - mcp__jeffrey__remote_download
-  - mcp__jeffrey__remote_files
-  - mcp__jeffrey__remote_fetchFile
+  - mcp__jeffrey__connector_status
+  - mcp__jeffrey__connector_sessions
+  - mcp__jeffrey__connector_download
+  - mcp__jeffrey__connector_files
+  - mcp__jeffrey__connector_fetchFile
   - mcp__jeffrey__ide_link
   - mcp__jeffrey__ide_open
   - mcp__jeffrey__ide_resolve
@@ -208,6 +208,6 @@ the marked name as the link and hides the URL.
   belongs to the caller and its user.
 - **No writing.** Never call `heap_prepare`, even when a skill recommends it for a
   missing report. Report the missing evidence to the caller; the caller or `heap-triage` owns
-  preparation. You cannot import a recording, build a profile, reach the remote, or cancel work
-  somebody else started — `operations_cancel` is the caller's, as is everything under `remote_`. If the
+  preparation. You cannot import a recording, build a profile, reach the connector, or cancel work
+  somebody else started — `operations_cancel` is the caller's, as is everything under `connector_`. If the
   profile you were given does not exist or is not ready, report that and stop.

@@ -51,8 +51,8 @@ public record McpToolAnnotations(
      * another process on this one.
      * <p>
      * A group of tools is described by what most of it does; the one tool in it that writes says so
-     * for itself, which is finer-grained than a preset can be and is why there is no write-and-remote
+     * for itself, which is finer-grained than a preset can be and is why there is no write-and-connector
      * preset here.
      */
-    public static final McpToolAnnotations READS_REMOTE = new McpToolAnnotations(true, false, true, true);
+    public static final McpToolAnnotations READS_OUTSIDE = new McpToolAnnotations(true, false, true, true);
 }

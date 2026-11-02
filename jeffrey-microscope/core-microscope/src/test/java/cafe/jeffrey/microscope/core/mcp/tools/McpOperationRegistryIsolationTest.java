@@ -96,13 +96,13 @@ class McpOperationRegistryIsolationTest {
     void theTaskViewAppliesTheSameGateAsTheOperationsView() {
         Instant now = Instant.parse("2026-09-12T12:00:00Z");
         McpOperationRegistry registry = new McpOperationRegistry(Clock.fixed(now, ZoneOffset.UTC));
-        registry.register(OperationKind.REMOTE_DOWNLOAD, completed("hub", now), OperationResults.Value::new);
+        registry.register(OperationKind.CONNECTOR_DOWNLOAD, completed("hub", now), OperationResults.Value::new);
         registry.register(OperationKind.HEAP_OQL, completed("heap", now), OperationResults.Value::new);
-        Predicate<OperationKind> withoutRemote = kind -> !kind.reachesRemote();
+        Predicate<OperationKind> withoutConnector = kind -> !kind.reachesConnector();
 
-        assertThrows(IllegalArgumentException.class, () -> registry.status("hub", withoutRemote));
-        assertThrows(IllegalArgumentException.class, () -> registry.task("hub", withoutRemote));
-        assertEquals("heap", registry.task("heap", withoutRemote).taskId());
+        assertThrows(IllegalArgumentException.class, () -> registry.status("hub", withoutConnector));
+        assertThrows(IllegalArgumentException.class, () -> registry.task("hub", withoutConnector));
+        assertEquals("heap", registry.task("heap", withoutConnector).taskId());
         assertEquals("hub", registry.task("hub", kind -> true).taskId());
     }
 

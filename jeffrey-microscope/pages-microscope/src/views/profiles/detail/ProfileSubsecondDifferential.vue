@@ -47,7 +47,7 @@ import OtelEventSummariesClient from '@/services/api/OtelEventSummariesClient';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type Profile from '@/services/api/model/Profile';
-import RecordingEventSource from '@remote/services/api/model/RecordingEventSource.ts';
+import RecordingEventSource from '@/services/api/model/recordings/RecordingEventSource.ts';
 
 const props = defineProps<{
   profile?: Profile;

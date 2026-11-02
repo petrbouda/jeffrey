@@ -72,7 +72,7 @@ onMounted(() => {
       <DocsCallout type="info">
         <strong>Full profile analysis stays in Microscope.</strong> Flame graphs and heap dump
         forensics and the MCP endpoint run in Microscope. Hub never reads a recording's
-        contents and serves no files — <router-link to="/docs/microscope-mcp/tools#remote">Microscope’s <code>remote_</code> tools</router-link>
+        contents and serves no files — <router-link to="/docs/microscope-mcp/tools#connector">Microscope’s <code>connector_</code> tools</router-link>
         pull them straight off the volume for analysis.
       </DocsCallout>
 
@@ -134,9 +134,9 @@ onMounted(() => {
 
       <h2 id="microscope">Microscope and the Hub</h2>
       <p>
-        Microscope never connects to a hub. Its one <strong>remote</strong> is the recording volume
+        Microscope never connects to a hub. Its one <strong>connector</strong> is the recording volume
         on an Azure file share, declared in its configuration with
-        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.azure-files.*</code></router-link>.
+        <router-link to="/docs/microscope/configuration/application-properties#connector"><code>jeffrey.microscope.connector.azure-files.*</code></router-link>.
         Microscope lists workspaces, projects, instances and sessions straight off the share, pulls
         recordings on demand, and makes the user's changes there unless the share is declared
         read-only. Retention, cleanup and compression stay with the hub's scheduled jobs on that

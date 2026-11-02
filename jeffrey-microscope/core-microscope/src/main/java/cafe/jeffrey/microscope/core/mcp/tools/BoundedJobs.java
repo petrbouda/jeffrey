@@ -78,7 +78,7 @@ public class BoundedJobs<K, V> {
      *
      * <p>Retention alone bounds the map only when the keys repeat. They do not always: a forced
      * import keys on a fresh UUID per call, a file import on each file name and size it is given,
-     * and a remote download keys on the session together with the window or the file ids asked for, so
+     * and a connector download keys on the session together with the window or the file ids asked for, so
      * an agent working through a long session a window at a time makes a new entry every time. Each
      * is small, but nothing removed them before their hour was up. Running attempts are never
      * dropped — only results someone may still poll for, oldest first, and a caller that comes back
@@ -146,7 +146,7 @@ public class BoundedJobs<K, V> {
      * <p>
      * Selecting a still-valid completed success happens atomically with joining or starting work.
      * Downloads use this when a transfer may finish while another caller is still validating the
-     * remote session; their predicate checks that the local recording still exists. Other callers pass
+     * connector session; their predicate checks that the local recording still exists. Other callers pass
      * {@code value -> false} and start fresh work after a success.
      * <p>
      * {@code reuseSuccess} runs inside the map's own update, holding the bin lock — which is the point,

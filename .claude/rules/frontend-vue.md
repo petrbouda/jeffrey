@@ -2,7 +2,6 @@
 paths:
   - "**/*.vue"
   - "jeffrey-microscope/pages-microscope/**/*.ts"
-  - "jeffrey-microscope/ui-remote/**"
   - "jeffrey-hub/pages-hub/**"
   - "shared/ui/**"
 ---
@@ -10,8 +9,8 @@ paths:
 ## Vue/TypeScript Frontend Rules
 
 ### Shared-first (MUST)
-- Before writing any markup or component, check the shared modules for something to use, compose or extend — `@shared` first, then `@remote`; and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup when nothing fits. Never duplicate a shared component locally.
-- Vite aliases (identical in every `pages-*` app): `@shared` → `shared/ui/common/src` (generic components, `FormattingService`, `BasePlatformClient`, `HttpUtils`, `ToastService`, styles, tokens); `@remote` → `jeffrey-microscope/ui-remote/ui` (remote browser: the one remote → workspaces → projects, recording components and clients).
+- Before writing any markup or component, check the shared modules for something to use, compose or extend — `@shared` first, then the app's own `src/components`; and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup when nothing fits. Never duplicate a shared component locally.
+- Vite aliases (identical in every `pages-*` app): `@shared` → `shared/ui/common/src` (generic components, `FormattingService`, `BasePlatformClient`, `HttpUtils`, `ToastService`, styles, tokens). In pages-microscope, the connector browser (the one connector → workspaces → projects) lives in `src/components/connector/` with its clients in `src/services/api/connector/`, and the recording components in `src/components/recordings/`.
 - A **generic** component (chart, table, form input, badge, breadcrumb, layout, modal, drawer — no page/JFR semantics) goes in `shared/ui/common/src/components/`. An app's `src/components/` is for page/feature-bound components (flamegraph, heap, gc, jdbc, …). When unsure, prefer `@shared`.
 
 ### Design tokens

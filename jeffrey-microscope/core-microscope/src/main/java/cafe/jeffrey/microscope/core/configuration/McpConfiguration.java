@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
@@ -31,14 +31,14 @@ import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpSkillCatalogue;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteArtifactsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationAnswers;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationTasks;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.remote.DownloadWindowQuestion;
+import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
@@ -77,16 +77,16 @@ public class McpConfiguration {
 
     /**
      * @param enabled     whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
-     * @param remoteEnabled whether it advertises the {@code remote_} family, from
-     *                    {@code jeffrey.microscope.mcp.remote.enabled}. Its own switch because reaching a
-     *                    remote is the one thing the server does that leaves this machine
+     * @param connectorEnabled whether it advertises the {@code connector_} family, from
+     *                    {@code jeffrey.microscope.mcp.connector.enabled}. Its own switch because reaching a
+     *                    connector is the one thing the server does that leaves this machine
      * @param ideEnabled  whether it advertises the {@code ide_} family, from
      *                    {@code jeffrey.microscope.mcp.ide.enabled}. Its own switch because it is the
      *                    one family that reaches into another process on this machine and can move the
      *                    developer's editor
      * @param families    the families to advertise, from {@code jeffrey.microscope.mcp.families};
      *                    empty means the selected preset
-     * @param preset      all (default), jfr, heap or remote, from {@code jeffrey.microscope.mcp.preset}
+     * @param preset      all (default), jfr, heap or connector, from {@code jeffrey.microscope.mcp.preset}
      * @param trustForwardedHeaders whether the guard reads the addressed host and scheme from
      *                    {@code X-Forwarded-Host}/{@code X-Forwarded-Proto}, from
      *                    {@code jeffrey.microscope.mcp.trust-forwarded-headers}; off by default
@@ -96,18 +96,18 @@ public class McpConfiguration {
     @Bean
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
-            @Value("${jeffrey.microscope.mcp.remote.enabled:true}") boolean remoteEnabled,
+            @Value("${jeffrey.microscope.mcp.connector.enabled:true}") boolean connectorEnabled,
             @Value("${jeffrey.microscope.mcp.ide.enabled:true}") boolean ideEnabled,
             @Value("${jeffrey.microscope.mcp.families:}") Set<String> families,
             @Value("${jeffrey.microscope.mcp.preset:all}") String preset,
             @Value("${" + McpRequestGuard.TRUST_FORWARDED_HEADERS_PROPERTY + ":false}") boolean trustForwardedHeaders,
             @Value("${" + McpRequestGuard.TOKEN_PROPERTY + ":}") String token) {
         return new ExternalMcpProperties(
-                enabled, remoteEnabled, ideEnabled, families, preset, trustForwardedHeaders, token);
+                enabled, connectorEnabled, ideEnabled, families, preset, trustForwardedHeaders, token);
     }
 
     /**
-     * The tool families this installation advertises: the preset or explicit list, less the remote and
+     * The tool families this installation advertises: the preset or explicit list, less the connector and
      * IDE families when their switches are off. One instance, so the toolset, the next steps the tools
      * route with and the instructions sent by {@code server/discover} all read the same decision. A
      * pure function of the properties, which is what lets {@code server/discover} use it without
@@ -176,7 +176,7 @@ public class McpConfiguration {
     }
 
     /**
-     * Lists and downloads recordings from the configured remote. Built unconditionally for the same
+     * Lists and downloads recordings from the configured connector. Built unconditionally for the same
      * reason as {@code recordingsMcpTools}: what is advertised is the assembler's decision.
      *
      * @param askWindowOverDuration a whole-session download of a session longer than this asks a
@@ -185,20 +185,20 @@ public class McpConfiguration {
      *                              the tools never see a Spring type
      */
     @Bean
-    public RemoteMcpTools remoteMcpTools(
-            RemoteManager remoteManager,
+    public ConnectorMcpTools connectorMcpTools(
+            ConnectorManager connectorManager,
             ProjectManagerResolver projectManagerResolver,
             RecordingsManager recordingsManager,
             Clock applicationClock,
-            @Value("${jeffrey.microscope.mcp.remote.scan-timeout:PT20S}") Duration scanTimeout,
-            @Value("${" + RemoteMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
-            @Value("${" + RemoteMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
-            @Value("${" + RemoteMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
+            @Value("${jeffrey.microscope.mcp.connector.scan-timeout:PT20S}") Duration scanTimeout,
+            @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
+            @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
+            @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
             McpOperationRegistry operations,
             OperationAnswers operationAnswers,
             AdvertisedFamilies advertisedFamilies) {
-        return new RemoteMcpTools(
-                remoteManager, projectManagerResolver, recordingsManager, applicationClock,
+        return new ConnectorMcpTools(
+                connectorManager, projectManagerResolver, recordingsManager, applicationClock,
                 scanTimeout, responseTimeout, operations, operationAnswers,
                 new DownloadWindowQuestion(askWindowOverDuration, askWindowOverSize.toBytes()), advertisedFamilies);
     }
@@ -215,20 +215,20 @@ public class McpConfiguration {
     }
 
     /**
-     * Lists a remote session's files and fetches one artifact at a time. Built unconditionally like the
-     * other remote tools; the assembler decides whether the family is advertised.
+     * Lists a connector session's files and fetches one artifact at a time. Built unconditionally like the
+     * other connector tools; the assembler decides whether the family is advertised.
      */
     @Bean
-    public RemoteArtifactsMcpTools remoteArtifactsMcpTools(
+    public ConnectorArtifactsMcpTools connectorArtifactsMcpTools(
             ProjectManagerResolver projectManagerResolver,
             RecordingsManager recordingsManager,
             MicroscopeJeffreyDirs jeffreyDirs,
             McpOperationRegistry operations,
             OperationAnswers operationAnswers,
             Clock applicationClock,
-            @Value("${" + RemoteMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
+            @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             AdvertisedFamilies advertisedFamilies) {
-        return new RemoteArtifactsMcpTools(
+        return new ConnectorArtifactsMcpTools(
                 projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(), operations,
                 operationAnswers, applicationClock, responseTimeout, advertisedFamilies);
     }
@@ -237,7 +237,7 @@ public class McpConfiguration {
     public McpToolsetAssembler mcpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
-            RemoteMcpTools remoteMcpTools,
+            ConnectorMcpTools connectorMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
@@ -246,12 +246,12 @@ public class McpConfiguration {
             IdeBridge ideBridge,
             ExternalMcpProperties properties,
             AdvertisedFamilies advertisedFamilies,
-            RemoteArtifactsMcpTools remoteArtifactsMcpTools,
+            ConnectorArtifactsMcpTools connectorArtifactsMcpTools,
             McpOperationRegistry operations, OperationAnswers operationAnswers, Clock applicationClock) {
         return new McpToolsetAssembler(
-                profilesMcpTools, recordingsMcpTools, remoteMcpTools, contextCache, jfrPanelProvider,
+                profilesMcpTools, recordingsMcpTools, connectorMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties, advertisedFamilies, remoteArtifactsMcpTools, operations, operationAnswers,
+                properties, advertisedFamilies, connectorArtifactsMcpTools, operations, operationAnswers,
                 applicationClock);
     }
 
@@ -279,7 +279,7 @@ public class McpConfiguration {
      * The operation registry served over the MCP tasks extension, behind the same family gate as
      * {@code operations_status}: a client that declared the extension follows a long call as a task
      * rather than through an {@code operationId}. {@link McpTaskProvider#NONE} -- and no extension
-     * declared at {@code server/discover} -- when no family that starts an operation (recordings, remote,
+     * declared at {@code server/discover} -- when no family that starts an operation (recordings, connector,
      * heap, jvm) is served.
      */
     @Bean
@@ -288,18 +288,18 @@ public class McpConfiguration {
     }
 
     /**
-     * @param probeTimeout how long the {@code jeffrey://diagnostics} resource spends asking the remote
+     * @param probeTimeout how long the {@code jeffrey://diagnostics} resource spends asking the connector
      *                     for its version before counting it as unreachable, from
      *                     {@code jeffrey.microscope.mcp.diagnostics.probe-timeout}
      */
     @Bean
     public McpDiagnostics mcpDiagnostics(
-            MicroscopeCorePersistenceProvider persistence, RemoteManager remoteManager,
+            MicroscopeCorePersistenceProvider persistence, ConnectorManager connectorManager,
             ExternalMcpProperties properties, Clock applicationClock,
             @Value("${" + McpDiagnostics.PROBE_TIMEOUT_PROPERTY + ":"
                     + McpDiagnostics.DEFAULT_PROBE_TIMEOUT_TEXT + "}") Duration probeTimeout,
             McpSkillCatalogue skills) {
-        return new McpDiagnostics(persistence.localCoreRepositories(), remoteManager, properties,
+        return new McpDiagnostics(persistence.localCoreRepositories(), connectorManager, properties,
                 applicationClock, probeTimeout, skills);
     }
 
