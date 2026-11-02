@@ -24,6 +24,38 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
 
+type FeatureGroup = 'editor' | 'recordings' | 'agents';
+
+interface Feature {
+  group: FeatureGroup;
+  icon: string;
+  title: string;
+  description: string;
+}
+
+const FEATURE_GROUPS: { id: FeatureGroup; label: string; icon: string }[] = [
+  { id: 'editor', label: 'In the editor', icon: 'bi bi-code-slash' },
+  { id: 'recordings', label: 'Recordings', icon: 'bi bi-fire' },
+  { id: 'agents', label: 'AI agents', icon: 'bi bi-robot' }
+];
+
+const FEATURES: Feature[] = [
+  { group: 'editor', icon: 'bi bi-box-arrow-up-right', title: 'Open in IDE', description: 'Jump from any flame-graph frame straight to its source line.' },
+  { group: 'editor', icon: 'bi bi-file-earmark-code', title: 'View Source', description: 'Read the class from the IDE inline, with the frame line highlighted.' },
+  { group: 'editor', icon: 'bi bi-translate', title: 'Java & Kotlin', description: 'Both languages resolve to the right file and line.' },
+  { group: 'editor', icon: 'bi bi-git', title: 'Multi-Window Aware', description: 'Targets the right open window; each reports its branch and HEAD.' },
+  { group: 'recordings', icon: 'bi bi-send', title: 'Send to Microscope', description: 'Right-click a JFR, heap dump or pprof/OTLP file to analyse it.' },
+  { group: 'recordings', icon: 'bi bi-fire', title: 'Marked Recordings', description: 'Profile files carry the Jeffrey flame icon in the project view.' },
+  { group: 'recordings', icon: 'bi bi-layout-text-window', title: 'Recording Panel', description: 'Status, key figures, findings and view tiles right in the editor tab.' },
+  { group: 'recordings', icon: 'bi bi-arrow-left-right', title: 'Compare Recordings', description: 'Before vs. after, with a verdict on whether the pair is comparable.' },
+  { group: 'agents', icon: 'bi bi-terminal', title: 'Hand It to an Agent', description: 'Launch Claude Code, Codex or Gemini CLI wired to Microscope\'s MCP.' },
+  { group: 'agents', icon: 'bi bi-crosshair', title: 'Frame Lookup', description: 'ide_ MCP tools ground an agent\'s findings in real files and lines.' }
+];
+
+function featuresOf(group: FeatureGroup): Feature[] {
+  return FEATURES.filter(feature => feature.group === group);
+}
+
 const headings = [
   { id: 'what-it-does', text: 'What It Does', level: 2 },
   { id: 'how-pairing-works', text: 'How Pairing Works', level: 2 },
@@ -175,19 +207,25 @@ onMounted(() => {
       </p>
 
       <h2 id="features">Features in Microscope</h2>
-      <ul class="usecase-list">
-        <li><i class="bi bi-check2-circle"></i> <strong>Open in IDE</strong> from any flame-graph frame — navigates to the method's source line and focuses the IDE window.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>View Source</strong> from a flame-graph frame — opens the class body, fetched straight from the IDE, in a full-screen viewer with the frame's line highlighted. Library classes come back as attached sources when they exist and as a decompiled reconstruction when they do not.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Frame lookup for AI agents</strong> — the five <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code> MCP tools</router-link> ask the IDE where a class and method live so a coding agent can ground a finding in a real file and line. <code>ide_windows</code> lists the open projects and <code>ide_link</code> binds one to a profile; <code>ide_resolve</code> and <code>ide_source</code> then answer without your editor moving while you work, and only <code>ide_open</code> puts a file on your screen.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Send a recording for analysis</strong> — right-click a JFR recording, heap dump, or pprof/OpenTelemetry profile in the project view and open it straight in Microscope. Compressed forms (<code>.jfr.lz4</code>, <code>.hprof.gz</code>, <code>.pb.gz</code>) are recognised too.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Recordings marked in the project view</strong> — every file that action accepts carries the Jeffrey flame icon, in the project tree, editor tabs and Search Everywhere. Most of these formats have no icon of their own, so a directory of profiled runs stops reading as a row of blank pages.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>A recording panel in the editor</strong> — open a recording and its tab says whether Microscope has analysed it, offers the button that does, and lays the views out as tiles: flame graph, allocations, GC, threads, traces and the rest, each with a line on what the page answers. A ready recording adds its window, sample count, event types and sample-loss share, plus the auto-analysis findings — each titled by the rule that fired, so <code>GC Pauses</code> and <code>Thrown Errors</code> are told apart at a glance. Those findings are there when the profile is — Microscope runs the rule set alongside the parse and the import waits for it, so the panel draws them once and never polls for them — and a recording the rules cleared says so rather than reading as one that was never analysed, while a run that failed offers another and a recording Microscope no longer has says that instead; a ready heap dump — its header wears an object graph where a recording wears the flame — adds retained size, instances, classes and GC roots, with tiles of its own — leak suspects, dominator tree, histogram, GC roots. A dump whose index Microscope has not built yet says so in a callout with a <em>Build index</em> button; press it and the same callout follows the build stage by stage until the figures arrive. Those are the only profile figures the plugin draws. Views the recording has no data for stay visible but dimmed, and so do all of a heap dump's views until its index is built, so an empty page is never a click away in disguise.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Compare two recordings</strong> &mdash; a before and an after, measured against each other without leaving the IDE. Select two recordings in the project view and pick <em>Compare in Microscope</em>, select one while another&rsquo;s panel is open and pick <em>Compare with&hellip;</em>, or choose a baseline from the panel&rsquo;s own menu, which lists this project&rsquo;s recordings with each one&rsquo;s window and sample count so a comparable one can be picked before Microscope has to caution about it; a recording Microscope has never seen is imported first rather than hidden. The panel then names the baseline in a strip with <em>Swap</em> and <em>Clear</em>, prints the baseline&rsquo;s own value under each of the four figures, and swaps its tiles for the two differential views. It never computes a movement or a delta: what it adds is a verdict on the pair &mdash; windows within a quarter of each other and the same event types on both sides reads as one line, and anything else as a callout, because a baseline a quarter of the primary&rsquo;s length and a profiler configuration that differs are the two mistakes that make a comparison worthless, and both have to be seen before the numbers rather than after. <em>Open in Microscope</em> then lands on the differential flame graph with the baseline already selected. Heap dumps are not offered: a dump compares with a dump, on Microscope&rsquo;s own heap diff page.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Hand it to a coding agent</strong> — one split button starts your coding agent in a terminal with the profile already identified, so it reads the recording through Microscope's MCP server instead of trying to parse a JFR it cannot open. The agent is pointed at the Microscope URL from the plugin's settings &mdash; <code>--mcp-config</code> for Claude Code, <code>-c mcp_servers.jeffrey.url</code> for Codex, <code>JEFFREY_MCP_ENDPOINT</code> for Gemini CLI &mdash; so it talks to the same Microscope the panel does; at the default <code>http://localhost:8585</code> Claude Code and Codex get no flag, since the plugin's own server already points there. Pointed elsewhere, the launcher also forwards the <router-link to="/docs/microscope-mcp/enabling#bearer-token">bearer token</router-link> from <code>JEFFREY_MCP_TOKEN</code> in the IDE's environment &mdash; an <code>Authorization: Bearer ${JEFFREY_MCP_TOKEN:-}</code> header that Claude Code expands itself, and <code>bearer_token_env_var</code> for Codex &mdash; because the server it registers replaces the plugin's, and with it the plugin's own token setting; set the variable before starting the IDE when your Microscope requires a token. The command is quoted for the terminal's shell &mdash; POSIX, PowerShell or <code>cmd.exe</code>. The button runs whichever agent you used last; its menu holds the others, including the ones Jeffrey supports that are not on your <code>PATH</code> — visible so you know they exist, without spending a button each. With a baseline attached it reads <em>Compare with</em> and sends both profile ids, which is what fires <router-link to="/docs/microscope-mcp/skills"><code>compare-jfr</code></router-link> rather than the single-profile skill. Switchable off under <em>Settings → Tools → Jeffrey Plugin</em>.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Checkout awareness</strong> — each window reports its branch and HEAD commit, so a profile can be checked against the code you actually have open.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Per-profile window selection</strong> — when multiple IntelliJ windows are open, choose which one to target for a given profile; the choice is cached.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Java &amp; Kotlin resolution</strong> — both <code>JavaResolver</code> and <code>KotlinResolver</code> ship with the plugin, so JVM languages resolve symbol locations identically.</li>
-      </ul>
+      <div class="feature-groups">
+        <section
+          v-for="group in FEATURE_GROUPS"
+          :key="group.id"
+          class="feature-group"
+          :class="`feature-group--${group.id}`"
+        >
+          <h3 class="feature-group-label"><i :class="group.icon"></i>{{ group.label }}</h3>
+          <div class="feature-tiles">
+            <div v-for="feature in featuresOf(group.id)" :key="feature.title" class="feature-tile">
+              <span class="feature-icon"><i :class="feature.icon"></i></span>
+              <div>
+                <div class="feature-title">{{ feature.title }}</div>
+                <p class="feature-desc">{{ feature.description }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
 
       <DocsCallout type="info" title="The analysis stays in Microscope">
         The plugin does not draw flame graphs, dashboards or charts inside the IDE, and it will not
@@ -267,35 +305,6 @@ onMounted(() => {
   max-width: 60ch;
 }
 
-/* ============ USECASE LIST ============ */
-.usecase-list {
-  list-style: none;
-  padding: 0;
-  margin: 0.75rem 0 0.5rem;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.4rem;
-}
-
-.usecase-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 0.85rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #334155;
-  line-height: 1.5;
-}
-
-.usecase-list li i {
-  color: #10b981;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
 /* ============ ARCH FLOW STRIP ============ */
 .arch-flow {
   display: flex;
@@ -353,5 +362,103 @@ onMounted(() => {
   .hero-lede { font-size: 0.95rem; }
   .arch-flow { flex-direction: column; }
   .flow-arrow { transform: rotate(90deg); }
+}
+
+/* ============ FEATURE TILES ============ */
+.feature-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin: 1rem 0 1.75rem;
+}
+
+.feature-group {
+  --accent: #5e64ff;
+  --accent-soft: #eef0ff;
+  --accent-border: #c7cbff;
+}
+
+.feature-group--recordings {
+  --accent: #ea580c;
+  --accent-soft: #fff4ec;
+  --accent-border: #fed7aa;
+}
+
+.feature-group--agents {
+  --accent: #059669;
+  --accent-soft: #ecfdf5;
+  --accent-border: #a7f3d0;
+}
+
+.docs-content .feature-group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.7rem;
+  padding: 0.3rem 0.75rem;
+  border: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+}
+
+.feature-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.feature-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid var(--accent);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feature-tile:hover {
+  border-color: var(--accent-border);
+  border-top-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+}
+
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.05rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 9px;
+}
+
+.feature-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.docs-content .feature-desc {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+@media (max-width: 768px) {
+  .feature-tiles { grid-template-columns: 1fr; }
 }
 </style>

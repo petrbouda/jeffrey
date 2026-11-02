@@ -225,26 +225,6 @@ body {
   width: 100%;
 }
 
-/* Avatar styling */
-.avatar-container-modern {
-  max-width: 180px;
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-  border: 5px solid white;
-}
-
-.avatar-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  border-radius: 12px;
-  aspect-ratio: 1/1;
-}
-
 /* Wider container override */
 .container-wide {
   max-width: 1400px !important;
@@ -253,131 +233,10 @@ body {
   margin-right: auto;
 }
 
-/* Bootstrap Icons */
-@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css");
-
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
 /* Card styling */
-.card {
-  transition: transform 0.3s ease;
-  border: none;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
 
-/* Modern Section Headers */
-.section-header {
-  position: relative;
-  font-weight: 800;
-  display: inline-block;
-  padding-bottom: 0.5rem;
-  padding-top: 0.5rem;
-  text-align: left;
-  font-size: 2.2rem;
-  text-transform: uppercase;
-  border-left: 5px solid #3498db;
-  padding-left: 15px;
-  line-height: 1.1;
-  margin-bottom: 0;
-  z-index: 0;
-}
-
-.section-header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 0;
-  width: 0;
-}
-
-.section-header-container {
-  text-align: left;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-}
-
-.section-header-container .section-header {
-  margin-bottom: 0;
-  z-index: 2;
-  position: relative;
-}
-
-/* Custom styles for markdown content in modals */
-.modal-body {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.modal-body h1,
-.modal-body h2,
-.modal-body h3,
-.modal-body h4,
-.modal-body h5,
-.modal-body h6 {
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.modal-body img {
-  max-width: 100%;
-  height: auto;
-  margin: 1rem 0;
-  border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.modal-body pre,
-.modal-body code {
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  padding: 0.2rem 0.4rem;
-  font-family: monospace;
-}
-
-.modal-body pre {
-  padding: 1rem;
-  margin: 1rem 0;
-  overflow-x: auto;
-}
-
-.modal-body blockquote {
-  border-left: 4px solid #dee2e6;
-  padding-left: 1rem;
-  margin-left: 0;
-  color: #6c757d;
-}
-
-.modal-body table {
-  width: 100%;
-  margin-bottom: 1rem;
-  border-collapse: collapse;
-}
-
-.modal-body table th,
-.modal-body table td {
-  padding: 0.5rem;
-  border: 1px solid #dee2e6;
-}
-
-.modal-body table th {
-  background-color: #f8f9fa;
-}
-
-.modal-body ul,
-.modal-body ol {
-  padding-left: 2rem;
-  margin-bottom: 1rem;
-}
-
-/* Modal content width adjustment */
-.modal-content {
-  width: 80%;
-  margin: 0 auto;
-}

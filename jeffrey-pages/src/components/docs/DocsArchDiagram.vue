@@ -187,33 +187,6 @@ withDefaults(defineProps<{
   border: 1px solid #e2e8f0;
 }
 
-.arch-top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.arch-client {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1.25rem;
-  background: #fff;
-  border: 2px solid #10b981;
-  border-radius: 24px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.arch-client i { color: #10b981; font-size: 1.1rem; }
-
-.arch-arrow-down, .arch-arrow-up {
-  color: #94a3b8;
-  font-size: 1.1rem;
-}
-
 /* Apps row */
 .arch-apps {
   display: flex;
@@ -278,8 +251,6 @@ withDefaults(defineProps<{
 
 .arch-chip i { font-size: 0.75rem; }
 
-.arch-chip.vue { background: #d1fae5; color: #065f46; }
-.arch-chip.rest { background: #dbeafe; color: #1e40af; }
 .arch-chip.analysis { background: #fef3c7; color: #92400e; }
 .arch-chip.mcp { background: #cffafe; color: #155e75; }
 .arch-chip.scheduler { background: #e0e7ff; color: #3730a3; }
@@ -296,37 +267,6 @@ withDefaults(defineProps<{
 }
 
 /* Pipeline inside app box */
-.arch-pipeline {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.4rem 0.5rem;
-  background: #f8fafc;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  flex-wrap: wrap;
-}
-
-.pipe-item {
-  padding: 0.2rem 0.45rem;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 0.6rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.pipe-item.pipe-highlight {
-  background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%);
-  color: #fff;
-  border-color: transparent;
-}
-
-.pipe-arrow {
-  font-size: 0.5rem;
-  color: #9ca3af;
-}
 
 .arch-storage-row {
   display: flex;
@@ -434,20 +374,6 @@ withDefaults(defineProps<{
 .arch-shared-fs i { color: #f59e0b; font-size: 1.1rem; }
 .arch-shared-fs span { font-size: 0.8rem; font-weight: 600; color: #92400e; }
 .arch-shared-fs small { font-size: 0.65rem; color: #6c757d; margin-left: 0.25rem; }
-
-.arch-arrow-vertical {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  color: #94a3b8;
-}
-
-.arch-arrow-vertical small {
-  font-size: 0.6rem;
-  color: #94a3b8;
-  font-style: italic;
-}
 
 .arch-write-labels-row {
   display: flex;

@@ -21,28 +21,15 @@ defineProps<{
   title: string
   description?: string
   color?: 'purple' | 'green' | 'orange' | 'red' | 'blue' | 'neutral'
-  size?: 'sm' | 'md' | 'lg'
-  layout?: 'horizontal' | 'vertical'
 }>()
 </script>
 
 <template>
-  <div
-    class="docs-card"
-    :class="[
-      layout === 'vertical' ? 'docs-card-vertical docs-card-subtle' : 'docs-card-horizontal docs-card-subtle'
-    ]"
-  >
-    <div
-      class="docs-icon"
-      :class="[
-        `docs-icon-${size || 'md'}`,
-        `docs-icon-${color || 'purple'}`
-      ]"
-    >
+  <div class="docs-card docs-card-horizontal docs-card-subtle">
+    <div class="docs-icon docs-icon-md" :class="`docs-icon-${color || 'purple'}`">
       <i :class="icon"></i>
     </div>
-    <div v-if="layout !== 'vertical'" class="docs-card-content">
+    <div class="docs-card-content">
       <h4>
         <slot name="title">{{ title }}</slot>
       </h4>
@@ -50,14 +37,6 @@ defineProps<{
         <slot>{{ description }}</slot>
       </p>
     </div>
-    <template v-else>
-      <h4>
-        <slot name="title">{{ title }}</slot>
-      </h4>
-      <p v-if="description || $slots.default">
-        <slot>{{ description }}</slot>
-      </p>
-    </template>
   </div>
 </template>
 

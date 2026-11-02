@@ -44,31 +44,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ReleaseNotesView.vue')
   },
   {
-    path: '/blog',
-    name: 'Blog',
-    component: () => import('@/views/BlogView.vue')
-  },
-  {
-    path: '/blog/java-profiling-literature',
-    name: 'JavaProfilingLiterature',
-    component: () => import('@/views/blog/JavaProfilingLiteratureView.vue')
-  },
-  {
-    path: '/blog/jfr-in-depth',
-    name: 'JfrInDepth',
-    component: () => import('@/views/blog/JfrInDepthView.vue')
-  },
-  {
-    path: '/blog/jeffrey-04-announcement',
-    name: 'Jeffrey04Announcement',
-    component: () => import('@/views/blog/Jeffrey04AnnouncementView.vue')
-  },
-  {
-    path: '/blog/getting-started-with-jeffrey',
-    name: 'GettingStartedWithJeffrey',
-    component: () => import('@/views/blog/GettingStartedWithJeffreyView.vue')
-  },
-  {
     path: '/docs',
     component: () => import('@/views/docs/DocsLayout.vue'),
     children: [

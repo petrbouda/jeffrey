@@ -21,11 +21,9 @@ import hljs from 'highlight.js/lib/core';
 import bash from 'highlight.js/lib/languages/bash';
 import ini from 'highlight.js/lib/languages/ini';
 import java from 'highlight.js/lib/languages/java';
-import javascript from 'highlight.js/lib/languages/javascript';
 import json from 'highlight.js/lib/languages/json';
 import properties from 'highlight.js/lib/languages/properties';
 import sql from 'highlight.js/lib/languages/sql';
-import typescript from 'highlight.js/lib/languages/typescript';
 import xml from 'highlight.js/lib/languages/xml';
 import yaml from 'highlight.js/lib/languages/yaml';
 
@@ -34,11 +32,9 @@ import yaml from 'highlight.js/lib/languages/yaml';
 hljs.registerLanguage('bash', bash);
 hljs.registerLanguage('ini', ini);
 hljs.registerLanguage('java', java);
-hljs.registerLanguage('javascript', javascript);
 hljs.registerLanguage('json', json);
 hljs.registerLanguage('properties', properties);
 hljs.registerLanguage('sql', sql);
-hljs.registerLanguage('typescript', typescript);
 hljs.registerLanguage('xml', xml);
 hljs.registerLanguage('yaml', yaml);
 
@@ -81,10 +77,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
 // from this map renders verbatim — which is what `text` wants, since those
 // blocks are span trees and recorded output rather than source.
 const GRAMMARS: Record<string, string> = {
-  'js': 'javascript',
-  'javascript': 'javascript',
-  'ts': 'typescript',
-  'typescript': 'typescript',
   'java': 'java',
   'bash': 'bash',
   'shell': 'bash',
