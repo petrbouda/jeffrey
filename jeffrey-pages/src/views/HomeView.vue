@@ -202,31 +202,11 @@ interface EcoProduct {
   icon: string;
   chips: string[];
   to: string;
-  flag?: string;
 }
 
 // The rest of the Jeffrey ecosystem — companion products shown under the
-// Microscope + Microscope MCP hero. The Hub leads: it maintains the volume production recordings come from.
+// Microscope + Microscope MCP hero.
 const ecosystem: EcoProduct[] = [
-  {
-    id: 'hub',
-    name: 'Jeffrey Hub',
-    role: 'Kubernetes · Maintenance',
-    icon: 'bi-cloud-fill',
-    desc: 'Maintains the shared volume your services write JFR recordings, heap dumps and logs into — retention, cleanup and LZ4 compression as scheduled jobs. Microscope, and your agent through it, reads that volume from the Azure file share.',
-    chips: ['Kubernetes', 'Shared volume', 'Retention', 'Compression'],
-    to: '/docs/hub/overview',
-    flag: 'Production'
-  },
-  {
-    id: 'plugin',
-    name: 'IntelliJ Plugin',
-    role: 'IDE · Companion',
-    icon: 'bi-window-stack',
-    desc: 'Jump from any Microscope flame-graph frame straight to the source line in your open IntelliJ — Java and Kotlin — or pull inline source back into the profile.',
-    chips: ['Open in IDE', 'Inline source', 'Multi-IDE', 'Marketplace'],
-    to: '/docs/intellij-plugin'
-  },
   {
     id: 'provisioner',
     name: 'Provisioner',
@@ -244,6 +224,24 @@ const ecosystem: EcoProduct[] = [
     desc: 'A Jib (Gradle/Maven) extension that wraps your container entrypoint so Jeffrey profiling starts before your app does — no command override, and the provisioner and async-profiler ride along in their own image layer.',
     chips: ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'],
     to: '/docs/jib'
+  },
+  {
+    id: 'plugin',
+    name: 'IntelliJ Plugin',
+    role: 'IDE · Companion',
+    icon: 'bi-window-stack',
+    desc: 'Jump from any Microscope flame-graph frame straight to the source line in your open IntelliJ — Java and Kotlin — or pull inline source back into the profile.',
+    chips: ['Open in IDE', 'Inline source', 'Multi-IDE', 'Marketplace'],
+    to: '/docs/intellij-plugin'
+  },
+  {
+    id: 'hub',
+    name: 'Jeffrey Hub',
+    role: 'Kubernetes · Maintenance',
+    icon: 'bi-cloud-fill',
+    desc: 'Maintains the shared volume your services write JFR recordings, heap dumps and logs into — retention, cleanup and LZ4 compression as scheduled jobs. Microscope, and your agent through it, reads that volume from the Azure file share.',
+    chips: ['Kubernetes', 'Shared volume', 'Retention', 'Compression'],
+    to: '/docs/hub/overview'
   }
 ];
 
@@ -387,7 +385,6 @@ function copyCmd(): void {
           <div class="eco-body">
             <div class="eco-title">
               <span>{{ p.name }}</span>
-              <span v-if="p.flag" class="eco-flag">{{ p.flag }}</span>
             </div>
             <div class="eco-role">{{ p.role }}</div>
             <p class="eco-desc">{{ p.desc }}</p>
@@ -1057,17 +1054,6 @@ function copyCmd(): void {
   --eco-b: #7c3aed;
   background: linear-gradient(135deg, #faf5ff 0%, #fff 70%);
   border-color: rgba(168, 85, 247, 0.35);
-}
-
-.eco-flag {
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #fff;
-  background: linear-gradient(135deg, var(--eco-a), var(--eco-b));
-  padding: 0.12rem 0.45rem;
-  border-radius: 5px;
 }
 
 .eco-ic {
