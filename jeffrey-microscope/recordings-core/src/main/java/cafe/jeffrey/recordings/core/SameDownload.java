@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  * storing the same chunks again - and, analysed once more, a second profile of them that the
  * catalogue lists beside the first with the same start and duration.
  * <p>
- * Identical means: downloaded from the same remote session, by the same {@code origin.*} identity
+ * Identical means: downloaded from the same connector session, by the same {@code origin.*} identity
  * tags the download would write, as a part or as the whole alike, and holding exactly the recording
  * chunks about to be fetched. Their identity excludes the JFR or JFR/LZ4 suffix: compression changes
  * a chunk's representation, not the recording it holds. A chunk's name carries its start, and the
@@ -55,7 +55,7 @@ final class SameDownload {
 
     /** The tags that say where a copy came from and what it stands for; display names are left out. */
     private static final Set<String> IDENTITY_TAGS = Set.of(
-            OriginContext.TAG_REMOTE_ADDRESS,
+            OriginContext.TAG_CONNECTOR_ADDRESS,
             OriginContext.TAG_WORKSPACE_ID,
             OriginContext.TAG_PROJECT_ID,
             OriginContext.TAG_RECORDING_ID,
@@ -74,7 +74,7 @@ final class SameDownload {
     static Optional<Recording> find(
             RecordingsCoreManager recordings, Map<String, String> originTags, Set<String> recordingFiles) {
 
-        if (!originTags.containsKey(OriginContext.TAG_REMOTE_ADDRESS)
+        if (!originTags.containsKey(OriginContext.TAG_CONNECTOR_ADDRESS)
                 || !originTags.containsKey(OriginContext.TAG_RECORDING_ID)) {
             return Optional.empty();
         }

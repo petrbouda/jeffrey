@@ -54,7 +54,7 @@ class ProjectAdminControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectAdminController(resolver));
 
-        assertThat(mvc.delete().uri("/api/internal/remote/workspaces/ws-1/projects/p-1"))
+        assertThat(mvc.delete().uri("/api/internal/connector/workspaces/ws-1/projects/p-1"))
                 .hasStatusOk();
         verify(projectManager).delete();
     }
@@ -65,7 +65,7 @@ class ProjectAdminControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new ProjectAdminController(resolver));
 
-        assertThat(mvc.delete().uri("/api/internal/remote/workspaces/ws-1/projects/ghost"))
+        assertThat(mvc.delete().uri("/api/internal/connector/workspaces/ws-1/projects/ghost"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROJECT_NOT_FOUND");

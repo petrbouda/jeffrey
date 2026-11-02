@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
@@ -31,39 +31,39 @@ import java.util.Optional;
  */
 public class ProjectManagerResolver {
 
-    private final RemoteManager remoteManager;
+    private final ConnectorManager connectorManager;
 
-    public ProjectManagerResolver(RemoteManager remoteManager) {
-        this.remoteManager = remoteManager;
+    public ProjectManagerResolver(ConnectorManager connectorManager) {
+        this.connectorManager = connectorManager;
     }
 
-    /** The configured remote, or empty when none is configured. */
-    public Optional<RemoteConnection> currentRemote() {
-        return remoteManager.current();
+    /** The configured connector, or empty when none is configured. */
+    public Optional<ConnectorConnection> currentConnector() {
+        return connectorManager.current();
     }
 
-    /** The configured remote; not found when none is. */
-    public RemoteConnection resolveRemote() {
-        return remoteManager.require();
+    /** The configured connector; not found when none is. */
+    public ConnectorConnection resolveConnector() {
+        return connectorManager.require();
     }
 
     /**
-     * Resolves a workspace of the remote. A remote that cannot be reached surfaces as its failure —
-     * reported as the remote being unavailable — never as a workspace that is not there.
+     * Resolves a workspace of the connector. A connector that cannot be reached surfaces as its failure —
+     * reported as the connector being unavailable — never as a workspace that is not there.
      */
     public WorkspaceManager resolveWorkspace(String workspaceId) {
-        return resolveRemote().workspaceOrThrow(workspaceId)
+        return resolveConnector().workspaceOrThrow(workspaceId)
                 .orElseThrow(() -> Exceptions.workspaceNotFound(workspaceId));
     }
 
     /**
-     * Resolves a project of one of the remote's workspaces in one call: the remote checks that the
+     * Resolves a project of one of the connector's workspaces in one call: the connector checks that the
      * workspace holds the project and answers with all the manager needs. Not found means the
-     * remote said so, whether of the workspace or the project; an unreachable remote is reported as
+     * connector said so, whether of the workspace or the project; an unreachable connector is reported as
      * unavailable.
      */
     public ProjectManager resolve(String workspaceId, String projectId) {
-        return resolveRemote().projectOrThrow(workspaceId, projectId)
+        return resolveConnector().projectOrThrow(workspaceId, projectId)
                 .orElseThrow(() -> Exceptions.projectNotFound(projectId));
     }
 }

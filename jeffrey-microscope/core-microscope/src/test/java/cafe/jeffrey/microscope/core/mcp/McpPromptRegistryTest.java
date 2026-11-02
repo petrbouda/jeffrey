@@ -136,7 +136,7 @@ class McpPromptRegistryTest {
 
         @Test
         void declaresNoArgumentsForASkillThatTakesNone() {
-            for (String name : List.of("analyze-remote", "profile-run", "regression-check", "report", "help")) {
+            for (String name : List.of("analyze-connector", "profile-run", "regression-check", "report", "help")) {
                 assertTrue(prompt(name, "b").arguments().isEmpty(), name);
             }
         }

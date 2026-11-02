@@ -258,7 +258,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
         />
 
         <h2 id="integration">Integration with Jeffrey</h2>
-        <p>Sessions created by Jeffrey Provisioner appear in Jeffrey's <strong>Repository</strong> feature within Live and Remote workspaces.</p>
+        <p>Sessions created by Jeffrey Provisioner appear in Jeffrey's <strong>Repository</strong> feature within the connector's workspaces.</p>
 
         <h3>Workflow</h3>
         <div class="workflow-steps">
@@ -280,7 +280,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
             <div class="step-number">3</div>
             <div class="step-content">
               <strong>Repository Detects Session</strong>
-              <p>Jeffrey's Repository page shows the session in Live/Remote workspace</p>
+              <p>Jeffrey's Repository page shows the session in the connector's workspace</p>
             </div>
           </div>
           <div class="workflow-step">

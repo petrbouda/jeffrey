@@ -96,8 +96,8 @@ function getErrorTitle(error: ApiError): string {
         return 'Recording Session Not Found';
       case 'RECORDING_FILE_NOT_FOUND':
         return 'Recording File Not Found';
-      case 'REMOTE_UNAVAILABLE':
-        return 'Remote Unavailable';
+      case 'CONNECTOR_UNAVAILABLE':
+        return 'Connector Unavailable';
       case 'EMPTY_RECORDING_SESSION':
         return 'Empty Recording Session';
       case 'INVALID_REQUEST':
@@ -106,8 +106,8 @@ function getErrorTitle(error: ApiError): string {
         return 'Scheduler Job Not Found';
       case 'PROFILER_CONFIGURATION_ERROR':
         return 'Profiler Configuration Error';
-      case 'REMOTE_OPERATION_FAILED':
-        return 'Remote Operation Failed';
+      case 'CONNECTOR_OPERATION_FAILED':
+        return 'Connector Operation Failed';
       case 'REPOSITORY_NOT_FOUND':
         return 'Repository Not Found';
       case 'RESOURCE_NOT_FOUND':

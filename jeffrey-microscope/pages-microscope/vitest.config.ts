@@ -35,10 +35,6 @@ export default defineConfig({
     // fails to resolve rather than fails an assertion.
     alias: [
       {
-        find: '@remote',
-        replacement: fileURLToPath(new URL('../ui-remote/ui', import.meta.url))
-      },
-      {
         find: '@shared',
         replacement: fileURLToPath(new URL('../../shared/ui/common/src', import.meta.url))
       },
@@ -63,11 +59,7 @@ export default defineConfig({
     // The app's own tests plus the shared UI modules' — shared/ui has no test runner of its own, so
     // its specs run here, next to the only environment configured to resolve them. The glob stays
     // module-root-agnostic because the shared modules disagree on it (common uses src/, workspaces ui/).
-    include: [
-      'src/**/*.{test,spec}.ts',
-      '../../shared/ui/**/*.{test,spec}.ts',
-      '../ui-remote/**/*.{test,spec}.ts'
-    ],
+    include: ['src/**/*.{test,spec}.ts', '../../shared/ui/**/*.{test,spec}.ts'],
     globals: true,
     environment: 'node'
   }

@@ -29,10 +29,9 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Microscope talks to a hub over gRPC and nothing else: it maps the proto onto records of its
- * own and never reaches for the hub's. {@code cafe.jeffrey.microscope.remote.client} and
- * {@code cafe.jeffrey.hub.api} are Microscope's — the client and the contract — and are not
- * matched here.
+ * Microscope never talks to the hub: both read the recording volume through {@code shared/volume},
+ * and Microscope maps its layout onto records of its own ({@code cafe.jeffrey.microscope.connector.*})
+ * instead of reaching for the hub's.
  */
 class ModuleBoundaryTest {
 

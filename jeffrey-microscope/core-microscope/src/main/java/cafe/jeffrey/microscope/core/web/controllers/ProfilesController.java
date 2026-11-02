@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.dto.response.ProfileWithContextResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
@@ -37,10 +37,10 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Lists all profiles across all workspaces on the configured remote.
+ * Lists all profiles across all workspaces on the configured connector.
  */
 @RestController
-@RequestMapping("/api/internal/remote/profiles")
+@RequestMapping("/api/internal/connector/profiles")
 public class ProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfilesController.class);
@@ -53,11 +53,11 @@ public class ProfilesController {
 
     @GetMapping
     public List<ProfileWithContextResponse> listAllProfiles() {
-        RemoteConnection remote = resolver.resolveRemote();
+        ConnectorConnection connector = resolver.resolveConnector();
         List<ProfileWithContextResponse> allProfiles = new ArrayList<>();
 
-        for (WorkspaceInfo workspaceInfo : remote.workspaces()) {
-            WorkspaceManager workspaceManager = remote.workspace(workspaceInfo.id())
+        for (WorkspaceInfo workspaceInfo : connector.workspaces()) {
+            WorkspaceManager workspaceManager = connector.workspace(workspaceInfo.id())
                     .orElse(null);
             if (workspaceManager == null) {
                 continue;
@@ -74,7 +74,7 @@ public class ProfilesController {
         var result = allProfiles.stream()
                 .sorted(Comparator.comparingLong(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
-        LOG.debug("Listed all profiles on the remote: count={}", result.size());
+        LOG.debug("Listed all profiles on the connector: count={}", result.size());
         return result;
     }
 

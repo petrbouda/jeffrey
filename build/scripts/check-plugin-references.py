@@ -65,7 +65,7 @@ TOOL_REFERENCE = re.compile(r"\b([a-z][a-z]*_[a-zA-Z][a-zA-Z0-9]*)\b")
 # Deliberate counter-examples ("`jfr_listTables`, not `jfr_list_tables`") and a SQL alias — the same
 # set as McpToolsetAssemblerTest.ToolReferences.NOT_REFERENCES.
 NOT_TOOL_REFERENCES = {
-    "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "remote_list_sessions", "heap_used",
+    "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "connector_list_sessions", "heap_used",
 }
 
 ARGUMENT = re.compile(r"([a-zA-Z]+)\s*[=:]\s*(\"[^\"]*\"|\[[^\]]*\]|[^,)\s]+)")

@@ -26,9 +26,9 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'declare-remote', text: 'Declare the Remote', level: 2 },
+  { id: 'declare-connector', text: 'Declare the Connector', level: 2 },
   { id: 'azure-files', text: 'Working on an Azure File Share', level: 3 },
-  { id: 'status', text: 'Remote Status', level: 2 },
+  { id: 'status', text: 'Connector Status', level: 2 },
   { id: 'not-in-ui', text: 'What\'s Not in the UI', level: 2 }
 ];
 
@@ -47,22 +47,22 @@ onMounted(() => {
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        A <strong>workspace</strong> is a folder that lives on the <strong>remote</strong>. It groups
+        A <strong>workspace</strong> is a folder that lives on the <strong>connector</strong>. It groups
         projects, their JVM instances, and their recording sessions. Microscope reaches exactly one
-        remote &mdash; the recording volume itself on an Azure file share &mdash; and lets you browse
+        connector &mdash; the recording volume itself on an Azure file share &mdash; and lets you browse
         the workspaces it holds. Heavy analysis still runs locally — Microscope just borrows the data.
       </p>
       <p>
         All Microscope needs is the share, declared in its configuration. Workspaces come from
-        provisioning, not from Microscope: a workspace shows up on the Remote page once the
+        provisioning, not from Microscope: a workspace shows up on the Connector page once the
         <router-link to="/docs/provisioner">provisioner</router-link> has provisioned a project into
         it (its <code>project.workspace-ref-id</code>, <code>$default</code> when unset).
       </p>
 
-      <h2 id="declare-remote">Declare the Remote</h2>
+      <h2 id="declare-connector">Declare the Connector</h2>
       <p>
-        The remote is declared in configuration only, with
-        <router-link to="/docs/microscope/configuration/application-properties#remote"><code>jeffrey.microscope.remote.*</code></router-link>,
+        The connector is declared in configuration only, with
+        <router-link to="/docs/microscope/configuration/application-properties#connector"><code>jeffrey.microscope.connector.*</code></router-link>,
         and read when Microscope starts. It names the Azure file share that holds the recording
         volume and how to sign in to it:
       </p>
@@ -77,7 +77,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>name</code></td>
-            <td>How the remote is named in Microscope's Remote page. Defaults to the share's name.</td>
+            <td>How the connector is named in Microscope's Connector page. Defaults to the share's name.</td>
           </tr>
           <tr>
             <td><code>azure-files.endpoint</code></td>
@@ -99,12 +99,12 @@ onMounted(() => {
       </table>
 
       <p>
-        The <router-link to="/docs/microscope/configuration/application-properties#remote-azure-files">configuration reference</router-link>
-        lists the rest (root path, protocol). Open the <strong>Remote</strong> page from the sidebar:
-        it shows the remote's name with a <a href="#status">status</a> dot, and browses it in columns
+        The <router-link to="/docs/microscope/configuration/application-properties#connector-azure-files">configuration reference</router-link>
+        lists the rest (root path, protocol). Open the <strong>Connector</strong> page from the sidebar:
+        it shows the connector's name with a <a href="#status">status</a> dot, and browses it in columns
         that follow the share's folders: workspaces, projects, instances and recording sessions.
         With nothing declared the page says so and names the properties to set. Microscope holds
-        exactly one remote, and the UI never connects, changes or removes it — to point Microscope at
+        exactly one connector, and the UI never connects, changes or removes it — to point Microscope at
         another share, change the configuration and restart.
         No connection is attempted at startup, so a share that is unreachable when Microscope boots
         starts working as soon as it can be reached. A declaration that cannot be used (a missing
@@ -113,7 +113,7 @@ onMounted(() => {
 
       <h3 id="azure-files">Working on an Azure File Share</h3>
       <p>
-        The remote is the recording volume itself — the Azure file share (SMB or NFS) the provisioner
+        The connector is the recording volume itself — the Azure file share (SMB or NFS) the provisioner
         writes into — and Microscope works with it over the Azure Files REST API, signing in with a
         SAS token or with Microsoft Entra ID. Its workspaces, projects, instances and recording
         sessions are browsed and downloaded straight off the share. Each directory at the share's
@@ -138,9 +138,9 @@ onMounted(() => {
         directories' UUIDv7 names, by the same rules the hub applies.
       </p>
       <p>
-        Declared with <code>read-only=true</code>, the remote carries a <strong>Read-only</strong>
+        Declared with <code>read-only=true</code>, the connector carries a <strong>Read-only</strong>
         badge and only browses and downloads: there is no button to delete a workspace, a project
-        or a session (a request that reaches the backend anyway is refused, saying the remote is
+        or a session (a request that reaches the backend anyway is refused, saying the connector is
         read-only). Use it with a credential that may only read and list.
       </p>
 
@@ -155,10 +155,10 @@ onMounted(() => {
         archive.
       </DocsCallout>
 
-      <h2 id="status">Remote Status</h2>
+      <h2 id="status">Connector Status</h2>
       <p>
-        The dot beside the remote's name tells you whether Microscope could read it. It is checked
-        each time the Remote page opens — there is no manual refresh button.
+        The dot beside the connector's name tells you whether Microscope could read it. It is checked
+        each time the Connector page opens — there is no manual refresh button.
       </p>
 
       <table>
@@ -172,18 +172,18 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><strong>Online</strong></td>
-            <td>The remote answered and listed its workspaces.</td>
+            <td>The connector answered and listed its workspaces.</td>
             <td>Pick a workspace and start working.</td>
           </tr>
           <tr>
             <td><strong>Checking…</strong></td>
-            <td>Microscope is asking the remote for its workspaces.</td>
+            <td>Microscope is asking the connector for its workspaces.</td>
             <td>Wait a moment.</td>
           </tr>
           <tr>
             <td><strong>Unreachable</strong></td>
-            <td>Microscope could not read the remote (network, credentials, or the share is unavailable). The page shows the error.</td>
-            <td>Check the remote's declaration in configuration, its credentials and your network/VPN, then reopen the page.</td>
+            <td>Microscope could not read the connector (network, credentials, or the share is unavailable). The page shows the error.</td>
+            <td>Check the connector's declaration in configuration, its credentials and your network/VPN, then reopen the page.</td>
           </tr>
         </tbody>
       </table>
@@ -194,9 +194,9 @@ onMounted(() => {
         <li><strong>Creating a workspace</strong> — a workspace appears when the provisioner first provisions a project into it.</li>
         <li><strong>Renaming a workspace</strong> — a workspace's name is its reference id, the name of its folder on the share, and is not editable.</li>
         <li><strong>Renaming a project</strong> — a project's name is its folder on the share and its id, so it cannot be renamed.</li>
-        <li><strong>Connecting, changing or disconnecting the remote</strong> — it is declared in configuration only; change it there and restart.</li>
-        <li><strong>More than one remote</strong> — Microscope reaches exactly one.</li>
-        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the remote level (the SAS token or Entra identity of the Azure file share); there's no separate workspace-level token.</li>
+        <li><strong>Connecting, changing or disconnecting the connector</strong> — it is declared in configuration only; change it there and restart.</li>
+        <li><strong>More than one connector</strong> — Microscope reaches exactly one.</li>
+        <li><strong>Per-workspace credentials</strong> — Microscope authenticates at the connector level (the SAS token or Entra identity of the Azure file share); there's no separate workspace-level token.</li>
         <li><strong>Retention and compression on a share</strong> — Microscope makes the changes you ask for, never upkeep; keep a hub on the volume for that.</li>
       </ul>
     </div>

@@ -16,7 +16,7 @@ Tool names below omit the prefix your client puts in front of them — `mcp__plu
 
 Recordings that already exist: JFR files from the JDK or async-profiler, pprof and OpenTelemetry
 profiles (flamegraphs only), and HPROF heap dumps. It never attaches to a running process — the
-**profile-run** skill records this project first, and **analyze-remote** pulls what a deployed
+**profile-run** skill records this project first, and **analyze-connector** pulls what a deployed
 application recorded. Every answer carries a link to the same view in Microscope.
 
 ## 2. What it can answer
@@ -69,8 +69,8 @@ Show what the user can start from, not only what is possible:
 
 1. `profiles_list` — the analysed profiles, newest first. Name a few with their kind and recording
    window, each linked.
-2. When the `remote_` tools are served, `remote_status` — whether a remote with deployed recordings
-   is configured and answering. Mention it in one line; finding sessions there is **analyze-remote**.
+2. When the `connector_` tools are served, `connector_status` — whether a connector with deployed recordings
+   is configured and answering. Mention it in one line; finding sessions there is **analyze-connector**.
 3. When the user names one of the profiles, call `profiles_summary` on it and put **its**
    `investigationAreas` to the user exactly as the **analyze-jfr** skill describes — one multi-select
    question per group in Claude Code (`AskUserQuestion`), a table elsewhere. `AVAILABLE` areas are
@@ -90,7 +90,7 @@ Nothing here? Say so, and offer the two ways in: a recording file on this machin
 | Understand what an application threw | **analyze-exceptions** |
 | Read a heap dump: what holds the memory | **analyze-heap** |
 | Compare two recordings, or check a change for a regression | **compare-jfr**, **regression-check** |
-| Analyse what a deployed environment recorded | **analyze-remote** |
+| Analyse what a deployed environment recorded | **analyze-connector** |
 | Record this project first | **profile-run** |
 | Fix what a profile found, in this repository | **advise-jfr** |
 | Ask a question no dashboard answers | **jfr-sql**, **heap-sql** |

@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteConnection;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
@@ -43,8 +43,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Not found means the remote said so. A remote that cannot be reached is reported as its gRPC
- * failure, which the exception handler turns into "remote unavailable", rather than as a missing
+ * Not found means the connector said so. A connector that cannot be reached is reported as its gRPC
+ * failure, which the exception handler turns into "connector unavailable", rather than as a missing
  * workspace or project.
  */
 @ExtendWith(MockitoExtension.class)
@@ -52,14 +52,14 @@ class ProjectManagerResolverTest {
 
     private static final String WORKSPACE_ID = "ws-1";
     private static final JeffreyInternalException UNREACHABLE =
-            new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, "Cannot reach the recording volume");
+            new JeffreyInternalException(ErrorCode.CONNECTOR_UNAVAILABLE, "Cannot reach the recording volume");
     private static final String PROJECT_ID = "proj-1";
 
     @Mock
-    RemoteManager remoteManager;
+    ConnectorManager connectorManager;
 
     @Mock
-    RemoteConnection remote;
+    ConnectorConnection connector;
 
     @Mock
     WorkspaceManager workspace;
@@ -71,24 +71,24 @@ class ProjectManagerResolverTest {
 
     @BeforeEach
     void setUp() {
-        when(remoteManager.require()).thenReturn(remote);
-        resolver = new ProjectManagerResolver(remoteManager);
+        when(connectorManager.require()).thenReturn(connector);
+        resolver = new ProjectManagerResolver(connectorManager);
     }
 
     @Nested
     class Project {
 
         @Test
-        void isResolvedInOneRemoteCallWithoutAWorkspaceLookup() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.of(project));
+        void isResolvedInOneConnectorCallWithoutAWorkspaceLookup() {
+            when(connector.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.of(project));
 
             assertSame(project, resolver.resolve(WORKSPACE_ID, PROJECT_ID));
-            verify(remote, never()).workspaceOrThrow(any());
+            verify(connector, never()).workspaceOrThrow(any());
         }
 
         @Test
-        void aProjectTheRemoteDoesNotHoldIsNotFound() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.empty());
+        void aProjectTheConnectorDoesNotHoldIsNotFound() {
+            when(connector.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenReturn(Optional.empty());
 
             JeffreyClientException e = assertThrows(JeffreyClientException.class,
                     () -> resolver.resolve(WORKSPACE_ID, PROJECT_ID));
@@ -97,13 +97,13 @@ class ProjectManagerResolverTest {
         }
 
         @Test
-        void anUnreachableRemoteIsNotReportedAsAMissingProject() {
-            when(remote.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenThrow(UNREACHABLE);
+        void anUnreachableConnectorIsNotReportedAsAMissingProject() {
+            when(connector.projectOrThrow(WORKSPACE_ID, PROJECT_ID)).thenThrow(UNREACHABLE);
 
             JeffreyException e = assertThrows(JeffreyException.class,
                     () -> resolver.resolve(WORKSPACE_ID, PROJECT_ID));
 
-            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, e.getCode());
+            assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, e.getCode());
         }
     }
 
@@ -111,8 +111,8 @@ class ProjectManagerResolverTest {
     class Workspace {
 
         @Test
-        void aWorkspaceTheRemoteDoesNotHoldIsNotFound() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.empty());
+        void aWorkspaceTheConnectorDoesNotHoldIsNotFound() {
+            when(connector.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.empty());
 
             JeffreyClientException e = assertThrows(JeffreyClientException.class,
                     () -> resolver.resolveWorkspace(WORKSPACE_ID));
@@ -121,18 +121,18 @@ class ProjectManagerResolverTest {
         }
 
         @Test
-        void anUnreachableRemoteIsNotReportedAsAMissingWorkspace() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenThrow(UNREACHABLE);
+        void anUnreachableConnectorIsNotReportedAsAMissingWorkspace() {
+            when(connector.workspaceOrThrow(WORKSPACE_ID)).thenThrow(UNREACHABLE);
 
             JeffreyException e = assertThrows(JeffreyException.class,
                     () -> resolver.resolveWorkspace(WORKSPACE_ID));
 
-            assertEquals(ErrorCode.REMOTE_UNAVAILABLE, e.getCode());
+            assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, e.getCode());
         }
 
         @Test
-        void aWorkspaceTheRemoteHoldsIsResolved() {
-            when(remote.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.of(workspace));
+        void aWorkspaceTheConnectorHoldsIsResolved() {
+            when(connector.workspaceOrThrow(WORKSPACE_ID)).thenReturn(Optional.of(workspace));
 
             assertSame(workspace, resolver.resolveWorkspace(WORKSPACE_ID));
         }

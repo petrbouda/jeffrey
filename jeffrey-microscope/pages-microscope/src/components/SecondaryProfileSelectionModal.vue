@@ -173,11 +173,11 @@
 import { ref, computed, watch } from 'vue';
 import GenericModal from '@shared/components/GenericModal.vue';
 import type { ProfileListResponse } from '@/services/api/DirectProfileClient';
-import RecordingsClient from '@remote/services/api/RecordingsClient';
-import type RecordingGroup from '@remote/services/api/model/RecordingGroup';
-import type Recording from '@remote/services/api/model/Recording';
-import RecordingEventSource from '@remote/services/api/model/RecordingEventSource';
-import { recordingKindOf, type RecordingKindKey } from '@remote/components/recordingKinds';
+import RecordingsClient from '@/services/api/RecordingsClient';
+import type RecordingGroup from '@/services/api/model/recordings/RecordingGroup';
+import type Recording from '@/services/api/model/recordings/Recording';
+import RecordingEventSource from '@/services/api/model/recordings/RecordingEventSource';
+import { recordingKindOf, type RecordingKindKey } from '@/components/recordings/recordingKinds';
 
 const recordingsClient = new RecordingsClient();
 import FormattingService from '@shared/services/FormattingService';

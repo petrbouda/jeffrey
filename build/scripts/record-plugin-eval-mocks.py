@@ -119,7 +119,7 @@ OPERATION_ID = "operationId"
 # preparation — never from a nextTools entry, which could change the state the other answers describe.
 NOT_CALLED_FROM_ANSWERS = {
     "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete", "heap_prepare",
-    "remote_download", "remote_fetchFile", "operations_cancel", "ide_link", "ide_open",
+    "connector_download", "connector_fetchFile", "operations_cancel", "ide_link", "ide_open",
 }
 FILE_NAME_SAFE = re.compile(r"[A-Za-z0-9._-]+")
 # Text the agent writes itself rather than copies from an answer — a SQL or OQL query. A mock pinned to the

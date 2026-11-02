@@ -241,7 +241,7 @@
   {
    "name": "operations_status",
    "title": "Operations: Status",
-   "description": "Reports the status, phase and progress, result and next call of one operationId returned by recordings_analyzeFile, recordings_analyzeRecording, remote_download, remote_fetchFile, heap_prepare, heap_oql with includeRetainedSize or jvm_autoAnalysis with compute. Times are UTC epoch milliseconds. Polling starts no work. An id identifies one exact attempt and lives for one hour after completion, in this process only; a server restart forgets it.",
+   "description": "Reports the status, phase and progress, result and next call of one operationId returned by recordings_analyzeFile, recordings_analyzeRecording, connector_download, connector_fetchFile, heap_prepare, heap_oql with includeRetainedSize or jvm_autoAnalysis with compute. Times are UTC epoch milliseconds. Polling starts no work. An id identifies one exact attempt and lives for one hour after completion, in this process only; a server restart forgets it.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -266,8 +266,8 @@
       "enum": [
        "RECORDING_IMPORT",
        "RECORDING_ANALYSIS",
-       "REMOTE_DOWNLOAD",
-       "REMOTE_FETCH",
+       "CONNECTOR_DOWNLOAD",
+       "CONNECTOR_FETCH",
        "HEAP_PREPARE",
        "HEAP_OQL",
        "JVM_AUTO_ANALYSIS"
@@ -6846,8 +6846,8 @@
         "enum": [
          "RECORDING_IMPORT",
          "RECORDING_ANALYSIS",
-         "REMOTE_DOWNLOAD",
-         "REMOTE_FETCH",
+         "CONNECTOR_DOWNLOAD",
+         "CONNECTOR_FETCH",
          "HEAP_PREPARE",
          "HEAP_OQL",
          "JVM_AUTO_ANALYSIS"
@@ -22416,8 +22416,8 @@
         "enum": [
          "RECORDING_IMPORT",
          "RECORDING_ANALYSIS",
-         "REMOTE_DOWNLOAD",
-         "REMOTE_FETCH",
+         "CONNECTOR_DOWNLOAD",
+         "CONNECTOR_FETCH",
          "HEAP_PREPARE",
          "HEAP_OQL",
          "JVM_AUTO_ANALYSIS"
@@ -22894,8 +22894,8 @@
         "enum": [
          "RECORDING_IMPORT",
          "RECORDING_ANALYSIS",
-         "REMOTE_DOWNLOAD",
-         "REMOTE_FETCH",
+         "CONNECTOR_DOWNLOAD",
+         "CONNECTOR_FETCH",
          "HEAP_PREPARE",
          "HEAP_OQL",
          "JVM_AUTO_ANALYSIS"
@@ -23394,8 +23394,8 @@
         "enum": [
          "RECORDING_IMPORT",
          "RECORDING_ANALYSIS",
-         "REMOTE_DOWNLOAD",
-         "REMOTE_FETCH",
+         "CONNECTOR_DOWNLOAD",
+         "CONNECTOR_FETCH",
          "HEAP_PREPARE",
          "HEAP_OQL",
          "JVM_AUTO_ANALYSIS"
@@ -24121,9 +24121,9 @@
    }
   },
   {
-   "name": "remote_sessions",
-   "title": "Remote: Sessions",
-   "description": "Returns recording sessions across every project on the remote, newest first, in one flat list - recordings from an environment rather than from a file, such as \"the JFR recordings from the last hour on production\". Every row carries a sessionRef for remote_download and remote_files; recordingId or profileId say a session is already in this Jeffrey, and startedAtEpochMs and durationMs give the span a window can be chosen from. Follow nextCursor with the same filters for more rows. A live view: complete says whether all remote scopes answered, independently of hasMore; a relative time window keeps its original cutoff across pages. status EMPTY: nothing matched and the remote answered.",
+   "name": "connector_sessions",
+   "title": "Connector: Sessions",
+   "description": "Returns recording sessions across every project on the connector, newest first, in one flat list - recordings from an environment rather than from a file, such as \"the JFR recordings from the last hour on production\". Every row carries a sessionRef for connector_download and connector_files; recordingId or profileId say a session is already in this Jeffrey, and startedAtEpochMs and durationMs give the span a window can be chosen from. Follow nextCursor with the same filters for more rows. A live view: complete says whether all connector scopes answered, independently of hasMore; a relative time window keeps its original cutoff across pages. status EMPTY: nothing matched and the connector answered.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -24225,7 +24225,7 @@
         },
         "sessionRef": {
          "type": "string",
-         "description": "Pass to remote_download and remote_files"
+         "description": "Pass to connector_download and connector_files"
         }
        },
        "required": [
@@ -24253,7 +24253,7 @@
        "null"
       ],
       "minimum": 0,
-      "description": "Sessions matching the filters; null when a remote scope did not answer"
+      "description": "Sessions matching the filters; null when a connector scope did not answer"
      },
      "observedTotal": {
       "type": "integer",
@@ -24271,7 +24271,7 @@
      },
      "complete": {
       "type": "boolean",
-      "description": "Whether every remote scope answered, independently of hasMore"
+      "description": "Whether every connector scope answered, independently of hasMore"
      },
      "failures": {
       "type": "array",
@@ -24358,7 +24358,7 @@
      },
      "uiLink": {
       "type": "string",
-      "description": "The remote's page in the Microscope UI, for the user"
+      "description": "The connector's page in the Microscope UI, for the user"
      }
     },
     "required": [
@@ -24386,14 +24386,14 @@
    "_meta": {
     "jeffrey/cost": "MODERATE",
     "jeffrey/requires": [
-     "REMOTE"
+     "CONNECTOR"
     ]
    }
   },
   {
-   "name": "remote_status",
-   "title": "Remote: Status",
-   "description": "Returns the one remote this installation's configuration declares - the recording volume on an Azure file share - whether it refuses changes (readOnly), and whether it answers right now (state REACHABLE or UNREACHABLE): why remote_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no remote, and the reason says how the user declares one.",
+   "name": "connector_status",
+   "title": "Connector: Status",
+   "description": "Returns the one connector this installation's configuration declares - the recording volume on an Azure file share - whether it refuses changes (readOnly), and whether it answers right now (state REACHABLE or UNREACHABLE): why connector_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no connector, and the reason says how the user declares one.",
    "inputSchema": {
     "type": "object",
     "properties": {},
@@ -24415,14 +24415,14 @@
        "string",
        "null"
       ],
-      "description": "How to declare the remote in configuration when none is; null otherwise"
+      "description": "How to declare the connector in configuration when none is; null otherwise"
      },
      "name": {
       "type": [
        "string",
        "null"
       ],
-      "description": "What the remote is called; null when none is configured"
+      "description": "What the connector is called; null when none is configured"
      },
      "address": {
       "type": [
@@ -24436,14 +24436,14 @@
        "boolean",
        "null"
       ],
-      "description": "True for a remote declared read-only: its sessions list and download as usual, but nothing on it can be deleted; null when none is configured"
+      "description": "True for a connector declared read-only: its sessions list and download as usual, but nothing on it can be deleted; null when none is configured"
      },
      "version": {
       "type": [
        "string",
        "null"
       ],
-      "description": "The version the remote reported; null when it did not answer or none is configured"
+      "description": "The version the connector reported; null when it did not answer or none is configured"
      },
      "followUp": {
       "type": "object",
@@ -24501,7 +24501,7 @@
      },
      "uiLink": {
       "type": "string",
-      "description": "The remote's page in the Microscope UI, for the user"
+      "description": "The connector's page in the Microscope UI, for the user"
      }
     },
     "required": [

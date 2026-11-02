@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteArtifactsMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationResults;
@@ -60,12 +60,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Real assembly, operation ownership and JSON-RPC dispatch; storage and remote services are isolated. */
+/** Real assembly, operation ownership and JSON-RPC dispatch; storage and connector services are isolated. */
 class McpWorkflowIntegrationTest {
     private final Clock clock = Clock.systemUTC();
     private final McpOperationRegistry operations = new McpOperationRegistry(clock);
     private final MicroscopeCoreRepositories repositories = mock(MicroscopeCoreRepositories.class);
-    private final RemoteManager remoteManager = mock(RemoteManager.class);
+    private final ConnectorManager connectorManager = mock(ConnectorManager.class);
 
     @Test
     void operationResultAndMetricsAreAvailableThroughTheRealEndpoint() {
@@ -82,12 +82,12 @@ class McpWorkflowIntegrationTest {
         JsonNode diagnostics = Json.readTree(read.path("result").path("contents").get(0).path("text").asText());
         assertEquals("operations_status", diagnostics.path("toolMetrics").get(0).path("tool").asText());
         assertEquals(1, diagnostics.path("toolMetrics").get(0).path("calls").asInt());
-        assertFalse(diagnostics.path("remote").path("enabled").asBoolean());
+        assertFalse(diagnostics.path("connector").path("enabled").asBoolean());
     }
 
     @Test
     void operationToolsCannotReachAnExcludedOriginatingFamily() {
-        String id = completed(OperationKind.REMOTE_DOWNLOAD);
+        String id = completed(OperationKind.CONNECTOR_DOWNLOAD);
         var controller = controller(McpTestProperties.of(true, false, false,
                 Set.of("operations", "recordings")));
         assertTrue(call(controller, "operations_status", id).path("result").path("isError").asBoolean());
@@ -111,17 +111,17 @@ class McpWorkflowIntegrationTest {
                 new ProfilesMcpTools(repositories, EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordings, new PipelineRunRegistry<>(ProfileInitStages.DEFINITION,
                         PipelineRunOptions.unbounded(), clock), operations, clock).build(),
-                RemoteMcpToolsFixture.of(remoteManager, resolver, recordings, clock).withOperations(operations).build(),
+                ConnectorMcpToolsFixture.of(connectorManager, resolver, recordings, clock).withOperations(operations).build(),
                 mock(McpProfileContextCache.class), mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class), mock(RecordingCommitResolver.class),
                 new HeapDumpInitService(clock), mock(IdeBridge.class), properties,
                 AdvertisedFamilies.of(properties),
-                RemoteArtifactsMcpToolsFixture.of(resolver, recordings, Path.of("artifacts"), Path.of("profiles"),
+                ConnectorArtifactsMcpToolsFixture.of(resolver, recordings, Path.of("artifacts"), Path.of("profiles"),
                         operations, clock, EVERY_FAMILY).build(),
                 operations, ToolFixtures.answers(), clock);
         return new ExternalMcpController(assembler, properties, McpTestGuards.loopback(),
                 new McpPromptRegistry(McpSkillCatalogue.fromClasspath()),
-                new McpDiagnostics(repositories, remoteManager, properties, clock, Duration.ofSeconds(1), McpSkillProvider.NONE),
+                new McpDiagnostics(repositories, connectorManager, properties, clock, Duration.ofSeconds(1), McpSkillProvider.NONE),
                 AdvertisedFamilies.of(properties), McpTaskProvider.NONE, McpSkillProvider.NONE);
     }
 

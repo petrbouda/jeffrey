@@ -29,7 +29,7 @@ public enum ErrorCode {
     RECORDING_FILE_NOT_FOUND,
     REPOSITORY_NOT_FOUND,
     UNKNOWN_ERROR_RESPONSE,
-    REMOTE_UNAVAILABLE,
+    CONNECTOR_UNAVAILABLE,
     EMPTY_RECORDING_SESSION,
 
     // Validation errors
@@ -41,8 +41,8 @@ public enum ErrorCode {
     // Profiler errors
     PROFILER_CONFIGURATION_ERROR,
 
-    // Remote operation errors
-    REMOTE_OPERATION_FAILED,
+    // Connector operation errors
+    CONNECTOR_OPERATION_FAILED,
 
     // Generic not-found error for Jersey WebApplicationExceptions
     RESOURCE_NOT_FOUND;

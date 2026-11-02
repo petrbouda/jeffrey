@@ -13,11 +13,11 @@ claude:
   - recordings_analyzeFile
   - recordings_analyzeRecording
   - recordings_delete
-  - remote_status
-  - remote_sessions
-  - remote_download
-  - remote_files
-  - remote_fetchFile
+  - connector_status
+  - connector_sessions
+  - connector_download
+  - connector_files
+  - connector_fetchFile
   - ide_link
   - ide_open
   - ide_resolve
@@ -41,8 +41,8 @@ codex:
     enforced: Codex has no per-agent tool deny-list, so the "never write" rules below are the only
     thing keeping the analyst off the three `recordings_` writers (`recordings_analyzeFile`,
     `recordings_analyzeRecording`, `recordings_delete` — `recordings_list` only reads and stays allowed),
-    the whole `remote_` family (`remote_status`, `remote_sessions`, `remote_files` and the two that write,
-    `remote_download` and `remote_fetchFile` — the remote is the caller's), `heap_prepare`,
+    the whole `connector_` family (`connector_status`, `connector_sessions`, `connector_files` and the two that write,
+    `connector_download` and `connector_fetchFile` — the connector is the caller's), `heap_prepare`,
     `operations_cancel`, and the `ide_` family (the two tools that act on your editor, and the three that
     read the checkout, which is the caller's to map onto). The other two of the eleven
     writers, `jvm_autoAnalysis` with `compute` and `heap_oql` with `includeRetainedSize`, stay allowed:
@@ -65,9 +65,9 @@ gemini:
     takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
     every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off the
     three recordings_ writers (recordings_analyzeFile, recordings_analyzeRecording, recordings_delete —
-    recordings_list only reads and stays allowed), the whole remote_ family (remote_status,
-    remote_sessions, remote_files and the two that write, remote_download and remote_fetchFile — the
-    remote is the caller's), heap_prepare, operations_cancel and the five ide_ tools (two act on your
+    recordings_list only reads and stays allowed), the whole connector_ family (connector_status,
+    connector_sessions, connector_files and the two that write, connector_download and connector_fetchFile — the
+    connector is the caller's), heap_prepare, operations_cancel and the five ide_ tools (two act on your
     editor, three read the checkout, which is the caller's to map onto). The other two of the eleven
     writers, jvm_autoAnalysis with compute and heap_oql with includeRetainedSize, stay allowed: they
     only fill a cache and are bounded (45 s, then an operationId). To make it a wall, name the fifteen
@@ -270,16 +270,16 @@ the marked name as the link and hides the URL.
 <!-- claude -->
 - **No writing.** Never call `heap_prepare`, even when a skill recommends it for a
   missing report. Report the missing evidence to the caller; the caller or `heap-triage` owns
-  preparation. You cannot import a recording, build a profile, reach the remote, or cancel work
-  somebody else started — `operations_cancel` is the caller's, as is everything under `remote_`. If the
+  preparation. You cannot import a recording, build a profile, reach the connector, or cancel work
+  somebody else started — `operations_cancel` is the caller's, as is everything under `connector_`. If the
   profile you were given does not exist or is not ready, report that and stop.
 <!-- portable -->
 - **No writing.** Never call `heap_prepare`, even when a loaded skill recommends it for a missing
   report. Report the missing evidence to the caller; the caller or `heap-triage` owns preparation.
   Never call `ide_link` or `ide_open`, which act on the editor beside you rather
-  than on a profile. Never call the `remote_` family, or any `recordings_` tool but
+  than on a profile. Never call the `connector_` family, or any `recordings_` tool but
   `recordings_list` — the others import a recording file and build a profile, or delete one, and
-  `remote_` pulls a recording, a window of one or one of its files off the remote. Never call `operations_cancel`: the work it stops was started by the caller. All of
+  `connector_` pulls a recording, a window of one or one of its files off the connector. Never call `operations_cancel`: the work it stops was started by the caller. All of
   these are the caller's decision, not yours. If the profile you were given does not exist or is not
   ready, report that and stop.
 <!-- end -->

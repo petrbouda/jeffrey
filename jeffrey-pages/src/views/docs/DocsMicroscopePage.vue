@@ -25,7 +25,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'architecture', text: 'Architecture', level: 2 },
-  { id: 'remote-connection', text: 'Connection to the Remote', level: 3 },
+  { id: 'connector-connection', text: 'Connection to the Connector', level: 3 },
   { id: 'recording-pipeline', text: 'Recording → Profile Pipeline', level: 3 },
   { id: 'mcp-integration', text: 'MCP Integration', level: 3 }
 ];
@@ -44,7 +44,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <h2 id="architecture">Architecture</h2>
-      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read one remote &mdash; the recording volume on an Azure file share &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
+      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read one connector &mdash; the recording volume on an Azure file share &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
 
       <div class="arch-diagram">
         <div class="arch-apps">
@@ -83,13 +83,13 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="arch-remote-link">
-            <div class="remote-line"></div>
-            <div class="remote-label">
+          <div class="arch-connector-link">
+            <div class="connector-line"></div>
+            <div class="connector-label">
               <i class="bi bi-arrow-left-right"></i>
               <span>Azure Files REST</span>
             </div>
-            <div class="remote-line"></div>
+            <div class="connector-line"></div>
           </div>
 
           <div class="arch-app server blackbox">
@@ -109,8 +109,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <h3 id="remote-connection">Connection to the Remote</h3>
-      <p>When an Azure file share is declared as the remote, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>RemoteClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no remote declared, Microscope is fully offline and operates only on local files and heap dumps.</p>
+      <h3 id="connector-connection">Connection to the Connector</h3>
+      <p>When an Azure file share is declared as the connector, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>ConnectorClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no connector declared, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>
@@ -121,7 +121,7 @@ onMounted(() => {
       </div>
 
       <h3 id="recording-pipeline">Recording → Profile Pipeline</h3>
-      <p>A recording is just a file on disk — a JFR recording, or an OpenTelemetry (<code>.otlp</code>) or pprof (<code>.pprof</code>, <code>.pb.gz</code>) profile. Initializing a profile runs the matching parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization copies the <code>.hprof</code> into its own profile and builds an index beside it (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference) — and a perf-counters snapshot (<code>.hsperfdata</code>) is read into its profile within the request (see <router-link to="/docs/microscope/profiles/perf-counters">Perf Counters</router-link>). Every kind is a profile of its own; a remote session that brings several lands as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> of such recordings. See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
+      <p>A recording is just a file on disk — a JFR recording, or an OpenTelemetry (<code>.otlp</code>) or pprof (<code>.pprof</code>, <code>.pb.gz</code>) profile. Initializing a profile runs the matching parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization copies the <code>.hprof</code> into its own profile and builds an index beside it (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference) — and a perf-counters snapshot (<code>.hsperfdata</code>) is read into its profile within the request (see <router-link to="/docs/microscope/profiles/perf-counters">Perf Counters</router-link>). Every kind is a profile of its own; a connector session that brings several lands as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link> of such recordings. See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-file-earmark-binary"></i><span>Recording (JFR)</span></div>
@@ -134,7 +134,7 @@ onMounted(() => {
       </div>
 
       <h3 id="mcp-integration">MCP Integration</h3>
-      <p>Microscope carries no model of its own. Its AI integration is an MCP server on <code>POST /api/mcp</code> that an outside coding agent in your repository calls into, provided it speaks MCP <code>2026-07-28</code> &mdash; Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> feature flag on; Gemini CLI not until it supports that revision: it reads every analysed profile through a hundred-odd tools (the dashboards, flamegraph and trace exports, SQL over the profile database, the heap-dump index and OQL), builds a profile from a recording file, and pulls a recording off the configured remote. The client brings its own model and Jeffrey only answers; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
+      <p>Microscope carries no model of its own. Its AI integration is an MCP server on <code>POST /api/mcp</code> that an outside coding agent in your repository calls into, provided it speaks MCP <code>2026-07-28</code> &mdash; Claude Code on its v2 MCP runtime, or Codex v0.147.0+ with its <code>mcp_2026_07_28</code> feature flag on; Gemini CLI not until it supports that revision: it reads every analysed profile through a hundred-odd tools (the dashboards, flamegraph and trace exports, SQL over the profile database, the heap-dump index and OQL), builds a profile from a recording file, and pulls a recording off the configured connector. The client brings its own model and Jeffrey only answers; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-terminal"></i><span>Coding agent<br><small>any MCP 2026-07-28 client</small></span></div>
@@ -263,8 +263,8 @@ onMounted(() => {
   color: #92400e;
 }
 
-/* Link between Microscope and the remote */
-.arch-remote-link {
+/* Link between Microscope and the connector */
+.arch-connector-link {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -273,13 +273,13 @@ onMounted(() => {
   min-width: 80px;
 }
 
-.remote-line {
+.connector-line {
   width: 2px;
   height: 24px;
   background: linear-gradient(180deg, #8b5cf6 0%, #a78bfa 100%);
 }
 
-.remote-label {
+.connector-label {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -290,8 +290,8 @@ onMounted(() => {
   border: 1px solid #c4b5fd;
 }
 
-.remote-label i { color: #7c3aed; font-size: 0.9rem; }
-.remote-label span {
+.connector-label i { color: #7c3aed; font-size: 0.9rem; }
+.connector-label span {
   font-size: 0.6rem;
   color: #6d28d9;
   font-weight: 600;
@@ -348,7 +348,7 @@ onMounted(() => {
   background: #ddd6fe;
 }
 
-/* ===== REMOTE CLIENT CHIPS ===== */
+/* ===== CONNECTOR CLIENT CHIPS ===== */
 .service-chips {
   display: flex;
   flex-wrap: wrap;
@@ -431,13 +431,13 @@ onMounted(() => {
     gap: 0.75rem;
   }
 
-  .arch-remote-link {
+  .arch-connector-link {
     flex-direction: row;
     padding: 0.5rem 0;
     min-width: auto;
   }
 
-  .remote-line {
+  .connector-line {
     width: 24px;
     height: 2px;
   }

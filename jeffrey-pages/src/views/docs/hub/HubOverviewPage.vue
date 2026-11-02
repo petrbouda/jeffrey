@@ -52,7 +52,7 @@ onMounted(() => {
           scheduler jobs on it, applying retention and quotas, cleaning up instances that never started,
           and LZ4-compressing finished JFR chunks. It exposes no API to Microscope — Microscope reads the
           same volume itself, from the Azure file share that holds it, and
-          <router-link to="/docs/microscope-mcp/tools#remote">its <code>remote_</code> tools</router-link>
+          <router-link to="/docs/microscope-mcp/tools#connector">its <code>connector_</code> tools</router-link>
           pick a session, or the hours of it that matter, and download that.
         </p>
         <div class="hero-actions">
@@ -130,7 +130,7 @@ onMounted(() => {
       <ul class="usecase-list">
         <li><i class="bi bi-check2-circle"></i> Always-on production / staging recording onto a shared volume across many JVMs — the hub keeps that volume from growing without bound.</li>
         <li><i class="bi bi-check2-circle"></i> Retention-governed storage of JFR recordings, heap dumps, JVM &amp; application logs, and crash dumps on a shared filesystem.</li>
-        <li><i class="bi bi-check2-circle"></i> Whenever Microscope uses the volume on an Azure file share as its remote — without a hub running on the volume, nothing is retained, cleaned up or compressed, and the share only grows.</li>
+        <li><i class="bi bi-check2-circle"></i> Whenever Microscope uses the volume on an Azure file share as its connector — without a hub running on the volume, nothing is retained, cleaned up or compressed, and the share only grows.</li>
       </ul>
 
     </div>

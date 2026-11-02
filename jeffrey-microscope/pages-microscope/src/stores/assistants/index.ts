@@ -15,5 +15,5 @@
  * limitations under the License.
  */
 
-export { downloadAssistantStore } from '@remote/stores/assistants/downloadAssistantStore';
+export { downloadAssistantStore } from '@/stores/assistants/downloadAssistantStore';
 export { recordingsAssistantStore } from './recordingsAssistantStore';

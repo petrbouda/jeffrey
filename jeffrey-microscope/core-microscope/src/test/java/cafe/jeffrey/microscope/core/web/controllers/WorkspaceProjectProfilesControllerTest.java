@@ -53,7 +53,7 @@ class WorkspaceProjectProfilesControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectProfilesController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ws-1/projects/namespaces"))
+        assertThat(mvc.get().uri("/api/internal/connector/workspaces/ws-1/projects/namespaces"))
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$[0]", v -> assertThat(v).asString().isEqualTo("billing"));
@@ -65,7 +65,7 @@ class WorkspaceProjectProfilesControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new WorkspaceProjectProfilesController(resolver));
 
-        assertThat(mvc.get().uri("/api/internal/remote/workspaces/ghost/projects/namespaces"))
+        assertThat(mvc.get().uri("/api/internal/connector/workspaces/ghost/projects/namespaces"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("WORKSPACE_NOT_FOUND");

@@ -35,24 +35,17 @@ import cafe.jeffrey.microscope.core.manager.recordings.builder.PipelineProfileBu
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
 import cafe.jeffrey.microscope.core.web.MicroscopeRecordingProfileInfoProvider;
-import cafe.jeffrey.microscope.core.web.MicroscopeRemoteProjectAccess;
-import cafe.jeffrey.microscope.core.web.MicroscopeRemoteBrowserAccess;
-import cafe.jeffrey.microscope.core.web.MicroscopeRemoteRegistry;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
-import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
-import cafe.jeffrey.shared.ui.remote.bridge.RemoteRegistry;
-import cafe.jeffrey.shared.ui.remote.bridge.RemoteProjectAccess;
-import cafe.jeffrey.shared.ui.remote.bridge.RemoteBrowserAccess;
-import cafe.jeffrey.shared.ui.remote.config.RemoteFeatureConfiguration;
+import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
@@ -87,7 +80,7 @@ import java.time.Clock;
  * Configuration beans specific to LOCAL mode: Recordings, web controllers, resolvers.
  */
 @Configuration
-@Import({WebInfrastructureConfig.class, RemoteFeatureConfiguration.class, VersionFeatureConfiguration.class})
+@Import({WebInfrastructureConfig.class, VersionFeatureConfiguration.class})
 public class MicroscopeAppConfiguration {
 
     @Bean
@@ -181,25 +174,8 @@ public class MicroscopeAppConfiguration {
     // --- Resolvers (centralise profileId / projectId lookups for controllers) ---
 
     @Bean
-    public ProjectManagerResolver projectManagerResolver(RemoteManager remoteManager) {
-        return new ProjectManagerResolver(remoteManager);
-    }
-
-    // --- Bridges for the shared workspaces controllers ---
-
-    @Bean
-    public RemoteProjectAccess remoteProjectAccess(ProjectManagerResolver projectManagerResolver) {
-        return new MicroscopeRemoteProjectAccess(projectManagerResolver);
-    }
-
-    @Bean
-    public RemoteBrowserAccess remoteBrowserAccess(ProjectManagerResolver projectManagerResolver) {
-        return new MicroscopeRemoteBrowserAccess(projectManagerResolver);
-    }
-
-    @Bean
-    public RemoteRegistry remoteRegistry(RemoteManager remoteManager) {
-        return new MicroscopeRemoteRegistry(remoteManager);
+    public ProjectManagerResolver projectManagerResolver(ConnectorManager connectorManager) {
+        return new ProjectManagerResolver(connectorManager);
     }
 
     @Bean
@@ -210,11 +186,11 @@ public class MicroscopeAppConfiguration {
 
     @Bean
     public ProfileManagerResolver profileManagerResolver(
-            RemoteManager remoteManager,
+            ConnectorManager connectorManager,
             Optional<RecordingsManager> recordingsManager,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
         return new ProfileManagerResolver(
-                remoteManager,
+                connectorManager,
                 recordingsManager.orElse(null),
                 localCorePersistenceProvider.localCoreRepositories());
     }

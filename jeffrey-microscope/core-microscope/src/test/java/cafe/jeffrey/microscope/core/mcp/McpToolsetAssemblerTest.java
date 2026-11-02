@@ -22,15 +22,15 @@ import cafe.jeffrey.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.flamegraph.export.FlamegraphAiMarkdownBuilder;
 import cafe.jeffrey.frameir.DiffTreeGenerator;
 import cafe.jeffrey.frameir.Frame;
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.AutoAnalysisStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteArtifactsMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileFindings;
@@ -171,7 +171,7 @@ class McpToolsetAssemblerTest {
     RecordingCommitResolver recordingCommitResolver;
 
     @Mock
-    RemoteManager remoteManager;
+    ConnectorManager connectorManager;
 
     @Mock
     ProjectManagerResolver projectManagerResolver;
@@ -181,8 +181,8 @@ class McpToolsetAssemblerTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
-    private McpToolsetAssembler assembler(boolean remoteEnabled) {
-        return assembler(McpTestProperties.of(true, remoteEnabled, true, Set.of()));
+    private McpToolsetAssembler assembler(boolean connectorEnabled) {
+        return assembler(McpTestProperties.of(true, connectorEnabled, true, Set.of()));
     }
 
     private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
@@ -191,7 +191,7 @@ class McpToolsetAssemblerTest {
                 new ProfilesMcpTools(coreRepositories, EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordingsManager, new PipelineRunRegistry<>(
                         ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK), operations, CLOCK).build(),
-                RemoteMcpToolsFixture.of(remoteManager, projectManagerResolver, recordingsManager, CLOCK)
+                ConnectorMcpToolsFixture.of(connectorManager, projectManagerResolver, recordingsManager, CLOCK)
                         .withOperations(operations).build(),
                 contextCache,
                 jfrPanelProvider,
@@ -201,13 +201,13 @@ class McpToolsetAssemblerTest {
                 ideBridge,
                 properties,
                 AdvertisedFamilies.of(properties),
-                RemoteArtifactsMcpToolsFixture.of(projectManagerResolver, recordingsManager, Path.of("artifacts"),
+                ConnectorArtifactsMcpToolsFixture.of(projectManagerResolver, recordingsManager, Path.of("artifacts"),
                         Path.of("profiles"), operations, CLOCK, EVERY_FAMILY).build(),
                 operations, ToolFixtures.answers(), CLOCK);
     }
 
-    private List<String> toolNames(boolean remoteEnabled) {
-        return assembler(remoteEnabled).toolset().specs().stream()
+    private List<String> toolNames(boolean connectorEnabled) {
+        return assembler(connectorEnabled).toolset().specs().stream()
                 .map(McpToolSpec::name)
                 .toList();
     }
@@ -314,7 +314,7 @@ class McpToolsetAssemblerTest {
     }
 
     /**
-     * Everything except the {@code remote_} family is advertised unconditionally. Ingestion and the
+     * Everything except the {@code connector_} family is advertised unconditionally. Ingestion and the
      * heap-compute tools used to have switches of their own; both were dropped because neither bounded
      * what it claimed to — an installation could still spend a core on {@code jfr_executeQuery} — while
      * withholding compute left the heap family telling the reader to go and use the browser.
@@ -403,7 +403,7 @@ class McpToolsetAssemblerTest {
             Exception refusal = oqlOn(RecordingEventSource.JDK, false);
 
             assertTrue(refusal.getMessage().contains("is not a heap dump"), refusal.getMessage());
-            assertTrue(refusal.getMessage().contains("remote_download"), refusal.getMessage());
+            assertTrue(refusal.getMessage().contains("connector_download"), refusal.getMessage());
         }
 
         @Test
@@ -415,25 +415,25 @@ class McpToolsetAssemblerTest {
     }
 
     @Nested
-    class RemoteEnabled {
+    class ConnectorEnabled {
 
         @Test
-        void advertisesTheRemoteFamily() {
+        void advertisesTheConnectorFamily() {
             List<String> names = toolNames(true);
 
-            assertTrue(names.contains("remote_status"));
-            assertTrue(names.contains("remote_sessions"));
-            assertTrue(names.contains("remote_download"));
-            assertTrue(names.contains("remote_files"));
-            assertTrue(names.contains("remote_fetchFile"));
+            assertTrue(names.contains("connector_status"));
+            assertTrue(names.contains("connector_sessions"));
+            assertTrue(names.contains("connector_download"));
+            assertTrue(names.contains("connector_files"));
+            assertTrue(names.contains("connector_fetchFile"));
         }
 
         @Test
-        void theFileToolsGoWithTheRemoteSwitch() {
+        void theFileToolsGoWithTheConnectorSwitch() {
             List<String> names = toolNames(false);
 
-            assertFalse(names.contains("remote_files"));
-            assertFalse(names.contains("remote_fetchFile"));
+            assertFalse(names.contains("connector_files"));
+            assertFalse(names.contains("connector_fetchFile"));
         }
 
         @Test
@@ -447,13 +447,13 @@ class McpToolsetAssemblerTest {
     }
 
     @Nested
-    class RemoteDisabled {
+    class ConnectorDisabled {
 
         @Test
-        void advertisesNoRemoteTool() {
+        void advertisesNoConnectorTool() {
             List<String> names = toolNames(false);
 
-            assertTrue(names.stream().noneMatch(name -> name.startsWith("remote_")), names.toString());
+            assertTrue(names.stream().noneMatch(name -> name.startsWith("connector_")), names.toString());
         }
 
         @Test
@@ -462,7 +462,7 @@ class McpToolsetAssemblerTest {
 
             assertThrows(
                     IllegalArgumentException.class,
-                    () -> assembler.toolset().call("remote_sessions", null));
+                    () -> assembler.toolset().call("connector_sessions", null));
         }
 
         @Test
@@ -488,7 +488,7 @@ class McpToolsetAssemblerTest {
 
         /** Names that look like tool references: deliberate counter-examples and a SQL alias. */
         private static final Set<String> NOT_REFERENCES = Set.of(
-                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "remote_list_sessions", "heap_used");
+                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "connector_list_sessions", "heap_used");
 
         private List<McpToolSpec> specs() {
             return assembler(true).toolset().specs();
@@ -599,7 +599,7 @@ class McpToolsetAssemblerTest {
     /**
      * What each tool tells a client it will do. This is the contract a person reads in an approval
      * prompt before they say yes, so it is the one place where a wrong answer costs more than a
-     * confusing one — and it was wrong: {@code remote_download} inherited its family's read-only hint
+     * confusing one — and it was wrong: {@code connector_download} inherited its family's read-only hint
      * and offered a multi-gigabyte cross-machine transfer as a safe read.
      */
     @Nested
@@ -615,8 +615,8 @@ class McpToolsetAssemblerTest {
                 "recordings_analyzeRecording",
                 "recordings_delete",
                 "heap_prepare",
-                "remote_download",
-                "remote_fetchFile",
+                "connector_download",
+                "connector_fetchFile",
                 "operations_cancel",
                 "ide_link",
                 "ide_open",
@@ -624,7 +624,7 @@ class McpToolsetAssemblerTest {
                 "heap_oql");
 
         /** The two families that reach past this installation: another machine, and the editor beside it. */
-        private static final Set<String> REMOTE_PREFIXES = Set.of("remote", "ide");
+        private static final Set<String> OUTSIDE_PREFIXES = Set.of("connector", "ide");
 
         private List<McpToolSpec> specs() {
             return assembler(true).toolset().specs();
@@ -726,20 +726,20 @@ class McpToolsetAssemblerTest {
          * something" but "does it leave this machine".
          */
         @Test
-        void exactlyTheRemoteFamiliesSayTheyReachOutside() {
+        void exactlyTheOutsideFamiliesSayTheyReachOutside() {
             Set<String> declared = specs().stream()
                     .filter(spec -> spec.annotations().openWorld())
                     .map(McpToolSpec::name)
                     .collect(Collectors.toSet());
 
-            Set<String> remote = specs().stream()
+            Set<String> connector = specs().stream()
                     .map(McpToolSpec::name)
-                    .filter(name -> REMOTE_PREFIXES.contains(McpToolNames.familyOf(name)))
+                    .filter(name -> OUTSIDE_PREFIXES.contains(McpToolNames.familyOf(name)))
                     .collect(Collectors.toSet());
 
-            remote.add("operations_cancel");
-            remote.add("operations_status");
-            assertEquals(remote, declared);
+            connector.add("operations_cancel");
+            connector.add("operations_status");
+            assertEquals(connector, declared);
         }
 
         /**
@@ -768,7 +768,7 @@ class McpToolsetAssemblerTest {
                     .map(McpToolSpec::name)
                     .collect(Collectors.toSet());
 
-            assertFalse(declared.contains("remote_download"));
+            assertFalse(declared.contains("connector_download"));
             assertTrue(declared.contains("heap_prepare"));
             assertTrue(declared.contains("ide_open"));
         }
@@ -790,8 +790,8 @@ class McpToolsetAssemblerTest {
         private static final Map<OperationKind, String> OPERATION_TOOLS = Map.of(
                 OperationKind.RECORDING_IMPORT, "recordings_analyzeFile",
                 OperationKind.RECORDING_ANALYSIS, "recordings_analyzeRecording",
-                OperationKind.REMOTE_DOWNLOAD, "remote_download",
-                OperationKind.REMOTE_FETCH, "remote_fetchFile",
+                OperationKind.CONNECTOR_DOWNLOAD, "connector_download",
+                OperationKind.CONNECTOR_FETCH, "connector_fetchFile",
                 OperationKind.HEAP_PREPARE, "heap_prepare",
                 OperationKind.HEAP_OQL, "heap_oql",
                 OperationKind.JVM_AUTO_ANALYSIS, "jvm_autoAnalysis");
@@ -812,11 +812,11 @@ class McpToolsetAssemblerTest {
          * The tools that find out whether a requirement holds. A probe answers either way, so it does
          * not declare what it probes.
          */
-        private static final Set<String> PROBES = Set.of("traces_overview", "remote_status", "ide_windows");
+        private static final Set<String> PROBES = Set.of("traces_overview", "connector_status", "ide_windows");
 
         private static final String HEAP_FAMILY = "heap";
         private static final String TRACES_FAMILY = "traces";
-        private static final String REMOTE_FAMILY = "remote";
+        private static final String CONNECTOR_FAMILY = "connector";
         private static final String IDE_FAMILY = "ide";
 
         private static final String UNINDEXED_PROFILE = "unindexed";
@@ -1022,9 +1022,9 @@ class McpToolsetAssemblerTest {
                             .filter(name -> !TRACES_OVERVIEW.equals(name))
                             .collect(Collectors.toSet()),
                     requiring(specs, McpToolRequirement.TRACES));
-            Set<String> remote = new TreeSet<>(inFamily(names, REMOTE_FAMILY));
-            remote.removeAll(PROBES);
-            assertEquals(remote, new TreeSet<>(requiring(specs, McpToolRequirement.REMOTE)));
+            Set<String> connector = new TreeSet<>(inFamily(names, CONNECTOR_FAMILY));
+            connector.removeAll(PROBES);
+            assertEquals(connector, new TreeSet<>(requiring(specs, McpToolRequirement.CONNECTOR)));
             assertEquals(IDE_RUNNING_TOOLS, requiring(specs, McpToolRequirement.IDE_RUNNING));
             Set<String> linked = new TreeSet<>(inFamily(names, IDE_FAMILY));
             linked.removeAll(IDE_RUNNING_TOOLS);
@@ -1617,9 +1617,9 @@ class McpToolsetAssemblerTest {
                     McpTestProperties.of(true, false, false, Set.of()),
                     McpTestProperties.of(true, true, true, Set.of(), "heap"),
                     McpTestProperties.of(true, true, true, Set.of(), "jfr"),
-                    McpTestProperties.of(true, true, true, Set.of(), "remote"),
-                    McpTestProperties.of(true, false, false, Set.of("jfr", "ide", "remote", "recordings", "operations"), "heap"),
-                    McpTestProperties.of(true, true, true, Set.of("profiles", "flamegraph", "remote", "recordings", "operations")));
+                    McpTestProperties.of(true, true, true, Set.of(), "connector"),
+                    McpTestProperties.of(true, false, false, Set.of("jfr", "ide", "connector", "recordings", "operations"), "heap"),
+                    McpTestProperties.of(true, true, true, Set.of("profiles", "flamegraph", "connector", "recordings", "operations")));
             for (ExternalMcpProperties properties : configurations) {
                 Set<String> served = assembler(properties).toolset().specs().stream()
                         .map(McpToolSpec::name)
@@ -1649,13 +1649,13 @@ class McpToolsetAssemblerTest {
             Set<String> all = families(assembler(true));
             assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
-                    "memory", "heap", "remote", "ide", "operations"), all);
+                    "memory", "heap", "connector", "ide", "operations"), all);
             assertEquals(all, families(preset("all")));
             assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "traces",
                     "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory", "operations"),
                     families(preset("jfr")));
             assertEquals(Set.of("profiles", "recordings", "heap", "operations"), families(preset("heap")));
-            assertEquals(Set.of("profiles", "recordings", "remote", "operations"), families(preset("remote")));
+            assertEquals(Set.of("profiles", "recordings", "connector", "operations"), families(preset("connector")));
         }
 
         /**
@@ -1686,7 +1686,7 @@ class McpToolsetAssemblerTest {
         @Test
         void explicitFamiliesOverridePresetAndSwitchesStillConstrainThem() {
             McpToolsetAssembler filtered = assembler(McpTestProperties.of(
-                    true, false, false, Set.of("jfr", "ide", "remote", "recordings", "operations"), "heap"));
+                    true, false, false, Set.of("jfr", "ide", "connector", "recordings", "operations"), "heap"));
             assertEquals(Set.of("jfr", "recordings", "operations"), families(filtered));
             assertThrows(IllegalArgumentException.class,
                     () -> filtered.toolset().call("heap_status", Json.createObject()));
@@ -1743,7 +1743,7 @@ class McpToolsetAssemblerTest {
         @Test
         void reportsActualToolListWireBytesAndCountsForEveryPreset() {
             int defaultBytes = toolListBytes("all");
-            for (String preset : List.of("jfr", "heap", "remote")) {
+            for (String preset : List.of("jfr", "heap", "connector")) {
                 assertTrue(toolListBytes(preset) < defaultBytes, preset + " should reduce tools/list bytes");
             }
         }

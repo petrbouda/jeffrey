@@ -33,10 +33,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>notifications</artifactId>
         </dependency>
-        <!-- Remote gRPC client wrappers + DTOs + TempDirProvider/RepositoryManager -->
+        <!-- The connector API: clients + DTOs + TempDirProvider/RepositoryManager -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>remote-client</artifactId>
+            <artifactId>connector-api</artifactId>
         </dependency>
         <!-- RecordingRepository / RecordingTagsRepository / RecordingGroup / RecordingTag -->
         <dependency>

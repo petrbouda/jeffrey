@@ -28,11 +28,11 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 /**
  * Microscope-only WorkspaceBrowser endpoint: deleting a project. Deployments that are
- * read-only against their remote do not have them, so these live outside the shared
- * remote controllers.
+ * read-only against their connector do not have them, so these live outside the shared
+ * connector controllers.
  */
 @RestController
-@RequestMapping("/api/internal/remote/workspaces/{workspaceId}/projects/{projectId}")
+@RequestMapping("/api/internal/connector/workspaces/{workspaceId}/projects/{projectId}")
 public class ProjectAdminController {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectAdminController.class);

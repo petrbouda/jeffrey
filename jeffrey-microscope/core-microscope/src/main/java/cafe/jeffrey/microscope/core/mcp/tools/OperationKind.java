@@ -37,13 +37,13 @@ public enum OperationKind {
             OperationKind.FAMILY_RECORDINGS,
             "Call recordings_analyzeRecording with the same recordingId and retry=true to start a new attempt."),
 
-    REMOTE_DOWNLOAD(
-            OperationKind.FAMILY_REMOTE,
-            "Call remote_download with the same sessionRef and retry=true to start a new attempt."),
+    CONNECTOR_DOWNLOAD(
+            OperationKind.FAMILY_CONNECTOR,
+            "Call connector_download with the same sessionRef and retry=true to start a new attempt."),
 
-    REMOTE_FETCH(
-            OperationKind.FAMILY_REMOTE,
-            "Call remote_fetchFile with the same sessionRef and fileId to start a new attempt."),
+    CONNECTOR_FETCH(
+            OperationKind.FAMILY_CONNECTOR,
+            "Call connector_fetchFile with the same sessionRef and fileId to start a new attempt."),
 
     HEAP_PREPARE(
             OperationKind.FAMILY_HEAP,
@@ -59,7 +59,7 @@ public enum OperationKind {
 
     /** The tool-family prefixes that own an operation kind, as {@code ExternalMcpProperties} knows them. */
     public static final String FAMILY_RECORDINGS = "recordings";
-    public static final String FAMILY_REMOTE = "remote";
+    public static final String FAMILY_CONNECTOR = "connector";
     public static final String FAMILY_HEAP = "heap";
     public static final String FAMILY_JVM = "jvm";
 
@@ -89,8 +89,8 @@ public enum OperationKind {
         return FAMILY_RECORDINGS.equals(family);
     }
 
-    /** Whether operations of this kind reach the remote. */
-    public boolean reachesRemote() {
-        return FAMILY_REMOTE.equals(family);
+    /** Whether operations of this kind reach the connector. */
+    public boolean reachesConnector() {
+        return FAMILY_CONNECTOR.equals(family);
     }
 }

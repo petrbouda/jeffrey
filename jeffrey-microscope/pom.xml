@@ -34,11 +34,8 @@
         <module>microscope-model</module>
         <module>notifications</module>
         <module>recording-storage-api</module>
-        <module>remote-client</module>
-        <module>volume-client</module>
-        <module>azure-files-volume</module>
+        <module>connectors</module>
         <module>recordings-core</module>
-        <module>ui-remote</module>
         <module>microscope-core-persistence-api</module>
         <module>microscope-core-sql-persistence</module>
         <module>pages-microscope</module>

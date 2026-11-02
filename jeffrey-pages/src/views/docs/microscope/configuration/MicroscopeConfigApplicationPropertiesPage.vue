@@ -31,24 +31,24 @@ const headings = [
   { id: 'uploads', text: 'File Uploads', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
-  { id: 'remote', text: 'Remote', level: 2 },
-  { id: 'remote-azure-files', text: 'Azure File Share', level: 3 },
+  { id: 'connector', text: 'Connector', level: 2 },
+  { id: 'connector-azure-files', text: 'Azure File Share', level: 3 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
   { id: 'ide-integration', text: 'IDE Integration', level: 2 }
 ];
 
-const azureFilesPropertiesExample = `jeffrey.microscope.remote.name=Production share
-jeffrey.microscope.remote.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
-jeffrey.microscope.remote.azure-files.share=recordings
-jeffrey.microscope.remote.azure-files.protocol=smb
-jeffrey.microscope.remote.azure-files.auth=sas
-jeffrey.microscope.remote.azure-files.sas-token=\${AZURE_FILES_SAS}
-jeffrey.microscope.remote.azure-files.read-only=false`;
+const azureFilesPropertiesExample = `jeffrey.microscope.connector.name=Production share
+jeffrey.microscope.connector.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
+jeffrey.microscope.connector.azure-files.share=recordings
+jeffrey.microscope.connector.azure-files.protocol=smb
+jeffrey.microscope.connector.azure-files.auth=sas
+jeffrey.microscope.connector.azure-files.sas-token=\${AZURE_FILES_SAS}
+jeffrey.microscope.connector.azure-files.read-only=false`;
 
-const remoteEnvExample = `JEFFREY_MICROSCOPE_REMOTE_NAME="Production share"
-JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_ENDPOINT=https://jeffreyprod.file.core.windows.net
-JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SHARE=recordings
-JEFFREY_MICROSCOPE_REMOTE_AZUREFILES_SASTOKEN=<sas-token>`;
+const connectorEnvExample = `JEFFREY_MICROSCOPE_CONNECTOR_NAME="Production share"
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_ENDPOINT=https://jeffreyprod.file.core.windows.net
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SHARE=recordings
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -169,18 +169,18 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <h2 id="remote">Remote</h2>
+      <h2 id="connector">Connector</h2>
       <p>
-        The <strong>remote</strong> is the one place Microscope reads recordings from beyond its own
+        The <strong>connector</strong> is the one place Microscope reads recordings from beyond its own
         disk: the recording volume itself on an <strong>Azure file share</strong> &mdash; the share the
         provisioner writes into, mounted in AKS through the <code>azurefile-csi</code> storage class.
-        Microscope reads exactly one remote, declared here and read at startup; nothing in the UI or
+        Microscope reads exactly one connector, declared here and read at startup; nothing in the UI or
         the MCP server connects, changes or removes it. Without a declaration the
-        <strong>Remote</strong> page says so and the MCP <code>remote_</code> tools answer that none
+        <strong>Connector</strong> page says so and the MCP <code>connector_</code> tools answer that none
         is configured.
       </p>
 
-      <h3 id="remote-azure-files">Azure File Share</h3>
+      <h3 id="connector-azure-files">Azure File Share</h3>
       <p>
         Microscope works with the share over the Azure Files REST API, so it needs no mount of its
         own. It lists workspaces, projects, instances and sessions straight off the share, downloads
@@ -204,12 +204,12 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.remote.name</code></td>
+            <td><code>jeffrey.microscope.connector.name</code></td>
             <td>the share's name</td>
-            <td>Display name shown on the Remote page.</td>
+            <td>Display name shown on the Connector page.</td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.endpoint</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.endpoint</code></td>
             <td>—</td>
             <td>
               <strong>Required.</strong> The storage account's file endpoint, e.g.
@@ -220,15 +220,15 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.share</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.share</code></td>
             <td>—</td>
             <td>
-              <strong>Required.</strong> Name of the file share; also the remote's display name when
-              <code>jeffrey.microscope.remote.name</code> is not set.
+              <strong>Required.</strong> Name of the file share; also the connector's display name when
+              <code>jeffrey.microscope.connector.name</code> is not set.
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.root-path</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.root-path</code></td>
             <td>the share's root</td>
             <td>
               Directory on the share that holds the workspaces — the same directory the Jeffrey Hub
@@ -236,7 +236,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.protocol</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.protocol</code></td>
             <td><code>smb</code></td>
             <td>
               <code>smb</code> or <code>nfs</code> — the share's protocol. An NFS share's listings
@@ -245,7 +245,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.auth</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.auth</code></td>
             <td><code>sas</code></td>
             <td>
               <code>sas</code> signs in with <code>sas-token</code>. <code>entra</code> signs in with
@@ -257,7 +257,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.sas-token</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.sas-token</code></td>
             <td>—</td>
             <td>
               <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read, list
@@ -269,7 +269,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.remote.azure-files.read-only</code></td>
+            <td><code>jeffrey.microscope.connector.azure-files.read-only</code></td>
             <td><code>false</code></td>
             <td>
               Refuse every change to the share — nothing is deleted: no workspace, project or
@@ -283,7 +283,7 @@ onMounted(() => {
       <p>
         A declaration that cannot be used &mdash; an <code>azure-files</code> block missing its
         endpoint or share, say &mdash; is logged as a warning and ignored, rather than failing
-        startup: Microscope then runs as if no remote were declared.
+        startup: Microscope then runs as if no connector were declared.
       </p>
 
       <DocsCallout type="warning">
@@ -294,7 +294,7 @@ onMounted(() => {
 
       <p>Every property has the usual environment-variable form:</p>
 
-      <DocsCodeBlock language="bash" :code="remoteEnvExample" />
+      <DocsCodeBlock language="bash" :code="connectorEnvExample" />
 
       <p>
         Or keep the declaration out of <code>application.properties</code> altogether: Microscope
@@ -304,14 +304,14 @@ onMounted(() => {
       </p>
 
       <DocsCallout type="info">
-        <strong>Configuration is the only place the remote is declared.</strong> It is read at
-        startup and never stored; the Remote page shows it but cannot connect, change or disconnect
+        <strong>Configuration is the only place the connector is declared.</strong> It is read at
+        startup and never stored; the Connector page shows it but cannot connect, change or disconnect
         one, and neither can an MCP tool. To change or remove it, edit the configuration and restart.
-        Microscope reaches exactly one remote.
+        Microscope reaches exactly one connector.
       </DocsCallout>
 
       <DocsCallout type="tip">
-        <strong>No connection is attempted at startup.</strong> A declared remote is taken as it is
+        <strong>No connection is attempted at startup.</strong> A declared connector is taken as it is
         whether or not it answers, so a share that is unreachable when Microscope boots starts
         working as soon as it can be reached.
       </DocsCallout>
@@ -378,31 +378,31 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.remote.enabled</code></td>
+            <td><code>jeffrey.microscope.mcp.connector.enabled</code></td>
             <td><code>true</code></td>
             <td>
-              Advertises the <code>remote_</code> tools, which list the recording sessions on the
-              configured <a href="#remote">remote</a> and pull one in to be analysed. Its own switch because it is the one family that reaches <em>off</em> this
+              Advertises the <code>connector_</code> tools, which list the recording sessions on the
+              configured <a href="#connector">connector</a> and pull one in to be analysed. Its own switch because it is the one family that reaches <em>off</em> this
               machine: everything else reads what is already here. Set to <code>false</code> to keep
               the agent to this machine. Read at startup.
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.remote.scan-timeout</code></td>
+            <td><code>jeffrey.microscope.mcp.connector.scan-timeout</code></td>
             <td><code>PT20S</code></td>
             <td>
-              How long the <code>remote_</code> tools spend discovering what the remote holds before they
-              answer with what did arrive. One deadline shared by every remote call a scan makes, and a
+              How long the <code>connector_</code> tools spend discovering what the connector holds before they
+              answer with what did arrive. One deadline shared by every connector call a scan makes, and a
               cancelling one: a project that stops answering is abandoned rather than waited out, and the
               sessions other projects already returned are still reported, each unreachable scope named
               beside them. A positive ISO-8601 duration. Read at startup.
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.remote.download-response-timeout</code></td>
+            <td><code>jeffrey.microscope.mcp.connector.download-response-timeout</code></td>
             <td><code>PT45S</code></td>
             <td>
-              How long <code>remote_download</code> &mdash; and <code>remote_fetchFile</code>, which shares
+              How long <code>connector_download</code> &mdash; and <code>connector_fetchFile</code>, which shares
               this setting &mdash; waits before it answers that the transfer is still running, session
               lookup included. It bounds the <em>answer</em>, not the work: a transfer that outlasts it
               carries on, and calling the tool again with the same arguments reports the finished copy. Sized under the shortest client timeout worth designing for, so raising it
@@ -411,10 +411,10 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.remote.ask-window-over-duration</code></td>
+            <td><code>jeffrey.microscope.mcp.connector.ask-window-over-duration</code></td>
             <td><code>PT1H</code></td>
             <td>
-              When a client that declared MCP form elicitation asks <code>remote_download</code> for a
+              When a client that declared MCP form elicitation asks <code>connector_download</code> for a
               whole session running longer than this &mdash; to its finish, or to now while it is still
               recording &mdash; the user is first asked which part to bring: the last N minutes, its
               startup, its latest or busiest chunk, the minutes before or around a moment, a window of
@@ -426,7 +426,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.remote.ask-window-over-size</code></td>
+            <td><code>jeffrey.microscope.mcp.connector.ask-window-over-size</code></td>
             <td><code>1GB</code></td>
             <td>
               The size half of the rule above: a session holding more than this is asked about
@@ -449,9 +449,9 @@ onMounted(() => {
             <td><code>jeffrey.microscope.mcp.diagnostics.probe-timeout</code></td>
             <td><code>PT2S</code></td>
             <td>
-              How long the <code>jeffrey://diagnostics</code> resource asks the configured remote for
+              How long the <code>jeffrey://diagnostics</code> resource asks the configured connector for
               its version before counting it as unreachable. A short budget is the point: the resource
-              answers whether the remote responds, not what it holds. A positive ISO-8601 duration. Read at startup.
+              answers whether the connector responds, not what it holds. A positive ISO-8601 duration. Read at startup.
             </td>
           </tr>
           <tr>
@@ -460,7 +460,7 @@ onMounted(() => {
             <td>
               Advertises the <code>ide_</code> tools, which ask the developer's running IntelliJ where
               a frame lives, read a class through it, and open a file in it. Its own switch for the
-              same reason as <code>remote_</code>, one step closer to home: everything else reads a
+              same reason as <code>connector_</code>, one step closer to home: everything else reads a
               recording Jeffrey already holds, while this reaches into another process on this machine
               and can put a file on somebody's screen. It needs the
               <router-link to="/docs/intellij-plugin">IntelliJ plugin</router-link>, and answers
@@ -472,7 +472,7 @@ onMounted(() => {
             <td><code>all</code></td>
             <td>
               A named selection of tool families: <code>all</code>, <code>jfr</code>, <code>heap</code> or
-              <code>remote</code>. Each focused preset keeps <code>profiles</code>, <code>recordings</code>
+              <code>connector</code>. Each focused preset keeps <code>profiles</code>, <code>recordings</code>
               and <code>operations</code> beside the families it is named for, so a profile can still be
               found, created and followed. A non-empty <code>families</code> list wins over it; an unknown
               preset name rejects startup. Read at startup.
@@ -488,16 +488,16 @@ onMounted(() => {
               <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
-              <code>heap</code>, <code>recordings</code>, <code>remote</code>, <code>ide</code>. Keep
+              <code>heap</code>, <code>recordings</code>, <code>connector</code>, <code>ide</code>. Keep
               <code>operations</code> in any list that keeps <code>recordings</code>, <code>heap</code>,
-              <code>remote</code>, <code>ide</code> or <code>jvm</code> &mdash; startup fails otherwise &mdash;
+              <code>connector</code>, <code>ide</code> or <code>jvm</code> &mdash; startup fails otherwise &mdash;
               since it is how a client follows and cancels the work those start; and keep
-              <code>recordings</code> in any list that keeps <code>remote</code>, since a downloaded
+              <code>recordings</code> in any list that keeps <code>connector</code>, since a downloaded
               session is analysed with <code>recordings_analyzeRecording</code>. Worth setting
               only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built
-              (<code>remote</code> with remote access off) is simply absent rather than a startup failure.
+              (<code>connector</code> with connector access off) is simply absent rather than a startup failure.
               Read at startup.
             </td>
           </tr>

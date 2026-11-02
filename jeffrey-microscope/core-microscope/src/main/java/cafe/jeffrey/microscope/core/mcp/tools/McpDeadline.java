@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 /**
- * The moment a remote tool must have its answer by: armed from the budget the tool is configured
+ * The moment a connector tool must have its answer by: armed from the budget the tool is configured
  * with when the call starts, and read back as what is left of it. Kept on the monotonic clock,
  * never the wall clock, so a clock adjustment neither cuts a scan short nor stretches it.
  */
@@ -58,17 +58,17 @@ public final class McpDeadline {
 
     /**
      * What is left, and no more than {@code cap}: how long a tool may still wait on a transfer once
-     * the remote preflight has spent part of the response budget, bounded by what the client is
+     * the connector preflight has spent part of the response budget, bounded by what the client is
      * kept waiting (the task wait for a client that follows tasks).
      *
      * @param elapsedDescription what the refusal says when nothing is left, naming whose budget ran out
-     * @throws JeffreyInternalException when the deadline has already elapsed, reported as the remote
+     * @throws JeffreyInternalException when the deadline has already elapsed, reported as the connector
      *         being unavailable
      */
     public Duration remainingWithin(Duration cap, String elapsedDescription) {
         long remainingNanos = timeRemaining(TimeUnit.NANOSECONDS);
         if (remainingNanos <= 0) {
-            throw new JeffreyInternalException(ErrorCode.REMOTE_UNAVAILABLE, elapsedDescription);
+            throw new JeffreyInternalException(ErrorCode.CONNECTOR_UNAVAILABLE, elapsedDescription);
         }
         Duration remaining = Duration.ofNanos(remainingNanos);
         return remaining.compareTo(cap) < 0 ? remaining : cap;

@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.manager.remote.RemoteManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.mcp.tools.RemoteMcpToolsFixture;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
@@ -55,17 +55,17 @@ import static org.mockito.Mockito.when;
 class McpCatalogueIntegrationTest {
 
     private final MicroscopeCoreRepositories repositories = mock(MicroscopeCoreRepositories.class);
-    private final RemoteManager remoteManager = mock(RemoteManager.class);
+    private final ConnectorManager connectorManager = mock(ConnectorManager.class);
     private final ExternalMcpController controller;
 
     McpCatalogueIntegrationTest() {
         var tools = new CompositeToolset(List.of(
                 new ReflectiveToolset(new ProfilesMcpTools(repositories, EVERY_FAMILY), "profiles"),
-                new ReflectiveToolset(RemoteMcpToolsFixture.of(remoteManager, mock(ProjectManagerResolver.class),
-                        mock(RecordingsManager.class), Clock.systemUTC()).build(), "remote")));
+                new ReflectiveToolset(ConnectorMcpToolsFixture.of(connectorManager, mock(ProjectManagerResolver.class),
+                        mock(RecordingsManager.class), Clock.systemUTC()).build(), "connector")));
         var assembler = mock(McpToolsetAssembler.class);
         when(assembler.toolset()).thenReturn(tools);
-        ExternalMcpProperties properties = McpTestProperties.of(true, true, true, Set.of(), "remote");
+        ExternalMcpProperties properties = McpTestProperties.of(true, true, true, Set.of(), "connector");
         controller = new ExternalMcpController(assembler, properties,
                 McpTestGuards.loopback(), new McpPromptRegistry(McpSkillCatalogue.fromClasspath()),
                 mock(McpDiagnostics.class),
@@ -122,11 +122,11 @@ class McpCatalogueIntegrationTest {
     }
 
     @Test
-    void theRemoteCatalogueConformsToTheSchemaItAdvertises() {
-        when(remoteManager.current()).thenReturn(Optional.empty());
+    void theConnectorCatalogueConformsToTheSchemaItAdvertises() {
+        when(connectorManager.current()).thenReturn(Optional.empty());
 
-        assertConforms(call("remote_sessions", Json.createObject()),
-                outputSchema("remote_sessions"), "remote_sessions");
+        assertConforms(call("connector_sessions", Json.createObject()),
+                outputSchema("connector_sessions"), "connector_sessions");
     }
 
     private JsonNode outputSchema(String toolName) {
@@ -177,16 +177,16 @@ class McpCatalogueIntegrationTest {
     }
 
     @Test
-    void realRemoteCatalogueAndServerResourceMatchTheAdvertisedCapabilities() {
-        when(remoteManager.current()).thenReturn(Optional.empty());
-        JsonNode page = call("remote_sessions", Json.createObject());
+    void realConnectorCatalogueAndServerResourceMatchTheAdvertisedCapabilities() {
+        when(connectorManager.current()).thenReturn(Optional.empty());
+        JsonNode page = call("connector_sessions", Json.createObject());
         assertTrue(page.path("complete").asBoolean());
         assertEquals(0, page.path("total").asInt());
         assertEquals(0, page.path("sessions").size());
         JsonNode tools = request("tools/list", Json.createObject()).path("tools");
         int schemas = 0;
         for (JsonNode tool : tools) {
-            if (tool.path("name").asString().equals("profiles_list") || tool.path("name").asString().equals("remote_sessions")) {
+            if (tool.path("name").asString().equals("profiles_list") || tool.path("name").asString().equals("connector_sessions")) {
                 assertEquals("object", tool.path("outputSchema").path("type").asString());
                 schemas++;
             }
@@ -194,11 +194,11 @@ class McpCatalogueIntegrationTest {
         assertEquals(2, schemas);
         JsonNode resource = request("resources/read", Json.createObject().put("uri", "jeffrey://server"));
         JsonNode info = Json.readTree(resource.path("contents").get(0).path("text").asString());
-        assertEquals("remote", info.path("preset").asString());
+        assertEquals("connector", info.path("preset").asString());
         assertEquals(tools.size(), info.path("toolCount").asInt());
         assertEquals(request("server/discover", Json.createObject())
                 .path("_meta").path("io.modelcontextprotocol/serverInfo").path("version"), info.path("version"));
-        assertEquals(Json.readTree("[\"profiles_list\",\"remote_sessions\"]"),
+        assertEquals(Json.readTree("[\"connector_sessions\",\"profiles_list\"]"),
                 info.path("capabilities").path("paginatedTools"));
     }
 }

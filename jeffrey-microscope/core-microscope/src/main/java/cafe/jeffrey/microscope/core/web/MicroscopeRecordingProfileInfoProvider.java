@@ -23,9 +23,9 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.shared.ui.remote.bridge.ProfileInitProgress;
+import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
 import java.util.List;
-import cafe.jeffrey.shared.ui.remote.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider;
 
 /**
  * Microscope's {@link RecordingProfileInfoProvider}: resolves the size/modified info of every profile

@@ -108,29 +108,24 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Shared remote-workspace clients/DTOs/managers (extracted from core) -->
+        <!-- The connector API: its clients, DTOs and managers -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>remote-client</artifactId>
+            <artifactId>connector-api</artifactId>
         </dependency>
-        <!-- Recording volumes read straight from storage: the clients over a volume, and the Azure Files backend -->
+        <!-- The connectors: the one over a recording volume, and the volume's Azure Files backend -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>volume-client</artifactId>
+            <artifactId>volume-connector</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>azure-files-volume</artifactId>
+            <artifactId>azure-files-connector</artifactId>
         </dependency>
-        <!-- Shared recording store + remote download machinery (extracted from core) -->
+        <!-- Recording store + the download machinery that pulls recordings through the connector -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>recordings-core</artifactId>
-        </dependency>
-        <!-- Shared remote-browser controllers (remote/workspaces/projects/instances/repository/download/recordings) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ui-remote</artifactId>
         </dependency>
         <!-- Shared version controller (GET /api/internal/version) -->
         <dependency>

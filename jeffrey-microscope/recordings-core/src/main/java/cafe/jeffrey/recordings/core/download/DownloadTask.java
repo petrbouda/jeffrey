@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
- * Represents a download task for downloading files from a remote workspace.
+ * Represents a download task for downloading files from a connector workspace.
  * Tracks progress for parallel downloads and notifies listeners of updates.
  * Thread-safe for concurrent file downloads.
  */

@@ -41,7 +41,7 @@ import java.util.List;
  * lacks, so they live outside the shared {@code WorkspaceProjectsController}.
  */
 @RestController
-@RequestMapping("/api/internal/remote/workspaces/{workspaceId}/projects")
+@RequestMapping("/api/internal/connector/workspaces/{workspaceId}/projects")
 public class WorkspaceProjectProfilesController {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceProjectProfilesController.class);

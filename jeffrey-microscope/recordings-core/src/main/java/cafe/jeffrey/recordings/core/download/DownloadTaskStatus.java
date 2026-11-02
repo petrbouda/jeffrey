@@ -18,7 +18,7 @@
 package cafe.jeffrey.recordings.core.download;
 
 /**
- * Status of a download task for remote workspace file downloads.
+ * Status of a download task for connector workspace file downloads.
  */
 public enum DownloadTaskStatus {
     /**
@@ -27,7 +27,7 @@ public enum DownloadTaskStatus {
     PENDING,
 
     /**
-     * Files are currently being downloaded from the remote.
+     * Files are currently being downloaded from the connector.
      */
     DOWNLOADING,
 

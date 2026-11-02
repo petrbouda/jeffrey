@@ -13,13 +13,14 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
   microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles)
-  remote-client/                       the remote's client interfaces, DTOs and managers, aggregated by the RemoteClients record
-  volume-client/ + azure-files-volume/ the remote clients over the recording volume (writable or read-only), and the
-                                       Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra; AzureFilesAddress)
+  connectors/                          Microscope's connectors to outside services; a new connector is a sibling module:
+    connector-api/                     the client interfaces, DTOs and managers every connector answers (ConnectorClients)
+    volume-connector/                  the connector over a recording volume (writable or read-only)
+    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra;
+                                       AzureFilesAddress)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   recordings-core/ recording-storage-api/ notifications/
-  ui-remote/                           remote browser: REST controllers + Vue module (@remote)
   profiles/                            analysis modules: profile-management (features + REST), recording-parser/
                                        (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser),
                                        profile-{persistence-api,sql-persistence}, flamegraph, timeseries, subsecond,
@@ -79,12 +80,12 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Time:** inject `java.time.Clock`, never `Instant.now()`; elapsed time via `Measuring`. Frontend timestamps are UTC epoch millis, formatted only by `FormattingService`.
 - **Literals:** anything matched, compared, put in SQL or used as config is a named `private static final`; set membership is `Set.of(...).contains`, not an `equals` ladder.
 - **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; Apache-2.0 header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
-- **Frontend shared-first:** check `@shared`, then `@remote`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
+- **Frontend shared-first:** check `@shared` first, then the app's own `src/components`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
 - **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring types — map at the boundary.
 
 ## Architecture invariants (never)
 
-- **Microscope reaches exactly one remote** — the recording volume on an Azure file share — declared in configuration only (`jeffrey.microscope.remote.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
+- **Microscope reaches exactly one connector** — the recording volume on an Azure file share — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
 - **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own Storage and Scheduler pages; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
 - **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks off the volume and reads them itself.
