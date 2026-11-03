@@ -76,7 +76,7 @@ const emit = defineEmits<{
 | Type | Location |
 |------|----------|
 | View (profiles) | `jeffrey-microscope/pages-microscope/src/views/profiles/detail/{ComponentName}.vue` |
-| View (projects) | `jeffrey-microscope/pages-microscope/src/views/projects/detail/{ComponentName}.vue` |
+| View (connector) | `jeffrey-microscope/pages-microscope/src/views/connector/{ComponentName}.vue` |
 | View (global) | `jeffrey-microscope/pages-microscope/src/views/global/{ComponentName}.vue` |
 | Component (shared) | `jeffrey-microscope/pages-microscope/src/components/{ComponentName}.vue` |
 | Component (feature) | `jeffrey-microscope/pages-microscope/src/components/{feature}/{ComponentName}.vue` |

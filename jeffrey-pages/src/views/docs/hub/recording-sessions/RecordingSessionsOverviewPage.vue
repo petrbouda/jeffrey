@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing JFR recordings and associated artifacts collected during application execution.</p>
 
         <DocsCallout type="info">
-          <strong>Connector Workspaces:</strong> In Microscope, recording sessions show up under each project's <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab — that's where you browse the JVM instances and their sessions on the recording volume, read from the Azure file share that holds it.
+          <strong>In Microscope:</strong> recording sessions show up on the Connector page, under each project's <router-link to="/docs/microscope/projects/instances">instances</router-link> — that's where you browse the JVM instances and their sessions on the recording volume, read from the Azure file share that holds it.
         </DocsCallout>
 
         <h2 id="what-are-recording-sessions">What are Recording Sessions?</h2>
@@ -136,7 +136,7 @@ onMounted(() => {
         </figure>
 
         <h2 id="workspace-availability">Workspace Availability</h2>
-        <p>Recording Sessions are available in <strong>Connector workspaces</strong> through the Repository feature. Microscope lists them straight off the recording volume on the Azure file share, where the provisioner and the profiled application wrote them; the Jeffrey Hub's scheduler jobs keep that volume within its retention limits.</p>
+        <p>Recording Sessions are available on Microscope's <strong>Connector</strong> page (workspaces → projects → instances → sessions). Microscope lists them straight off the recording volume on the Azure file share, where the provisioner and the profiled application wrote them; the Jeffrey Hub's scheduler jobs keep that volume within its retention limits.</p>
       </div>
 
       <DocsNavFooter />

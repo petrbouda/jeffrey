@@ -1,6 +1,8 @@
 # Create Scheduler Job
 
-Create a new Scheduler job in the Jeffrey codebase with all required backend and frontend boilerplate.
+Add a new scheduler job to Jeffrey Hub: a periodic task the hub runs on the shared recording
+volume, once per project of every workspace per tick (retention and compression are the two today).
+Microscope has no scheduler and no jobs.
 
 ## Usage
 
@@ -10,372 +12,97 @@ Create a new Scheduler job in the Jeffrey codebase with all required backend and
 
 ## Workflow
 
-When this skill is invoked, follow these steps:
-
 ### Step 1: Gather Job Information
 
-Ask the user for the following information using AskUserQuestion:
+Ask the user, with AskUserQuestion:
 
-1. **Job Name**: The name for the new job (e.g., "DataCleanup", "MetricsExporter")
-2. **Job Scope**: One of:
-    - `PROJECT` - Job operates on individual projects (extends RepositoryProjectJob)
-    - `GLOBAL` - Job runs once per tick across the whole server (implements `Job` directly)
-    - `INTERNAL` - Internal system job (implements Job directly)
-3. **Description**: Brief description of what the job does
-4. **Parameters**: Does the job need configuration parameters? (yes/no)
-5. **Allow Multiple Instances**: Can multiple instances of this job exist? (default: no)
+1. **Job name** — the `JobType` constant (`UPPER_SNAKE`, e.g. `REPOSITORY_LOG_CLEANUP`) and the
+   class name (`RepositoryLogCleanupProjectJob`).
+2. **What one project visit does**, and whether it works on the project's repository storage
+   (sessions and files: extend `RepositoryProjectJob`) or on the project as a whole (extend `ProjectJob`).
+3. **Parameters** — names (kebab-case), types and defaults, e.g. `max-age=7d`.
+4. **Default period** and whether it is **enabled by default**.
+5. **Manual run** — whether an operator may run it now from the Scheduler page (`ManuallyTriggerable`).
 
-### Step 2: Generate Backend Files
+### Step 2: Backend (jeffrey-hub)
 
-Based on the gathered information, create/modify these files:
+Read `ProjectRetentionJob` and `RepositoryCompressionProjectJob` first: they are the reference jobs.
 
-#### 2.1 Add JobType Enum Value
+1. **Job type** — add the constant to
+   `jeffrey-hub/hub-model/src/main/java/cafe/jeffrey/hub/model/job/JobType.java`.
+2. **Job class** — `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJob.java`:
+   - extends `RepositoryProjectJob` (implement `executeOnRepository(ProjectManager, RepositoryStorage)`)
+     or `ProjectJob` (implement `execute(ProjectManager)`). A job that walks the projects its own way
+     extends the package-private `FanOutJob` directly, as `ProjectRetentionJob` does. `FanOutJob`
+     runs each visit isolated (`visit(scope, body)`), so one broken project does not abort the tick;
+   - constructor takes `WorkspacesManager`, the job's `JobConfig` and any collaborator (`Clock` for
+     anything time-based — never `Instant.now()`); read `config.period()` and parse every
+     `config.params()` entry into a typed field there, with each param name a `private static final`;
+   - `period()` returns the configured period, `jobType()` the new constant;
+   - for a manual run, also implement `ManuallyTriggerable.runManually()`, returning one line that
+     says what the run did. Nothing else names the job: the REST layer and the UI pick it up from
+     the interface.
+   - The job works only on the volume, through `shared/volume`; it never calls Microscope.
+3. **Bean** — add an `@Bean` method to
+   `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/SchedulerConfiguration.java`
+   passing `config(JobType.{JOB})`. The scheduler, `ManualJobRunner` and `JobRegistry` collect every
+   `Job` bean themselves; a disabled job is still built and listed, but never scheduled.
+4. **Defaults** — add the job to `jeffrey-hub/core-hub/src/main/resources/scheduler-defaults.properties`:
+   ```properties
+   jeffrey.hub.scheduler.jobs.{job-key}.enabled=true
+   jeffrey.hub.scheduler.jobs.{job-key}.period=5m
+   jeffrey.hub.scheduler.jobs.{job-key}.params.{param}={default}
+   ```
+   `{job-key}` is the `JobType` constant in kebab-case (`REPOSITORY_LOG_CLEANUP` → `repository-log-cleanup`).
+   `application.properties` overrides these; `SchedulerJobsProperties` merges the two.
 
-**File:** `shared/common/src/main/java/cafe/jeffrey/shared/common/model/job/JobType.java`
+### Step 3: Frontend (jeffrey-hub/pages-hub)
 
-Add the new enum value with appropriate Group:
+1. Extend the `JobTypeName` union in `jeffrey-hub/pages-hub/src/services/api/model/JobView.ts`
+   (same order as the enum).
+2. In `jeffrey-hub/pages-hub/src/views/server/SchedulerView.vue`, add the job to `displayNames`,
+   `descriptions` and `icons` — they are `Record<JobTypeName, …>`, so the build fails until all three
+   have it. The table, its period, params and the Run control come from the backend's `JobView`;
+   there is no per-job markup and no modal to add.
 
-```java
-MY_NEW_JOB(Group.PROJECT),  // or GLOBAL
+### Step 4: Tests
+
+- `jeffrey-hub/core-hub/src/test/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJobTest.java`,
+  modelled on `RepositoryCompressionProjectJobTest` (Mockito, `@Nested` by scenario, `Clock.fixed`);
+  use `VolumeWriter` from `shared/test` when the job reads a real session layout.
+- Extend `SchedulerJobsPropertiesTest` if the defaults or param parsing are new in kind, and
+  `ManualJobRunnerTest` for a manually triggerable job.
+
+### Step 5: Documentation
+
+Document the job and its properties on `jeffrey-pages/src/views/docs/hub/configuration/HubConfigurationPage.vue`
+(the `jeffrey.hub.scheduler.jobs` section) and in the job list of `docs/hub/HubOverviewPage.vue` /
+`docs/hub/HubArchitectureOverviewPage.vue`.
+
+### Step 6: Verify
+
+```bash
+$MVN -q -pl jeffrey-hub/core-hub -am test
+cd jeffrey-hub/pages-hub && npm run build
 ```
 
-#### 2.2 Create Job Descriptor
-
-**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/{JobName}JobDescriptor.java`
-
-Use this template:
-
-```java
-/*
- * Jeffrey
- * Copyright (C) 2026 Petr Bouda
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package cafe.jeffrey.hub.core.scheduler.job.descriptor;
-
-import cafe.jeffrey.shared.common.model.job.JobType;
-
-import java.util.Map;
-
-/**
- * Job descriptor for {description}.
- */
-public record {JobName}JobDescriptor(/* parameters if needed */)
-        implements JobDescriptor<{JobName}JobDescriptor> {
-
-    // If has parameters, add static factory:
-    // public static {JobName}JobDescriptor of(Map<String, String> params) {
-    //     return new {JobName}JobDescriptor(params.get("paramName"));
-    // }
-
-    @Override
-    public Map<String, String> params() {
-        return Map.of();  // Add params if needed
-    }
-
-    @Override
-    public JobType type() {
-        return JobType.{JOB_TYPE_ENUM};
-    }
-
-    // Override if multiple instances allowed:
-    // @Override
-    // public boolean allowMulti() {
-    //     return true;
-    // }
-}
-```
-
-#### 2.3 Update JobDescriptor Sealed Interface
-
-**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptor.java`
-
-Add the new descriptor to the permits clause:
-
-```java
-public sealed interface JobDescriptor<T extends JobDescriptor<T>>
-        permits ...,
-        {JobName}JobDescriptor {
-```
-
-#### 2.4 Update JobDescriptorFactory
-
-**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptorFactory.java`
-
-Add case in the switch statement:
-
-```java
-case {JOB_TYPE_ENUM} -> new {JobName}JobDescriptor();  // or .of(params) if has parameters
-```
-
-#### 2.5 Create Job Implementation
-
-**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}Job.java`
-
-For PROJECT scope (extends RepositoryProjectJob):
-
-```java
-/*
- * Jeffrey
- * Copyright (C) 2026 Petr Bouda
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package cafe.jeffrey.hub.core.scheduler.job;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.{JobName}JobDescriptor;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-
-import java.time.Duration;
-
-/**
- * {description}
- */
-public class {JobName}Job extends RepositoryProjectJob<{JobName}JobDescriptor> {
-
-    private static final Logger LOG = LoggerFactory.getLogger({JobName}Job.class);
-
-    private final Duration period;
-
-    public {JobName}Job(
-            WorkspacesManager workspacesManager,
-            RepositoryStorage.Factory repositoryStorageFactory,
-            JobDescriptorFactory jobDescriptorFactory,
-            Duration period) {
-
-        super(workspacesManager, repositoryStorageFactory, jobDescriptorFactory);
-        this.period = period;
-    }
-
-    @Override
-    protected void executeOnRepository(
-            ProjectManager manager,
-            RepositoryStorage repositoryStorage,
-            {JobName}JobDescriptor jobDescriptor) {
-
-        String projectName = manager.info().name();
-        LOG.debug("Executing {JobName} job: project='{}'", projectName);
-
-        // TODO: Implement job logic here
-    }
-
-    @Override
-    public Duration period() {
-        return period;
-    }
-
-    @Override
-    public JobType jobType() {
-        return JobType.{JOB_TYPE_ENUM};
-    }
-}
-```
-
-For GLOBAL scope (implements Job directly):
-
-```java
-public class {JobName}Job implements Job {
-    // Same period() and jobType() as above; put the work in execute().
-    // Iterate workspacesManager yourself if the job needs every workspace.
-}
-```
-
-#### 2.6 Register Spring Bean
-
-Job beans are split into two configuration classes based on scope:
-
-- **PROJECT jobs:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/ProjectJobsConfiguration.java`
-- **GLOBAL jobs:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/GlobalJobsConfiguration.java`
-
-Add bean method to the appropriate configuration class:
-
-```java
-@Bean
-public {JobName}Job {jobName}Job() {
-    return new {JobName}Job(
-            workspacesManager,
-            repositoryStorageFactory,
-            jobDescriptorFactory,
-            jobProperties.resolvePeriod("{job-name-kebab}"));
-}
-```
-
-**Job Period Configuration:**
-
-Each job supports a configurable execution period via Spring properties:
-
-- **Property name**: `jeffrey.hub.job.{job-name-kebab}.period`
-- **Format**: ISO-8601 duration (e.g., `PT1M` for 1 minute, `PT5M` for 5 minutes, `PT1H` for 1 hour)
-- **Default**: Falls back to `jeffrey.hub.job.default.period` (default: 1 minute) if not specified
-- **Custom default**: Use `jobProperties.resolvePeriod("{job-name-kebab}", Duration.ofHours(1))` to specify a fallback
-
-Example configuration in `application.properties`:
-
-```properties
-# Global default period for all jobs
-jeffrey.hub.job.default.period=PT1M
-# Override period for specific job
-jeffrey.hub.job.my-custom-job.period=PT5M
-```
-
-#### 2.7 For PROJECT Jobs: Add to Default Job Definitions
-
-If the job should be auto-configured for new projects, add it to the default configuration files:
-
-**File:** `jeffrey-hub/core-hub/src/main/resources/job-definitions/default-job-definitions.json`
-
-Add a new job definition entry:
-
-```json
-{
-  "id": "default-{job-name-kebab}",
-  "type": "{JOB_TYPE_ENUM}",
-  "params": {}
-}
-```
-
-**File:** `jeffrey-hub/core-hub/src/main/resources/project-templates/default-project-templates.json`
-
-Add the job ID to the `jobDefinitions` array in the appropriate templates:
-
-- `default-projects-synchronizer-template` - for projects synced from workspace (target: GLOBAL_SCHEDULER)
-- `default-project-template` - for manually created projects (target: PROJECT)
-
-```json
-{
-  "id": "default-projects-synchronizer-template",
-  "jobDefinitions": [
-    "default-repository-session-cleaner",
-    "default-repository-recording-cleaner",
-    "default-repository-jfr-compression",
-    "default-project-recording-storage-synchronizer",
-    "default-session-finished-detector",
-    "default-{job-name-kebab}"
-  ]
-}
-```
-
-#### 2.8 For GLOBAL Jobs: Update ApplicationInitializer
-
-**File:** `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/appinitializer/ApplicationInitializer.java`
-
-Add in `initializeGlobalJobs()`:
-
-```java
-boolean {jobName}Create = environment.getProperty(
-        "jeffrey.hub.job.{job-name-kebab}.create-if-not-exists", Boolean.class, true);
-if ({jobName}Create) {
-    JobDescriptor<?> descriptor = new {JobName}JobDescriptor();
-    schedulerManager.create(descriptor.type(), descriptor.params());
-}
-```
-
-#### 2.9 For GLOBAL Jobs: Add Application Properties
-
-**File:** `jeffrey-hub/core-hub/src/main/resources/application.properties`
-
-Add properties for auto-creation and period:
-
-```properties
-# The following properties are used to configure the {job-name} job
-# It is a global job that {description}
-jeffrey.hub.job.{job-name-kebab}.create-if-not-exists=true
-jeffrey.hub.job.{job-name-kebab}.period=5m
-```
-
-### Step 3: Generate Frontend Files
-
-#### 3.1 Add to Frontend JobType
-
-**File:** `jeffrey-microscope/pages-microscope/src/services/api/model/JobType.ts`
-
-Add the new job type constant:
-
-```typescript
-{JOB_TYPE_ENUM} = '{JOB_TYPE_ENUM}'
-```
-
-#### 3.2 Update SchedulerList.vue
-
-**File:** `jeffrey-microscope/pages-microscope/src/views/projects/detail/SchedulerList.vue`
-
-1. Add import for modal component (if applicable)
-2. Add modal visibility ref
-3. Add existence check ref
-4. Add JobCard in template
-5. Add case to handleCreateJob switch
-6. Add case to getJobDisplayInfo switch
-7. Update checkForExistingJobs
-8. Add modal component in template
-
-#### 3.3 Create Modal Component (if job has parameters)
-
-**File:** `jeffrey-microscope/pages-microscope/src/components/scheduler/modal/{JobName}Modal.vue`
-
-Create a modal component for job configuration with appropriate form fields.
-
-### Step 4: Summary
-
-After generating all files, provide a summary:
-
-- List all created/modified files
-- Remind to run `mvn clean compile` to verify backend
-- Remind to run `cd jeffrey-microscope/pages-microscope && npm run build && npm run lint` to verify frontend
-- Note any TODO items in generated code
-
-## File Locations Reference
-
-| Component                | Path                                                                                                                       |
-|--------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| JobType enum (backend)   | `shared/common/src/main/java/cafe/jeffrey/shared/common/model/job/JobType.java`                                         |
-| Job descriptor           | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/`                            |
-| JobDescriptor interface  | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptor.java`          |
-| JobDescriptorFactory     | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/descriptor/JobDescriptorFactory.java`   |
-| Job implementation       | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/`                                       |
-| GlobalJobsConfiguration  | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/GlobalJobsConfiguration.java`           |
-| ProjectJobsConfiguration | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/ProjectJobsConfiguration.java`          |
-| ApplicationInitializer   | `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/appinitializer/ApplicationInitializer.java`           |
-| Application properties   | `jeffrey-hub/core-hub/src/main/resources/application.properties`                                                     |
-| Default job definitions  | `jeffrey-hub/core-hub/src/main/resources/job-definitions/default-job-definitions.json`                               |
-| Project templates        | `jeffrey-hub/core-hub/src/main/resources/project-templates/default-project-templates.json`                           |
-| JobType enum (frontend)  | `jeffrey-microscope/pages-microscope/src/services/api/model/JobType.ts`                                                              |
-| SchedulerList            | `jeffrey-microscope/pages-microscope/src/views/projects/detail/SchedulerList.vue`                                                    |
-| Modal components         | `jeffrey-microscope/pages-microscope/src/components/scheduler/modal/`                                                                |
-
-## Example Existing Jobs
-
-| Job                                       | Type                                       | Scope   | Description                                      |
-|-------------------------------------------|--------------------------------------------|---------|--------------------------------------------------|
-| RepositoryCompressionProjectJob           | REPOSITORY_JFR_COMPRESSION                 | PROJECT | Compresses JFR files using LZ4                   |
-| ProjectRetentionJob                       | PROJECT_RETENTION                          | PROJECT | Age, cap, live-trim, quota and stale-instance rules over one listing per project; feeds the storage overview |
-| ProjectInstanceRecordingCleanerJob        | PROJECT_INSTANCE_RECORDING_CLEANER         | PROJECT | Removes old project instance recordings          |
-| DataRetentionJob                          | DATA_RETENTION                             | GLOBAL  | Cleans up old messages, alerts, and queue events |
+## Files to Modify
+
+| File | Change |
+|---|---|
+| `jeffrey-hub/hub-model/.../model/job/JobType.java` | new constant |
+| `jeffrey-hub/core-hub/.../scheduler/job/{JobName}ProjectJob.java` | new job |
+| `jeffrey-hub/core-hub/.../configuration/SchedulerConfiguration.java` | `@Bean` |
+| `jeffrey-hub/core-hub/src/main/resources/scheduler-defaults.properties` | enabled, period, params |
+| `jeffrey-hub/pages-hub/src/services/api/model/JobView.ts` | `JobTypeName` |
+| `jeffrey-hub/pages-hub/src/views/server/SchedulerView.vue` | name, description, icon |
+| `jeffrey-hub/core-hub/src/test/.../scheduler/job/{JobName}ProjectJobTest.java` | tests |
+| `jeffrey-pages/src/views/docs/hub/configuration/HubConfigurationPage.vue` | docs |
+
+## Existing Jobs
+
+- **`PROJECT_RETENTION`** (`ProjectRetentionJob`): ages out sessions, caps sessions per instance, trims
+  the newest session's old chunks, holds the project under `max-size` and deletes stale instances;
+  refreshes the storage dashboard. Manually triggerable.
+- **`REPOSITORY_JFR_COMPRESSION`** (`RepositoryCompressionProjectJob`, a `RepositoryProjectJob`):
+  LZ4-compresses the closed chunks of each instance's two newest sessions.

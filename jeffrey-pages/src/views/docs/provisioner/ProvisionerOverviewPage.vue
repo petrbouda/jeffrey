@@ -258,7 +258,7 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
         />
 
         <h2 id="integration">Integration with Jeffrey</h2>
-        <p>Sessions created by Jeffrey Provisioner appear in Jeffrey's <strong>Repository</strong> feature within the connector's workspaces.</p>
+        <p>Sessions created by Jeffrey Provisioner appear on Microscope's <strong>Connector</strong> page, under their workspace, project and instance.</p>
 
         <h3>Workflow</h3>
         <div class="workflow-steps">
@@ -279,15 +279,15 @@ exec java @/tmp/jvm.args -jar /app/my-app.jar`;
           <div class="workflow-step">
             <div class="step-number">3</div>
             <div class="step-content">
-              <strong>Repository Detects Session</strong>
-              <p>Jeffrey's Repository page shows the session in the connector's workspace</p>
+              <strong>Connector Page Lists the Session</strong>
+              <p>Microscope's Connector page shows the session under its project's instance</p>
             </div>
           </div>
           <div class="workflow-step">
             <div class="step-number">4</div>
             <div class="step-content">
-              <strong>Select and Copy</strong>
-              <p>Select specific JFR files from the session; they are fetched separately and kept as the files of one Recording (+ download artifacts)</p>
+              <strong>Download the Session</strong>
+              <p>In the session's drawer, <strong>Download session</strong> takes every file, or <strong>Select files</strong> picks some; each file is fetched on its own and the chunks are kept as the files of one Recording (+ download artifacts)</p>
             </div>
           </div>
           <div class="workflow-step">

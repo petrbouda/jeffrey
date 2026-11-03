@@ -53,7 +53,7 @@ const cosmosNodes: CosmosNode[] = [
   },
   {
     id: 'mcp', name: 'Microscope MCP', sub: 'for your coding agent', icon: 'bi-stars', big: true,
-    tip: '112 tools over MCP for Claude Code, Codex and any MCP client. Jeffrey never calls a model itself.',
+    tip: '112 tools over MCP for Claude Code, Codex and any MCP 2026-07-28 client. Jeffrey never calls a model itself.',
     to: '/docs/microscope-mcp', x: 76, y: 21, color: 'var(--mcp)', delay: 1.4
   },
   {
@@ -284,14 +284,14 @@ const productTabs: ProductTab[] = [
     name: 'Microscope',
     icon: 'bi-search-heart-fill',
     tagline: 'Deep analyzer for JFR recordings and heap dumps.',
-    oneLiner: 'Open a JFR file or pull one from your connector. Read flamegraphs that finally render fast.',
+    oneLiner: 'Open a JFR file or pull one off the recording volume. Read flamegraphs that finally render fast.',
     features: [
       { icon: 'bi-fire', title: 'Flamegraphs and Differential Flamegraphs', desc: 'For all JFR events providing the stacktraces.' },
       { icon: 'bi-grid-3x3-gap-fill', title: 'JVM and Tech-specific Dashboards', desc: 'Purpose-built views for GC, threads, JIT, HTTP, JDBC and more.' },
       { icon: 'bi-droplet-half', title: 'Heap dump inspection', desc: 'Dominator trees, leak suspects, OOM root cause.' },
       { icon: 'bi-graph-up', title: 'Sub-second timelines', desc: 'Zoom into the millisecond your service stalled.' },
       { icon: 'bi-diagram-3', title: 'Traces', desc: 'Span waterfalls correlated with I/O, locks and GC pauses — from the same JFR file.' },
-      { icon: 'bi-plug', title: 'Read a Connector', desc: 'Pull recordings, artifacts & application\'s lifecycle straight off the Azure file share that holds the recording volume.' }
+      { icon: 'bi-plug', title: 'Browse the Connector', desc: 'Pull recordings, artifacts & application\'s lifecycle straight off the Azure file share that holds the recording volume.' }
     ],
     deployment: {
       eyebrow: 'Deployment',
@@ -307,7 +307,7 @@ const productTabs: ProductTab[] = [
     name: 'Microscope MCP',
     icon: 'bi-stars',
     tagline: 'The profiler your coding agent can call.',
-    oneLiner: 'The same analysis you see in the UI, served over MCP 2026-07-28 to Claude Code, Codex and any MCP client — next to your source code.',
+    oneLiner: 'The same analysis you see in the UI, served over MCP 2026-07-28 to Claude Code, Codex and any other 2026-07-28 client — next to your source code.',
     features: [
       { icon: 'bi-plug-fill', title: '112 tools, 101 read-only', desc: 'Profiles, flamegraphs, JVM dashboards, heap dumps, traces and DuckDB SQL. Every tool declares whether it writes.' },
       { icon: 'bi-magic', title: 'Skills that know the method', desc: 'profile-run, analyze-jfr, analyze-heap, advise-jfr, regression-check and seven more.' },

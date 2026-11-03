@@ -9,7 +9,8 @@ Paths below are relative to `jeffrey-pages/src/views/docs/`.
 
 | Code module | Documentation pages |
 |---|---|
-| `jeffrey-microscope/core-microscope` | `docs/microscope/` (overview, quick start, workspaces, recordings, storage, profiler builder), `docs/microscope/projects/`, `docs/microscope/configuration/` |
+| `jeffrey-microscope/core-microscope`, `jeffrey-microscope/pages-microscope` | `docs/microscope/` (overview, quick start, workspaces, recordings, storage, profiler builder), `docs/microscope/projects/`, `docs/microscope/configuration/` |
+| `jeffrey-microscope/connectors/**` (connector-api, volume-connector, azure-files-connector) | `docs/microscope/WorkspacesPage.vue`, `docs/microscope/projects/`, `docs/microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector`, `docs/DocsMicroscopePage.vue#connector` |
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature |
 | `jeffrey-hub/core-hub` | `docs/hub/` (overview, architecture, storage), `docs/hub/recording-sessions/`, `docs/hub/configuration/`, `docs/hub/deployment/` |
 | tracing instrumentation (`utilities/`) | `docs/tracing/`, `docs/tracing/tracer-api/` (one page per Tracer API method) |

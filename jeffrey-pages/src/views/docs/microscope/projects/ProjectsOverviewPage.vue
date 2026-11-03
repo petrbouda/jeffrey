@@ -75,9 +75,10 @@ onMounted(() => {
       <p>
         The page's address follows what is picked
         (<code>/connector?workspaceId=…&amp;projectId=…&amp;instanceId=…&amp;sessionId=…</code>), so a link
-        opens the same project, instance or session. The address of the former project pages
-        (<code>/connector/workspaces/&lt;workspace&gt;/projects/&lt;project&gt;/…</code>) still works and
-        leads to the same place on the Connector page.
+        opens the same project, instance or session. The addresses of the former Remote page
+        (<code>/remote</code>) and project pages
+        (<code>/remote/workspaces/&lt;workspace&gt;/projects/&lt;project&gt;/…</code>) still work and
+        lead to the same place on the Connector page.
       </p>
 
       <DocsCallout type="info">
@@ -102,9 +103,9 @@ onMounted(() => {
         Projects are not created in Microscope. A project appears when a JVM started by the
         <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> creates its folder &mdash;
         named by the project <code>name</code> the provisioner was configured with, which is also the project's id:
-        the connector is read from the shared filesystem on every request, so the next time
-        Microscope syncs with the connector the project shows up under its workspace, together with
-        its instances and recording sessions.
+        Microscope reads the connector live, so the project shows up under its workspace, with its
+        instances and recording sessions, the next time the Connector page lists that workspace
+        &mdash; when the page is opened or its refresh button is pressed.
       </p>
     </div>
 

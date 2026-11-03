@@ -17,18 +17,19 @@ side of each finding.
 1. **Scan the Microscope frontend** for user-visible pages and features:
    - `jeffrey-microscope/pages-microscope/src/router/index.ts` and `src/router/profileChildRoutes.ts`
    - `jeffrey-microscope/pages-microscope/src/views/profiles/navigation/profileNavConfig.ts` (the profile sidebar: every `item(...)` is a page a reader can open)
-   - `jeffrey-microscope/pages-microscope/src/views/` (global, hubs, projects, profiles)
+   - `jeffrey-microscope/pages-microscope/src/views/` (connector, global, profiles)
 
 2. **Scan the documentation** under `jeffrey-pages/src/views/docs/` and its wiring:
    - routes in `jeffrey-pages/src/router/index.ts`
    - sidebar in `jeffrey-pages/src/composables/useDocsNavigation.ts` (the `DocSection[]` arrays)
    - a page with a route but no sidebar entry is reachable by URL yet invisible in the sidebar, breadcrumbs and prev/next — report it; a `redirect` route needs no sidebar entry
 
-3. **Compare using the mapping table in `CLAUDE.md`** (section *Documentation Sync (Jeffrey Pages)*). All paths relative to `jeffrey-pages/src/views/docs/`:
+3. **Compare using the mapping table in `.claude/rules/docs-sync.md`**, repeated here. All paths relative to `jeffrey-pages/src/views/docs/`:
 
    | Code module | Documentation pages |
    |---|---|
-   | `jeffrey-microscope/core-microscope` | `microscope/` (overview, quick start, workspaces, recordings, storage, profiler settings), `microscope/projects/`, `microscope/configuration/` |
+   | `jeffrey-microscope/core-microscope`, `jeffrey-microscope/pages-microscope` | `microscope/` (overview, quick start, workspaces, recordings, storage, profiler settings), `microscope/projects/`, `microscope/configuration/` |
+   | `jeffrey-microscope/connectors/**` (connector-api, volume-connector, azure-files-connector) | `microscope/WorkspacesPage.vue`, `microscope/projects/`, `microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector`, `DocsMicroscopePage.vue#connector` |
    | `jeffrey-microscope/profiles/**` | `microscope/profiles/` — one page per analysis feature, plus the feature cards on `microscope/profiles/ProfilesPage.vue` |
    | `jeffrey-hub/core-hub` | `hub/`, `hub/recording-sessions/`, `hub/configuration/`, `hub/deployment/` |
    | tracing instrumentation (`utilities/`) | `tracing/`, `tracing/tracer-api/` |
@@ -44,7 +45,7 @@ side of each finding.
    - every tool name the docs mention must exist, and every tool must appear in the tool reference
    - the non-read-only set is the `WRITES` set in `McpToolsetAssemblerTest`; check every page that names the writers, and that the agent pages describe each agent's allow/deny lists as `jeffrey-claude-plugin/agents/*.md` actually declares them
    - every `jeffrey.microscope.mcp.*` key in `core-microscope/src/main/resources/application.properties` is documented with the same default, and no documented property is missing from the code — a switch the docs describe that the code does not have is a finding
-   - methods, capabilities and error codes in `profiles/mcp-server/.../AbstractMcpStreamableHttpController.java` match `McpOtherClientsPage.vue`, including the `initialize` sample response
+   - methods, capabilities and error codes in `mcp-protocol`'s `McpDispatcher` and `profiles/mcp-server/.../AbstractMcpStreamableHttpController.java` match `McpOtherClientsPage.vue`. There is no `initialize` method: the page shows it only as a refused request, which must match `McpRequestValidator`
    - skills in `jeffrey-claude-plugin/skills/` match the skills page and the `prompts/list` example
 
 5. **Check configuration pages** — every `jeffrey.microscope.*` and `jeffrey.hub.*` key in the two `application.properties` files appears on the corresponding configuration page with the right default, and vice versa.
