@@ -54,7 +54,7 @@ public record VolumeSource(
 
     private static final VolumePath ROOT = VolumePath.root();
     private static final String READ_ONLY =
-            "%s: the connector is declared read-only (azure-files.read-only=true). "
+            "%s: the connector is declared read-only (read-only=true in its jeffrey.microscope.connector.* block). "
                     + "Declare it writable to make changes through Microscope.";
 
     public VolumeSource {

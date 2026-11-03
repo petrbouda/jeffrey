@@ -18,14 +18,14 @@
 package cafe.jeffrey.microscope.model.connector;
 
 /**
- * The one connector this Microscope reaches: the recording volume on an Azure file share. It is
- * declared in configuration only ({@code jeffrey.microscope.connector.*}) and never stored; its
- * workspaces and projects are read live and never cached here.
+ * The one connector this Microscope reaches: the recording volume on an Azure file share or in a
+ * local directory. It is declared in configuration only ({@code jeffrey.microscope.connector.*})
+ * and never stored; its workspaces and projects are read live and never cached here.
  *
  * @param name    what the UI and the MCP answers call it
- * @param address where the share is and how it is reached
+ * @param address where the volume lies and how it is reached
  */
-public record ConnectorInfo(String name, AzureFilesAddress address) {
+public record ConnectorInfo(String name, ConnectorAddress address) {
 
     public ConnectorInfo {
         if (name == null || name.isBlank() || address == null) {

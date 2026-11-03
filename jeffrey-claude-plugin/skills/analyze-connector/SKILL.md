@@ -1,13 +1,13 @@
 ---
 name: analyze-connector
-description: "Finds and analyses JVM recordings that live on the connector (the recording volume on an Azure file share) rather than on this machine — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service, \"the last hour\", \"since the deploy\", \"what the connector has\", \"why was prod slow this morning\", \"why did the pod's JVM die\", \"the exceptions in the service log\". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly."
+description: "Finds and analyses JVM recordings that live on the connector (the recording volume on an Azure file share, or in a local directory) rather than in a file the user has — the JFR recordings, heap dumps, application logs, GC logs and crash files a deployed application produced. Use whenever the user asks about what an environment recorded or wrote rather than about a file they have: production, staging, a named service, \"the last hour\", \"since the deploy\", \"what the connector has\", \"why was prod slow this morning\", \"why did the pod's JVM die\", \"the exceptions in the service log\". It locates the session, asks which interval matters, pulls in that part of the recording — or the one file that matters — and hands off to analyze-jfr or analyze-heap, or reads the log itself. For a recording file already on this machine, analyze-jfr applies directly."
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a recording that lives on the connector
 
 The **connector** is where deployed applications send their recordings: the recording volume on an
-Azure file share. Microscope reaches exactly one, declared in its configuration, and this skill is the bridge: find the session, pull it in, and from there it is
+Azure file share, or in a local directory laid out the same way. Microscope reaches exactly one, declared in its configuration, and this skill is the bridge: find the session, pull it in, and from there it is
 an ordinary profile that `analyze-jfr` and `analyze-heap` answer about.
 
 Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `connector_sessions`, not `connector_list_sessions`.
@@ -20,7 +20,8 @@ If `connector_status` answers `state: NOT_CONFIGURED`, connector access is on bu
 configuration declares no connector. Declaring one is the user's step, in configuration only — no tool
 and no page of the UI does it. Give them the `jeffrey.microscope.connector.*` properties from the
 answer — `jeffrey.microscope.connector.azure-files.*`: endpoint, share, protocol, a SAS token or
-`auth=entra` — followed by a restart. Use the user's own account and share names if they gave them,
+`auth=entra`; or `jeffrey.microscope.connector.local.path` for a directory on this machine — followed by
+a restart. Use the user's own account and share names if they gave them,
 otherwise keep the placeholders. Never invent an address. Offer to analyse a local `.jfr` in the meantime, and call `connector_status` again once
 they say Microscope has restarted with it.
 

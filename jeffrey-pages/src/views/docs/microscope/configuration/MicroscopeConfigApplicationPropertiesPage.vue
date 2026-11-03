@@ -33,6 +33,7 @@ const headings = [
   { id: 'update-check', text: 'Update Check', level: 2 },
   { id: 'connector', text: 'Connector', level: 2 },
   { id: 'connector-azure-files', text: 'Azure File Share', level: 3 },
+  { id: 'connector-local', text: 'Local Directory', level: 3 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
   { id: 'ide-integration', text: 'IDE Integration', level: 2 }
 ];
@@ -44,6 +45,10 @@ jeffrey.microscope.connector.azure-files.protocol=smb
 jeffrey.microscope.connector.azure-files.auth=sas
 jeffrey.microscope.connector.azure-files.sas-token=\${AZURE_FILES_SAS}
 jeffrey.microscope.connector.azure-files.read-only=false`;
+
+const localPropertiesExample = `jeffrey.microscope.connector.name=Scratch volume
+jeffrey.microscope.connector.local.path=/tmp/jeffrey/workspaces
+jeffrey.microscope.connector.local.read-only=false`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -176,12 +181,16 @@ onMounted(() => {
 
       <h3 id="connector-azure-files">Azure File Share</h3>
       <DocsCodeBlock language="properties" :code="azureFilesPropertiesExample" />
+
+      <h3 id="connector-local">Local Directory</h3>
+      <DocsCodeBlock language="properties" :code="localPropertiesExample" />
       <p>
-        Connector properties are documented with the connectors themselves:
+        Declare one of the two blocks. Connector properties are documented with the connectors themselves:
         <router-link to="/docs/connectors/declaring">Declaring a Connector</router-link> for the common ones,
-        <router-link to="/docs/connectors/available">Available Connectors</router-link> for the kinds, and
+        <router-link to="/docs/connectors/available">Available Connectors</router-link> for the kinds,
         <router-link to="/docs/connectors/azure-files#properties">Azure File Share</router-link> for the
-        <code>azure-files</code> block shown above.
+        <code>azure-files</code> block and <router-link to="/docs/connectors/local#properties">Local
+        Directory</router-link> for the <code>local</code> block shown above.
       </p>
 
       <h2 id="mcp-server">MCP Server</h2>

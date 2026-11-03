@@ -23,8 +23,10 @@ import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.connector.AzureFilesClientsFactory;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorClientsFactory;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
+import cafe.jeffrey.microscope.core.manager.connector.LocalClientsFactory;
 import cafe.jeffrey.microscope.core.manager.workspace.ConnectorWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
@@ -46,10 +48,12 @@ public class ConnectorConfiguration {
         return configuredConnector.read();
     }
 
-    /** The share's clients. */
+    /** The clients of the configured connector, by its kind: an Azure file share or a local directory. */
     @Bean
-    public AzureFilesClientsFactory azureFilesClientsFactory(ConfiguredConnectorProperties.Declared declaredConnector) {
-        return new AzureFilesClientsFactory(declaredConnector.sasToken());
+    public ConnectorClientsFactory connectorClientsFactory(ConfiguredConnectorProperties.Declared declaredConnector) {
+        return new ConnectorClientsFactory(
+                new AzureFilesClientsFactory(declaredConnector.sasToken()),
+                new LocalClientsFactory());
     }
 
     @Bean
@@ -78,13 +82,13 @@ public class ConnectorConfiguration {
 
     @Bean
     public ConnectorConnection.Factory connectorConnectionFactory(
-            AzureFilesClientsFactory azureFilesClientsFactory,
+            ConnectorClientsFactory connectorClientsFactory,
             WorkspaceManagerFactory workspaceManagerFactory,
             ConnectorProjectManagerFactory connectorProjectManagerFactory) {
 
         return connector -> new ConnectorConnection(
                 connector,
-                azureFilesClientsFactory.apply(connector.address()),
+                connectorClientsFactory.apply(connector.address()),
                 workspaceManagerFactory,
                 connectorProjectManagerFactory);
     }

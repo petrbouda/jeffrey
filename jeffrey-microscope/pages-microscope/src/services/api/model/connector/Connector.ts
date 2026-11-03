@@ -15,13 +15,23 @@
  * limitations under the License.
  */
 
-/** The one connector this Microscope reaches, the recording volume on an Azure file share, as configuration declares it. */
+/** Which storage the connector reads: an Azure file share, or a directory on Microscope's machine. */
+export type ConnectorKind = 'AZURE_FILES' | 'LOCAL';
+
+/**
+ * The one connector this Microscope reaches, the recording volume on an Azure file share or in a
+ * local directory, as configuration declares it.
+ */
 export default interface Connector {
   name: string;
-  /** Where the share lies, as a person reads it: its endpoint, name and directory. */
+  kind: ConnectorKind;
+  /**
+   * Where the volume lies, as a person reads it: the share's endpoint, name and directory, or the
+   * local directory's absolute path.
+   */
   location: string;
   /**
-   * A connector declared read-only (`azure-files.read-only=true`): no workspace, project or session
+   * A connector declared read-only (`read-only=true` in its block): no workspace, project or session
    * is deleted through it.
    */
   readOnly: boolean;

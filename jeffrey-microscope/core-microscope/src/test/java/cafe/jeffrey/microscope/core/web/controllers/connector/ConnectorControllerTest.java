@@ -21,6 +21,8 @@ import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.model.connector.ConnectorKind;
+import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.web.dto.response.ConnectorResponse;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -73,6 +76,7 @@ class ConnectorControllerTest {
                     AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false))).current().connector();
 
             assertEquals("Production", response.name());
+            assertEquals(ConnectorKind.AZURE_FILES, response.kind());
             assertEquals("https://jeffreyprod.file.core.windows.net/recordings", response.location());
             assertFalse(response.readOnly());
         }
@@ -85,6 +89,18 @@ class ConnectorControllerTest {
                     AzureFilesProtocol.SMB, AzureFilesAuth.SAS, true))).current().connector();
 
             assertEquals("https://jeffreyprod.file.core.windows.net/recordings/volume", response.location());
+            assertTrue(response.readOnly());
+        }
+
+        /** A local directory is named by its absolute path, normalized. */
+        @Test
+        void aLocalDirectoryIsReportedByItsPath() {
+            ConnectorResponse response = answering(new ConnectorInfo("Scratch", new LocalDirectoryAddress(
+                    Path.of("/tmp/jeffrey-volume/../jeffrey-volume"), true))).current().connector();
+
+            assertEquals("Scratch", response.name());
+            assertEquals(ConnectorKind.LOCAL, response.kind());
+            assertEquals(Path.of("/tmp/jeffrey-volume").toString(), response.location());
             assertTrue(response.readOnly());
         }
     }

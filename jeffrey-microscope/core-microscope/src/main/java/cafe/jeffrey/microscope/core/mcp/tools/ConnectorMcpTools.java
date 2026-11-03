@@ -96,7 +96,7 @@ import java.util.stream.Collectors;
 
 /**
  * The recordings that never reached this machine: everything on the configured connector, the
- * recording volume on an Azure file share.
+ * recording volume on an Azure file share or in a local directory.
  * <p>
  * The other write family, {@code recordings_}, starts from a file the reader already has. This one
  * starts from an environment they do not — "the JFR recordings from the last hour on production" —
@@ -163,14 +163,16 @@ public class ConnectorMcpTools {
     private static final String CONFIGURED_CONNECTOR_PROPERTY = "jeffrey.microscope.connector";
     private static final String NOT_CONFIGURED =
             ("No connector is configured for this installation. The connector is the recording volume on an Azure "
-                    + "file share, declared in configuration only; declare it and restart Microscope "
-                    + "(auth=entra signs in with the machine's Azure identity instead of a SAS token; "
+                    + "file share or in a local directory, declared in configuration only; declare one and restart "
+                    + "Microscope (auth=entra signs in with the machine's Azure identity instead of a SAS token; "
                     + "read-only=true refuses every change):\n\n"
                     + "  %1$s.name=Production\n"
                     + "  %1$s.azure-files.endpoint=https://<account>.file.core.windows.net\n"
                     + "  %1$s.azure-files.share=recordings\n"
                     + "  %1$s.azure-files.protocol=smb\n"
                     + "  %1$s.azure-files.sas-token=<SAS token>\n\n"
+                    + "or, for a volume on this machine:\n\n"
+                    + "  %1$s.local.path=/absolute/path/holding/the/workspaces\n\n"
                     + "Recordings can still be analysed from a local file with recordings_analyzeFile.")
                     .formatted(CONFIGURED_CONNECTOR_PROPERTY);
     private static final String STATUS_NOTE =
@@ -280,7 +282,7 @@ public class ConnectorMcpTools {
     }
 
     @Tool(description = "Returns the one connector this installation's configuration declares - the recording "
-            + "volume on an Azure file share - whether it refuses changes (readOnly), and whether it answers "
+            + "volume on an Azure file share or in a local directory - whether it refuses changes (readOnly), and whether it answers "
             + "right now (state REACHABLE or UNREACHABLE): why connector_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no "
             + "connector, and the reason says how the user declares one.")
     @McpOutputSchema(ConnectorStatus.class)
@@ -290,8 +292,8 @@ public class ConnectorMcpTools {
         Optional<ConnectorConnection> configured = connectorManager.current();
         if (configured.isEmpty()) {
             McpFollowUp followUp = NextSteps.builder(advertised).followUp();
-            ConnectorStatus none = new ConnectorStatus(ConnectorState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null, null,
-                    followUp, uiLink);
+            ConnectorStatus none = new ConnectorStatus(ConnectorState.NOT_CONFIGURED, NOT_CONFIGURED, null, null, null,
+                    null, null, followUp, uiLink);
             return McpToolResult.of(LinkedOutput.footed(NOT_CONFIGURED, followUp, uiLink, null).text(), none);
         }
 
@@ -302,11 +304,12 @@ public class ConnectorMcpTools {
                 .nextWhen(probe.reachable(), NextCalls.to(ConnectorCalls.CONNECTOR_SESSIONS).why(SESSIONS_WHY))
                 .guidanceWhen(!probe.reachable(), UNREACHABLE_GUIDANCE)
                 .followUp();
-        ConnectorStatus answer = new ConnectorStatus(state, null, connector.name(), connector.address().identity(), connector.address().readOnly(),
-                probe.version().orElse(null), followUp, uiLink);
+        ConnectorStatus answer = new ConnectorStatus(state, null, connector.name(), connector.address().kind(),
+                connector.address().identity(), connector.address().readOnly(), probe.version().orElse(null), followUp,
+                uiLink);
         MarkdownTable table = MarkdownTable.withColumns(
-                "connector", "address", "read_only", "state", "version");
-        table.row(answer.name(), answer.address(), answer.readOnly(),
+                "connector", "kind", "address", "read_only", "state", "version");
+        table.row(answer.name(), answer.kind(), answer.address(), answer.readOnly(),
                 answer.state(), answer.version());
         String body = table.note(STATUS_NOTE).renderUncapped();
         return McpToolResult.of(LinkedOutput.footed(body, followUp, uiLink, null).text(), answer);

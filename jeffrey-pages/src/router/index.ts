@@ -658,6 +658,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/connectors/ConnectorAzureFilesPage.vue')
       },
       {
+        path: 'connectors/local',
+        name: 'DocsConnectorsLocal',
+        component: () => import('@/views/docs/connectors/ConnectorLocalPage.vue')
+      },
+      {
         path: 'connectors/workspaces',
         name: 'DocsWorkspaces',
         component: () => import('@/views/docs/connectors/ConnectorWorkspacesPage.vue')

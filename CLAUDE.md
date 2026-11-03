@@ -12,12 +12,15 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope)
   core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
-                                       ConnectorInfo and AzureFilesAddress in model.connector)
+                                       ConnectorInfo and the sealed ConnectorAddress (AzureFilesAddress |
+                                       LocalDirectoryAddress) in model.connector)
   microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles)
   connectors/                          Microscope's connectors to outside services; a new connector is a sibling module:
     connector-api/                     the client interfaces, DTOs and managers every connector answers (ConnectorClients)
     volume-connector/                  the connector over a recording volume (writable or read-only)
     azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra)
+    local-connector/                   the volume's local-directory backend: FilesystemVolume kept inside its root
+                                       (no link out), read live; for testing and copied trees
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   recordings-core/ recording-storage-api/ notifications/
@@ -85,7 +88,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 ## Architecture invariants (never)
 
-- **Microscope reaches exactly one connector** — the recording volume on an Azure file share — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
+- **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
 - **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own Storage and Scheduler pages; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
 - **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks off the volume and reads them itself.

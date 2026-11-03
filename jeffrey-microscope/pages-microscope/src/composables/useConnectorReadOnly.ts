@@ -18,7 +18,7 @@ import { ref, type Ref } from "vue";
 import ConnectorClient from "@/services/api/connector/ConnectorClient";
 
 /**
- * Whether the configured connector refuses every change — an Azure file share declared read-only. A
+ * Whether the configured connector refuses every change — a share or directory declared read-only. A
  * page hides its delete and pin actions while this is true; the backend refuses them either way.
  *
  * Starts false and stays false when the connector cannot be read, or none is configured, so a page never

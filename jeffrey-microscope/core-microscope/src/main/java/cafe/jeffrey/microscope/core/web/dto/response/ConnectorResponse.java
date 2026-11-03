@@ -17,15 +17,20 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
+import cafe.jeffrey.microscope.model.connector.ConnectorKind;
+
 /**
- * The configured connector, the recording volume on an Azure file share.
+ * The configured connector: the recording volume on an Azure file share or in a local directory.
  *
- * @param location  where it lies, as a person reads it: the share's endpoint, name and directory
+ * @param kind      which storage it is: {@code AZURE_FILES} or {@code LOCAL}
+ * @param location  where it lies, as a person reads it: the share's endpoint, name and directory, or
+ *                  the local directory's absolute path
  * @param readOnly  whether it refuses every change: no workspace, project or session deleted
  *                  through it
  */
 public record ConnectorResponse(
         String name,
+        ConnectorKind kind,
         String location,
         boolean readOnly) {
 }

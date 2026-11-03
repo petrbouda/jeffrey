@@ -113,7 +113,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>connector-api</artifactId>
         </dependency>
-        <!-- The connectors: the one over a recording volume, and the volume's Azure Files backend -->
+        <!-- The connectors: the one over a recording volume, and the volume's Azure Files and local-directory backends -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume-connector</artifactId>
@@ -121,6 +121,10 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>azure-files-connector</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>local-connector</artifactId>
         </dependency>
         <!-- Recording store + the download machinery that pulls recordings through the connector -->
         <dependency>

@@ -59,6 +59,7 @@ import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
@@ -86,6 +87,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.mockito.ArgumentCaptor;
 
+import java.nio.file.Path;
 import java.lang.reflect.InvocationTargetException;
 import java.util.stream.IntStream;
 import java.time.Clock;
@@ -542,6 +544,7 @@ class ConnectorMcpToolsTest {
             assertEquals("REACHABLE", answer.get("state").asString());
             assertTrue(answer.get("reason").isNull());
             assertEquals("production", answer.get("name").asString());
+            assertEquals("AZURE_FILES", answer.get("kind").asString());
             assertEquals("azure-files:https://jeffreyprod.file.core.windows.net/recordings",
                     answer.get("address").asString());
             assertFalse(answer.get("readOnly").asBoolean());
@@ -575,11 +578,27 @@ class ConnectorMcpToolsTest {
             McpToolResult result = tools.status();
             JsonNode answer = status(result);
 
-            assertFalse(answer.has("kind"));
+            assertEquals("AZURE_FILES", answer.get("kind").asString());
             assertTrue(answer.get("readOnly").asBoolean());
             assertEquals("azure-files:https://jeffreyprod.file.core.windows.net/recordings",
                     answer.get("address").asString());
             assertTrue(result.text().contains("| true |"), result.text());
+        }
+
+        /** A local directory is its own kind, named by its absolute path. */
+        @Test
+        void namesALocalDirectoryByItsKindAndPath() {
+            ConnectorConnection directory = reachableConnector("scratch", "checkout", repositoryWith());
+            when(directory.info()).thenReturn(new ConnectorInfo("scratch",
+                    new LocalDirectoryAddress(Path.of("/tmp/jeffrey/workspaces"), false)));
+            configure(directory);
+
+            McpToolResult result = tools.status();
+            JsonNode answer = status(result);
+
+            assertEquals("LOCAL", answer.get("kind").asString());
+            assertEquals("local:" + Path.of("/tmp/jeffrey/workspaces"), answer.get("address").asString());
+            assertTrue(result.text().contains("| LOCAL |"), result.text());
         }
 
         @Test
@@ -591,6 +610,7 @@ class ConnectorMcpToolsTest {
 
             assertEquals("NOT_CONFIGURED", answer.get("state").asString());
             assertTrue(answer.get("name").isNull());
+            assertTrue(answer.get("kind").isNull());
             assertTrue(answer.get("readOnly").isNull(), "a connector that does not exist is neither read-only nor writable");
             assertTrue(answer.get("reason").asString().contains("No connector is configured"), answer.toString());
             assertTrue(result.text().contains("recordings_analyzeFile"), result.text());

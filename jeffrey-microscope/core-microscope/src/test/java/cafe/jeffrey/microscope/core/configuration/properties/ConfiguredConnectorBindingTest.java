@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,6 +30,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
@@ -66,7 +68,7 @@ class ConfiguredConnectorBindingTest {
         ConnectorInfo connector = properties.resolve().orElseThrow();
 
         assertEquals("Production", connector.name());
-        assertEquals("recordings", connector.address().share());
+        assertEquals("recordings", ((AzureFilesAddress) connector.address()).share());
     }
 
     @Test
@@ -85,6 +87,18 @@ class ConfiguredConnectorBindingTest {
                 "volume/workspaces", AzureFilesProtocol.NFS, AzureFilesAuth.SAS, true),
                 properties.resolve().orElseThrow().address());
         assertEquals(Optional.of("sv=2026-06-06&sig=c2ln"), properties.sasToken());
+    }
+
+    @Test
+    @DisplayName("A local block binds its path and read-only flag")
+    void bindsALocalDirectory() {
+        ConfiguredConnectorProperties properties = bind(
+                "jeffrey.microscope.connector.local.path=/tmp/jeffrey-volume",
+                "jeffrey.microscope.connector.local.read-only=true");
+
+        assertEquals(new LocalDirectoryAddress(Path.of("/tmp/jeffrey-volume"), true),
+                properties.resolve().orElseThrow().address());
+        assertEquals(Optional.empty(), properties.sasToken());
     }
 
     @Test

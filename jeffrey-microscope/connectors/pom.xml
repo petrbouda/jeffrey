@@ -29,7 +29,8 @@
     <!--
         Microscope's connectors to the services outside it: the API every connector answers
         (connector-api), the connector over a recording volume (volume-connector) and the
-        volume's Azure Files backend (azure-files-connector). A new connector is a sibling here.
+        volume's backends: an Azure file share (azure-files-connector) and a directory on this
+        machine (local-connector). A new connector is a sibling here.
     -->
     <artifactId>connectors</artifactId>
 
@@ -39,5 +40,6 @@
         <module>connector-api</module>
         <module>volume-connector</module>
         <module>azure-files-connector</module>
+        <module>local-connector</module>
     </modules>
 </project>

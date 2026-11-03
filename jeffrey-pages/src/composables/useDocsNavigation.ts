@@ -319,7 +319,8 @@ const connectorsNavigation: DocSection[] = [
     icon: 'bi-grid',
     children: [
       { title: 'Overview', to: '/docs/connectors/available' },
-      { title: 'Azure File Share', to: '/docs/connectors/azure-files' }
+      { title: 'Azure File Share', to: '/docs/connectors/azure-files' },
+      { title: 'Local Directory', to: '/docs/connectors/local' }
     ]
   },
   {
