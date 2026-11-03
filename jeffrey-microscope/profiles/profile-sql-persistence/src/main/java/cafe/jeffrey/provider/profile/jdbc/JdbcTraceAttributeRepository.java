@@ -276,11 +276,19 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             )
             """;
 
+    private static final String VALUE_KEY_PLACEHOLDER = "<<value_key>>";
+
+    /**
+     * A value's reference into {@code trace_attribute_values}: the dictionary insert and both index
+     * inserts render it from here, so the row and its references always agree.
+     */
+    private static final String VALUE_KEY = TextKeys.of("value_text");
+
     /*
-     * The value dictionary, keyed by the text's own hash so the index insert below computes each
-     * row's reference inline -- the same convention the span payload table uses. Distinct texts
-     * hashing to the same id would fail the primary key loudly rather than silently merging two
-     * values.
+     * The value dictionary, keyed by the text's own key (TextKeys) so the index insert below
+     * computes each row's reference inline -- the same convention the span payload table uses.
+     * Distinct texts keyed to the same id would fail the primary key loudly rather than silently
+     * merging two values.
      *
      * Fed from both carriers, which is what makes the shared value_id legal: a text recorded by a
      * span and by a notification is one row here, and either index can reference it.
@@ -289,13 +297,16 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     private static final String DERIVE_VALUES = """
             INSERT INTO trace_attribute_values (value_id, value_text)
             <<flat>>
-            SELECT DISTINCT CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT), value_text
+            SELECT <<value_key>>, value_text
             FROM (
-                SELECT value_text FROM flat
-                UNION ALL
-                SELECT value_text FROM notification_flat
+                SELECT DISTINCT value_text
+                FROM (
+                    SELECT value_text FROM flat
+                    UNION ALL
+                    SELECT value_text FROM notification_flat
+                )
             )
-            """;
+            """.replace(VALUE_KEY_PLACEHOLDER, VALUE_KEY);
 
     /*
      * The index itself, ordered by (trace_id, span_id) so the search's per-page hit lookup prunes
@@ -312,12 +323,12 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 source,
                 owner,
                 attr_key,
-                CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT),
+                <<value_key>>,
                 value_num,
                 event_type
             FROM flat
             ORDER BY trace_id, span_id
-            """;
+            """.replace(VALUE_KEY_PLACEHOLDER, VALUE_KEY);
 
     /*
      * The notification index, ordered by (trace_id, notification_id) for the same reason its span
@@ -336,12 +347,12 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 source,
                 owner,
                 attr_key,
-                CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT),
+                <<value_key>>,
                 value_num,
                 event_type
             FROM notification_flat
             ORDER BY trace_id, notification_id
-            """;
+            """.replace(VALUE_KEY_PLACEHOLDER, VALUE_KEY);
 
     /*
      * The catalog, summarised from the index in one pass.
