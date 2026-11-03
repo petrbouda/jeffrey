@@ -18,13 +18,13 @@
 package cafe.jeffrey.profile.parser.data;
 
 import cafe.jeffrey.jfrparser.raw.JfrParser;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
+import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.test.recording.PersonsRecording;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Predicate;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static cafe.jeffrey.test.recording.PersonsRecording.DIRECT;
@@ -50,26 +50,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The JMC rules over realistic recordings: two runs of one service under load, which the rules
- * judge — context switches, errors thrown, the GC's parallelism, competing processes, long socket
- * reads. What they find is held to what each run holds, however the run is handed to them.
+ * judge — context switches, errors thrown, the GC's parallelism, competing processes and CPU, long
+ * socket reads, what is allocated and by whom.
  *
- * <p>One part of it is not stable, and it is named rather than hidden. Each file is a {@code jfrsync}
- * recording: the JDK's chain and async-profiler's both define {@code jdk.ActiveSetting} and
- * {@code jdk.ActiveRecording}, with different fields. JMC keeps one registry of event types for the
- * whole JVM and files the definition that does not match under a renamed type
- * ({@code jdk.ActiveSetting<uuid>}); which chain keeps the name depends on what an earlier load left
- * in the registry. A rule that reads the recording's settings — whether an event type was on, at
- * what period — therefore sees one chain's settings on one evaluation and the other's on the next.
- * Those rules are {@link #SETTINGS_DEPENDENT}; every other finding is the same every time.
+ * <p>Each file is a {@code jfrsync} recording: the JDK's chain and async-profiler's both define
+ * {@code jdk.ActiveSetting} and {@code jdk.ActiveRecording}, with different fields. Loaded together,
+ * the two definitions race and the rules that read the recording's settings judged the same file
+ * differently from one evaluation to the next; loaded one chain at a time and merged, the JDK's
+ * first, every rule answers alike every time. That is held here: the whole list of answers, again
+ * and however the run is handed over.
  */
 @DisplayName("Auto-analysis over realistic recordings")
 class AutoAnalysisDataProviderRealisticTest {
 
-    /**
-     * The rules whose result depends on which chain's {@code jdk.ActiveSetting} JMC kept under its
-     * name on a given load: they differ between two evaluations of one file in one JVM.
-     */
-    private static final Set<String> SETTINGS_DEPENDENT = Set.of(
+    /** The rules that read the recording's settings: each once answered differently on each evaluation. */
+    private static final Set<String> SETTINGS_READERS = Set.of(
             "Method Profiling", "Allocated Classes", "Threads Allocating", "TLAB Allocation Ratio",
             "GC Freed Ratio", "GC Pressure");
 
@@ -78,10 +73,10 @@ class AutoAnalysisDataProviderRealisticTest {
             DIRECT, Set.of("Competing CPU Ratio Usage", "Context Switches", "Thrown Errors", "Inverted Parallelism"),
             DOM, Set.of("Context Switches", "Thrown Errors", "Inverted Parallelism")));
 
-    /** What each run is told, beside its warnings, that holds every time. */
-    private static final Map<PersonsRecording, Set<String>> STABLE_INFO = new EnumMap<>(Map.of(
-            DIRECT, Set.of("Competing Processes", "Process Started", "Socket Read Peak Duration"),
-            DOM, Set.of("Competing Processes", "Process Started", "Socket Read Peak Duration")));
+    /** What each run is told beside its warnings. */
+    private static final Map<PersonsRecording, Set<String>> NOTES = new EnumMap<>(Map.of(
+            DIRECT, Set.of("Allocated Classes", "Competing Processes", "Process Started", "Socket Read Peak Duration"),
+            DOM, Set.of("Allocated Classes", "Competing Processes", "Process Started", "Socket Read Peak Duration")));
 
     /** How often the GC's parallelism inverted, of how many events: the figure the warning reports. */
     private static final Map<PersonsRecording, String> INVERTED_PARALLELISM = new EnumMap<>(Map.of(
@@ -91,9 +86,16 @@ class AutoAnalysisDataProviderRealisticTest {
     private static final String THROWN_ERRORS = "Thrown Errors";
     private static final String ERRORS_PER_MINUTE = "an average of 130 errors per minute";
     private static final String INVERTED_PARALLELISM_RULE = "Inverted Parallelism";
+    private static final String ALLOCATED_CLASSES = "Allocated Classes";
+    private static final String MOST_ALLOCATED = "The most allocated type is likely ''byte[]''";
+
+    private static final Set<Severity> NO_ANSWER = Set.of(Severity.NA, Severity.IGNORE);
 
     @TempDir
     static Path work;
+
+    /** Each run judged once from its plain file, for every test that only reads the judgement. */
+    private static final Map<PersonsRecording, List<AutoAnalysisResult>> JUDGED = new ConcurrentHashMap<>();
 
     @Nested
     @DisplayName("What each run is told")
@@ -101,21 +103,33 @@ class AutoAnalysisDataProviderRealisticTest {
 
         @ParameterizedTest
         @EnumSource(PersonsRecording.class)
-        @DisplayName("every rule answers, and the warnings are the run's own")
-        void everyRuleAnswersAndTheWarningsAreTheRunsOwn(PersonsRecording recording) {
-            List<AutoAnalysisResult> results = AutoAnalysisDataProvider.generate(List.of(plain(recording)));
+        @DisplayName("every rule answers; the warnings and notes are the run's own")
+        void theWarningsAndNotesAreTheRunsOwn(PersonsRecording recording) {
+            List<AutoAnalysisResult> results = judged(recording);
 
             assertEquals(RuleRegistry.getRules().size(), results.size());
             assertEquals(new TreeSet<>(WARNINGS.get(recording)), rules(results, Severity.WARNING));
-            assertTrue(rules(results, Severity.INFO).containsAll(STABLE_INFO.get(recording)),
-                    () -> rules(results, Severity.INFO).toString());
+            assertEquals(new TreeSet<>(NOTES.get(recording)), rules(results, Severity.INFO));
+        }
+
+        /** Each of them once answered "not enough samples" or "ignored" on one evaluation in two. */
+        @ParameterizedTest
+        @EnumSource(PersonsRecording.class)
+        @DisplayName("the rules that read the recording's settings all answer")
+        void theRulesThatReadTheSettingsAllAnswer(PersonsRecording recording) {
+            Map<String, AutoAnalysisResult> byRule = byRule(judged(recording));
+
+            for (String rule : SETTINGS_READERS) {
+                assertTrue(!NO_ANSWER.contains(byRule.get(rule).severity()), () -> rule + ": " + byRule.get(rule));
+            }
+            assertTrue(byRule.get(ALLOCATED_CLASSES).summary().startsWith(MOST_ALLOCATED), byRule.get(ALLOCATED_CLASSES)::summary);
         }
 
         @ParameterizedTest
         @EnumSource(PersonsRecording.class)
         @DisplayName("the warnings state the figures the run holds")
         void theWarningsStateTheRunsFigures(PersonsRecording recording) {
-            Map<String, AutoAnalysisResult> byRule = byRule(AutoAnalysisDataProvider.generate(List.of(plain(recording))));
+            Map<String, AutoAnalysisResult> byRule = byRule(judged(recording));
 
             assertTrue(byRule.get(THROWN_ERRORS).summary().contains(ERRORS_PER_MINUTE), byRule.get(THROWN_ERRORS)::summary);
             assertTrue(byRule.get(INVERTED_PARALLELISM_RULE).summary().contains(INVERTED_PARALLELISM.get(recording)),
@@ -123,53 +137,42 @@ class AutoAnalysisDataProviderRealisticTest {
         }
     }
 
-    /** The rules see one recording, however it is handed to them. */
+    /** Every answer, however often and however the run is handed to the rules. */
     @Nested
-    @DisplayName("One run, however it is handed over")
-    class HoweverHandedOver {
-
-        @Test
-        @DisplayName("the archive is judged as the file it compresses")
-        void theArchiveIsJudgedAsThePlainFile() {
-            assertEquals(stable(AutoAnalysisDataProvider.generate(List.of(plain(DIRECT)))),
-                    stable(AutoAnalysisDataProvider.generate(List.of(archive(DIRECT)))));
-        }
-
-        /** The rules take every file at once and build one collection, so a run in pieces is the run. */
-        @Test
-        @DisplayName("its chunks as separate files are judged as the file")
-        void theChunksAsFilesAreJudgedAsTheFile() {
-            List<Path> pieces = JfrParser.disassemble(plain(DOM), work.resolve("pieces-" + DOM));
-
-            assertEquals(stable(AutoAnalysisDataProvider.generate(List.of(plain(DOM)))),
-                    stable(AutoAnalysisDataProvider.generate(pieces)));
-        }
-    }
-
-    /** What may change between two evaluations of one file in one JVM, and what may not. */
-    @Nested
-    @DisplayName("Evaluated again")
-    class EvaluatedAgain {
+    @DisplayName("Alike every time")
+    class AlikeEveryTime {
 
         @ParameterizedTest
         @EnumSource(PersonsRecording.class)
-        @DisplayName("only the rules that read the recording's settings can change")
-        void onlyTheSettingsDependentRulesCanChange(PersonsRecording recording) {
-            Map<String, AutoAnalysisResult> first = byRule(AutoAnalysisDataProvider.generate(List.of(plain(recording))));
-            Map<String, AutoAnalysisResult> again = byRule(AutoAnalysisDataProvider.generate(List.of(plain(recording))));
+        @DisplayName("judged again, every answer is the same")
+        void judgedAgainEveryAnswerIsTheSame(PersonsRecording recording) {
+            assertEquals(judged(recording), provider().generate(List.of(plain(recording))));
+        }
 
-            Set<String> changed = first.keySet().stream()
-                    .filter(rule -> !first.get(rule).equals(again.get(rule)))
-                    .collect(Collectors.toCollection(TreeSet::new));
-            assertTrue(SETTINGS_DEPENDENT.containsAll(changed), () -> "Changed between evaluations: " + changed);
+        @ParameterizedTest
+        @EnumSource(PersonsRecording.class)
+        @DisplayName("the archive is judged as the file it compresses")
+        void theArchiveIsJudgedAsThePlainFile(PersonsRecording recording) {
+            assertEquals(judged(recording), provider().generate(List.of(archive(recording))));
+        }
+
+        /** The rules take every file at once, so a run in pieces is the run. */
+        @ParameterizedTest
+        @EnumSource(PersonsRecording.class)
+        @DisplayName("its chunks as separate files are judged as the file")
+        void theChunksAsFilesAreJudgedAsTheFile(PersonsRecording recording) {
+            List<Path> pieces = JfrParser.disassemble(plain(recording), work.resolve("pieces-" + recording));
+
+            assertEquals(judged(recording), provider().generate(pieces));
         }
     }
 
-    /** Every finding but the settings-dependent ones, by rule. */
-    private static Map<String, AutoAnalysisResult> stable(List<AutoAnalysisResult> results) {
-        Map<String, AutoAnalysisResult> stable = new TreeMap<>(byRule(results));
-        stable.keySet().removeAll(SETTINGS_DEPENDENT);
-        return stable;
+    private static List<AutoAnalysisResult> judged(PersonsRecording recording) {
+        return JUDGED.computeIfAbsent(recording, r -> provider().generate(List.of(plain(r))));
+    }
+
+    private static AutoAnalysisDataProvider provider() {
+        return new AutoAnalysisDataProvider(TempDirFactory.of(work.resolve("scratch")));
     }
 
     private static Map<String, AutoAnalysisResult> byRule(List<AutoAnalysisResult> results) {
@@ -179,8 +182,7 @@ class AutoAnalysisDataProviderRealisticTest {
     }
 
     private static Set<String> rules(List<AutoAnalysisResult> results, Severity severity) {
-        Predicate<AutoAnalysisResult> atSeverity = result -> result.severity() == severity;
-        return results.stream().filter(atSeverity).map(AutoAnalysisResult::rule)
+        return results.stream().filter(result -> result.severity() == severity).map(AutoAnalysisResult::rule)
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 

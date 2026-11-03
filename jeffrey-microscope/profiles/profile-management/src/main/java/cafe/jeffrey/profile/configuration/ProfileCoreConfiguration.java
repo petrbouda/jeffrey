@@ -255,13 +255,14 @@ public class ProfileCoreConfiguration {
      */
     @Bean
     public ProfileDataInitializer profileDataInitializer(
-            @Value("${jeffrey.microscope.profile.data-initializer.enabled:true}") boolean enabled) {
+            @Value("${jeffrey.microscope.profile.data-initializer.enabled:true}") boolean enabled,
+            TempDirFactory tempDirFactory) {
 
         if (enabled) {
             return new ProfileDataInitializerImpl(
                     profileDatabaseProvider,
                     Schedulers.sharedBulkParallel(),
-                    AutoAnalysisDataProvider::generate);
+                    new AutoAnalysisDataProvider(tempDirFactory));
         } else {
             return ProfileDataInitializer.disabled();
         }

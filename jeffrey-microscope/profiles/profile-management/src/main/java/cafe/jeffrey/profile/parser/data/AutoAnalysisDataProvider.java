@@ -19,14 +19,18 @@ package cafe.jeffrey.profile.parser.data;
 
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
+import org.openjdk.jmc.common.item.ItemCollectionToolkit;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
+import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,21 +38,45 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
-public class AutoAnalysisDataProvider {
+/**
+ * Runs the JMC rule set over a recording.
+ *
+ * <p>JMC takes every file at once and builds one item collection from them, so the rules see the
+ * whole recording rather than one file of it — a rule that reasons about the run as a whole (GC
+ * pressure over the window, say) would otherwise fire on a fragment.
+ *
+ * <p>A recording that holds two chains of chunks ({@link RecordingChains}: async-profiler with
+ * {@code jfrsync} writes the JDK's own recording beside its own) is loaded one chain at a time and
+ * the collections merged before the rules run. Loaded together, the two chains' differing
+ * definitions of the same event types race: JMC keeps whichever it meets first under the name and
+ * renames the other, so the rules that read the recording's settings would judge the same file
+ * differently from one evaluation to the next. Loaded apart, each chain keeps its types under their
+ * names, and the rules still see both: context switches need the JDK's events and async-profiler's
+ * at once, allocation rules read async-profiler's settings and method profiling the JDK's.
+ */
+public final class AutoAnalysisDataProvider implements Function<List<Path>, List<AutoAnalysisResult>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisDataProvider.class);
 
+    private final TempDirFactory tempDirFactory;
+
+    public AutoAnalysisDataProvider(TempDirFactory tempDirFactory) {
+        this.tempDirFactory = tempDirFactory;
+    }
+
+    @Override
+    public List<AutoAnalysisResult> apply(List<Path> recordings) {
+        return generate(recordings);
+    }
+
     /**
-     * Runs the JMC rule set over every file of the recording at once. JMC takes the files as a
-     * list and builds one item collection from them, so the rules see the whole recording rather
-     * than one file of it — a rule that reasons about the run as a whole (GC pressure over the
-     * window, say) would otherwise fire on a fragment.
+     * @return every rule's answer, ordered by the rule's id
      */
-    public static List<AutoAnalysisResult> generate(List<Path> recordings) {
-        try {
-            IItemCollection events = JfrLoaderToolkit.loadEvents(
-                    recordings.stream().map(Path::toFile).toList());
+    public List<AutoAnalysisResult> generate(List<Path> recordings) {
+        try (TempDirectory scratch = tempDirFactory.newTempDir()) {
+            IItemCollection events = load(RecordingChains.of(recordings, scratch.path()));
             List<Map.Entry<IRule, Future<IResult>>> futures =
                     RulesToolkit.evaluateParallel(RuleRegistry.getRules(), events, null, 0)
                             .entrySet().stream()
@@ -78,6 +106,26 @@ public class AutoAnalysisDataProvider {
             }
             throw Exceptions.internal("Got exception when creating report for " + recordings, (Exception) t);
         }
+    }
+
+    /**
+     * One chain as one collection; several, each loaded on its own and merged — the JDK's own
+     * recording first. Some rules take the first recording's facts they meet (its start, its
+     * length), and they were written against the JVM's own recording: met after async-profiler's,
+     * the CPU-load rules find too few samples in a recording holding nearly nine hundred.
+     */
+    private static IItemCollection load(Map<RecordingEventSource, List<Path>> chains) throws Exception {
+        List<IItemCollection> collections = new ArrayList<>();
+        List<RecordingEventSource> order = chains.keySet().stream()
+                .sorted(Comparator.comparing((RecordingEventSource producer) -> producer != RecordingEventSource.JDK))
+                .toList();
+        for (RecordingEventSource producer : order) {
+            collections.add(JfrLoaderToolkit.loadEvents(chains.get(producer).stream().map(Path::toFile).toList()));
+        }
+        if (collections.size() == 1) {
+            return collections.getFirst();
+        }
+        return ItemCollectionToolkit.merge(collections::stream);
     }
 
     private static AutoAnalysisResult toAnalysisItem(IResult result) {

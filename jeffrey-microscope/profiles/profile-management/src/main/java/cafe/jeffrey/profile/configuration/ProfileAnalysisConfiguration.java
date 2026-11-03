@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.AutoAnalysisManagerImpl;
 import cafe.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
+import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.profile.manager.EventViewerManager;
 import cafe.jeffrey.profile.manager.EventViewerManagerImpl;
 import cafe.jeffrey.profile.manager.FlagsManager;
@@ -81,7 +82,9 @@ public class ProfileAnalysisConfiguration {
     }
 
     @Bean
-    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(RecordingFileLookup recordingLookup) {
+    public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
+            RecordingFileLookup recordingLookup, TempDirFactory tempDirFactory) {
+        AutoAnalysisDataProvider ruleSet = new AutoAnalysisDataProvider(tempDirFactory);
         return profileInfo -> {
             var profileDb = databaseManagerResolver.open(profileInfo);
             ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
@@ -89,7 +92,7 @@ public class ProfileAnalysisConfiguration {
             return new AutoAnalysisManagerImpl(
                     cacheRepository,
                     () -> recordingLookup.findJfrFiles(profileInfo.recordingId()),
-                    AutoAnalysisDataProvider::generate);
+                    ruleSet);
         };
     }
 
