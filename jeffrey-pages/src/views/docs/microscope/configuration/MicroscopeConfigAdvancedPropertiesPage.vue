@@ -70,22 +70,18 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>logging.level.cafe.jeffrey</code></td>
+            <td><code>logging.<wbr>level.<wbr>cafe.<wbr>jeffrey</code></td>
             <td><code>INFO</code></td>
             <td>Log level for all Microscope code. Set to <code>DEBUG</code> for verbose output.</td>
           </tr>
-          <tr>
-            <td><code>logging.level.cafe.jeffrey.microscope.connector.azure.AzureFilesTraffic</code></td>
-            <td><code>INFO</code></td>
-            <td>
-              Logs every request sent to the Azure file share, one line per request once it ends (a retry is its
-              own line): method, operation, path, status, elapsed time and the declared request and response sizes,
-              or the error's type when no response came. Payloads,
-              headers and the SAS signature are never logged. Set to <code>WARN</code> to silence it.
-            </td>
-          </tr>
         </tbody>
       </table>
+
+      <p>
+        The connector's own loggers &mdash; the per-request log of the Azure file share and the Azure SDK's
+        &mdash; are documented with the connector: see
+        <router-link to="/docs/connectors/azure-files#logging">Connectors &rsaquo; Azure File Share &rsaquo; Logging</router-link>.
+      </p>
 
       <h2 id="profile">Profile Initialization</h2>
       <p>Controls how recordings are parsed into per-profile DuckDB databases.</p>
@@ -100,7 +96,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.profile.frame-resolution</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>profile.<wbr>frame-resolution</code></td>
             <td><code>CACHE</code></td>
             <td>
               Frame-resolution mode for flamegraphs. <code>CACHE</code> resolves frames in-memory
@@ -108,7 +104,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.profile.data-initializer.enabled</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>profile.<wbr>data-initializer.<wbr>enabled</code></td>
             <td><code>true</code></td>
             <td>Run the data initializer when a profile is created.</td>
           </tr>
@@ -128,7 +124,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>visualization.<wbr>flamegraph.<wbr>min-frame-threshold-pct</code></td>
             <td><code>0.05</code></td>
             <td>
               Minimum frame width (as a percentage of the root total) below which frames are collapsed in
@@ -136,7 +132,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.visualization.flamegraph.frame-text-mode</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>visualization.<wbr>flamegraph.<wbr>frame-text-mode</code></td>
             <td><code>single-line</code></td>
             <td>
               How frame labels are laid out within frames: <code>single-line</code> or
@@ -145,7 +141,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>ai-export.<wbr>flamegraph.<wbr>min-frame-threshold-pct</code></td>
             <td><code>2.0</code></td>
             <td>
               Prune threshold for the Markdown flamegraph export handed to a coding agent &mdash; the
@@ -170,8 +166,8 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.persistence.database.url</code></td>
-            <td><code>jdbc:duckdb:${jeffrey.microscope.home.dir}/jeffrey-data.db</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>persistence.<wbr>database.<wbr>url</code></td>
+            <td><code>jdbc:duckdb:<wbr>${jeffrey.<wbr>microscope.<wbr>home.<wbr>dir}<wbr>/jeffrey-data.db</code></td>
             <td>JDBC URL for the Microscope core DuckDB file. Override only if you want to relocate the file outside the home directory.</td>
           </tr>
         </tbody>
@@ -193,12 +189,12 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.seed.recordings.enabled</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>seed.<wbr>recordings.<wbr>enabled</code></td>
             <td><code>false</code></td>
             <td>Enable seeding from a directory at startup.</td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.seed.recordings.dir</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>seed.<wbr>recordings.<wbr>dir</code></td>
             <td><code>/jeffrey-examples</code></td>
             <td>Directory containing the JFR recordings to seed.</td>
           </tr>
@@ -213,4 +209,10 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+
+/* Property names break after each dot. A share of the width, not a fixed minimum, keeps them
+   to a few lines without the long descriptions squeezing them, and never widens the table. */
+.docs-content td:first-child {
+  width: 32%;
+}
 </style>

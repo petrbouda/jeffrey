@@ -253,7 +253,7 @@ onMounted(() => {
 /* Profiler Features Grid */
 .profiler-features {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
   margin: 1.5rem 0;
 }
@@ -285,6 +285,8 @@ onMounted(() => {
 
 .feature-content {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .feature-content h4 {
@@ -343,13 +345,13 @@ onMounted(() => {
 
 @media (max-width: 992px) {
   .profiler-features {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 576px) {
   .profiler-features {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

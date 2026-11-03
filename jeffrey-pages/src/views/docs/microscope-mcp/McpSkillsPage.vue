@@ -823,5 +823,10 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     flex-direction: column;
     gap: 0.5rem;
   }
+
+  .skill-role {
+    max-width: 100%;
+    white-space: normal;
+  }
 }
 </style>

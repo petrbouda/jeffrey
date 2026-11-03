@@ -136,12 +136,12 @@ onMounted(() => {
       <p>
         Microscope never connects to a hub. Its one <strong>connector</strong> is the recording volume
         on an Azure file share, declared in its configuration with
-        <router-link to="/docs/microscope/configuration/application-properties#connector"><code>jeffrey.microscope.connector.azure-files.*</code></router-link>.
+        <router-link to="/docs/connectors/azure-files#properties"><code>jeffrey.microscope.connector.azure-files.*</code></router-link>.
         Microscope lists workspaces, projects, instances and sessions straight off the share, pulls
         recordings on demand, and makes the user's changes there unless the share is declared
         read-only. Retention, cleanup and compression stay with the hub's scheduled jobs on that
         same volume — keep a Jeffrey Hub running on it, or the share only grows. See the
-        <router-link to="/docs/microscope/workspaces">Microscope Workspaces</router-link> page
+        <router-link to="/docs/connectors">Connectors</router-link> docs
         for the client-side flow.
       </p>
 

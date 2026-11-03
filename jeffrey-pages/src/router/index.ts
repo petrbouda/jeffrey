@@ -286,35 +286,23 @@ const routes: RouteRecordRaw[] = [
       // Traces moved to the standalone Jeffrey Tracing product at /docs/tracing.
       { path: 'microscope/profiles/traces', redirect: '/docs/tracing/analysis' },
       { path: 'microscope/profiles/traces/api', redirect: '/docs/tracing/instrumentation' },
-      // Workspaces & Event Log
-      {
-        path: 'microscope/workspaces',
-        name: 'DocsWorkspaces',
-        component: () => import('@/views/docs/microscope/WorkspacesPage.vue')
-      },
+      // Workspaces moved to the standalone Connectors section at /docs/connectors.
+      { path: 'microscope/workspaces', redirect: '/docs/connectors/workspaces' },
       {
         path: 'microscope/profiler-builder',
         name: 'DocsMicroscopeProfilerBuilder',
         component: () => import('@/views/docs/microscope/MicroscopeProfilerBuilderPage.vue')
       },
-      // Projects
-      {
-        path: 'microscope/projects',
-        name: 'DocsProjects',
-        component: () => import('@/views/docs/microscope/projects/ProjectsOverviewPage.vue')
-      },
-      {
-        path: 'microscope/projects/instances',
-        name: 'DocsProjectsInstances',
-        component: () => import('@/views/docs/microscope/projects/ProjectsInstancesPage.vue')
-      },
+      // Projects and Instances moved to the standalone Connectors section at /docs/connectors.
+      { path: 'microscope/projects', redirect: '/docs/connectors/projects' },
+      { path: 'microscope/projects/instances', redirect: '/docs/connectors/projects/instances' },
       // Legacy paths — features moved to global pages or were removed in the UI.
       { path: 'microscope/profiler-settings', redirect: '/docs/microscope/profiler-builder' },
       { path: 'microscope/projects/profiler-settings', redirect: '/docs/microscope/profiler-builder' },
       { path: 'microscope/projects/profiles', redirect: '/docs/microscope/profiles' },
       { path: 'microscope/projects/recordings', redirect: '/docs/microscope/recordings' },
-      { path: 'microscope/projects/repository', redirect: '/docs/microscope/projects/instances' },
-      { path: 'microscope/projects/scheduler', redirect: '/docs/microscope/projects' },
+      { path: 'microscope/projects/repository', redirect: '/docs/connectors/projects/instances' },
+      { path: 'microscope/projects/scheduler', redirect: '/docs/connectors/projects' },
       // Microscope Configuration
       {
         path: 'microscope/configuration/application-properties',
@@ -645,6 +633,47 @@ const routes: RouteRecordRaw[] = [
       // The plugin page became one page per coding agent; the old URL points at the Claude Code one.
       { path: 'microscope-mcp/plugin', redirect: '/docs/microscope-mcp/claude-code' },
 
+      // ──── Connectors (standalone section) ────
+      // How Microscope reaches the shared recording volume: the connector itself, its backends,
+      // and browsing what it holds. Microscope's sidebar links across to it.
+      {
+        path: 'connectors',
+        name: 'DocsConnectors',
+        component: () => import('@/views/docs/connectors/ConnectorsOverviewPage.vue')
+      },
+      {
+        path: 'connectors/declaring',
+        name: 'DocsConnectorsDeclaring',
+        component: () => import('@/views/docs/connectors/ConnectorsDeclaringPage.vue')
+      },
+      {
+        path: 'connectors/available',
+        name: 'DocsConnectorsAvailable',
+        component: () => import('@/views/docs/connectors/ConnectorsAvailablePage.vue')
+      },
+      // One route per connector kind, listed on connectors/available.
+      {
+        path: 'connectors/azure-files',
+        name: 'DocsConnectorsAzureFiles',
+        component: () => import('@/views/docs/connectors/ConnectorAzureFilesPage.vue')
+      },
+      {
+        path: 'connectors/workspaces',
+        name: 'DocsWorkspaces',
+        component: () => import('@/views/docs/connectors/ConnectorWorkspacesPage.vue')
+      },
+      {
+        path: 'connectors/projects',
+        name: 'DocsProjects',
+        component: () => import('@/views/docs/connectors/projects/ProjectsOverviewPage.vue')
+      },
+      {
+        path: 'connectors/projects/instances',
+        name: 'DocsProjectsInstances',
+        component: () => import('@/views/docs/connectors/projects/ProjectsInstancesPage.vue')
+      },
+      { path: 'connectors/overview', redirect: '/docs/connectors' },
+
       // ──── IntelliJ Plugin (standalone product) ────
       {
         path: 'intellij-plugin',
@@ -669,17 +698,17 @@ const routes: RouteRecordRaw[] = [
 
       // ──── Redirects from old paths ────
       { path: 'goals/overview', redirect: '/docs/getting-started/introduction' },
-      { path: 'platform/workspaces', redirect: '/docs/microscope/workspaces' },
+      { path: 'platform/workspaces', redirect: '/docs/connectors/workspaces' },
       { path: 'platform/recordings', redirect: '/docs/microscope/recordings' },
-      { path: 'platform/projects', redirect: '/docs/microscope/projects' },
+      { path: 'platform/projects', redirect: '/docs/connectors/projects' },
       { path: 'platform/projects/profiles', redirect: '/docs/microscope/profiles' },
       { path: 'platform/projects/recordings', redirect: '/docs/microscope/recordings' },
-      { path: 'platform/projects/repository', redirect: '/docs/microscope/projects/instances' },
-      { path: 'platform/projects/instances', redirect: '/docs/microscope/projects/instances' },
+      { path: 'platform/projects/repository', redirect: '/docs/connectors/projects/instances' },
+      { path: 'platform/projects/instances', redirect: '/docs/connectors/projects/instances' },
       { path: 'platform/projects/profiler-settings', redirect: '/docs/microscope/profiler-builder' },
-      { path: 'platform/projects/scheduler', redirect: '/docs/microscope/projects' },
-      { path: 'platform/projects/alerts-messages', redirect: '/docs/microscope/projects' },
-      { path: 'microscope/projects/event-streaming', redirect: '/docs/microscope/projects' },
+      { path: 'platform/projects/scheduler', redirect: '/docs/connectors/projects' },
+      { path: 'platform/projects/alerts-messages', redirect: '/docs/connectors/projects' },
+      { path: 'microscope/projects/event-streaming', redirect: '/docs/connectors/projects' },
       { path: 'platform/recording-sessions/overview', redirect: '/docs/hub/recording-sessions/overview' },
       { path: 'platform/recording-sessions/configuration', redirect: '/docs/hub/recording-sessions/configuration' },
       { path: 'platform/recording-sessions/lifecycle', redirect: '/docs/hub/recording-sessions/lifecycle' },

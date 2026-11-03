@@ -24,7 +24,7 @@ interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'microscope-mcp' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
+export type Product = 'microscope' | 'microscope-mcp' | 'connectors' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
 
 interface ProductInfo {
   id: Product;
@@ -45,6 +45,12 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     title: 'Microscope MCP',
     icon: 'bi-plugin',
     hubPath: '/docs/microscope-mcp'
+  },
+  connectors: {
+    id: 'connectors',
+    title: 'Connectors',
+    icon: 'bi-plug',
+    hubPath: '/docs/connectors'
   },
   hub: {
     id: 'hub',
@@ -85,6 +91,9 @@ const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events']);
 // The MCP integration is its own product. Its segment is distinct from 'microscope', so a
 // /docs/microscope-mcp/* URL never resolves to the Microscope sidebar.
 const MICROSCOPE_MCP_SEGMENTS = new Set(['microscope-mcp']);
+// Connectors is its own section (previously the "Connector" group under Microscope): how
+// Microscope reaches the shared recording volume and browses what it holds.
+const CONNECTORS_SEGMENTS = new Set(['connectors']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
 const HUB_SEGMENTS = new Set(['hub', 'server']);
@@ -136,7 +145,7 @@ const microscopeNavigation: DocSection[] = [
   },
   {
     // A standalone tool: it builds an async-profiler command and stores nothing, so it
-    // sits at the root rather than under Connector.
+    // sits at the root rather than under Connectors.
     title: 'Profiler Builder',
     path: '_microscope-profiler-builder',
     icon: 'bi-cpu',
@@ -192,22 +201,6 @@ const microscopeNavigation: DocSection[] = [
     children: [{ title: 'IntelliJ Plugin docs', to: '/docs/intellij-plugin' }]
   },
   {
-    title: 'Connector',
-    path: '_microscope-connector',
-    icon: 'bi-cloud',
-    children: [
-      { title: 'Workspaces', to: '/docs/microscope/workspaces' },
-      {
-        title: 'Projects',
-        path: 'projects',
-        children: [
-          { title: 'Overview', to: '/docs/microscope/projects' },
-          { title: 'Instances', to: '/docs/microscope/projects/instances' }
-        ]
-      }
-    ]
-  },
-  {
     title: 'Configuration',
     path: 'microscope/configuration',
     icon: 'bi-gear',
@@ -215,6 +208,14 @@ const microscopeNavigation: DocSection[] = [
       { title: 'Application Properties', to: '/docs/microscope/configuration/application-properties' },
       { title: 'Advanced Properties', to: '/docs/microscope/configuration/advanced-properties' }
     ]
+  },
+  {
+    // Connectors have their own top-level documentation section; Microscope keeps just a link.
+    title: 'Connectors',
+    path: '_microscope-connectors-link',
+    icon: 'bi-plug',
+    crossLink: true,
+    children: [{ title: 'Connectors docs', to: '/docs/connectors' }]
   },
   {
     // The event catalog moved to the Jeffrey Tracing product; Microscope keeps just a link.
@@ -289,6 +290,76 @@ const microscopeMcpNavigation: DocSection[] = [
     path: '_microscope-mcp-recipes',
     icon: 'bi-lightbulb',
     children: [{ title: 'Recipes', to: '/docs/microscope-mcp/recipes' }]
+  }
+];
+
+const connectorsNavigation: DocSection[] = [
+  // Standalone section for the connector — the one recording volume Microscope reads beyond its
+  // own disk. Single-page entries use synthetic `_` paths with absolute `to:` children; the
+  // browsing pages form a group with Projects nested, as they were under Microscope.
+  {
+    title: 'Overview',
+    path: '_connectors-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/connectors' }]
+  },
+  {
+    // What every connector kind shares: the declaration's shape, the common properties,
+    // writable vs read-only, startup behaviour.
+    title: 'Declaring a Connector',
+    path: '_connectors-declaring',
+    icon: 'bi-sliders',
+    children: [{ title: 'Declaring a Connector', to: '/docs/connectors/declaring' }]
+  },
+  {
+    // The catalog of connector kinds, then one page per kind. The list grows with each new
+    // connector module; the Overview page keeps this a group even while there is one kind.
+    title: 'Available Connectors',
+    path: '_connectors-available',
+    icon: 'bi-grid',
+    children: [
+      { title: 'Overview', to: '/docs/connectors/available' },
+      { title: 'Azure File Share', to: '/docs/connectors/azure-files' }
+    ]
+  },
+  {
+    title: 'Browsing',
+    path: '_connectors-browsing',
+    icon: 'bi-folder2-open',
+    children: [
+      { title: 'Workspaces', to: '/docs/connectors/workspaces' },
+      {
+        title: 'Projects',
+        path: 'projects',
+        children: [
+          { title: 'Overview', to: '/docs/connectors/projects' },
+          { title: 'Instances', to: '/docs/connectors/projects/instances' }
+        ]
+      }
+    ]
+  },
+  {
+    // A downloaded session lands on Microscope's Recordings page as a bundle.
+    title: 'Downloaded Sessions',
+    path: '_connectors-bundles-link',
+    icon: 'bi-cloud-arrow-down',
+    crossLink: true,
+    children: [{ title: 'Bundles', to: '/docs/microscope/recordings#bundles' }]
+  },
+  {
+    title: 'MCP Connector Tools',
+    path: '_connectors-mcp-link',
+    icon: 'bi-plugin',
+    crossLink: true,
+    children: [{ title: 'connector_ tools', to: '/docs/microscope-mcp/tools#connector' }]
+  },
+  {
+    // Back to Microscope, whose sidebar links here.
+    title: 'Jeffrey Microscope',
+    path: '_connectors-microscope-link',
+    icon: 'bi-pc-display',
+    crossLink: true,
+    children: [{ title: 'Microscope docs', to: '/docs/microscope' }]
   }
 ];
 
@@ -545,7 +616,7 @@ const tracingNavigation: DocSection[] = [
 ];
 
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
+const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...connectorsNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -553,6 +624,7 @@ export function getProductForPath(routePath: string): Product | null {
   const first = cleaned.split('/')[0];
   if (MICROSCOPE_MCP_SEGMENTS.has(first)) {return 'microscope-mcp';}
   if (MICROSCOPE_SEGMENTS.has(first)) {return 'microscope';}
+  if (CONNECTORS_SEGMENTS.has(first)) {return 'connectors';}
   if (HUB_SEGMENTS.has(first)) {return 'hub';}
   if (PROVISIONER_SEGMENTS.has(first)) {return 'provisioner';}
   if (JIB_SEGMENTS.has(first)) {return 'jib';}
@@ -564,6 +636,9 @@ export function getProductForPath(routePath: string): Product | null {
 export function navigationForProduct(product: Product): DocSection[] {
   if (product === 'microscope-mcp') {
     return microscopeMcpNavigation;
+  }
+  if (product === 'connectors') {
+    return connectorsNavigation;
   }
   if (product === 'hub') {
     return hubNavigation;

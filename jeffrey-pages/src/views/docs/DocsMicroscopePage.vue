@@ -110,7 +110,7 @@ onMounted(() => {
       </div>
 
       <h3 id="connector">The Connector</h3>
-      <p>When an Azure file share is declared as the connector, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>ConnectorClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no connector declared, Microscope is fully offline and operates only on local files and heap dumps.</p>
+      <p>When an Azure file share is declared as the connector, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>ConnectorClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no connector declared, Microscope is fully offline and operates only on local files and heap dumps. Declaring and browsing the connector is documented in <router-link to="/docs/connectors">Connectors</router-link>.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>

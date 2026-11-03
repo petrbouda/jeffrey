@@ -129,7 +129,7 @@ watch(
   ([newCategory, newPage, product]) => {
     // /docs/microscope and /docs/hub are product-level URLs whose category
     // is the product id, not a section path — expand the lead section instead.
-    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'provisioner' || newCategory === 'tracing';
+    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'provisioner' || newCategory === 'tracing' || newCategory === 'connectors';
     if (newCategory && !isProductRoute) {
       expandedSections.value.add(newCategory);
     }
@@ -320,6 +320,13 @@ watch(
   --color-primary: #0d9488;
   --color-primary-light: rgba(13, 148, 136, 0.10);
   --color-primary-lighter: rgba(13, 148, 136, 0.05);
+}
+
+/* Connectors — lime, matching its docs-index card accent. */
+.sidebar-content.product-connectors {
+  --color-primary: #4d7c0f;
+  --color-primary-light: rgba(101, 163, 13, 0.12);
+  --color-primary-lighter: rgba(101, 163, 13, 0.06);
 }
 
 /* ============================

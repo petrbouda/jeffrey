@@ -1175,7 +1175,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
       <DocsCodeBlock :code="exHeap" language="json" />
 
       <h2 id="connector">connector_ &mdash; recordings that are not on this machine</h2>
-      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to the configured connector &mdash; the recording volume on an <router-link to="/docs/microscope/configuration/application-properties#connector">Azure file share</router-link> &mdash; which is where the interesting ones usually are.</p>
+      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to the configured connector &mdash; the recording volume on an <router-link to="/docs/connectors/azure-files">Azure file share</router-link> &mdash; which is where the interesting ones usually are.</p>
       <DocsCodeBlock :code="connectorExample" language="text" />
 
       <table>

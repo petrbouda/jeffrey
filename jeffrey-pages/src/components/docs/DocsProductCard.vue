@@ -24,7 +24,7 @@ defineProps<{
   role: string
   components: string[]
   ctaText: string
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary' | 'septenary'
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary' | 'septenary' | 'octonary'
 }>()
 </script>
 
@@ -38,7 +38,8 @@ defineProps<{
       'variant-quaternary': variant === 'quaternary',
       'variant-quinary': variant === 'quinary',
       'variant-senary': variant === 'senary',
-      'variant-septenary': variant === 'septenary'
+      'variant-septenary': variant === 'septenary',
+      'variant-octonary': variant === 'octonary'
     }"
   >
     <div class="card-rail"></div>
@@ -135,6 +136,14 @@ defineProps<{
   --accent-tint: #ccfbf1;
   --accent-soft: #f0fdfa;
   --accent-shadow: rgba(20, 184, 166, 0.35);
+}
+
+.product-card.variant-octonary {
+  /* octonary: Connectors — lime, the one hue no other product's accent sits near */
+  --accent: #65a30d;
+  --accent-tint: #ecfccb;
+  --accent-soft: #f7fee7;
+  --accent-shadow: rgba(101, 163, 13, 0.35);
 }
 
 .product-card:hover {

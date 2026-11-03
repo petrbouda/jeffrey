@@ -167,7 +167,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/            # the workspa
 
       <h2 id="download">Getting the Recording into Microscope</h2>
 
-      <p>Microscope reads the volume itself, from the <router-link to="/docs/microscope/workspaces#azure-files">Azure file share</router-link> that holds it, over the Azure Files REST API &mdash; that is the only network hop in the whole picture, and the Hub is not on it:</p>
+      <p>Microscope reads the volume itself, from the <router-link to="/docs/connectors/azure-files">Azure file share</router-link> that holds it, over the Azure Files REST API &mdash; that is the only network hop in the whole picture, and the Hub is not on it:</p>
 
       <ul>
         <li><strong>Catalog</strong> — Microscope lists sessions and their files straight off the share, so you can see what a project recorded without downloading anything.</li>

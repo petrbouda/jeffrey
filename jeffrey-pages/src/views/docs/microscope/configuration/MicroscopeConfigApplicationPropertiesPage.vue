@@ -45,11 +45,6 @@ jeffrey.microscope.connector.azure-files.auth=sas
 jeffrey.microscope.connector.azure-files.sas-token=\${AZURE_FILES_SAS}
 jeffrey.microscope.connector.azure-files.read-only=false`;
 
-const connectorEnvExample = `JEFFREY_MICROSCOPE_CONNECTOR_NAME="Production share"
-JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_ENDPOINT=https://jeffreyprod.file.core.windows.net
-JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SHARE=recordings
-JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
-
 onMounted(() => {
   setHeadings(headings);
 });
@@ -88,7 +83,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>server.port</code></td>
+            <td><code>server.<wbr>port</code></td>
             <td><code>8585</code></td>
             <td>HTTP port for the Microscope web UI. Standard Spring Boot property. Microscope sets 8585 rather than Spring Boot's own 8080, which is usually taken by the application being profiled.</td>
           </tr>
@@ -110,12 +105,12 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>spring.servlet.multipart.max-file-size</code></td>
+            <td><code>spring.<wbr>servlet.<wbr>multipart.<wbr>max-file-size</code></td>
             <td><code>-1</code></td>
             <td>Max single-file size. <code>-1</code> means unlimited.</td>
           </tr>
           <tr>
-            <td><code>spring.servlet.multipart.max-request-size</code></td>
+            <td><code>spring.<wbr>servlet.<wbr>multipart.<wbr>max-request-size</code></td>
             <td><code>-1</code></td>
             <td>Max total request size. <code>-1</code> means unlimited.</td>
           </tr>
@@ -133,16 +128,16 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.home.dir</code></td>
-            <td><code>${user.home}/.jeffrey-microscope</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>home.<wbr>dir</code></td>
+            <td><code>${user.<wbr>home}<wbr>/.jeffrey-microscope</code></td>
             <td>
               Base directory for all Microscope data (DuckDB files, recordings, profiles).
               Equivalent env var: <code>JEFFREY_MICROSCOPE_HOME_DIR</code>.
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.temp.dir</code></td>
-            <td><code>${jeffrey.microscope.home.dir}/temp</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>temp.<wbr>dir</code></td>
+            <td><code>${jeffrey.<wbr>microscope.<wbr>home.<wbr>dir}<wbr>/temp</code></td>
             <td>Working directory for temporary files (uploads, parsing scratch space).</td>
           </tr>
         </tbody>
@@ -159,7 +154,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.update-check.enabled</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>update-check.<wbr>enabled</code></td>
             <td><code>true</code></td>
             <td>
               Periodically checks GitHub releases for new Microscope versions.
@@ -172,149 +167,22 @@ onMounted(() => {
       <h2 id="connector">Connector</h2>
       <p>
         The <strong>connector</strong> is the one place Microscope reads recordings from beyond its own
-        disk: the recording volume itself on an <strong>Azure file share</strong> &mdash; the share the
-        provisioner writes into, mounted in AKS through the <code>azurefile-csi</code> storage class.
-        Microscope reads exactly one connector, declared here and read at startup; nothing in the UI or
-        the MCP server connects, changes or removes it. Without a declaration the
-        <strong>Connector</strong> page says so and the MCP <code>connector_</code> tools answer that none
-        is configured.
+        disk: the recording volume itself. Microscope reads exactly one connector, declared under
+        <code>jeffrey.microscope.connector.*</code> as the common <code>name</code> plus one block named
+        after the connector's kind, and read at startup; nothing in the UI or the MCP server connects, changes or removes it. Without a
+        declaration the <strong>Connector</strong> page says so and the MCP <code>connector_</code> tools
+        answer that none is configured.
       </p>
 
       <h3 id="connector-azure-files">Azure File Share</h3>
-      <p>
-        Microscope works with the share over the Azure Files REST API, so it needs no mount of its
-        own. It lists workspaces, projects, instances and sessions straight off the share, downloads
-        what you open, and makes your changes there &mdash; unless it is declared
-        <code>read-only</code>; see
-        <router-link to="/docs/microscope/workspaces#azure-files">Workspaces</router-link> for what
-        that means in the UI. Retention, cleanup and compression are not Microscope's: they are the
-        scheduled jobs of a <router-link to="/docs/hub">Jeffrey Hub</router-link> running on the same
-        volume.
-      </p>
-
       <DocsCodeBlock language="properties" :code="azureFilesPropertiesExample" />
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.microscope.connector.name</code></td>
-            <td>the share's name</td>
-            <td>Display name shown on the Connector page.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.endpoint</code></td>
-            <td>—</td>
-            <td>
-              <strong>Required.</strong> The storage account's file endpoint, e.g.
-              <code>https://&lt;account&gt;.file.core.windows.net</code>: <code>https</code>, a host
-              and nothing more. A URL with a path, a query or credentials — such as the portal's
-              <em>File service SAS URL</em> — is refused, so a SAS never ends up stored, listed or
-              logged as part of the address; put it in <code>sas-token</code>.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.share</code></td>
-            <td>—</td>
-            <td>
-              <strong>Required.</strong> Name of the file share; also the connector's display name when
-              <code>jeffrey.microscope.connector.name</code> is not set.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.root-path</code></td>
-            <td>the share's root</td>
-            <td>
-              Directory on the share that holds the workspaces — the same directory the Jeffrey Hub
-              uses as its volume. Every directory under it is shown as a workspace.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.protocol</code></td>
-            <td><code>smb</code></td>
-            <td>
-              <code>smb</code> or <code>nfs</code> — the share's protocol. An NFS share's listings
-              carry no file times, so Microscope reads them one file at a time; expect larger
-              projects to load more slowly.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.auth</code></td>
-            <td><code>sas</code></td>
-            <td>
-              <code>sas</code> signs in with <code>sas-token</code>. <code>entra</code> signs in with
-              Microsoft Entra ID through <code>DefaultAzureCredential</code> (managed identity,
-              workload identity, environment variables, the Azure CLI, …, which it may run); that
-              identity needs the <strong>Storage File Data Privileged Contributor</strong> role on
-              the share, or <strong>Storage File Data Privileged Reader</strong> with
-              <code>read-only=true</code>.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.sas-token</code></td>
-            <td>—</td>
-            <td>
-              <strong>Required with <code>auth=sas</code>.</strong> A SAS token granting read, list
-              and delete on the share (<code>sp=rld</code>) — read and list alone with
-              <code>read-only=true</code>. Microscope warns at startup, naming only the rights, when
-              a writable token lacks one of them, or a read-only one grants create, write or delete. It stays in the configuration:
-              Microscope never stores it in its database and never logs it, so pass it from a secret
-              (an environment variable or a mounted secret file).
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.connector.azure-files.read-only</code></td>
-            <td><code>false</code></td>
-            <td>
-              Refuse every change to the share — nothing is deleted: no workspace, project or
-              session deletion — and hide those actions in the UI. The credential then needs only
-              read and list rights.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
       <p>
-        A declaration that cannot be used &mdash; an <code>azure-files</code> block missing its
-        endpoint or share, say &mdash; is logged as a warning and ignored, rather than failing
-        startup: Microscope then runs as if no connector were declared.
+        Connector properties are documented with the connectors themselves:
+        <router-link to="/docs/connectors/declaring">Declaring a Connector</router-link> for the common ones,
+        <router-link to="/docs/connectors/available">Available Connectors</router-link> for the kinds, and
+        <router-link to="/docs/connectors/azure-files#properties">Azure File Share</router-link> for the
+        <code>azure-files</code> block shown above.
       </p>
-
-      <DocsCallout type="warning">
-        <strong>Give recordings a storage account of their own.</strong> Both privileged roles, which
-        the Entra sign-in needs, ignore file-level permissions and reach every share in the storage
-        account, not just this one. A SAS can be scoped to one share; a role cannot.
-      </DocsCallout>
-
-      <p>Every property has the usual environment-variable form:</p>
-
-      <DocsCodeBlock language="bash" :code="connectorEnvExample" />
-
-      <p>
-        Or keep the declaration out of <code>application.properties</code> altogether: Microscope
-        also reads an optional <code>secrets.properties</code> on its classpath
-        (<code>spring.config.import=optional:classpath:secrets.properties</code>), which the
-        repository ignores &mdash; the place for a SAS token on a development machine.
-      </p>
-
-      <DocsCallout type="info">
-        <strong>Configuration is the only place the connector is declared.</strong> It is read at
-        startup and never stored; the Connector page shows it but cannot connect, change or disconnect
-        one, and neither can an MCP tool. To change or remove it, edit the configuration and restart.
-        Microscope reaches exactly one connector.
-      </DocsCallout>
-
-      <DocsCallout type="tip">
-        <strong>No connection is attempted at startup.</strong> A declared connector is taken as it is
-        whether or not it answers, so a share that is unreachable when Microscope boots starts
-        working as soon as it can be reached.
-      </DocsCallout>
 
       <h2 id="mcp-server">MCP Server</h2>
       <table>
@@ -327,7 +195,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.mcp.enabled</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>enabled</code></td>
             <td><code>true</code></td>
             <td>
               Serves the MCP endpoint at <code>/api/mcp</code>, which an external coding-agent
@@ -337,8 +205,8 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.allowed-hosts</code></td>
-            <td><code>localhost,127.0.0.1,::1</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>allowed-hosts</code></td>
+            <td><code>localhost,<wbr>127.0.0.1,<wbr>::1</code></td>
             <td>
               The hostnames the endpoint will answer to, comma-separated, checked against the host the
               request was actually addressed to. Anything else gets <code>403</code>, with or without an
@@ -355,7 +223,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.trust-forwarded-headers</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>trust-forwarded-headers</code></td>
             <td><code>false</code></td>
             <td>
               Takes the host from the first <code>X-Forwarded-Host</code> value and the scheme from
@@ -366,7 +234,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.token</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>token</code></td>
             <td><em>empty</em></td>
             <td>
               Optional bearer token for the MCP endpoint. When set, a request without
@@ -378,7 +246,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.connector.enabled</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>enabled</code></td>
             <td><code>true</code></td>
             <td>
               Advertises the <code>connector_</code> tools, which list the recording sessions on the
@@ -388,7 +256,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.connector.scan-timeout</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>scan-timeout</code></td>
             <td><code>PT20S</code></td>
             <td>
               How long the <code>connector_</code> tools spend discovering what the connector holds before they
@@ -399,7 +267,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.connector.download-response-timeout</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>download-response-timeout</code></td>
             <td><code>PT45S</code></td>
             <td>
               How long <code>connector_download</code> &mdash; and <code>connector_fetchFile</code>, which shares
@@ -411,7 +279,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.connector.ask-window-over-duration</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>ask-window-over-duration</code></td>
             <td><code>PT1H</code></td>
             <td>
               When a client that declared MCP form elicitation asks <code>connector_download</code> for a
@@ -426,7 +294,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.connector.ask-window-over-size</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>ask-window-over-size</code></td>
             <td><code>1GB</code></td>
             <td>
               The size half of the rule above: a session holding more than this is asked about
@@ -435,7 +303,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.recordings.max-concurrent-imports</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>recordings.<wbr>max-concurrent-imports</code></td>
             <td><code>2</code></td>
             <td>
               How many <code>recordings_analyzeFile</code> imports run at once. A call beyond that
@@ -446,7 +314,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.diagnostics.probe-timeout</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>diagnostics.<wbr>probe-timeout</code></td>
             <td><code>PT2S</code></td>
             <td>
               How long the <code>jeffrey://diagnostics</code> resource asks the configured connector for
@@ -455,7 +323,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.ide.enabled</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>ide.<wbr>enabled</code></td>
             <td><code>true</code></td>
             <td>
               Advertises the <code>ide_</code> tools, which ask the developer's running IntelliJ where
@@ -468,7 +336,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.preset</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>preset</code></td>
             <td><code>all</code></td>
             <td>
               A named selection of tool families: <code>all</code>, <code>jfr</code>, <code>heap</code> or
@@ -479,7 +347,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.families</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>families</code></td>
             <td><em>empty</em></td>
             <td>
               Which tool families to advertise, comma-separated; empty means whatever the preset selects,
@@ -527,7 +395,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.microscope.ide.scan.port-start</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>ide.<wbr>scan.<wbr>port-start</code></td>
             <td><code>63342</code></td>
             <td>
               First port of the localhost range Microscope scans to find a running IDE, calling
@@ -536,12 +404,12 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.ide.scan.port-end</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>ide.<wbr>scan.<wbr>port-end</code></td>
             <td><code>63362</code></td>
             <td>Last port of that range.</td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.ide.mode</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>ide.<wbr>mode</code></td>
             <td><em>Jeffrey plugin</em></td>
             <td>
               Which bridge <em>Open in IDE</em> and <em>View Source</em> talk to. Set to
@@ -551,7 +419,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.ide.base-url</code></td>
+            <td><code>jeffrey.<wbr>microscope.<wbr>ide.<wbr>base-url</code></td>
             <td><em>none</em></td>
             <td>
               Address of that third-party plugin, e.g. <code>http://localhost:4243</code>. Required
@@ -577,4 +445,10 @@ onMounted(() => {
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+
+/* Property names break after each dot. A share of the width, not a fixed minimum, keeps them
+   to a few lines without the long descriptions squeezing them, and never widens the table. */
+.docs-content td:first-child {
+  width: 32%;
+}
 </style>

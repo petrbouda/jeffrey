@@ -46,7 +46,7 @@ onMounted(() => {
         <p>Recording Sessions represent <strong>profiling periods</strong> from running Java applications, containing JFR recordings and associated artifacts collected during application execution.</p>
 
         <DocsCallout type="info">
-          <strong>In Microscope:</strong> recording sessions show up on the Connector page, under each project's <router-link to="/docs/microscope/projects/instances">instances</router-link> — that's where you browse the JVM instances and their sessions on the recording volume, read from the Azure file share that holds it.
+          <strong>In Microscope:</strong> recording sessions show up on the Connector page, under each project's <router-link to="/docs/connectors/projects/instances">instances</router-link> — that's where you browse the JVM instances and their sessions on the recording volume, read from the Azure file share that holds it.
         </DocsCallout>
 
         <h2 id="what-are-recording-sessions">What are Recording Sessions?</h2>

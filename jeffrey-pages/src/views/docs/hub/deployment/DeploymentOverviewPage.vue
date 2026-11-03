@@ -455,6 +455,8 @@ onMounted(() => {
 
 .cluster-pvc {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   align-items: center;
   gap: 0.55rem;
   margin: 0.4rem 0;
@@ -466,7 +468,7 @@ onMounted(() => {
 
 .cluster-pvc i { color: #f59e0b; font-size: 1.15rem; }
 .cluster-pvc span { font-weight: 650; font-size: 0.9rem; color: #92400e; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-.cluster-pvc small { font-size: 0.7rem; color: #6c757d; margin-left: 0.4rem; }
+.cluster-pvc small { font-size: 0.7rem; color: #6c757d; margin-left: 0.4rem; min-width: 0; overflow-wrap: anywhere; }
 
 .cluster-ingress {
   display: flex;

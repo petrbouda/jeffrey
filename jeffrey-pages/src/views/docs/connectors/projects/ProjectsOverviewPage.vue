@@ -57,18 +57,18 @@ onMounted(() => {
       <DocsCallout type="tip">
         <strong>Just want to analyse a JFR file?</strong> Skip projects entirely — drop the file on the global
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page.
-        Projects are for staying connected to live applications through the connector (the Azure file share that holds the recording volume).
+        Projects are for staying connected to live applications through the <router-link to="/docs/connectors">connector</router-link>, which reads the recording volume they write into.
       </DocsCallout>
 
       <h2 id="browsing-projects">Browsing a Project</h2>
       <p>
         A project has no page of its own: it is browsed on the
-        <router-link to="/docs/microscope/workspaces">Connector</router-link> page, whose columns follow
-        the share's folders &mdash; <strong>Workspaces</strong>, <strong>Projects</strong>,
+        <router-link to="/docs/connectors/workspaces">Connector</router-link> page, whose columns follow
+        the volume's folders &mdash; <strong>Workspaces</strong>, <strong>Projects</strong>,
         <strong>Instances</strong>, <strong>Sessions</strong>. Pick a workspace and its projects are
         listed with their names and the folder's creation date; a workspace holding a single project
         opens it straight away. Pick a project and its
-        <router-link to="/docs/microscope/projects/instances">instances</router-link> are listed, with
+        <router-link to="/docs/connectors/projects/instances">instances</router-link> are listed, with
         the newest one picked and its sessions listed beside it. The Recordings and Profiler Builder
         tabs stay in reach the whole time.
       </p>
@@ -86,12 +86,12 @@ onMounted(() => {
         Profiles and recordings live globally on the
         <router-link to="/docs/microscope/recordings">Recordings</router-link> page, regardless of project.
         A session's files and sizes are shown when the session is opened; see
-        <router-link to="/docs/microscope/projects/instances">Instances</router-link>.
+        <router-link to="/docs/connectors/projects/instances">Instances</router-link>.
       </DocsCallout>
 
       <h2 id="deleting-projects">Deleting a Project</h2>
       <p>
-        A project's name is its folder on the share, given by the provisioner, and it is also the
+        A project's name is its folder on the volume, given by the provisioner, and it is also the
         project's id, so a project cannot be renamed. The picked project carries a
         <strong>delete</strong> button in the Projects column; a confirmation step protects against
         accidents. Deleting is final: the connector removes the project's directory on the workspace

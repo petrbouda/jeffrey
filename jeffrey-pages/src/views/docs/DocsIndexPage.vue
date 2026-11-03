@@ -30,6 +30,7 @@ const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', '
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
 const mcpComponents = ['101 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
+const connectorsComponents = ['Pluggable kinds', 'Azure File Share', 'Read-only mode', 'Session download'];
 
 onMounted(() => {
   setHeadings([]);
@@ -65,6 +66,16 @@ onMounted(() => {
           :components="mcpComponents"
           cta-text="Open Microscope MCP docs"
           variant="tertiary"
+        />
+        <DocsProductCard
+          to="/docs/connectors"
+          title="Connectors"
+          role="Microscope · Recording volume"
+          description="How Microscope reaches the shared recording volume your deployed JVMs write into. Declare one connector — Azure File Share is the first of a growing set of kinds — then browse its workspaces, projects, instances and sessions, and pull a session down for analysis."
+          icon="bi bi-plug"
+          :components="connectorsComponents"
+          cta-text="Open Connectors docs"
+          variant="octonary"
         />
         <DocsProductCard
           to="/docs/provisioner"

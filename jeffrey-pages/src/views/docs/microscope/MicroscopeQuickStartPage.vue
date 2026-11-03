@@ -241,12 +241,13 @@ onMounted(() => {
 /* ============ INSTALL TILES ============ */
 .install-tiles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin: 0.75rem 0 1.75rem;
 }
 
 .install-tile {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
@@ -389,6 +390,6 @@ onMounted(() => {
 /* ============ RESPONSIVE ============ */
 @media (max-width: 768px) {
   .hero .hero-promo { flex-wrap: wrap; }
-  .install-tiles { grid-template-columns: 1fr; }
+  .install-tiles { grid-template-columns: minmax(0, 1fr); }
 }
 </style>

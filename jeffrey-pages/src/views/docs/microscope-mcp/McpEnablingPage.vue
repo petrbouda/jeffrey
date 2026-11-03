@@ -145,7 +145,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
       <h2 id="turning-connector-access-off">Turning Connector Access Off</h2>
-      <p>The <code>connector_</code> family lets a session list the recording sessions on the connector this Microscope is configured with &mdash; the recording volume on an Azure file share, see <router-link to="/docs/microscope/configuration/application-properties#connector">Connector</router-link> &mdash; and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
+      <p>The <code>connector_</code> family lets a session list the recording sessions on the connector this Microscope is configured with &mdash; the recording volume on an Azure file share, see <router-link to="/docs/connectors">Connectors</router-link> &mdash; and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
       <DocsCodeBlock :code="connectorToggle" language="properties" />
 
       <p>It is one of two families with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Connector access reaches <em>out</em>, to whatever infrastructure the configured connector points at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
