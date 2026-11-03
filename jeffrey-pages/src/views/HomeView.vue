@@ -28,6 +28,10 @@ const COSMOS_HEIGHT = 92;
 const CORE_X = 50;
 const CORE_Y = 46;
 
+// How prominent a product is drawn: the two analysers, then the two ways to start profiling,
+// then the companions.
+type CosmosTier = 'core' | 'capture' | 'companion';
+
 interface CosmosNode {
   id: string;
   name: string;
@@ -40,41 +44,42 @@ interface CosmosNode {
   color: string;
   // Seconds; offsets the float animation and the pulse speed so nodes don't move in lockstep.
   delay: number;
-  big?: boolean;
+  tier: CosmosTier;
   // Bottom nodes open their tooltip upwards.
   tipUp?: boolean;
 }
 
+// Listed by tier: on narrow screens the cards stack in this order.
 const cosmosNodes: CosmosNode[] = [
   {
-    id: 'microscope', name: 'Microscope', sub: 'for you', icon: 'bi-search', big: true,
+    id: 'microscope', name: 'Microscope', sub: 'for you', icon: 'bi-search', tier: 'core',
     tip: 'Flamegraphs, differential views, sub-second timelines, heap dumps and JVM dashboards from your JFR recordings.',
     to: '/docs/microscope', x: 24, y: 17, color: 'var(--ms)', delay: 0
   },
   {
-    id: 'mcp', name: 'Microscope MCP', sub: 'for your coding agent', icon: 'bi-stars', big: true,
+    id: 'mcp', name: 'Microscope MCP', sub: 'for your coding agent', icon: 'bi-stars', tier: 'core',
     tip: '112 tools over MCP for Claude Code, Codex and any MCP 2026-07-28 client. Jeffrey never calls a model itself.',
     to: '/docs/microscope-mcp', x: 76, y: 21, color: 'var(--mcp)', delay: 1.4
   },
   {
-    id: 'hub', name: 'Hub', sub: 'shared volume', icon: 'bi-cloud',
-    tip: 'Runs in Kubernetes. Retention, cleanup and LZ4 compression of the volume your services record into.',
-    to: '/docs/hub', x: 15, y: 55, color: 'var(--ember)', delay: 2.6
-  },
-  {
-    id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack',
-    tip: 'Jump from any flamegraph frame to the source line in your open IntelliJ, Java and Kotlin.',
-    to: '/docs/intellij-plugin', x: 85, y: 59, color: 'var(--ide)', delay: 0.8
-  },
-  {
-    id: 'provisioner', name: 'Provisioner', sub: 'session bootstrap', icon: 'bi-terminal', tipUp: true,
+    id: 'provisioner', name: 'Provisioner', sub: 'session bootstrap', icon: 'bi-terminal', tier: 'capture',
     tip: 'A native CLI. One HOCON file lays out sessions and writes the JVM argfile that starts your app under the profiler.',
-    to: '/docs/provisioner', x: 29, y: 84, color: 'var(--amber)', delay: 3.2
+    to: '/docs/provisioner', x: 15, y: 55, color: 'var(--amber)', delay: 3.2
   },
   {
-    id: 'jib', name: 'Jeffrey JIB', sub: 'build-time', icon: 'bi-box-seam', tipUp: true,
+    id: 'jib', name: 'Jeffrey JIB', sub: 'build-time', icon: 'bi-box-seam', tier: 'capture',
     tip: 'A Jib extension that wraps the container entrypoint, so profiling starts before your app does.',
-    to: '/docs/jib', x: 71, y: 86, color: 'var(--amber)', delay: 2
+    to: '/docs/jib', x: 85, y: 59, color: 'var(--amber)', delay: 2
+  },
+  {
+    id: 'hub', name: 'Hub', sub: 'shared volume', icon: 'bi-cloud', tier: 'companion', tipUp: true,
+    tip: 'Runs in Kubernetes. Retention, cleanup and LZ4 compression of the volume your services record into.',
+    to: '/docs/hub', x: 29, y: 84, color: 'var(--ember)', delay: 2.6
+  },
+  {
+    id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack', tier: 'companion', tipUp: true,
+    tip: 'Jump from any flamegraph frame to the source line in your open IntelliJ, Java and Kotlin.',
+    to: '/docs/intellij-plugin', x: 71, y: 86, color: 'var(--ide)', delay: 0.8
   }
 ];
 
@@ -472,7 +477,7 @@ async function copyCmd(): Promise<void> {
             :key="node.id"
             :to="node.to"
             class="node"
-            :class="[`node--${node.id}`, { 'node--big': node.big, 'node--tip-up': node.tipUp }]"
+            :class="[`node--${node.id}`, `node--${node.tier}`, { 'node--tip-up': node.tipUp }]"
             :style="nodeStyle(node)"
             @mouseenter="hoveredNode = node.id"
             @mouseleave="hoveredNode = null"
@@ -974,19 +979,75 @@ async function copyCmd(): Promise<void> {
   color: var(--faint);
 }
 
-.node--big .node-card {
-  padding: 14px 20px 14px 14px;
+.node--core .node-card {
+  gap: 14px;
+  padding: 16px 22px 16px 16px;
+  border-color: color-mix(in srgb, var(--node-color) 30%, var(--line-2));
 }
 
-.node--big .node-ic {
-  width: 44px;
-  height: 44px;
-  font-size: 20px;
+.node--core .node-ic {
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
   color: var(--on-accent);
 }
 
-.node--big b {
-  font-size: 16px;
+.node--core b {
+  font-size: 17px;
+}
+
+.node--core small {
+  font-size: 12.5px;
+}
+
+/* Capture: the ways profiling starts. A step below the core: amber-tinted and a little larger. */
+.node--capture .node-card {
+  padding: 12px 18px 12px 12px;
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--line-2));
+  box-shadow: 0 0 32px color-mix(in srgb, var(--amber) 18%, transparent), var(--shadow-card);
+}
+
+.node--capture .node-ic {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  color: var(--ember);
+  background: color-mix(in srgb, var(--amber) 18%, var(--surface));
+}
+
+.node--capture b {
+  font-size: 15px;
+}
+
+/* Companion: optional extras. Compact and quiet until hovered. */
+.node--companion .node-card {
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 22px -16px rgba(48, 32, 12, 0.28);
+}
+
+.node--companion .node-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--faint);
+}
+
+.node--companion b {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.node--companion small {
+  font-size: 11px;
+}
+
+.node--companion:hover .node-ic,
+.node--companion:focus-visible .node-ic {
+  color: var(--node-color);
 }
 
 .node--microscope .node-ic {
@@ -998,11 +1059,11 @@ async function copyCmd(): Promise<void> {
 }
 
 .node--microscope .node-card {
-  box-shadow: 0 0 40px color-mix(in srgb, var(--ms) 22%, transparent), var(--shadow-card);
+  box-shadow: 0 0 48px color-mix(in srgb, var(--ms) 28%, transparent), var(--shadow-card);
 }
 
 .node--mcp .node-card {
-  box-shadow: 0 0 40px color-mix(in srgb, var(--mcp) 22%, transparent), var(--shadow-card);
+  box-shadow: 0 0 48px color-mix(in srgb, var(--mcp) 28%, transparent), var(--shadow-card);
 }
 
 .node:hover .node-card,
@@ -1697,7 +1758,7 @@ async function copyCmd(): Promise<void> {
     min-width: 0;
   }
 
-  .node--big {
+  .node--core {
     grid-column: 1 / -1;
   }
 
