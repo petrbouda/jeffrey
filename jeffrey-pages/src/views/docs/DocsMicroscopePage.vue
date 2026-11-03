@@ -25,7 +25,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'architecture', text: 'Architecture', level: 2 },
-  { id: 'connector-connection', text: 'Connection to the Connector', level: 3 },
+  { id: 'connector', text: 'The Connector', level: 3 },
   { id: 'recording-pipeline', text: 'Recording → Profile Pipeline', level: 3 },
   { id: 'mcp-integration', text: 'MCP Integration', level: 3 }
 ];
@@ -44,7 +44,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <h2 id="architecture">Architecture</h2>
-      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read one connector &mdash; the recording volume on an Azure file share &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
+      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read from its one connector &mdash; the recording volume on an Azure file share &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
 
       <div class="arch-diagram">
         <div class="arch-apps">
@@ -109,7 +109,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <h3 id="connector-connection">Connection to the Connector</h3>
+      <h3 id="connector">The Connector</h3>
       <p>When an Azure file share is declared as the connector, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>ConnectorClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no connector declared, Microscope is fully offline and operates only on local files and heap dumps.</p>
 
       <div class="service-chips">

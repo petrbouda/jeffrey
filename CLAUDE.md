@@ -11,13 +11,13 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 ```
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope)
   core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
-  microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model)
+  microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
+                                       ConnectorInfo and AzureFilesAddress in model.connector)
   microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles)
   connectors/                          Microscope's connectors to outside services; a new connector is a sibling module:
     connector-api/                     the client interfaces, DTOs and managers every connector answers (ConnectorClients)
     volume-connector/                  the connector over a recording volume (writable or read-only)
-    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra;
-                                       AzureFilesAddress)
+    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   recordings-core/ recording-storage-api/ notifications/

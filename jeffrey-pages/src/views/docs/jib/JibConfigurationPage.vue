@@ -147,9 +147,8 @@ onMounted(() => {
           has that library</em>, so the extension does not bake its own copy and the
           second one costs you nothing in image size. async-profiler is the only binary you can
           substitute this way: the provisioner has no
-          such property, because the session layout and
-          workspace events it writes are the protocol Jeffrey Hub reads, and neither side
-          version-checks it.</p>
+          such property, because the session layout it writes on the recording volume is the
+          protocol Jeffrey Hub and Microscope read, and neither side version-checks it.</p>
 
         <DocsCodeBlock
           language="xml"

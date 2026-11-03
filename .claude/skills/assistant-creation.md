@@ -33,7 +33,7 @@ jeffrey-microscope/pages-microscope/src/components/assistants/
 ├── AssistantMinimizedContainer.vue      # Container for minimized buttons (handles row layout)
 └── index.ts                             # Barrel export, re-exporting the shared pieces
 
-shared/ui/hubs/ui/components/assistants/global/  # a global assistant lives with its feature
+jeffrey-microscope/pages-microscope/src/components/assistants/global/  # global assistants (Recordings, Download)
 └── {Name}Assistant.vue
 
 jeffrey-microscope/pages-microscope/src/stores/assistants/

@@ -46,10 +46,10 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p>Jeffrey Hub has no database. Workspaces, projects, instances, recording sessions and the JFR recordings themselves all live on a shared filesystem laid out by workspace and project, and every scheduler job reads that volume when it runs. There is no managed database, no object store and no per-profile databases — Server maintains the volume; analysis happens in Microscope, which reads the same volume from the Azure file share that holds it.</p>
+      <p>Jeffrey Hub has no database. Workspaces, projects, instances, recording sessions and the JFR recordings themselves all live on a shared filesystem laid out by workspace and project, and every scheduler job reads that volume when it runs. There is no managed database, no object store and no per-profile databases — the Hub maintains the volume; analysis happens in Microscope, which reads the same volume from the Azure file share that holds it.</p>
 
       <h2 id="design-philosophy">Design Philosophy</h2>
-      <p>Server's storage choices are driven by deployment realism — fleets, retention, and shared filesystems:</p>
+      <p>The Hub's storage choices are driven by deployment realism — fleets, retention, and shared filesystems:</p>
 
       <div class="principles-grid">
         <div class="principle-card">
@@ -63,7 +63,7 @@ onMounted(() => {
           <div class="card-icon"><i class="bi bi-hdd-network"></i></div>
           <div class="card-content">
             <h4>Shared filesystem for recordings</h4>
-            <p>Producers (Provisioner + the profiled JVM) and Server share an NFS / PVC-backed directory.</p>
+            <p>Producers (Provisioner + the profiled JVM) and the Hub share an NFS / PVC-backed directory.</p>
           </div>
         </div>
         <div class="principle-card">
@@ -104,7 +104,7 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="info">
-        Server never builds per-profile databases and never serves a recording. Profiles are a Microscope concept — Server's job is to keep the volume within its retention limits and compress its chunks; Microscope downloads the files straight off the share and parses them on demand.
+        The Hub never builds per-profile databases and never serves a recording. Profiles are a Microscope concept — the Hub's job is to keep the volume within its retention limits and compress its chunks; Microscope downloads the files straight off the share and parses them on demand.
       </DocsCallout>
 
       <h2 id="recording-storage">Recording Storage</h2>
@@ -125,12 +125,12 @@ onMounted(() => {
       <p>Each session ends up with its rotated JFR chunks and any optional artifacts (heap dumps, JVM logs, perf-counters). The path makes it cheap to enumerate everything for a workspace, project, instance or session.</p>
 
       <h2 id="shared-filesystem">Shared Filesystem</h2>
-      <p>Server is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner and the profiled application — also mounts. The producers write JFR files; Server retains and compresses them, and Microscope reads them from the same volume on an Azure file share.</p>
+      <p>The Hub is designed to sit next to a shared volume (NFS, PVC, or any POSIX filesystem) that the producer side — Jeffrey Provisioner and the profiled application — also mounts. The producers write JFR files; the Hub retains and compresses them, and Microscope reads them from the same volume on an Azure file share.</p>
 
       <div class="db-card profile">
         <div class="card-header">
           <i class="bi bi-hdd-stack"></i>
-          <h4>Producer / Server contract</h4>
+          <h4>Producer / Hub contract</h4>
           <span class="badge">Filesystem</span>
         </div>
         <div class="card-body">
@@ -153,14 +153,14 @@ onMounted(() => {
       </div>
 
       <DocsCallout type="tip">
-        The shared volume must be mounted <em>read-write</em> on the Server pod as well as on the producer pods. The Server does not only read it: the compression job rewrites chunks into their LZ4 archives and the retention job deletes sessions and instance directories. A read-only mount leaves both failing quietly. The Server never creates a folder — workspaces come from the Provisioner. The user's own changes — deleting a workspace, a project or a session — are made by Microscope on the Azure file share, not by the Server.
+        The shared volume must be mounted <em>read-write</em> on the Hub pod as well as on the producer pods. The Hub does not only read it: the compression job rewrites chunks into their LZ4 archives and the retention job deletes sessions and instance directories. A read-only mount leaves both failing quietly. The Hub never creates a folder — workspaces come from the Provisioner. The user's own changes — deleting a workspace, a project or a session — are made by Microscope on the Azure file share, not by the Hub.
       </DocsCallout>
 
       <h2 id="directory-layout">Directory Layout</h2>
-      <p>A typical Server installation looks like this on disk:</p>
+      <p>A typical Hub installation looks like this on disk:</p>
 
       <div class="directory-structure">
-        <pre><code>$JEFFREY_HOME/                        # Server home
+        <pre><code>$JEFFREY_HOME/                        # Hub home
 └── workspaces/                       # ── usually a shared volume (NFS / PVC) ──
     └── {workspace-ref-id}/           # the workspace is its folder, no marker
         └── {project}/                    # the folder names are the ids, no markers anywhere

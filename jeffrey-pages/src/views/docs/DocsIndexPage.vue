@@ -25,7 +25,7 @@ const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Heap dump', 'MCP server', 'Events'];
 const serverComponents = ['Retention', 'Compression', 'Scheduler', 'Storage dashboard'];
-const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
+const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
 const mcpComponents = ['101 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
