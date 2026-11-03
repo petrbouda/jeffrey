@@ -20,9 +20,12 @@
   The menu's items come from the default slot, which gets `close` to call after an item runs; give
   them the `split-button__item` class (`split-button__item--danger` for a destructive one) and use
   `split-button__label` / `split-button__divider` to group them.
+  The menu floats in <body> at fixed coordinates anchored to the button, so no `overflow` of a card
+  clips it; it opens upward when there is more room above than below, and scrolls when taller.
 -->
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { type MenuPlacement, floatingMenuPlacement } from '@shared/services/floatingMenuPlacement';
 
 export type SplitButtonTone = 'primary' | 'success' | 'danger';
 
@@ -49,18 +52,66 @@ const emit = defineEmits<{
 }>();
 
 const rootRef = ref<HTMLElement | null>(null);
+const menuRef = ref<HTMLElement | null>(null);
 const open = ref(false);
+const menuStyle = ref<MenuPlacement | undefined>(undefined);
+
+const updatePosition = () => {
+  const root = rootRef.value;
+  if (!root) {
+    return;
+  }
+  // scrollHeight, not offsetHeight: the full content height even while a previous maxHeight caps it.
+  const menuHeight = menuRef.value?.scrollHeight ?? 0;
+  menuStyle.value = floatingMenuPlacement(root.getBoundingClientRect(), menuHeight, {
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+};
 
 const close = () => {
   open.value = false;
 };
 
+const toggle = () => {
+  open.value = !open.value;
+};
+
+const isInside = (element: HTMLElement | null, target: Node) => element?.contains(target) ?? false;
+
 const closeOnOutsideClick = (event: MouseEvent) => {
   const target = event.target as Node | null;
-  if (open.value && rootRef.value && target && !rootRef.value.contains(target)) {
-    close();
+  if (!open.value || !target) {
+    return;
   }
+  // The menu is teleported out of the root, so check it explicitly too.
+  if (isInside(rootRef.value, target) || isInside(menuRef.value, target)) {
+    return;
+  }
+  close();
 };
+
+const addPositionListeners = () => {
+  // Capture phase catches a scroll of any ancestor, so the menu stays with the button.
+  document.addEventListener('scroll', updatePosition, true);
+  window.addEventListener('resize', updatePosition);
+};
+
+const removePositionListeners = () => {
+  document.removeEventListener('scroll', updatePosition, true);
+  window.removeEventListener('resize', updatePosition);
+};
+
+watch(open, isOpen => {
+  if (isOpen) {
+    updatePosition();
+    // Measure again once the menu is rendered: its height decides above or below.
+    nextTick(updatePosition);
+    addPositionListeners();
+  } else {
+    removePositionListeners();
+  }
+});
 
 const closeOnEscape = (event: KeyboardEvent) => {
   if (open.value && event.key === 'Escape') {
@@ -76,6 +127,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', closeOnOutsideClick);
   document.removeEventListener('keydown', closeOnEscape);
+  removePositionListeners();
 });
 </script>
 
@@ -92,13 +144,22 @@ onBeforeUnmount(() => {
       :aria-label="menuLabel"
       :aria-expanded="open"
       aria-haspopup="menu"
-      @click="open = !open"
+      @click="toggle"
     >
       <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
     </button>
-    <div v-if="open" class="split-button__menu" role="menu">
-      <slot :close="close" />
-    </div>
+    <Teleport to="body">
+      <div
+        v-if="open"
+        ref="menuRef"
+        class="split-button__menu"
+        role="menu"
+        :style="menuStyle"
+        @click.stop
+      >
+        <slot :close="close" />
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -167,10 +228,9 @@ onBeforeUnmount(() => {
 }
 
 .split-button__menu {
-  position: absolute;
-  top: calc(100% + var(--spacing-1));
-  right: 0;
+  /* Fixed coordinates come inline from updatePosition(); the menu is teleported to <body>. */
   z-index: var(--z-dropdown);
+  overflow-y: auto;
   min-width: 220px;
   max-width: 360px;
   display: flex;
