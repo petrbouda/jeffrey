@@ -3669,6 +3669,17 @@
             ],
             "type": "object"
           },
+          "kind": {
+            "enum": [
+              "AZURE_FILES",
+              "LOCAL",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "name": {
             "type": [
               "string",
@@ -3708,6 +3719,7 @@
         "required": [
           "address",
           "followUp",
+          "kind",
           "name",
           "readOnly",
           "reason",

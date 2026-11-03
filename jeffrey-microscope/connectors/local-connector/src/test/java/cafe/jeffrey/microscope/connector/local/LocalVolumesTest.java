@@ -93,13 +93,18 @@ class LocalVolumesTest {
             assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, failure.getCode());
         }
 
+        /**
+         * Reachability is the probe's to report; a listing that cannot be read is nothing there, as on
+         * a share (shared/volume's {@code VolumeDirectories}).
+         */
         @Test
         void aFileInPlaceOfTheDirectoryIsUnavailable() throws IOException {
             Path file = Files.writeString(root.resolve("file.txt"), "not a directory");
             ConnectorClients clients = clients(file, true);
 
-            JeffreyException failure = assertThrows(JeffreyException.class, () -> clients.discovery().allWorkspaces());
+            JeffreyException failure = assertThrows(JeffreyException.class, () -> clients.discovery().info());
             assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, failure.getCode());
+            assertEquals(List.of(), clients.discovery().allWorkspaces());
         }
 
         /** Looked at on every call: a directory created after opening is read from then on. */
@@ -107,7 +112,8 @@ class LocalVolumesTest {
         void aDirectoryCreatedLaterIsReadFromThenOn() throws IOException {
             Path later = root.resolve("later");
             ConnectorClients clients = clients(later, true);
-            assertThrows(JeffreyException.class, () -> clients.discovery().allWorkspaces());
+            assertThrows(JeffreyException.class, () -> clients.discovery().info());
+            assertEquals(List.of(), clients.discovery().allWorkspaces());
 
             Files.createDirectories(later.resolve("staging"));
 
