@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.Set;
 import java.util.TreeSet;
@@ -36,29 +37,40 @@ class McpFollowUpWalkIntegrationTest extends LocalVolumeMicroscope {
      * so that a walk that stops early — a profile that never builds, a suggestion dropped — fails
      * rather than passing with nothing left to check, and so that a suggestion added shows here.
      * What it leaves out is what the recording does not hold (no traces, HTTP, JDBC, I/O events, no
-     * heap dump) or what takes an argument nobody suggests (a query, a second profile).
+     * heap dump) or what takes an argument nobody suggests (a query, a second profile) — and
+     * {@code recordings_analyzeRecording}: the walk's window is analysed before it starts, so its
+     * download suggests the profile instead; every other class here calls the analysis directly.
      */
     private static final Set<String> REACHED = Set.of(
             "connector_status", "connector_sessions", "connector_files", "connector_download",
-            "recordings_analyzeRecording", "profiles_summary",
+            "profiles_summary",
             "flamegraph_list", "flamegraph_export", "memory_allocations", "blocking_overview", "blocking_monitors",
             "timeline_hotWindows", "timeline_zoom",
             "jfr_listEventTypes", "jfr_describeEventType", "jfr_queryEvents",
             "jvm_autoAnalysis", "jvm_sections", "jvm_system", "jvm_configuration", "jvm_flags", "jvm_container",
             "jvm_gc", "jvm_jit", "jvm_threads", "jvm_nativeMemory");
 
+    /**
+     * The window is analysed first, as the other classes on this Microscope leave it in whatever
+     * order they run: a download of a window already analysed suggests its profile rather than
+     * another analysis, so the walk reaches the same tools every time.
+     */
     @Test
     void everyCallAnAnswerSuggestsAnswersInItsTurn() {
+        profileOf(download(lastHalfHour()));
         // Which part of a session to bring is the user's choice, so no answer suggests a download
         // as a call: these two are the choices an agent makes after asking.
         String cutShortRef = sessionRow(Json.createObject(), CUT_SHORT_SESSION).path("sessionRef").asString();
         FollowUpWalk walk = new FollowUpWalk(microscope)
                 .seed(CONNECTOR_STATUS, Json.createObject(), "the walk's start")
-                .seed(CONNECTOR_DOWNLOAD, Json.createObject().put("sessionRef", recordedSessionRef())
-                        .put("window", "LAST_MINUTES").put("minutes", 30), "the user's window")
+                .seed(CONNECTOR_DOWNLOAD, lastHalfHour().put("sessionRef", recordedSessionRef()), "the user's window")
                 .seed(CONNECTOR_DOWNLOAD, Json.createObject().put("sessionRef", cutShortRef).put("window", "WHOLE"),
                         "the user's choice of a session cut short");
 
         assertEquals(new TreeSet<>(REACHED), walk.run());
+    }
+
+    private static ObjectNode lastHalfHour() {
+        return Json.createObject().put("window", "LAST_MINUTES").put("minutes", 30);
     }
 }
