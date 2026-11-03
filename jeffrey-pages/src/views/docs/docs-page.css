@@ -180,9 +180,12 @@
   .docs-title {
     font-size: 1.5rem;
   }
+}
 
-  /* A reference table is wider than a phone. Let it scroll on its own instead of widening the
-     whole page; as a block it still lays its rows out as a table inside. */
+/* Up to 1200px the content column is narrower than many reference tables (at 1200px the
+   on-this-page column leaves it about 540px). Let such a table scroll on its own instead of
+   widening the whole page; as a block it still lays its rows out as a table inside. */
+@media (max-width: 1200px) {
   .docs-content table {
     display: block;
     max-width: 100%;
