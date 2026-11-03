@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.test.recording.PersonsRecording;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -145,14 +146,15 @@ abstract class PersonsVolumeMicroscope extends BootedMicroscope {
         for (PersonsRecording.ProfilerChunk chunk : profilerChunks) {
             byte[] bytes = chunks.get(chunk.index());
             Instant header = JfrFileChunks.startOf(bytes).truncatedTo(ChronoUnit.SECONDS);
-            if (!header.equals(chunk.openedAt())) {
+            Instant openedAt = recording.openedAt(chunk);
+            if (!header.equals(openedAt)) {
                 throw new IllegalStateException(recording + " chunk " + chunk.index() + " begins at " + header
-                        + ", not at " + chunk.openedAt());
+                        + ", not at " + openedAt);
             }
-            Path plain = VolumeWriter.recording(session, chunk.openedAt(), ZoneOffset.UTC, bytes);
+            Path plain = VolumeWriter.recording(session, openedAt, ZoneOffset.UTC, bytes);
             boolean keptPlain = newestSession && chunk == profilerChunks.getLast();
             if (!keptPlain) {
-                Lz4Compressor.compress(plain, session.resolve(archiveName(chunk.openedAt())));
+                Lz4Compressor.compress(plain, session.resolve(archiveName(openedAt)));
                 try {
                     Files.delete(plain);
                 } catch (IOException e) {

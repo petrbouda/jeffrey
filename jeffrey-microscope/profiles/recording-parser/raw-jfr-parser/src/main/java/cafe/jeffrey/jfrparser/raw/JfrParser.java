@@ -19,6 +19,7 @@ package cafe.jeffrey.jfrparser.raw;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.EventSourceResolver;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
@@ -28,6 +29,7 @@ import cafe.jeffrey.shared.notification.Notifications;
 import cafe.jeffrey.jfr.events.notification.Severity;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
@@ -37,6 +39,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Facade for JFR (Java Flight Recording) parsing operations.
@@ -48,11 +51,16 @@ import java.util.function.Consumer;
  *   <li>Iterating over chunks for custom processing</li>
  * </ul>
  *
- * <p>Supports both regular .jfr files and LZ4 compressed .jfr.lz4 files.</p>
+ * <p>Every method taking a {@link Path} reads both regular .jfr files and LZ4 compressed .jfr.lz4
+ * files, but {@link #iterateChunks(Path, BiConsumer)}, whose consumer reads the file through a
+ * channel and so needs a plain one.</p>
  */
 public abstract class JfrParser {
 
     private static final Logger LOG = LoggerFactory.getLogger(JfrParser.class);
+
+    private static final String LZ4_HAS_NO_CHANNEL = "Recording is LZ4-compressed, and a file channel reads only "
+            + "a plain .jfr: iterate it through Lz4Compressor.decompressStream instead: path=%s";
 
     // ========== Disassembly ==========
 
@@ -88,9 +96,7 @@ public abstract class JfrParser {
      * @return recording information including size, timing, and event source
      */
     public static RecordingInformation recordingInfo(Path recording) {
-        validateRecording(recording);
-        List<JfrChunk> chunks = ChunkIterator.collect(recording);
-        return buildRecordingInfo(chunks);
+        return buildRecordingInfo(read(recording, ChunkIterator::collect, ChunkIterator::collect));
     }
 
     /**
@@ -129,9 +135,10 @@ public abstract class JfrParser {
      * @return set of event type names
      */
     public static Set<String> eventTypes(Path recording) {
-        validateRecording(recording);
         Set<String> eventTypes = new HashSet<>();
-        ChunkIterator.iterate(recording, (_, chunk) -> eventTypes.addAll(chunk.eventTypes()));
+        for (JfrChunk chunk : collectChunks(recording)) {
+            eventTypes.addAll(chunk.eventTypes());
+        }
         return eventTypes;
     }
 
@@ -152,11 +159,17 @@ public abstract class JfrParser {
     /**
      * Iterates over all chunks in a recording with full event type parsing.
      *
-     * @param recording the path to the recording file
+     * @param recording the path to a plain {@code .jfr} file: the consumer reads it through a file
+     *                  channel, which cannot read a compressed one
      * @param consumer  callback receiving FileChannel and JfrChunk for each chunk
+     * @throws IllegalArgumentException for an LZ4-compressed recording, which reads through
+     *                                  {@link #iterateChunks(InputStream, Consumer)} instead
      */
     public static void iterateChunks(Path recording, BiConsumer<FileChannel, JfrChunk> consumer) {
         validateRecording(recording);
+        if (Lz4Compressor.isLz4Compressed(recording)) {
+            throw new IllegalArgumentException(LZ4_HAS_NO_CHANNEL.formatted(recording));
+        }
         ChunkIterator.iterate(recording, consumer);
     }
 
@@ -177,8 +190,7 @@ public abstract class JfrParser {
      * @return list of all chunks
      */
     public static List<JfrChunk> collectChunks(Path recording) {
-        validateRecording(recording);
-        return ChunkIterator.collect(recording);
+        return read(recording, ChunkIterator::collect, ChunkIterator::collect);
     }
 
     /**
@@ -201,8 +213,7 @@ public abstract class JfrParser {
      * @param consumer  callback receiving JfrChunkHeader for each chunk
      */
     public static void iterateHeaders(Path recording, Consumer<JfrChunkHeader> consumer) {
-        validateRecording(recording);
-        ChunkIterator.iterateHeaders(recording, consumer);
+        collectHeaders(recording).forEach(consumer);
     }
 
     /**
@@ -222,8 +233,7 @@ public abstract class JfrParser {
      * @return list of chunk headers
      */
     public static List<JfrChunkHeader> collectHeaders(Path recording) {
-        validateRecording(recording);
-        return ChunkIterator.collectHeaders(recording);
+        return read(recording, ChunkIterator::collectHeaders, ChunkIterator::collectHeaders);
     }
 
     /**
@@ -268,6 +278,23 @@ public abstract class JfrParser {
         RecordingEventSource source = EventSourceResolver.fromEventTypeNames(eventTypeNames);
 
         return new RecordingInformation(bytes, source, startTime, endTime);
+    }
+
+    /**
+     * Reads a recording file as it lies when it is a plain {@code .jfr}, and through a decompressing
+     * stream when it is LZ4-compressed: read as it lies, an archive has no JFR header to find, and
+     * would read as a recording with no chunks rather than fail.
+     */
+    private static <T> T read(Path recording, Function<Path, T> plain, Function<InputStream, T> compressed) {
+        validateRecording(recording);
+        if (!Lz4Compressor.isLz4Compressed(recording)) {
+            return plain.apply(recording);
+        }
+        try (InputStream input = Lz4Compressor.decompressStream(recording)) {
+            return compressed.apply(input);
+        } catch (IOException e) {
+            throw new JfrChunkParsingException("Failed to read LZ4 recording: " + recording, e);
+        }
     }
 
     private static void validateRecording(Path recording) {

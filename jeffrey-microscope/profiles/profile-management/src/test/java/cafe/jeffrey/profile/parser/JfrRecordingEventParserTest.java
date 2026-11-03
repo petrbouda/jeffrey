@@ -18,10 +18,7 @@
 package cafe.jeffrey.profile.parser;
 
 import cafe.jeffrey.jfrparser.raw.JfrParser;
-import cafe.jeffrey.provider.profile.api.Event;
-import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,9 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -152,10 +146,10 @@ class JfrRecordingEventParserTest {
     private Map<String, Long> parse(RecordingSources sources, int chunkSplitThreshold) {
         TempDirFactory tempDirFactory = TempDirFactory.of(tempDir.resolve("scratch"));
 
-        RecordingEvents events = new RecordingEvents();
+        EventTally events = new EventTally();
         new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory), chunkSplitThreshold)
                 .start(events, sources);
-        return events.countsByType();
+        return events.events();
     }
 
     private static long total(Map<String, Long> counts) {
@@ -179,34 +173,5 @@ class JfrRecordingEventParserTest {
             }
         }
         return target;
-    }
-
-    /**
-     * Counts what reached the writer, by event type. Ids are handed out per writer and a parse uses
-     * one writer per unit, so they differ between runs by construction — the counts are what two
-     * readings of the same recording have to agree on.
-     */
-    private static final class RecordingEvents implements EventWriter {
-
-        private final Map<String, AtomicLong> counts = new ConcurrentHashMap<>();
-
-        @Override
-        public SingleThreadedEventWriter newSingleThreadedWriter() {
-            return new SingleThreadedEventWriter() {
-                @Override
-                public void onEvent(Event event) {
-                    counts.computeIfAbsent(event.eventType(), _ -> new AtomicLong()).incrementAndGet();
-                }
-            };
-        }
-
-        @Override
-        public void onComplete() {
-        }
-
-        private Map<String, Long> countsByType() {
-            return counts.entrySet().stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().get()));
-        }
     }
 }

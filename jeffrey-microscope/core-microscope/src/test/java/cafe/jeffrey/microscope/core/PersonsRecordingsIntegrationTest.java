@@ -17,8 +17,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.microscope.core.PersonsRecording.ProfilerChunk;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.test.recording.PersonsRecording;
+import cafe.jeffrey.test.recording.PersonsRecording.ProfilerChunk;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,13 +41,13 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static cafe.jeffrey.microscope.core.PersonsRecording.ALLOCATION_IN_NEW_TLAB;
-import static cafe.jeffrey.microscope.core.PersonsRecording.DIRECT;
-import static cafe.jeffrey.microscope.core.PersonsRecording.DOM;
-import static cafe.jeffrey.microscope.core.PersonsRecording.EXECUTION_SAMPLE;
-import static cafe.jeffrey.microscope.core.PersonsRecording.MONITOR_ENTER;
-import static cafe.jeffrey.microscope.core.PersonsRecording.THREAD_PARK;
-import static cafe.jeffrey.microscope.core.PersonsRecording.WALL_CLOCK_SAMPLE;
+import static cafe.jeffrey.test.recording.PersonsRecording.ALLOCATION_IN_NEW_TLAB;
+import static cafe.jeffrey.test.recording.PersonsRecording.DIRECT;
+import static cafe.jeffrey.test.recording.PersonsRecording.DOM;
+import static cafe.jeffrey.test.recording.PersonsRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.test.recording.PersonsRecording.MONITOR_ENTER;
+import static cafe.jeffrey.test.recording.PersonsRecording.THREAD_PARK;
+import static cafe.jeffrey.test.recording.PersonsRecording.WALL_CLOCK_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,11 +69,11 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
         void theProfileCountsWhatTheRecordingHolds(PersonsRecording recording) {
             String profileId = profile(recording);
 
-            assertEquals(recording.executionSamples(), samples(profileId, EXECUTION_SAMPLE));
-            assertEquals(recording.wallClockSamples(), samples(profileId, WALL_CLOCK_SAMPLE));
-            assertEquals(recording.allocationSamples(), samples(profileId, ALLOCATION_IN_NEW_TLAB));
-            assertEquals(recording.threadParks(), samples(profileId, THREAD_PARK));
-            assertEquals(recording.monitorEnters(), samples(profileId, MONITOR_ENTER));
+            assertEquals(recording.counts().executionSamples(), samples(profileId, EXECUTION_SAMPLE));
+            assertEquals(recording.counts().wallClockSamples(), samples(profileId, WALL_CLOCK_SAMPLE));
+            assertEquals(recording.counts().allocationSamples(), samples(profileId, ALLOCATION_IN_NEW_TLAB));
+            assertEquals(recording.counts().threadParks(), samples(profileId, THREAD_PARK));
+            assertEquals(recording.counts().monitorEnters(), samples(profileId, MONITOR_ENTER));
         }
 
         /**
@@ -89,8 +90,8 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
 
             List<String> row = strings(result.path("rows").get(0));
             long events = Long.parseLong(row.get(0));
-            assertEquals(recording.wallClockSamples(), Long.parseLong(row.get(1)));
-            assertTrue(events < recording.wallClockSamples(), () -> events + " events");
+            assertEquals(recording.counts().wallClockSamples(), Long.parseLong(row.get(1)));
+            assertTrue(events < recording.counts().wallClockSamples(), () -> events + " events");
         }
 
         @ParameterizedTest
@@ -99,7 +100,7 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
             JsonNode export = microscope.answer("flamegraph_export", Json.createObject()
                     .put("profileId", profile(recording)).put("eventType", EXECUTION_SAMPLE).put("detail", "SUMMARY"));
 
-            assertEquals(recording.executionSamples(), header(export, "samples_total"));
+            assertEquals(recording.counts().executionSamples(), header(export, "samples_total"));
         }
     }
 
@@ -173,11 +174,11 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
         void theChunksAddUpToTheFileTheyWereCutFrom(PersonsRecording recording) {
             String profileId = chunkedProfile(recording);
 
-            assertEquals(recording.executionSamples(), samples(profileId, EXECUTION_SAMPLE));
-            assertEquals(recording.wallClockSamples(), samples(profileId, WALL_CLOCK_SAMPLE));
-            assertEquals(recording.allocationSamples(), samples(profileId, ALLOCATION_IN_NEW_TLAB));
-            assertEquals(recording.threadParks(), samples(profileId, THREAD_PARK));
-            assertEquals(recording.monitorEnters(), samples(profileId, MONITOR_ENTER));
+            assertEquals(recording.counts().executionSamples(), samples(profileId, EXECUTION_SAMPLE));
+            assertEquals(recording.counts().wallClockSamples(), samples(profileId, WALL_CLOCK_SAMPLE));
+            assertEquals(recording.counts().allocationSamples(), samples(profileId, ALLOCATION_IN_NEW_TLAB));
+            assertEquals(recording.counts().threadParks(), samples(profileId, THREAD_PARK));
+            assertEquals(recording.counts().monitorEnters(), samples(profileId, MONITOR_ENTER));
         }
 
         /** The hub compressed every chunk but the newest of the pod's newest session. */
@@ -195,15 +196,15 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
         @Test
         void theLastFiveMinutesAreTheTwoChunksTheyTouch() {
             List<ProfilerChunk> chunks = DOM.profilerChunks();
-            Duration chunkLength = Duration.between(chunks.get(0).openedAt(), chunks.get(1).openedAt());
-            Instant dataEnd = chunks.getLast().openedAt().plus(chunkLength);
-            assertTrue(dataEnd.minus(Duration.ofMinutes(5)).isBefore(chunks.getLast().openedAt()));
+            Duration chunkLength = Duration.between(DOM.openedAt(chunks.get(0)), DOM.openedAt(chunks.get(1)));
+            Instant dataEnd = DOM.openedAt(chunks.getLast()).plus(chunkLength);
+            assertTrue(dataEnd.minus(Duration.ofMinutes(5)).isBefore(DOM.openedAt(chunks.getLast())));
 
             JsonNode download = download(chunkedRef(DOM), Json.createObject().put("window", "LAST_MINUTES").put("minutes", 5));
 
             assertEquals(2, download.path("recordingFiles").asInt());
             assertEquals(dataEnd.toEpochMilli(), download.path("endEpochMs").asLong());
-            assertEquals(chunks.get(1).executionSamples() + chunks.get(2).executionSamples(),
+            assertEquals(chunks.get(1).counts().executionSamples() + chunks.get(2).counts().executionSamples(),
                     samples(profileOf(download), EXECUTION_SAMPLE));
         }
 
@@ -213,7 +214,7 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
             ProfilerChunk largest = null;
             long largestSize = -1;
             for (ProfilerChunk chunk : DOM.profilerChunks().subList(0, 2)) {
-                long size = Files.size(CHUNKED_SESSION_DIRS.get(DOM).resolve(archiveName(chunk)));
+                long size = Files.size(CHUNKED_SESSION_DIRS.get(DOM).resolve(archiveName(DOM, chunk)));
                 if (size > largestSize) {
                     largest = chunk;
                     largestSize = size;
@@ -222,15 +223,15 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
 
             JsonNode download = download(chunkedRef(DOM), Json.createObject().put("window", "PEAK"));
 
-            assertEquals(List.of(fileId(largest)), strings(download.path("fileIds")));
-            assertEquals(largest.executionSamples(), samples(profileOf(download), EXECUTION_SAMPLE));
+            assertEquals(List.of(fileId(DOM, largest)), strings(download.path("fileIds")));
+            assertEquals(largest.counts().executionSamples(), samples(profileOf(download), EXECUTION_SAMPLE));
         }
 
         /** A minute inside the middle chunk is that chunk alone, and the profile holds only its samples. */
         @Test
         void aWindowInsideOneChunkTakesOnlyThatChunk() {
             ProfilerChunk middle = DIRECT.profilerChunks().get(1);
-            Instant start = middle.openedAt().plus(Duration.ofMinutes(1));
+            Instant start = DIRECT.openedAt(middle).plus(Duration.ofMinutes(1));
 
             JsonNode download = download(chunkedRef(DIRECT), Json.createObject().put("window", "CUSTOM")
                     .put("startEpochMs", start.toEpochMilli())
@@ -238,8 +239,8 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
 
             assertEquals(1, download.path("recordingFiles").asInt());
             String profileId = profileOf(download);
-            assertEquals(middle.executionSamples(), samples(profileId, EXECUTION_SAMPLE));
-            assertEquals(middle.wallClockSamples(), samples(profileId, WALL_CLOCK_SAMPLE));
+            assertEquals(middle.counts().executionSamples(), samples(profileId, EXECUTION_SAMPLE));
+            assertEquals(middle.counts().wallClockSamples(), samples(profileId, WALL_CLOCK_SAMPLE));
         }
 
         /** The first and the last chunk without the middle one would be one recording with a silent hole. */
@@ -247,11 +248,11 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
         void aPickThatSkipsTheMiddleChunkIsRefusedNamingIt() {
             List<ProfilerChunk> chunks = DIRECT.profilerChunks();
             ObjectNode arguments = Json.createObject().put("sessionRef", chunkedRef(DIRECT));
-            arguments.putArray("fileIds").add(fileId(chunks.getFirst())).add(fileId(chunks.getLast()));
+            arguments.putArray("fileIds").add(fileId(DIRECT, chunks.getFirst())).add(fileId(DIRECT, chunks.getLast()));
 
             String refusal = microscope.refusal(CONNECTOR_DOWNLOAD, arguments);
 
-            assertTrue(refusal.contains(archiveName(chunks.get(1))), refusal);
+            assertTrue(refusal.contains(archiveName(DIRECT, chunks.get(1))), refusal);
         }
 
         private List<String> recordingTypes(PersonsRecording recording) {
@@ -269,13 +270,13 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
             return sessionRef(CHUNKED_SESSIONS.get(recording));
         }
 
-        private static String fileId(ProfilerChunk chunk) {
-            String name = VolumeWriter.recordingName(chunk.openedAt(), ZoneOffset.UTC);
+        private static String fileId(PersonsRecording recording, ProfilerChunk chunk) {
+            String name = VolumeWriter.recordingName(recording.openedAt(chunk), ZoneOffset.UTC);
             return name.substring(0, name.length() - JFR_EXTENSION.length());
         }
 
-        private static String archiveName(ProfilerChunk chunk) {
-            return VolumeWriter.recordingName(chunk.openedAt(), ZoneOffset.UTC) + ARCHIVE_SUFFIX;
+        private static String archiveName(PersonsRecording recording, ProfilerChunk chunk) {
+            return VolumeWriter.recordingName(recording.openedAt(chunk), ZoneOffset.UTC) + ARCHIVE_SUFFIX;
         }
     }
 
@@ -290,9 +291,9 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
             JsonNode list = microscope.answer("compare_list", pair());
 
             for (Side side : List.of(
-                    new Side(EXECUTION_SAMPLE, DOM.executionSamples(), DIRECT.executionSamples()),
-                    new Side(WALL_CLOCK_SAMPLE, DOM.wallClockSamples(), DIRECT.wallClockSamples()),
-                    new Side(ALLOCATION_IN_NEW_TLAB, DOM.allocationSamples(), DIRECT.allocationSamples()))) {
+                    new Side(EXECUTION_SAMPLE, DOM.counts().executionSamples(), DIRECT.counts().executionSamples()),
+                    new Side(WALL_CLOCK_SAMPLE, DOM.counts().wallClockSamples(), DIRECT.counts().wallClockSamples()),
+                    new Side(ALLOCATION_IN_NEW_TLAB, DOM.counts().allocationSamples(), DIRECT.counts().allocationSamples()))) {
                 JsonNode type = comparable(list, side.eventType());
                 assertEquals(side.primary(), type.path("primarySamples").asInt(), side.eventType());
                 assertEquals(side.baseline(), type.path("baselineSamples").asInt(), side.eventType());
@@ -316,8 +317,8 @@ class PersonsRecordingsIntegrationTest extends PersonsVolumeMicroscope {
                 String document = answer.path("markdown").asString();
 
                 assertFalse(answer.path("truncated").asBoolean(), tool);
-                assertEquals(DOM.executionSamples(), header(answer, "primary_total"), tool);
-                assertEquals(DIRECT.executionSamples(), header(answer, "baseline_total"), tool);
+                assertEquals(DOM.counts().executionSamples(), header(answer, "primary_total"), tool);
+                assertEquals(DIRECT.counts().executionSamples(), header(answer, "baseline_total"), tool);
                 Matcher factor = SCALE_FACTOR.matcher(document);
                 assertTrue(factor.find(), () -> tool + " states no baseline_scale_factor");
                 assertEquals(String.format(Locale.ROOT, "%.3f", ratio), factor.group(1), tool);
