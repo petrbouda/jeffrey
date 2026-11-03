@@ -24,7 +24,8 @@ import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import java.util.Optional;
 
 /**
- * The one connector this Microscope reaches — the recording volume on an Azure file share — exactly
+ * The one connector this Microscope reaches — the recording volume on an Azure file share or in a
+ * local directory — exactly
  * as configuration declares it ({@code jeffrey.microscope.connector.*}). It is read
  * once at startup and never connected, changed or disconnected while Microscope runs: nothing
  * stores it, and the UI only shows it.

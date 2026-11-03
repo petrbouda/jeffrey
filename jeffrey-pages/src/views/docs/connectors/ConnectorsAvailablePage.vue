@@ -71,6 +71,13 @@ onMounted(() => {
             <td>SAS token or Microsoft Entra ID</td>
             <td>Writable or read-only</td>
           </tr>
+          <tr>
+            <td><router-link to="/docs/connectors/local"><strong>Local Directory</strong></router-link></td>
+            <td><code>local</code></td>
+            <td>A directory on the machine Microscope runs on, read live. For testing, a provisioner and hub on the same machine, or a copy of another volume.</td>
+            <td>None &mdash; the rights of the user Microscope runs as</td>
+            <td>Writable or read-only</td>
+          </tr>
         </tbody>
       </table>
 
@@ -109,6 +116,12 @@ onMounted(() => {
           icon="bi bi-cloud"
           title="Azure File Share"
           description="An Azure Files share over SMB or NFS, signed in with a SAS token or Microsoft Entra ID."
+        />
+        <DocsLinkCard
+          to="/docs/connectors/local"
+          icon="bi bi-folder2-open"
+          title="Local Directory"
+          description="A directory on this machine in the same layout, read live: for testing or a copied tree."
         />
       </div>
     </div>

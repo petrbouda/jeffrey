@@ -89,7 +89,7 @@ const layout = `<root-path>/
       </p>
       <p>
         Which storage it reads is the connector's <strong>kind</strong>: the declaration names one block, such as
-        <code>azure-files</code>, and that block says where the volume is and how to sign in. Every kind
+        <code>azure-files</code> or <code>local</code>, and that block says where the volume is and how to sign in. Every kind
         works behind the same browsing, download and MCP features, so the rest of these pages apply to
         whichever one you declare.
       </p>
@@ -152,7 +152,8 @@ const layout = `<root-path>/
         The kinds Microscope can read today are listed on
         <router-link to="/docs/connectors/available">Available Connectors</router-link>, each with a page of its
         own; the list grows as new kinds are added. Currently:
-        <router-link to="/docs/connectors/azure-files">Azure File Share</router-link>.
+        <router-link to="/docs/connectors/azure-files">Azure File Share</router-link> and
+        <router-link to="/docs/connectors/local">Local Directory</router-link>.
       </p>
 
       <h2 id="hub">The Hub Is Not on the Path</h2>

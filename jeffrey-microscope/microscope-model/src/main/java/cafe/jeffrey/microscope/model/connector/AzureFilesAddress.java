@@ -44,14 +44,14 @@ public record AzureFilesAddress(
         String rootPath,
         AzureFilesProtocol protocol,
         AzureFilesAuth auth,
-        boolean readOnly) {
+        boolean readOnly) implements ConnectorAddress {
 
     private static final String HTTPS = "https";
     private static final String SCHEME_SEPARATOR = "://";
     private static final String PORT_SEPARATOR = ":";
     private static final String SEPARATOR = "/";
     private static final int NO_PORT = -1;
-    private static final String IDENTITY_PREFIX = "azure-files:";
+    private static final String IDENTITY_PREFIX = ConnectorKind.AZURE_FILES.block() + ":";
     private static final Set<String> RELATIVE_ELEMENTS = Set.of(".", "..");
     private static final Set<String> BARE_PATHS = Set.of("", SEPARATOR);
 
@@ -80,6 +80,7 @@ public record AzureFilesAddress(
      * records, so a copy is recognised as this connector's: the share and the directory in it, never
      * the credential nor whether it may be changed.
      */
+    @Override
     public String identity() {
         return IDENTITY_PREFIX + location();
     }
@@ -89,7 +90,14 @@ public record AzureFilesAddress(
         return location() + " (" + protocol + ", " + auth + (readOnly ? ", read-only" : "") + ")";
     }
 
-    private String location() {
+    @Override
+    public ConnectorKind kind() {
+        return ConnectorKind.AZURE_FILES;
+    }
+
+    /** The share and the directory in it: {@code <endpoint>/<share>[/<rootPath>]}. */
+    @Override
+    public String location() {
         return endpoint + SEPARATOR + share + (rootPath.isEmpty() ? "" : SEPARATOR + rootPath);
     }
 

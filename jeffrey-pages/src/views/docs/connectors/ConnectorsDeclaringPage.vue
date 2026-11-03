@@ -98,7 +98,8 @@ jeffrey.microscope.connector.azure-files.sas-token=\${AZURE_FILES_SAS}`;
             <td>set by the connector kind</td>
             <td>
               Display name shown on the Connector page and in the MCP <code>connector_status</code> answer.
-              When unset, the connector kind supplies one &mdash; an Azure File Share uses the share's name.
+              When unset, the connector kind supplies one &mdash; an Azure File Share uses the share's name, a
+              Local Directory the directory's name.
             </td>
           </tr>
           <tr>
@@ -117,7 +118,9 @@ jeffrey.microscope.connector.azure-files.sas-token=\${AZURE_FILES_SAS}`;
       <p>
         Microscope reaches exactly one connector. It is declared in configuration only, read once at startup
         and never stored in Microscope's database. The UI and the MCP server show it, but neither can
-        connect, change or disconnect one, and neither offers a second.
+        connect, change or disconnect one, and neither offers a second. Declare one kind's block: a
+        configuration that declares two (<code>azure-files</code> and <code>local</code>) is logged and
+        ignored, as if none were declared.
       </p>
       <p>
         Without a declaration Microscope is fully offline: it works on uploaded files only, the

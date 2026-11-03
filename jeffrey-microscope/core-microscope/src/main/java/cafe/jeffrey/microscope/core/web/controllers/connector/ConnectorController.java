@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.connector;
 
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
+import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.web.dto.response.CurrentConnectorResponse;
@@ -34,8 +34,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/internal/connector")
 public class ConnectorController {
 
-    private static final String LOCATION_SEPARATOR = "/";
-
     private final ConnectorManager connectorManager;
 
     public ConnectorController(ConnectorManager connectorManager) {
@@ -48,12 +46,7 @@ public class ConnectorController {
     }
 
     private static ConnectorResponse toResponse(ConnectorInfo connector) {
-        AzureFilesAddress share = connector.address();
-        return new ConnectorResponse(connector.name(), location(share), share.readOnly());
-    }
-
-    private static String location(AzureFilesAddress azure) {
-        String share = azure.endpoint() + LOCATION_SEPARATOR + azure.share();
-        return azure.rootPath().isEmpty() ? share : share + LOCATION_SEPARATOR + azure.rootPath();
+        ConnectorAddress address = connector.address();
+        return new ConnectorResponse(connector.name(), address.kind(), address.location(), address.readOnly());
     }
 }

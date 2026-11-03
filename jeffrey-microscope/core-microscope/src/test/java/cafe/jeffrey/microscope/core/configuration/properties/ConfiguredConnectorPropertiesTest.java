@@ -18,14 +18,19 @@
 package cafe.jeffrey.microscope.core.configuration.properties;
 
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredConnectorProperties.AzureFilesEntry;
+import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredConnectorProperties.LocalEntry;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
 import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
 import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
+import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,6 +50,14 @@ class ConfiguredConnectorPropertiesTest {
         azure.setSasToken(sasToken);
         ConfiguredConnectorProperties properties = new ConfiguredConnectorProperties();
         properties.setAzureFiles(azure);
+        return properties;
+    }
+
+    private static ConfiguredConnectorProperties directory(String path) {
+        LocalEntry local = new LocalEntry();
+        local.setPath(path);
+        ConfiguredConnectorProperties properties = new ConfiguredConnectorProperties();
+        properties.setLocal(local);
         return properties;
     }
 
@@ -133,5 +146,71 @@ class ConfiguredConnectorPropertiesTest {
             assertEquals(Optional.empty(), ftp.resolve());
             assertEquals(Optional.empty(), share("recordings", "password", SAS).resolve());
         }
+    }
+
+    @Nested
+    @DisplayName("A local directory")
+    class Local {
+
+        @TempDir
+        Path root;
+
+        @Test
+        void resolves_writable_named_by_its_directory() {
+            ConnectorInfo connector = directory(root.toString()).resolve().orElseThrow();
+
+            assertEquals(new LocalDirectoryAddress(root, false), connector.address());
+            assertEquals(root.getFileName().toString(), connector.name());
+            assertEquals(ConnectorKind.LOCAL, connector.address().kind());
+        }
+
+        @Test
+        void declared_read_only_refuses_changes() {
+            ConfiguredConnectorProperties readOnly = directory(root.toString());
+            readOnly.getLocal().setReadOnly(true);
+
+            assertTrue(readOnly.resolve().orElseThrow().address().readOnly());
+        }
+
+        /** Nothing to sign in with: no token is ever handed on for a directory. */
+        @Test
+        void carries_no_token() {
+            assertEquals(Optional.empty(), directory(root.toString()).read().sasToken());
+        }
+
+        /** Not there yet is still a declaration: the connector reads as unreachable until it appears. */
+        @Test
+        void a_directory_not_there_yet_is_still_declared() {
+            Path later = root.resolve("later");
+
+            ConnectorInfo connector = directory(later.toString()).resolve().orElseThrow();
+
+            assertEquals(new LocalDirectoryAddress(later, false), connector.address());
+        }
+
+        @Test
+        void a_blank_or_relative_path_is_left_out() {
+            assertEquals(Optional.empty(), directory(" ").resolve());
+            assertEquals(Optional.empty(), directory(null).resolve());
+            assertEquals(Optional.empty(), directory("relative/volume").resolve());
+        }
+
+        @Test
+        void an_explicit_name_wins_over_the_directory_name() {
+            ConfiguredConnectorProperties properties = directory(root.toString());
+            properties.setName("Scratch");
+
+            assertEquals("Scratch", properties.resolve().orElseThrow().name());
+        }
+    }
+
+    /** Microscope reaches exactly one connector: two kinds declared at once is no connector. */
+    @Test
+    void both_kinds_declared_is_no_connector(@TempDir Path root) {
+        ConfiguredConnectorProperties both = share("recordings", "sas", SAS);
+        both.setLocal(directory(root.toString()).getLocal());
+
+        assertEquals(Optional.empty(), both.resolve());
+        assertEquals(Optional.empty(), both.sasToken());
     }
 }

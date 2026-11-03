@@ -44,7 +44,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <h2 id="architecture">Architecture</h2>
-      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read from its one connector &mdash; the recording volume on an Azure file share &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
+      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read from its one connector &mdash; the recording volume on an Azure file share or in a local directory &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
 
       <div class="arch-diagram">
         <div class="arch-apps">
@@ -110,7 +110,7 @@ onMounted(() => {
       </div>
 
       <h3 id="connector">The Connector</h3>
-      <p>When an Azure file share is declared as the connector, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>ConnectorClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no connector declared, Microscope is fully offline and operates only on local files and heap dumps. Declaring and browsing the connector is documented in <router-link to="/docs/connectors">Connectors</router-link>.</p>
+      <p>When an Azure file share is declared as the connector, Microscope reads it over the Azure Files REST API through one set of clients &mdash; discovery (its workspaces), projects, instances, repository and file download &mdash; bundled into a <code>ConnectorClients</code> record. Every file a session holds is downloaded on its own, and Microscope stores what it downloads as a bundle &mdash; the chunks as one recording, each heap dump and perf-counters file as a recording of its own, the logs as download-only files &mdash; never joining a file. With no connector declared, Microscope is fully offline and operates only on local files and heap dumps. A local directory in the same layout is read through the same clients, straight off the filesystem. Declaring and browsing the connector is documented in <router-link to="/docs/connectors">Connectors</router-link>.</p>
 
       <div class="service-chips">
         <div class="service-chip"><i class="bi bi-compass"></i> Discovery</div>

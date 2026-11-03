@@ -76,8 +76,8 @@ public enum McpToolRequirement {
     IDE_LINKED,
 
     /**
-     * This installation's configuration declares a connector — today the recording volume on an Azure file share.
-     * Without one the answer says so.
+     * This installation's configuration declares a connector — the recording volume on an Azure file
+     * share or in a local directory. Without one the answer says so.
      */
     CONNECTOR
 }

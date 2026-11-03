@@ -48,6 +48,7 @@
         <h3 class="connector-name">
           <StatusDot :tone="STATUS_TONES[status]" size="l" :label="statusLabel" />
           {{ connector.name }}
+          <Badge :value="KIND_LABELS[connector.kind]" variant="secondary" size="xs" :uppercase="false" />
           <Badge v-if="connector.readOnly" value="Read-only" variant="warning" size="xs" />
         </h3>
         <span class="connector-location" :title="connector.location">{{ connector.location }}</span>
@@ -312,6 +313,7 @@
       <DrawerSection v-if="connector" label="Connector" icon="bi-hdd-network">
         <div class="info-rows">
           <InfoRow label="Name">{{ connector.name }}</InfoRow>
+          <InfoRow label="Kind">{{ KIND_LABELS[connector.kind] }}</InfoRow>
           <InfoRow label="Address" mono>{{ connector.location }}</InfoRow>
           <InfoRow v-if="connector.readOnly" label="Access">
             Read-only — declared so in configuration; nothing is changed through it
@@ -372,7 +374,7 @@ import WorkspaceProjectsClient from '@/services/api/connector/WorkspaceProjectsC
 import Project from '@/services/api/model/connector/Project';
 import ProjectInstance from '@/services/api/model/connector/ProjectInstance';
 import RecordingSessionHeader from '@/services/api/model/connector/RecordingSessionHeader';
-import Connector from '@/services/api/model/connector/Connector';
+import Connector, { type ConnectorKind } from '@/services/api/model/connector/Connector';
 import Workspace from '@/services/api/model/connector/Workspace';
 import { EMPTY_SELECTION, type ConnectorSelection } from '@/services/connector/connectorSelection';
 
@@ -415,17 +417,23 @@ const STATUS_LABELS: Record<ConnectorStatus, string> = {
   unknown: 'Checking…'
 };
 
+const KIND_LABELS: Record<ConnectorKind, string> = {
+  AZURE_FILES: 'Azure Files',
+  LOCAL: 'Local directory'
+};
+
 const CONNECTOR_PROPERTIES = 'jeffrey.microscope.connector.*';
 const NO_CONNECTOR_DESCRIPTION =
-  'Microscope reads the recordings of one connector: the recording volume on an Azure file share. ' +
+  'Microscope reads the recordings of one connector: the recording volume on an Azure file share ' +
+  'or in a directory on this machine. ' +
   "It is declared in Microscope's configuration only and read at startup: add it " +
   'under these properties and restart.';
 const NO_WORKSPACE =
   'A workspace appears here once the provisioner provisions a project into it: its folder on the ' +
-  "share is named by the provisioner's project.workspace-ref-id.";
+  "volume is named by the provisioner's project.workspace-ref-id.";
 const NO_PROJECT =
   'Projects appear here once the provisioner starts a profiled JVM in this workspace.';
-const NOT_LISTED = 'Start not listed by the share';
+const NOT_LISTED = 'Start not listed by the volume';
 
 const connectorClient = new ConnectorClient();
 const workspaceClient = new WorkspaceClient();

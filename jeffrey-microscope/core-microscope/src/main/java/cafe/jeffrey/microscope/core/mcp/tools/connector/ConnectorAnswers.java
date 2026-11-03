@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.storage.recording.api.file.FileCategory;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
@@ -60,7 +61,12 @@ public final class ConnectorAnswers {
             @McpDescription("What the connector is called; null when none is configured")
             String name,
             @McpNullable
-            @McpDescription("The Azure file share holding the recording volume, as azure-files:<endpoint>/<share>[/<root>]; "
+            @McpDescription("Which storage the connector reads: AZURE_FILES (an Azure file share) or LOCAL (a "
+                    + "directory on this machine); null when none is configured")
+            ConnectorKind kind,
+            @McpNullable
+            @McpDescription("Where the recording volume lies, prefixed by the connector kind: an Azure file share as "
+                    + "azure-files:<endpoint>/<share>[/<root>], a directory on this machine as local:<absolute path>; "
                     + "null when none is configured")
             String address,
             @McpNullable
