@@ -17,7 +17,6 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
@@ -93,12 +92,6 @@ jeffrey.microscope.ide.base-url=http://localhost:4243`;
         <li><strong>Per-frame gating.</strong> The flamegraph&rsquo;s IDE buttons render disabled
           and enable only once the plugin confirms it has the class, which costs a lookup per frame.</li>
       </ul>
-
-      <DocsCallout type="info" title="The first-party plugin is the default for a reason">
-        Unless you are already using Java JFR Profiler for its own sake, the
-        <router-link to="/docs/intellij-plugin">Jeffrey Microscope plugin</router-link> needs no
-        configuration at all and supports every feature above.
-      </DocsCallout>
     </div>
 
     <DocsNavFooter />
