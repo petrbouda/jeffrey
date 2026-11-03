@@ -23,18 +23,28 @@ import jdk.jfr.FlightRecorder;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JfrPoolStatisticsPeriodicRecorder implements Runnable {
 
     public static final JfrPoolStatisticsPeriodicRecorder INSTANCE = new JfrPoolStatisticsPeriodicRecorder();
+
+    /** The Flight Recorder takes one hook once per JVM, and refuses it a second time. */
+    private static final AtomicBoolean REGISTERED = new AtomicBoolean();
 
     private final Map<String, PoolStats> pools = new HashMap<>();
 
     private JfrPoolStatisticsPeriodicRecorder() {
     }
 
+    /**
+     * Registers the one hook with the Flight Recorder, once per JVM: a second application context
+     * in the same JVM (a test booting the application with another configuration) finds it there.
+     */
     public static void registerToFlightRecorder() {
-        FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, INSTANCE);
+        if (REGISTERED.compareAndSet(false, true)) {
+            FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, INSTANCE);
+        }
     }
 
     public void run() {

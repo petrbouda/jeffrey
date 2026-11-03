@@ -45,6 +45,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 /**
  * When something happened, rather than where.
@@ -85,6 +87,14 @@ public class TimelineMcpTools {
     private static final int DEFAULT_ZOOM_BUCKET_MS = 20;
     private static final int MIN_ZOOM_BUCKET_MS = 1;
     private static final long MILLIS_PER_SECOND = 1000L;
+    /** Every bucket width that cuts a second into equal slices, the only widths the heatmap takes. */
+    private static final String SLICES_OF_A_SECOND = LongStream.rangeClosed(1, MILLIS_PER_SECOND)
+            .filter(width -> MILLIS_PER_SECOND % width == 0)
+            .mapToObj(Long::toString)
+            .collect(Collectors.joining(", "));
+    private static final String BUCKET_NOT_A_SLICE = "bucketMs %d does not divide a second: timeline_zoom cuts every "
+            + "second into equal buckets, so it takes " + SLICES_OF_A_SECOND + " ms. For windows of a second "
+            + "or more, timeline_hotWindows ranks the recording one second at a time.";
 
     /** The heatmap's rows; each row's cells are under {@code data}. */
     private static final String SUBSECOND_SERIES_FIELD = "series";
@@ -214,9 +224,9 @@ public class TimelineMcpTools {
             @ToolParam(required = true, description = "End of the window, as UTC epoch milliseconds inside the recording")
             Long endEpochMs,
             @ToolParam(required = false, description = "Bucket width in milliseconds (default "
-                    + DEFAULT_ZOOM_BUCKET_MS + "). Below one second is the point of this tool; a window that "
-                    + "would need more than " + MAX_ZOOM_BUCKETS + " buckets is refused rather than silently "
-                    + "coarsened.")
+                    + DEFAULT_ZOOM_BUCKET_MS + "), one that divides a second (10, 20, 50, 100, ... 1000). Below "
+                    + "one second is the point of this tool; a window that would need more than "
+                    + MAX_ZOOM_BUCKETS + " buckets is refused rather than silently coarsened.")
             @ToolParamBounds(defaultValue = DEFAULT_ZOOM_BUCKET_MS, min = MIN_ZOOM_BUCKET_MS)
             Integer bucketMs) {
 
@@ -240,6 +250,11 @@ public class TimelineMcpTools {
         int width = bucketMs == null ? DEFAULT_ZOOM_BUCKET_MS : bucketMs;
         if (width < MIN_ZOOM_BUCKET_MS) {
             throw new IllegalArgumentException("bucketMs must be at least " + MIN_ZOOM_BUCKET_MS);
+        }
+        // The heatmap cuts every second into equal slices, so a width that does not divide a second
+        // leaves a slice with nowhere to go - wider than a second, none at all.
+        if (MILLIS_PER_SECOND % width != 0) {
+            throw new IllegalArgumentException(BUCKET_NOT_A_SLICE.formatted(width));
         }
         long length = window.endEpochMs() - window.startEpochMs();
         long wanted = length / width;

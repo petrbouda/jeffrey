@@ -27,6 +27,7 @@ import cafe.jeffrey.recordings.core.download.FileProgress;
 import cafe.jeffrey.recordings.core.download.JfrChunks;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
@@ -55,7 +56,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -489,9 +489,11 @@ class ConnectorRecordingsDownloadManagerTest {
             doAnswer(invocation -> feed(JfrChunks.cutShort(), "profile-2.jfr", invocation.getArgument(3)))
                     .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
 
-            CompletionException e = assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
+            JeffreyClientException e = assertThrows(JeffreyClientException.class,
+                    () -> manager.downloadSession(SESSION_ID));
 
-            assertTrue(e.getCause().getMessage().contains("incomplete"), e.getCause().getMessage());
+            // The cause itself, so its message is the sentence and not a class name in front of it
+            assertTrue(e.getMessage().startsWith("Recording profile-2.jfr arrived incomplete"), e.getMessage());
             verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 
@@ -508,8 +510,10 @@ class ConnectorRecordingsDownloadManagerTest {
             doThrow(new IllegalStateException("hub went away"))
                     .when(streamClient).streamFile(eq(SCOPE), eq(SESSION_ID), eq("f-2"), any());
 
-            assertThrows(CompletionException.class, () -> manager.downloadSession(SESSION_ID));
+            IllegalStateException e = assertThrows(IllegalStateException.class,
+                    () -> manager.downloadSession(SESSION_ID));
 
+            assertEquals("hub went away", e.getMessage());
             verify(recordingsManager, never()).createDownloadedBundle(any(), anyList(), anyList(), any());
         }
 

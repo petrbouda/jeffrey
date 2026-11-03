@@ -115,6 +115,67 @@ class ContainedFilesystemVolumeTest {
         }
     }
 
+    /**
+     * A link out lying deep in a directory that is itself inside: the containment check covers the
+     * directory, so what keeps the target safe is that a directory delete walks the tree without
+     * following links and removes the link itself.
+     */
+    @Nested
+    class LinkOutDeepInTheTree {
+
+        private static final VolumePath ORDERS = PROD.resolve("orders");
+
+        @BeforeEach
+        void linkOut() throws IOException {
+            Files.createSymbolicLink(root.resolve("prod").resolve("orders").resolve("escape"), outside);
+        }
+
+        @Test
+        void isLeftOutOfItsDirectorysListing() {
+            assertEquals(List.of(), names(volume.list(ORDERS)));
+        }
+
+        @Test
+        void readsAsAbsent() {
+            assertTrue(volume.open(ORDERS.resolve("escape").resolve("secret.txt")).isEmpty());
+        }
+
+        @Test
+        void deletingTheDirectoryAboveItRemovesTheLinkAndNeverItsTarget() {
+            volume.delete(PROD);
+
+            assertFalse(Files.exists(root.resolve("prod")));
+            assertTrue(Files.exists(outside.resolve("secret.txt")));
+        }
+    }
+
+    /** A relative link that climbs out of the root through its parents is a link out like any other. */
+    @Nested
+    class RelativeLinkClimbingOut {
+
+        private static final VolumePath BACK = PROD.resolve("back");
+
+        @BeforeEach
+        void linkUp() throws IOException {
+            Files.createSymbolicLink(root.resolve("prod").resolve("back"), Path.of("..", ".."));
+        }
+
+        @Test
+        void readsNothingThroughIt() {
+            assertTrue(volume.stat(BACK.resolve("outside").resolve("secret.txt")).isEmpty());
+            assertTrue(volume.open(BACK.resolve("outside").resolve("secret.txt")).isEmpty());
+            assertEquals(List.of(), volume.list(BACK));
+        }
+
+        @Test
+        void deletesNothingThroughIt() {
+            volume.delete(BACK.resolve("outside").resolve("secret.txt"));
+            volume.delete(BACK.resolve("outside"));
+
+            assertTrue(Files.exists(outside.resolve("secret.txt")));
+        }
+    }
+
     @Nested
     class LinkOutOfTheRoot {
 

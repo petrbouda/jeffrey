@@ -41,6 +41,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -503,6 +505,23 @@ class TimelineMcpToolsTest {
                     () -> tools().zoom(CPU, START_MS, END_MS, 20));
 
             assertTrue(thrown.getMessage().contains("Narrow the window"), thrown.getMessage());
+            verify(subSecondManager, never()).generate(any(), anyBoolean(), any(), anyInt());
+        }
+
+        /**
+         * The heatmap cuts each second into {@code 1000 / bucketMs} slices: wider than a second there
+         * are none, and a width that does not divide a second leaves its last slice past the end.
+         * Either once threw inside the heatmap; it is refused before one is built.
+         */
+        @ParameterizedTest
+        @ValueSource(ints = {300, 7, 1_001, 10_000})
+        void refusesABucketThatDoesNotDivideASecond(int bucketMs) {
+            IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
+                    () -> tools().zoom(CPU, START_MS, START_MS + 1_000, bucketMs));
+
+            assertTrue(thrown.getMessage().startsWith("bucketMs " + bucketMs + " does not divide a second"),
+                    thrown.getMessage());
+            assertTrue(thrown.getMessage().contains("timeline_hotWindows"), thrown.getMessage());
             verify(subSecondManager, never()).generate(any(), anyBoolean(), any(), anyInt());
         }
 

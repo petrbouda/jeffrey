@@ -491,22 +491,25 @@ public class DuckDbMcpTools {
              PreparedStatement stmt = conn.prepareStatement(PROFILE_INFO)) {
             stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
             try (ResultSet rs = stmt.executeQuery()) {
+                // The import writes the row only for a profile with a project; one built from a
+                // recording has none, so no row is what a Quick Analysis profile looks like.
                 if (!rs.next()) {
-                    throw new ToolExecutionException("No profile information found");
+                    return identity(profileId, null, null);
                 }
-                String projectId = rs.getString("project_id");
-                String storedId = rs.getString("profile_id");
-                McpFollowUp followUp = NextSteps.builder(advertised)
-                        .next(onProfile(PROFILES_SUMMARY).why(SUMMARY_WHY))
-                        .followUp();
-                return McpToolResult.of(new ProfileIdentity(storedId, projectId, rs.getString("workspace_id"),
-                        projectId != null ? ProfileKind.PROJECT : ProfileKind.QUICK_ANALYSIS, followUp,
-                        UiLinks.profile(storedId)));
+                return identity(rs.getString("profile_id"), rs.getString("project_id"), rs.getString("workspace_id"));
             }
         } catch (SQLException e) {
             LOG.error("Failed to get profile info: message={}", e.getMessage(), e);
             throw new ToolExecutionException("Failed to get profile info: " + e.getMessage(), e);
         }
+    }
+
+    private McpToolResult identity(String id, String projectId, String workspaceId) {
+        McpFollowUp followUp = NextSteps.builder(advertised)
+                .next(onProfile(PROFILES_SUMMARY).why(SUMMARY_WHY))
+                .followUp();
+        ProfileKind kind = projectId != null ? ProfileKind.PROJECT : ProfileKind.QUICK_ANALYSIS;
+        return McpToolResult.of(new ProfileIdentity(id, projectId, workspaceId, kind, followUp, UiLinks.profile(id)));
     }
 
     private McpNextTool.Call onProfile(String tool) {
