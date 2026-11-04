@@ -30,7 +30,8 @@ on:
     paths:
       - '.claude-plugin/**'
       - '.agents/plugins/**'
-      - 'jeffrey-claude-plugin/**'
+      - 'jeffrey-agent-plugin/**'
+      - 'build/scripts/plugin_layout.py'
       - 'build/scripts/validate-agent-plugin.py'
       - 'build/scripts/check-plugin-references.py'
       - 'build/scripts/render-plugin.py'
@@ -44,7 +45,8 @@ on:
     paths:
       - '.claude-plugin/**'
       - '.agents/plugins/**'
-      - 'jeffrey-claude-plugin/**'
+      - 'jeffrey-agent-plugin/**'
+      - 'build/scripts/plugin_layout.py'
       - 'build/scripts/validate-agent-plugin.py'
       - 'build/scripts/check-plugin-references.py'
       - 'build/scripts/render-plugin.py'
@@ -77,7 +79,7 @@ jobs:
 
     # --strict turns warnings (unrecognised fields, typos in field names) into failures.
     - name: Validate the microscope plugin
-      run: claude plugin validate ./jeffrey-claude-plugin --strict
+      run: claude plugin validate ./jeffrey-agent-plugin --strict
 
     # The Agent Plugins manifest and MCP configuration Codex and the other portable
     # clients read, the skills both halves share, and the version agreement across all
@@ -98,8 +100,9 @@ jobs:
         python3 build/scripts/check-plugin-references.py --self-test
         python3 build/scripts/check-plugin-references.py .
 
-    # The skills' shared sections and the three dialects of every agent are rendered from
-    # build/plugin/; a hand edit to a rendered file, or a source edit nobody rendered, fails.
+    # The skills' shared sections, the three dialects of every agent, the four manifests and both
+    # marketplace entries are rendered from build/plugin/; a hand edit to a rendered file, or a
+    # source edit nobody rendered, fails.
     - name: Check the rendered plugin files against their sources
       run: python3 build/scripts/render-plugin.py . --check
 

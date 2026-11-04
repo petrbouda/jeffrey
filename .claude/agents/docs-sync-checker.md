@@ -35,7 +35,7 @@ side of each finding.
    | tracing instrumentation (`utilities/`) | `tracing/`, `tracing/tracer-api/` |
    | `jeffrey-provisioner/` | `provisioner/` |
    | Jib build/deployment | `jib/` |
-   | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `microscope-mcp/` |
+   | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-agent-plugin/` | `microscope-mcp/` |
    | IntelliJ plugin | `intellij-plugin/` |
    | Architecture changes | `architecture/ArchitectureOverviewPage.vue` |
    | Install/onboarding changes | `microscope/MicroscopeQuickStartPage.vue`, `DocsIndexPage.vue` |
@@ -43,10 +43,10 @@ side of each finding.
 4. **Check the MCP section with particular care** — its numbers are repeated in prose that nothing compiles:
    - count `@Tool(` across `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/**` and compare with every tool count, family count and per-family count the docs state (`McpOverviewPage.vue`, `McpToolsPage.vue`, `McpClaudeCodePage.vue`, `McpCodexPage.vue`, `McpGeminiPage.vue`, `McpOtherClientsPage.vue`, `DocsIndexPage.vue`); `McpToolsetAssemblerTest` pins the authoritative total
    - every tool name the docs mention must exist, and every tool must appear in the tool reference
-   - the non-read-only set is the `WRITES` set in `McpToolsetAssemblerTest`; check every page that names the writers, and that the agent pages describe each agent's allow/deny lists as `jeffrey-claude-plugin/agents/*.md` actually declares them
+   - the non-read-only set is the `WRITES` set in `McpToolsetAssemblerTest`; check every page that names the writers, and that the agent pages describe each agent's allow/deny lists as `jeffrey-agent-plugin/agents/*.md` actually declares them
    - every `jeffrey.microscope.mcp.*` key in `core-microscope/src/main/resources/application.properties` is documented with the same default, and no documented property is missing from the code — a switch the docs describe that the code does not have is a finding
    - methods, capabilities and error codes in `mcp-protocol`'s `McpDispatcher` and `profiles/mcp-server/.../AbstractMcpStreamableHttpController.java` match `McpOtherClientsPage.vue`. There is no `initialize` method: the page shows it only as a refused request, which must match `McpRequestValidator`
-   - skills in `jeffrey-claude-plugin/skills/` match the skills page and the `prompts/list` example
+   - skills in `jeffrey-agent-plugin/skills/` match the skills page and the `prompts/list` example
 
 5. **Check configuration pages** — every `jeffrey.microscope.*` and `jeffrey.hub.*` key in the two `application.properties` files appears on the corresponding configuration page with the right default, and vice versa.
 

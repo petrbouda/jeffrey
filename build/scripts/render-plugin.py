@@ -33,6 +33,12 @@ So those parts have one source each under `build/plugin/`, and this script write
   families (`heap_*`) or the whole server (`*`); it is written out as exact tool names from
   `build/mcp/tools-list.snapshot.json` behind both prefixes, so a new tool in a family reaches the
   agent and no family wildcard ever reaches Claude Code.
+- `manifests/` — the plugin's identity once (`identity.json`: name, version, description, author,
+  homepage, repository, licence, keywords — the one file a version bump edits) and one template per
+  manifest a client reads: Claude Code's, Codex's, the Agent Plugins one, Gemini CLI's, and the
+  plugin entry both marketplaces carry. A template value `@identity` takes the identity's value of
+  the same key, and `@plugin-dir` is the marketplace `source`, `./` + `PLUGIN_DIR`; everything else in
+  a template is what only that client reads, written as it stands.
 
 Usage: render-plugin.py <repo-root>            writes every generated file
        render-plugin.py <repo-root> --check    fails, naming them, when any is not what it would write
@@ -47,7 +53,8 @@ from pathlib import Path
 
 import yaml
 
-PLUGIN_DIR = "jeffrey-claude-plugin"
+from plugin_layout import PLUGIN_DIR
+
 SOURCE_DIR = "build/plugin"
 TOOLS_SNAPSHOT = "build/mcp/tools-list.snapshot.json"
 CHECK_FLAG = "--check"
@@ -62,6 +69,11 @@ INCLUDE = re.compile(r"^<!-- include: (?P<source>shared/[\w.-]+\.md) -->$")
 CLAUDE_BLOCK, PORTABLE_BLOCK, END_BLOCK = "<!-- claude -->", "<!-- portable -->", "<!-- end -->"
 DIALECT_BLOCKS = {CLAUDE_BLOCK: "claude", PORTABLE_BLOCK: "portable"}
 TOML_WIDTH = 103
+
+# A manifest template's placeholders: the identity's value of the same key, and the marketplace source.
+IDENTITY_VALUE = "@identity"
+PLUGIN_DIR_VALUE = "@plugin-dir"
+IDENTITY_SOURCE = "manifests/identity.json"
 
 
 @dataclass(frozen=True)
@@ -97,8 +109,47 @@ SHARED_SENTENCES = (
 )
 
 
+@dataclass(frozen=True)
+class ManifestOutput:
+    """A manifest a client reads, rendered from a template under `manifests/`; `path` is from the repository root."""
+    template: str
+    path: str
+
+
+MANIFEST_OUTPUTS = (
+    ManifestOutput("manifests/claude-plugin.json", f"{PLUGIN_DIR}/.claude-plugin/plugin.json"),
+    ManifestOutput("manifests/codex-plugin.json", f"{PLUGIN_DIR}/.codex-plugin/plugin.json"),
+    ManifestOutput("manifests/agent-plugin.json", f"{PLUGIN_DIR}/plugin.json"),
+    ManifestOutput("manifests/gemini-extension.json", f"{PLUGIN_DIR}/gemini-extension.json"),
+    ManifestOutput("manifests/marketplace.json", ".claude-plugin/marketplace.json"),
+    ManifestOutput("manifests/marketplace.json", ".agents/plugins/marketplace.json"),
+)
+
+
 class RenderError(Exception):
     pass
+
+
+# --- manifests -----------------------------------------------------------------------------------
+
+def render_manifest(template: dict, identity: dict, template_name: str) -> str:
+    return json.dumps(with_identity(template, identity, template_name), indent=2, ensure_ascii=False) + "\n"
+
+
+def with_identity(value, identity: dict, template_name: str, key: str | None = None):
+    if isinstance(value, dict):
+        return {name: with_identity(item, identity, template_name, name) for name, item in value.items()}
+    if isinstance(value, list):
+        return [with_identity(item, identity, template_name) for item in value]
+    if value == IDENTITY_VALUE:
+        if key not in identity:
+            raise RenderError(f"{template_name}: '{key}' takes {IDENTITY_VALUE}, which {IDENTITY_SOURCE} does not define")
+        return identity[key]
+    if value == PLUGIN_DIR_VALUE:
+        return f"./{PLUGIN_DIR}"
+    if isinstance(value, str) and value.startswith("@") and " " not in value:
+        raise RenderError(f"{template_name}: '{key}' holds the unknown placeholder {value}")
+    return value
 
 
 # --- skills --------------------------------------------------------------------------------------
@@ -256,6 +307,10 @@ def rendered(root: Path) -> dict[Path, str]:
         files[plugin / "codex" / "agents" / f"{agent.name}.toml"] = render_codex(agent)
         if agent.gemini is not None:
             files[plugin / "gemini" / "agents" / f"{agent.name}.md"] = render_gemini(agent)
+    identity = json.loads((sources / IDENTITY_SOURCE).read_text())
+    for output in MANIFEST_OUTPUTS:
+        template = json.loads((sources / output.template).read_text())
+        files[root / output.path] = render_manifest(template, identity, output.template)
     return files
 
 

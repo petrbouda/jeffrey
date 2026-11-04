@@ -47,7 +47,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-PLUGIN_DIR = "jeffrey-claude-plugin"
+from plugin_layout import PLUGIN_DIR
 TOOLS_SNAPSHOT = "build/mcp/tools-list.snapshot.json"
 SELF_TEST_FLAG = "--self-test"
 CHECKED_SUFFIXES = {".md", ".toml"}

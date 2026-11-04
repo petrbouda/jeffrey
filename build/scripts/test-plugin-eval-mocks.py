@@ -28,8 +28,10 @@ from unittest.mock import patch
 
 import yaml
 
+from plugin_layout import PLUGIN_DIR
+
 ROOT = Path(__file__).resolve().parents[2]
-MOCKS = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
+MOCKS = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
 spec = importlib.util.spec_from_file_location('recorder', ROOT / 'build/scripts/record-plugin-eval-mocks.py')
 recorder = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = recorder
@@ -210,8 +212,8 @@ class AddressingTest(unittest.TestCase):
 
 class CheckedInContractTest(unittest.TestCase):
     def test_every_checked_in_case_uses_current_contract(self):
-        mocks = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
-        cases = ROOT / 'jeffrey-claude-plugin/evals/cases'
+        mocks = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
+        cases = ROOT / PLUGIN_DIR / 'evals/cases'
         tools = json.loads((mocks / '_tools.json').read_text())['tools']
         inputs = json.loads((mocks / '_inputs.json').read_text())
         with tempfile.TemporaryDirectory() as temp:
@@ -226,8 +228,8 @@ class CheckedInContractTest(unittest.TestCase):
                     self.assertEqual(expected, (case / 'graders/recorded-call-semantics.md').read_text())
 
     def test_checked_in_inputs_and_weighting_counterexamples_in_javascript(self):
-        mocks = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
-        path = ROOT / 'jeffrey-claude-plugin/evals/cases/named-area-cpu/graders/recorded-call-semantics.md'
+        mocks = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
+        path = ROOT / PLUGIN_DIR / 'evals/cases/named-area-cpu/graders/recorded-call-semantics.md'
         pattern = yaml.safe_load(path.read_text().split('---')[1])['pattern']
         inputs = json.loads((mocks / '_inputs.json').read_text())
         tests = [{'call': {'tool': 'mcp__plugin_microscope_jeffrey__' + x['tool'], 'input': x['arguments']}, 'fails': False}
@@ -261,7 +263,7 @@ class AnswerSizeTest(unittest.TestCase):
     UNDECLARED_MAX_CHARS = 50_000
 
     def test_every_recorded_answer_of_an_undeclared_tool_fits_the_clients_limit(self):
-        mocks = ROOT / 'jeffrey-claude-plugin/evals/mocks/jeffrey'
+        mocks = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
         tools = json.loads((mocks / '_tools.json').read_text())['tools']
         declared = {tool['name'] for tool in tools
                     if (tool.get('_meta') or {}).get('anthropic/maxResultSizeChars')}
@@ -285,7 +287,7 @@ class ScaffoldTest(unittest.TestCase):
 
     @staticmethod
     def scaffolds():
-        cases = ROOT / 'jeffrey-claude-plugin/evals/cases'
+        cases = ROOT / PLUGIN_DIR / 'evals/cases'
         return sorted(script for script in cases.glob('*/setup.sh') if "<<'CHECKOUT_JAVA'" in script.read_text())
 
     def test_the_implement_fixes_cases_scaffold_the_repository(self):
@@ -293,7 +295,7 @@ class ScaffoldTest(unittest.TestCase):
                          [script.parent.name for script in self.scaffolds()])
 
     def test_the_scaffolded_repository_holds_the_recorded_workload_verbatim(self):
-        workload = (ROOT / 'jeffrey-claude-plugin/evals/fixtures/workload/com/acme/checkout/Checkout.java').read_text()
+        workload = (ROOT / PLUGIN_DIR / 'evals/fixtures/workload/com/acme/checkout/Checkout.java').read_text()
         for script in self.scaffolds():
             with self.subTest(case=script.parent.name):
                 embedded = re.search(r"<<'CHECKOUT_JAVA'\n(.*?)^CHECKOUT_JAVA$", script.read_text(), re.S | re.M)
@@ -314,7 +316,7 @@ class ScaffoldTest(unittest.TestCase):
 
 class VerdictContractTest(unittest.TestCase):
     def test_false_slowdown_is_explicitly_a_semantic_failure(self):
-        graders = ROOT / 'jeffrey-claude-plugin/evals/cases/compare-finds-the-regression/graders'
+        graders = ROOT / PLUGIN_DIR / 'evals/cases/compare-finds-the-regression/graders'
         judges = [p for p in graders.glob('*.md') if yaml.safe_load(p.read_text().split('---')[1])['type'] == 'llm']
         self.assertTrue(judges, 'a semantic verdict requires an LLM rubric, not keyword presence')
         rubrics = '\n'.join(p.read_text() for p in judges)

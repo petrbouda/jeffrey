@@ -1,0 +1,102 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Publishes the microscope plugin as a Gemini CLI extension on the `gemini-extension` branch.
+#
+# Gemini installs an extension only when gemini-extension.json is at the root of what it fetches,
+# and on master the plugin lives one directory down (jeffrey-agent-plugin/). A release asset does
+# not help: Jeffrey's releases carry several assets, so Gemini cannot pick one and falls back to the
+# source archive, where the manifest is again one level down - and the plugin ships from master, as
+# both marketplaces do, not with the releases. So this job writes the plugin directory, without its
+# evals, as the whole tree of a one-commit branch, and users install it with
+#
+#   gemini extensions install https://github.com/petrbouda/jeffrey --ref gemini-extension
+#
+# The branch is generated and owned by this job: each run replaces it with a fresh snapshot
+# (a force push), and a run whose snapshot matches what the branch already holds pushes nothing.
+name: Publish Gemini Extension
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'jeffrey-agent-plugin/**'
+      - '.github/workflows/publish-gemini-extension.yml'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build the snapshot and list it, but do not push the branch'
+        required: false
+        default: false
+        type: boolean
+
+# One publication at a time; the newest master wins.
+concurrency:
+  group: publish-gemini-extension
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  PLUGIN_DIR: jeffrey-agent-plugin
+  BRANCH: gemini-extension
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # Development material stays on master: the evals are in the package only because
+      # `claude plugin eval` reads them from below the plugin root.
+      - name: Snapshot the plugin directory
+        run: |
+          SNAPSHOT="$RUNNER_TEMP/extension"
+          mkdir -p "$SNAPSHOT"
+          cp -a "$PLUGIN_DIR/." "$SNAPSHOT/"
+          rm -rf "$SNAPSHOT/evals" "$SNAPSHOT/evals-live"
+          test -f "$SNAPSHOT/gemini-extension.json" || { echo "::error::no gemini-extension.json in $PLUGIN_DIR"; exit 1; }
+          test -x "$SNAPSHOT/hooks/jeffrey-status.sh" || { echo "::error::the SessionStart hook lost its executable bit"; exit 1; }
+          echo "SNAPSHOT=$SNAPSHOT" >> "$GITHUB_ENV"
+          echo "VERSION=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$SNAPSHOT/gemini-extension.json")" >> "$GITHUB_ENV"
+          (cd "$SNAPSHOT" && find . -type f | sort)
+
+      - name: Commit the snapshot as the branch's only commit
+        working-directory: ${{ env.SNAPSHOT }}
+        run: |
+          git init -q -b "$BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "microscope $VERSION from $GITHUB_SHA"
+          git log --stat --oneline -1 | tail -1
+
+      - name: Push the branch when its contents changed
+        if: ${{ !inputs.dry_run }}
+        working-directory: ${{ env.SNAPSHOT }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth 1 "$REMOTE" "$BRANCH" 2>/dev/null \
+              && [ "$(git rev-parse 'FETCH_HEAD^{tree}')" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "$BRANCH already holds this snapshot - nothing to push."
+            exit 0
+          fi
+          git push --force "$REMOTE" "HEAD:refs/heads/$BRANCH"
+          echo "Published microscope $VERSION to $BRANCH."

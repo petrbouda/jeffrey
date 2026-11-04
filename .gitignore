@@ -92,3 +92,5 @@ jeffrey-hub/http-client/
 .playwright-mcp/
 
 .codex
+# Python bytecode (build/scripts)
+__pycache__/

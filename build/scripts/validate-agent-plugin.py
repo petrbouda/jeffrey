@@ -67,7 +67,7 @@ REMOTE_TRANSPORTS = {"streamable-http", "sse"}
 REMOTE_FIELDS = {"type", "url", "headers"}
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
 
-PLUGIN_DIR = "jeffrey-claude-plugin"
+from plugin_layout import PLUGIN_DIR
 SELF_TEST_FLAG = "--self-test"
 FRONTMATTER_DELIMITER = "---"
 
@@ -221,6 +221,7 @@ def check_versions(root: Path) -> None:
         f"{PLUGIN_DIR}/plugin.json": lambda d: d.get("version"),
         f"{PLUGIN_DIR}/.claude-plugin/plugin.json": lambda d: d.get("version"),
         f"{PLUGIN_DIR}/.codex-plugin/plugin.json": lambda d: d.get("version"),
+        f"{PLUGIN_DIR}/gemini-extension.json": lambda d: d.get("version"),
         ".claude-plugin/marketplace.json": lambda d: d["plugins"][0].get("version"),
         ".agents/plugins/marketplace.json": lambda d: d["plugins"][0].get("version"),
     }
