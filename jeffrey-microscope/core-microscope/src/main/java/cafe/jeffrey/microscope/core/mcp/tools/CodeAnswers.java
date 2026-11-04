@@ -216,7 +216,7 @@ final class CodeAnswers {
             if (value.method().className().isEmpty()) {
                 continue;
             }
-            Proximity proximity = proximity(ref, MethodRef.of(value.method()));
+            Proximity proximity = proximity(ref, value.method());
             if (proximity != Proximity.UNRELATED) {
                 byProximity.computeIfAbsent(proximity, _ -> new ArrayList<>()).add(value);
             }
@@ -235,7 +235,7 @@ final class CodeAnswers {
                 continue;
             }
             MethodRef candidate = MethodRef.of(value.method());
-            Proximity proximity = proximity(ref, candidate);
+            Proximity proximity = proximity(ref, value.method());
             if (proximity == Proximity.SAME_METHOD_AND_CLASS || proximity == Proximity.SAME_METHOD_AND_NESTED_CLASS) {
                 candidates.computeIfAbsent(proximity, _ -> new LinkedHashSet<>()).add(candidate);
             }
@@ -257,16 +257,22 @@ final class CodeAnswers {
         UNRELATED
     }
 
-    private static Proximity proximity(MethodRef ref, MethodRef candidate) {
+    private static Proximity proximity(MethodRef ref, MethodKey frame) {
         String refClass = sourceClass(ref.className());
-        String candidateClass = sourceClass(candidate.className());
-        boolean sameName = ref.methodName() != null && ref.methodName().equals(candidate.methodName());
-        if (candidateClass.equals(refClass) || candidateClass.endsWith(SOURCE_SEPARATOR + refClass)) {
+        String binaryName = frame.className();
+        int packageEnd = binaryName.lastIndexOf(SOURCE_SEPARATOR);
+        String candidateClass = sourceClass(binaryName);
+        String simpleClass = sourceClass(binaryName.substring(packageEnd + 1));
+        boolean sameName = ref.methodName() != null && ref.methodName().equals(MethodRef.of(frame).methodName());
+        if (candidateClass.equals(refClass) || simpleClass.equals(refClass)) {
             return sameName ? Proximity.SAME_METHOD_AND_CLASS : Proximity.SAME_CLASS;
         }
-        String nestedPrefix = refClass + SOURCE_SEPARATOR;
-        if (candidateClass.startsWith(nestedPrefix) || candidateClass.contains(SOURCE_SEPARATOR + nestedPrefix)) {
-            return sameName ? Proximity.SAME_METHOD_AND_NESTED_CLASS : Proximity.NESTED_CLASS;
+        for (int boundary = binaryName.indexOf(NESTED_SEPARATOR, packageEnd + 1); boundary >= 0;
+             boundary = binaryName.indexOf(NESTED_SEPARATOR, boundary + 1)) {
+            if (sourceClass(binaryName.substring(0, boundary)).equals(refClass)
+                    || sourceClass(binaryName.substring(packageEnd + 1, boundary)).equals(refClass)) {
+                return sameName ? Proximity.SAME_METHOD_AND_NESTED_CLASS : Proximity.NESTED_CLASS;
+            }
         }
         return sameName ? Proximity.SAME_METHOD : Proximity.UNRELATED;
     }

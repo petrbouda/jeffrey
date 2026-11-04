@@ -30,6 +30,9 @@ import java.util.List;
  * @param totalNanos         their summed duration
  * @param unattributedEvents the events without stacks or whose stack held no own frame
  * @param sites              the call sites, longest total first
+ * @param totalSites         every attributed site before the selection cap
+ * @param totalGroups        every attributed group before the selection cap
+ * @param groups             complete figures of the selected groups and only their selected sites
  * @param operationEntries   for events issued inside traced requests, the outermost own frame of their
  *                           stacks per operation -- the handler the request entered the code through,
  *                           read from the events' own stacks; most events first
@@ -38,12 +41,25 @@ public record CallSites(
         long totalEvents,
         long totalNanos,
         long unattributedEvents,
+        long totalSites,
+        long totalGroups,
         List<CallSite> sites,
+        List<Group> groups,
         List<OperationEntry> operationEntries) {
 
     public CallSites {
         sites = List.copyOf(sites);
+        groups = List.copyOf(groups);
         operationEntries = List.copyOf(operationEntries);
+    }
+
+    /** A complete statement/group and only its selected sites; key distinguishes values beyond the text cut. */
+    public record Group(
+            String key, String value, Integer valueChars, long count, long totalNanos, long totalSites,
+            List<CallSite> sites) {
+        public Group {
+            sites = List.copyOf(sites);
+        }
     }
 
     /**

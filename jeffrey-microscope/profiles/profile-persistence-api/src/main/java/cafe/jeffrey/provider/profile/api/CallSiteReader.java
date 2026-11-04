@@ -23,9 +23,9 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 /**
  * What a call-site read is built by, in the order the repository calls it: each distinct stack the events
  * were committed on is first charged to a site path the reader decides — its own frames, read in Java — and
- * the database then aggregates the events of each path and grouping value, per trace included, and the
- * events of each operation on each stack. The rows handed back are bounded by the distinct stacks and
- * sites, never by the number of events or traces.
+ * the database then calculates complete totals and groups, hands back only the selected ranked sites,
+ * and aggregates the events of each operation on each stack. High-cardinality grouping values never
+ * become an unbounded collection of site rows in Java.
  *
  * @param <T> what the reader builds
  */
@@ -40,7 +40,13 @@ public interface CallSiteReader<T> {
      */
     int pathOf(JfrStackTrace stackTrace);
 
-    /** One path's events of one grouping value, the unattributed path's included. */
+    /** The complete read's figures, once before any group or site, even for an empty read. */
+    void onTotals(CallSiteTotals totals);
+
+    /** Complete figures of a returned group, once before any of its sites. */
+    void onGroup(CallSiteGroupRow group);
+
+    /** One selected attributed path's events of one grouping value. */
     void onSite(CallSiteRow row);
 
     /** One operation's events on one stack, for every stack that belongs to a trace. */

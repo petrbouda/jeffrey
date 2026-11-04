@@ -89,22 +89,58 @@ final class DuckDBCallSiteQueries {
                 WHERE e.event_type = :event_type
             %2$s
                 GROUP BY ALL
+            ),
+            sites AS MATERIALIZED (
+                SELECT path_id, group_value,
+                    SUM(event_count) AS event_count,
+                    SUM(total_duration) AS total_duration,
+                    MAX(max_duration) AS max_duration,
+                    COUNT(trace_id) AS traces,
+                    COALESCE(MAX(event_count) FILTER (WHERE trace_id IS NOT NULL), 0) AS per_trace_max,
+                    COALESCE(MEDIAN(event_count::DOUBLE) FILTER (WHERE trace_id IS NOT NULL), 0) AS per_trace_median,
+                    list_slice(LIST(trace_id ORDER BY event_count DESC, trace_id) FILTER (WHERE trace_id IS NOT NULL),
+                        1, %3$d) AS exemplars
+                FROM per_trace
+                GROUP BY path_id, group_value
+            ),
+            site_groups AS MATERIALIZED (
+                SELECT group_value, SUM(event_count) AS group_event_count,
+                    SUM(total_duration) AS group_total_duration, COUNT(*) AS group_sites,
+                    ROW_NUMBER() OVER (ORDER BY SUM(total_duration) DESC,
+                        group_value NULLS FIRST) AS group_rank
+                FROM sites WHERE path_id <> %4$d
+                GROUP BY group_value
+            ),
+            ranked_sites AS (
+                SELECT s.*, g.group_event_count, g.group_total_duration, g.group_sites, g.group_rank,
+                    ROW_NUMBER() OVER (PARTITION BY s.group_value ORDER BY s.total_duration DESC,
+                        s.event_count DESC, s.path_id) AS site_group_rank,
+                    ROW_NUMBER() OVER (ORDER BY s.total_duration DESC, s.event_count DESC,
+                        s.path_id, s.group_value NULLS FIRST) AS site_rank
+                FROM sites s JOIN site_groups g ON s.group_value IS NOT DISTINCT FROM g.group_value
+                WHERE s.path_id <> %4$d
+            ),
+            selected AS (
+                SELECT * FROM ranked_sites
+                WHERE (:group_limit IS NULL AND site_rank <= :site_limit)
+                   OR (:group_limit IS NOT NULL AND group_rank <= :group_limit AND site_group_rank <= :site_limit)
+            ),
+            totals AS (
+                SELECT COALESCE(SUM(event_count), 0) AS all_events,
+                    COALESCE(SUM(total_duration), 0) AS all_duration,
+                    COALESCE(SUM(event_count) FILTER (WHERE path_id = %4$d), 0) AS unattributed_events,
+                    COUNT(*) FILTER (WHERE path_id <> %4$d) AS all_sites,
+                    (SELECT COUNT(*) FROM site_groups) AS all_groups
+                FROM sites
             )
-            SELECT
-                path_id,
-                left(group_value, :group_value_chars) AS group_value,
-                length(group_value) AS group_value_length,
-                md5(group_value) AS group_key,
-                SUM(event_count) AS event_count,
-                SUM(total_duration) AS total_duration,
-                MAX(max_duration) AS max_duration,
-                COUNT(trace_id) AS traces,
-                COALESCE(MAX(event_count) FILTER (WHERE trace_id IS NOT NULL), 0) AS per_trace_max,
-                COALESCE(MEDIAN(event_count::DOUBLE) FILTER (WHERE trace_id IS NOT NULL), 0) AS per_trace_median,
-                list_slice(LIST(trace_id ORDER BY event_count DESC, trace_id) FILTER (WHERE trace_id IS NOT NULL),
-                    1, %3$d) AS exemplars
-            FROM per_trace
-            GROUP BY path_id, group_value
+            SELECT t.*, r.path_id,
+                left(r.group_value, :group_value_chars) AS group_value,
+                length(r.group_value) AS group_value_length, md5(r.group_value) AS group_key,
+                r.event_count, r.total_duration, r.max_duration, r.traces,
+                r.per_trace_max, r.per_trace_median, r.exemplars,
+                r.group_event_count, r.group_total_duration, r.group_sites
+            FROM totals t LEFT JOIN selected r ON TRUE
+            ORDER BY r.site_rank
             """;
 
     /**

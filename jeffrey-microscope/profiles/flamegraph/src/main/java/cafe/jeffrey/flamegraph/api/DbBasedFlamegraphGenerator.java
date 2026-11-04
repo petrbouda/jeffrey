@@ -199,7 +199,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
             configurer.withJsonFieldEquals(query.filterField(), query.filterValue());
         }
         return Tracer.call(SPAN_CALL_SITES, () -> eventRepository.callSites(
-                configurer, query.groupField(), new CallSiteBuilder(query.scope())));
+                configurer, query.groupField(), query.selection(), new CallSiteBuilder(query.scope())));
     }
 
     /**

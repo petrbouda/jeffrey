@@ -56,6 +56,7 @@ import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.CallSiteRow;
+import cafe.jeffrey.provider.profile.api.CallSiteSelection;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSource;
 import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -264,7 +265,8 @@ public class CodeSurfaceMcpTools {
 
         CallSites sites = profileManager.flamegraphManager().callSites(
                 CodeAnswers.params(type, read.range(), false, false, null),
-                new CallSiteQuery(FrameScope.of(prefixes), group, filter, filterValue));
+                new CallSiteQuery(FrameScope.of(prefixes), group, filter, filterValue,
+                        new CallSiteSelection.Sites(rows)));
         if (sites.sites().isEmpty()) {
             McpFollowUp followUp = NextSteps.builder(advertised)
                     .next(NextCalls.to(DESCRIBE_TOOL).with(PROFILE_ID, info.id()).with(EVENT_TYPE, type.code())
@@ -300,7 +302,7 @@ public class CodeSurfaceMcpTools {
                 .followUp();
         return McpToolResult.of(new CallSitesAnswer(CodeStatus.OK, null, info.id(), type.code(), read.window(),
                 prefixes, source, suggested, group, filter, filterValue, sites.totalEvents(), sites.totalNanos(),
-                sites.unattributedEvents(), shown, sites.sites().size() - shown.size(), followUp, typeLink));
+                sites.unattributedEvents(), shown, sites.totalSites() - shown.size(), followUp, typeLink));
     }
 
     @Tool(description = "Returns what the application did at runtime, tied to your code where the profile "
@@ -467,11 +469,14 @@ public class CodeSurfaceMcpTools {
         Map<TraceOperationId, Map<MethodKey, Long>> entries = new LinkedHashMap<>();
         Map<TraceOperationId, Long> operationEvents = new LinkedHashMap<>();
         FrameScope scope = FrameScope.of(prefixes);
-        Map<StatementKey, StatementAccumulator> byStatement = new LinkedHashMap<>();
+        List<Statement> all = new ArrayList<>();
+        long totalStatements = 0;
         for (Type type : types) {
             CallSites sites = profileManager.flamegraphManager().callSites(
                     CodeAnswers.params(type, whole, false, false, null),
-                    new CallSiteQuery(scope, STATEMENT_NAME_FIELD, null, null));
+                    new CallSiteQuery(scope, STATEMENT_NAME_FIELD, null, null,
+                            new CallSiteSelection.Groups(MAX_STATEMENTS, MAX_SITES_PER_ROW)));
+            totalStatements += sites.totalGroups();
             Set<TraceOperationId> countedOperations = new HashSet<>();
             for (OperationEntry entry : sites.operationEntries()) {
                 if (countedOperations.add(entry.operation())) {
@@ -480,17 +485,11 @@ public class CodeSurfaceMcpTools {
                 entries.computeIfAbsent(entry.operation(), _ -> new LinkedHashMap<>())
                         .merge(entry.method(), entry.events(), Long::sum);
             }
-            for (CallSite site : sites.sites()) {
-                String statement = site.groupValue() == null ? type.code() : site.groupValue();
-                byStatement.computeIfAbsent(new StatementKey(type.code(), statement),
-                        _ -> new StatementAccumulator(type.code(), statement)).add(site);
+            for (CallSites.Group group : sites.groups()) {
+                all.add(statement(type, group));
             }
         }
-        List<Statement> all = byStatement.values().stream()
-                .map(StatementAccumulator::toStatement)
-                .sorted(Comparator.comparingLong(Statement::totalNanos).reversed()
-                        .thenComparing(Statement::statement))
-                .toList();
+        all.sort(Comparator.comparingLong(Statement::totalNanos).reversed().thenComparing(Statement::statement));
         List<Statement> shown = ToolArguments.firstOf(all, MAX_STATEMENTS);
         Map<TraceOperationId, List<OperationEntry>> byOperation = new LinkedHashMap<>();
         entries.forEach((operation, methods) -> byOperation.put(operation, methods.entrySet().stream()
@@ -500,7 +499,7 @@ public class CodeSurfaceMcpTools {
                         .thenComparing(OperationEntry::method))
                 .toList()));
         return new StatementsRead(
-                new Statements(SectionState.READ, STATEMENTS_NOTE, shown, all.size() - shown.size()), byOperation);
+                new Statements(SectionState.READ, STATEMENTS_NOTE, shown, totalStatements - shown.size()), byOperation);
     }
 
     /** The statements section, and the handlers their stacks name per operation. */
@@ -519,9 +518,6 @@ public class CodeSurfaceMcpTools {
                 .toList();
     }
 
-    private record StatementKey(String eventType, String statement) {
-    }
-
     /** A call site's own path as Class#method:line, deepest first; no line when the recording kept none. */
     static List<String> path(CallSite site) {
         return site.ownPath().stream()
@@ -531,33 +527,15 @@ public class CodeSurfaceMcpTools {
                 .toList();
     }
 
-    /** One statement and every own line that issues it. */
-    private static final class StatementAccumulator {
-
-        private final String eventType;
-        private final String statement;
-        private final List<CallSite> sites = new ArrayList<>();
-
-        private StatementAccumulator(String eventType, String statement) {
-            this.eventType = eventType;
-            this.statement = statement;
-        }
-
-        private void add(CallSite site) {
-            sites.add(site);
-        }
-
-        private Statement toStatement() {
-            long count = sites.stream().mapToLong(CallSite::count).sum();
-            long total = sites.stream().mapToLong(CallSite::totalNanos).sum();
-            List<SiteRef> refs = sites.stream()
-                    .sorted(Comparator.comparingLong(CallSite::totalNanos).reversed())
-                    .limit(MAX_SITES_PER_ROW)
-                    .map(site -> new SiteRef(path(site), site.count(),
-                            site.traces() > 0 && site.perTraceMedian() >= REPEATED_PER_TRACE))
-                    .toList();
-            return new Statement(eventType, statement, count, total, refs, Math.max(0, sites.size() - refs.size()));
-        }
+    /** Complete statement figures come from SQL, even when only a few of its sites are returned. */
+    private static Statement statement(Type type, CallSites.Group group) {
+        List<SiteRef> refs = group.sites().stream()
+                .sorted(Comparator.comparingLong(CallSite::totalNanos).reversed())
+                .map(site -> new SiteRef(path(site), site.count(),
+                        site.traces() > 0 && site.perTraceMedian() >= REPEATED_PER_TRACE))
+                .toList();
+        return new Statement(type.code(), group.value() == null ? type.code() : group.value(),
+                group.count(), group.totalNanos(), refs, group.totalSites() - refs.size());
     }
 
     /**
@@ -591,7 +569,7 @@ public class CodeSurfaceMcpTools {
             @McpDescription("Call sites, longest total duration first")
             List<Site> sites,
             @McpDescription("Further call sites, counted rather than listed")
-            int omittedSites,
+            long omittedSites,
             McpFollowUp followUp,
             @McpDescription("The flamegraph of the event type in Microscope, for the user")
             String uiLink) {
@@ -749,7 +727,7 @@ public class CodeSurfaceMcpTools {
             String note,
             @McpDescription("Statements, longest total duration first")
             List<Statement> statements,
-            int omittedStatements) {
+            long omittedStatements) {
     }
 
     record Statement(
@@ -760,7 +738,7 @@ public class CodeSurfaceMcpTools {
             long totalNanos,
             @McpDescription("The lines of yours that issue it, longest first")
             List<SiteRef> callSites,
-            int omittedCallSites) {
+            long omittedCallSites) {
     }
 
     record SiteRef(

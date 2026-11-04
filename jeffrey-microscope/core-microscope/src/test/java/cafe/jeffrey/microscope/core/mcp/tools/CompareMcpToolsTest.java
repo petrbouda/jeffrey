@@ -246,6 +246,16 @@ class CompareMcpToolsTest {
         }
 
         @Test
+        void aDifferentPackageCannotMasqueradeAsTheRequestedQualifiedClass() {
+            assertNoAutomaticRetry(compareAbsent(List.of(value("other.com.acme.Orders$Repository", "save", 10000))));
+        }
+
+        @Test
+        void aPackageDescendantIsNotANestedClass() {
+            assertNoAutomaticRetry(compareAbsent(List.of(value("com.acme.Orders.repositories.Worker", "save", 10000))));
+        }
+
+        @Test
         void ambiguousNestedClassesDoNotChooseTheHottestOne() {
             assertNoAutomaticRetry(compareAbsent(List.of(
                     value("com.acme.Orders$FirstRepository", "save", 1000),

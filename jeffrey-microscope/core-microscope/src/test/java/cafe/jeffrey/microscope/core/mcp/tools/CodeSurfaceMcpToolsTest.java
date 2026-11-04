@@ -29,6 +29,9 @@ import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.CallSiteSelection;
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -51,6 +54,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_F
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -87,6 +91,7 @@ class CodeSurfaceMcpToolsTest {
         when(manager.traceAttributesManager()).thenReturn(attributes);
         when(flamegraphs.allEventSummaries()).thenReturn(List.of(summary(JDBC_QUERY)));
         when(flamegraphs.graphableEventSummaries()).thenReturn(List.of(summary(JDBC_QUERY)));
+        when(traces.operations(any())).thenReturn(new TraceOperationsPage(List.of(), 0));
     }
 
     @AfterEach
@@ -111,8 +116,8 @@ class CodeSurfaceMcpToolsTest {
             List<EventSummaryResult> types = List.of(summary(JDBC_QUERY), summary(JDBC_UPDATE));
             when(flamegraphs.allEventSummaries()).thenReturn(types);
             when(flamegraphs.graphableEventSummaries()).thenReturn(types);
-            when(flamegraphs.callSites(any(), any())).thenReturn(new CallSites(100, 1000, 0,
-                    List.of(), List.of(
+            when(flamegraphs.callSites(any(), any())).thenReturn(new CallSites(100, 1000, 0, 0, 0,
+                    List.of(), List.of(), List.of(
                             new CallSites.OperationEntry(OPERATION, FILTER, 100, 100),
                             new CallSites.OperationEntry(OPERATION, HANDLER, 100, 100))));
             when(traces.operations(any())).thenReturn(new TraceOperationsPage(List.of(
@@ -131,7 +136,79 @@ class CodeSurfaceMcpToolsTest {
     }
 
     @Nested
+    class BoundedStatements {
+
+        @Test
+        void completeGroupFiguresAndOmissionsDoNotDependOnReturnedSites() {
+            CallSites.CallSite smallSite = site(1, 10);
+            CallSites.CallSite largeSite = site(1, 5000);
+            CallSites.Group spread = new CallSites.Group("spread", "spread", 6,
+                    1000, 10000, 20, List.of(smallSite, smallSite, smallSite));
+            CallSites.Group single = new CallSites.Group("single", "single", 6,
+                    1, 5000, 1, List.of(largeSite));
+            when(flamegraphs.callSites(any(), any())).thenReturn(new CallSites(2000, 50000, 0,
+                    100, 40, List.of(smallSite, smallSite, smallSite, largeSite), List.of(spread, single), List.of()));
+
+            JsonNode answer = tools().runtimeSurface(OWN).structuredContent();
+
+            JsonNode statements = answer.path("statements").path("statements");
+            assertEquals(2, statements.size());
+            assertEquals("spread", statements.get(0).path("statement").asString());
+            assertEquals(1000, statements.get(0).path("count").asLong());
+            assertEquals(10000, statements.get(0).path("totalNanos").asLong());
+            assertEquals(17, statements.get(0).path("omittedCallSites").asLong());
+            assertEquals(38, answer.path("statements").path("omittedStatements").asLong());
+            ArgumentCaptor<CallSiteQuery> query = ArgumentCaptor.forClass(CallSiteQuery.class);
+            verify(flamegraphs).callSites(any(), query.capture());
+            assertEquals(new CallSiteSelection.Groups(15, 3), query.getValue().selection());
+        }
+
+        @Test
+        void equalDisplayedNamesDoNotMergeDistinctWholeValues() {
+            CallSites.CallSite site = site(1, 100);
+            CallSites.Group first = new CallSites.Group("first-digest", "same displayed prefix", 201,
+                    1, 100, 1, List.of(site));
+            CallSites.Group second = new CallSites.Group("second-digest", "same displayed prefix", 201,
+                    1, 100, 1, List.of(site));
+            when(flamegraphs.callSites(any(), any())).thenReturn(new CallSites(2, 200, 0, 2, 2,
+                    List.of(site, site), List.of(first, second), List.of()));
+
+            JsonNode answer = tools().runtimeSurface(OWN).structuredContent();
+
+            JsonNode statements = answer.path("statements").path("statements");
+            assertEquals(2, statements.size());
+            for (JsonNode statement : statements) {
+                assertEquals(1, statement.path("count").asLong());
+            }
+            assertEquals(0, answer.path("statements").path("omittedStatements").asLong());
+        }
+    }
+
+    private static CallSites.CallSite site(long count, long duration) {
+        MethodKey method = new MethodKey("com.acme.Repository", "find");
+        return new CallSites.CallSite(method, 10, List.of(new CallSites.PathFrame(method, 10)),
+                "find", 4, count, duration, duration, 0, 0, 0, List.of());
+    }
+
+    @Nested
     class CallSiteFollowUps {
+
+        @Test
+        void omissionCountsUseAllSitesWhileTheRequestedCapReachesSql() {
+            CallSites.CallSite site = site(1, 100);
+            when(flamegraphs.callSites(any(), any())).thenReturn(new CallSites(100, 10000, 5,
+                    25, 20, List.of(site), List.of(), List.of()));
+
+            JsonNode answer = tools().callSites(JDBC_QUERY, OWN, null, null, null, 1, null, null)
+                    .structuredContent();
+
+            assertEquals(100, answer.path("totalEvents").asLong());
+            assertEquals(24, answer.path("omittedSites").asLong());
+            assertEquals(1, answer.path("sites").size());
+            ArgumentCaptor<CallSiteQuery> query = ArgumentCaptor.forClass(CallSiteQuery.class);
+            verify(flamegraphs).callSites(any(), query.capture());
+            assertEquals(new CallSiteSelection.Sites(1), query.getValue().selection());
+        }
 
         @Test
         void methodReadKeepsTheRequestedWindow() {
@@ -140,7 +217,7 @@ class CodeSurfaceMcpToolsTest {
                     List.of(new CallSites.PathFrame(method, 10)), "find", 4,
                     1, 100, 100, 0, 0, 0, List.of());
             when(flamegraphs.callSites(any(), any())).thenReturn(
-                    new CallSites(1, 100, 0, List.of(site), List.of()));
+                    new CallSites(1, 100, 0, 1, 1, List.of(site), List.of(), List.of()));
             long from = START.plusSeconds(1).toEpochMilli();
             long to = START.plusSeconds(2).toEpochMilli();
 

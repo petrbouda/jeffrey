@@ -58,6 +58,25 @@ class CodeSurfaceIntegrationTest extends TestappVolumeMicroscope {
     class CallSites {
 
         @Test
+        void oneSiteKeepsTheWholeReadsTotalsAndCountsEveryOmittedSite() {
+            JsonNode complete = answer("code_callSites", DIRECT, Json.createObject()
+                    .put("eventType", JDBC_QUERY)
+                    .put("limit", 50)
+                    .set("framePrefixes", own()));
+            JsonNode bounded = answer("code_callSites", DIRECT, Json.createObject()
+                    .put("eventType", JDBC_QUERY)
+                    .put("limit", 1)
+                    .set("framePrefixes", own()));
+
+            assertEquals("OK", bounded.path("status").asString(), bounded::toString);
+            assertEquals(1, bounded.path("sites").size());
+            assertEquals(complete.path("totalEvents"), bounded.path("totalEvents"));
+            assertEquals(complete.path("totalNanos"), bounded.path("totalNanos"));
+            assertEquals(complete.path("unattributedEvents"), bounded.path("unattributedEvents"));
+            assertEquals(complete.path("sites").size() - 1, bounded.path("omittedSites").asLong());
+        }
+
+        @Test
         void everyQueryIsChargedToTheServicesOwnCodeAndCountsAsTheRecordingDoes() {
             JsonNode answer = answer("code_callSites", DIRECT, Json.createObject()
                     .put("eventType", JDBC_QUERY)

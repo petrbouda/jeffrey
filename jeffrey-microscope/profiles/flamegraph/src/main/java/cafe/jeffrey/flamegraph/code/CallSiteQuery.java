@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.flamegraph.code;
 
+import cafe.jeffrey.provider.profile.api.CallSiteSelection;
+
 import java.util.regex.Pattern;
 
 /**
@@ -28,8 +30,10 @@ import java.util.regex.Pattern;
  *                    {@code name}, its {@code sql}, a request's {@code uri}); {@code null} for none
  * @param filterField a field to narrow by, or {@code null}
  * @param filterValue the value {@code filterField} must hold; given exactly when the field is
+ * @param selection   bounds the ranked sites or statement groups before they reach Java
  */
-public record CallSiteQuery(FrameScope scope, String groupField, String filterField, String filterValue) {
+public record CallSiteQuery(
+        FrameScope scope, String groupField, String filterField, String filterValue, CallSiteSelection selection) {
 
     /** A JFR event field name: an identifier, nothing a JSON path could escape from. */
     private static final Pattern FIELD_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
@@ -37,6 +41,9 @@ public record CallSiteQuery(FrameScope scope, String groupField, String filterFi
     public CallSiteQuery {
         if (scope == null) {
             throw new IllegalArgumentException("scope must not be null");
+        }
+        if (selection == null) {
+            throw new IllegalArgumentException("selection must not be null");
         }
         groupField = blankToNull(groupField);
         filterField = blankToNull(filterField);

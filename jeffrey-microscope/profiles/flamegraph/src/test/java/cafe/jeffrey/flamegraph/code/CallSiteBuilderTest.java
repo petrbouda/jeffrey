@@ -24,6 +24,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.provider.profile.api.CallSiteReader;
 import cafe.jeffrey.provider.profile.api.CallSiteRow;
+import cafe.jeffrey.provider.profile.api.CallSiteTotals;
 import cafe.jeffrey.provider.profile.api.OperationStackRow;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import org.junit.jupiter.api.Nested;
@@ -138,7 +139,7 @@ class CallSiteBuilderTest {
         void aStackWithoutOwnCodeIsCountedButNotASite() {
             CallSiteBuilder builder = builder(OWN);
             int path = builder.pathOf(stack(1, RUN, EMIT, COMMIT));
-            builder.onSite(row(path, FIND_ORDER, 4, 100));
+            builder.onTotals(new CallSiteTotals(4, 100, 4, 0, 0));
 
             assertEquals(CallSiteReader.UNATTRIBUTED, path);
             CallSites sites = builder.build();

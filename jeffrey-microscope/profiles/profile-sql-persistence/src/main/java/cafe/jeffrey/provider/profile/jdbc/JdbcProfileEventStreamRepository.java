@@ -40,9 +40,12 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
@@ -54,6 +57,8 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private static final String GROUP_VALUE_CHARS_PARAM = "group_value_chars";
     private static final String STACK_HASHES_PARAM = "stack_hashes";
     private static final String PATH_IDS_PARAM = "path_ids";
+    private static final String SITE_LIMIT_PARAM = "site_limit";
+    private static final String GROUP_LIMIT_PARAM = "group_limit";
     private static final String STACKTRACE_HASH = "stacktrace_hash";
     private static final String FRAME_HASHES = "frame_hashes";
     private static final String PATH_ID = "path_id";
@@ -67,6 +72,14 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private static final String PER_TRACE_MAX = "per_trace_max";
     private static final String PER_TRACE_MEDIAN = "per_trace_median";
     private static final String EXEMPLARS = "exemplars";
+    private static final String ALL_EVENTS = "all_events";
+    private static final String ALL_DURATION = "all_duration";
+    private static final String UNATTRIBUTED_EVENTS = "unattributed_events";
+    private static final String ALL_SITES = "all_sites";
+    private static final String ALL_GROUPS = "all_groups";
+    private static final String GROUP_EVENT_COUNT = "group_event_count";
+    private static final String GROUP_TOTAL_DURATION = "group_total_duration";
+    private static final String GROUP_SITES = "group_sites";
     private static final String ROOT_NAME = "root_name";
     private static final String ROOT_KIND = "root_kind";
     private static final String ROOT_EVENT_TYPE = "root_event_type";
@@ -228,13 +241,20 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     }
 
     @Override
-    public <T> T callSites(EventQueryConfigurer configurer, String groupField, CallSiteReader<T> reader) {
+    public <T> T callSites(EventQueryConfigurer configurer, String groupField,
+                           CallSiteSelection selection, CallSiteReader<T> reader) {
         MapSqlParameterSource params = createBaseParams(configurer);
         applyJsonFieldFilter(params, configurer.jsonFieldFilter());
         if (groupField != null) {
             params.addValue(GROUP_PATH_PARAM, JSON_ROOT_PATH_PREFIX + DuckDBCallSiteQueries.requireFieldName(groupField));
         }
         params.addValue(GROUP_VALUE_CHARS_PARAM, CallSiteRow.MAX_GROUP_VALUE_CHARS);
+        switch (selection) {
+            case CallSiteSelection.Sites(int limit) -> params
+                    .addValue(SITE_LIMIT_PARAM, limit).addValue(GROUP_LIMIT_PARAM, null);
+            case CallSiteSelection.Groups(int limit, int sitesPerGroup) -> params
+                    .addValue(SITE_LIMIT_PARAM, sitesPerGroup).addValue(GROUP_LIMIT_PARAM, limit);
+        }
         FramesCache framesCache = framesCacheSlot.resolve(() -> FramesCache.load(databaseClient));
 
         // The stacks first, each charged to a path by the reader; the database then aggregates by path.
@@ -257,8 +277,8 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 StatementLabel.STREAM_EVENTS,
                 DuckDBCallSiteQueries.sites(groupField, configurer, CallSiteRow.MAX_EXEMPLARS),
                 params,
-                (rs, _) -> siteOf(rs),
-                reader::onSite);
+                (rs, _) -> callSiteResultOf(rs),
+                new CallSiteResults<>(reader));
         if (stacks.isEmpty()) {
             return reader.build();
         }
@@ -277,6 +297,46 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                     }
                 });
         return reader.build();
+    }
+
+    private record CallSiteResult(CallSiteTotals totals, CallSiteGroupRow group, CallSiteRow site) {
+    }
+
+    /** The result repeats complete aggregates per selected row; the protocol hands each one over once. */
+    private static final class CallSiteResults<T> implements Consumer<CallSiteResult> {
+        private final CallSiteReader<T> reader;
+        private final Set<String> groups = new HashSet<>();
+        private boolean totalsRead;
+
+        private CallSiteResults(CallSiteReader<T> reader) {
+            this.reader = reader;
+        }
+
+        @Override
+        public void accept(CallSiteResult row) {
+            if (!totalsRead) {
+                reader.onTotals(row.totals());
+                totalsRead = true;
+            }
+            if (row.group() != null && groups.add(row.group().key())) {
+                reader.onGroup(row.group());
+            }
+            if (row.site() != null) {
+                reader.onSite(row.site());
+            }
+        }
+    }
+
+    private static CallSiteResult callSiteResultOf(ResultSet rs) throws SQLException {
+        CallSiteTotals totals = new CallSiteTotals(rs.getLong(ALL_EVENTS), rs.getLong(ALL_DURATION),
+                rs.getLong(UNATTRIBUTED_EVENTS), rs.getLong(ALL_SITES), rs.getLong(ALL_GROUPS));
+        if (rs.getObject(PATH_ID) == null) {
+            return new CallSiteResult(totals, null, null);
+        }
+        CallSiteRow site = siteOf(rs);
+        CallSiteGroupRow group = new CallSiteGroupRow(site.groupKey(), site.groupValue(), site.groupValueChars(),
+                rs.getLong(GROUP_EVENT_COUNT), rs.getLong(GROUP_TOTAL_DURATION), rs.getLong(GROUP_SITES));
+        return new CallSiteResult(totals, group, site);
     }
 
     private static JfrStackTrace stackOf(ResultSet rs, FramesCache framesCache) throws SQLException {
