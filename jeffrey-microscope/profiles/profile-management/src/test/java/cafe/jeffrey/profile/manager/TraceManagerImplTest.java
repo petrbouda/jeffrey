@@ -66,6 +66,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -1064,10 +1065,22 @@ class TraceManagerImplTest {
     class EventsInSpan {
 
         @Test
+        @DisplayName("a sub-millisecond span lists the events of its own microseconds, as its flamegraph counts them")
+        void readsTheSpansOwnMicroseconds() {
+            stub(List.of(spanMicros(1, null, "fast", 100_250, 113)));
+            when(traceRepository.eventsInSpan(THREAD, 100_250, 100_363))
+                    .thenReturn(new ThreadWindowEventsPage(List.of(), false));
+
+            new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1);
+
+            verify(traceRepository).eventsInSpan(THREAD, 100_250, 100_363);
+        }
+
+        @Test
         @DisplayName("a truncated window says so rather than passing the page off as complete")
         void propagatesTruncation() {
             stub(List.of(span(1, null, "root", 0, 100)));
-            when(traceRepository.eventsInSpan(THREAD, 0, 100)).thenReturn(new ThreadWindowEventsPage(
+            when(traceRepository.eventsInSpan(THREAD, 0, 100_000)).thenReturn(new ThreadWindowEventsPage(
                     List.of(new ThreadWindowEventRecord("jdk.ExecutionSample", 5, MS, "{}")), true));
 
             TraceSpanEvents events = new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1);

@@ -24,30 +24,37 @@ import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.provider.profile.api.CallSiteRecord;
-import cafe.jeffrey.provider.profile.api.RecordBuilder;
+import cafe.jeffrey.provider.profile.api.CallSiteReader;
+import cafe.jeffrey.provider.profile.api.CallSiteRow;
+import cafe.jeffrey.provider.profile.api.OperationStackRow;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * Reads grouped event rows into {@link CallSites}: each row's events charged to the deepest own frame
- * on their stack, together with the line that frame was on -- the line of the reader's code that issued
- * the statement, the call or the lock. Rows that belong to a trace are also counted per trace, which is
- * what shows one request issuing the same statement many times.
+ * Reads a call-site read into {@link CallSites}, by the protocol {@link CallSiteReader} names: each distinct
+ * stack is charged to its own path — the deepest own frame and the own frames that called it, with the
+ * lines they were on, the line of the reader's code that issued the statement, the call or the lock — and
+ * the database's rows per path and grouping value, per-trace figures included (what shows one request
+ * issuing the same statement many times), become the sites. What is held here is bounded by the distinct
+ * stacks and sites, never by the events or the traces.
  */
-public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, CallSites> {
+public final class CallSiteBuilder implements CallSiteReader<CallSites> {
 
     private static final int UNKNOWN_LINE = 0;
 
     private final FrameScope scope;
-    private final Map<SiteKey, SiteAccumulator> sites = new HashMap<>();
+    private final Map<List<PathFrame>, Integer> pathIds = new HashMap<>();
+    private final List<List<PathFrame>> paths = new ArrayList<>();
+    private final Set<Long> attributedStacks = new HashSet<>();
+    private final List<CallSite> sites = new ArrayList<>();
     private final Map<EntryKey, Long> outermostOwnEntries = new HashMap<>();
     private final Map<TraceOperationId, EntryTrunk> trunks = new HashMap<>();
 
@@ -60,27 +67,47 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
     }
 
     @Override
-    public void onRecord(CallSiteRecord record) {
-        totalEvents += record.count();
-        totalNanos += record.totalNanos();
-        List<PathFrame> path = ownPath(record.stackTrace());
+    public int pathOf(JfrStackTrace stackTrace) {
+        List<PathFrame> path = ownPath(stackTrace);
         if (path.isEmpty()) {
-            unattributedEvents += record.count();
+            return UNATTRIBUTED;
+        }
+        attributedStacks.add(stackTrace.id());
+        return pathIds.computeIfAbsent(path, newPath -> {
+            paths.add(newPath);
+            return paths.size() - 1;
+        });
+    }
+
+    @Override
+    public void onSite(CallSiteRow row) {
+        totalEvents += row.count();
+        totalNanos += row.totalNanos();
+        if (row.pathId() == UNATTRIBUTED) {
+            unattributedEvents += row.count();
             return;
         }
-        sites.computeIfAbsent(new SiteKey(path, record.groupKey()), _ -> new SiteAccumulator(record)).add(record);
-        if (record.operation() != null) {
-            outermostOwn(record.stackTrace()).ifPresent(method ->
-                    outermostOwnEntries.merge(new EntryKey(record.operation(), method), record.count(), Long::sum));
-            trunks.computeIfAbsent(record.operation(), _ -> new EntryTrunk())
-                    .add(javaFrames(record.stackTrace()), record.count());
+        List<PathFrame> path = paths.get(row.pathId());
+        PathFrame site = path.getFirst();
+        sites.add(new CallSite(site.method(), site.line(), path, row.groupValue(), row.groupValueChars(),
+                row.count(), row.totalNanos(), row.maxNanos(), row.traces(), row.perTraceMax(), row.perTraceMedian(),
+                row.exemplarTraceIds()));
+    }
+
+    @Override
+    public void onOperationStack(OperationStackRow row) {
+        if (!attributedStacks.contains(row.stackTrace().id())) {
+            return;
         }
+        outermostOwn(row.stackTrace()).ifPresent(method ->
+                outermostOwnEntries.merge(new EntryKey(row.operation(), method), row.count(), Long::sum));
+        trunks.computeIfAbsent(row.operation(), _ -> new EntryTrunk())
+                .add(javaFrames(row.stackTrace()), row.count());
     }
 
     @Override
     public CallSites build() {
-        List<CallSite> built = sites.entrySet().stream()
-                .map(entry -> entry.getValue().toSite(entry.getKey()))
+        List<CallSite> built = sites.stream()
                 .sorted(Comparator.comparingLong(CallSite::totalNanos).reversed()
                         .thenComparing(Comparator.comparingLong(CallSite::count).reversed())
                         .thenComparing(CallSite::method)
@@ -129,9 +156,10 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
     private List<OperationEntry> operationEntries() {
         List<OperationEntry> entries = new ArrayList<>();
         for (Map.Entry<TraceOperationId, EntryTrunk> operation : trunks.entrySet()) {
-            Optional<EntryTrunk.Entry> entry = operation.getValue().entry();
-            if (entry.isPresent()) {
-                entries.add(new OperationEntry(operation.getKey(), entry.get().method(), entry.get().value()));
+            List<EntryTrunk.Entry> onTrunk = operation.getValue().entries();
+            if (!onTrunk.isEmpty()) {
+                onTrunk.forEach(entry ->
+                        entries.add(new OperationEntry(operation.getKey(), entry.method(), entry.value())));
                 continue;
             }
             outermostOwnEntries.forEach((key, events) -> {
@@ -174,59 +202,5 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
     }
 
     private record EntryKey(TraceOperationId operation, MethodKey method) {
-    }
-
-    /** A site is its own path and the whole grouping value, told apart by its digest past the cut. */
-    private record SiteKey(List<PathFrame> path, String groupKey) {
-    }
-
-    private static final class SiteAccumulator {
-
-        private final String groupValue;
-        private final Integer groupValueChars;
-        private final Map<Long, Long> perTrace = new HashMap<>();
-        private long count;
-        private long totalNanos;
-        private long maxNanos;
-
-        private SiteAccumulator(CallSiteRecord first) {
-            this.groupValue = first.groupValue();
-            this.groupValueChars = first.groupValueChars();
-        }
-
-        private void add(CallSiteRecord record) {
-            count += record.count();
-            totalNanos += record.totalNanos();
-            maxNanos = Math.max(maxNanos, record.maxNanos());
-            if (record.traceId() != null) {
-                perTrace.merge(record.traceId(), record.count(), Long::sum);
-            }
-        }
-
-        private CallSite toSite(SiteKey key) {
-            List<Map.Entry<Long, Long>> byCount = new ArrayList<>(perTrace.entrySet());
-            byCount.sort(Map.Entry.<Long, Long>comparingByValue(Comparator.reverseOrder())
-                    .thenComparing(Map.Entry.comparingByKey()));
-            long max = byCount.isEmpty() ? 0 : byCount.getFirst().getValue();
-            List<Long> exemplars = byCount.stream()
-                    .limit(CallSite.MAX_EXEMPLARS)
-                    .map(Map.Entry::getKey)
-                    .toList();
-            PathFrame site = key.path().getFirst();
-            return new CallSite(site.method(), site.line(), key.path(), groupValue, groupValueChars, count,
-                    totalNanos, maxNanos,
-                    perTrace.size(), max, median(perTrace.values()), exemplars);
-        }
-
-        private static double median(Collection<Long> values) {
-            if (values.isEmpty()) {
-                return 0.0;
-            }
-            List<Long> sorted = values.stream().sorted().toList();
-            int middle = sorted.size() / 2;
-            return sorted.size() % 2 == 1
-                    ? sorted.get(middle)
-                    : (sorted.get(middle - 1) + sorted.get(middle)) / 2.0;
-        }
     }
 }

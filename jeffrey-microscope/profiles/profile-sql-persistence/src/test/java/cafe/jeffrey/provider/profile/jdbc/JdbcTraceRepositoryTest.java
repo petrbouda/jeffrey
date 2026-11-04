@@ -1292,7 +1292,7 @@ class JdbcTraceRepositoryTest {
             // The window of the root HTTP span on thread 3001, which also carries a JDBC span and
             // an execution sample.
             ThreadWindowEventsPage page = repository.eventsInSpan(
-                    3001, EPOCH_10_00_00, EPOCH_10_00_00 + 120);
+                    3001, micros(EPOCH_10_00_00), wholeMillisecond(EPOCH_10_00_00 + 120));
             List<ThreadWindowEventRecord> events = page.events();
 
             assertTrue(events.stream().noneMatch(event -> event.eventType().startsWith("jeffrey.")),
@@ -1308,9 +1308,9 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = derived(dataSource);
 
             // A different thread has no events of its own in the fixture.
-            assertTrue(repository.eventsInSpan(3002, EPOCH_10_00_00, EPOCH_10_00_00 + 120).events().isEmpty());
+            assertTrue(repository.eventsInSpan(3002, micros(EPOCH_10_00_00), wholeMillisecond(EPOCH_10_00_00 + 120)).events().isEmpty());
             // A window before anything happened is empty too.
-            assertTrue(repository.eventsInSpan(3001, EPOCH_10_00_00 - 500, EPOCH_10_00_00 - 1).events().isEmpty());
+            assertTrue(repository.eventsInSpan(3001, micros(EPOCH_10_00_00 - 500), wholeMillisecond(EPOCH_10_00_00 - 1)).events().isEmpty());
         }
     }
 
@@ -2260,7 +2260,7 @@ class JdbcTraceRepositoryTest {
         void excludesEntriesFromTheDrillDown(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = withEntries(dataSource);
 
-            ThreadWindowEventsPage page = repository.eventsInSpan(3001L, 0L, 200L);
+            ThreadWindowEventsPage page = repository.eventsInSpan(3001L, 0L, wholeMillisecond(200L));
             List<String> types = page.events().stream()
                     .map(ThreadWindowEventRecord::eventType)
                     .distinct()
@@ -2528,7 +2528,7 @@ class JdbcTraceRepositoryTest {
             // are child bars now; listing them here too would show every wait twice. The
             // deoptimization is not promoted and must still be listed.
             ThreadWindowEventsPage page = withBlockingEvents(dataSource)
-                    .eventsInSpan(3002L, EPOCH_11_00_00, EPOCH_11_00_00 + 400);
+                    .eventsInSpan(3002L, micros(EPOCH_11_00_00), wholeMillisecond(EPOCH_11_00_00 + 400));
 
             assertEquals(List.of("jdk.Deoptimization"), page.events().stream()
                     .map(ThreadWindowEventRecord::eventType)
@@ -3217,5 +3217,10 @@ class JdbcTraceRepositoryTest {
     /** A fixture's milliseconds as the microseconds a derived interval carries. */
     private static long micros(long millis) {
         return millis * 1_000L;
+    }
+
+    /** The last microsecond of a fixture's millisecond: a window ending there holds that whole millisecond. */
+    private static long wholeMillisecond(long millis) {
+        return micros(millis) + 999L;
     }
 }

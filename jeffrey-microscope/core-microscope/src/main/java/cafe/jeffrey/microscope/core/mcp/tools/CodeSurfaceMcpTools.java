@@ -55,7 +55,7 @@ import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.provider.profile.api.CallSiteRecord;
+import cafe.jeffrey.provider.profile.api.CallSiteRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSource;
 import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -93,7 +93,7 @@ public class CodeSurfaceMcpTools {
      * How much of a long group value (a statement's SQL) an answer carries, the full length beside it: the
      * read's own cut, which it makes in SQL so a value's whole text never reaches the server.
      */
-    static final int MAX_GROUP_VALUE_CHARS = CallSiteRecord.MAX_GROUP_VALUE_CHARS;
+    static final int MAX_GROUP_VALUE_CHARS = CallSiteRow.MAX_GROUP_VALUE_CHARS;
 
     private static final int MAX_OPERATIONS = 10;
     private static final int MAX_STATEMENTS = 15;
@@ -168,8 +168,9 @@ public class CodeSurfaceMcpTools {
             + "from the %s samples taken inside its spans (SAMPLED_SPANS, inferred from where samples landed); "
             + "topMethods always from those samples. The entry point is where the longest run of your methods "
             + "calling each other starts on the call path at least 90%% of the operation shares - past an own "
-            + "filter or worker loop above it, above a callback below it; where that path reaches none of your "
-            + "code, each stack's outermost method of yours.";
+            + "filter or worker loop above it, above a callback below it, with every candidate listed when two "
+            + "runs are equally long; where that path reaches none of your code, each stack's outermost method "
+            + "of yours.";
     private static final String NO_OPERATIONS_NOTE = "The profile has no traces, so no operation can be named.";
     private static final String NO_SAMPLES_NOTE = "The profile recorded no CPU or wall-clock samples of your code, "
             + "so only operations whose requests issued statements with stacks are placed in code (entryBasis "
@@ -725,8 +726,9 @@ public class CodeSurfaceMcpTools {
                     + "(EVENT_STACK, recorded), from samples inside its spans (SAMPLED_SPANS, inferred), or not at all")
             EntryBasis entryBasis,
             @McpDescription("Where its requests entered your code - the handler: where the longest run of your "
-                    + "methods starts on the path 90% of it shares, else each stack's outermost method of yours - "
-                    + "with the share of the events or samples entryBasis names")
+                    + "methods starts on the path 90% of it shares (every candidate when runs tie), else each "
+                    + "stack's outermost method of yours - with the share of the events or samples entryBasis "
+                    + "names")
             List<FrameShare> entryPoints,
             @McpDescription("Your methods its samples were charged to most; share of its own samples")
             List<FrameShare> topMethods,

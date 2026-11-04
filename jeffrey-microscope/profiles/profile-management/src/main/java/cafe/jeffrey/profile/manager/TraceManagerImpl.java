@@ -92,14 +92,12 @@ import java.util.stream.Stream;
  * Span arithmetic runs in microseconds, the resolution the stored timestamp carries. Milliseconds
  * are too coarse for it: a span is routinely shorter than one, so rounding its bounds to a
  * millisecond makes sub-millisecond children cost their parent nothing and puts spans that ran one
- * after the other on the same instant. The sample filter behind {@link SpanInterval} takes the same
- * microseconds; the event drill-down, which pages the events table by millisecond, converts at its own
- * boundary and nowhere earlier.
+ * after the other on the same instant. The sample filter behind {@link SpanInterval} and the event
+ * drill-down take the same microseconds, so a span's events are the ones its flamegraph counts.
  */
 public class TraceManagerImpl implements TraceManager {
 
     private static final long NANOS_PER_MICRO = 1_000L;
-    private static final long MICROS_PER_MILLI = 1_000L;
     /**
      * How far down the name-filtered list {@link #operation} will look before giving up. Reaching
      * this would take ten thousand operations whose names all contain the one being asked for, which
@@ -702,8 +700,7 @@ public class TraceManagerImpl implements TraceManager {
         return traceRepository.spanOf(traceId, spanId)
                 .map(span -> {
                     ThreadWindowEventsPage page = traceRepository.eventsInSpan(
-                            span.threadHash(),
-                            toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span)));
+                            span.threadHash(), span.startEpochMicros(), endMicrosOf(span));
 
                     List<TraceEventRow> events = page.events().stream()
                             .map(event -> new TraceEventRow(
@@ -804,14 +801,6 @@ public class TraceManagerImpl implements TraceManager {
 
     private static long endMicrosOf(TraceSpanShape span) {
         return TraceSkeleton.endMicrosOf(span);
-    }
-
-    /**
-     * Crosses into the millisecond domain the events table is keyed on. Flooring rather than rounding
-     * is what makes the bound land on the millisecond a sample taken at that instant was filed under.
-     */
-    private static long toMillis(long micros) {
-        return Math.floorDiv(micros, MICROS_PER_MILLI);
     }
 
     private static TraceRow toRow(TraceSummaryRecord trace) {

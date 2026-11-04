@@ -21,6 +21,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import cafe.jeffrey.provider.profile.api.*;
+import cafe.jeffrey.jfrparser.api.type.JfrStackFrameImpl;
+import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
+import cafe.jeffrey.jfrparser.api.type.JfrStackTraceImpl;
 import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.microscope.model.SearchPattern;
 import cafe.jeffrey.microscope.model.StacktraceTag;
@@ -33,6 +36,11 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.provider.profile.jdbc.*;
 
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,6 +52,24 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     private static final String JSON_ROOT_PATH_PREFIX = "$.";
     private static final String GROUP_PATH_PARAM = "group_path";
     private static final String GROUP_VALUE_CHARS_PARAM = "group_value_chars";
+    private static final String STACK_HASHES_PARAM = "stack_hashes";
+    private static final String PATH_IDS_PARAM = "path_ids";
+    private static final String STACKTRACE_HASH = "stacktrace_hash";
+    private static final String FRAME_HASHES = "frame_hashes";
+    private static final String PATH_ID = "path_id";
+    private static final String GROUP_VALUE = "group_value";
+    private static final String GROUP_VALUE_LENGTH = "group_value_length";
+    private static final String GROUP_KEY = "group_key";
+    private static final String EVENT_COUNT = "event_count";
+    private static final String TOTAL_DURATION = "total_duration";
+    private static final String MAX_DURATION = "max_duration";
+    private static final String TRACES = "traces";
+    private static final String PER_TRACE_MAX = "per_trace_max";
+    private static final String PER_TRACE_MEDIAN = "per_trace_median";
+    private static final String EXEMPLARS = "exemplars";
+    private static final String ROOT_NAME = "root_name";
+    private static final String ROOT_KIND = "root_kind";
+    private static final String ROOT_EVENT_TYPE = "root_event_type";
     private static final String SEARCH_LITERAL_PARAM = "search_literal";
     private static final String SEARCH_REGEX_PARAM = "search_regex";
 
@@ -202,23 +228,88 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
     }
 
     @Override
-    public <T> T callSiteStreamer(
-            EventQueryConfigurer configurer, String groupField, RecordBuilder<CallSiteRecord, T> builder) {
-
+    public <T> T callSites(EventQueryConfigurer configurer, String groupField, CallSiteReader<T> reader) {
         MapSqlParameterSource params = createBaseParams(configurer);
         applyJsonFieldFilter(params, configurer.jsonFieldFilter());
         if (groupField != null) {
             params.addValue(GROUP_PATH_PARAM, JSON_ROOT_PATH_PREFIX + DuckDBCallSiteQueries.requireFieldName(groupField));
         }
-        params.addValue(GROUP_VALUE_CHARS_PARAM, CallSiteRecord.MAX_GROUP_VALUE_CHARS);
+        params.addValue(GROUP_VALUE_CHARS_PARAM, CallSiteRow.MAX_GROUP_VALUE_CHARS);
         FramesCache framesCache = framesCacheSlot.resolve(() -> FramesCache.load(databaseClient));
+
+        // The stacks first, each charged to a path by the reader; the database then aggregates by path.
+        Map<Long, JfrStackTrace> stacks = new LinkedHashMap<>();
+        List<Long> stackHashes = new ArrayList<>();
+        List<Integer> pathIds = new ArrayList<>();
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
-                DuckDBCallSiteQueries.query(groupField, configurer),
+                DuckDBCallSiteQueries.stacks(configurer),
                 params,
-                new CallSiteRecordRowMapper(framesCache),
-                builder::onRecord);
-        return builder.build();
+                (rs, _) -> stackOf(rs, framesCache),
+                stack -> {
+                    stacks.put(stack.id(), stack);
+                    stackHashes.add(stack.id());
+                    pathIds.add(reader.pathOf(stack));
+                });
+        if (stacks.isEmpty()) {
+            return reader.build();
+        }
+
+        params.addValue(STACK_HASHES_PARAM, stackHashes)
+                .addValue(PATH_IDS_PARAM, pathIds);
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBCallSiteQueries.sites(groupField, configurer, CallSiteRow.MAX_EXEMPLARS),
+                params,
+                (rs, _) -> siteOf(rs),
+                reader::onSite);
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBCallSiteQueries.operationStacks(configurer),
+                params,
+                (rs, _) -> new OperationStackRow(
+                        stacks.get(rs.getLong(STACKTRACE_HASH)),
+                        new TraceOperationId(rs.getString(ROOT_NAME), rs.getString(ROOT_KIND),
+                                rs.getString(ROOT_EVENT_TYPE)),
+                        rs.getLong(EVENT_COUNT)),
+                row -> {
+                    if (row.stackTrace() != null) {
+                        reader.onOperationStack(row);
+                    }
+                });
+        return reader.build();
+    }
+
+    private static JfrStackTrace stackOf(ResultSet rs, FramesCache framesCache) throws SQLException {
+        Array frameHashes = rs.getArray(FRAME_HASHES);
+        List<JfrStackFrameImpl> frames = frameHashes == null
+                ? List.of()
+                : framesCache.resolveFrames(FlamegraphMapperUtils.toFrameHashArray(frameHashes));
+        return new JfrStackTraceImpl(rs.getLong(STACKTRACE_HASH), frames);
+    }
+
+    private static CallSiteRow siteOf(ResultSet rs) throws SQLException {
+        int length = rs.getInt(GROUP_VALUE_LENGTH);
+        Integer groupValueChars = rs.wasNull() ? null : length;
+        Array exemplars = rs.getArray(EXEMPLARS);
+        List<Long> exemplarTraceIds = new ArrayList<>();
+        if (exemplars != null) {
+            for (Object id : (Object[]) exemplars.getArray()) {
+                exemplarTraceIds.add(((Number) id).longValue());
+            }
+        }
+        return new CallSiteRow(
+                rs.getInt(PATH_ID),
+                rs.getString(GROUP_VALUE),
+                groupValueChars,
+                rs.getString(GROUP_KEY),
+                rs.getLong(EVENT_COUNT),
+                rs.getLong(TOTAL_DURATION),
+                rs.getLong(MAX_DURATION),
+                rs.getInt(TRACES),
+                rs.getLong(PER_TRACE_MAX),
+                rs.getDouble(PER_TRACE_MEDIAN),
+                exemplarTraceIds);
     }
 
     private <T, R> R startStreaming(QueryBuilder queryBuilder, RowMapper<T> mapper, RecordBuilder<T, R> builder) {

@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.flamegraph.code.MethodKey;
 import cafe.jeffrey.flamegraph.code.MethodRef;
-import cafe.jeffrey.provider.profile.api.CallSiteRecord;
+import cafe.jeffrey.provider.profile.api.CallSiteRow;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
@@ -97,7 +97,7 @@ class CodeSurfaceIntegrationTest extends TestappVolumeMicroscope {
             long counted = 0;
             for (JsonNode site : answer.path("sites")) {
                 String value = site.path("groupValue").asString();
-                assertTrue(value.length() <= CallSiteRecord.MAX_GROUP_VALUE_CHARS, site.toString());
+                assertTrue(value.length() <= CallSiteRow.MAX_GROUP_VALUE_CHARS, site.toString());
                 assertTrue(site.path("groupValueChars").asInt() >= value.length(), site.toString());
                 counted += site.path("count").asLong();
             }

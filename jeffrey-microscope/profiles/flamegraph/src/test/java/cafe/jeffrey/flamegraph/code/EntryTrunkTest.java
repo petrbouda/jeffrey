@@ -54,7 +54,9 @@ class EntryTrunkTest {
     }
 
     private static Optional<MethodKey> entryOf(EntryTrunk trunk) {
-        return trunk.entry().map(Entry::method);
+        List<Entry> entries = trunk.entries();
+        assertEquals(1, entries.size(), entries::toString);
+        return Optional.of(entries.getFirst().method());
     }
 
     @Nested
@@ -66,7 +68,7 @@ class EntryTrunkTest {
             trunk.add(List.of(THREAD, OWN_FILTER, DISPATCH, INVOKE, CONTROLLER, SERVICE, FIND_ORDERS), 10);
             trunk.add(List.of(THREAD, OWN_FILTER, DISPATCH, INVOKE, CONTROLLER, SERVICE, FIND_LINES), 90);
 
-            assertEquals(Optional.of(new Entry(CONTROLLER.method(), 100)), trunk.entry());
+            assertEquals(List.of(new Entry(CONTROLLER.method(), 100)), trunk.entries());
         }
 
         @Test
@@ -89,6 +91,17 @@ class EntryTrunkTest {
         }
 
         @Test
+        void isEveryCandidateWhenTheLongestRunsAreEquallyLong() {
+            // An own filter and a one-method handler: nothing on the trunk tells them apart, so both are
+            // reported, the outer first, rather than one of them guessed.
+            EntryTrunk trunk = new EntryTrunk();
+            trunk.add(List.of(THREAD, OWN_FILTER, DISPATCH, INVOKE, CONTROLLER), 100);
+
+            assertEquals(List.of(new Entry(OWN_FILTER.method(), 100), new Entry(CONTROLLER.method(), 100)),
+                    trunk.entries());
+        }
+
+        @Test
         void isALambdaWhenTheHandlerItselfIsOne() {
             EntryTrunk trunk = new EntryTrunk();
             trunk.add(List.of(THREAD, DISPATCH, DISPATCH_LAMBDA), 5);
@@ -106,7 +119,7 @@ class EntryTrunkTest {
             trunk.add(List.of(THREAD, DISPATCH, CONTROLLER, SERVICE), 95);
             trunk.add(List.of(THREAD, POOL, WORKER_LOOP, SERVICE), 5);
 
-            assertEquals(Optional.of(new Entry(CONTROLLER.method(), 95)), trunk.entry());
+            assertEquals(List.of(new Entry(CONTROLLER.method(), 95)), trunk.entries());
         }
 
         @Test
@@ -115,12 +128,12 @@ class EntryTrunkTest {
             trunk.add(List.of(THREAD, DISPATCH, CONTROLLER), 50);
             trunk.add(List.of(THREAD, POOL, WORKER_LOOP), 50);
 
-            assertEquals(Optional.empty(), trunk.entry());
+            assertEquals(List.of(), trunk.entries());
         }
 
         @Test
         void hasNoEntryWithoutStacks() {
-            assertEquals(Optional.empty(), new EntryTrunk().entry());
+            assertEquals(List.of(), new EntryTrunk().entries());
         }
     }
 }

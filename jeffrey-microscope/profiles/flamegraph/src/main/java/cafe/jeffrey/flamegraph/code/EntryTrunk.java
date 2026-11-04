@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Where one operation's work enters the application's own code, read from all of its stacks together.
@@ -32,8 +31,9 @@ import java.util.Optional;
  * stream, a JDBC wrapper's body) is own code below one. No rule over a single stack tells them apart; the
  * stacks of one operation narrow it down. They share a trunk — the call path at least {@link #TRUNK_SHARE}
  * of their weight runs through — and on it the handler is the longest run of consecutive own frames (the
- * code calling its own code: controller, service, repository), the outer one on a tie; the entry point is
- * that run's first frame, skipping lambda bodies, which are a dispatch's shim, unless nothing else is left.
+ * code calling its own code: controller, service, repository); runs of equal length are all reported, as
+ * candidates, never chosen between by a guess. The entry point is a run's first frame, skipping lambda
+ * bodies, which are a dispatch's shim, unless nothing else is left.
  * It is a reading of the stacks, not a fact the recording states. When the trunk holds no own frame, the
  * operation has no single entry and the caller falls back to each stack's outermost own frame.
  */
@@ -65,53 +65,68 @@ public final class EntryTrunk {
         }
     }
 
-    /** The entry point and the weight through it; empty when the trunk reaches no own code. */
-    public Optional<Entry> entry() {
-        long threshold = (long) Math.ceil(root.value * TRUNK_SHARE);
+    /**
+     * The entry points and the weight through each: one, unless the trunk holds several equally long runs of
+     * own frames — an own filter and a handler of one frame each, say — when every one of them is a candidate,
+     * outermost first, rather than a guess between them. Empty when the trunk reaches no own code.
+     */
+    public List<Entry> entries() {
+        List<Entry> entries = new ArrayList<>();
+        for (List<Node> run : longestRuns(trunk())) {
+            Node entry = run.stream().filter(node -> !isLambda(node.method)).findFirst().orElse(run.getFirst());
+            entries.add(new Entry(entry.method, entry.value));
+        }
+        return entries;
+    }
+
+    /** The call path at least {@link #TRUNK_SHARE} of the weight runs through, root first. */
+    private List<Node> trunk() {
         List<Node> trunk = new ArrayList<>();
+        if (root.value == 0) {
+            return trunk;
+        }
+        long threshold = (long) Math.ceil(root.value * TRUNK_SHARE);
         Node node = root;
         while (true) {
             Node next = null;
             for (Node child : node.children.values()) {
-                if (child.value >= threshold && (next == null || child.value > next.value)) {
+                if (child.value >= threshold) {
                     next = child;
                 }
             }
-            if (next == null || root.value == 0) {
-                break;
+            if (next == null) {
+                return trunk;
             }
             trunk.add(next);
             node = next;
         }
-        List<Node> handlerRun = handlerRun(trunk);
-        for (Node candidate : handlerRun) {
-            if (!isLambda(candidate.method)) {
-                return Optional.of(new Entry(candidate.method, candidate.value));
-            }
-        }
-        return handlerRun.stream().findFirst().map(own -> new Entry(own.method, own.value));
     }
 
     /**
-     * The run of consecutive own frames on the trunk that holds the handler: the longest, the outer one on a
-     * tie. An own filter or worker loop above the handler, and a callback handed to a library below it, are
-     * each a short run between library frames; the handler is where the code calls its own code in turn
-     * (controller, service, repository). Empty when the trunk holds no own frame.
+     * The runs of consecutive own frames on the trunk that may hold the handler: the longest. An own filter
+     * or worker loop above the handler, and a callback handed to a library below it, are each a short run
+     * between library frames; the handler is where the code calls its own code in turn (controller,
+     * service, repository). Several when the longest are of equal length. Empty when the trunk holds no
+     * own frame.
      */
-    private static List<Node> handlerRun(List<Node> trunk) {
-        List<Node> longest = List.of();
+    private static List<List<Node>> longestRuns(List<Node> trunk) {
+        List<List<Node>> runs = new ArrayList<>();
         List<Node> run = new ArrayList<>();
         for (Node node : trunk) {
             if (node.own) {
                 run.add(node);
                 continue;
             }
-            if (run.size() > longest.size()) {
-                longest = run;
+            if (!run.isEmpty()) {
+                runs.add(run);
             }
             run = new ArrayList<>();
         }
-        return run.size() > longest.size() ? run : longest;
+        if (!run.isEmpty()) {
+            runs.add(run);
+        }
+        int longest = runs.stream().mapToInt(List::size).max().orElse(0);
+        return runs.stream().filter(candidate -> candidate.size() == longest).toList();
     }
 
     private static boolean isLambda(MethodKey method) {

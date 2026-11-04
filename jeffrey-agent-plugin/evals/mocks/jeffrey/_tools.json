@@ -5009,7 +5009,7 @@
             ],
             "additionalProperties": false
            },
-           "description": "Where its requests entered your code - the handler: where the longest run of your methods starts on the path 90% of it shares, else each stack's outermost method of yours - with the share of the events or samples entryBasis names"
+           "description": "Where its requests entered your code - the handler: where the longest run of your methods starts on the path 90% of it shares (every candidate when runs tie), else each stack's outermost method of yours - with the share of the events or samples entryBasis names"
           },
           "topMethods": {
            "type": "array",

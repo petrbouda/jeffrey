@@ -122,16 +122,18 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
     }
 
     /**
-     * The operation's entry point on the trunk its stacks share, or else each stack's outermost own frame;
-     * empty when the query did not ask for them.
+     * The operation's entry points on the trunk its stacks share — one, or the candidates of a tie — or else
+     * each stack's outermost own frame; empty when the query did not ask for them.
      */
     private List<MethodValue> entryPoints() {
         if (trunk == null) {
             return List.of();
         }
-        return trunk.entry()
-                .map(entry -> List.of(new MethodValue(entry.method(), entry.value())))
-                .orElseGet(() -> sortedValues(outermostOwnEntries));
+        List<EntryTrunk.Entry> entries = trunk.entries();
+        if (entries.isEmpty()) {
+            return sortedValues(outermostOwnEntries);
+        }
+        return entries.stream().map(entry -> new MethodValue(entry.method(), entry.value())).toList();
     }
 
     private void countInclusive(List<Step> steps, long value) {

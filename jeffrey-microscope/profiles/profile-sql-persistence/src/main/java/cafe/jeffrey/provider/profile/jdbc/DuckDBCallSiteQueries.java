@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
@@ -22,11 +23,20 @@ import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import java.util.regex.Pattern;
 
 /**
- * The query behind a call-site read: the events of one type grouped by their stack, by the value of one
- * of their fields and by the trace they belong to. Reads the {@code events} view, which puts back the
- * long text (a statement's SQL) the writer moved out of the row. Values are grouped whole and handed over
- * cut, with their length and a digest that keeps two values apart past the cut. The optional filters are
- * spliced in by {@link EventQueryFilters} like every other event query.
+ * The three queries behind a call-site read ({@code CallSiteReader}'s protocol). They read the {@code events}
+ * view, which puts back the long text (a statement's SQL) the writer moved out of the row, and take the
+ * optional filters {@link EventQueryFilters} splices into every event query.
+ * <ol>
+ *   <li>{@link #stacks}: the distinct stacks the events were committed on, for the reader to charge to its
+ *       own-code paths;</li>
+ *   <li>{@link #sites}: the events of each path and grouping value — the path each stack was charged to
+ *       bound as two zipped lists — counted per trace first and then per site, so the per-trace figures
+ *       (traces, the most and the median per trace, the busiest traces) are the database's, and what
+ *       reaches the server is one row per site rather than one per stack, value and trace. Values are
+ *       grouped whole and handed over cut, with their length and a digest that keeps two values apart past
+ *       the cut;</li>
+ *   <li>{@link #operationStacks}: each operation's events per stack, which its entry point is read from.</li>
+ * </ol>
  */
 final class DuckDBCallSiteQueries {
 
@@ -39,40 +49,76 @@ final class DuckDBCallSiteQueries {
     //language=SQL
     private static final String NO_GROUP = "CAST(NULL AS VARCHAR)";
 
-    /**
-     * A trace id of 0 is the tracer's "no trace". The trace's root names the operation the events were
-     * issued for, which is how a request recorded without a stack is still tied to the code its
-     * statements were issued from.
-     */
+    /** A trace id of 0 is the tracer's "no trace". */
     //language=SQL
-    private static final String TEMPLATE = """
-            WITH grouped AS (
+    private static final String TRACE_ID = "NULLIF(TRY_CAST(json_extract_string(e.fields, '$.traceId') AS BIGINT), 0)";
+
+    //language=SQL
+    private static final String FILTERS = """
+                    <<time_filters>>
+                    <<span_filter>>
+                    <<stacktrace_filters>>
+                    <<json_field_filter>>
+            """;
+
+    //language=SQL
+    private static final String STACKS = """
+            SELECT DISTINCT e.stacktrace_hash, s.frame_hashes
+            FROM events e
+            INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+            WHERE e.event_type = :event_type
+            """ + FILTERS;
+
+    //language=SQL
+    private static final String SITES = """
+            WITH paths AS MATERIALIZED (
+                SELECT UNNEST([:stack_hashes]) AS stacktrace_hash, UNNEST([:path_ids]) AS path_id
+            ),
+            per_trace AS (
                 SELECT
-                    e.stacktrace_hash,
+                    p.path_id,
                     <<group_expression>> AS group_value,
-                    NULLIF(TRY_CAST(json_extract_string(e.fields, '$.traceId') AS BIGINT), 0) AS trace_id,
+                    %1$s AS trace_id,
                     COUNT(*) AS event_count,
                     SUM(COALESCE(e.duration, 0)) AS total_duration,
                     MAX(COALESCE(e.duration, 0)) AS max_duration
                 FROM events e
                 INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+                INNER JOIN paths p ON p.stacktrace_hash = e.stacktrace_hash
                 WHERE e.event_type = :event_type
-                    <<time_filters>>
-                    <<span_filter>>
-                    <<stacktrace_filters>>
-                    <<json_field_filter>>
+            %2$s
                 GROUP BY ALL
             )
-            SELECT g.stacktrace_hash, s.frame_hashes,
-                   left(g.group_value, :group_value_chars) AS group_value,
-                   length(g.group_value) AS group_value_length,
-                   md5(g.group_value) AS group_key,
-                   g.trace_id,
-                   t.root_name, t.root_kind, t.root_event_type,
-                   g.event_count, g.total_duration, g.max_duration
-            FROM grouped g
-            INNER JOIN stacktraces s ON s.stacktrace_hash = g.stacktrace_hash
-            LEFT JOIN traces t ON t.trace_id = g.trace_id
+            SELECT
+                path_id,
+                left(group_value, :group_value_chars) AS group_value,
+                length(group_value) AS group_value_length,
+                md5(group_value) AS group_key,
+                SUM(event_count) AS event_count,
+                SUM(total_duration) AS total_duration,
+                MAX(max_duration) AS max_duration,
+                COUNT(trace_id) AS traces,
+                COALESCE(MAX(event_count) FILTER (WHERE trace_id IS NOT NULL), 0) AS per_trace_max,
+                COALESCE(MEDIAN(event_count::DOUBLE) FILTER (WHERE trace_id IS NOT NULL), 0) AS per_trace_median,
+                list_slice(LIST(trace_id ORDER BY event_count DESC, trace_id) FILTER (WHERE trace_id IS NOT NULL),
+                    1, %3$d) AS exemplars
+            FROM per_trace
+            GROUP BY path_id, group_value
+            """;
+
+    /**
+     * The trace's root names the operation the events were issued for. (The exemplars above are cut with
+     * {@code list_slice}, not {@code [1:n]}: the named-parameter parser reads {@code :n} as a parameter.)
+     */
+    //language=SQL
+    private static final String OPERATION_STACKS = """
+            SELECT e.stacktrace_hash, t.root_name, t.root_kind, t.root_event_type, COUNT(*) AS event_count
+            FROM events e
+            INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+            INNER JOIN traces t ON t.trace_id = %1$s
+            WHERE e.event_type = :event_type
+            %2$s
+            GROUP BY ALL
             """;
 
     /** What a field name may be: a JFR field identifier, nothing a JSON path could escape from. */
@@ -81,10 +127,25 @@ final class DuckDBCallSiteQueries {
     private DuckDBCallSiteQueries() {
     }
 
-    /** The query for these filters, grouped by the field when one is named. */
-    static String query(String groupField, EventQueryConfigurer configurer) {
-        String grouped = TEMPLATE.replace(PLACEHOLDER_GROUP, groupField == null ? NO_GROUP : GROUP_BY_FIELD);
-        return EventQueryFilters.splice(grouped, configurer);
+    /** The distinct stacks of the events these filters keep. */
+    static String stacks(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(STACKS, configurer);
+    }
+
+    /**
+     * The events of each site path and grouping value, grouped by the field when one is named.
+     *
+     * @param exemplars how many of the busiest traces each row names
+     */
+    static String sites(String groupField, EventQueryConfigurer configurer, int exemplars) {
+        String template = SITES.formatted(TRACE_ID, FILTERS, exemplars)
+                .replace(PLACEHOLDER_GROUP, groupField == null ? NO_GROUP : GROUP_BY_FIELD);
+        return EventQueryFilters.splice(template, configurer);
+    }
+
+    /** Each operation's events per stack, for the events of these filters that belong to a trace. */
+    static String operationStacks(EventQueryConfigurer configurer) {
+        return EventQueryFilters.splice(OPERATION_STACKS.formatted(TRACE_ID, FILTERS), configurer);
     }
 
     /** The field name, refused unless it is a plain identifier. */
