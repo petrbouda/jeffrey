@@ -67,7 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class McpSkillCatalogueTest {
 
     /** Where the plugin keeps its skills, from this module's directory (the test's working directory). */
-    private static final Path PLUGIN_SKILLS = Path.of("../../jeffrey-claude-plugin/skills");
+    private static final Path PLUGIN_SKILLS = Path.of("../../jeffrey-agent-plugin/skills");
 
     private static final int PLUGIN_SKILL_COUNT = 12;
 

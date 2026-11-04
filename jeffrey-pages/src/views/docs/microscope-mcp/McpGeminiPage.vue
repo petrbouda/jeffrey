@@ -45,16 +45,16 @@ onMounted(() => {
   setHeadings(headings);
 });
 
+const installBranch = `gemini extensions install https://github.com/petrbouda/jeffrey --ref gemini-extension`;
+
 const installLocal = `git clone https://github.com/petrbouda/jeffrey
-gemini extensions install ./jeffrey/jeffrey-claude-plugin`;
+gemini extensions install ./jeffrey/jeffrey-agent-plugin`;
 
 const manifest = `{
-  "name": "microscope",
-  "version": "1.0.18",
   "settings": [
     {
       "name": "Jeffrey MCP endpoint",
-      "description": "URL of the Microscope MCP endpoint.",
+      "description": "URL of the Microscope MCP endpoint. …",
       "envVar": "JEFFREY_MCP_ENDPOINT"
     }
   ],
@@ -103,8 +103,8 @@ const agentTools = `tools:
   - mcp_jeffrey_*`;
 
 const agentInstall = `mkdir -p ~/.gemini/agents
-cp jeffrey/jeffrey-claude-plugin/gemini/agents/profile-analyst.md ~/.gemini/agents/
-cp jeffrey/jeffrey-claude-plugin/gemini/agents/heap-triage.md ~/.gemini/agents/`;
+cp jeffrey/jeffrey-agent-plugin/gemini/agents/profile-analyst.md ~/.gemini/agents/
+cp jeffrey/jeffrey-agent-plugin/gemini/agents/heap-triage.md ~/.gemini/agents/`;
 
 const endpointEnv = `export JEFFREY_MCP_ENDPOINT=http://localhost:9000/api/mcp`;
 
@@ -138,17 +138,18 @@ const update = `gemini extensions update microscope`;
         Gemini CLI itself now serves Gemini Code Assist Standard / Enterprise and Code Assist for GitHub organisations, plus legacy paid API and Vertex keys; free and Google AI Pro / Ultra accounts <a href="https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/" target="_blank" rel="noopener">moved to Antigravity CLI</a> on 2026-06-18. This page does not cover Antigravity CLI.
       </DocsCallout>
 
-      <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>, through the <code>gemini-extension.json</code> manifest beside the other two. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Gemini does differently: an endpoint <strong>asked for at install</strong>, <strong>two of the three agents</strong> as files to copy, tool names spelled with <strong>single underscores</strong>, and a tool list <strong>declared every turn</strong>.</p>
+      <p>The <strong>Microscope plugin</strong> installs into Gemini CLI as an <strong>extension</strong>, through the <code>gemini-extension.json</code> manifest beside the other three. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Gemini does differently: an endpoint <strong>asked for at install</strong>, <strong>both agents</strong> as files to copy, tool names spelled with <strong>single underscores</strong>, and a tool list <strong>declared every turn</strong>.</p>
 
       <h2 id="install-it">Install It</h2>
-      <p>Gemini installs an extension from a directory holding a <code>gemini-extension.json</code>, which is <code>jeffrey-claude-plugin/</code> in a clone:</p>
+      <p>Gemini installs an extension only when its <code>gemini-extension.json</code> is at the root of what it fetches, and on <code>master</code> the plugin lives one directory down, in <code>jeffrey-agent-plugin/</code>. So CI publishes that directory, without its evals, as the whole of the <code>gemini-extension</code> branch on every change to it, and that branch is what you install:</p>
+      <DocsCodeBlock :code="installBranch" language="bash" />
+
+      <p>Add <code>--auto-update</code> to have Gemini follow the branch on its own. From a clone of the repository, the plugin directory itself installs the same extension:</p>
       <DocsCodeBlock :code="installLocal" language="bash" />
 
       <p>Start a new session afterwards &mdash; an extension's servers and skills are loaded when the session begins, not mid-conversation. <code>/extensions</code> lists what loaded.</p>
 
-      <p>The GitHub-URL form of that command does not work here: Gemini looks for the manifest at the root of whatever it clones, and in this repository it lives one directory down.</p>
-
-      <p>Gemini asks for the endpoint while installing &mdash; keep the default unless your Jeffrey is elsewhere. <code>--skip-settings</code> skips the question. The manifest behind it:</p>
+      <p>Gemini asks for the endpoint while installing &mdash; keep the default unless your Jeffrey is elsewhere. <code>--skip-settings</code> skips the question. The part of the manifest behind it:</p>
       <DocsCodeBlock :code="manifest" language="json" />
 
       <p><code>httpUrl</code> is one of <strong>three spellings Gemini accepts</strong> for the same Streamable HTTP server, and the shorthand for &ldquo;this is HTTP, do not guess&rdquo;. <code>url</code> with <code>&quot;type&quot;: &quot;http&quot;</code> is the same thing &mdash; it is what <code>gemini mcp add --transport http</code> writes &mdash; and a bare <code>url</code> with no <code>type</code> also works, because Gemini tries HTTP first and only falls back to SSE when that fails. Only <code>&quot;type&quot;: &quot;sse&quot;</code> is wrong here, since this server offers no SSE stream. <code>/mcp</code> prints the transport it settled on.</p>
@@ -181,7 +182,7 @@ const update = `gemini extensions update microscope`;
 
       <p><strong>The extension cannot carry them</strong>, even though Gemini does read an installed extension's <code>agents/</code> directory. It validates that frontmatter against a strict schema and rejects any key it does not define, and the plugin's own agents carry Claude Code's <code>disallowedTools</code>, <code>skills</code> and <code>color</code>; their tool patterns are not names Gemini accepts either. The copies above are the same agents written in the dialect it does accept.</p>
 
-      <DocsCallout type="warning" title="Those three files are noisy">
+      <DocsCallout type="warning" title="Those two files are noisy">
         Gemini prints a validation error for each of them &mdash; <em>Unrecognized key(s)</em>, then a line per tool pattern &mdash; and it prints them on ordinary commands, not only in debug mode. Nothing else follows from it: the extension loads, the server connects, the skills work. It is the cost of one directory that has to satisfy Claude Code, whose plugins read <code>agents/</code> and nothing else.
       </DocsCallout>
 
@@ -213,7 +214,7 @@ const update = `gemini extensions update microscope`;
       <p>Run <code>/mcp</code> inside a session, or <code>gemini mcp list</code> outside one. The <code>jeffrey</code> server should be listed with its tools. If it is listed but <strong>Disabled</strong>, the directory is untrusted &mdash; Gemini disables every MCP server in an untrusted folder, user-level ones included, and says so above the list; trust the folder and start again. If it is not listed at all, <router-link to="/docs/microscope-mcp/clients#when-it-is-not-connected">the usual causes</router-link> apply.</p>
 
       <h2 id="updating-and-removing">Updating and Removing</h2>
-      <p>Gemini copies an extension when it installs one, so a newer clone is not a newer extension until you say so:</p>
+      <p>Gemini copies an extension when it installs one, so a newer plugin on the <code>gemini-extension</code> branch &mdash; or in a newer clone &mdash; is not a newer extension until you say so (for an install from the branch, <code>--auto-update</code> says so for you):</p>
       <DocsCodeBlock :code="update" language="bash" />
 
       <p>To remove it:</p>
@@ -253,7 +254,7 @@ const update = `gemini extensions update microscope`;
           <tr>
             <th scope="row">Install</th>
             <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">/plugin install microscope@jeffrey</span></td>
-            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">gemini extensions install &lt;path&gt;</span></td>
+            <td class="is-primary" data-client="Gemini CLI"><span class="docs-compare-value">gemini extensions install &lt;repo&gt; --ref gemini-extension</span></td>
           </tr>
           <tr>
             <th scope="row">Endpoint</th>
@@ -267,8 +268,8 @@ const update = `gemini extensions update microscope`;
           </tr>
           <tr>
             <th scope="row">Agents</th>
-            <td class="is-baseline" data-client="Claude Code">All three, from the plugin</td>
-            <td class="is-primary" data-client="Gemini CLI">Two, copied by hand &mdash; no subagent may dispatch another</td>
+            <td class="is-baseline" data-client="Claude Code">Both, from the plugin</td>
+            <td class="is-primary" data-client="Gemini CLI">Both, copied by hand</td>
           </tr>
           <tr>
             <th scope="row">Read-only agents</th>

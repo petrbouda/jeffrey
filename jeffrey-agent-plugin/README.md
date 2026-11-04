@@ -6,10 +6,10 @@ analyses it, then lists the recordings you have analysed, queries their DuckDB t
 flamegraph, trace and heap-dump exports straight into a session in your own repository — so the
 profile and the source code are in front of the same reader.
 
-One package, three plugin formats. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** and
-the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plugin.json` and
-`mcp.json`; **Gemini CLI** reads `gemini-extension.json`. The skills and the MCP server underneath
-are the same files for all three.
+One package, four manifests. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** reads
+`.codex-plugin/plugin.json`; the other [Agent Plugins](https://agent-plugins.org/) clients read the
+root `plugin.json` and `mcp.json`; **Gemini CLI** reads `gemini-extension.json`. The skills and the
+MCP server underneath are the same files for all of them.
 
 **Jeffrey speaks MCP `2026-07-28` only.** A client that still opens with `initialize` is refused with
 `-32602` (HTTP 400), an error whose message and `data.supported` name that version, so which clients
@@ -77,14 +77,21 @@ then `/plugins` in Codex, or work from a clone with `codex plugin marketplace ad
 **Gemini CLI** (installs, but cannot connect until Gemini CLI supports MCP `2026-07-28`):
 
 ```bash
-git clone https://github.com/petrbouda/jeffrey
-gemini extensions install ./jeffrey/jeffrey-claude-plugin
+gemini extensions install https://github.com/petrbouda/jeffrey --ref gemini-extension
 ```
 
-Gemini installs an extension from a directory holding a `gemini-extension.json`, which is this
-directory in a clone. The GitHub-URL form does not work here: Gemini looks for the manifest at the
-root of what it clones, and in this repository it lives one directory down. `/extensions` lists it,
-`/mcp` says whether it reached Jeffrey.
+Gemini wants `gemini-extension.json` at the root of whatever it fetches, and on `master` it lives
+one directory down. The `gemini-extension` branch is this directory at its root, without the evals,
+published by CI ([`publish-gemini-extension.yml`](../.github/workflows/publish-gemini-extension.yml))
+on every change to it on `master`; `--auto-update` keeps an install on it. From a clone, the
+directory itself works too:
+
+```bash
+git clone https://github.com/petrbouda/jeffrey
+gemini extensions install ./jeffrey/jeffrey-agent-plugin
+```
+
+`/extensions` lists it, `/mcp` says whether it reached Jeffrey.
 
 Any of them can also skip the plugin and register the endpoint by hand — the docs above cover
 `claude mcp add`, `codex mcp add`, Gemini's `mcpServers` block, and the raw `2026-07-28` requests
@@ -363,8 +370,8 @@ Or, once the hotspot is known, in the repository that produced it:
 ## Package layout
 
 ```
-jeffrey-claude-plugin/
-├── plugin.json               Agent Plugins 1.0.0 manifest — Codex, Cursor, Copilot, VS Code, Kiro
+jeffrey-agent-plugin/
+├── plugin.json               Agent Plugins 1.0.0 manifest — Cursor, Copilot, VS Code, Kiro
 ├── mcp.json                  Agent Plugins MCP config — the streamable-http endpoint
 ├── .claude-plugin/
 │   └── plugin.json           Claude Code manifest — same plugin, with the configurable endpoint
@@ -379,13 +386,22 @@ jeffrey-claude-plugin/
 ├── codex/agents/
 │   ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
 │   └── heap-triage.toml
-└── gemini/agents/
-    ├── profile-analyst.md    The same two as Gemini CLI subagents, also installed by hand
-    └── heap-triage.md
+├── gemini/agents/
+│   ├── profile-analyst.md    The same two as Gemini CLI subagents, also installed by hand
+│   └── heap-triage.md
+├── evals/                    Behaviour evals against recorded Jeffrey answers (see evals/README.md)
+└── evals-live/               The SQL cases, run against a live Jeffrey
 ```
 
-The directory keeps its `jeffrey-claude-plugin` name so existing installs and marketplace entries
-keep resolving; it serves all three clients.
+**One package for every coding agent.** The directory is named for no single client: it is the one
+package Claude Code, Codex, Gemini CLI and the Agent Plugins clients install, and both marketplaces
+point at it. A client keys an install by the plugin's name — `microscope@jeffrey` — never by this
+path, so moving the directory (it was `jeffrey-claude-plugin/` until 1.0.29) left every marketplace
+install in place; only a `--plugin-dir` or a Gemini install from a clone names the path itself.
+
+**The evals ship with it.** `evals/` and `evals-live/` are development material, yet they are in
+every installed copy: `claude plugin eval` reads an eval directory only from below the plugin root,
+never from beside it. The `gemini-extension` branch leaves them out.
 
 **One hook, two clients.** Both read `hooks/hooks.json` in the same shape and both spell a hook's
 output the same way, but they name the plugin's own directory differently — `CLAUDE_PLUGIN_ROOT` in
@@ -406,7 +422,11 @@ Claude Code, whose plugins read `agents/` and nothing else.
 skill shares (*Link what you name*, the tool-prefix sentence), is edited where it ships: each has one
 source under [`build/plugin/`](../build/plugin/), and `build/scripts/render-plugin.py` writes the
 copies — the Claude Code subagent with its tool lists spelled out from the server's tool snapshot,
-and the Codex and Gemini versions with the text only those clients need. CI runs it with `--check`.
+and the Codex and Gemini versions with the text only those clients need. The four manifests and the
+plugin entry of both marketplaces are rendered the same way, from `build/plugin/manifests/`: the
+name, version, description and keywords once in `identity.json` — a version bump is that one edit
+and a run of the script — and one template per manifest for what only that client reads. CI runs it
+with `--check`.
 
 In both hand-copied sets the read-only promise rests on the *No writing* rule in the agent's own
 instructions rather than on a deny-list the client does not have.

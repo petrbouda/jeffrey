@@ -199,7 +199,7 @@
                             <outputDirectory>${project.build.outputDirectory}/mcp-skills</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${project.basedir}/../../jeffrey-claude-plugin/skills</directory>
+                                    <directory>${project.basedir}/../../jeffrey-agent-plugin/skills</directory>
                                     <includes>
                                         <include>*/**</include>
                                     </includes>

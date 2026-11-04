@@ -18,7 +18,7 @@
 """Records the MCP answers the microscope plugin's evals replay, from a real Jeffrey.
 
 `claude plugin eval` never starts the plugin's server: every tool a case may call is answered by a
-mock under `jeffrey-claude-plugin/evals/mocks/jeffrey/`, and a tool with no mock is not offered at
+mock under `jeffrey-agent-plugin/evals/mocks/jeffrey/`, and a tool with no mock is not offered at
 all. Hand-written answers would test the skills against a server that does not exist, so this script
 takes them from one that does:
 
@@ -68,7 +68,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 
-PLUGIN_DIR = Path("jeffrey-claude-plugin")
+from plugin_layout import PLUGIN_DIR as PLUGIN_PATH
+
+PLUGIN_DIR = Path(PLUGIN_PATH)
 WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java"
 # What the workload's traces are written with: the HTTP exchange event, the Tracer, and where the Tracer keeps
 # the span in progress. Built by TRACING_BUILD; the workload runs on JDK 25, but the ThreadLocal storage is

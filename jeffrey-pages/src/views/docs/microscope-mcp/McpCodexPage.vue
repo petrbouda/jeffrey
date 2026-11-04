@@ -81,8 +81,8 @@ const disablePluginServer = `[plugins."microscope@jeffrey"]
 mcp_servers.jeffrey.enabled = false`;
 
 const agentInstall = `mkdir -p ~/.codex/agents
-cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
-cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
+cp jeffrey/jeffrey-agent-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
+cp jeffrey/jeffrey-agent-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
 
 const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
@@ -109,7 +109,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
     />
 
     <div class="docs-content">
-      <p>The same <strong>Microscope plugin</strong> installs into Codex through its <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, which Cursor, Copilot, VS Code and Kiro read too. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Codex does differently: a <strong>fixed endpoint</strong>, agents that are <strong>files to copy</strong>, a <strong>sixty-second</strong> tool timeout and a tool list that is <strong>loaded every turn</strong>.</p>
+      <p>The same <strong>Microscope plugin</strong> installs into Codex through its own <code>.codex-plugin/plugin.json</code>, which points at the same skills and <code>mcp.json</code> as the <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest Cursor, Copilot, VS Code and Kiro read. What the plugin brings &mdash; the skills, the agents, which tools write, how a long call behaves &mdash; is on <router-link to="/docs/microscope-mcp/clients">Every Client</router-link>. This page is what Codex does differently: a <strong>fixed endpoint</strong>, agents that are <strong>files to copy</strong>, a <strong>sixty-second</strong> tool timeout and a tool list that is <strong>loaded every turn</strong>.</p>
 
       <h2 id="before-you-start">Before You Start</h2>
       <p>Jeffrey speaks <strong>MCP <code>2026-07-28</code> only</strong>. A client that still opens with <code>initialize</code> is refused with <code>-32602</code> (HTTP 400), an error whose message and <code>data.supported</code> name that version, and Codex opens with <code>initialize</code> unless you tell it otherwise. It needs two things:</p>
@@ -229,7 +229,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
           <tr>
             <th scope="row">Manifest</th>
             <td class="is-baseline" data-client="Claude Code"><span class="docs-compare-value">.claude-plugin/plugin.json</span></td>
-            <td class="is-primary" data-client="Codex">Agent Plugins <span class="docs-compare-value">plugin.json</span> + <span class="docs-compare-value">mcp.json</span></td>
+            <td class="is-primary" data-client="Codex"><span class="docs-compare-value">.codex-plugin/plugin.json</span> + <span class="docs-compare-value">mcp.json</span></td>
           </tr>
           <tr>
             <th scope="row">Install</th>
@@ -238,7 +238,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
           </tr>
           <tr>
             <th scope="row">Skills</th>
-            <td class="is-baseline" data-client="Claude Code">Ten, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
+            <td class="is-baseline" data-client="Claude Code">Twelve, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
             <td class="is-primary" data-client="Codex">The same twelve, invoked <span class="docs-compare-value">$analyze-jfr</span></td>
           </tr>
           <tr>
@@ -248,8 +248,8 @@ const removal = `codex plugin marketplace remove jeffrey`;
           </tr>
           <tr>
             <th scope="row">Agents</th>
-            <td class="is-baseline" data-client="Claude Code">All three, shipped and tool-restricted</td>
-            <td class="is-primary" data-client="Codex">The same three, copied by hand and restricted by instruction</td>
+            <td class="is-baseline" data-client="Claude Code">Both, shipped and tool-restricted</td>
+            <td class="is-primary" data-client="Codex">The same two, copied by hand and restricted by instruction</td>
           </tr>
           <tr>
             <th scope="row">Tool prefix</th>

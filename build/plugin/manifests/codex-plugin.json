@@ -1,0 +1,12 @@
+{
+  "name": "@identity",
+  "version": "@identity",
+  "description": "@identity",
+  "author": "@identity",
+  "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope-mcp/codex",
+  "repository": "@identity",
+  "license": "@identity",
+  "keywords": "@identity",
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

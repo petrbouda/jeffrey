@@ -18,7 +18,8 @@
 """Validates the portable half of the microscope plugin.
 
 `claude plugin validate` covers `.claude-plugin/`. Nothing covers the Agent Plugins
-manifest that Codex, Cursor, Copilot, VS Code and Kiro read, and the repository is its
+manifest that Cursor, Copilot, VS Code and Kiro read, or Codex's `.codex-plugin/plugin.json`
+over the same skills and `mcp.json`, and the repository is its
 own marketplace with no release step in between — a malformed `plugin.json` on master
 breaks every install off the default branch the moment it lands.
 
@@ -67,7 +68,7 @@ REMOTE_TRANSPORTS = {"streamable-http", "sse"}
 REMOTE_FIELDS = {"type", "url", "headers"}
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
 
-PLUGIN_DIR = "jeffrey-claude-plugin"
+from plugin_layout import PLUGIN_DIR
 SELF_TEST_FLAG = "--self-test"
 FRONTMATTER_DELIMITER = "---"
 
@@ -221,6 +222,7 @@ def check_versions(root: Path) -> None:
         f"{PLUGIN_DIR}/plugin.json": lambda d: d.get("version"),
         f"{PLUGIN_DIR}/.claude-plugin/plugin.json": lambda d: d.get("version"),
         f"{PLUGIN_DIR}/.codex-plugin/plugin.json": lambda d: d.get("version"),
+        f"{PLUGIN_DIR}/gemini-extension.json": lambda d: d.get("version"),
         ".claude-plugin/marketplace.json": lambda d: d["plugins"][0].get("version"),
         ".agents/plugins/marketplace.json": lambda d: d["plugins"][0].get("version"),
     }

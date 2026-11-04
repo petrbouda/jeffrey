@@ -49,7 +49,7 @@ const installMarketplace = `/plugin marketplace add petrbouda/jeffrey
 /plugin install microscope@jeffrey`;
 
 const installLocal = `git clone https://github.com/petrbouda/jeffrey
-claude --plugin-dir ./jeffrey/jeffrey-claude-plugin`;
+claude --plugin-dir ./jeffrey/jeffrey-agent-plugin`;
 
 const customUrl = `Jeffrey MCP endpoint: http://localhost:9000/api/mcp`;
 

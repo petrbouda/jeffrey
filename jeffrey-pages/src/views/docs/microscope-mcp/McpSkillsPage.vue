@@ -644,7 +644,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <span class="skill-role">The evidence discipline</span>
         </div>
 
-        <p>The one skill that calls no tool. It is the shape every finding is written in and the rules that decide whether a report can be checked by someone who never saw the tool output &mdash; and the other skills and all three agents point at it once their reading is done.</p>
+        <p>The one skill that calls no tool. It is the shape every finding is written in and the rules that decide whether a report can be checked by someone who never saw the tool output &mdash; and the other skills and both agents point at it once their reading is done.</p>
 
         <section class="skill-block">
           <h4>The shape</h4>
