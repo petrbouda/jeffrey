@@ -147,7 +147,9 @@ final class McpInstructions {
             new OrderRule(Set.of(CODE), "With the source checked out, code_hotspots with your root packages "
                     + "as framePrefixes ranks the methods you can change, and code_method answers for the method "
                     + "you are reading - is it hot, who calls it, which requests run it - without exporting a "
-                    + "whole tree first."),
+                    + "whole tree first. code_runtimeSurface reconciles what ran - operations, statements, "
+                    + "attribute keys, the application's own events - with the code, and code_callSites names "
+                    + "the line that issues a statement or call and how often one request does."),
             new OrderRule(Set.of(TIMELINE), "Before a flamegraph of anything bursty, timeline_hotWindows "
                     + "finds the window whose startEpochMs and endEpochMs make the export show the spike; "
                     + "timeline_zoom looks inside it or at a startup."),
@@ -307,7 +309,7 @@ final class McpInstructions {
     private static final String PROMPTS = """
             Fuller guidance is served as prompts and as skills. prompts/list names thirteen: help, the \
             orientation to what can be investigated, and one per workflow — analyze-jfr, analyze-heap, \
-            analyze-connector, analyze-exceptions, code-insight, compare-jfr, advise-jfr, profile-run, regression-check, \
+            analyze-connector, analyze-exceptions, code-insight, compare-jfr, optimize-code, profile-run, regression-check, \
             jfr-sql, heap-sql, and report, which is the evidence discipline the others write to. skills/list (the io.modelcontextprotocol/skills \
             extension) serves the same thirteen to any client that asks, and their files are read with \
             resources/read. Read the one that matches the question before a long investigation. \

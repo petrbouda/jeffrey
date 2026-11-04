@@ -61,7 +61,7 @@ an area waiting for it is offered as `NEEDS_PREPARATION`:
 
 **Beyond one profile:** comparing two recordings (**compare-jfr**), deciding whether a change
 regressed (**regression-check**), SQL over a profile's events (**jfr-sql**) or a heap dump's index
-(**heap-sql**), and turning a hotspot into a change in this repository (**advise-jfr**).
+(**heap-sql**), and turning a hotspot into a change in this repository (**optimize-code**).
 
 ## 3. What is here now
 
@@ -88,12 +88,12 @@ Nothing here? Say so, and offer the two ways in: a recording file on this machin
 |---|---|
 | Read a recording: where the time, CPU, allocations or waits went; GC, JIT, threads, the container | **analyze-jfr** |
 | Understand what an application threw | **analyze-exceptions** |
-| Ask what a profile measured of the code you are reading — is it hot, who calls it, which requests run it | **code-insight** |
+| Ask what a profile measured of the code you are reading — is it hot, who calls it, which requests run it, which line issues a query, what the service did at runtime | **code-insight** |
 | Read a heap dump: what holds the memory | **analyze-heap** |
 | Compare two recordings, or check a change for a regression | **compare-jfr**, **regression-check** |
 | Analyse what a deployed environment recorded | **analyze-connector** |
 | Record this project first | **profile-run** |
-| Fix what a profile found, in this repository | **advise-jfr** |
+| Fix what a profile found, in this repository | **optimize-code** |
 | Ask a question no dashboard answers | **jfr-sql**, **heap-sql** |
 | Write the findings up | **report** |
 

@@ -17,6 +17,9 @@
 
 package cafe.jeffrey.flamegraph.api;
 
+import cafe.jeffrey.flamegraph.code.CallSiteBuilder;
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.flamegraph.code.CallSites;
 import cafe.jeffrey.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.flamegraph.code.CodeAttributionBuilder;
 import cafe.jeffrey.flamegraph.code.CodeQuery;
@@ -31,6 +34,7 @@ import cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
 import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
+import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.model.SpanInterval;
 import cafe.jeffrey.microscope.model.SpanScope;
@@ -47,6 +51,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     private static final String SPAN_TIMESERIES_BRANCH = "timeseries.branch";
     private static final String SPAN_MARSHALLING = "graph.marshalling";
     private static final String SPAN_CODE_ATTRIBUTION = "flamegraph.code-attribution";
+    private static final String SPAN_CALL_SITES = "flamegraph.call-sites";
 
     private static final String SCOPE_HEADER = "scope";
     private static final String SCOPE_SPAN_PREFIX = "span — only the samples taken inside ";
@@ -177,6 +182,24 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         boolean useWeight = Boolean.TRUE.equals(params.useWeight());
         return Tracer.call(SPAN_CODE_ATTRIBUTION, () -> eventRepository.flamegraphStreamer(
                 FlamegraphDataProvider.configurer(params), new CodeAttributionBuilder(query, useWeight)));
+    }
+
+    /**
+     * Where the events of these parameters' type were issued from in the reader's own code: the deepest
+     * own frame of each event's stack, split by one field's value, counted per trace where the events
+     * belong to traces.
+     *
+     * @param params the event type, window and stack filters to read
+     * @param query  whose code is own, the field to split by and an optional field filter
+     * @return the call sites
+     */
+    public CallSites callSites(GraphParameters params, CallSiteQuery query) {
+        EventQueryConfigurer configurer = FlamegraphDataProvider.configurer(params);
+        if (query.filterField() != null) {
+            configurer.withJsonFieldEquals(query.filterField(), query.filterValue());
+        }
+        return Tracer.call(SPAN_CALL_SITES, () -> eventRepository.callSiteStreamer(
+                configurer, query.groupField(), new CallSiteBuilder(query.scope())));
     }
 
     /**

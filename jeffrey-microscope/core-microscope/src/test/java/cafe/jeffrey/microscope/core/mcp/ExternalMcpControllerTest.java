@@ -428,8 +428,8 @@ class ExternalMcpControllerTest {
             JsonNode skills = result(request("skills/list")).path("skills");
 
             assertThat(skills.size()).isEqualTo(13);
-            assertThat(skills.get(0).path("uri").asString()).isEqualTo("skill://advise-jfr/SKILL.md");
-            assertThat(skills.get(0).path("frontmatter").path("name").asString()).isEqualTo("advise-jfr");
+            assertThat(skills.get(0).path("uri").asString()).isEqualTo("skill://analyze-connector/SKILL.md");
+            assertThat(skills.get(0).path("frontmatter").path("name").asString()).isEqualTo("analyze-connector");
             verifyNoInteractions(assembler);
         }
 
@@ -478,7 +478,7 @@ class ExternalMcpControllerTest {
          */
         @Test
         void refusesAUriThatLeavesASkill() throws Exception {
-            for (String uri : List.of("skill://report/../advise-jfr/SKILL.md", "skill://report/%2e%2e/advise-jfr/SKILL.md",
+            for (String uri : List.of("skill://report/../optimize-code/SKILL.md", "skill://report/%2e%2e/optimize-code/SKILL.md",
                     "skill:///etc/passwd", "skill://report//SKILL.md")) {
                 assertThat(post(skilled(), request("resources/read", Json.createObject().put("uri", uri))))
                         .as(uri)

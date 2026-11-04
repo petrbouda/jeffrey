@@ -85,7 +85,12 @@ final class CodeAnswers {
          * No sample's stack ran the referenced code. A measurement, not an error: in this profile the
          * code was not hot, was never called, or runs under a name {@code nearestFrames} suggests.
          */
-        NOT_SEEN
+        NOT_SEEN,
+        /**
+         * The event type was recorded without stack traces, so its events cannot name a line of code -- the
+         * way Jeffrey records its HTTP and gRPC exchanges and its trace spans.
+         */
+        NO_STACKS
     }
 
     /**

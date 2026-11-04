@@ -183,7 +183,7 @@ the property to change).
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, deep links into the UI, and a versioned evidence snapshot of one profile to cite |
 | `operations_` | The work the writers start — an import, a connector download or file fetch, a heap preparation — followed by its `operationId`: where it has got to, and a request that it stop |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
-| `code_` | Your own methods, asked about by the names in your source: which of them the samples are charged to, and everything measured about the one you are reading |
+| `code_` | Your own methods, asked about by the names in your source: which of them the samples are charged to, everything measured about the one you are reading, the lines that issue a statement or call (and how often one request does), and what the application did at runtime tied back to its code |
 | `compare_` | Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, the methods your diff touched, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees, span-scoped flamegraphs, and the attributes that say which population a trace belonged to |
 | `jvm_` | The machine underneath: garbage collection and the pages beneath it, safepoints, JIT compilation, threads, thread dumps, native memory, class loading, exceptions, the host and who else is on it, TLS and certificates, the container, the JVM flags and what it was started with |
@@ -222,7 +222,7 @@ loads a skill when the question calls for it:
   moved, and whether the two recordings were comparable in the first place
 - `regression-check` — the same question starting from two revisions rather than two profiles: build
   and record both, then weigh them
-- `advise-jfr` — from a profile to a code change: the hottest CPU, wall-clock, allocation and
+- `optimize-code` — from a profile to a code change: the hottest CPU, wall-clock, allocation and
   blocking frames mapped to real source in your checkout, a recommendation, then the edit and a
   re-profile on request
 - `analyze-exceptions` — what an application threw and why: its own throws (libraries included)

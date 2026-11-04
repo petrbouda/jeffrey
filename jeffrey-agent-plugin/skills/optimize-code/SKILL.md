@@ -1,5 +1,5 @@
 ---
-name: advise-jfr
+name: optimize-code
 description: Turns a Jeffrey profile into concrete code changes in the current repository — maps the hottest CPU, wall-clock, allocation and blocking frames, the slowest traces, the waiting on locks and I/O, the database and HTTP work, and a heap dump's leak suspects to real source, recommends minimal behaviour-preserving edits, applies them on request and verifies with the tests and a re-profile. Use whenever the user asks what to change, optimise or fix based on a profile, JFR recording, flamegraph or trace, why an endpoint is slow and what to do about it, or a hotspot is known and the question is what to do about it.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *)
 argument-hint: "[profile-id | recording-file] [cpu|wall|alloc|lock|latency|waiting|memory|heap]"
@@ -106,7 +106,7 @@ can act on.
 | `waiting`, I/O | `io_overview` (`SOCKET`, `FILE`) → `io_endpoints` → `io_slowest` | The target names the dependency or file; the fix is at the **calling** code — fewer round trips, batching, caching, or not waiting |
 | `memory` | `memory_allocations` | The types ranked here are the other axis from the allocation flamegraph; take a type back to the `alloc` export to find the site |
 | `heap`, a dump | `heap_getLeakSuspects` | Each suspect carries its class, its `gcRootPath` (the fields from a root, or the thread and `stackFrame` that hold it) and its `accumulationPoint`: the class and field name the holder. Find where that collection is filled and nothing takes from it — the change bounds it, evicts, or lets go of the reference. One dump shows a state, not a trend: say whether the finding is a leak or a large working set, and `heap_diff` against an earlier dump when it matters |
-| database | `jdbc_overview` → `jdbc_statementGroup` | The statement text names the query; find where it is issued. `jdbc_pools` is a configuration finding, not a code one — see step 5 |
+| database | `jdbc_overview` → `jdbc_statementGroup` | `code_callSites` with the statement's event type and your `framePrefixes` names the lines that issue it (`ownPath`: your database wrapper, then its callers) and how often one request does — `repeatedPerTrace` is the N+1 shape. `jdbc_pools` is a configuration finding, not a code one — see step 5 |
 | HTTP, gRPC | `http_overview` / `grpc_overview` (`direction`: `SERVER` or `CLIENT`) | An inbound endpoint is your handler; an outbound call is a dependency, and the change is at the call site |
 | when, not where | `timeline_hotWindows` | Not a finding on its own. It gives `startEpochMs`/`endEpochMs` to scope an export to, which is what makes a burst visible that a whole-recording graph averages away |
 

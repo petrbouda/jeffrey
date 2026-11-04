@@ -64,6 +64,7 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
     private final List<FocusAccumulator> focus;
     private final Map<MethodKey, OwnAccumulator> own = new HashMap<>();
     private final Map<MethodKey, Long> inclusiveByMethod = new HashMap<>();
+    private final Map<MethodKey, Long> entryPoints = new HashMap<>();
 
     private long total;
     private long chargedToOwnCode;
@@ -113,6 +114,7 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
                 total,
                 chargedToOwnCode,
                 ownMethods,
+                sortedValues(entryPoints),
                 sortedValues(inclusiveByMethod),
                 focus.stream().map(FocusAccumulator::toCost).toList());
     }
@@ -125,11 +127,15 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
 
     private void chargeOwn(List<Step> steps, long value) {
         Map<MethodKey, Step> ownOccurrences = new LinkedHashMap<>();
+        int outermostOwn = -1;
         int deepestOwn = -1;
         for (int i = 0; i < steps.size(); i++) {
             Step step = steps.get(i);
             if (step.java() && scope.isOwn(step.key().className())) {
                 ownOccurrences.put(step.key(), step);
+                if (outermostOwn < 0) {
+                    outermostOwn = i;
+                }
                 deepestOwn = i;
             }
         }
@@ -138,6 +144,7 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
         }
 
         chargedToOwnCode += value;
+        entryPoints.merge(steps.get(outermostOwn).key(), value, Long::sum);
         for (Step occurrence : ownOccurrences.values()) {
             own.computeIfAbsent(occurrence.key(), OwnAccumulator::new).addInclusive(occurrence.frameType(), value);
         }

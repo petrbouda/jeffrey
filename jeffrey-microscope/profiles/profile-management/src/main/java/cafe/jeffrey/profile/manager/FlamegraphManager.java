@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.flamegraph.code.CallSites;
 import cafe.jeffrey.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
@@ -108,4 +110,15 @@ public interface FlamegraphManager {
      * @return the per-method reading
      */
     CodeAttribution codeAttribution(GraphParameters graphParameters, CodeQuery query);
+
+    /**
+     * Where the events of these parameters' type were issued from in the reader's own code: each event's
+     * deepest own frame and line, split by one field's value, counted per trace. Only event types recorded
+     * with stack traces have call sites.
+     *
+     * @param graphParameters the event type, window and filters to read
+     * @param query           whose code is own, the field to split by and an optional field filter
+     * @return the call sites
+     */
+    CallSites callSites(GraphParameters graphParameters, CallSiteQuery query);
 }

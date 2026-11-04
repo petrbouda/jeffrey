@@ -207,7 +207,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
       <h2 id="answers">How an Answer Reads</h2>
-      <p>Every tool but one answers with a typed record: <code>tools/list</code> gives 114 of the 115 an <code>outputSchema</code>, and each call returns the record in <code>structuredContent</code>. The text beside it is the same record as JSON &mdash; or, for the documents written to be read (the flamegraph, comparison and trace exports, the listings), Markdown that ends in a footer rendered from the same record. Some hosts hand the model only <code>structuredContent</code> &mdash; Claude Code does &mdash; so an export whose Markdown is the answer carries that document in the record too, as <code>markdown</code>, cut (and <code>truncated</code>) when the whole record would pass the 120,000-character cap. <code>ide_source</code> is the exception: its answer is a class&rsquo;s source text. The conventions below hold for every tool, so an agent that has read one answer can read them all.</p>
+      <p>Every tool but one answers with a typed record: <code>tools/list</code> gives 116 of the 117 an <code>outputSchema</code>, and each call returns the record in <code>structuredContent</code>. The text beside it is the same record as JSON &mdash; or, for the documents written to be read (the flamegraph, comparison and trace exports, the listings), Markdown that ends in a footer rendered from the same record. Some hosts hand the model only <code>structuredContent</code> &mdash; Claude Code does &mdash; so an export whose Markdown is the answer carries that document in the record too, as <code>markdown</code>, cut (and <code>truncated</code>) when the whole record would pass the 120,000-character cap. <code>ide_source</code> is the exception: its answer is a class&rsquo;s source text. The conventions below hold for every tool, so an agent that has read one answer can read them all.</p>
       <ul>
         <li><strong>Closed schemas.</strong> Each <code>outputSchema</code> is generated from the record the tool returns: every field required, <code>additionalProperties: false</code>, no <code>$ref</code>. A field that can be absent is typed <code>["&lt;type&gt;", "null"]</code> and comes back as an explicit <code>null</code>, never left out &mdash; and a count the tool cannot know is <code>null</code>, not a zero that reads as a measurement. The one open shape is <code>{"type": "object"}</code>, used only where a payload differs by kind: a next call&rsquo;s <code>arguments</code>, a finding&rsquo;s <code>evidence</code>, an operation&rsquo;s <code>result</code>.</li>
         <li><strong>Time is UTC epoch milliseconds.</strong> Every instant and every window bound is named <code>&hellip;EpochMs</code>, in the arguments as in the answers &mdash; <code>startEpochMs</code> and <code>endEpochMs</code> on <code>flamegraph_export</code>, <code>compare_movements</code>, <code>compare_flamegraph</code>, <code>timeline_zoom</code> and <code>connector_download</code>, and on every window an answer hands out. A bound outside the recording is refused naming the recording&rsquo;s own span. Durations carry their unit in the name: <code>durationMs</code>, <code>durationNanos</code>. A comparison window is given on the primary&rsquo;s clock and applied at the same offset into the baseline; the answer reports where it landed on both.</li>
@@ -280,8 +280,8 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           </tr>
           <tr>
             <td><a href="#code"><code>code_</code></a></td>
-            <td class="map-count">2</td>
-            <td>Your own methods, asked about by the names in your source: which of them the samples are charged to, and everything measured about the one you are reading &mdash; callers, callees, lines, exceptions and the requests that run it.</td>
+            <td class="map-count">4</td>
+            <td>Your own methods, asked about by the names in your source: which of them the samples are charged to, everything measured about the one you are reading &mdash; callers, callees, lines, exceptions and the requests that run it &mdash; the lines that issue a statement or call, and what the application did at runtime tied back to its code.</td>
           </tr>
           <tr>
             <td><a href="#timeline"><code>timeline_</code></a></td>
@@ -508,6 +508,29 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           </tr>
         </tbody>
       </table>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>code_callSites</code></td>
+            <td><code>profileId</code>, <code>eventType</code>, <code>framePrefixes?</code>, <code>groupBy?</code> (<code>name</code> by default for JDBC statements), <code>filterField?</code> + <code>filterValue?</code>, <code>limit?</code> (15, max 50), <code>startEpochMs?</code>, <code>endEpochMs?</code></td>
+            <td>Where events of one type were issued from in your code: the deepest frames of yours on each event&rsquo;s stack as <code>ownPath</code> (<code>Class#method:line</code>, deepest first &mdash; your own database or HTTP wrapper, then the code that called it), split by one of the event&rsquo;s fields, with count, total, mean and longest duration and, for events inside traces, how many requests issued it and how often one did (<code>perTraceMax</code>, <code>perTraceMedian</code>; <code>repeatedPerTrace</code> marks the N+1 shape), with exemplar traces. Any type recorded with stacks: Jeffrey&rsquo;s JDBC statements, the JDK&rsquo;s socket, file and lock events, your own JFR events. <code>NO_STACKS</code> for a type recorded without them &mdash; Jeffrey&rsquo;s HTTP and gRPC exchanges and its trace spans</td>
+          </tr>
+          <tr>
+            <td><code>code_runtimeSurface</code></td>
+            <td><code>profileId</code>, <code>framePrefixes?</code></td>
+            <td>What the application did at runtime, tied to its code: the busiest traced operations with count, errors and p95, the methods of yours they entered through (<code>entryPoints</code> &mdash; the handler) and spent most in (<code>topMethods</code>), with <code>entryBasis</code> saying how the handler was read and <code>ownSamples</code> how firmly; the JDBC statements with the paths of yours that issue them; the trace attribute keys, the developer&rsquo;s own first; the notification types raised; the application&rsquo;s own JFR event types. Each section says whether it is read from event stacks or inferred from samples</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>An event recorded with its stack names its call site directly. Jeffrey records its HTTP and gRPC exchanges and its trace spans without one, so an operation&rsquo;s handler is read two ways. Where its requests issued statements, their stacks carry the request&rsquo;s whole path, and the outermost frame of yours there is the handler &mdash; recorded (<code>entryBasis: EVENT_STACK</code>). Otherwise it is the outermost frame of yours in the samples taken inside its spans, wall-clock first &mdash; inferred from where samples landed (<code>SAMPLED_SPANS</code>); a short request a sampler caught twice is placed loosely, which <code>ownSamples</code> shows. <code>topMethods</code> always comes from those samples.</p>
+
       <p>Charged figures add up across methods, which is what makes them a ranking of the code you can change: a method that calls into Hibernate for 70% of its samples is where the change goes, not Hibernate. Inclusive figures count a recursing method once per stack. A ranking of every window and every per-thread split would repeat one question, so <code>flamegraph_export</code> offers <code>code_hotspots</code> next only for the whole recording; give it a window yourself when one matters.</p>
 
       <h2 id="compare">compare_ &mdash; two profiles</h2>

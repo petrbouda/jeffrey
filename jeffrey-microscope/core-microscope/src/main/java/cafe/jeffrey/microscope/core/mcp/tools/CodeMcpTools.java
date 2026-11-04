@@ -154,7 +154,7 @@ public class CodeMcpTools {
             + "the source in front of you.";
 
     /** The sample kinds operations are read on, preferred in this order when the profile has them. */
-    private static final List<Type> OPERATION_SAMPLE_TYPES = List.of(
+    static final List<Type> OPERATION_SAMPLE_TYPES = List.of(
             Type.EXECUTION_SAMPLE, Type.CPU_TIME_SAMPLE, Type.WALL_CLOCK_SAMPLE);
 
     private final ProfileManager profileManager;

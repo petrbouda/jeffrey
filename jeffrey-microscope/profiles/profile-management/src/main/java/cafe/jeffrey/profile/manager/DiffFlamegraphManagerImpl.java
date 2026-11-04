@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.flamegraph.code.CallSites;
 import cafe.jeffrey.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
@@ -185,6 +187,13 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
     public CodeAttribution codeAttribution(GraphParameters parameters, CodeQuery query) {
         throw new UnsupportedOperationException(
                 "Per-method code reads are made on each profile of a comparison, not on the differential");
+    }
+
+    /** Call sites are read on one profile; a comparison has none of its own. */
+    @Override
+    public CallSites callSites(GraphParameters parameters, CallSiteQuery query) {
+        throw new UnsupportedOperationException(
+                "Call sites are read on each profile of a comparison, not on the differential");
     }
 
     @Override

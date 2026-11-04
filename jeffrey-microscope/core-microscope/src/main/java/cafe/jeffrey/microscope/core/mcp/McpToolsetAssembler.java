@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedOperation;
 import cafe.jeffrey.microscope.core.mcp.tools.CodeMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.CodeSurfaceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
@@ -190,6 +191,9 @@ public class McpToolsetAssembler {
                 ProfileScopedToolset.leased(CodeMcpTools.class, PREFIX_CODE,
                         profileId -> scoped(contextCache, profileId,
                                 scope -> new CodeMcpTools(scope.profileManager(), advertised))),
+                ProfileScopedToolset.leased(CodeSurfaceMcpTools.class, PREFIX_CODE,
+                        profileId -> scoped(contextCache, profileId,
+                                scope -> new CodeSurfaceMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(CompareMcpTools.class, PREFIX_COMPARE,
                         profileId -> scoped(contextCache, profileId, scope -> new CompareMcpTools(
                                 scope.profileManager(), scope::profileManager, clock, advertised))),

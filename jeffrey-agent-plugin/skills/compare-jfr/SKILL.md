@@ -167,7 +167,7 @@ names matched on each side. Read `unlistedMovers` before concluding: a method of
 diff that moved as much is the finding the diff did not predict. `UNCHANGED` is below 0.1 % of the
 primary, inside the noise of a sampled profile — say so rather than "no effect".
 
-`advise-jfr` carries the full profile-to-code-change workflow once the regression is located.
+`optimize-code` carries the full profile-to-code-change workflow once the regression is located.
 
 ## Hand the reading to the analyst
 
@@ -210,7 +210,7 @@ list). When the user asks what else there
 is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
 one multi-select **Implement fixes for:** question.
 
-Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
 the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
 the source rather than choosing evidence again, and keeps its own gate: the proposed change per
 finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
@@ -276,6 +276,6 @@ it: every `](` closes a link text that holds `↗`.**
 - A movement that looks enormous → check the recording lengths in `compare_list` first, then the
   candidate renames, before believing it.
 
-Related skills: `analyze-jfr` for a single profile, `advise-jfr` to turn a located regression into
+Related skills: `analyze-jfr` for a single profile, `optimize-code` to turn a located regression into
 an edit, `jfr-sql` for raw SQL against either profile, `report` for the shape the result is written
 in.

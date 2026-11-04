@@ -41,4 +41,13 @@ public interface ProfileEventStreamRepository {
     <T> T frameBasedEventStreamer(EventQueryConfigurer configurer, RecordBuilder<TimeseriesRecord, T> builder);
 
     <T> T flamegraphStreamer(EventQueryConfigurer configurer, RecordBuilder<FlamegraphRecord, T> builder);
+
+    /**
+     * The events of the configured type grouped by stack, by the value of one of their fields and by
+     * trace -- what a call-site read is built from. Only the configurer's single event type, time range,
+     * stacktrace filters and JSON field filter apply.
+     *
+     * @param groupField the event field whose value the rows are grouped by, or {@code null} for none
+     */
+    <T> T callSiteStreamer(EventQueryConfigurer configurer, String groupField, RecordBuilder<CallSiteRecord, T> builder);
 }

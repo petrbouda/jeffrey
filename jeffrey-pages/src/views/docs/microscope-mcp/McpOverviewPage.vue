@@ -63,7 +63,7 @@ onMounted(() => {
 
       <h2 id="the-one-ai-integration">The One AI Integration</h2>
       <p>This is the only way a model reads a Jeffrey profile. Earlier releases also carried an assistant <em>inside</em> the UI &mdash; a chat page over the open profile, an OQL helper on the heap-dump console, and before that a Profile Advisor that read one source folder and proposed a patch. All of it pointed the other way: Jeffrey called out to a provider you configured, saw one profile at a time, and never saw your code.</p>
-      <p>They are gone, and their jobs moved here. The chat pages are the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> and <router-link to="/docs/microscope-mcp/skills#analyze-heap"><code>analyze-heap</code></router-link> skills over the same tools, plus the ninety or so dashboard tools the in-app model never had; the Advisor is the <router-link to="/docs/microscope-mcp/skills#advise-jfr"><code>advise-jfr</code></router-link> skill, the same job done by the agent that can also build, test and re-profile; the OQL helper is <code>heap_oql</code> and the <router-link to="/docs/microscope-mcp/skills#heap-sql"><code>heap-sql</code></router-link> skill. Nothing in Jeffrey holds an API key any more: the client brings its own model, and Jeffrey only ever answers.</p>
+      <p>They are gone, and their jobs moved here. The chat pages are the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> and <router-link to="/docs/microscope-mcp/skills#analyze-heap"><code>analyze-heap</code></router-link> skills over the same tools, plus the ninety or so dashboard tools the in-app model never had; the Advisor is the <router-link to="/docs/microscope-mcp/skills#optimize-code"><code>optimize-code</code></router-link> skill, the same job done by the agent that can also build, test and re-profile; the OQL helper is <code>heap_oql</code> and the <router-link to="/docs/microscope-mcp/skills#heap-sql"><code>heap-sql</code></router-link> skill. Nothing in Jeffrey holds an API key any more: the client brings its own model, and Jeffrey only ever answers.</p>
 
       <h2 id="how-a-request-travels">How a Request Travels</h2>
       <p>The server speaks <strong>MCP over Streamable HTTP</strong> &mdash; JSON-RPC 2.0 against a single endpoint, <code>POST /api/mcp</code>, on the Jeffrey Microscope you already run. There is no separate process to start and no extra port to open.</p>
@@ -71,7 +71,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for the duration of the call, runs the tool, and returns a typed result, with Markdown where the agent reads prose. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and fifteen tools in twenty families:</p>
+      <p>A hundred and seventeen tools in twenty families:</p>
       <table>
         <thead>
           <tr>
@@ -93,8 +93,8 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>code_</code></td>
-            <td>2</td>
-            <td>Your own methods by the names in your source: which of them the samples are charged to, and everything measured about the one you are reading</td>
+            <td>4</td>
+            <td>Your own methods by the names in your source: which of them the samples are charged to, everything measured about the one you are reading, the lines that issue a statement or call, and what the application did at runtime tied back to its code</td>
           </tr>
           <tr>
             <td><code>compare_</code></td>

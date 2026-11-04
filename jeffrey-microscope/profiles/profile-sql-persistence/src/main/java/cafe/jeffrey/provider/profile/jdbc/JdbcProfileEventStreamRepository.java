@@ -42,6 +42,7 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
 public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepository {
 
     private static final String JSON_ROOT_PATH_PREFIX = "$.";
+    private static final String GROUP_PATH_PARAM = "group_path";
     private static final String SEARCH_LITERAL_PARAM = "search_literal";
     private static final String SEARCH_REGEX_PARAM = "search_regex";
 
@@ -196,6 +197,25 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS, options.sql, options.paramSource, options.mapper, builder::onRecord);
 
+        return builder.build();
+    }
+
+    @Override
+    public <T> T callSiteStreamer(
+            EventQueryConfigurer configurer, String groupField, RecordBuilder<CallSiteRecord, T> builder) {
+
+        MapSqlParameterSource params = createBaseParams(configurer);
+        applyJsonFieldFilter(params, configurer.jsonFieldFilter());
+        if (groupField != null) {
+            params.addValue(GROUP_PATH_PARAM, JSON_ROOT_PATH_PREFIX + DuckDBCallSiteQueries.requireFieldName(groupField));
+        }
+        FramesCache framesCache = framesCacheSlot.resolve(() -> FramesCache.load(databaseClient));
+        databaseClient.queryStream(
+                StatementLabel.STREAM_EVENTS,
+                DuckDBCallSiteQueries.query(groupField, configurer),
+                params,
+                new CallSiteRecordRowMapper(framesCache),
+                builder::onRecord);
         return builder.build();
     }
 

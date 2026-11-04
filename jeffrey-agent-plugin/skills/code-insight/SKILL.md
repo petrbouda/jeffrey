@@ -1,6 +1,6 @@
 ---
 name: code-insight
-description: Answers questions about the code in the current repository from a Jeffrey profile, asked by the names in the source - whether a method or class is hot, who calls it at runtime, which of its lines the time goes to, what it calls into, which exceptions are thrown under it, which requests run it, and which of the repository's own methods a profile's cost is charged to. Use whenever the user asks about the runtime behaviour of code they are reading or editing - "is this method hot", "who calls this in production", "what does this class cost", "which endpoint runs this", "where does our code spend its time" - and a profile of that code exists or can be recorded.
+description: Answers questions about the code in the current repository from a Jeffrey profile, asked by the names in the source - whether a method or class is hot, who calls it at runtime, which of its lines the time goes to, what it calls into, which exceptions are thrown under it, which requests run it, which of the repository's own methods a profile's cost is charged to, which lines issue a SQL statement or call and how often one request does (N+1), and what the application did at runtime - its operations, statements, attributes and own events - tied back to the code. Use whenever the user asks about the runtime behaviour of code they are reading or editing - "is this method hot", "who calls this in production", "what does this class cost", "which endpoint runs this", "where does our code spend its time", "which line issues this query", "is there an N+1", "what does this service actually do at runtime" - and a profile of that code exists or can be recorded.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *) Bash(git status *)
 argument-hint: "[Class#method | Class | file path] [profile-id]"
 ---
@@ -24,7 +24,8 @@ Track progress:
 - [ ] 1. Profile chosen, its commit compared with HEAD
 - [ ] 2. Own packages named
 - [ ] 3. The code named as the JVM runs it
-- [ ] 4. Asked: code_method for one method or class, code_hotspots for the repository
+- [ ] 4. Asked: code_method for one method or class, code_hotspots for the repository,
+        code_callSites for a statement or call, code_runtimeSurface for what ran
 - [ ] 5. Every figure tied to source that was actually read
 ```
 
@@ -104,6 +105,29 @@ JVM, GC or a library thread — and `jvm_gc` or a `flamegraph_export` of the sam
 For a burst rather than the whole run, `timeline_hotWindows` gives the window and both tools take
 `startEpochMs`/`endEpochMs`.
 
+**What ran, against the code** — "which endpoints does this service really serve", "where does this
+request go in our code", "which business attributes do we record" — `code_runtimeSurface` with your
+`framePrefixes`. It lists the busiest traced operations with count, errors and p95 and, from the
+samples inside their spans, the methods of yours they entered through (`entryPoints` — the handler)
+and spent most in (`topMethods`); the JDBC statements with the paths of yours that issue them; the
+trace attribute keys, the developer's own first; the notification types; the application's own JFR
+event types. Reconcile it with the source: a route the code declares that no operation shows was not
+exercised in this recording, an operation with no attribute of its own is one the code never
+describes, a custom event recorded without stacks cannot name its caller. Read `entryBasis` before
+naming a handler: `EVENT_STACK` is recorded (the stacks of the statements the requests issued),
+`SAMPLED_SPANS` is inferred from where samples landed — read `ownSamples`, two samples place an
+operation loosely — and say which.
+
+**Who issues a statement or a call** — "which line runs this query", "where is the N+1" —
+`code_callSites` with the event type (`jeffrey.JdbcQuery` and its siblings; `jdk.SocketRead`,
+`jdk.FileRead`, `jdk.JavaMonitorEnter`; your own JFR events), your `framePrefixes`, and `groupBy` or
+`filterField`/`filterValue` to split or narrow by a field. Each row's `ownPath` is the frames of yours
+from the deepest up — an own database wrapper first, then the repository or service that called it —
+with the line of each; open the caller, not only the wrapper. `repeatedPerTrace` marks a statement one
+request issues many times by the median: look for the loop around that line. `NO_STACKS` means the
+type was recorded without stacks — Jeffrey's HTTP and gRPC exchanges and its spans are — and
+`code_runtimeSurface` places those through samples instead.
+
 ## 4. Ground every figure in source
 
 - **Never name a line you have not read.** Open the file at each line a figure points at.
@@ -116,7 +140,7 @@ For a burst rather than the whole run, `timeline_hotWindows` gives the window an
 
 ## 5. What next
 
-Offer, without doing them: **advise-jfr** to turn a hot method into a change; **compare-jfr** or
+Offer, without doing them: **optimize-code** to turn a hot method or a repeated statement into a change; **compare-jfr** or
 **regression-check** when the question is whether a change made it worse (`compare_methods` with the
 methods a diff touched); `traces_operationFlamegraphExport` of the request a method runs in, when its
 place among the request's other work matters; and, when the IDE is linked, `ide_resolve` to put the

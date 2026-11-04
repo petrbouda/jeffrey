@@ -261,7 +261,7 @@ ways to reach it:
   grep for the frame name gets wrong, and it does not move the reader's editor. `ide_windows` shows
   which checkouts are open and which is on the commit the recording was built from.
 
-The `advise-jfr` skill carries the full profile-to-code-change workflow.
+The `optimize-code` skill carries the full profile-to-code-change workflow.
 
 ## Write it up
 
@@ -304,7 +304,7 @@ list). When the user asks what else there
 is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
 one multi-select **Implement fixes for:** question.
 
-Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
 the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
 the source rather than choosing evidence again, and keeps its own gate: the proposed change per
 finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
@@ -355,5 +355,5 @@ it: every `](` closes a link text that holds `↗`.**
   by default), or the configured URL does not end in `/api/mcp`, the one path it serves.
 
 Related skills: `analyze-heap` for a heap dump, `compare-jfr` when there is a before and an after
-to weigh against each other, `jfr-sql` for raw SQL against the profile, `advise-jfr` to go from a
+to weigh against each other, `jfr-sql` for raw SQL against the profile, `optimize-code` to go from a
 hotspot to an edit in this repository, `report` for the shape every finding is written in.

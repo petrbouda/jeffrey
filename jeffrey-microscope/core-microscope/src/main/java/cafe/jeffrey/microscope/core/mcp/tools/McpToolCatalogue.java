@@ -43,6 +43,7 @@ public final class McpToolCatalogue {
             new ToolClass(DuckDbMcpTools.class, AdvertisedFamilies.JFR),
             new ToolClass(FlamegraphMcpTools.class, AdvertisedFamilies.FLAMEGRAPH),
             new ToolClass(CodeMcpTools.class, AdvertisedFamilies.CODE),
+            new ToolClass(CodeSurfaceMcpTools.class, AdvertisedFamilies.CODE),
             new ToolClass(CompareMcpTools.class, AdvertisedFamilies.COMPARE),
             new ToolClass(TracesMcpTools.class, AdvertisedFamilies.TRACES),
             new ToolClass(TraceAttributesMcpTools.class, AdvertisedFamilies.TRACES),

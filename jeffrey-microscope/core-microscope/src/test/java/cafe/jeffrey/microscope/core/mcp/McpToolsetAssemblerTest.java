@@ -642,7 +642,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 115;
+        private static final int ADVERTISED_TOOLS = 117;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {

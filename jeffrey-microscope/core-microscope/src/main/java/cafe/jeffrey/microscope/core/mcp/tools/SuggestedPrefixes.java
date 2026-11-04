@@ -51,7 +51,10 @@ final class SuggestedPrefixes {
             "io.undertow.", "org.jboss.", "io.vertx.", "io.quarkus.", "io.micronaut.", "org.mybatis.", "org.jooq.",
             "org.glassfish.", "net.bytebuddy.", "org.aspectj.", "org.yaml.", "com.github.benmanes.",
             "io.lettuce.", "redis.clients.", "org.mongodb.", "com.mongodb.", "software.amazon.", "com.amazonaws.",
-            "okhttp3.", "okio.", "retrofit2.", "feign.", "org.duckdb.", "org.openjdk.", "cafe.jeffrey.jfr.");
+            "okhttp3.", "okio.", "retrofit2.", "feign.", "org.duckdb.", "org.openjdk.", "cafe.jeffrey.jfr.",
+            "org.sqlite.", "org.xerial.", "tools.jackson.", "com.oracle.", "oracle.jdbc.", "org.mariadb.",
+            "com.microsoft.", "org.flywaydb.", "org.liquibase.", "liquibase.", "org.reactivestreams.",
+            "io.projectreactor.", "org.thymeleaf.", "org.objectweb.", "org.bouncycastle.");
 
     private SuggestedPrefixes() {
     }

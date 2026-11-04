@@ -73,7 +73,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <h2 id="why-a-separate-agent">Why a Separate Agent</h2>
       <p><code>profile-analyst</code> never calls <code>heap_prepare</code>, including when a shared skill recommends preparing a missing report. It reports the missing evidence to the caller; preparation belongs to the caller or <code>heap-triage</code>. Claude Code enforces that restriction through both supported tool prefixes. The Codex and Gemini analyst copies state it in their instructions.</p>
       <p>Neither agent imports a recording, so each is handed a <code>profileId</code>, never a file. When you name a dump by its path, the <code>analyze-heap</code> skill imports it in your session first and delegates with the profile that came back; an agent given only a path or a name would look a profile up in the catalogue, which can hold another dump of the same name.</p>
-      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four in <code>advise-jfr</code>, one per group. Pulled into your session, they crowd out the thing that has to happen next: reading the actual source behind the frames, and holding the conversation about what to change.</p>
+      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four in <code>optimize-code</code>, one per group. Pulled into your session, they crowd out the thing that has to happen next: reading the actual source behind the frames, and holding the conversation about what to change.</p>
 
       <p>So the reading happens somewhere else. The analyst runs the sequence, follows the profile where it leads &mdash; deeper into a heavy subtree, a lower <code>thresholdPct</code> on one path, the GC-root path of the class the histogram named &mdash; and returns a report. Everything it read stays in its context, not yours. Extra reads cost you nothing, which is why it is told to keep going until it can name the causes rather than stopping at the first export.</p>
 
@@ -123,7 +123,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <p>Usually you do not: the skills delegate on your behalf when more than one export is in play. To do it yourself, give it the id and the one question.</p>
       <DocsCodeBlock :code="delegate" language="bash" />
 
-      <p>Independent questions go out in a single message so they run at once. This is how <code>advise-jfr</code> uses it when you pick several flamegraph groups &mdash; one parallel delegation per group, and documents that never enter your context. A group nobody picked is not delegated:</p>
+      <p>Independent questions go out in a single message so they run at once. This is how <code>optimize-code</code> uses it when you pick several flamegraph groups &mdash; one parallel delegation per group, and documents that never enter your context. A group nobody picked is not delegated:</p>
       <DocsCodeBlock :code="parallel" language="text" />
 
       <h2 id="when-not-to">When Not To</h2>

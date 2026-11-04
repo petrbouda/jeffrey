@@ -120,7 +120,7 @@ Report, in the `report` skill's shape:
   support "3% slower". A movement smaller than the difference between two runs of the *same* revision
   is noise, and the honest way to know that is to record the baseline twice.
 
-A regression whose cause is visible in the diff is worth naming; **advise-jfr** turns it into a
+A regression whose cause is visible in the diff is worth naming; **optimize-code** turns it into a
 change. A regression with no candidate in the diff is still a finding — report it rather than
 hunting until something fits.
 
@@ -156,7 +156,7 @@ list). When the user asks what else there
 is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
 one multi-select **Implement fixes for:** question.
 
-Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
 the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
 the source rather than choosing evidence again, and keeps its own gate: the proposed change per
 finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
@@ -220,5 +220,5 @@ it: every `](` closes a link text that holds `↗`.**
   confident that makes it.
 
 Related skills: `profile-run` for the recording flags, `compare-jfr` for reading a pair that already
-exists, `advise-jfr` for turning a confirmed regression into a fix, `report` for how the verdict and
+exists, `optimize-code` for turning a confirmed regression into a fix, `report` for how the verdict and
 its uncertainty are written down.

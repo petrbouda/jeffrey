@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.flamegraph.code.CallSites;
 import cafe.jeffrey.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
@@ -129,6 +131,11 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
     @Override
     public CodeAttribution codeAttribution(GraphParameters params, CodeQuery query) {
         return generator.codeAttribution(adjustParams(params), query);
+    }
+
+    @Override
+    public CallSites callSites(GraphParameters params, CallSiteQuery query) {
+        return generator.callSites(params, query);
     }
 
     private GraphParameters adjustParams(GraphParameters params) {

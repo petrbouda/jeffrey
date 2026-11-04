@@ -129,6 +129,13 @@ class CodeAttributionBuilderTest {
         }
 
         @Test
+        void theOutermostOwnFrameIsWhereTheApplicationWasEntered() {
+            assertEquals(List.of(
+                    new MethodValue(new MethodKey("com.acme.web.Controller", "handle"), 90)),
+                    attribution.entryPoints());
+        }
+
+        @Test
         void stacksWithoutOwnCodeAreLeftOutOfTheChargedTotal() {
             assertEquals(100, attribution.total());
             assertEquals(90, attribution.chargedToOwnCode());

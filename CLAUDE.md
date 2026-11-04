@@ -98,7 +98,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the hub's compression job, never on a read path.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
-- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 115 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 117 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 

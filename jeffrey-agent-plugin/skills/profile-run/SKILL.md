@@ -133,4 +133,4 @@ it: every `](` closes a link text that holds `↗`.**
   produces a profile that answers the wrong question convincingly.
 
 Related skills: `analyze-jfr` for reading what this produced, `compare-jfr` for before and after,
-`advise-jfr` to turn a hotspot into a change in this repository.
+`optimize-code` to turn a hotspot into a change in this repository.

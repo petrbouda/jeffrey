@@ -34,6 +34,7 @@ one endpoint, service or statement group.
 | `jdbc_overview` | Statement count and percentiles, the operation mix, statement groups by cost, slowest statements with their SQL |
 | `jdbc_statementGroup` | The same, narrowed to one group |
 | `jdbc_pools` | Configured min/max against peak and average use, threads that waited, acquisition timeouts |
+| `code_callSites` | Which lines of your code issue a statement (event type `jeffrey.JdbcQuery` and its siblings, which carry their caller's stack), and how many times one request does — the N+1 shape |
 | `grpc_overview` / `grpc_service` | gRPC latency overall and per service, broken down by method |
 | `grpc_traffic` | Message sizes rather than timings — where an oversized payload shows up |
 | `methodtracing_overview` / `_slowest` / `_timing` | Instrumented method timings: by cost, the worst invocations, the JVM's own aggregates |
