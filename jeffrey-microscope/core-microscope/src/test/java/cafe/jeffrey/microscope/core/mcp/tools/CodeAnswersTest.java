@@ -19,16 +19,42 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.flamegraph.code.MethodKey;
 import cafe.jeffrey.flamegraph.code.MethodRef;
+import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.regex.Pattern;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CodeAnswersTest {
+
+    @Nested
+    class NearbyMethods {
+
+        @Test
+        void classContextRanksAheadOfAHotUnrelatedMethodWithTheSameName() {
+            MethodValue unrelated = new MethodValue(new MethodKey("com.other.Worker", "save"), 10000);
+            MethodValue related = new MethodValue(new MethodKey("com.acme.Orders$Repository", "save"), 10);
+
+            List<MethodValue> nearest = CodeAnswers.nearest(MethodRef.parse("com.acme.Orders#save"),
+                    List.of(unrelated, related));
+
+            assertEquals(List.of(related, unrelated), nearest);
+        }
+
+        @Test
+        void aClassmateRanksAheadOfAnUnrelatedNamesake() {
+            MethodValue unrelated = new MethodValue(new MethodKey("com.other.Worker", "save"), 10000);
+            MethodValue related = new MethodValue(new MethodKey("com.acme.Orders", "load"), 10);
+
+            assertEquals(List.of(related, unrelated), CodeAnswers.nearest(MethodRef.parse("com.acme.Orders#save"),
+                    List.of(unrelated, related)));
+        }
+    }
 
     private static boolean finds(String search, String frame) {
         return Pattern.compile(search).matcher(frame).find();

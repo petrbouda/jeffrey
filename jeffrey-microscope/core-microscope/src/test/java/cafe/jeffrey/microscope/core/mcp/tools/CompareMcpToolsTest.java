@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.ArrayList;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -221,6 +222,82 @@ class CompareMcpToolsTest {
                 .findFirst()
                 .orElseThrow();
         return McpSchemaGenerator.schemaOf(tool.getAnnotation(McpOutputSchema.class).value());
+    }
+
+    @Nested
+    class MethodCorrection {
+
+        private static final MethodRef ASKED = MethodRef.parse("com.acme.Orders#save");
+
+        @Test
+        void aHotUnrelatedNamesakeCannotReplaceTheRequestedClass() {
+            JsonNode answer = compareAbsent(List.of(
+                    value("com.other.Worker", "save", 10000),
+                    value("com.acme.Orders$Repository", "save", 10)));
+
+            JsonNode retry = answer.path("followUp").path("nextTools").get(0);
+            assertEquals("compare_methods", retry.path("tool").asString());
+            assertEquals("com.acme.Orders.Repository#save", retry.path("arguments").path("methods").get(0).asString());
+        }
+
+        @Test
+        void anUnrelatedNamesakeIsASuggestionWithoutAnAutomaticRetry() {
+            assertNoAutomaticRetry(compareAbsent(List.of(value("com.other.Worker", "save", 10000))));
+        }
+
+        @Test
+        void ambiguousNestedClassesDoNotChooseTheHottestOne() {
+            assertNoAutomaticRetry(compareAbsent(List.of(
+                    value("com.acme.Orders$FirstRepository", "save", 1000),
+                    value("com.acme.Orders$SecondRepository", "save", 10))));
+        }
+
+        @Test
+        void aTruncatedSuggestionPoolCannotManufactureUniqueness() {
+            List<MethodValue> methods = new ArrayList<>();
+            for (int i = 0; i < 20; i++) {
+                methods.add(value("com.other.Worker" + i, "save", 10000));
+            }
+            methods.add(value("com.acme.Orders$FirstRepository", "save", 100));
+            methods.add(value("com.acme.Orders$SecondRepository", "save", 10));
+
+            assertNoAutomaticRetry(compareAbsent(methods));
+        }
+
+        @Test
+        void ordinaryAndLambdaFramesOfOneMethodAreOneCorrection() {
+            JsonNode answer = compareAbsent(List.of(
+                    value("com.acme.Orders$Repository", "save", 100),
+                    value("com.acme.Orders$Repository", "lambda$save$0", 50)));
+
+            JsonNode retry = answer.path("followUp").path("nextTools").get(0);
+            assertEquals("compare_methods", retry.path("tool").asString());
+            assertEquals("com.acme.Orders.Repository#save", retry.path("arguments").path("methods").get(0).asString());
+        }
+
+        private JsonNode compareAbsent(List<MethodValue> methods) {
+            when(primaryFlamegraphManager.graphableEventSummaries()).thenReturn(List.of(exclusive(CPU_EVENT, 100)));
+            when(baselineFlamegraphManager.graphableEventSummaries()).thenReturn(List.of(exclusive(CPU_EVENT, 100)));
+            FocusCost absent = new FocusCost(ASKED, List.of(), 0, 0,
+                    List.of(), List.of(), List.of(), List.of(), List.of());
+            CodeAttribution attribution = new CodeAttribution(100, 0,
+                    List.of(), List.of(), methods, List.of(absent));
+            when(primaryFlamegraphManager.codeAttribution(any(), any())).thenReturn(attribution);
+            when(baselineFlamegraphManager.codeAttribution(any(), any())).thenReturn(attribution);
+            return conforming("methods", tools().methods(BASELINE_ID, List.of(ASKED.displayName()), CPU_EVENT,
+                    null, null, null, null, null));
+        }
+
+        private static MethodValue value(String className, String method, long inclusive) {
+            return new MethodValue(new MethodKey(className, method), inclusive);
+        }
+
+        private static void assertNoAutomaticRetry(JsonNode answer) {
+            assertEquals("NOT_SEEN", answer.path("methods").get(0).path("movement").asString());
+            for (JsonNode call : answer.path("followUp").path("nextTools")) {
+                assertFalse("compare_methods".equals(call.path("tool").asString()), answer::toString);
+            }
+        }
     }
 
     @Nested
