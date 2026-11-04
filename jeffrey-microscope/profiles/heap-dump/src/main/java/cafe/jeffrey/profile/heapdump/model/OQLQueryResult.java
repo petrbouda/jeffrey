@@ -27,26 +27,38 @@ import java.util.List;
  * @param hasMore         true if there are more results beyond the current page
  * @param executionTimeMs time taken to execute the query in milliseconds
  * @param errorMessage    error message if the query failed, null otherwise
+ * @param resumeAfter     where the next page starts when more rows remain and the query resumes
+ *                        rather than paging by offset; null otherwise
  */
 public record OQLQueryResult(
         List<OQLResultEntry> results,
         int totalCount,
         boolean hasMore,
         long executionTimeMs,
-        String errorMessage
+        String errorMessage,
+        OQLResumePoint resumeAfter
 ) {
     /**
      * Create a successful result.
      */
     public static OQLQueryResult success(List<OQLResultEntry> results, int totalCount, boolean hasMore, long executionTimeMs) {
-        return new OQLQueryResult(results, totalCount, hasMore, executionTimeMs, null);
+        return new OQLQueryResult(results, totalCount, hasMore, executionTimeMs, null, null);
+    }
+
+    /**
+     * Create a successful page of a query that resumes: {@code resumeAfter} is where the next page
+     * starts, null when this one ends the query.
+     */
+    public static OQLQueryResult success(List<OQLResultEntry> results, int totalCount, boolean hasMore,
+                                         long executionTimeMs, OQLResumePoint resumeAfter) {
+        return new OQLQueryResult(results, totalCount, hasMore, executionTimeMs, null, resumeAfter);
     }
 
     /**
      * Create an error result.
      */
     public static OQLQueryResult error(String errorMessage, long executionTimeMs) {
-        return new OQLQueryResult(List.of(), 0, false, executionTimeMs, errorMessage);
+        return new OQLQueryResult(List.of(), 0, false, executionTimeMs, errorMessage, null);
     }
 
     /**

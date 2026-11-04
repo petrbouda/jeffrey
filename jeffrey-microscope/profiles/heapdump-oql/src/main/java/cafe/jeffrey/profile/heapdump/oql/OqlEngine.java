@@ -22,6 +22,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompileOptions;
 import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompiler;
 import cafe.jeffrey.profile.heapdump.oql.executor.OqlExecutor;
+import cafe.jeffrey.profile.heapdump.oql.executor.PageWindow;
 import cafe.jeffrey.profile.heapdump.oql.parser.OqlParseException;
 import cafe.jeffrey.profile.heapdump.oql.parser.OqlParserFactory;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
@@ -66,8 +67,13 @@ public final class OqlEngine {
         return compiler.compile(stmt, options);
     }
 
-    /** Executes a previously compiled plan against the given view. */
+    /** Executes a previously compiled plan against the given view: one page of its rows. */
+    public OQLQueryResult execute(ExecutionPlan plan, HeapView view, PageWindow window) throws SQLException {
+        return OqlExecutor.execute(plan, view, window);
+    }
+
+    /** Executes a previously compiled plan against the given view: its first {@code limit} rows. */
     public OQLQueryResult execute(ExecutionPlan plan, HeapView view, int limit) throws SQLException {
-        return OqlExecutor.execute(plan, view, limit);
+        return execute(plan, view, PageWindow.first(limit));
     }
 }

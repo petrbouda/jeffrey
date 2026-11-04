@@ -52,6 +52,14 @@ public final class JavaStringDecoder {
     }
 
     /**
+     * Decodes a String the caller already holds as a row: its fields and its array are read from
+     * the rows in hand, so only the array is looked up — one lookup where the id costs three.
+     */
+    public static Optional<Decoded> decode(HeapView view, InstanceRow string) throws SQLException {
+        return decodeInternal(view, string, Integer.MAX_VALUE);
+    }
+
+    /**
      * Decodes only the prefix of the String at {@code stringInstanceId}, sized
      * for a preview of at most {@code maxChars} characters. Reads only a
      * bounded prefix of the backing array via
@@ -71,10 +79,15 @@ public final class JavaStringDecoder {
     private static Optional<Decoded> decodeInternal(HeapView view, long stringInstanceId, int maxChars)
             throws SQLException {
         InstanceRow inst = view.findInstanceById(stringInstanceId).orElse(null);
-        if (inst == null || inst.kind() != InstanceRow.Kind.INSTANCE) {
+        return inst == null ? Optional.empty() : decodeInternal(view, inst, maxChars);
+    }
+
+    private static Optional<Decoded> decodeInternal(HeapView view, InstanceRow inst, int maxChars)
+            throws SQLException {
+        if (inst.kind() != InstanceRow.Kind.INSTANCE) {
             return Optional.empty();
         }
-        List<InstanceFieldValue> fields = view.readInstanceFields(stringInstanceId);
+        List<InstanceFieldValue> fields = view.readInstanceFields(inst);
 
         Long valueArrayId = null;
         Byte coder = null;
@@ -107,9 +120,7 @@ public final class JavaStringDecoder {
         }
 
         int maxBytes = boundedReadSize(maxChars, array.primitiveType(), coder);
-        byte[] bytes = maxBytes == Integer.MAX_VALUE
-                ? view.readPrimitiveArrayBytes(valueArrayId)
-                : view.readPrimitiveArrayBytes(valueArrayId, maxBytes);
+        byte[] bytes = view.readPrimitiveArrayBytes(array, maxBytes);
         long arrayShallow = array.shallowSize();
         String content = decodeContent(bytes, array.primitiveType(), coder);
         if (content == null) {

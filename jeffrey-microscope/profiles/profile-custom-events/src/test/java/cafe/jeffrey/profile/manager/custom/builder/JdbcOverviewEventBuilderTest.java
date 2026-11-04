@@ -31,6 +31,7 @@ import cafe.jeffrey.provider.profile.api.GenericRecord;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,6 +50,10 @@ class JdbcOverviewEventBuilderTest {
     private static final int SLOW_STATEMENT_LIMIT = 10;
 
     private static GenericRecord statement(String group, String name) {
+        return statement(group, name, Duration.ofMillis(40));
+    }
+
+    private static GenericRecord statement(String group, String name, Duration executionTime) {
         ObjectNode fields = MAPPER.createObjectNode();
         fields.put("group", group);
         fields.put("name", name);
@@ -60,7 +65,7 @@ class JdbcOverviewEventBuilderTest {
                 "JDBC Query",
                 PROFILING_START.plus(fromStart),
                 fromStart,
-                Duration.ofMillis(40),
+                executionTime,
                 null,
                 null,
                 1,
@@ -84,6 +89,20 @@ class JdbcOverviewEventBuilderTest {
             JdbcSlowStatement slowest = result.slowStatements().getFirst();
             assertEquals(NAME, slowest.statementName());
             assertEquals(GROUP, slowest.statementGroup());
+        }
+
+        @Test
+        @DisplayName("keeps the slowest statements, slowest first")
+        void keepsTheSlowestStatementsSlowestFirst() {
+            JdbcOverviewEventBuilder builder = new JdbcOverviewEventBuilder(TIME_RANGE, 3, null);
+            for (long millis : new long[]{12, 48, 3, 30, 7, 51, 22}) {
+                builder.onRecord(statement(GROUP, NAME, Duration.ofMillis(millis)));
+            }
+
+            JdbcOverviewData result = builder.build();
+
+            assertEquals(List.of(51_000_000L, 48_000_000L, 30_000_000L),
+                    result.slowStatements().stream().map(JdbcSlowStatement::executionTime).toList());
         }
     }
 }

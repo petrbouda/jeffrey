@@ -17,6 +17,7 @@
 package cafe.jeffrey.profile.heapdump.oql.executor;
 
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.profile.heapdump.model.OQLResumePoint;
 import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
 import cafe.jeffrey.profile.heapdump.oql.ast.FromClause;
 import cafe.jeffrey.profile.heapdump.oql.ast.ObjectSource;
@@ -52,25 +53,88 @@ public final class JavaExecutor {
 
     private static final ClassHierarchyResolver HIERARCHY = new ClassHierarchyResolver();
 
+    private static final String NOT_A_CANDIDATE_CLASS =
+            "The cursor resumes in a class this query does not read; start again without a cursor: classId=";
+
     private JavaExecutor() {
     }
 
+    /** Whether a page of this plan resumes where the last one stopped: walked in order, nothing sorted. */
+    static boolean resumes(JavaPlan plan) {
+        return plan.reason() == null && plan.query() != null && plan.query().orderBy().isEmpty();
+    }
+
+    /**
+     * The plan's first {@code limit} rows, and whether more follow them. A sorted query reads every
+     * row to sort them; any other stops one row past the limit.
+     */
     public static OQLQueryResult execute(JavaPlan plan, HeapView view, int limit) throws SQLException {
+        if (resumes(plan)) {
+            return page(plan, view, PageWindow.first(limit));
+        }
+        OQLQueryResult refused = refusal(plan);
+        if (refused != null) {
+            return refused;
+        }
+        Walk walk = walk(plan, view, null, 0, Integer.MAX_VALUE);
+        List<OQLResultEntry> entries = walk.entries();
+        applyOrderBy(plan.query(), view, entries);
+        boolean hasMore = entries.size() > limit;
+        if (hasMore) {
+            entries = new ArrayList<>(entries.subList(0, limit));
+        }
+        return OQLQueryResult.success(entries, entries.size(), hasMore, 0);
+    }
+
+    /**
+     * One page of a plan that {@link #resumes}: from the window's resume point, or from the start
+     * passing over its offset, to one row past its limit — and where the next page starts. A page
+     * resumed so reads no instance before its point: deep pages cost what the first one does.
+     */
+    static OQLQueryResult page(JavaPlan plan, HeapView view, PageWindow window) throws SQLException {
+        OQLResumePoint from = window.resumeAfter();
+        int skip = from == null ? window.offset() : from.skip();
+        Walk walk = walk(plan, view, from, skip, window.limit() + 1);
+        List<OQLResultEntry> entries = walk.entries();
+        boolean hasMore = entries.size() > window.limit();
+        OQLResumePoint next = null;
+        if (hasMore) {
+            entries = new ArrayList<>(entries.subList(0, window.limit()));
+            next = walk.after().get(window.limit() - 1);
+        }
+        return OQLQueryResult.success(entries, entries.size(), hasMore, 0, next);
+    }
+
+    private static OQLQueryResult refusal(JavaPlan plan) {
         if (plan.reason() != null) {
             return OQLQueryResult.error(
                     "OQL feature requires the Java executor (Phase 3+): " + plan.reason(), 0);
         }
-        OqlQuery query = plan.query();
-        if (query == null) {
+        if (plan.query() == null) {
             return OQLQueryResult.error("OQL feature not supported yet", 0);
         }
+        return null;
+    }
 
+    /**
+     * The rows the plan's instances produce, in the classes' order and each class's instances' id
+     * order, from {@code from} (the start when null), passing over the first {@code skip} and
+     * stopping once {@code budget} are gathered — each with the point the walk resumes at after it.
+     */
+    private static Walk walk(JavaPlan plan, HeapView view, OQLResumePoint from, int skip, int budget)
+            throws SQLException {
+        OqlQuery query = plan.query();
         List<Long> classIds = resolveCandidateClasses(view, query.from(), plan.expansion());
-        if (classIds.isEmpty()) {
-            return OQLQueryResult.success(List.of(), 0, false, 0);
+        int firstClass = 0;
+        if (from != null) {
+            firstClass = classIds.indexOf(from.classId());
+            if (firstClass < 0) {
+                throw new IllegalArgumentException(NOT_A_CANDIDATE_CLASS + from.classId());
+            }
         }
 
         List<OQLResultEntry> entries = new ArrayList<>();
+        List<OQLResumePoint> after = new ArrayList<>();
         // Hoist per-query setup out of the inner loop. PathExprEvaluator
         // queries dump_metadata once for the id-size; constructing it per
         // row would issue one SQL round-trip per candidate instance, which
@@ -79,21 +143,20 @@ public final class JavaExecutor {
         // Shared per-query so a loop-invariant regex operand compiles once
         // instead of once per candidate instance.
         RegexPatternCache regexCache = new RegexPatternCache();
-        // ORDER BY requires materializing every surviving row before sorting.
-        // Without ORDER BY we can short-circuit at the user's limit — this
-        // turns "first 50 matching Strings" from a 5M-instance scan into
-        // ~thousands of instances in the common case.
-        boolean hasOrderBy = !query.orderBy().isEmpty();
-        int gatherBudget = hasOrderBy ? Integer.MAX_VALUE : limit + 1;
+        int toSkip = skip;
         outer:
-        for (long classId : classIds) {
+        for (int c = firstClass; c < classIds.size(); c++) {
+            long classId = classIds.get(c);
             JavaClassRow clazz = view.findClassById(classId).orElse(null);
             if (clazz == null) {
                 continue;
             }
-            try (Stream<InstanceRow> stream = view.instances(classId)) {
+            boolean resumed = from != null && c == firstClass;
+            try (Stream<InstanceRow> stream = resumed
+                    ? view.instancesFrom(classId, from.instanceId())
+                    : view.instances(classId)) {
                 for (InstanceRow inst : (Iterable<InstanceRow>) stream::iterator) {
-                    if (entries.size() >= gatherBudget) {
+                    if (entries.size() >= budget) {
                         break outer;
                     }
                     Row row = new Row(view, inst, clazz, query.from().alias());
@@ -101,18 +164,24 @@ public final class JavaExecutor {
                     if (query.whereExpr() != null && !eval.evalPredicate(query.whereExpr())) {
                         continue;
                     }
-                    appendRowEntries(eval, query, row, entries);
+                    List<OQLResultEntry> produced = new ArrayList<>();
+                    appendRowEntries(eval, query, row, produced);
+                    for (int k = 0; k < produced.size(); k++) {
+                        if (toSkip > 0) {
+                            toSkip--;
+                            continue;
+                        }
+                        entries.add(produced.get(k));
+                        after.add(new OQLResumePoint(classId, inst.instanceId(), k + 1));
+                    }
                 }
             }
         }
+        return new Walk(entries, after);
+    }
 
-        applyOrderBy(query, view, entries);
-
-        boolean hasMore = entries.size() > limit;
-        if (hasMore) {
-            entries = new ArrayList<>(entries.subList(0, limit));
-        }
-        return OQLQueryResult.success(entries, entries.size(), hasMore, 0);
+    /** The rows a walk gathered, and the point each is followed by. */
+    private record Walk(List<OQLResultEntry> entries, List<OQLResumePoint> after) {
     }
 
     private static List<Long> resolveCandidateClasses(

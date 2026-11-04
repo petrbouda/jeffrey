@@ -72,6 +72,7 @@ import cafe.jeffrey.profile.heapdump.oql.OqlEngine;
 import cafe.jeffrey.profile.heapdump.oql.ast.OqlStatement;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.OqlCompileOptions;
+import cafe.jeffrey.profile.heapdump.oql.executor.PageWindow;
 import cafe.jeffrey.profile.heapdump.oql.parser.OqlParseException;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
@@ -257,7 +258,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 session.buildDominatorTreeIfNeeded();
             }
             try {
-                return oqlEngine.execute(plan, session.view(), effectiveLimit);
+                return oqlEngine.execute(plan, session.view(),
+                        new PageWindow(request.offset(), effectiveLimit, request.resumeAfter()));
             } catch (SQLException e) {
                 LOG.warn("OQL execution failed: query={} error={}", query, e.getMessage());
                 return OQLQueryResult.error("Query failed: " + e.getMessage(), 0);
@@ -267,7 +269,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         OQLQueryResult r = elapsed.entity();
         return new OQLQueryResult(
                 r.results(), r.totalCount(), r.hasMore(),
-                elapsed.duration().toMillis(), r.errorMessage());
+                elapsed.duration().toMillis(), r.errorMessage(), r.resumeAfter());
     }
 
     // --- Threads ---------------------------------------------------------

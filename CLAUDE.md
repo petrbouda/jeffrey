@@ -37,7 +37,8 @@ jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs 
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
                                        folder names are the state: projects/instances/sessions/files; the hub's reader),
-                                       sql-builder, test (@DuckDBTest, VolumeWriter),
+                                       sql-builder, test (@DuckDBTest, VolumeWriter, RecordedSession: real chunks;
+                                       TestappRecording, CheckoutRecording: real traced runs),
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)

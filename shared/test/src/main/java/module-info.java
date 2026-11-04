@@ -24,4 +24,5 @@ module cafe.jeffrey.shared.test {
 
     exports cafe.jeffrey.test;
     exports cafe.jeffrey.test.volume;
+    exports cafe.jeffrey.test.recording;
 }

@@ -380,6 +380,15 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
                     .errorType(cause)
                     .emit();
 
+            // The cause, not its wrapper: a CompletionException's message is its cause's
+            // toString(), so every caller that reads the message - the MCP operation's reason,
+            // the UI's progress task - would hand the reader a Java class name before the sentence.
+            if (cause instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
             throw e;
         }
     }

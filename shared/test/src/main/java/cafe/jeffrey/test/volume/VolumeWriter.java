@@ -64,6 +64,11 @@ public final class VolumeWriter {
         return directories(instanceDir.resolve(sessionIdAt(start)));
     }
 
+    /** A session's directory, under the name a real provisioner gave it. */
+    public static Path session(Path instanceDir, String sessionId) {
+        return directories(instanceDir.resolve(sessionId));
+    }
+
     /**
      * The name the provisioner gives a session started at {@code start}: a time-ordered UUID
      * carrying it, which is what an instance's sessions are ordered by.
@@ -88,23 +93,28 @@ public final class VolumeWriter {
         return file(sessionDir, recordingName(openedAt, offset), content);
     }
 
+    /** A recording opened at {@code openedAt} on a machine at {@code offset}, holding real bytes. */
+    public static Path recording(Path sessionDir, Instant openedAt, ZoneOffset offset, byte[] content) {
+        return file(sessionDir, recordingName(openedAt, offset), content);
+    }
+
     public static Path file(Path dir, String name, String content) {
+        return file(dir, name, content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static Path file(Path dir, String name, byte[] content) {
         Path file = dir.resolve(name);
-        write(file, content);
+        try {
+            Files.write(file, content);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         return file;
     }
 
     private static Path directories(Path dir) {
         try {
             return Files.createDirectories(dir);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private static void write(Path file, String content) {
-        try {
-            Files.writeString(file, content, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

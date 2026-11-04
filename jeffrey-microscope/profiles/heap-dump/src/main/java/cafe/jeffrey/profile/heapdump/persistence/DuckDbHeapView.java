@@ -87,6 +87,9 @@ public final class DuckDbHeapView implements HeapView {
     private static final String SELECT_INSTANCES_BY_CLASS_ORDERED =
             "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE class_id = ? ORDER BY instance_id";
 
+    private static final String SELECT_INSTANCES_BY_CLASS_FROM =
+            "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE class_id = ? AND instance_id >= ? ORDER BY instance_id";
+
     private static final String SELECT_INSTANCE_BY_ID =
             "SELECT " + INSTANCE_COLUMNS + " FROM instance WHERE instance_id = ?";
 
@@ -339,6 +342,15 @@ public final class DuckDbHeapView implements HeapView {
     }
 
     @Override
+    public Stream<InstanceRow> instancesFrom(long classId, long fromInstanceId) throws SQLException {
+        PreparedStatement stmt = connection.prepareStatement(SELECT_INSTANCES_BY_CLASS_FROM);
+        stmt.setLong(1, classId);
+        stmt.setLong(2, fromInstanceId);
+        ResultSet rs = stmt.executeQuery();
+        return resultSetStream(stmt, rs, DuckDbHeapView::mapInstance);
+    }
+
+    @Override
     public Optional<InstanceRow> findInstanceById(long instanceId) throws SQLException {
         try (PreparedStatement stmt = connection.prepareStatement(SELECT_INSTANCE_BY_ID)) {
             stmt.setLong(1, instanceId);
@@ -569,16 +581,21 @@ public final class DuckDbHeapView implements HeapView {
 
     @Override
     public byte[] readPrimitiveArrayBytes(long instanceId, int maxBytes) throws SQLException {
+        if (maxBytes <= 0) {
+            return new byte[0];
+        }
+        InstanceRow inst = findInstanceById(instanceId).orElse(null);
+        return inst == null ? new byte[0] : readPrimitiveArrayBytes(inst, maxBytes);
+    }
+
+    @Override
+    public byte[] readPrimitiveArrayBytes(InstanceRow inst, int maxBytes) {
         if (hprof == null) {
             throw new IllegalStateException(
                     "HeapView opened without a .hprof file; primitive-array reads are unavailable. "
                             + "Use HeapView.open(indexDb, hprof).");
         }
-        if (maxBytes <= 0) {
-            return new byte[0];
-        }
-        InstanceRow inst = findInstanceById(instanceId).orElse(null);
-        if (inst == null
+        if (maxBytes <= 0
                 || inst.kind() != InstanceRow.Kind.PRIMITIVE_ARRAY
                 || inst.arrayLength() == null
                 || inst.primitiveType() == null) {

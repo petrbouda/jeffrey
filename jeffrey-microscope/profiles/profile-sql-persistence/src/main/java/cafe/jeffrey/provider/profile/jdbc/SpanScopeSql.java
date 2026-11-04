@@ -114,14 +114,19 @@ final class SpanScopeSql {
     /**
      * An event survives only if it was taken on a scoped thread inside one of that thread's windows.
      * {@code %1$s} is the alias of the events table in the enclosing query.
+     * <p>
+     * The event's millisecond is its microseconds floored, exactly as the windows' bounds are. DuckDB's
+     * {@code EPOCH_MS} of a {@code TIMESTAMPTZ} rounds to the nearest millisecond instead, which put a
+     * sample taken up to half a millisecond before a window opened inside it — on a recording of
+     * sub-millisecond requests, nearly a quarter of an operation's samples.
      */
     //language=SQL
     private static final String PREDICATE = """
             AND EXISTS (
                 SELECT 1 FROM %2$s iv
                 WHERE %1$s.thread_hash = iv.th
-                  AND iv.b = EPOCH_MS(%1$s.start_timestamp) // %3$d
-                  AND EPOCH_MS(%1$s.start_timestamp) BETWEEN iv.f AND iv.t
+                  AND iv.b = EPOCH_US(%1$s.start_timestamp) // %4$d
+                  AND EPOCH_US(%1$s.start_timestamp) // %3$d BETWEEN iv.f AND iv.t
             )
             """;
 
@@ -156,7 +161,7 @@ final class SpanScopeSql {
         if (!enabled(scope)) {
             return "";
         }
-        return PREDICATE.formatted(eventsAlias, SCOPE_RELATION, BUCKET_MILLIS);
+        return PREDICATE.formatted(eventsAlias, SCOPE_RELATION, MICROS_PER_MILLI, MICROS_PER_BUCKET);
     }
 
     /**

@@ -292,10 +292,11 @@ public class JdbcTraceRepository implements TraceRepository {
      * parent and its children, never moves a span across recorded ancestry or onto another thread.
      *
      * Its span id is minted, which the derivation otherwise deliberately no longer does: a jdk.*
-     * event can never carry a recorded id, so the choice is a minted id or no bar. The id is a hash
-     * of the event's identity folded into [1, 2^63-1] -- never 0, the wire encoding for "absent",
-     * and never negative, so a minted id is recognisable in a pinch. rowid is in the hash so two
-     * byte-identical events (a re-imported chunk) mint two ids instead of colliding; the NOT EXISTS
+     * event can never carry a recorded id, so the choice is a minted id or no bar. The id is
+     * MintedIds' digest of the event's identity and its occurrence among events of that identity,
+     * so two byte-identical events (a re-imported chunk) mint two ids instead of colliding, and the
+     * same event mints the same id in any analysis of the recording -- never the rowid, which
+     * follows the order the parse and the clustering left the rows in. The NOT EXISTS
      * guards the astronomically unlikely collision with a recorded id, because failing the primary
      * key here would fail the whole profile initialization.
      *
@@ -372,8 +373,8 @@ public class JdbcTraceRepository implements TraceRepository {
                       FROM UNNEST([:class_loading_frame_prefixes]) p(prefix)
                       WHERE starts_with(f.class_name, p.prefix))
             ),
-            -- events_raw rather than the events view, because rowid -- which the minted span id
-            -- below folds in -- exists only on a physical table. The pooled field is spliced back
+            -- events_raw rather than the events view, because rowid -- which tells the candidates
+            -- apart below -- exists only on a physical table. The pooled field is spliced back
             -- by hand here (see REHYDRATED_FIELDS): a promoted wait's payload is the recording's
             -- own JSON, and it has to hash to the row DERIVE_SPAN_PAYLOADS wrote.
             blocking AS (
@@ -469,12 +470,7 @@ public class JdbcTraceRepository implements TraceRepository {
             minted AS (
                 SELECT
                     t.*,
-                    -- hash() over the typed columns, never over a string joined out of them: on a
-                    -- VARCHAR, DuckDB's hash() collides for texts differing in a couple of aligned
-                    -- bytes (see TextKeys), and digit strings are that shape.
-                    1 + CAST(mod(
-                            hash(t.trace_id, t.thread_hash, t.event_type, t.start_us, t.event_row),
-                            CAST(9223372036854775806 AS UBIGINT)) AS BIGINT) AS span_id
+                    <<minted_span_id>>                              AS span_id
                 FROM traced t
             ),
             -- What a promoted span may hang under: every recorded span, plus the method spans just
@@ -685,7 +681,10 @@ public class JdbcTraceRepository implements TraceRepository {
             ORDER BY s.trace_id, s.start_timestamp, s.span_id
             """
             .replace("<<rehydrated>>", REHYDRATED_FIELDS)
-            .replace("<<payload_key>>", TextKeys.of("s.payload"));
+            .replace("<<payload_key>>", TextKeys.of("s.payload"))
+            .replace("<<minted_span_id>>", MintedIds.of(
+                    List.of("t.trace_id", "t.thread_hash", "t.event_type", "t.start_us"),
+                    List.of("t.duration", "CAST(t.fields AS VARCHAR)")));
 
     /**
      * The keys a JDK blocking event carries as plumbing rather than as detail. Narrower than
@@ -693,6 +692,9 @@ public class JdbcTraceRepository implements TraceRepository {
      * columns are stripped and everything else — host, port, path, monitorClass, parkedClass — is
      * the operation's own payload and survives into the span's {@code trace_span_payloads} row.
      */
+    /** What a stored span start is kept to: a TIMESTAMPTZ's microsecond, in nanoseconds. */
+    private static final long TIMESTAMP_RESOLUTION_NS = 1_000L;
+
     private static final String JDK_EVENT_PLUMBING_KEYS =
             "\"startTime\":null,\"duration\":null,\"eventThread\":null";
 
@@ -704,11 +706,13 @@ public class JdbcTraceRepository implements TraceRepository {
      * otherwise pick an arbitrary root, and the root's name is the trace's *operation*, so an
      * arbitrary choice there is an arbitrary answer to "what kind of request was this".
      *
-     * Duration spans the whole trace rather than reusing the root's own duration: the same number
-     * whenever the root encloses its children, and the more honest one when it does not. The value
-     * is nanosecond-valued but only microsecond-accurate at its endpoints: `s.duration` carries
-     * full nanoseconds, while `epoch_ns(start_timestamp)` scales up a microsecond-resolution
-     * TIMESTAMPTZ, whose sub-microsecond part was already gone.
+     * Duration spans the whole trace rather than reusing the root's own duration, the more honest
+     * number when a child outlives its root. When the root encloses its children it is the root's
+     * own: a span's start is kept to the microsecond (`epoch_ns(start_timestamp)` scales up a
+     * TIMESTAMPTZ whose sub-microsecond part is gone), so a last child ending right with its root
+     * could appear to end up to a microsecond after it, and the trace outlast the request it is.
+     * An overhang shorter than that resolution is the cut, not the trace, and the root's recorded
+     * duration -- exact to the nanosecond -- stands.
      *
      * `has_platform_span` is settled here, once, rather than by a correlated EXISTS per query.
      * `th.is_virtual = FALSE` is TRUE only for a thread that resolved *and* is a platform thread;
@@ -722,6 +726,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 start_timestamp_from_beginning, duration, span_count, error_count, has_platform_span)
             WITH roots AS (
                 SELECT trace_id, name, kind, event_type, span_id,
+                       epoch_ns(start_timestamp)                    AS root_start_ns,
+                       duration                                     AS root_duration,
                        ROW_NUMBER() OVER (PARTITION BY trace_id
                                           ORDER BY (parent_span_id IS NOT NULL),
                                                    start_timestamp,
@@ -732,8 +738,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 SELECT s.trace_id                                                          AS trace_id,
                        MIN(s.start_timestamp)                                              AS start_timestamp,
                        MIN(s.start_timestamp_from_beginning)                               AS start_ms,
-                       MAX(epoch_ns(s.start_timestamp) + s.duration)
-                           - MIN(epoch_ns(s.start_timestamp))                              AS duration,
+                       MIN(epoch_ns(s.start_timestamp))                                    AS first_ns,
+                       MAX(epoch_ns(s.start_timestamp) + s.duration)                       AS last_ns,
                        COUNT(*)                                                            AS span_count,
                        COUNT(*) FILTER (WHERE s.status = 'ERROR')                          AS error_count,
                        COALESCE(BOOL_OR(th.is_virtual = FALSE), FALSE)                     AS has_platform_span
@@ -742,10 +748,14 @@ public class JdbcTraceRepository implements TraceRepository {
                 GROUP BY s.trace_id
             )
             SELECT a.trace_id, r.name, r.kind, r.event_type, r.span_id, a.start_timestamp, a.start_ms,
-                   a.duration, a.span_count::INTEGER, a.error_count::INTEGER, a.has_platform_span
+                   CASE WHEN r.root_start_ns = a.first_ns
+                             AND a.last_ns - (r.root_start_ns + r.root_duration) < <<timestamp_resolution_ns>>
+                        THEN r.root_duration
+                        ELSE a.last_ns - a.first_ns END,
+                   a.span_count::INTEGER, a.error_count::INTEGER, a.has_platform_span
             FROM aggregated a
             JOIN roots r ON r.trace_id = a.trace_id AND r.rn = 1
-            """;
+            """.replace("<<timestamp_resolution_ns>>", String.valueOf(TIMESTAMP_RESOLUTION_NS));
 
     //language=SQL
     private static final String DELETE_TRACE_SPANS = "DELETE FROM trace_spans";
@@ -826,8 +836,8 @@ public class JdbcTraceRepository implements TraceRepository {
      * callback for work that belongs to another span entirely.
      *
      * events_raw rather than the events view, and the pooled field spliced back by hand, because a
-     * notification's `message` is exactly the kind of long string the parser pools -- and because
-     * rowid, which becomes the notification's id, exists only on a physical table.
+     * notification's `message` is exactly the kind of long string the parser pools. Its id is
+     * minted (MintedIds) from what it is, never its rowid, so it is the same in any analysis.
      *
      * The LEFT JOIN nulls a span id that names a span this profile does not hold: below a JFR
      * threshold, or in a chunk that was never ingested. A dangling id would make `span_id IS NOT
@@ -877,7 +887,7 @@ public class JdbcTraceRepository implements TraceRepository {
                                              severity, category, source, attributes, thread_hash)
             WITH raised AS (
                 SELECT
-                    e.rowid                                       AS notification_id,
+                    <<minted_notification_id>>                    AS notification_id,
                     e.start_timestamp                             AS start_timestamp,
                     COALESCE(e.start_timestamp_from_beginning, 0)  AS start_ms,
                     e.thread_hash                                 AS thread_hash,
@@ -912,7 +922,10 @@ public class JdbcTraceRepository implements TraceRepository {
             ORDER BY n.trace_id, n.start_timestamp
             """
             .replace("<<rehydrated>>", REHYDRATED_FIELDS)
-            .replace("<<message_ref>>", TextKeys.of("json_extract_string(fields, '$.message')"));
+            .replace("<<message_ref>>", TextKeys.of("json_extract_string(fields, '$.message')"))
+            .replace("<<minted_notification_id>>", MintedIds.of(
+                    List.of("e.event_type", "EPOCH_US(e.start_timestamp)", "e.thread_hash"),
+                    List.of("CAST(e.fields AS VARCHAR)", "e.pooled_text_hash")));
 
     /*
      * The throws that happened inside a trace.

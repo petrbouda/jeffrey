@@ -50,16 +50,21 @@ public final class SqlExecutor {
         }
     }
 
+    /**
+     * The compiler emits LIMIT only when the user wrote one; otherwise the result set is bounded here,
+     * one row past the caller's limit, so {@link ResultMapper} can tell that more rows exist — bounded
+     * at the limit itself, it never could, and a query with more rows than one page said it had none.
+     * A LIMIT the user wrote stays theirs: past it there is nothing more, by their own choice.
+     */
     private static String ensureLimit(String sql, int limit) {
-        // The compiler emits LIMIT only when the user wrote one; otherwise we
-        // bound the result set defensively to keep the response payload finite.
         String lower = sql.toLowerCase();
         // Look for a standalone LIMIT keyword — "limit" inside a string literal
         // would false-positive but those are rare in compiler-emitted SQL.
         if (lower.contains(" limit ")) {
             return sql;
         }
-        return sql + " LIMIT " + limit;
+        long withOneMore = (long) limit + 1;
+        return sql + " LIMIT " + withOneMore;
     }
 
     private static void bindParams(PreparedStatement stmt, List<Object> params) throws SQLException {

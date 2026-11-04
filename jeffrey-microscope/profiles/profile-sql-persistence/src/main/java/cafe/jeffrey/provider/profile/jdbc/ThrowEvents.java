@@ -64,7 +64,8 @@ final class ThrowEvents {
 
     /**
      * Three CTEs — {@code thrown}, {@code named}, {@code distinct_throws} — to follow a {@code WITH}.
-     * {@code distinct_throws} carries {@code exception_id} (the raw row's {@code rowid}),
+     * {@code distinct_throws} carries {@code exception_id} (minted by {@link MintedIds}, the same for the
+     * same throw in any analysis of the recording),
      * {@code event_type}, {@code start_timestamp}, {@code start_ms}, {@code start_us},
      * {@code thread_hash}, {@code stacktrace_hash}, {@code thrown_class} and {@code message}.
      * <p>
@@ -75,7 +76,7 @@ final class ThrowEvents {
     static final String DISTINCT_THROWS_CTES = """
             thrown AS (
                 SELECT
-                    e.rowid                                       AS exception_id,
+                    <<minted_exception_id>>                       AS exception_id,
                     e.event_type                                  AS event_type,
                     e.start_timestamp                             AS start_timestamp,
                     COALESCE(e.start_timestamp_from_beginning, 0)  AS start_ms,
@@ -112,7 +113,10 @@ final class ThrowEvents {
                         FROM named twin
                         WHERE twin.event_type = :error_throw_event_type
                           AND twin.thrown_class = n.thrown_class)
-            )""".replace("<<rehydrated>>", RawEventFields.REHYDRATED);
+            )""".replace("<<rehydrated>>", RawEventFields.REHYDRATED)
+            .replace("<<minted_exception_id>>", MintedIds.of(
+                    List.of("e.event_type", "EPOCH_US(e.start_timestamp)", "e.thread_hash", "e.stacktrace_hash"),
+                    List.of("CAST(e.fields AS VARCHAR)", "e.pooled_text_hash")));
 
     private ThrowEvents() {
     }

@@ -28,9 +28,11 @@ import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.microscope.model.ProfilingStartEnd;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.profile.manager.custom.model.http.HttpSlowRequest;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -179,6 +181,29 @@ class HttpOverviewEventBuilderTest {
             assertEquals(-1, result.header().maxResponseTime());
             assertEquals(-1, result.header().p99ResponseTime());
             assertEquals(-1, result.header().p95ResponseTime());
+        }
+    }
+
+    @Nested
+    @DisplayName("SlowRequests")
+    class SlowRequests {
+
+        /** Response times in milliseconds, in no order: the slowest arrive between faster ones. */
+        private static final long[] ARRIVALS_MS = {7, 31, 2, 19, 40, 11, 23, 5, 37, 13, 29, 3, 17, 43, 1};
+
+        @Test
+        @DisplayName("keeps the slowest requests, slowest first")
+        void keepsTheSlowestRequestsSlowestFirst() {
+            HttpOverviewEventBuilder builder = new HttpOverviewEventBuilder(TIME_RANGE, 5, null);
+            for (int i = 0; i < ARRIVALS_MS.length; i++) {
+                builder.onRecord(createRecord("/api/test", "GET", "200", 100, 500,
+                        Duration.ofMillis(ARRIVALS_MS[i]), Duration.ofSeconds(i + 1)));
+            }
+
+            HttpOverviewData result = builder.build();
+
+            assertEquals(List.of(43_000_000L, 40_000_000L, 37_000_000L, 31_000_000L, 29_000_000L),
+                    result.slowRequests().stream().map(HttpSlowRequest::responseTime).toList());
         }
     }
 }

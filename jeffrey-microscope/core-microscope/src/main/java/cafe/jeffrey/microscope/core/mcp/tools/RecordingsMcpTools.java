@@ -218,7 +218,8 @@ public class RecordingsMcpTools {
             + "takes. The Jeffrey process opens the path, so the file has to be on the machine "
             + "Jeffrey runs on. A file whose name and size match a stored recording is not imported "
             + "again: its profile comes back with reused=true, or the stored recording is analysed "
-            + "when it has none yet; force=true imports it anyway. A small recording answers with "
+            + "when it has none yet; force=true imports it anyway. Perf counters (.hsperfdata) are always "
+            + "imported: every JVM's file has the same name and size. A small recording answers with "
             + "status READY and its profileId; a large one with status RUNNING and an operationId, "
             + "which operations_status follows through the copy and the analysis - or, for a client "
             + "that declared the MCP tasks extension, with a task after about 5 s.")
@@ -242,8 +243,8 @@ public class RecordingsMcpTools {
         Path recordingPath = validatedPath(path);
 
         ImportKey key;
-        if (Boolean.TRUE.equals(force)) {
-            key = ImportKey.Forced.fresh();
+        if (Boolean.TRUE.equals(force) || !ImportKey.identifiedByNameAndSize(recordingPath)) {
+            key = ImportKey.Unshared.fresh();
         } else {
             ImportKey.SourceFile source = ImportKey.SourceFile.of(recordingPath);
             Optional<Recording> imported = importedBefore(source);

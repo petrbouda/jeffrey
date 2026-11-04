@@ -744,7 +744,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>http_overview</code></td>
             <td><code>profileId</code>, <code>direction?</code></td>
-            <td>Requests, response-time percentiles, success rate, 4xx/5xx counts, endpoints by traffic, status and method breakdowns, slowest requests</td>
+            <td>Requests, response-time percentiles, success rate, 4xx/5xx counts, endpoints by traffic, status and method breakdowns, the slowest requests, slowest first</td>
           </tr>
           <tr>
             <td><code>http_endpoint</code></td>
@@ -754,7 +754,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>jdbc_overview</code></td>
             <td><code>profileId</code></td>
-            <td>Statement count, execution-time percentiles, the operation mix, statement groups by cost, and the slowest statements with their SQL</td>
+            <td>Statement count, execution-time percentiles, the operation mix, statement groups by cost, and the slowest statements with their SQL, slowest first</td>
           </tr>
           <tr>
             <td><code>jdbc_statementGroup</code></td>
@@ -769,7 +769,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>grpc_overview</code></td>
             <td><code>profileId</code>, <code>direction?</code></td>
-            <td>Calls, response-time percentiles, success rate, services by traffic, status codes, slowest calls</td>
+            <td>Calls, response-time percentiles, success rate, services by traffic, status codes, the slowest calls, slowest first</td>
           </tr>
           <tr>
             <td><code>grpc_service</code></td>
@@ -1162,7 +1162,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>heap_oql</code></td>
             <td><code>profileId</code>, <code>query</code>, <code>limit?</code> (50, max 100), <code>cursor?</code>, <code>includeRetainedSize?</code></td>
-            <td>Jeffrey&rsquo;s OQL against the object graph: <code>SELECT * FROM INSTANCEOF java.util.Map</code>, <code>SELECT AS RETAINED SET * FROM com.acme.Cache</code>, a filter over an object&rsquo;s own fields. Rows carry an <code>objectId</code> (a decimal string) the other tools take and a value cut at 1,000 characters, and <code>hasMore</code>/<code>nextCursor</code> continue the list. With <code>includeRetainedSize</code> the dominator tree is built first, so the call waits up to forty-five seconds and then answers status <code>RUNNING</code> with an <code>operationId</code> whose result carries the rows (a client that declared the tasks extension gets a <a href="#tasks">task</a> after about five) &mdash; which is why the tool is not marked read-only. Like the rest of the family it refuses a profile with no indexed heap dump</td>
+            <td>Jeffrey&rsquo;s OQL against the object graph: <code>SELECT * FROM INSTANCEOF java.util.Map</code>, <code>SELECT AS RETAINED SET * FROM com.acme.Cache</code>, a filter over an object&rsquo;s own fields. Rows carry an <code>objectId</code> (a decimal string) the other tools take and a value cut at 1,000 characters, and <code>hasMore</code>/<code>nextCursor</code> continue the list &mdash; <code>totalCount</code> is the query&rsquo;s count once the page that ends it is read, and <code>null</code> before. An unsorted query read object by object (a filter over an object&rsquo;s fields, a graph function) resumes where the last page stopped, so its hundredth page costs what its first does. With <code>includeRetainedSize</code> the dominator tree is built first, so the call waits up to forty-five seconds and then answers status <code>RUNNING</code> with an <code>operationId</code> whose result carries the rows (a client that declared the tasks extension gets a <a href="#tasks">task</a> after about five) &mdash; which is why the tool is not marked read-only. Like the rest of the family it refuses a profile with no indexed heap dump</td>
           </tr>
         </tbody>
       </table>
@@ -1358,7 +1358,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>recordings_analyzeFile</code></td>
             <td><code>path</code>, <code>name?</code>, <code>force?</code></td>
-            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link. A file whose name and size match a recording already in the store is not imported again: its existing profile comes back with <code>reused: true</code>, or its stored recording is analysed when it has no profile yet; <code>force=true</code> imports it again regardless. The <code>status</code> is <code>READY</code>, <code>RUNNING</code>, <code>NOT_STARTED</code>, <code>FAILED</code> or <code>INTERRUPTED</code>. A large file comes back <code>RUNNING</code> with an <code>operationId</code> instead (a <a href="#tasks">task</a> after about five seconds, for a client that declared the tasks extension), and no <code>recordingId</code>, because the copy itself may not have finished; <code>operations_status</code> follows it from there. A failed import is a tool error that names its <code>operationId</code></td>
+            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link. A file whose name and size match a recording already in the store is not imported again: its existing profile comes back with <code>reused: true</code>, or its stored recording is analysed when it has no profile yet; <code>force=true</code> imports it again regardless. Perf counters (<code>.hsperfdata</code>) are always imported: every JVM writes its counters to a file of the same name and the same fixed size, so name and size cannot tell two of them apart. The <code>status</code> is <code>READY</code>, <code>RUNNING</code>, <code>NOT_STARTED</code>, <code>FAILED</code> or <code>INTERRUPTED</code>. A large file comes back <code>RUNNING</code> with an <code>operationId</code> instead (a <a href="#tasks">task</a> after about five seconds, for a client that declared the tasks extension), and no <code>recordingId</code>, because the copy itself may not have finished; <code>operations_status</code> follows it from there. A failed import is a tool error that names its <code>operationId</code></td>
           </tr>
           <tr>
             <td><code>recordings_analyzeRecording</code></td>

@@ -32,7 +32,9 @@ import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
+import cafe.jeffrey.profile.heapdump.model.OQLResumePoint;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
 import cafe.jeffrey.profile.mcp.McpNextTool;
 import cafe.jeffrey.profile.mcp.McpToolCost;
@@ -166,12 +168,13 @@ public class HeapOqlMcpTools {
         boolean retained = Boolean.TRUE.equals(includeRetainedSize);
         String profileId = profileManager.info().id();
         McpCursor.Filters filters = McpCursor.Filters.of(OQL_TOOL, profileId, statement, retained);
-        int offset = OffsetPaging.offset(cursor, filters);
+        Start start = Start.of(cursor, filters);
         int pageSize = ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT);
-        OQLQueryRequest request = new OQLQueryRequest(statement, pageSize, offset, retained);
+        OQLQueryRequest request = new OQLQueryRequest(statement, pageSize, start.offset(), retained, false,
+                start.resumeAfter());
         // Everything an answer needs from the request is read here, where it is bound; a worker thread
         // and a task's answer have none.
-        Page page = new Page(profileId, statement, retained, pageSize, offset, filters,
+        Page page = new Page(profileId, statement, retained, pageSize, start, filters,
                 UiLinks.view(profileId, HEAP_OQL_VIEW));
 
         if (!retained) {
@@ -181,7 +184,7 @@ public class HeapOqlMcpTools {
 
         return retainedRuns.run(new BoundedOperation.Work<>(
                         String.join(KEY_SEPARATOR, profileId, statement,
-                                String.valueOf(pageSize), String.valueOf(offset)),
+                                String.valueOf(pageSize), start.key()),
                         backgroundLease,
                         () -> succeeded(profileManager.heapDumpManager().executeQuery(request)),
                         result -> present(page, result, null, null),
@@ -220,7 +223,7 @@ public class HeapOqlMcpTools {
 
     private OqlAnswer page(Page page, OQLQueryResult result, List<OqlRow> rows, boolean cut, String operationId,
             McpOperationRegistry.Snapshot operation) {
-        McpCursor.Next next = OffsetPaging.next(page.filters(), page.offset(), rows.size(), cut || result.hasMore());
+        McpCursor.Next next = next(page, result, rows.size(), cut);
         Optional<String> first = rows.stream().map(OqlRow::objectId).filter(Objects::nonNull).findFirst();
         McpFollowUp followUp = NextSteps.builder(advertised)
                 .nextWhen(next.hasMore(), page.call(OQL_TOOL).with(CURSOR, next.nextCursor()).why(WHY_NEXT_PAGE))
@@ -228,9 +231,33 @@ public class HeapOqlMcpTools {
                 .nextWhen(first.isPresent(), page.onObject(INSTANCE_DETAIL_TOOL, first).why(WHY_INSTANCE))
                 .guidance(SQL_GUIDANCE)
                 .followUp();
+        // The engine counts only the rows it handed back; the query's own count is known once its last
+        // row has been, and before that it is unknown rather than this page's size.
+        Integer totalCount = next.hasMore() ? null : page.start().rowsBefore() + rows.size();
         return new OqlAnswer(OqlStatus.OK, null, page.profileId(), page.query(), page.retained(), rows,
-                result.totalCount(), next.hasMore(), next.nextCursor(), result.executionTimeMs(), operationId,
+                totalCount, next.hasMore(), next.nextCursor(), result.executionTimeMs(), operationId,
                 operation, followUp, page.link(), LINK_NOTE);
+    }
+
+    /**
+     * The cursor after the rows this answer shows. A query the engine resumes continues from the point
+     * it handed back — or, when the answer showed fewer rows than it returned, from this page's own
+     * start passing over the rows shown; any other continues at the offset past them. The keyset also
+     * carries how many rows came before, so the last page can count them all.
+     */
+    private static McpCursor.Next next(Page page, OQLQueryResult result, int shown, boolean cut) {
+        if (!(cut || result.hasMore()) || shown == 0) {
+            return McpCursor.Next.END;
+        }
+        Start start = page.start();
+        int rowsBefore = start.rowsBefore() + shown;
+        if (!cut && result.resumeAfter() != null) {
+            return Start.resuming(page.filters(), result.resumeAfter(), rowsBefore);
+        }
+        if (start.resumeAfter() != null) {
+            return Start.resuming(page.filters(), start.resumeAfter().passingOver(shown), rowsBefore);
+        }
+        return OffsetPaging.next(page.filters(), start.offset(), shown, true);
     }
 
     private OqlAnswer running(Page page, McpOperationRegistry.Snapshot operation) {
@@ -244,8 +271,57 @@ public class HeapOqlMcpTools {
     }
 
     /** What one call asked for, read on the request thread for whichever thread renders the answer. */
+    /**
+     * Where a page starts — an offset, or the point the engine handed back for a query it resumes —
+     * and how many of the query's rows the pages before it showed.
+     */
+    private record Start(int offset, OQLResumePoint resumeAfter, int rowsBefore) {
+
+        private static final int KEYSET_VALUES = 4;
+
+        static Start of(String cursor, McpCursor.Filters filters) {
+            if (cursor == null || cursor.isBlank()) {
+                return new Start(0, null, 0);
+            }
+            String trimmed = cursor.trim();
+            return switch (JeffreyMcpServer.CURSOR.decode(trimmed, filters)) {
+                case McpCursor.Offset offset -> new Start(offset.offset(), null, offset.offset());
+                case McpCursor.Keyset ignored -> JeffreyMcpServer.CURSOR.decodeKeyset(trimmed, filters, Start::of);
+            };
+        }
+
+        /** The keyset a resumed page's cursor holds: class, instance, rows passed over, rows before. */
+        private static Start of(McpCursor.Keyset keyset) {
+            List<String> after = keyset.after();
+            if (after.size() != KEYSET_VALUES) {
+                throw new IllegalArgumentException("an OQL keyset holds " + KEYSET_VALUES + " values: " + after);
+            }
+            OQLResumePoint point = new OQLResumePoint(Long.parseLong(after.get(0)), Long.parseLong(after.get(1)),
+                    Integer.parseInt(after.get(2)));
+            int rowsBefore = Integer.parseInt(after.get(3));
+            if (rowsBefore < 0) {
+                throw new IllegalArgumentException("rows before a page cannot be negative: " + rowsBefore);
+            }
+            return new Start(0, point, rowsBefore);
+        }
+
+        static McpCursor.Next resuming(McpCursor.Filters filters, OQLResumePoint point, int rowsBefore) {
+            McpCursor.Keyset keyset = new McpCursor.Keyset(List.of(String.valueOf(point.classId()),
+                    String.valueOf(point.instanceId()), String.valueOf(point.skip()), String.valueOf(rowsBefore)));
+            return new McpCursor.Next(true, JeffreyMcpServer.CURSOR.encode(filters, keyset));
+        }
+
+        /** This start as part of a run's key: two calls share a run only from the same start. */
+        String key() {
+            return resumeAfter == null
+                    ? String.valueOf(offset)
+                    : resumeAfter.classId() + KEY_SEPARATOR + resumeAfter.instanceId() + KEY_SEPARATOR
+                            + resumeAfter.skip();
+        }
+    }
+
     private record Page(
-            String profileId, String query, boolean retained, int limit, int offset, McpCursor.Filters filters,
+            String profileId, String query, boolean retained, int limit, Start start, McpCursor.Filters filters,
             String link) {
 
         /** A call of the same query, as this page asked it. */
@@ -282,7 +358,8 @@ public class HeapOqlMcpTools {
             @McpDescription("The rows of this page; empty while the query runs")
             List<OqlRow> rows,
             @McpNullable
-            @McpDescription("How many rows the query matched; null while it runs")
+            @McpDescription("How many rows the query matched - known once the page that ends them is read; "
+                    + "null while rows remain after this page, and while the query runs")
             Integer totalCount,
             @McpDescription("Whether rows remain after these")
             boolean hasMore,

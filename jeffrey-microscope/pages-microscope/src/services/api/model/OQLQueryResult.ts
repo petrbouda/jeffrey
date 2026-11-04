@@ -23,10 +23,19 @@ export interface OQLResultEntry {
   retainedSize: number | null;
 }
 
+/** Where the next page of a query walked object by object starts; the page reads no rows before it. */
+export interface OQLResumePoint {
+  classId: number;
+  instanceId: number;
+  skip: number;
+}
+
 export default interface OQLQueryResult {
   results: OQLResultEntry[];
   totalCount: number;
   hasMore: boolean;
   executionTimeMs: number;
   errorMessage: string | null;
+  /** Set when more rows remain and the query resumes rather than paging by offset; the console shows one page. */
+  resumeAfter: OQLResumePoint | null;
 }

@@ -2547,6 +2547,129 @@
    }
   },
   {
+   "name": "jfr_getProfileInfo",
+   "title": "JFR: Get Profile Info",
+   "description": "Returns the identity of the JFR profile: its profile ID, project ID and workspace ID, and whether it belongs to a connector project or to the Quick Analysis store.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     }
+    },
+    "required": [
+     "profileId"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string"
+     },
+     "projectId": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The connector project; null for a Quick Analysis profile"
+     },
+     "workspaceId": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The workspace of that project; null for a Quick Analysis profile"
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "PROJECT",
+       "QUICK_ANALYSIS"
+      ]
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The profile's page in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "profileId",
+     "projectId",
+     "workspaceId",
+     "kind",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "CHEAP"
+   }
+  },
+  {
    "name": "jfr_listEventTypes",
    "title": "JFR: List Event Types",
    "description": "Returns every JFR event type present in this profile, with its count, samples and description, the most frequent first.",
@@ -16843,7 +16966,7 @@
      },
      "bucketMs": {
       "type": "integer",
-      "description": "Bucket width in milliseconds (default 20). Below one second is the point of this tool; a window that would need more than 200 buckets is refused rather than silently coarsened.",
+      "description": "Bucket width in milliseconds (default 20), one that divides a second (10, 20, 50, 100, ... 1000). Below one second is the point of this tool; a window that would need more than 200 buckets is refused rather than silently coarsened.",
       "default": 20,
       "minimum": 1
      }
@@ -23252,7 +23375,7 @@
   {
    "name": "recordings_analyzeFile",
    "title": "Recordings: Analyze File",
-   "description": "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, .pprof or .otlp file in the user's repository or filesystem - by importing it into the Quick Analysis store and building a profile, and returns the profile id every other tool takes. The Jeffrey process opens the path, so the file has to be on the machine Jeffrey runs on. A file whose name and size match a stored recording is not imported again: its profile comes back with reused=true, or the stored recording is analysed when it has none yet; force=true imports it anyway. A small recording answers with status READY and its profileId; a large one with status RUNNING and an operationId, which operations_status follows through the copy and the analysis - or, for a client that declared the MCP tasks extension, with a task after about 5 s.",
+   "description": "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, .pprof or .otlp file in the user's repository or filesystem - by importing it into the Quick Analysis store and building a profile, and returns the profile id every other tool takes. The Jeffrey process opens the path, so the file has to be on the machine Jeffrey runs on. A file whose name and size match a stored recording is not imported again: its profile comes back with reused=true, or the stored recording is analysed when it has none yet; force=true imports it anyway. Perf counters (.hsperfdata) are always imported: every JVM's file has the same name and size. A small recording answers with status READY and its profileId; a large one with status RUNNING and an operationId, which operations_status follows through the copy and the analysis - or, for a client that declared the MCP tasks extension, with a task after about 5 s.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -24393,7 +24516,7 @@
   {
    "name": "connector_status",
    "title": "Connector: Status",
-   "description": "Returns the one connector this installation's configuration declares - the recording volume on an Azure file share - whether it refuses changes (readOnly), and whether it answers right now (state REACHABLE or UNREACHABLE): why connector_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no connector, and the reason says how the user declares one.",
+   "description": "Returns the one connector this installation's configuration declares - the recording volume on an Azure file share or in a local directory - whether it refuses changes (readOnly), and whether it answers right now (state REACHABLE or UNREACHABLE): why connector_sessions shows nothing when it is down. state NOT_CONFIGURED: configuration declares no connector, and the reason says how the user declares one.",
    "inputSchema": {
     "type": "object",
     "properties": {},
@@ -24424,12 +24547,24 @@
       ],
       "description": "What the connector is called; null when none is configured"
      },
+     "kind": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "AZURE_FILES",
+       "LOCAL",
+       null
+      ],
+      "description": "Which storage the connector reads: AZURE_FILES (an Azure file share) or LOCAL (a directory on this machine); null when none is configured"
+     },
      "address": {
       "type": [
        "string",
        "null"
       ],
-      "description": "The Azure file share holding the recording volume, as azure-files:<endpoint>/<share>[/<root>]; null when none is configured"
+      "description": "Where the recording volume lies, prefixed by the connector kind: an Azure file share as azure-files:<endpoint>/<share>[/<root>], a directory on this machine as local:<absolute path>; null when none is configured"
      },
      "readOnly": {
       "type": [
@@ -24508,6 +24643,7 @@
      "state",
      "reason",
      "name",
+     "kind",
      "address",
      "readOnly",
      "version",

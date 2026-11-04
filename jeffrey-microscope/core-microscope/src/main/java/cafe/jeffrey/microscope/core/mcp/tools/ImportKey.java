@@ -16,9 +16,12 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -28,9 +31,22 @@ import java.util.UUID;
  * The identity is the one the reuse check matches a stored recording by — the file's name and its
  * size — so the two cannot disagree about which calls are "the same file": a call the check would
  * answer from the store once the copy has landed is exactly a call that joins the copy while it has
- * not. A forced import asked for a second profile on purpose and gets a key nothing else shares.
+ * not. A forced import asked for a second profile on purpose and gets a key nothing else shares, and
+ * so does a file its name and size cannot identify.
  */
 sealed interface ImportKey {
+
+    /**
+     * The files whose name and size never tell one from another: every JVM writes its perf counters
+     * to a file of the same name and the same fixed size, so the counters of a second JVM would be
+     * taken for the first's.
+     */
+    Set<ManagedFile> NOT_IDENTIFIED_BY_NAME_AND_SIZE = Set.of(ManagedFile.PERF_COUNTERS);
+
+    /** Whether the file's name and size identify it, so an earlier import of it can be reused or joined. */
+    static boolean identifiedByNameAndSize(Path recordingPath) {
+        return !NOT_IDENTIFIED_BY_NAME_AND_SIZE.contains(ManagedFile.of(recordingPath));
+    }
 
     /**
      * A file by the identity the reuse check uses. The size is read at the call, so a file a new run
@@ -58,17 +74,20 @@ sealed interface ImportKey {
         }
     }
 
-    /** An import made with {@code force=true}, which never joins or is joined by another call. */
-    record Forced(UUID attempt) implements ImportKey {
+    /**
+     * An import that never joins or is joined by another call: one made with {@code force=true}, or of
+     * a file its name and size cannot identify.
+     */
+    record Unshared(UUID attempt) implements ImportKey {
 
-        public Forced {
+        public Unshared {
             if (attempt == null) {
                 throw new IllegalArgumentException("attempt is required");
             }
         }
 
-        static Forced fresh() {
-            return new Forced(UUID.randomUUID());
+        static Unshared fresh() {
+            return new Unshared(UUID.randomUUID());
         }
     }
 }

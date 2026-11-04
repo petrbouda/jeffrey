@@ -110,7 +110,7 @@ final class PathExprEvaluator {
         if (inst.kind() != InstanceRow.Kind.INSTANCE) {
             return null;
         }
-        List<InstanceFieldValue> fields = view.readInstanceFields(inst.instanceId());
+        List<InstanceFieldValue> fields = view.readInstanceFields(inst);
         for (InstanceFieldValue f : fields) {
             if (name.equals(f.name())) {
                 return f.value();

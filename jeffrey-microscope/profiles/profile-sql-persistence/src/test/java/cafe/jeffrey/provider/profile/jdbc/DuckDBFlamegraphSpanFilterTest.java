@@ -84,6 +84,23 @@ class DuckDBFlamegraphSpanFilterTest {
         assertEquals(2, totalSamples(client, spanIntervals));
     }
 
+    /**
+     * A sample's millisecond is its timestamp floored, as the window's bounds are: one taken in the
+     * window's last millisecond is inside it, one taken a fraction of a millisecond before it opens is
+     * not — the two a rounded millisecond would get the other way round.
+     */
+    @Test
+    void aSamplesMillisecondIsFlooredAsTheWindowsBoundsAre(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph-edges.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        assertEquals(2, totalSamples(client, List.of(new SpanInterval(2001L, A_FROM, A_TO))),
+                "span A's sample and the one in its last millisecond");
+        assertEquals(1, totalSamples(client, List.of(new SpanInterval(2002L, B_FROM, B_TO))),
+                "span B's sample, not the one before it opened");
+    }
+
     @Test
     void singleSpanScopesToThatThreadAndWindow(DataSource dataSource) throws SQLException {
         TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
