@@ -23,6 +23,29 @@ Each case runs three times by default (`runs` in its `prompt.md`). A full pass c
 model time at list price; `--max-cost-usd` stops it at a ceiling.
 The explicit `--threshold 1` requires every scored check to pass, including the recorded-call semantics guard.
 
+## Seeing the runs
+
+```bash
+python3 build/scripts/plugin-usage-map.py --render /tmp/plugin-usage.html
+```
+
+This reads the traces `--keep-temp` left behind, through every `results/*/aggregate-result.json` in
+`evals/` and `evals-live/`. It writes `build/plugin-evals/plugin-usage.json`, and with `--render` a
+self-contained page from `plugin-usage.template.html`.
+
+The page has three parts:
+- **A replay of each case's latest runs.** Every Skill, Agent and tool call appears in order, in its
+  lane: the main conversation, or the agent it was handed to.
+- **A map.** Skills, agents and tool families, wired either as the skills' instructions name them or
+  as the runs called them. Each Jeffrey call is charged to the skill active in its lane, or to that
+  agent.
+- **A table of all the tools.** It shows which skills name each one, which agents may call it, and
+  how often the runs did.
+
+The traces are temporary, so regenerate the map after a suite run, before the directories go.
+`build/scripts/test-plugin-usage-map.py` checks the reading offline and checks that the committed map
+still names every tool, skill and agent.
+
 ## The cases
 
 | Case | The question | What it holds the plugin to |

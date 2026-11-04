@@ -1,0 +1,640 @@
+<!--
+  Jeffrey · Copyright (C) 2026 Petr Bouda · Licensed under the Apache License, Version 2.0.
+  The microscope plugin's usage map. build/scripts/plugin-usage-map.py --render page.html replaces the
+  data slot below with build/plugin-evals/plugin-usage.json and writes a self-contained page.
+-->
+<title>Microscope Plugin in Action</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a sequence-diagram replay beside a three-column wiring map (skills → agents → tools), coverage table below. */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --ink: #18202d; --muted: #5a6475; --line: #dbe0e8; --line-soft: #e9edf2;
+  --skill: #c2410c; --agent: #0e7490; --tool: #2f5ca6; --other: #8a93a3;
+  --pass: #2e7d32; --fail: #b42318; --focus: #c2410c;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151c; --surface: #191f28; --ink: #e5e9f0; --muted: #9aa3b2; --line: #2b3240; --line-soft: #222936;
+    --skill: #f0894a; --agent: #43b9cf; --tool: #84a9ea; --other: #6c7585;
+    --pass: #66bb6a; --fail: #f2766b; --focus: #f0894a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151c; --surface: #191f28; --ink: #e5e9f0; --muted: #9aa3b2; --line: #2b3240; --line-soft: #222936;
+  --skill: #f0894a; --agent: #43b9cf; --tool: #84a9ea; --other: #6c7585;
+  --pass: #66bb6a; --fail: #f2766b; --focus: #f0894a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 1440px; margin: 0 auto; display: grid; gap: 24px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); font-weight: 800; }
+h2 { font-size: 1.15rem; font-weight: 600; }
+h3 { font-size: 0.95rem; font-weight: 600; }
+.lede { color: var(--muted); max-width: 70ch; margin: 6px 0 0; }
+.mono { font-family: var(--font-mono); }
+.eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+header.top { display: grid; gap: 14px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 20px; font-variant-numeric: tabular-nums; }
+.fact { display: flex; align-items: baseline; gap: 6px; }
+.fact b { font-family: var(--font-display); font-size: 1.25rem; }
+.fact .k-skill { color: var(--skill); } .fact .k-agent { color: var(--agent); } .fact .k-tool { color: var(--tool); }
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; font: inherit; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+input[type="search"], select {
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 6px 10px; min-width: 0;
+}
+input[type="search"] { width: min(320px, 100%); }
+button:focus-visible, select:focus-visible, input:focus-visible, .chip:focus-visible, th button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.stage { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) { .stage { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; display: grid; align-content: start; }
+.panel > .head { padding: 14px 16px 10px; border-bottom: 1px solid var(--line-soft); display: grid; gap: 8px; }
+.panel > .body { padding: 12px 16px 16px; min-width: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.legend .dash { width: 14px; height: 0; border-top: 1.5px dashed var(--muted); border-radius: 0; vertical-align: 3px; }
+.map-scroll { overflow-x: auto; }
+svg.map { display: block; width: 100%; min-width: 620px; height: auto; font-family: var(--font-body); }
+.colhead { font: 600 10.5px var(--font-body); letter-spacing: 0.08em; fill: var(--muted); text-transform: uppercase; }
+.node rect.box { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.node .tint { pointer-events: none; }
+.node text { font-size: 12px; fill: var(--ink); pointer-events: none; }
+.node text.n { fill: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+.node.tool text.label, .node.family text.label { font-family: var(--font-mono); font-size: 11.5px; }
+.node.family text.label { font-weight: 500; }
+.node.unused rect.box { stroke-dasharray: 3 2; }
+.node.unused text.label { fill: var(--muted); }
+.node { cursor: pointer; }
+.node.skill .tint { fill: var(--skill); } .node.agent .tint { fill: var(--agent); }
+.node.family .tint, .node.tool .tint { fill: var(--tool); }
+.node.focus rect.box, .node.match rect.box { stroke: var(--focus); stroke-width: 1.8; }
+.node.trail rect.box { stroke: var(--ink); stroke-width: 1.3; }
+.node.active rect.box { stroke: var(--focus); stroke-width: 2.6; }
+.node.dim { opacity: 0.28; }
+.edge { fill: none; stroke: var(--muted); stroke-opacity: 0.14; }
+.edge.from-skill { stroke: var(--skill); } .edge.from-agent { stroke: var(--agent); }
+.edge.loop { stroke-dasharray: 4 3; }
+.edge.dim { stroke-opacity: 0.04; }
+.edge.hot { stroke-opacity: 0.75; }
+.edge.trail { stroke-opacity: 0.55; }
+.edge.active { stroke: var(--focus); stroke-opacity: 1; stroke-width: 2.6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .node.active rect.box { animation: pulse 0.9s ease-out 1; }
+  @keyframes pulse { from { stroke-width: 7; } to { stroke-width: 2.6; } }
+}
+.detail { border-top: 1px solid var(--line-soft); padding: 14px 16px 16px; display: grid; gap: 10px; }
+.detail p { margin: 0; max-width: 72ch; }
+.detail .meta { color: var(--muted); font-size: 0.85rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: 500 11.5px var(--font-mono); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; background: var(--bg);
+  color: var(--ink); cursor: pointer; display: inline-flex; gap: 6px; align-items: center;
+}
+.chip .c { color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip.k-skill { border-color: color-mix(in srgb, var(--skill) 45%, var(--line)); }
+.chip.k-agent { border-color: color-mix(in srgb, var(--agent) 45%, var(--line)); }
+.chip.k-tool { border-color: color-mix(in srgb, var(--tool) 40%, var(--line)); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn {
+  font: inherit; font-weight: 500; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: var(--radius); padding: 6px 12px; cursor: pointer;
+}
+.btn.primary { background: var(--skill); border-color: var(--skill); color: var(--surface); min-width: 6.5em; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+input[type="range"] { flex: 1 1 160px; min-width: 120px; accent-color: var(--skill); }
+.progress { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.85rem; min-width: 11em; }
+.case-info { display: grid; gap: 8px; }
+.prompt { margin: 0; padding: 10px 12px; background: var(--bg); border-radius: var(--radius); white-space: pre-wrap; font-size: 0.88rem; max-height: 7.5em; overflow: auto; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font-size: 0.75rem; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--line); color: var(--muted); }
+.pill.ok { color: var(--pass); border-color: color-mix(in srgb, var(--pass) 45%, var(--line)); }
+.pill.no { color: var(--fail); border-color: color-mix(in srgb, var(--fail) 45%, var(--line)); }
+.timeline { max-height: 640px; overflow: auto; border: 1px solid var(--line-soft); border-radius: var(--radius); }
+.tl-row { display: grid; gap: 0; border-bottom: 1px solid var(--line-soft); }
+.tl-row:last-child { border-bottom: 0; }
+.tl-row.head { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.tl-row.head > div { padding: 6px 8px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.tl-row > div { padding: 5px 8px; min-width: 0; }
+.tl-row .t { color: var(--muted); font: 11px var(--font-mono); font-variant-numeric: tabular-nums; padding-top: 8px; }
+.tl-row.current { background: color-mix(in srgb, var(--focus) 9%, transparent); }
+.tl-row.future { display: none; }
+.lane-sep { border-left: 1px dashed var(--line); }
+.step { display: grid; gap: 1px; cursor: pointer; }
+.step .name { display: flex; gap: 6px; align-items: center; font-size: 0.86rem; font-weight: 500; min-width: 0; }
+.step .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step .k { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; flex: none; }
+.step.skill .k { color: var(--skill); } .step.agent .k { color: var(--agent); } .step.jeffrey .k { color: var(--tool); } .step.other .k { color: var(--other); }
+.step.jeffrey .name span { font-family: var(--font-mono); font-size: 0.8rem; }
+.step.other .name { color: var(--muted); font-weight: 400; }
+.step .in { font: 11px var(--font-mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table-scroll { overflow: auto; max-height: 640px; padding-top: 0; }
+.table-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+th button { all: unset; cursor: pointer; }
+th button[aria-sort]::after { content: " ↓"; } th button[aria-sort="ascending"]::after { content: " ↑"; }
+td.num { text-align: right; } th.num { text-align: right; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--bg); }
+tr.unused td:first-child { color: var(--muted); }
+.zero { color: var(--muted); }
+.note { color: var(--muted); font-size: 0.8rem; margin: 0; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Jeffrey Microscope · coding-agent plugin <span id="ver"></span></div>
+      <h1>Microscope Plugin in Action</h1>
+      <p class="lede">The plugin's skills and agents route a coding agent's performance questions to Jeffrey's MCP tools. Watch a recorded eval run move through that wiring, or explore every skill, agent and tool on the map.</p>
+    </div>
+    <div class="facts" id="facts"></div>
+    <div class="bar">
+      <label class="eyebrow" for="q">Find</label>
+      <input type="search" id="q" placeholder="A skill or tool, e.g. code_callSites" autocomplete="off">
+      <span class="eyebrow" id="wiring-label">Wiring</span>
+      <div class="seg" role="group" aria-labelledby="wiring-label">
+        <button type="button" id="mode-doc" aria-pressed="true">As the skills describe it</button>
+        <button type="button" id="mode-obs" aria-pressed="false">As the runs used it</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="stage">
+    <section class="panel" aria-labelledby="replay-title">
+      <div class="head">
+        <h2 id="replay-title">Replay a run</h2>
+        <div class="controls">
+          <select id="case" aria-label="Eval case"></select>
+          <select id="run" aria-label="Run"></select>
+        </div>
+        <div class="controls">
+          <button type="button" class="btn primary" id="play">Play</button>
+          <button type="button" class="btn" id="back" aria-label="Previous step">◀</button>
+          <button type="button" class="btn" id="fwd" aria-label="Next step">▶</button>
+          <select id="speed" aria-label="Playback speed">
+            <option value="4">Slow</option>
+            <option value="10" selected>Normal</option>
+            <option value="30">Fast</option>
+          </select>
+          <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Step">
+          <span class="progress" id="progress"></span>
+        </div>
+      </div>
+      <div class="body case-info">
+        <div class="eyebrow">The user asked</div>
+        <pre class="prompt" id="prompt"></pre>
+        <div class="pills" id="graders"></div>
+        <div class="timeline" id="timeline"></div>
+        <p class="note">Each row is one tool call, in order. The time is from the run's first call; playback compresses the gaps. Calls to the tool-search helper are left out.</p>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="map-title">
+      <div class="head">
+        <h2 id="map-title">Skills → agents → tools</h2>
+        <div class="legend">
+          <span><i style="background:var(--skill)"></i>Skill</span>
+          <span><i style="background:var(--agent)"></i>Agent</span>
+          <span><i style="background:var(--tool)"></i>Tool family / tool</span>
+          <span><i class="dash"></i>Never called in a run</span>
+          <span id="edge-legend"></span>
+        </div>
+      </div>
+      <div class="map-scroll"><svg class="map" id="map" role="img" aria-label="Map of skills, agents and tools"></svg></div>
+      <div class="detail" id="detail"></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="cov-title">
+    <div class="head">
+      <h2 id="cov-title">Every tool</h2>
+      <p class="note" id="cov-note"></p>
+    </div>
+    <div class="body table-scroll">
+      <table id="coverage">
+        <thead><tr>
+          <th><button type="button" data-sort="name">Tool</button></th>
+          <th><button type="button" data-sort="family">Family</button></th>
+          <th><button type="button" data-sort="named">Named by skills</button></th>
+          <th><button type="button" data-sort="agents">Agents</button></th>
+          <th class="num"><button type="button" data-sort="calls" aria-sort="descending">Calls in runs</button></th>
+          <th><button type="button" data-sort="access">Access</button></th>
+          <th><button type="button" data-sort="cost">Cost</button></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script type="application/json" id="data">/*DATA*/</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById('data').textContent);
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = (n) => Number(n || 0).toLocaleString('en-US');
+  const U = D.usage;
+  const tools = new Map(D.tools.map((t) => [t.name, t]));
+  const skills = [...D.skills].sort((a, b) => (U.skill[b.name] || 0) - (U.skill[a.name] || 0) || a.name.localeCompare(b.name));
+  const agents = D.agents;
+  const famOf = (tool) => tools.get(tool)?.family;
+  const famTools = new Map();
+  for (const t of D.tools) { if (!famTools.has(t.family)) { famTools.set(t.family, []); } famTools.get(t.family).push(t.name); }
+  for (const list of famTools.values()) { list.sort(); }
+  const famCalls = (f) => famTools.get(f).reduce((s, t) => s + (U.jeffrey[t] || 0), 0);
+  const families = [...famTools.keys()].sort((a, b) => famCalls(b) - famCalls(a) || a.localeCompare(b));
+  const agentAllows = (tool) => agents.filter((a) => a.tools.includes(tool)).map((a) => a.name);
+  const namedBy = (tool) => D.skills.filter((s) => s.tools[tool]).map((s) => s.name);
+
+  const state = { mode: 'doc', expanded: new Set(), selected: null, hover: null, query: '',
+                  caseIdx: 0, runIdx: 0, pos: 0, playing: false, timer: null, sort: { key: 'calls', dir: -1 } };
+
+  // ---------- edges ----------
+  function rawEdges() {
+    const e = [];
+    if (state.mode === 'doc') {
+      for (const s of D.skills) {
+        for (const [t, n] of Object.entries(s.tools)) { e.push(['s:' + s.name, 't:' + t, n]); }
+        for (const [a, n] of Object.entries(s.agents)) { e.push(['s:' + s.name, 'a:' + a, n]); }
+        for (const [o, n] of Object.entries(s.skills)) { e.push(['s:' + s.name, 's:' + o, n]); }
+      }
+      for (const a of agents) {
+        for (const [t, n] of Object.entries(a.named)) { e.push(['a:' + a.name, 't:' + t, n]); }
+      }
+    } else {
+      for (const [from, targets] of Object.entries(D.observed)) {
+        for (const [to, n] of Object.entries(targets)) { e.push([from, to, n]); }
+      }
+    }
+    return e.filter(([f, t]) => nodeKnown(f) && nodeKnown(t));
+  }
+  function nodeKnown(id) {
+    const [k, n] = [id[0], id.slice(2)];
+    if (k === 't') { return tools.has(n); }
+    if (k === 's') { return D.skills.some((s) => s.name === n); }
+    if (k === 'a') { return agents.some((a) => a.name === n); }
+    return false;
+  }
+  const visible = (id) => (id.startsWith('t:') && !state.expanded.has(famOf(id.slice(2))) ? 'f:' + famOf(id.slice(2)) : id);
+  function edges() {
+    const merged = new Map();
+    for (const [f, t, n] of rawEdges()) {
+      const key = visible(f) + '|' + visible(t);
+      merged.set(key, (merged.get(key) || 0) + n);
+    }
+    return [...merged].map(([k, n]) => { const [f, t] = k.split('|'); return { f, t, n }; });
+  }
+
+  // ---------- layout ----------
+  const W = 780, X = { s: 52, a: 262, t: 446 }, WD = { s: 172, a: 128, t: 326 };
+  function layout() {
+    const nodes = new Map();
+    const top = 34;
+    skills.forEach((s, i) => nodes.set('s:' + s.name, { id: 's:' + s.name, kind: 'skill', x: X.s, y: top + i * 32, w: WD.s, h: 24,
+      label: s.name, n: U.skill[s.name] || 0 }));
+    let y = top;
+    for (const f of families) {
+      const open = state.expanded.has(f);
+      nodes.set('f:' + f, { id: 'f:' + f, kind: 'family', x: X.t, y, w: WD.t, h: 22,
+        label: (open ? '▾ ' : '▸ ') + f + '_*  (' + famTools.get(f).length + ')', n: famCalls(f) });
+      y += 27;
+      if (open) {
+        for (const t of famTools.get(f)) {
+          nodes.set('t:' + t, { id: 't:' + t, kind: 'tool', x: X.t + 14, y, w: WD.t - 14, h: 19, label: t, n: U.jeffrey[t] || 0 });
+          y += 22;
+        }
+        y += 4;
+      }
+    }
+    const skillBottom = top + skills.length * 32;
+    agents.forEach((a, i) => nodes.set('a:' + a.name, { id: 'a:' + a.name, kind: 'agent', x: X.a, w: WD.a, h: 26,
+      y: top + (skillBottom - top) * (i + 1) / (agents.length + 1) - 13, label: a.name, n: U.agent[a.name] || 0 }));
+    return { nodes, height: Math.max(y, skillBottom) + 12 };
+  }
+
+  // ---------- replay helpers ----------
+  const replay = () => D.replays[state.caseIdx];
+  const run = () => replay().runs[state.runIdx];
+  const stepNodes = (s) => {
+    const ids = [];
+    if (s.kind === 'skill') { ids.push('s:' + s.name); }
+    if (s.kind === 'agent') { ids.push('a:' + s.name); }
+    if (s.kind === 'jeffrey' && tools.has(s.name)) { ids.push('t:' + s.name); }
+    if (s.by && s.kind !== 'other') { ids.push((s.by[0] === 'skill' ? 's:' : 'a:') + s.by[1]); }
+    return ids;
+  };
+  const stepEdge = (s) => (s.by && s.kind !== 'other' && stepNodes(s).length === 2 ? [stepNodes(s)[1], stepNodes(s)[0]] : null);
+
+  // ---------- map ----------
+  function renderMap() {
+    const active = new Set(), trail = new Set(), trailEdges = new Set();
+    let activeEdge = null;
+    const steps = run().steps;
+    steps.slice(0, state.pos + 1).forEach((s, i) => {
+      const ids = stepNodes(s).map(visible);
+      ids.forEach((id) => trail.add(id));
+      const e = stepEdge(s);
+      if (e) { trailEdges.add(visible(e[0]) + '|' + visible(e[1])); }
+      if (i === state.pos) { ids.forEach((id) => active.add(id)); if (e) { activeEdge = visible(e[0]) + '|' + visible(e[1]); } }
+    });
+    const { nodes, height } = layout();
+    const E = edges();
+    const focus = state.hover || state.selected;
+    const neigh = new Set(focus ? [focus] : []);
+    if (focus) { for (const e of E) { if (e.f === focus) { neigh.add(e.t); } if (e.t === focus) { neigh.add(e.f); } } }
+    const q = state.query;
+    const matches = (n) => q.length >= 2 && n.label.toLowerCase().includes(q);
+    const runEdgeKeys = new Set(E.map((e) => e.f + '|' + e.t));
+    if (activeEdge && !runEdgeKeys.has(activeEdge)) { const [f, t] = activeEdge.split('|'); E.push({ f, t, n: 1, extra: true }); }
+    const out = [];
+    out.push(`<text class="colhead" x="${X.s}" y="18">Skills · invocations</text>`);
+    out.push(`<text class="colhead" x="${X.a}" y="18">Agents · spawns</text>`);
+    out.push(`<text class="colhead" x="${X.t}" y="18">Tools · calls</text>`);
+    for (const e of E) {
+      const a = nodes.get(e.f), b = nodes.get(e.t);
+      if (!a || !b) { continue; }
+      const key = e.f + '|' + e.t;
+      let cls = 'edge from-' + a.kind;
+      if (focus) { cls += (e.f === focus || e.t === focus) ? ' hot' : ' dim'; }
+      if (trailEdges.has(key)) { cls += ' trail'; }
+      if (key === activeEdge) { cls += ' active'; }
+      const w = (0.7 + Math.log2(1 + e.n) * 0.55).toFixed(2);
+      let d;
+      if (a.kind === 'skill' && b.kind === 'skill') {
+        const y1 = a.y + a.h / 2, y2 = b.y + b.h / 2, bend = 22 + Math.abs(y2 - y1) * 0.18;
+        d = `M${a.x},${y1} C${a.x - bend},${y1} ${b.x - bend},${y2} ${b.x},${y2}`;
+        cls += ' loop';
+      } else {
+        const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2, mx = (x1 + x2) / 2;
+        d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+      }
+      out.push(`<path class="${cls}" style="stroke-width:${w}px" d="${d}"><title>${esc(e.f.slice(2))} → ${esc(e.t.slice(2))}: ${fmt(e.n)}</title></path>`);
+    }
+    const maxN = { skill: 1, agent: 1, family: 1, tool: 1 };
+    for (const n of nodes.values()) { maxN[n.kind] = Math.max(maxN[n.kind], n.n); }
+    for (const n of nodes.values()) {
+      let cls = 'node ' + n.kind;
+      if (n.n === 0) { cls += ' unused'; }
+      if (focus) { cls += neigh.has(n.id) ? (n.id === focus ? ' focus' : '') : ' dim'; }
+      if (matches(n)) { cls += ' match'; }
+      if (trail.has(n.id)) { cls += ' trail'; }
+      if (active.has(n.id)) { cls += ' active'; }
+      const tint = n.n ? (0.08 + 0.32 * Math.log(1 + n.n) / Math.log(1 + maxN[n.kind])).toFixed(3) : 0;
+      out.push(`<g class="${cls}" data-id="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.label)}, ${fmt(n.n)}">` +
+        `<rect class="box" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="4"/>` +
+        `<rect class="tint" x="${n.x + 0.5}" y="${n.y + 0.5}" width="${n.w - 1}" height="${n.h - 1}" rx="3.5" fill-opacity="${tint}"/>` +
+        `<text class="label" x="${n.x + 8}" y="${n.y + n.h / 2 + 4}">${esc(n.label)}</text>` +
+        `<text class="n" x="${n.x + n.w - 8}" y="${n.y + n.h / 2 + 4}" text-anchor="end">${n.n ? fmt(n.n) : '–'}</text></g>`);
+    }
+    const svg = $('#map');
+    svg.setAttribute('viewBox', `0 0 ${W} ${height}`);
+    svg.innerHTML = out.join('');
+    $('#edge-legend').innerHTML = state.mode === 'doc'
+      ? '<i style="background:var(--muted)"></i>Line: the skill or agent names it in its instructions'
+      : '<i style="background:var(--muted)"></i>Line: it was called while that skill or agent was active';
+  }
+
+  // ---------- detail ----------
+  const chip = (id, label, count, kind) =>
+    `<button type="button" class="chip k-${kind}" data-go="${esc(id)}">${esc(label)}${count != null ? `<span class="c">${fmt(count)}</span>` : ''}</button>`;
+  const runsUsing = (pred) => D.replays.filter((r) => r.runs.some((x) => x.steps.some(pred))).map((r) => r.case);
+  function renderDetail() {
+    const id = state.selected;
+    const el = $('#detail');
+    if (!id) {
+      el.innerHTML = `<h3>Pick anything on the map</h3><p class="meta">A skill, agent or tool family opens here with what it names, what it delegates to and how often the ${fmt(U.runs)} recorded runs used it. A family expands to its tools; the replay expands the families it reaches.</p>`;
+      return;
+    }
+    const [k, name] = [id[0], id.slice(2)];
+    const obs = D.observed[id] || {};
+    const obsChips = Object.entries(obs).sort((a, b) => b[1] - a[1])
+      .map(([t, n]) => chip(t, t.slice(2), n, t[0] === 't' ? 'tool' : t[0] === 'a' ? 'agent' : 'skill')).join('');
+    let html = '';
+    if (k === 's') {
+      const s = D.skills.find((x) => x.name === name);
+      const named = Object.keys(s.tools).sort((a, b) => (U.jeffrey[b] || 0) - (U.jeffrey[a] || 0));
+      html = `<div class="eyebrow" style="color:var(--skill)">Skill · /microscope:${esc(name)}</div><h3>${esc(name)}</h3><p>${esc(s.description)}</p>
+        <p class="meta">Invoked ${fmt(U.skill[name])} times in ${fmt(U.runs)} runs · ${s.lines} lines of instructions · names ${named.length} tools</p>
+        ${Object.keys(s.skills).length + Object.keys(s.agents).length ? `<div class="eyebrow">Hands over to</div><div class="chips">${
+          Object.keys(s.agents).map((a) => chip('a:' + a, a, null, 'agent')).join('')}${Object.keys(s.skills).map((o) => chip('s:' + o, o, null, 'skill')).join('')}</div>` : ''}
+        <div class="eyebrow">Tools it names (calls in runs)</div><div class="chips">${named.map((t) => chip('t:' + t, t, U.jeffrey[t] || 0, 'tool')).join('')}</div>
+        ${obsChips ? `<div class="eyebrow">What it actually called</div><div class="chips">${obsChips}</div>` : ''}`;
+    } else if (k === 'a') {
+      const a = agents.find((x) => x.name === name);
+      html = `<div class="eyebrow" style="color:var(--agent)">Agent · delegated work</div><h3>${esc(name)}</h3><p>${esc(a.description)}</p>
+        <p class="meta">Spawned ${fmt(U.agent[name])} times · may call ${a.tools.length} of ${D.tools.length} tools${a.denied.length ? ` (${a.denied.length} writers withheld)` : ''}</p>
+        ${obsChips ? `<div class="eyebrow">What it called</div><div class="chips">${obsChips}</div>` : ''}
+        ${a.denied.length ? `<div class="eyebrow">Withheld from it</div><div class="chips">${a.denied.map((t) => chip('t:' + t, t, null, 'tool')).join('')}</div>` : ''}`;
+    } else if (k === 'f') {
+      const list = famTools.get(name);
+      html = `<div class="eyebrow" style="color:var(--tool)">Tool family</div><h3 class="mono">${esc(name)}_*</h3>
+        <p class="meta">${list.length} tools · ${fmt(famCalls(name))} calls in runs · ${list.filter((t) => !U.jeffrey[t]).length} never called</p>
+        <div class="chips">${list.map((t) => chip('t:' + t, t, U.jeffrey[t] || 0, 'tool')).join('')}</div>`;
+    } else {
+      const t = tools.get(name);
+      const callers = Object.entries(D.observed).filter(([, v]) => v[id]).sort((a, b) => b[1][id] - a[1][id]);
+      const access = t.destructive ? 'Destructive' : t.readOnly ? 'Read-only' : 'Writes';
+      const cases = runsUsing((s) => s.kind === 'jeffrey' && s.name === name);
+      html = `<div class="eyebrow" style="color:var(--tool)">Tool · ${esc(t.family)} family</div><h3 class="mono">${esc(name)}</h3>
+        <p>${esc(t.title || '')}</p>
+        <p class="meta">${access} · cost ${esc((t.cost || 'unstated').toLowerCase())}${t.requires.length ? ' · needs ' + t.requires.map(esc).join(', ').toLowerCase().replaceAll('_', ' ') : ''} · ${fmt(U.jeffrey[name] || 0)} calls in ${fmt(U.runs)} runs</p>
+        <div class="eyebrow">Named by skills</div><div class="chips">${namedBy(name).map((s) => chip('s:' + s, s, null, 'skill')).join('') || '<span class="meta">None names it directly.</span>'}</div>
+        ${callers.length ? `<div class="eyebrow">Called while active</div><div class="chips">${callers.map(([c, v]) => chip(c, c.slice(2), v[id], c[0] === 'a' ? 'agent' : 'skill')).join('')}</div>` : ''}
+        ${cases.length ? `<div class="eyebrow">Replays that call it</div><div class="chips">${cases.map((c) => `<button type="button" class="chip" data-case="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}`;
+    }
+    el.innerHTML = html;
+  }
+
+  function select(id) {
+    if (id && id.startsWith('t:')) { state.expanded.add(famOf(id.slice(2))); }
+    state.selected = id;
+    renderMap(); renderDetail();
+  }
+
+  // ---------- replay ----------
+  function fillCases() {
+    const groups = { mocked: [], live: [] };
+    D.replays.forEach((r, i) => groups[r.suite].push(`<option value="${i}">${esc(r.case)}</option>`));
+    $('#case').innerHTML = `<optgroup label="Mocked Jeffrey (${groups.mocked.length})">${groups.mocked.join('')}</optgroup>` +
+      `<optgroup label="Live Jeffrey (${groups.live.length})">${groups.live.join('')}</optgroup>`;
+  }
+  function fillRuns() {
+    $('#run').innerHTML = replay().runs.map((r, i) =>
+      `<option value="${i}">Run ${r.run} · score ${r.score == null ? '–' : Number(r.score).toFixed(2)} · ${r.steps.length} calls</option>`).join('');
+  }
+  function laneOrder(r) {
+    const order = ['main'];
+    for (const s of r.steps) { if (!order.includes(s.lane)) { order.push(s.lane); } }
+    return order;
+  }
+  function renderCase() {
+    const rp = replay(), r = run();
+    $('#prompt').textContent = rp.prompt.trim();
+    $('#graders').innerHTML = `<span class="pill">${rp.suite} · ${r.turns ?? '–'} turns · ${r.durationSeconds ? Math.round(r.durationSeconds) + ' s' : ''}</span>` +
+      r.graders.map((g) => `<span class="pill ${g.passed ? 'ok' : 'no'}" title="${g.passed ? 'passed' : 'failed'}">${g.passed ? '✓' : '✗'} ${esc(g.name)}</span>`).join('');
+    const lanes = laneOrder(r);
+    const cols = `5.2em repeat(${lanes.length}, minmax(0, 1fr))`;
+    const head = `<div class="tl-row head" style="grid-template-columns:${cols}"><div>Time</div>${lanes.map((l, i) =>
+      `<div class="${i ? 'lane-sep' : ''}">${l === 'main' ? 'Main conversation' : esc(r.lanes[l] || 'agent') + ' (agent)'}</div>`).join('')}</div>`;
+    const rows = r.steps.map((s, i) => {
+      const li = lanes.indexOf(s.lane);
+      const label = { skill: 'Skill', agent: 'Agent', jeffrey: 'Jeffrey', other: 'Tool' }[s.kind];
+      const cells = lanes.map((_, j) => `<div class="${j ? 'lane-sep' : ''}">${j === li ? `<div class="step ${s.kind}" data-step="${i}">
+        <div class="name"><span class="k">${label}</span><span>${esc(s.name)}</span></div>${s.input ? `<div class="in" title="${esc(s.input)}">${esc(s.input)}</div>` : ''}</div>` : ''}</div>`).join('');
+      return `<div class="tl-row" data-row="${i}" style="grid-template-columns:${cols}"><div class="t">+${((s.t || 0) / 1000).toFixed(1)}s</div>${cells}</div>`;
+    }).join('');
+    $('#timeline').innerHTML = head + rows;
+    $('#scrub').max = Math.max(0, r.steps.length - 1);
+    // expand the families this run reaches, so its tools are visible on the map
+    for (const s of r.steps) { if (s.kind === 'jeffrey' && tools.has(s.name)) { state.expanded.add(famOf(s.name)); } }
+    showPos(false);
+  }
+  function showPos(scroll = true) {
+    const r = run(), n = r.steps.length;
+    $('#scrub').value = state.pos;
+    const s = r.steps[state.pos];
+    $('#progress').textContent = n ? `Call ${state.pos + 1} of ${n} · +${((s?.t || 0) / 1000).toFixed(1)} s` : 'No calls';
+    document.querySelectorAll('#timeline .tl-row[data-row]').forEach((row) => {
+      const i = Number(row.dataset.row);
+      row.classList.toggle('future', i > state.pos);
+      row.classList.toggle('current', i === state.pos);
+    });
+    if (scroll) {
+      const cur = document.querySelector('#timeline .tl-row.current');
+      const box = $('#timeline');
+      if (cur) { box.scrollTop = Math.max(0, cur.offsetTop - box.clientHeight + cur.offsetHeight + 8); }
+    }
+    $('#back').disabled = state.pos <= 0;
+    $('#fwd').disabled = state.pos >= n - 1;
+    renderMap();
+  }
+  function stop() { state.playing = false; clearTimeout(state.timer); $('#play').textContent = state.pos >= run().steps.length - 1 ? 'Replay' : 'Play'; }
+  function tick() {
+    const r = run();
+    if (state.pos >= r.steps.length - 1) { stop(); return; }
+    const gap = (r.steps[state.pos + 1].t || 0) - (r.steps[state.pos].t || 0);
+    const delay = Math.min(1600, Math.max(220, gap / Number($('#speed').value)));
+    state.timer = setTimeout(() => { state.pos += 1; showPos(); tick(); }, delay);
+  }
+  function play() {
+    if (state.playing) { stop(); return; }
+    if (state.pos >= run().steps.length - 1) { state.pos = 0; showPos(); }
+    state.playing = true; $('#play').textContent = 'Pause'; tick();
+  }
+
+  // ---------- coverage ----------
+  function covRows() {
+    return D.tools.map((t) => ({ name: t.name, family: t.family, named: namedBy(t.name), agents: agentAllows(t.name),
+      calls: U.jeffrey[t.name] || 0, access: t.destructive ? 'destructive' : t.readOnly ? 'read-only' : 'writes', cost: (t.cost || '').toLowerCase() }));
+  }
+  const COST_ORDER = { cheap: 0, moderate: 1, expensive: 2, slow: 3 };
+  function renderCoverage() {
+    const q = state.query;
+    const { key, dir } = state.sort;
+    const val = (r) => key === 'named' || key === 'agents' ? r[key].length : key === 'cost' ? (COST_ORDER[r.cost] ?? 9) : r[key];
+    const rows = covRows().filter((r) => !q || r.name.toLowerCase().includes(q) || r.family.includes(q) || r.named.some((s) => s.includes(q)))
+      .sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : a.name.localeCompare(b.name)) * dir; });
+    $('#coverage tbody').innerHTML = rows.map((r) => `<tr data-go="t:${esc(r.name)}" class="${r.calls ? '' : 'unused'}">
+      <td class="mono">${esc(r.name)}</td><td class="mono">${esc(r.family)}</td>
+      <td>${r.named.length ? r.named.map(esc).join(', ') : '<span class="zero">–</span>'}</td>
+      <td>${r.agents.length ? r.agents.map(esc).join(', ') : '<span class="zero">–</span>'}</td>
+      <td class="num ${r.calls ? '' : 'zero'}">${r.calls ? fmt(r.calls) : '0'}</td><td>${esc(r.access)}</td><td>${esc(r.cost || '–')}</td></tr>`).join('');
+    document.querySelectorAll('#coverage th button').forEach((b) => {
+      if (b.dataset.sort === key) { b.setAttribute('aria-sort', dir > 0 ? 'ascending' : 'descending'); } else { b.removeAttribute('aria-sort'); }
+    });
+    const unused = D.tools.filter((t) => !U.jeffrey[t.name]).length;
+    $('#cov-note').textContent = `${D.tools.length} tools in ${families.length} families. ${D.tools.length - unused} were called at least once across ${fmt(U.runs)} recorded eval runs; ${unused} never were (writers, the IDE link and niche JVM views mostly). Click a row to find it on the map.`;
+  }
+
+  // ---------- header ----------
+  function renderFacts() {
+    const calls = Object.values(U.jeffrey).reduce((a, b) => a + b, 0);
+    $('#ver').textContent = 'v' + D.plugin;
+    $('#facts').innerHTML = [
+      [D.skills.length, 'skills', 'k-skill'], [agents.length, 'agents', 'k-agent'], [D.tools.length, `tools in ${families.length} families`, 'k-tool'],
+      [U.runs, 'recorded eval runs', ''], [Object.values(U.skill).reduce((a, b) => a + b, 0), 'skill invocations', ''],
+      [Object.values(U.agent).reduce((a, b) => a + b, 0), 'agent hand-offs', ''], [calls, 'Jeffrey tool calls', '']]
+      .map(([n, l, c]) => `<span class="fact"><b class="${c}">${fmt(n)}</b><span>${l}</span></span>`).join('');
+  }
+
+  // ---------- events ----------
+  const svg = $('#map');
+  const nodeAt = (ev) => ev.target.closest('.node')?.dataset.id;
+  svg.addEventListener('click', (ev) => {
+    const id = nodeAt(ev);
+    if (!id) { return; }
+    if (id.startsWith('f:')) { const f = id.slice(2); if (state.expanded.has(f) && state.selected === id) { state.expanded.delete(f); } else { state.expanded.add(f); } }
+    select(state.selected === id && !id.startsWith('f:') ? null : id);
+  });
+  svg.addEventListener('keydown', (ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && nodeAt(ev)) { ev.preventDefault(); ev.target.closest('.node').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+  svg.addEventListener('mouseover', (ev) => { const id = nodeAt(ev) || null; if (id !== state.hover) { state.hover = id; renderMap(); } });
+  svg.addEventListener('mouseleave', () => { state.hover = null; renderMap(); });
+  document.addEventListener('click', (ev) => {
+    const go = ev.target.closest('[data-go]');
+    if (go) { select(go.dataset.go); if (go.closest('#coverage')) { $('#map-title').scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
+    const c = ev.target.closest('[data-case]');
+    if (c) { const i = D.replays.findIndex((r) => r.case === c.dataset.case); if (i >= 0) { $('#case').value = i; $('#case').dispatchEvent(new Event('change')); } return; }
+    const st = ev.target.closest('[data-step]');
+    if (st) { stop(); state.pos = Number(st.dataset.step); showPos(false); }
+  });
+  $('#case').addEventListener('change', (ev) => { stop(); state.caseIdx = Number(ev.target.value); state.runIdx = 0; fillRuns(); state.pos = run().steps.length - 1; renderCase(); stop(); });
+  $('#run').addEventListener('change', (ev) => { stop(); state.runIdx = Number(ev.target.value); state.pos = run().steps.length - 1; renderCase(); stop(); });
+  $('#play').addEventListener('click', play);
+  $('#back').addEventListener('click', () => { stop(); state.pos = Math.max(0, state.pos - 1); showPos(); });
+  $('#fwd').addEventListener('click', () => { stop(); state.pos = Math.min(run().steps.length - 1, state.pos + 1); showPos(); });
+  $('#scrub').addEventListener('input', (ev) => { stop(); state.pos = Number(ev.target.value); showPos(); });
+  for (const [btn, mode] of [['#mode-doc', 'doc'], ['#mode-obs', 'obs']]) {
+    $(btn).addEventListener('click', () => {
+      state.mode = mode;
+      $('#mode-doc').setAttribute('aria-pressed', String(mode === 'doc'));
+      $('#mode-obs').setAttribute('aria-pressed', String(mode === 'obs'));
+      renderMap();
+    });
+  }
+  $('#q').addEventListener('input', (ev) => {
+    state.query = ev.target.value.trim().toLowerCase();
+    if (state.query.length >= 2) { for (const t of D.tools) { if (t.name.toLowerCase().includes(state.query)) { state.expanded.add(t.family); } } }
+    renderMap(); renderCoverage();
+  });
+  $('#q').addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' || state.query.length < 2) { return; }
+    const s = D.skills.find((x) => x.name.includes(state.query)), a = agents.find((x) => x.name.includes(state.query)),
+      t = D.tools.find((x) => x.name.toLowerCase().includes(state.query));
+    const id = s ? 's:' + s.name : a ? 'a:' + a.name : t ? 't:' + t.name : null;
+    if (id) { select(id); }
+  });
+  document.querySelectorAll('#coverage th button').forEach((b) => b.addEventListener('click', () => {
+    const k = b.dataset.sort;
+    state.sort = { key: k, dir: state.sort.key === k ? -state.sort.dir : (k === 'calls' || k === 'named' || k === 'agents' ? -1 : 1) };
+    renderCoverage();
+  }));
+
+  // ---------- start: a delegated heap run, shown complete ----------
+  renderFacts();
+  fillCases();
+  const start = Math.max(0, D.replays.findIndex((r) => r.case === 'heap-dump-what-holds-memory'));
+  state.caseIdx = start; $('#case').value = start;
+  fillRuns();
+  state.pos = run().steps.length - 1;
+  renderCase(); stop();
+  renderDetail(); renderCoverage();
+})();
+</script>
