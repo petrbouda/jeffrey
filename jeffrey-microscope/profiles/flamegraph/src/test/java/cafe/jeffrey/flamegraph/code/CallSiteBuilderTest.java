@@ -71,7 +71,8 @@ class CallSiteBuilderTest {
     }
 
     private static CallSiteRecord row(String group, Long trace, long count, long nanos, JfrStackFrame... rootFirst) {
-        return new CallSiteRecord(new TestStackTrace(1, Arrays.asList(rootFirst)), group, trace,
+        return new CallSiteRecord(new TestStackTrace(1, Arrays.asList(rootFirst)), group,
+                group == null ? null : group.length(), group, trace,
                 trace == null ? null : SHOW_ORDER, count, nanos, nanos / Math.max(1, count));
     }
 

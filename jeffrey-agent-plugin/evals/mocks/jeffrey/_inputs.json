@@ -2,73 +2,73 @@
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "blocking_pinnedThreads",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "blocking_pinnedThreads",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "blocking_pinnedThreads",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -78,7 +78,7 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -88,7 +88,7 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "framePrefixes": [
     "com.acme.checkout."
@@ -98,7 +98,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -108,7 +108,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -118,7 +118,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -128,7 +128,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -138,7 +138,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -148,7 +148,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -158,7 +158,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -166,7 +166,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -174,7 +174,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   }
@@ -182,7 +182,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -190,7 +190,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadSleep",
    "useWeight": true
   }
@@ -198,7 +198,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "useWeight": false
   }
@@ -206,7 +206,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadPark",
    "useWeight": true
   }
@@ -214,7 +214,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -222,7 +222,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -230,7 +230,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaErrorThrow",
    "useWeight": false
   }
@@ -238,7 +238,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -249,7 +249,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -260,7 +260,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -271,7 +271,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -282,7 +282,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -293,7 +293,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -304,7 +304,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -315,7 +315,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -326,7 +326,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -337,7 +337,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -348,7 +348,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -359,7 +359,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -370,7 +370,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -381,7 +381,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -392,7 +392,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -403,7 +403,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -414,29 +414,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "className": "com.acme.checkout.Checkout",
-   "methodName": "main",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "className": "com.acme.checkout.Checkout",
-   "methodName": "main",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout",
    "methodName": "traced",
    "framePrefixes": [
@@ -448,7 +426,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query",
    "framePrefixes": [
@@ -459,7 +437,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history",
    "framePrefixes": [
@@ -470,7 +448,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.OrderService",
    "methodName": "summarize",
    "framePrefixes": [
@@ -482,7 +460,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory",
    "methodName": "traced",
    "framePrefixes": [
@@ -494,7 +472,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory",
    "methodName": "main",
    "framePrefixes": [
@@ -506,7 +484,7 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -515,7 +493,7 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -524,13 +502,13 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -539,24 +517,24 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -564,8 +542,8 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -573,8 +551,8 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -582,8 +560,8 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -591,38 +569,38 @@
  {
   "tool": "compare_list",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "compare_list",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -630,8 +608,8 @@
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -639,8 +617,8 @@
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -648,8 +626,8 @@
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -657,15 +635,15 @@
  {
   "tool": "compare_quality",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "compare_quality",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
@@ -679,21 +657,21 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -701,7 +679,7 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -709,7 +687,7 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -717,7 +695,7 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -725,505 +703,505 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.Deoptimization"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ObjectAllocationSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadSleep"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadPark"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.Deoptimization"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaErrorThrow"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "grpc_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "grpc_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "grpc_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "grpc_traffic",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "grpc_traffic",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "grpc_traffic",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_browseClassInstances",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "className": "java.lang.Long"
   }
  },
  {
   "tool": "heap_browseClassInstances",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "className": "java.util.concurrent.ConcurrentHashMap"
   }
  },
  {
   "tool": "heap_browseClassInstances",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "className": "java.lang.String"
   }
  },
  {
   "tool": "heap_describeTable",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "tableName": "class"
   }
  },
  {
   "tool": "heap_diff",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "baselineProfileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "baselineProfileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "heap_diff",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "baselineProfileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "baselineProfileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "heap_getBiggestObjects",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getClassHistogram",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getClassLoaderLeakChains",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getCollectionAnalysis",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777239184"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "31060918632"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30778542096"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777623672"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777219160"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777622904"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30779216240"
   }
  },
  {
   "tool": "heap_getDominatorTreeRoots",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getDumpMetadata",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getGCRootSummary",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getHeapSummary",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774786992"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773702592"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773609664"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777219688"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30776472360"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774620104"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773702656"
   }
  },
  {
   "tool": "heap_getLeakSuspects",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777239184"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774786992"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773702592"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "31060918632"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773609664"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30778542096"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30776472360"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777239184"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30774786992"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773702592"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "31060918632"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30773609664"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30777219688"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "objectId": "30778542096"
   }
  },
  {
   "tool": "heap_getStringAnalysis",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getThreads",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_getTopConsumers",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_listTables",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_prepare",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "heap_status",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "heap_status",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "heap_status",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "uri": "/checkout",
    "direction": "SERVER"
   }
@@ -1231,7 +1209,7 @@
  {
   "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "uri": "/checkout",
    "direction": "SERVER"
   }
@@ -1239,7 +1217,7 @@
  {
   "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "uri": "/orders/{customer}",
    "direction": "SERVER"
   }
@@ -1247,32 +1225,32 @@
  {
   "tool": "http_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "http_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "http_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "http_overview",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "direction": "SERVER"
   }
  },
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine"
   }
@@ -1280,7 +1258,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch"
   }
@@ -1288,7 +1266,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount"
   }
@@ -1296,7 +1274,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record"
   }
@@ -1304,7 +1282,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query"
   }
@@ -1312,7 +1290,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history"
   }
@@ -1320,7 +1298,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory",
    "methodName": "traced"
   }
@@ -1328,7 +1306,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.OrderService",
    "methodName": "summarize"
   }
@@ -1336,316 +1314,316 @@
  {
   "tool": "ide_windows",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "ide_windows",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "ide_windows",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "io_endpoints",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "kind": "SOCKET"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "kind": "FILE"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_endpoints",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_endpoints",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_endpoints",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
-   "kind": "SOCKET"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "kind": "SOCKET"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "kind": "FILE"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "kind": "FILE"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "kind": "FILE"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jdbc_pools",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jdbc_pools",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jdbc_pools",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jdbc_statementGroup",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "group": "orders"
   }
  },
  {
   "tool": "jfr_describeEventType",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "jfr_describeEventType",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "jfr_describeEventType",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery"
   }
  },
  {
   "tool": "jfr_describeTable",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "tableName": "events"
   }
  },
  {
   "tool": "jfr_describeTable",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "tableName": "events"
   }
  },
  {
   "tool": "jfr_describeTable",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40",
    "tableName": "events"
   }
  },
  {
   "tool": "jfr_getProfileInfo",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jfr_getProfileInfo",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jfr_getProfileInfo",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jfr_listTables",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jfr_listTables",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jfr_listTables",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaExceptionThrow",
    "limit": 10
   }
@@ -1653,7 +1631,7 @@
  {
   "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaExceptionThrow",
    "limit": 10
   }
@@ -1661,7 +1639,7 @@
  {
   "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "limit": 10
   }
@@ -1669,97 +1647,97 @@
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_classLoading",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_classLoading",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_classLoading",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -1768,7 +1746,7 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -1777,471 +1755,471 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "thrownClass": "com.sun.tools.javac.comp.Infer$InferenceException"
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "page": "CONFIGURATION"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_sections",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_sections",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_sections",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_security",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_security",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_security",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "jvm_threadDumps",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_threadDumps",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_threadDumps",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "methodtracing_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "methodtracing_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "methodtracing_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "methodtracing_slowest",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "methodtracing_slowest",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "methodtracing_slowest",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "methodtracing_timing",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "methodtracing_timing",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "methodtracing_timing",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "operations_status",
   "arguments": {
-   "operationId": "334828d2-96cd-4764-8815-7277374ed82d"
+   "operationId": "04433772-deea-40aa-b4ae-915435cc511d"
   }
  },
  {
   "tool": "profiles_evidence",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "profiles_evidence",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "profiles_evidence",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "profiles_get",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "profiles_get",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "profiles_get",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "profiles_link",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "profiles_link",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "profiles_link",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
@@ -2251,84 +2229,84 @@
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "view": "dashboard"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "view": "auto-analysis"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "view": "overview"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "view": "event-types"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "view": "flags"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "view": "garbage-collection"
   }
  },
@@ -2345,21 +2323,21 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -2367,7 +2345,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -2375,7 +2353,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -2383,7 +2361,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -2391,7 +2369,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -2399,7 +2377,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -2407,7 +2385,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   }
@@ -2415,7 +2393,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -2423,7 +2401,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadSleep",
    "useWeight": true
   }
@@ -2431,7 +2409,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "useWeight": false
   }
@@ -2439,7 +2417,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadPark",
    "useWeight": true
   }
@@ -2447,7 +2425,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -2455,7 +2433,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -2463,7 +2441,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaErrorThrow",
    "useWeight": false
   }
@@ -2471,7 +2449,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample",
    "startEpochMs": 1793543395435,
    "endEpochMs": 1793543396435
@@ -2480,7 +2458,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ExecutionSample",
    "startEpochMs": 1793543423174,
    "endEpochMs": 1793543424174
@@ -2489,7 +2467,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "startEpochMs": 1793543392435,
    "endEpochMs": 1793543393435
@@ -2498,7 +2476,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "startEpochMs": 1793543426174,
    "endEpochMs": 1793543427174
@@ -2507,7 +2485,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "startEpochMs": 1793543425174,
    "endEpochMs": 1793543426174
@@ -2516,7 +2494,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "startEpochMs": 1793543394435,
    "endEpochMs": 1793543395435
@@ -2525,7 +2503,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaExceptionThrow",
    "startEpochMs": 1793543392435,
    "endEpochMs": 1793543393435
@@ -2534,7 +2512,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.Deoptimization",
    "startEpochMs": 1793543392435,
    "endEpochMs": 1793543393435
@@ -2543,7 +2521,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ExecutionSample",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2552,7 +2530,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ObjectAllocationSample",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2561,7 +2539,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadSleep",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2570,7 +2548,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "startEpochMs": 1793803325745,
    "endEpochMs": 1793803326745
@@ -2579,7 +2557,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.ThreadPark",
    "startEpochMs": 1793803342745,
    "endEpochMs": 1793803343745
@@ -2588,7 +2566,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.Deoptimization",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2597,7 +2575,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaExceptionThrow",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2606,7 +2584,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jdk.JavaErrorThrow",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2615,31 +2593,31 @@
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "traces_attributeSearch",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "key": "coupon",
    "source": "ATTRIBUTE",
    "operator": "EQ",
@@ -2649,7 +2627,7 @@
  {
   "tool": "traces_attributeSearch",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "key": "coupon",
    "source": "ATTRIBUTE",
    "operator": "EQ",
@@ -2659,7 +2637,7 @@
  {
   "tool": "traces_attributeSearch",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "key": "customer.segment",
    "source": "ATTRIBUTE",
    "operator": "EQ",
@@ -2669,7 +2647,7 @@
  {
   "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "key": "coupon",
    "source": "ATTRIBUTE"
   }
@@ -2677,7 +2655,7 @@
  {
   "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "key": "coupon",
    "source": "ATTRIBUTE"
   }
@@ -2685,7 +2663,7 @@
  {
   "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "key": "customer.segment",
    "source": "ATTRIBUTE"
   }
@@ -2693,25 +2671,25 @@
  {
   "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "traces_operationExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "name": "POST /checkout",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange"
@@ -2720,7 +2698,7 @@
  {
   "tool": "traces_operationExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "name": "POST /checkout",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange"
@@ -2729,7 +2707,7 @@
  {
   "tool": "traces_operationExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "name": "GET /orders/{customer}",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange"
@@ -2738,7 +2716,7 @@
  {
   "tool": "traces_operationFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "name": "POST /checkout",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange",
@@ -2748,7 +2726,7 @@
  {
   "tool": "traces_operationFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "name": "POST /checkout",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange",
@@ -2758,7 +2736,7 @@
  {
   "tool": "traces_operationFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "name": "GET /orders/{customer}",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange",
@@ -2768,55 +2746,55 @@
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a74e-28c6-7ede-a3cf-22e5b892b641"
+   "profileId": "01a1a781-dc0e-7e11-b14b-99985f414b40"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b"
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c"
   }
  },
  {
   "tool": "traces_slowestTraces",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "name": "POST /checkout",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange"
@@ -2825,7 +2803,7 @@
  {
   "tool": "traces_slowestTraces",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "name": "POST /checkout",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange"
@@ -2834,7 +2812,7 @@
  {
   "tool": "traces_slowestTraces",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "name": "GET /orders/{customer}",
    "kind": "SERVER",
    "eventType": "jeffrey.HttpServerExchange"
@@ -2843,7 +2821,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "fcd87a5057f7b73f",
    "spanId": "0fe3ece11d03e4ce",
    "eventType": "jdk.ExecutionSample"
@@ -2852,7 +2830,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "9ed8314d39152f33",
    "spanId": "6e47d0cf49b31e09",
    "eventType": "jdk.ExecutionSample"
@@ -2861,7 +2839,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "9dba93df56cbd56e",
    "spanId": "2e93482f764f2785",
    "eventType": "jdk.ExecutionSample"
@@ -2870,7 +2848,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "4e2c5fe776a6304a",
    "spanId": "1241d5a15fc9ac44",
    "eventType": "jdk.ExecutionSample"
@@ -2879,7 +2857,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "7aa978ddf275d5fa",
    "spanId": "69438d2906f61a4a",
    "eventType": "jdk.ExecutionSample"
@@ -2888,7 +2866,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "e27ae4d7044906e6",
    "spanId": "583cc27acf3acdb0",
    "eventType": "jdk.ExecutionSample"
@@ -2897,7 +2875,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "2870fe9fe3a4da15",
    "spanId": "65c8a6cfafefdd83",
    "eventType": "jdk.ExecutionSample"
@@ -2906,7 +2884,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "7e284e0cea7ead37",
    "spanId": "2d898eb0443e93d9",
    "eventType": "jdk.ExecutionSample"
@@ -2915,7 +2893,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "86a24e660f653375",
    "spanId": "68a093dcde495953",
    "eventType": "jdk.ExecutionSample"
@@ -2924,7 +2902,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "b5cd7801ec902926",
    "spanId": "87d22aa4886185fe",
    "eventType": "jdk.ExecutionSample"
@@ -2933,7 +2911,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "4380b283048224d2",
    "spanId": "0a7a1cec142666f7",
    "eventType": "jdk.ExecutionSample"
@@ -2942,7 +2920,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "6965943ca8bf365c",
    "spanId": "874d4824b76c92c5",
    "eventType": "jdk.ExecutionSample"
@@ -2951,7 +2929,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "282e540a3d60e012",
    "spanId": "c3c744c1957443e9",
    "eventType": "jdk.ExecutionSample"
@@ -2960,7 +2938,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "c9771812c71bcf8a",
    "spanId": "14968b5695c51a7f",
    "eventType": "jdk.ExecutionSample"
@@ -2969,7 +2947,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "8cde619167671b99",
    "spanId": "a42bc5c92d882671",
    "eventType": "jdk.ExecutionSample"
@@ -2978,7 +2956,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "50f68fc0ca275192",
    "spanId": "23dd961517ef1306",
    "eventType": "jdk.ExecutionSample"
@@ -2987,143 +2965,126 @@
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "fcd87a5057f7b73f"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "9ed8314d39152f33"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "9dba93df56cbd56e"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "4e2c5fe776a6304a"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "7aa978ddf275d5fa"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "e27ae4d7044906e6"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "traceId": "2870fe9fe3a4da15"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "traceId": "7e284e0cea7ead37"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "86a24e660f653375"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "b5cd7801ec902926"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "4380b283048224d2"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "6965943ca8bf365c"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "282e540a3d60e012"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "c9771812c71bcf8a"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "8cde619167671b99"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "traceId": "50f68fc0ca275192"
   }
  },
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "eventType": "jdk.JavaMonitorEnter",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_callSites",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "eventType": "jdk.JavaMonitorEnter",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3133,14 +3094,31 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "eventType": "jeffrey.JdbcQuery",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3150,14 +3128,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3167,44 +3145,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "eventType": "jdk.ExecutionSample",
-   "useWeight": false
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "eventType": "jdk.ExecutionSample",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_hotspots",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "eventType": "jdk.ExecutionSample",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "eventType": "jdk.ExecutionSample",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_hotspots",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3214,14 +3160,46 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "eventType": "jdk.ExecutionSample",
+   "useWeight": false
+  },
+  "equivalentTo": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3231,12 +3209,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3246,14 +3224,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3263,12 +3241,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3278,14 +3256,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3295,12 +3273,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3310,14 +3288,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3327,12 +3305,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3342,7 +3320,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3350,7 +3328,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3361,7 +3339,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3369,7 +3347,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3380,45 +3358,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "className": "com.acme.checkout.Checkout",
-   "methodName": "main",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "className": "com.acme.checkout.Checkout",
-   "methodName": "main",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "className": "com.acme.checkout.Checkout",
-   "methodName": "main",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "className": "com.acme.checkout.Checkout",
-   "methodName": "main",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -3426,7 +3366,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -3437,7 +3377,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -3445,7 +3385,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -3456,7 +3396,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -3464,26 +3404,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "className": "com.acme.checkout.Checkout.CouponParser",
-   "methodName": "discount",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "className": "com.acme.checkout.Checkout.CouponParser",
-   "methodName": "discount",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -3494,7 +3415,26 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "className": "com.acme.checkout.Checkout.CouponParser",
+   "methodName": "discount",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "className": "com.acme.checkout.Checkout.CouponParser",
+   "methodName": "discount",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -3502,7 +3442,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -3513,7 +3453,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -3521,7 +3461,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -3532,7 +3472,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -3540,26 +3480,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "className": "com.acme.checkout.Checkout.PriceCalculator",
-   "methodName": "reprice",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "className": "com.acme.checkout.Checkout.PriceCalculator",
-   "methodName": "reprice",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -3570,7 +3491,26 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "className": "com.acme.checkout.Checkout.PriceCalculator",
+   "methodName": "reprice",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "className": "com.acme.checkout.Checkout.PriceCalculator",
+   "methodName": "reprice",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -3578,7 +3518,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -3589,7 +3529,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -3597,7 +3537,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -3608,7 +3548,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -3616,26 +3556,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
-   "className": "com.acme.checkout.Checkout.SessionCache",
-   "methodName": "busyWait",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
-   "className": "com.acme.checkout.Checkout.SessionCache",
-   "methodName": "busyWait",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -3646,7 +3567,26 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "className": "com.acme.checkout.Checkout.SessionCache",
+   "methodName": "busyWait",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+   "className": "com.acme.checkout.Checkout.SessionCache",
+   "methodName": "busyWait",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3654,7 +3594,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3665,7 +3605,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3673,7 +3613,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3684,7 +3624,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query",
    "framePrefixes": [
@@ -3692,7 +3632,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query",
    "framePrefixes": [
@@ -3703,7 +3643,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history",
    "framePrefixes": [
@@ -3711,7 +3651,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history",
    "framePrefixes": [
@@ -3722,13 +3662,13 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3737,10 +3677,10 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908"
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318"
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3749,13 +3689,13 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3764,10 +3704,10 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a"
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14"
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3776,13 +3716,13 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+   "profileId": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3791,13 +3731,13 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-178d-7bac-b659-d6ecf78de908",
+   "profileId": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3806,13 +3746,13 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
+   "profileId": "01a1a781-d3d9-76bf-91cd-32657e467f14",
    "framePrefixes": [
     "com.acme.checkout."
    ]

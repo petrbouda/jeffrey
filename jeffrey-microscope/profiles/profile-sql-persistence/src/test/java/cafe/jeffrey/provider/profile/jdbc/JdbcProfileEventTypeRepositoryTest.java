@@ -183,8 +183,8 @@ class JdbcProfileEventTypeRepositoryTest {
 
             List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
             SpanScope scope = SpanScope.of(List.of(
-                    new SpanInterval(2001, A_FROM, A_TO),
-                    new SpanInterval(2002, B_FROM, B_TO)));
+                    SpanInterval.ofMillis(2001, A_FROM, A_TO),
+                    SpanInterval.ofMillis(2002, B_FROM, B_TO)));
 
             // Span-scoped: only the thread-2001 and thread-2002 in-window samples (GC + out-of-window excluded).
             EventSummary scoped = repository.eventSummaries(types, scope).get(0);
@@ -209,8 +209,8 @@ class JdbcProfileEventTypeRepositoryTest {
 
             List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
             SpanScope wide = SpanScope.of(List.of(
-                    new SpanInterval(2001, A_FROM, B_TO),
-                    new SpanInterval(2002, A_FROM, B_TO)));
+                    SpanInterval.ofMillis(2001, A_FROM, B_TO),
+                    SpanInterval.ofMillis(2002, A_FROM, B_TO)));
 
             assertEquals(2, repository.eventSummaries(types, wide).get(0).samples(),
                     "the same two samples, now reached through a window several seconds wide");

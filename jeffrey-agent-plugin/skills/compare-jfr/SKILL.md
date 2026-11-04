@@ -162,7 +162,7 @@ a commit is never assumed missing — then which change to read:
 
 - **Both profiles carry a `recordingCommit`** (`profiles_get`): the change is
   `<baseline commit>..<primary commit>` — never `HEAD~1..HEAD`. When `git rev-parse HEAD` is past the
-  primary's commit, say so in one line ("profiled at c71aeee, HEAD is 0870842, one commit later") and
+  primary's commit, say so in one line ("profiled at abc1234, HEAD is def5678, one commit later") and
   read the source at the primary's commit (`git show <commit>:<path>`) before naming a line.
 - **Neither carries one**, and the user says which change ("my last commit", a branch): read it with
   `git log -1 --stat` and `git show <that commit>`, and say the pairing is the user's word — nothing

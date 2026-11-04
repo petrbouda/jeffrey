@@ -55,6 +55,7 @@ import cafe.jeffrey.profile.mcp.McpToolCost;
 import cafe.jeffrey.profile.mcp.McpToolMeta;
 import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.profile.model.EventSummaryResult;
+import cafe.jeffrey.provider.profile.api.CallSiteRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSource;
 import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -88,8 +89,11 @@ public class CodeSurfaceMcpTools {
     /** How often one request has to issue the same thing, by the median, to be called repeated. */
     static final int REPEATED_PER_TRACE = 5;
 
-    /** How much of a long group value (a statement's SQL) an answer carries; the full length beside it. */
-    static final int MAX_GROUP_VALUE_CHARS = 200;
+    /**
+     * How much of a long group value (a statement's SQL) an answer carries, the full length beside it: the
+     * read's own cut, which it makes in SQL so a value's whole text never reaches the server.
+     */
+    static final int MAX_GROUP_VALUE_CHARS = CallSiteRecord.MAX_GROUP_VALUE_CHARS;
 
     private static final int MAX_OPERATIONS = 10;
     private static final int MAX_STATEMENTS = 15;
@@ -636,14 +640,12 @@ public class CodeSurfaceMcpTools {
             String uiLink) {
 
         static Site of(CallSite site, String profileId, Read read) {
-            String value = site.groupValue();
-            boolean cut = value != null && value.length() > MAX_GROUP_VALUE_CHARS;
             return new Site(site.method().displayName(), MethodRef.of(site.method()).displayName(),
                     site.method().className(), site.method().methodName(),
                     site.line() > 0 ? site.line() : null,
                     path(site),
-                    cut ? value.substring(0, MAX_GROUP_VALUE_CHARS) : value,
-                    value == null ? null : value.length(),
+                    site.groupValue(),
+                    site.groupValueChars(),
                     site.count(), site.totalNanos(), site.count() == 0 ? 0 : site.totalNanos() / site.count(),
                     site.maxNanos(), site.traces(), site.perTraceMax(), site.perTraceMedian(),
                     site.traces() > 0 && site.perTraceMedian() >= REPEATED_PER_TRACE,

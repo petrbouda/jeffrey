@@ -494,13 +494,10 @@ class TracesRecordingsIntegrationTest extends CheckoutVolumeMicroscope {
             return document.isEmpty() ? 0 : header(SAMPLES_TOTAL, document);
         }
 
-        /**
-         * An event inside a span's window, as the graphs cut it: the millisecond the span started in to
-         * the one it ended in, every timestamp floored to its millisecond.
-         */
+        /** An event inside a span's window, as the graphs cut it: to the microsecond, both ends included. */
         private static String inWindow(String event, String span) {
-            return " AND epoch_us(" + event + ".start_timestamp) // 1000 BETWEEN epoch_us(" + span + ".start_timestamp) // 1000"
-                    + " AND (epoch_us(" + span + ".start_timestamp) + " + span + ".duration // 1000) // 1000";
+            return " AND epoch_us(" + event + ".start_timestamp) BETWEEN epoch_us(" + span + ".start_timestamp)"
+                    + " AND epoch_us(" + span + ".start_timestamp) + " + span + ".duration // 1000";
         }
     }
 

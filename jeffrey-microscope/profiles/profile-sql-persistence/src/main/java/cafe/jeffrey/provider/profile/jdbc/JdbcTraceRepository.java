@@ -133,7 +133,6 @@ public class JdbcTraceRepository implements TraceRepository {
      * keyed on. Flooring rather than rounding is what puts the bound on the millisecond a sample
      * taken at that instant was filed under.
      */
-    private static final long MICROS_PER_MILLI = 1_000L;
 
     /**
      * The keys every traced event carries as plumbing rather than as detail: the columns JFR fills in
@@ -2264,8 +2263,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 operationParams(operation),
                 (rs, _) -> new SpanInterval(
                         rs.getLong("thread_hash"),
-                        Math.floorDiv(rs.getLong("from_epoch_us"), MICROS_PER_MILLI),
-                        Math.floorDiv(rs.getLong("to_epoch_us"), MICROS_PER_MILLI)));
+                        rs.getLong("from_epoch_us"),
+                        rs.getLong("to_epoch_us")));
     }
 
     private static MapSqlParameterSource operationParams(TraceOperationId operation) {

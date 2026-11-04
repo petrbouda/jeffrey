@@ -76,8 +76,8 @@ class DuckDBFlamegraphSpanFilterTest {
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
         List<SpanInterval> spanIntervals = List.of(
-                new SpanInterval(2001L, A_FROM, A_TO),
-                new SpanInterval(2002L, B_FROM, B_TO));
+                SpanInterval.ofMillis(2001L, A_FROM, A_TO),
+                SpanInterval.ofMillis(2002L, B_FROM, B_TO));
 
         // Only thread 2001 inside span A and thread 2002 inside span B survive; the GC thread and the
         // out-of-window 2001 sample are filtered out.
@@ -95,9 +95,9 @@ class DuckDBFlamegraphSpanFilterTest {
         TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph-edges.sql");
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
-        assertEquals(2, totalSamples(client, List.of(new SpanInterval(2001L, A_FROM, A_TO))),
+        assertEquals(2, totalSamples(client, List.of(SpanInterval.ofMillis(2001L, A_FROM, A_TO))),
                 "span A's sample and the one in its last millisecond");
-        assertEquals(1, totalSamples(client, List.of(new SpanInterval(2002L, B_FROM, B_TO))),
+        assertEquals(1, totalSamples(client, List.of(SpanInterval.ofMillis(2002L, B_FROM, B_TO))),
                 "span B's sample, not the one before it opened");
     }
 
@@ -106,7 +106,7 @@ class DuckDBFlamegraphSpanFilterTest {
         TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
-        List<SpanInterval> spanIntervals = List.of(new SpanInterval(2001L, A_FROM, A_TO));
+        List<SpanInterval> spanIntervals = List.of(SpanInterval.ofMillis(2001L, A_FROM, A_TO));
 
         // Span A only → just the one thread-2001 sample inside its window.
         assertEquals(1, totalSamples(client, spanIntervals));
@@ -136,8 +136,8 @@ class DuckDBFlamegraphSpanFilterTest {
         DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
 
         SpanScope scope = SpanScope.of(List.of(
-                new SpanInterval(2001L, A_FROM, A_TO),
-                new SpanInterval(2002L, B_FROM, B_TO)));
+                SpanInterval.ofMillis(2001L, A_FROM, A_TO),
+                SpanInterval.ofMillis(2002L, B_FROM, B_TO)));
         EventQueryConfigurer configurer = new EventQueryConfigurer().withSpanScope(scope);
 
         String openingWithItsOwnCte = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(configurer);

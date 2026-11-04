@@ -92,9 +92,9 @@ import java.util.stream.Stream;
  * Span arithmetic runs in microseconds, the resolution the stored timestamp carries. Milliseconds
  * are too coarse for it: a span is routinely shorter than one, so rounding its bounds to a
  * millisecond makes sub-millisecond children cost their parent nothing and puts spans that ran one
- * after the other on the same instant. The two places that genuinely are millisecond domains — the
- * sample filter behind {@link SpanInterval} and the event drill-down, both of which run on the
- * events table's millisecond timeline — convert at their own boundary and nowhere earlier.
+ * after the other on the same instant. The sample filter behind {@link SpanInterval} takes the same
+ * microseconds; the event drill-down, which pages the events table by millisecond, converts at its own
+ * boundary and nowhere earlier.
  */
 public class TraceManagerImpl implements TraceManager {
 
@@ -565,21 +565,20 @@ public class TraceManagerImpl implements TraceManager {
      * <p>
      * Same-thread descendants are left out: they lie inside the span's own window already. Windows
      * on one thread that overlap or touch are merged, since the sample filter matches inclusively
-     * and two adjacent windows would otherwise count the millisecond they share twice.
+     * and two adjacent windows would otherwise count the microsecond they share twice.
      */
     private static List<SpanInterval> inclusiveIntervals(
             TraceSpanShape span, List<TraceSpanShape> descendants) {
 
         Map<Long, List<long[]>> windowsByThread = new LinkedHashMap<>();
         windowsByThread.computeIfAbsent(span.threadHash(), _ -> new ArrayList<>())
-                .add(new long[]{toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span))});
+                .add(new long[]{span.startEpochMicros(), endMicrosOf(span)});
         for (TraceSpanShape descendant : descendants) {
             if (descendant.threadHash() == span.threadHash()) {
                 continue;
             }
             windowsByThread.computeIfAbsent(descendant.threadHash(), _ -> new ArrayList<>())
-                    .add(new long[]{
-                            toMillis(descendant.startEpochMicros()), toMillis(endMicrosOf(descendant))});
+                    .add(new long[]{descendant.startEpochMicros(), endMicrosOf(descendant)});
         }
 
         List<SpanInterval> intervals = new ArrayList<>();
@@ -723,23 +722,23 @@ public class TraceManagerImpl implements TraceManager {
      * the samples taken while the span was doing its own work.
      * <p>
      * The cut is half-open on both sides: a child occupies {@code [childFrom, childTo]} and the
-     * sample filter matches inclusively, so the surrounding segments have to stop one millisecond
+     * sample filter matches inclusively, so the surrounding segments have to stop one microsecond
      * short of it. Cutting at the child's own bounds would leave a sample landing on the child's
-     * first or last millisecond counted in the child <em>and</em> in the parent's self time.
+     * first or last microsecond counted in the child <em>and</em> in the parent's self time.
      * <p>
      * Only same-thread children are cut out, for the reason given in
      * the stored self time: a child on another thread never occupied this thread's window, so
      * punching a hole for it would drop the parent's own samples.
      */
     private static List<SpanInterval> selfIntervals(TraceSpanShape span, List<TraceSpanShape> children) {
-        long from = toMillis(span.startEpochMicros());
-        long to = toMillis(endMicrosOf(span));
+        long from = span.startEpochMicros();
+        long to = endMicrosOf(span);
 
         List<SpanInterval> intervals = new ArrayList<>();
         long cursor = from;
         for (long[] window : clippedChildWindows(span, children)) {
-            long childFrom = toMillis(window[0]);
-            long childTo = toMillis(window[1]);
+            long childFrom = window[0];
+            long childTo = window[1];
             if (childFrom > cursor) {
                 intervals.add(new SpanInterval(span.threadHash(), cursor, childFrom - 1));
             }

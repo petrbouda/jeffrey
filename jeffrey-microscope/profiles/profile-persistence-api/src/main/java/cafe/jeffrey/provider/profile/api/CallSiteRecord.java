@@ -24,8 +24,11 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
  * were and how long they took. The unit a call-site read is built from.
  *
  * @param stackTrace  the stack the events were committed on, root first
- * @param groupValue  the value of the field the read groups by; null when it groups by nothing or the
- *                    event carried no such field
+ * @param groupValue  the value of the field the read groups by, cut to {@link #MAX_GROUP_VALUE_CHARS}
+ *                    characters; null when it groups by nothing or the event carried no such field
+ * @param groupValueChars the value's full length; null with the value
+ * @param groupKey    what tells two values apart past the cut (a digest of the whole value); null with
+ *                    the value
  * @param traceId     the trace the events belong to; null for an event outside any trace
  * @param operation   the operation that trace is a request of -- its root span's name, kind and event
  *                    type; null outside a trace
@@ -36,9 +39,18 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 public record CallSiteRecord(
         JfrStackTrace stackTrace,
         String groupValue,
+        Integer groupValueChars,
+        String groupKey,
         Long traceId,
         TraceOperationId operation,
         long count,
         long totalNanos,
         long maxNanos) {
+
+    /**
+     * How much of a grouping value a read hands over: enough to name a statement or recognise its SQL. The
+     * rest is counted, not carried — a call-site read over a large recording groups every distinct value,
+     * and a whole SQL text per group was held in memory before an answer cut it anyway.
+     */
+    public static final int MAX_GROUP_VALUE_CHARS = 200;
 }

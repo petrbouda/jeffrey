@@ -137,7 +137,7 @@ public class AsyncProfilerSpansController {
                 profileId, request.threadHash(), request.fromMillis(), request.toMillis(), request.eventType());
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = List.of(
-                new SpanInterval(request.threadHash(), request.fromMillis(), request.toMillis()));
+                SpanInterval.ofMillis(request.threadHash(), request.fromMillis(), request.toMillis()));
         GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, SpanScope.of(intervals));
         return pm.flamegraphManager().generate(params);
     }

@@ -70,7 +70,9 @@ public record CallSites(
      * @param ownPath       the deepest own frame and the own frames that called it, deepest first, at most
      *                      {@link #MAX_OWN_PATH}: an application's own database or HTTP wrapper is the
      *                      deepest frame of every statement, and its callers say which code issued this one
-     * @param groupValue    the grouping field's value; null when not grouped or the field was absent
+     * @param groupValue    the grouping field's value as the read cut it; null when not grouped or the
+     *                      field was absent
+     * @param groupValueChars the value's full length; null with the value
      * @param traces        how many distinct traces issued it; 0 for events outside traces
      * @param perTraceMax   the most times one trace issued it
      * @param perTraceMedian the median times per trace that issued it at all
@@ -81,6 +83,7 @@ public record CallSites(
             int line,
             List<PathFrame> ownPath,
             String groupValue,
+            Integer groupValueChars,
             long count,
             long totalNanos,
             long maxNanos,

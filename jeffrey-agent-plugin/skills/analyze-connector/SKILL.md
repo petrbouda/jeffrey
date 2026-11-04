@@ -22,7 +22,9 @@ and no page of the UI does it. Give them the `jeffrey.microscope.connector.*` pr
 answer — `jeffrey.microscope.connector.azure-files.*`: endpoint, share, protocol, a SAS token or
 `auth=entra`; or `jeffrey.microscope.connector.local.path` for a directory on this machine — followed by
 a restart. Use the user's own account and share names if they gave them,
-otherwise keep the placeholders. Never invent an address. Offer to analyse a local `.jfr` in the meantime, and call `connector_status` again once
+otherwise keep the placeholders. Never invent an address. Call nothing else on the connector meanwhile:
+`connector_sessions` of an undeclared connector is empty by construction, and "no sessions came back"
+reads as a fact about production that nothing measured. Offer to analyse a local `.jfr` in the meantime, and call `connector_status` again once
 they say Microscope has restarted with it.
 
 ## The shape of the whole thing

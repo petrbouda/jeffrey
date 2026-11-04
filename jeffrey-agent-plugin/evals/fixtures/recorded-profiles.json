@@ -1,8 +1,8 @@
 {
- "baseline": "01a1a74e-178d-7bac-b659-d6ecf78de908",
- "candidate": "01a1a74e-20fa-72b0-b262-4a7541dcdb0a",
- "heap": "01a1a74e-28c6-7ede-a3cf-22e5b892b641",
- "orders": "01a1a74e-29b7-7bc8-8320-693e297df20b",
+ "baseline": "01a1a781-ca3d-7a8c-8583-c1c37e8af318",
+ "candidate": "01a1a781-d3d9-76bf-91cd-32657e467f14",
+ "heap": "01a1a781-dc0e-7e11-b14b-99985f414b40",
+ "orders": "01a1a781-dd1f-7ebe-879d-cf930b6c966c",
  "heapDumpPath": "/tmp/jeffrey-eval/checkout.hprof",
  "figures": {
   "orders": 5822,
@@ -15,7 +15,7 @@
   "order-history.jfr": "2ece26a85f89668a6440d988d20f7c0d002ce46225ef21db3b7ee797c591910f"
  },
  "liveCommits": {
-  "baseline": "1cc032a8925849252e78d2cfc731ec450b6afefe",
-  "candidate": "c71aeee810dd81dd8ceca742d26f9be0119c71da"
+  "baseline": "70686f526b4ae0c5da4553cbb752bbb58dc0fa24",
+  "candidate": "a9703bff43d4f0c207311a686c7fb8e7f59685ba"
  }
 }

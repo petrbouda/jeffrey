@@ -37,6 +37,8 @@ record CallSiteRecordRowMapper(FramesCache framesCache) implements RowMapper<Cal
     private static final String STACKTRACE_HASH = "stacktrace_hash";
     private static final String FRAME_HASHES = "frame_hashes";
     private static final String GROUP_VALUE = "group_value";
+    private static final String GROUP_VALUE_LENGTH = "group_value_length";
+    private static final String GROUP_KEY = "group_key";
     private static final String TRACE_ID = "trace_id";
     private static final String ROOT_NAME = "root_name";
     private static final String ROOT_KIND = "root_kind";
@@ -57,9 +59,13 @@ record CallSiteRecordRowMapper(FramesCache framesCache) implements RowMapper<Cal
         TraceOperationId operation = rootName == null
                 ? null
                 : new TraceOperationId(rootName, rs.getString(ROOT_KIND), rs.getString(ROOT_EVENT_TYPE));
+        int length = rs.getInt(GROUP_VALUE_LENGTH);
+        Integer groupValueChars = rs.wasNull() ? null : length;
         return new CallSiteRecord(
                 new JfrStackTraceImpl(rs.getLong(STACKTRACE_HASH), frames),
                 rs.getString(GROUP_VALUE),
+                groupValueChars,
+                rs.getString(GROUP_KEY),
                 trace,
                 operation,
                 rs.getLong(EVENT_COUNT),

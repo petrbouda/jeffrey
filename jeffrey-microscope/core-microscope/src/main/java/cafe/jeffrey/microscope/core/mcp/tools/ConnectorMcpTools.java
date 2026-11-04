@@ -161,18 +161,20 @@ public class ConnectorMcpTools {
     // Declaring the connector stays with the user, in configuration only -- never an MCP tool or the UI,
     // since the address it dials would otherwise come from whatever text the agent last read.
     private static final String CONFIGURED_CONNECTOR_PROPERTY = "jeffrey.microscope.connector";
+    // Every value the user must supply is a <placeholder>: an example value (a share named "recordings")
+    // was copied into answers as if it were the user's own.
     private static final String NOT_CONFIGURED =
             ("No connector is configured for this installation. The connector is the recording volume on an Azure "
                     + "file share or in a local directory, declared in configuration only; declare one and restart "
                     + "Microscope (auth=entra signs in with the machine's Azure identity instead of a SAS token; "
                     + "read-only=true refuses every change):\n\n"
-                    + "  %1$s.name=Production\n"
+                    + "  %1$s.name=<a name for it>\n"
                     + "  %1$s.azure-files.endpoint=https://<account>.file.core.windows.net\n"
-                    + "  %1$s.azure-files.share=recordings\n"
+                    + "  %1$s.azure-files.share=<share>\n"
                     + "  %1$s.azure-files.protocol=smb\n"
                     + "  %1$s.azure-files.sas-token=<SAS token>\n\n"
                     + "or, for a volume on this machine:\n\n"
-                    + "  %1$s.local.path=/absolute/path/holding/the/workspaces\n\n"
+                    + "  %1$s.local.path=<absolute path of the directory holding the workspaces>\n\n"
                     + "Recordings can still be analysed from a local file with recordings_analyzeFile.")
                     .formatted(CONFIGURED_CONNECTOR_PROPERTY);
     private static final String STATUS_NOTE =

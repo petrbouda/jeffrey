@@ -204,14 +204,15 @@ class JdbcTraceRepositoryTest {
 
             SpanInterval request = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3001L).findFirst().orElseThrow();
-            assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
+            assertEquals(micros(EPOCH_10_00_00), request.fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 120), request.toEpochMicros(),
                     "the exchange's own window bounds the statements inside it");
 
             SpanInterval forked = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3002L).findFirst().orElseThrow();
-            assertEquals(EPOCH_10_00_00 + 60, forked.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 80, forked.toEpochMillis());
+            assertEquals(micros(EPOCH_10_00_00 + 60) + 750, forked.fromEpochMicros(),
+                    "the forked span starts 750 microseconds into its millisecond, kept rather than floored");
+            assertEquals(micros(EPOCH_10_00_00 + 80) + 750, forked.toEpochMicros());
         }
 
         @Test
@@ -243,8 +244,8 @@ class JdbcTraceRepositoryTest {
             SpanInterval callback = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3003L).findFirst()
                     .orElseThrow(() -> new AssertionError("the re-entered thread must get an interval"));
-            assertEquals(EPOCH_10_00_00 + 90, callback.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 110, callback.toEpochMillis());
+            assertEquals(micros(EPOCH_10_00_00 + 90), callback.fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 110), callback.toEpochMicros());
         }
 
         @Test
@@ -254,8 +255,8 @@ class JdbcTraceRepositoryTest {
 
             SpanInterval request = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3001L).findFirst().orElseThrow();
-            assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
+            assertEquals(micros(EPOCH_10_00_00), request.fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 120), request.toEpochMicros(),
                     "the scope sits inside the exchange, so the exchange still bounds the thread");
         }
 
@@ -278,14 +279,15 @@ class JdbcTraceRepositoryTest {
 
             List<SpanInterval> pool = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3002L)
-                    .sorted(Comparator.comparingLong(SpanInterval::fromEpochMillis))
+                    .sorted(Comparator.comparingLong(SpanInterval::fromEpochMicros))
                     .toList();
 
             assertEquals(2, pool.size(), "one interval per stint, not one spanning the gap");
-            assertEquals(EPOCH_10_00_00 + 60, pool.get(0).fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 80, pool.get(0).toEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 100, pool.get(1).fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 110, pool.get(1).toEpochMillis());
+            assertEquals(micros(EPOCH_10_00_00 + 60) + 750, pool.get(0).fromEpochMicros(),
+                    "the forked span starts 750 microseconds into its millisecond, kept rather than floored");
+            assertEquals(micros(EPOCH_10_00_00 + 80) + 750, pool.get(0).toEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 100), pool.get(1).fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 110), pool.get(1).toEpochMicros());
         }
 
         @Test
@@ -3210,5 +3212,10 @@ class JdbcTraceRepositoryTest {
             assertEquals(4, groups.get("jdk.FileRead|null").count());
             assertEquals(3, groups.size(), "the recorded spans are not promoted");
         }
+    }
+
+    /** A fixture's milliseconds as the microseconds a derived interval carries. */
+    private static long micros(long millis) {
+        return millis * 1_000L;
     }
 }

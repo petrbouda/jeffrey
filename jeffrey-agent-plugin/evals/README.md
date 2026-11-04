@@ -124,17 +124,18 @@ methods a diff touched, as a list:
 |---|---|---|
 | `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
 | `compare-the-methods-my-diff-touched` | "My last change made reprice call formatLine for every line item. Did that make them more expensive?" | `compare_methods` with the two methods in source spelling, the candidate as primary; formatLine new (about 6% of the CPU, 95% of the bytes), reprice up by about 87% of its CPU samples, the growth put on the new call, nothing claimed about latency. Scaffolds the repository, as the code cases do; `compare_methods` takes a list no mock can pin |
-| `did-my-last-commit-make-it-worse` | "Did my last change to the pricing code make checkout more expensive?" (no method named) | the change read from the history (`git diff`/`show`/`log`) and identified as the profiled c71aeee, not HEAD, which is a README commit — its methods passed to `compare_methods`, the checkout said to be past the profiled commit, formatLine new and reprice up |
+| `did-my-last-commit-make-it-worse` | "Did my last change to the pricing code make checkout more expensive?" (no method named) | the change read from the history (`git diff`/`show`/`log`) and identified as the profiled a9703bf, not HEAD, which is a README commit — its methods passed to `compare_methods`, the checkout said to be past the profiled commit, formatLine new and reprice up |
 | `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
 
 **The commits.** The two code cases scaffold the repository with a fixed history — commit A
-(1cc032a: the source without the per-line formatLine call), commit B (c71aeee: the source both runs
+(70686f5: the source without the per-line formatLine call), commit B (a9703bf: the source both runs
 were recorded from), and, for `did-my-last-commit-make-it-worse`, a README commit C past them — with
 fixed author, committer and dates, so the hashes are the same on every machine. `--load` imports the
 baseline at A and the candidate at B (its live commits, pinned in `fixtures/recorded-profiles.json`), so
 `profiles_get` reports them as `recordingCommit` and the skills' commit check has something to check.
-The baseline ran the candidate's source with the call switched off, so its line numbers below
-`reprice` are commit B's, three lines past commit A's. The mocked suite's profiles carry no commit.
+The baseline ran the candidate's source with the call switched off; in commit A the three lines the
+call takes are comments, so every line the baseline's frames name is the same line at A. The mocked
+suite's profiles carry no commit.
 
 ```bash
 git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings /tmp/jeffrey-recordings
@@ -1148,3 +1149,42 @@ The security review found the code tools' SQL, regexes and commit tags safe. Its
 high-cardinality `groupBy` (`sql` on a large recording) is held in memory value by value before the
 answer cuts it to 50 rows of 200 characters. The cost is bounded by the recording, not by the caller.
 
+
+## Samples inside their spans, bounded group values, eval noise
+
+- **A span scopes samples to the microsecond.** Span windows and sample instants were both floored to
+  whole milliseconds, so a 113 µs request claimed every sample of the millisecond it touched. On the
+  checkout candidate, `POST /checkout` held 134 samples, of which 68 were taken inside its requests;
+  the other 66 were the worker loop around them. `SpanInterval` now carries microseconds, and the
+  operation windows are derived in SQL to the microsecond. Only windows known to the millisecond (an
+  async-profiler span, a window the UI names) enter through the millisecond factory of `SpanInterval` as the whole
+  milliseconds they meant. With the exact samples, `POST /checkout` enters through `Checkout#checkout`
+  (96%), where it entered through the worker loop before. The span and operation flamegraphs, a
+  request's CPU and the runtime surface all read this scope.
+- **`code_callSites` groups whole values and hands them over cut.** The grouping value is cut in SQL to
+  200 characters, with its length and an MD5 that keeps two long statements alike for 200 characters
+  apart. A whole SQL text per group no longer reaches the server.
+- **Commit A keeps commit B's line numbers.** The three lines the formatLine call takes are comments
+  in A, so the baseline's frames name the same lines at A as at B. The new hashes are 70686f5 (A),
+  a9703bf (B) and 81f53ed (C).
+- **`connector_status` gives placeholders, not example values.** Its `NOT_CONFIGURED` answer had shown
+  `name=Production` and `share=recordings`, and replies copied them in as if they were the user's.
+  `analyze-connector` also calls nothing else on an undeclared connector: an empty `connector_sessions`
+  had been reported as a fact about production.
+
+One full mocked pass on the current code: **22 of 24 cases at the threshold, overall 1.00, $13.38**, up
+from 18 of 24. The cases that had missed before were then run three more times, for six runs each:
+
+| Case | Passed | What missed |
+|---|---|---|
+| `slow-requests-from-traces` | 6 of 6 | — |
+| `compare-finds-the-regression` | 5 of 6 | one honest-verdict judge, on a reply that stated its limits |
+| `exceptions-to-the-throw-site` | 5 of 6 | one unmarked link |
+| `named-area-cpu` | 4 of 6 | one unmarked link, one fix offered without the code |
+| `connector-not-configured` | 4 of 6 on the old answer, then 3 of 3 | the example values (fixed), then the empty-sessions claim (fixed) |
+
+Unmarked links are the steadiest remaining miss: about one run in six, in the cases that link most. On
+this pass the live suite scored 1.00 on three cases. `did-my-last-commit-make-it-worse` scored 0.89:
+one run read the comparison from `compare_movements` and never called `compare_methods`. Spend:
+$13.38 for the full mocked pass, $3.20 for the extra runs, $3.02 live, $0.70 for the connector case
+again.

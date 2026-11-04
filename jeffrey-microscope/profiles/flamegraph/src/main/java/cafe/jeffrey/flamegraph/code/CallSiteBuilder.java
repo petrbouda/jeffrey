@@ -68,7 +68,7 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
             unattributedEvents += record.count();
             return;
         }
-        sites.computeIfAbsent(new SiteKey(path, record.groupValue()), _ -> new SiteAccumulator()).add(record);
+        sites.computeIfAbsent(new SiteKey(path, record.groupKey()), _ -> new SiteAccumulator(record)).add(record);
         if (record.operation() != null) {
             outermostOwn(record.stackTrace()).ifPresent(method ->
                     outermostOwnEntries.merge(new EntryKey(record.operation(), method), record.count(), Long::sum));
@@ -176,15 +176,23 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
     private record EntryKey(TraceOperationId operation, MethodKey method) {
     }
 
-    private record SiteKey(List<PathFrame> path, String groupValue) {
+    /** A site is its own path and the whole grouping value, told apart by its digest past the cut. */
+    private record SiteKey(List<PathFrame> path, String groupKey) {
     }
 
     private static final class SiteAccumulator {
 
+        private final String groupValue;
+        private final Integer groupValueChars;
         private final Map<Long, Long> perTrace = new HashMap<>();
         private long count;
         private long totalNanos;
         private long maxNanos;
+
+        private SiteAccumulator(CallSiteRecord first) {
+            this.groupValue = first.groupValue();
+            this.groupValueChars = first.groupValueChars();
+        }
 
         private void add(CallSiteRecord record) {
             count += record.count();
@@ -205,7 +213,8 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
                     .map(Map.Entry::getKey)
                     .toList();
             PathFrame site = key.path().getFirst();
-            return new CallSite(site.method(), site.line(), key.path(), key.groupValue(), count, totalNanos, maxNanos,
+            return new CallSite(site.method(), site.line(), key.path(), groupValue, groupValueChars, count,
+                    totalNanos, maxNanos,
                     perTrace.size(), max, median(perTrace.values()), exemplars);
         }
 

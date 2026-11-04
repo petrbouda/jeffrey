@@ -43,6 +43,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
 
     private static final String JSON_ROOT_PATH_PREFIX = "$.";
     private static final String GROUP_PATH_PARAM = "group_path";
+    private static final String GROUP_VALUE_CHARS_PARAM = "group_value_chars";
     private static final String SEARCH_LITERAL_PARAM = "search_literal";
     private static final String SEARCH_REGEX_PARAM = "search_regex";
 
@@ -209,6 +210,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
         if (groupField != null) {
             params.addValue(GROUP_PATH_PARAM, JSON_ROOT_PATH_PREFIX + DuckDBCallSiteQueries.requireFieldName(groupField));
         }
+        params.addValue(GROUP_VALUE_CHARS_PARAM, CallSiteRecord.MAX_GROUP_VALUE_CHARS);
         FramesCache framesCache = framesCacheSlot.resolve(() -> FramesCache.load(databaseClient));
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,

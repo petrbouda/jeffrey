@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The profiled application's repository with the history the live recordings were imported at: commit A
-# prices a checkout without formatting its lines (the baseline run), commit B adds the formatLine call to
+# prices a checkout without formatting its lines (the baseline run, line for line), commit B adds the formatLine call to
 # PriceCalculator.reprice (the candidate run). Author, committer and dates are fixed, so A and B hash the
 # same everywhere: they are `liveCommits` in fixtures/recorded-profiles.json, which --load imports the two
 # runs at (test-plugin-eval-mocks.py checks the hashes, and the files between the markers verbatim).
@@ -475,9 +475,13 @@ public final class OrderHistory {
 }
 ORDER_HISTORY_JAVA
 git -c init.defaultBranch=main init -q
-# Commit A: the same source without the per-line formatting in reprice.
+# Commit A: the same source without the per-line formatting in reprice. The three lines the call takes in
+# B are comments here, so every other line is where it is in B and the baseline's frames name A's lines.
 cp src/main/java/com/acme/checkout/Checkout.java .checkout-b.java
-sed -i '/^                if (candidate) {$/,+2d' src/main/java/com/acme/checkout/Checkout.java
+sed -i '/^                if (candidate) {$/,+2c\
+                // Receipt lines are priced but not formatted yet:\
+                // formatLine is written, and joins the loop once the\
+                // receipt layout is settled.' src/main/java/com/acme/checkout/Checkout.java
 git add src
 commit "2026-10-20T09:00:00+00:00" "Price each checkout line"
 # Commit B: the source both runs were recorded from.

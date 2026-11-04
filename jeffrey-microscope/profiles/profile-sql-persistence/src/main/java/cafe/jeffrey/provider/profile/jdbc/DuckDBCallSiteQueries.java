@@ -24,8 +24,9 @@ import java.util.regex.Pattern;
 /**
  * The query behind a call-site read: the events of one type grouped by their stack, by the value of one
  * of their fields and by the trace they belong to. Reads the {@code events} view, which puts back the
- * long text (a statement's SQL) the writer moved out of the row. The optional filters are spliced in by
- * {@link EventQueryFilters} like every other event query.
+ * long text (a statement's SQL) the writer moved out of the row. Values are grouped whole and handed over
+ * cut, with their length and a digest that keeps two values apart past the cut. The optional filters are
+ * spliced in by {@link EventQueryFilters} like every other event query.
  */
 final class DuckDBCallSiteQueries {
 
@@ -62,7 +63,11 @@ final class DuckDBCallSiteQueries {
                     <<json_field_filter>>
                 GROUP BY ALL
             )
-            SELECT g.stacktrace_hash, s.frame_hashes, g.group_value, g.trace_id,
+            SELECT g.stacktrace_hash, s.frame_hashes,
+                   left(g.group_value, :group_value_chars) AS group_value,
+                   length(g.group_value) AS group_value_length,
+                   md5(g.group_value) AS group_key,
+                   g.trace_id,
                    t.root_name, t.root_kind, t.root_event_type,
                    g.event_count, g.total_duration, g.max_duration
             FROM grouped g

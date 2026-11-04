@@ -197,10 +197,10 @@ class TestappWallClockIntegrationTest extends TestappVolumeMicroscope {
             assertEquals(Integer.parseInt(inside), samplesTotal(export.path("markdown").asString()));
         }
 
-        /** An event inside a span's window, as the graphs cut it: whole milliseconds, every timestamp floored. */
+        /** An event inside a span's window, as the graphs cut it: to the microsecond, both ends included. */
         private static String inWindow(String event, String span) {
-            return " AND epoch_us(" + event + ".start_timestamp) // 1000 BETWEEN epoch_us(" + span + ".start_timestamp) // 1000"
-                    + " AND (epoch_us(" + span + ".start_timestamp) + " + span + ".duration // 1000) // 1000";
+            return " AND epoch_us(" + event + ".start_timestamp) BETWEEN epoch_us(" + span + ".start_timestamp)"
+                    + " AND epoch_us(" + span + ".start_timestamp) + " + span + ".duration // 1000";
         }
     }
 

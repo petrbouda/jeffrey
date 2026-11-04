@@ -19,6 +19,7 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.flamegraph.code.MethodKey;
 import cafe.jeffrey.flamegraph.code.MethodRef;
+import cafe.jeffrey.provider.profile.api.CallSiteRecord;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
@@ -82,6 +83,26 @@ class CodeSurfaceIntegrationTest extends TestappVolumeMicroscope {
             assertEquals(recorded, byStatement);
             byStatement.forEach((statement, count) ->
                     assertEquals(DIRECT.traces().statementsByName().get(statement), count, statement));
+        }
+
+        @Test
+        void aLongGroupValueIsCutInTheReadAndKeepsItsLengthAndItsEvents() {
+            JsonNode answer = answer("code_callSites", DIRECT, Json.createObject()
+                    .put("eventType", JDBC_QUERY)
+                    .put("groupBy", "sql")
+                    .put("limit", 50)
+                    .set("framePrefixes", own()));
+
+            assertEquals("OK", answer.path("status").asString(), answer::toString);
+            long counted = 0;
+            for (JsonNode site : answer.path("sites")) {
+                String value = site.path("groupValue").asString();
+                assertTrue(value.length() <= CallSiteRecord.MAX_GROUP_VALUE_CHARS, site.toString());
+                assertTrue(site.path("groupValueChars").asInt() >= value.length(), site.toString());
+                counted += site.path("count").asLong();
+            }
+            assertEquals(0, answer.path("omittedSites").asInt(), answer::toString);
+            assertEquals(answer.path("totalEvents").asLong(), counted, "every statement counted once, none merged away");
         }
 
         @Test
