@@ -34,7 +34,9 @@ import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -72,13 +74,13 @@ public final class AutoAnalysisDataProvider implements Function<List<Path>, List
     }
 
     /**
-     * @return every rule's answer, ordered by the rule's id
+     * @return every rule's answer, once each, ordered by the rule's id
      */
     public List<AutoAnalysisResult> generate(List<Path> recordings) {
         try (TempDirectory scratch = tempDirFactory.newTempDir()) {
             IItemCollection events = load(RecordingChains.of(recordings, scratch.path()));
             List<Map.Entry<IRule, Future<IResult>>> futures =
-                    RulesToolkit.evaluateParallel(RuleRegistry.getRules(), events, null, 0)
+                    RulesToolkit.evaluateParallel(uniqueById(RuleRegistry.getRules()), events, null, 0)
                             .entrySet().stream()
                             .sorted(Comparator.comparing((o) -> o.getKey().getId()))
                             .toList();
@@ -106,6 +108,22 @@ public final class AutoAnalysisDataProvider implements Function<List<Path>, List
             }
             throw Exceptions.internal("Got exception when creating report for " + recordings, (Exception) t);
         }
+    }
+
+    /**
+     * Each rule once, the first of its id in the registry's order. JMC 9.1.2's rules jar lists six
+     * rules twice in its service file (Class Leak, DMS Incidents, DebugNonSafepoints, GC Setup,
+     * Discouraged VM Options, Exceptional Dump Reason). The packaged jar runs on the class path,
+     * where the service loader drops the repeated names; on the module path, which Microscope's
+     * module requires the jar on — the tests, a run from the IDE — it instantiates every line, and
+     * each of the six answered twice. The answers no longer depend on how the jar is loaded.
+     */
+    static List<IRule> uniqueById(Collection<IRule> rules) {
+        Map<String, IRule> byId = new LinkedHashMap<>();
+        for (IRule rule : rules) {
+            byId.putIfAbsent(rule.getId(), rule);
+        }
+        return List.copyOf(byId.values());
     }
 
     /**

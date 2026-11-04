@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.openjdk.jmc.flightrecorder.rules.IRule;
 import org.openjdk.jmc.flightrecorder.rules.RuleRegistry;
 
 import java.io.IOException;
@@ -109,11 +110,14 @@ class AutoAnalysisDataProviderRealisticTest {
 
         @ParameterizedTest
         @EnumSource(TestappRecording.class)
-        @DisplayName("every rule answers; the warnings and notes are the run's own")
+        @DisplayName("every rule answers once; the warnings and notes are the run's own")
         void theWarningsAndNotesAreTheRunsOwn(TestappRecording recording) {
             List<AutoAnalysisResult> results = judged(recording);
 
-            assertEquals(RuleRegistry.getRules().size(), results.size());
+            assertEquals(RuleRegistry.getRules().stream().map(IRule::getId).distinct().count(), results.size(),
+                    "one answer per rule");
+            assertEquals(results.size(), results.stream().map(AutoAnalysisResult::rule).distinct().count(),
+                    () -> "a rule answered twice: " + results.stream().map(AutoAnalysisResult::rule).sorted().toList());
             assertEquals(new TreeSet<>(WARNINGS.get(recording)), rules(results, Severity.WARNING));
             assertEquals(new TreeSet<>(NOTES.get(recording)), rules(results, Severity.INFO));
         }
