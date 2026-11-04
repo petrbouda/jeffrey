@@ -129,10 +129,19 @@ class CodeAttributionBuilderTest {
         }
 
         @Test
-        void theOutermostOwnFrameIsWhereTheApplicationWasEntered() {
+        void theStacksEnterTheApplicationWhereTheirSharedPathFirstReachesOwnCode() {
+            CodeAttribution withEntries = read(CodeQuery.of(OWN, List.of()).withEntryPoints(), false,
+                    stack(70, THREAD_RUN, HANDLE, CHECKOUT, HIBERNATE, JDBC, READ),
+                    stack(20, THREAD_RUN, HANDLE, CHECKOUT_OTHER_LINE),
+                    stack(10, THREAD_RUN, JDBC));
             assertEquals(List.of(
                     new MethodValue(new MethodKey("com.acme.web.Controller", "handle"), 90)),
-                    attribution.entryPoints());
+                    withEntries.entryPoints());
+        }
+
+        @Test
+        void entryPointsAreReadOnlyWhenAsked() {
+            assertEquals(List.of(), attribution.entryPoints());
         }
 
         @Test

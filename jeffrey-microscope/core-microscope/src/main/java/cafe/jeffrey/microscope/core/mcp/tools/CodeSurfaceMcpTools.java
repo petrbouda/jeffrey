@@ -78,7 +78,7 @@ import java.util.Set;
  * statements, the JDK's socket, file and lock events, an application's own JFR events) names its call
  * site directly: the deepest own frame on the stack and its line. An event recorded without one (the
  * HTTP and gRPC exchanges, trace spans) is tied to code through the samples taken inside its spans:
- * the outermost own frame there is where the request entered the code, which is inferred, not recorded.
+ * where those stacks enter own code ({@code EntryTrunk}) is the handler, which is inferred, not recorded.
  */
 public class CodeSurfaceMcpTools {
 
@@ -162,7 +162,10 @@ public class CodeSurfaceMcpTools {
     private static final String ENTRY_INFERRED_NOTE = "An operation's entry points come from the stacks of the "
             + "statements its requests issued where it issued any (entryBasis EVENT_STACK, recorded), otherwise "
             + "from the %s samples taken inside its spans (SAMPLED_SPANS, inferred from where samples landed); "
-            + "topMethods always from those samples.";
+            + "topMethods always from those samples. The entry point is where the longest run of your methods "
+            + "calling each other starts on the call path at least 90%% of the operation shares - past an own "
+            + "filter or worker loop above it, above a callback below it; where that path reaches none of your "
+            + "code, each stack's outermost method of yours.";
     private static final String NO_OPERATIONS_NOTE = "The profile has no traces, so no operation can be named.";
     private static final String NO_SAMPLES_NOTE = "The profile recorded no CPU or wall-clock samples of your code, "
             + "so only operations whose requests issued statements with stacks are placed in code (entryBasis "
@@ -416,7 +419,7 @@ public class CodeSurfaceMcpTools {
                 CodeAttribution inside = profileManager.flamegraphManager().codeAttribution(
                         CodeAnswers.params(sampled.get(), whole, false, false,
                                 new SpanScope.Operation(row.name(), row.kind(), row.eventType())),
-                        CodeQuery.of(prefixes, List.of()));
+                        CodeQuery.of(prefixes, List.of()).withEntryPoints());
                 samples = inside.chargedToOwnCode();
                 if (basis == EntryBasis.NONE && !inside.entryPoints().isEmpty()) {
                     entries = CodeAnswers.frames(inside.entryPoints(), inside.chargedToOwnCode(), MAX_CODE_PER_OPERATION);
@@ -719,8 +722,9 @@ public class CodeSurfaceMcpTools {
             @McpDescription("How entryPoints were read: from the stacks of the statements its requests issued "
                     + "(EVENT_STACK, recorded), from samples inside its spans (SAMPLED_SPANS, inferred), or not at all")
             EntryBasis entryBasis,
-            @McpDescription("The outermost methods of yours its requests entered through - the handler - with "
-                    + "their share of the events or samples entryBasis names")
+            @McpDescription("Where its requests entered your code - the handler: where the longest run of your "
+                    + "methods starts on the path 90% of it shares, else each stack's outermost method of yours - "
+                    + "with the share of the events or samples entryBasis names")
             List<FrameShare> entryPoints,
             @McpDescription("Your methods its samples were charged to most; share of its own samples")
             List<FrameShare> topMethods,

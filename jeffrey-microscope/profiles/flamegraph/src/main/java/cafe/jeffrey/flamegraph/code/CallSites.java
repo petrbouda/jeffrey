@@ -47,9 +47,10 @@ public record CallSites(
     }
 
     /**
-     * The outermost own frame on the stacks of the events one operation's requests issued.
+     * Where one operation's requests entered own code, read from the stacks of the events they issued: the
+     * {@link EntryTrunk} entry, or, when the trunk reaches no own code, each stack's outermost own frame.
      *
-     * @param events how many of its events had that frame outermost
+     * @param events how many of its events ran through that frame
      */
     public record OperationEntry(TraceOperationId operation, MethodKey method, long events) {
     }

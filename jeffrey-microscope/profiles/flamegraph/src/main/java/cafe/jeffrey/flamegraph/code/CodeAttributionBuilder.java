@@ -64,7 +64,8 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
     private final List<FocusAccumulator> focus;
     private final Map<MethodKey, OwnAccumulator> own = new HashMap<>();
     private final Map<MethodKey, Long> inclusiveByMethod = new HashMap<>();
-    private final Map<MethodKey, Long> entryPoints = new HashMap<>();
+    private final Map<MethodKey, Long> outermostOwnEntries = new HashMap<>();
+    private final EntryTrunk trunk;
 
     private long total;
     private long chargedToOwnCode;
@@ -77,6 +78,7 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
         this.scope = query.scope();
         this.useWeight = useWeight;
         this.focus = query.focus().stream().map(FocusAccumulator::new).toList();
+        this.trunk = query.entryPoints() ? new EntryTrunk() : null;
     }
 
     @Override
@@ -114,9 +116,22 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
                 total,
                 chargedToOwnCode,
                 ownMethods,
-                sortedValues(entryPoints),
+                entryPoints(),
                 sortedValues(inclusiveByMethod),
                 focus.stream().map(FocusAccumulator::toCost).toList());
+    }
+
+    /**
+     * The operation's entry point on the trunk its stacks share, or else each stack's outermost own frame;
+     * empty when the query did not ask for them.
+     */
+    private List<MethodValue> entryPoints() {
+        if (trunk == null) {
+            return List.of();
+        }
+        return trunk.entry()
+                .map(entry -> List.of(new MethodValue(entry.method(), entry.value())))
+                .orElseGet(() -> sortedValues(outermostOwnEntries));
     }
 
     private void countInclusive(List<Step> steps, long value) {
@@ -144,7 +159,10 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
         }
 
         chargedToOwnCode += value;
-        entryPoints.merge(steps.get(outermostOwn).key(), value, Long::sum);
+        if (trunk != null) {
+            outermostOwnEntries.merge(steps.get(outermostOwn).key(), value, Long::sum);
+            trunk.add(javaFrames(steps), value);
+        }
         for (Step occurrence : ownOccurrences.values()) {
             own.computeIfAbsent(occurrence.key(), OwnAccumulator::new).addInclusive(occurrence.frameType(), value);
         }
@@ -184,6 +202,16 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
             steps.add(new Step(new MethodKey(className, methodName), frameType, java, frame.lineNumber()));
         }
         return steps;
+    }
+
+    private List<EntryTrunk.Frame> javaFrames(List<Step> steps) {
+        List<EntryTrunk.Frame> frames = new ArrayList<>(steps.size());
+        for (Step step : steps) {
+            if (step.java()) {
+                frames.add(new EntryTrunk.Frame(step.key(), scope.isOwn(step.key().className())));
+            }
+        }
+        return frames;
     }
 
     private static List<MethodValue> sortedValues(Map<MethodKey, Long> values) {

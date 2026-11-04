@@ -25,7 +25,7 @@ import java.util.List;
  * @param scope the reader's own code, or {@link FrameScope.Everything}
  * @param focus the methods to describe, in the order the answer should hold them; may be empty
  */
-public record CodeQuery(FrameScope scope, List<MethodRef> focus) {
+public record CodeQuery(FrameScope scope, List<MethodRef> focus, boolean entryPoints) {
 
     public CodeQuery {
         if (scope == null) {
@@ -34,8 +34,16 @@ public record CodeQuery(FrameScope scope, List<MethodRef> focus) {
         focus = focus == null ? List.of() : List.copyOf(focus);
     }
 
-    /** Own code by these prefixes, or none, and these methods in focus. */
+    /** Own code by these prefixes, or none, and these methods in focus; no entry points. */
     public static CodeQuery of(List<String> framePrefixes, List<MethodRef> focus) {
-        return new CodeQuery(FrameScope.of(framePrefixes), focus);
+        return new CodeQuery(FrameScope.of(framePrefixes), focus, false);
+    }
+
+    /**
+     * The same query, also reading where the stacks enter own code ({@link EntryTrunk}) — for the stacks of one
+     * operation, which share a trunk; it keeps a tree of every stack read, so a whole-recording read leaves it off.
+     */
+    public CodeQuery withEntryPoints() {
+        return new CodeQuery(scope, focus, true);
     }
 }

@@ -88,7 +88,6 @@ public class CodeMcpTools {
     private static final int MAX_LINES = 5;
     private static final int MAX_NEIGHBOURS = 8;
     private static final int MAX_MATCHED = 10;
-    private static final int MAX_NEAREST = 10;
     private static final int MAX_EXCEPTION_CLASSES = 10;
 
     /** How many event types {@code code_method} reads when none is named, busiest first. */
@@ -146,7 +145,6 @@ public class CodeMcpTools {
             + "samples to place the method inside a request.";
     private static final String OPERATIONS_EVENT_REASON = "Read on %s, the first stack-sampling event type of "
             + "this profile.";
-    private static final String NESTED_SEPARATOR = "$";
     private static final String NO_THROWS_REASON = "The recording has no throw events (jdk.JavaExceptionThrow, "
             + "jdk.JavaErrorThrow).";
     private static final String MATCHING_GUIDANCE = "matchedFrames lists the runtime names merged into this "
@@ -337,9 +335,9 @@ public class CodeMcpTools {
             FocusCost focus = attribution.focus().getFirst();
             reads.add(new KindRead(read,
                     SampleKind.of(read, attribution.total(), focus, read.graphLink(info.id(), CodeAnswers.search(ref)))));
-            if (nearestPool.isEmpty()) {
-                nearestPool.addAll(attribution.inclusiveByMethod());
-            }
+            // Every kind read: a method another kind never ran (a lock wait's pool holds no pricing code)
+            // still has its classmates in the kinds that did.
+            nearestPool.addAll(attribution.inclusiveByMethod());
         }
         // The kinds that ran the method first, the largest share of its kind first: the read a reader
         // should look at heads the list, and is the one the next calls repeat.
@@ -426,19 +424,11 @@ public class CodeMcpTools {
                 .toList();
     }
 
-    /** Sampled methods whose name says they may be the one asked about: the same class, or the same name. */
+    /** The methods nearest to a reference nothing ran, by their runtime names. */
     private static List<String> nearest(MethodRef ref, List<MethodValue> inclusiveByMethod) {
-        String nestedPrefix = ref.className() + NESTED_SEPARATOR;
-        return inclusiveByMethod.stream()
-                .filter(value -> {
-                    MethodKey method = value.method();
-                    boolean sameClass = method.className().equals(ref.className())
-                            || method.className().startsWith(nestedPrefix);
-                    boolean sameName = ref.methodName() != null && method.methodName().equals(ref.methodName());
-                    return sameClass || sameName;
-                })
-                .limit(MAX_NEAREST)
+        return CodeAnswers.nearest(ref, inclusiveByMethod).stream()
                 .map(value -> value.method().displayName())
+                .distinct()
                 .toList();
     }
 

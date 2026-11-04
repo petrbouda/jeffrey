@@ -139,6 +139,10 @@ public class CompareMcpTools {
     static final double NEGLIGIBLE_SHARE_PCT = 0.1;
 
     private static final String LIST_TOOL = "compare_list";
+    private static final String COMPARE_METHODS_TOOL = "compare_methods";
+    private static final String METHODS = "methods";
+    private static final String RESPELLED_WHY = "the same comparison with each method nothing ran spelled as the "
+            + "profile runs it - the method of the same name nearestReferences found";
     private static final String CODE_METHOD_TOOL = "code_method";
     private static final String CLASS_NAME = "className";
     private static final String METHOD_NAME = "methodName";
@@ -478,7 +482,8 @@ public class CompareMcpTools {
 
         List<MethodMove> moves = new ArrayList<>();
         for (int i = 0; i < refs.size(); i++) {
-            moves.add(MethodMove.of(primary.focus().get(i), base.focus().get(i), scale, primary.total()));
+            moves.add(MethodMove.of(primary.focus().get(i), base.focus().get(i), scale, primary.total(),
+                    primary.inclusiveByMethod()));
         }
         List<Mover> movers = unlistedMovers(primary, base, refs, scale);
 
@@ -486,7 +491,18 @@ public class CompareMcpTools {
                 .filter(move -> move.inclusiveDelta() > 0)
                 .max(Comparator.comparingDouble(MethodMove::inclusiveDelta))
                 .orElse(null);
+        List<String> respelled = respelled(refs, moves);
         McpFollowUp followUp = NextSteps.builder(advertised)
+                .nextWhen(!respelled.isEmpty(), () -> {
+                    McpNextTool.Call call = request.applyTo(NextCalls.to(COMPARE_METHODS_TOOL)
+                            .with(PROFILE_ID, primaryId)
+                            .with(BASELINE_PROFILE_ID, baselineId)
+                            .with(METHODS, respelled));
+                    if (!prefixes.isEmpty()) {
+                        call.with(FRAME_PREFIXES, prefixes);
+                    }
+                    return call.why(RESPELLED_WHY);
+                })
                 .next(quality(primaryId, baselineId))
                 .next(request.applyTo(NextCalls.to(MOVEMENTS_TOOL)
                                 .with(PROFILE_ID, primaryId)
@@ -596,6 +612,29 @@ public class CompareMcpTools {
                         .thenComparing(Mover::frame))
                 .limit(MAX_UNLISTED_MOVERS)
                 .toList();
+    }
+
+    /**
+     * The references again, each one nothing ran replaced by the nearest sampled method of the same name — the
+     * spelling a reader most often gets wrong is the class (a nested class left out, the package dropped), not
+     * the method; empty when no reference needs it.
+     */
+    private static List<String> respelled(List<MethodRef> refs, List<MethodMove> moves) {
+        List<String> references = new ArrayList<>(refs.size());
+        boolean changed = false;
+        for (int i = 0; i < refs.size(); i++) {
+            MethodRef ref = refs.get(i);
+            MethodMove move = moves.get(i);
+            String sameName = move.movement() != Movement.NOT_SEEN || ref.methodName() == null
+                    ? null
+                    : move.nearestReferences().stream()
+                            .filter(nearest -> ref.methodName().equals(MethodRef.parse(nearest).methodName()))
+                            .findFirst()
+                            .orElse(null);
+            references.add(sameName == null ? ref.displayName() : sameName);
+            changed |= sameName != null;
+        }
+        return changed ? references.stream().distinct().toList() : List.of();
     }
 
     private McpNextTool methodCall(String primaryId, String reference, Request request, List<String> prefixes) {
@@ -976,18 +1015,30 @@ public class CompareMcpTools {
             @McpDescription("The runtime names matched in the primary")
             List<String> primaryFrames,
             @McpDescription("The runtime names matched in the baseline")
-            List<String> baselineFrames) {
+            List<String> baselineFrames,
+            @McpDescription("When movement is NOT_SEEN: the primary's sampled methods that may be the one meant - "
+                    + "the same class or one nested in it, or the same method name - as references to pass "
+                    + "again, at most " + CodeAnswers.MAX_NEAREST + "; empty otherwise")
+            List<String> nearestReferences) {
 
-        static MethodMove of(FocusCost primary, FocusCost baseline, double scale, long primaryTotal) {
+        static MethodMove of(FocusCost primary, FocusCost baseline, double scale, long primaryTotal,
+                             List<MethodValue> primaryMethods) {
             double baselineScaled = baseline.inclusive() * scale;
             double delta = primary.inclusive() - baselineScaled;
             Double change = baseline.inclusive() > 0 ? CodeAnswers.pct(delta, baselineScaled) : null;
             double deltaShare = CodeAnswers.pct(delta, primaryTotal);
-            return new MethodMove(primary.ref().displayName(), movement(primary, baseline, deltaShare),
+            Movement movement = movement(primary, baseline, deltaShare);
+            List<String> nearest = movement != Movement.NOT_SEEN
+                    ? List.of()
+                    : CodeAnswers.nearest(primary.ref(), primaryMethods).stream()
+                            .map(value -> MethodRef.of(value.method()).displayName())
+                            .distinct()
+                            .toList();
+            return new MethodMove(primary.ref().displayName(), movement,
                     primary.inclusive(), baseline.inclusive(), round(baselineScaled), round(delta), change,
                     deltaShare, primary.self(), round(baseline.self() * scale),
                     onlyIn(primary.callees(), baseline.callees()), onlyIn(baseline.callees(), primary.callees()),
-                    names(primary.matchedFrames()), names(baseline.matchedFrames()));
+                    names(primary.matchedFrames()), names(baseline.matchedFrames()), nearest);
         }
 
         private static Movement movement(FocusCost primary, FocusCost baseline, double deltaShare) {

@@ -171,6 +171,18 @@ class CodeToolsIntegrationTest extends CheckoutVolumeMicroscope {
         }
 
         @Test
+        void aNestedClassInSourceSpellingFindsItsOwnMethodsAsNearest() {
+            JsonNode method = answer("code_method", BASELINE, Json.createObject()
+                    .put("className", "com.acme.checkout.Checkout.PriceCalculator")
+                    .put("methodName", "formatLines"));
+
+            assertEquals("NOT_SEEN", method.path("status").asString());
+            assertFalse(method.path("nearestFrames").isEmpty(), method.toString());
+            method.path("nearestFrames").forEach(frame -> assertTrue(
+                    frame.asString().startsWith("com.acme.checkout.Checkout$PriceCalculator#"), frame.asString()));
+        }
+
+        @Test
         void aMethodNoSampleRanIsNotSeenWithItsClassmatesAsNearest() {
             JsonNode method = answer("code_method", BASELINE, Json.createObject()
                     .put("className", "com.acme.checkout.Checkout")
@@ -187,6 +199,35 @@ class CodeToolsIntegrationTest extends CheckoutVolumeMicroscope {
     class Comparison {
 
         @Test
+        void aMethodNamedWithoutItsNestedClassIsNotSeenAndPointsToTheOneThatRan() {
+            ObjectNode arguments = Json.createObject()
+                    .put("baselineProfileId", profile(BASELINE))
+                    .put("eventType", EXECUTION_SAMPLE);
+            arguments.set("methods", Json.createArray().add("com.acme.checkout.Checkout#formatLine"));
+            arguments.set("framePrefixes", own());
+            JsonNode comparison = answer("compare_methods", CANDIDATE, arguments);
+            JsonNode move = comparison.path("methods").get(0);
+
+            assertEquals("NOT_SEEN", move.path("movement").asString(), move::toString);
+            assertEquals(FORMAT_LINE, move.path("nearestReferences").get(0).asString(), move::toString);
+            JsonNode again = comparison.path("followUp").path("nextTools").get(0);
+            assertEquals("compare_methods", again.path("tool").asString(), again::toString);
+            assertEquals(FORMAT_LINE, again.path("arguments").path("methods").get(0).asString(), again::toString);
+        }
+
+        @Test
+        void aMethodNamedWithoutItsPackageFindsTheClassInItsPackage() {
+            ObjectNode arguments = Json.createObject()
+                    .put("baselineProfileId", profile(BASELINE))
+                    .put("eventType", EXECUTION_SAMPLE);
+            arguments.set("methods", Json.createArray().add("Checkout.PriceCalculator#formatLine"));
+            JsonNode move = answer("compare_methods", CANDIDATE, arguments).path("methods").get(0);
+
+            assertEquals("NOT_SEEN", move.path("movement").asString(), move::toString);
+            assertEquals(FORMAT_LINE, move.path("nearestReferences").get(0).asString(), move::toString);
+        }
+
+        @Test
         void theCandidatesRegressionIsTheMethodItsDiffTouched() {
             ObjectNode arguments = Json.createObject()
                     .put("baselineProfileId", profile(BASELINE))
@@ -201,6 +242,8 @@ class CodeToolsIntegrationTest extends CheckoutVolumeMicroscope {
             assertTrue(List.of("MORE", "NEW").contains(move.path("movement").asString()), move.toString());
             assertTrue(move.path("inclusiveDelta").asDouble() > 0, move.toString());
             assertTrue(names(move.path("primaryFrames")).contains(FORMAT_LINE_RUNTIME), move.toString());
+
+            assertTrue(move.path("nearestReferences").isEmpty(), move.toString());
 
             assertFalse(comparison.path("unlistedMovers").isEmpty(), comparison::toString);
             for (JsonNode mover : comparison.path("unlistedMovers")) {

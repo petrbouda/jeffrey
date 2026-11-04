@@ -48,7 +48,8 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
 
     private final FrameScope scope;
     private final Map<SiteKey, SiteAccumulator> sites = new HashMap<>();
-    private final Map<EntryKey, Long> entries = new HashMap<>();
+    private final Map<EntryKey, Long> outermostOwnEntries = new HashMap<>();
+    private final Map<TraceOperationId, EntryTrunk> trunks = new HashMap<>();
 
     private long totalEvents;
     private long totalNanos;
@@ -70,7 +71,9 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
         sites.computeIfAbsent(new SiteKey(path, record.groupValue()), _ -> new SiteAccumulator()).add(record);
         if (record.operation() != null) {
             outermostOwn(record.stackTrace()).ifPresent(method ->
-                    entries.merge(new EntryKey(record.operation(), method), record.count(), Long::sum));
+                    outermostOwnEntries.merge(new EntryKey(record.operation(), method), record.count(), Long::sum));
+            trunks.computeIfAbsent(record.operation(), _ -> new EntryTrunk())
+                    .add(javaFrames(record.stackTrace()), record.count());
         }
     }
 
@@ -83,8 +86,7 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
                         .thenComparing(CallSite::method)
                         .thenComparingInt(CallSite::line))
                 .toList();
-        List<OperationEntry> operationEntries = entries.entrySet().stream()
-                .map(entry -> new OperationEntry(entry.getKey().operation(), entry.getKey().method(), entry.getValue()))
+        List<OperationEntry> operationEntries = operationEntries().stream()
                 .sorted(Comparator.comparingLong(OperationEntry::events).reversed()
                         .thenComparing(OperationEntry::method))
                 .toList();
@@ -118,6 +120,42 @@ public final class CallSiteBuilder implements RecordBuilder<CallSiteRecord, Call
             path.add(new PathFrame(key, frame.lineNumber() > 0 ? frame.lineNumber() : UNKNOWN_LINE));
         }
         return path;
+    }
+
+    /**
+     * Each operation's entry point on the trunk its statements' stacks share ({@link EntryTrunk}), or, for an
+     * operation whose trunk reaches no own code, each stack's outermost own frame.
+     */
+    private List<OperationEntry> operationEntries() {
+        List<OperationEntry> entries = new ArrayList<>();
+        for (Map.Entry<TraceOperationId, EntryTrunk> operation : trunks.entrySet()) {
+            Optional<EntryTrunk.Entry> entry = operation.getValue().entry();
+            if (entry.isPresent()) {
+                entries.add(new OperationEntry(operation.getKey(), entry.get().method(), entry.get().value()));
+                continue;
+            }
+            outermostOwnEntries.forEach((key, events) -> {
+                if (key.operation().equals(operation.getKey())) {
+                    entries.add(new OperationEntry(key.operation(), key.method(), events));
+                }
+            });
+        }
+        return entries;
+    }
+
+    /** The Java frames of the stack, root first, each marked own or not; hidden-class frames skipped. */
+    private List<EntryTrunk.Frame> javaFrames(JfrStackTrace stackTrace) {
+        List<EntryTrunk.Frame> frames = new ArrayList<>();
+        for (JfrStackFrame frame : stackTrace.frames()) {
+            JfrMethod method = frame.method();
+            if (method == null || method.clazz().isHidden() || method.className() == null
+                    || method.methodName() == null || !FrameType.fromCode(frame.type()).isJavaFrame()) {
+                continue;
+            }
+            frames.add(new EntryTrunk.Frame(new MethodKey(method.className(), method.methodName()),
+                    scope.isOwn(method.className())));
+        }
+        return frames;
     }
 
     /** The shallowest own Java frame of the stack, skipping hidden-class frames. */

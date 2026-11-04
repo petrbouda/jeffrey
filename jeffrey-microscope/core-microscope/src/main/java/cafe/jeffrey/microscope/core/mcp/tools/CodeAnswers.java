@@ -30,9 +30,12 @@ import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,6 +59,11 @@ final class CodeAnswers {
     private static final String SOURCE_DOT = "[.$]";
     private static final String CLASS_DOT = ".";
     private static final String METHOD_SEPARATOR = "#";
+    /** At most this many methods an answer names as the nearest to a reference nothing ran. */
+    static final int MAX_NEAREST = 10;
+    private static final char NESTED_SEPARATOR = '$';
+    private static final char SOURCE_SEPARATOR = '.';
+
     /** The {@code reference} of a row naming one of the reader's methods. */
     static final String REFERENCE_DESCRIPTION = "The method as its source spells it - Outer.Inner#method, a lambda "
             + "body by the method it is written in - which code_method and compare_methods take";
@@ -189,6 +197,50 @@ final class CodeAnswers {
         return escaped(frame.displayName());
     }
 
+    /**
+     * Sampled methods whose name says they may be the one a reference meant: those of the same class or a
+     * class nested in it, and those with the same method name, the same name first, each list as the
+     * attribution ranks it (highest inclusive first). Classes are compared as source spells them, so a
+     * reference written {@code Outer.Inner} finds {@code Outer$Inner}'s methods, one that left out the nested
+     * class ({@code Outer#method}) finds the nested method of that name, and one that left out the package
+     * ({@code Outer.Inner#method}) finds the class in whatever package it is.
+     */
+    static List<MethodValue> nearest(MethodRef ref, List<MethodValue> inclusiveByMethod) {
+        String refClass = sourceClass(ref.className());
+        String nestedPrefix = refClass + SOURCE_SEPARATOR;
+        List<MethodValue> sameName = new ArrayList<>();
+        List<MethodValue> sameClass = new ArrayList<>();
+        for (MethodValue value : inclusiveByMethod) {
+            MethodKey method = value.method();
+            if (method.className().isEmpty()) {
+                continue;
+            }
+            String candidate = sourceClass(method.className());
+            if (ref.methodName() != null && method.methodName().equals(ref.methodName())) {
+                sameName.add(value);
+            } else if (candidate.equals(refClass) || candidate.startsWith(nestedPrefix)
+                    || candidate.endsWith(SOURCE_SEPARATOR + refClass)
+                    || candidate.contains(SOURCE_SEPARATOR + nestedPrefix)) {
+                sameClass.add(value);
+            }
+        }
+        sameName.addAll(sameClass);
+        return sameName.stream()
+                .filter(distinctMethods())
+                .limit(MAX_NEAREST)
+                .toList();
+    }
+
+    /** Keeps the first value of each method, for a pool gathered from several reads. */
+    private static Predicate<MethodValue> distinctMethods() {
+        Set<MethodKey> seen = new HashSet<>();
+        return value -> seen.add(value.method());
+    }
+
+    private static String sourceClass(String className) {
+        return className.replace(NESTED_SEPARATOR, SOURCE_SEPARATOR);
+    }
+
     private static String escaped(String name) {
         return SEARCH_METACHARACTERS.matcher(name).replaceAll(ESCAPED_MATCH);
     }
@@ -220,15 +272,8 @@ final class CodeAnswers {
         return type.isAllocationEvent() || type.isBlockingEvent();
     }
 
-    /** The prefixes as given, trimmed, blanks and repeats dropped. */
+    /** The prefixes as given, trimmed, blanks and repeats dropped, and bounded ({@link FramePrefixes}). */
     static List<String> prefixes(List<String> framePrefixes) {
-        if (framePrefixes == null) {
-            return List.of();
-        }
-        return framePrefixes.stream()
-                .filter(prefix -> prefix != null && !prefix.isBlank())
-                .map(String::strip)
-                .distinct()
-                .toList();
+        return FramePrefixes.of(framePrefixes);
     }
 }

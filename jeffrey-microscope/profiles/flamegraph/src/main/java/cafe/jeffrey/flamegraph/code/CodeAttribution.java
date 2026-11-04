@@ -39,9 +39,10 @@ import java.util.List;
  * @param total              every sample (or unit of weight) the query read
  * @param chargedToOwnCode   the part of {@code total} whose stack held at least one own frame
  * @param ownMethods         every own method, by charged cost, highest first; empty without own code
- * @param entryPoints        the outermost own frame of each stack, by the cost of the stacks it opens,
- *                           highest first -- where the application's code was entered (a request handler,
- *                           a scheduled job, a listener); empty without own code
+ * @param entryPoints        where the stacks entered the application's code (a request handler, a scheduled
+ *                           job, a listener), when the query asked: the {@link EntryTrunk} entry with the cost
+ *                           through it, or else each stack's outermost own frame by the cost of the stacks it
+ *                           opens, highest first; empty without own code or when not asked
  * @param inclusiveByMethod  every Java method's inclusive cost, highest first -- what a reference that
  *                           matched nothing is compared against
  * @param focus              one answer per reference asked about, in the order asked

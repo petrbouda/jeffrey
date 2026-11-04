@@ -2724,6 +2724,12 @@
                   ],
                   "type": "string"
                 },
+                "nearestReferences": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
                 "primaryFrames": {
                   "items": {
                     "type": "string"
@@ -2756,6 +2762,7 @@
                 "inclusiveChangePct",
                 "inclusiveDelta",
                 "movement",
+                "nearestReferences",
                 "primaryFrames",
                 "primaryInclusive",
                 "primarySelf",

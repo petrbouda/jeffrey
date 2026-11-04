@@ -1,1 +1,0 @@
-{"profileId":"01a1a705-6813-7123-bd45-f0ed9560de7b","view":"event-types","objectId":null,"uiLink":"http://localhost:8586/profiles/01a1a705-6813-7123-bd45-f0ed9560de7b/event-types"}

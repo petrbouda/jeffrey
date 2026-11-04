@@ -124,7 +124,7 @@ methods a diff touched, as a list:
 |---|---|---|
 | `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
 | `compare-the-methods-my-diff-touched` | "My last change made reprice call formatLine for every line item. Did that make them more expensive?" | `compare_methods` with the two methods in source spelling, the candidate as primary; formatLine new (about 6% of the CPU, 95% of the bytes), reprice up by about 87% of its CPU samples, the growth put on the new call, nothing claimed about latency. Scaffolds the repository, as the code cases do; `compare_methods` takes a list no mock can pin |
-| `did-my-last-commit-make-it-worse` | "Did my last change to the pricing code make checkout more expensive?" (no method named) | the change read between the two profiles' commits — `git diff`/`git show` naming 1cc032a or c71aeee, not `HEAD~1`, which is a README commit — its methods passed to `compare_methods`, the checkout said to be past the profiled commit, formatLine new and reprice up |
+| `did-my-last-commit-make-it-worse` | "Did my last change to the pricing code make checkout more expensive?" (no method named) | the change read from the history (`git diff`/`show`/`log`) and identified as the profiled c71aeee, not HEAD, which is a README commit — its methods passed to `compare_methods`, the checkout said to be past the profiled commit, formatLine new and reprice up |
 | `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
 
 **The commits.** The two code cases scaffold the repository with a fixed history — commit A
@@ -1109,3 +1109,42 @@ with `threadMode`), `compare-finds-the-regression` routed once to `regression-ch
   change noise despite `reprice`'s +87%.
 
 The second points at the next server change: `reference` on `compare_movements`' rows too.
+
+## Misspelt methods, entry points, bounded prefixes
+
+What the live diff cases and a security review turned up, and what changed:
+
+- **A misspelt method is corrected by a call, not a hint.** Models passed `compare_methods`
+  `Checkout#formatLine` (the nested class left out) or `Checkout.PriceCalculator#reprice` (the package
+  left out). Both came back `NOT_SEEN`, and the runs then read the method as unchanged. A `NOT_SEEN` move
+  now carries `nearestReferences`, the sampled methods of the same name first, then those of the same
+  class or a class nested in it, compared in source spelling with the package optional. Its first
+  `nextTools` entry is the same comparison with those names. `code_method`'s `nearestFrames` had the same
+  blind spot: its classes were compared by binary name, and it read only the first kind's methods.
+- **Entry points come from the operation's trunk** (`EntryTrunk`). This is the call path 90% of an
+  operation's stacks share. On it, the entry point is the start of the longest run of the service's own
+  frames, so an own filter or worker loop above the handler, and a callback below it, are passed over.
+  `GET /orders/{customer}` now enters through `OrderController#history`, where it entered through the
+  worker loop in `main` before. `POST /checkout` stays on the loop. Only half of the samples Jeffrey
+  places inside its 74 µs spans run under `traced` at all, so no path below the loop carries 90%.
+- **`framePrefixes` is bounded** at 32 packages of at most 200 characters (`FramePrefixes`). Every Java
+  frame of every stack is checked against each prefix, so the list had made a call's cost unbounded.
+- **`compare-jfr` reads both profiles' commits** before saying whether they carry any. One run had said
+  "neither carries a `recordingCommit`" without reading either.
+- **`did-my-last-commit-make-it-worse` grades the outcome, not the spelling.** Two runs found the pricing
+  commit in `git log` and showed it as `HEAD~1`, which is the right change. The grader had wanted the
+  hash typed into the command. The judge already checks that the reply names the profiled commit and not
+  HEAD's README.
+
+| Case | Before | After |
+|---|---|---|
+| The four mocked code cases | 1.00 each | 1.00 each (12 of 12 runs) |
+| `compare-the-methods-my-diff-touched` | 0.83 | 1.00 |
+| `did-my-last-commit-make-it-worse` | 0.78 | 1.00, rescored under the corrected grader from the same three runs (the judge passed all three) |
+| SQL live cases | 1.00 and 1.00 | 1.00 and 1.00 |
+| Spend | — | $5.04 mocked and live, then $1.87 for the two diff cases again |
+
+The security review found the code tools' SQL, regexes and commit tags safe. Its one open finding: a
+high-cardinality `groupBy` (`sql` on a large recording) is held in memory value by value before the
+answer cuts it to 50 rows of 200 characters. The cost is bounded by the recording, not by the caller.
+
