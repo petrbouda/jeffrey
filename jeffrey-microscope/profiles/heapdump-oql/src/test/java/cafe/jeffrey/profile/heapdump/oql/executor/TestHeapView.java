@@ -175,10 +175,16 @@ final class TestHeapView implements HeapView {
 
     @Override
     public Stream<InstanceRow> instances(long classId) throws SQLException {
+        return instancesFrom(classId, Long.MIN_VALUE);
+    }
+
+    @Override
+    public Stream<InstanceRow> instancesFrom(long classId, long fromInstanceId) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement(
                 "SELECT instance_id, class_id, file_offset, record_kind, shallow_size, array_length, primitive_type "
-                        + "FROM instance WHERE class_id = ? ORDER BY instance_id");
+                        + "FROM instance WHERE class_id = ? AND instance_id >= ? ORDER BY instance_id");
         stmt.setLong(1, classId);
+        stmt.setLong(2, fromInstanceId);
         java.sql.ResultSet rs = stmt.executeQuery();
         java.util.Iterator<InstanceRow> it = new java.util.Iterator<>() {
             private boolean hasNext;
@@ -375,6 +381,11 @@ final class TestHeapView implements HeapView {
     @Override
     public byte[] readPrimitiveArrayBytes(long instanceId) {
         return cannedPrimitiveArrays.getOrDefault(instanceId, new byte[0]);
+    }
+
+    @Override
+    public byte[] readPrimitiveArrayBytes(InstanceRow array, int maxBytes) {
+        return readPrimitiveArrayBytes(array.instanceId(), maxBytes);
     }
 
     @Override

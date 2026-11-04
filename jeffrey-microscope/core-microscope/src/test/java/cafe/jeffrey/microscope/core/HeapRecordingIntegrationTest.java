@@ -62,8 +62,6 @@ class HeapRecordingIntegrationTest extends CheckoutVolumeMicroscope {
 
     /** The largest page heap_oql hands back. */
     private static final int OQL_PAGE = 100;
-    /** How many pages of the promo orders are read: one past the first proves the cursor. */
-    private static final int PROMO_PAGES = 2;
 
     private static final Duration PREPARATION = Duration.ofMinutes(5);
     private static final Duration POLL = Duration.ofSeconds(1);
@@ -158,25 +156,32 @@ class HeapRecordingIntegrationTest extends CheckoutVolumeMicroscope {
         }
 
         /**
-         * Walked in Java, the promo orders selected by their coupon's text: a page past the first proves
-         * the cursor (every page re-reads the orders before it, so all of them would only repeat it) —
-         * two full pages, none twice, every row a promo order as SQL over the index finds them.
+         * Walked in Java, the promo orders selected by their coupon's text, page by page to the end:
+         * each page resumes where the last stopped, so the deep pages cost what the first does. Every
+         * promo order once, each one SQL over the index finds, and the last page counts them all.
          */
         @Test
-        void oqlSelectsThePromoOrdersByTheirCouponsTextPageAfterPage() {
+        void oqlPagesThroughEveryPromoOrder() {
+            int promo = CheckoutRecording.HEAP_FIGURES.promoOrders();
+            int pagesTheyFill = (promo + OQL_PAGE - 1) / OQL_PAGE;
             List<JsonNode> pages = oqlPages("SELECT o FROM " + CheckoutRecording.HEAP_FIGURES.orderClass() + " o"
-                    + " WHERE toString(o.coupon) LIKE \"SPRING-.*\"", PROMO_PAGES);
+                    + " WHERE toString(o.coupon) LIKE \"SPRING-.*\"", pagesTheyFill + 1);
             Set<String> orders = new HashSet<>();
+            int read = 0;
             for (JsonNode page : pages) {
-                assertEquals(OQL_PAGE, page.path("rows").size(), page::toString);
-                page.path("rows").forEach(row -> orders.add(row.path("objectId").asString()));
+                for (JsonNode row : page.path("rows")) {
+                    orders.add(row.path("objectId").asString());
+                    read++;
+                }
             }
 
-            assertEquals(PROMO_PAGES, pages.size());
-            assertEquals(PROMO_PAGES * OQL_PAGE, orders.size(), "no promo order on two pages");
-            JsonNode promo = microscope.answer("heap_executeQuery", pid().put("query",
+            assertEquals(pagesTheyFill, pages.size(), "pages until the last one ends them");
+            assertEquals(promo, read, "rows read across the pages");
+            assertEquals(promo, orders.size(), "each promo order once");
+            assertEquals(promo, pages.getLast().path("totalCount").asInt(), pages.getLast()::toString);
+            JsonNode matched = microscope.answer("heap_executeQuery", pid().put("query",
                     promoOrdersSql("count(DISTINCT r.source_id)") + " AND r.source_id IN (" + String.join(", ", orders) + ")"));
-            assertEquals(String.valueOf(orders.size()), promo.path("rows").path(0).path(0).asString(), promo::toString);
+            assertEquals(String.valueOf(promo), matched.path("rows").path(0).path(0).asString(), matched::toString);
         }
 
         /** SQL over the index holds as many objects as the summary reports. */

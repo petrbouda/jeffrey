@@ -36,6 +36,7 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
+import cafe.jeffrey.profile.heapdump.model.OQLResumePoint;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import org.junit.jupiter.api.AfterEach;
@@ -307,6 +308,60 @@ class HeapOqlMcpToolsTest {
             JsonNode last = conforming(tools().oql(QUERY, 2, cursor, null, RESOURCE_READ));
 
             assertEquals(3, last.get("totalCount").asInt(), last::toString);
+        }
+
+        /**
+         * A query the engine resumes continues from the point it handed back, not an offset — and the
+         * last page still counts every row the pages before it showed.
+         */
+        @Test
+        void aResumedQueryContinuesFromThePointTheEngineHandedBack() {
+            OQLResumePoint point = new OQLResumePoint(12, 50, 3);
+            answers(OQLQueryResult.success(twoInstances().results(), 2, true, 5, point));
+            String cursor = conforming(tools().oql(QUERY, 2, null, null, RESOURCE_READ)).get("nextCursor").asString();
+            answers(OQLQueryResult.success(List.of(twoInstances().results().getFirst()), 1, false, 5));
+
+            JsonNode last = conforming(tools().oql(QUERY, 2, cursor, null, RESOURCE_READ));
+
+            ArgumentCaptor<OQLQueryRequest> requests = ArgumentCaptor.forClass(OQLQueryRequest.class);
+            verify(heapDumpManager, times(2)).executeQuery(requests.capture());
+            assertEquals(point, requests.getAllValues().get(1).resumeAfter());
+            assertEquals(0, requests.getAllValues().get(1).offset());
+            assertEquals(3, last.get("totalCount").asInt(), last::toString);
+        }
+
+        /**
+         * A resumed page too large for one answer continues from its own start, passing over the rows
+         * it showed: the engine's point lies past rows the reader never saw.
+         */
+        @Test
+        void aResumedPageCutForItsSizeContinuesFromItsOwnStart() {
+            OQLResumePoint start = new OQLResumePoint(12, 50, 3);
+            answers(OQLQueryResult.success(twoInstances().results(), 2, true, 5, start));
+            String cursor = conforming(tools().oql(QUERY, 2, null, null, RESOURCE_READ)).get("nextCursor").asString();
+            List<OQLResultEntry> large = IntStream.range(0, MAX_LIMIT)
+                    .mapToObj(i -> OQLResultEntry.ofInstance(i, "com.acme." + "X".repeat(3_000), "v".repeat(5_000), 48))
+                    .toList();
+            answers(OQLQueryResult.success(large, MAX_LIMIT, true, 5, new OQLResumePoint(12, 90, 1)));
+
+            JsonNode cut = conforming(tools().oql(QUERY, MAX_LIMIT, cursor, null, RESOURCE_READ));
+            int shown = cut.get("rows").size();
+            complete(tools().oql(QUERY, MAX_LIMIT, cut.get("nextCursor").asString(), null, RESOURCE_READ));
+
+            assertTrue(shown > 0 && shown < MAX_LIMIT, "rows shown: " + shown);
+            ArgumentCaptor<OQLQueryRequest> requests = ArgumentCaptor.forClass(OQLQueryRequest.class);
+            verify(heapDumpManager, times(3)).executeQuery(requests.capture());
+            assertEquals(start.passingOver(shown), requests.getAllValues().get(2).resumeAfter());
+        }
+
+        @Test
+        void aMalformedResumeCursorIsRefused() {
+            OQLResumePoint point = new OQLResumePoint(12, 50, 3);
+            answers(OQLQueryResult.success(twoInstances().results(), 2, true, 5, point));
+            String cursor = conforming(tools().oql(QUERY, 2, null, null, RESOURCE_READ)).get("nextCursor").asString();
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> tools().oql(QUERY, 2, cursor.substring(0, cursor.length() - 2), null, RESOURCE_READ));
         }
 
         @Test

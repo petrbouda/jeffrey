@@ -29,13 +29,17 @@ package cafe.jeffrey.profile.heapdump.model;
  *                            {@code string_content.content IS NULL} rows). Off by default —
  *                            the SQL pushdown path is fast and covers all in-cap Strings;
  *                            flip this on when the target Strings might be large.
+ * @param resumeAfter         where a page of a query that resumes starts (from the previous page's
+ *                            {@link OQLQueryResult#resumeAfter()}), in place of an offset; null
+ *                            for a page that starts at {@code offset}
  */
 public record OQLQueryRequest(
         String query,
         int limit,
         int offset,
         boolean includeRetainedSize,
-        boolean scanLargeStrings
+        boolean scanLargeStrings,
+        OQLResumePoint resumeAfter
 ) {
     private static final int DEFAULT_LIMIT = 100;
     private static final int DEFAULT_OFFSET = 0;
@@ -50,6 +54,16 @@ public record OQLQueryRequest(
         if (offset < 0) {
             offset = DEFAULT_OFFSET;
         }
+        if (resumeAfter != null && offset != DEFAULT_OFFSET) {
+            throw new IllegalArgumentException(
+                    "A page starts at an offset or after a resume point, not both: offset=" + offset);
+        }
+    }
+
+    /** A page starting at {@code offset}. */
+    public OQLQueryRequest(String query, int limit, int offset, boolean includeRetainedSize,
+                           boolean scanLargeStrings) {
+        this(query, limit, offset, includeRetainedSize, scanLargeStrings, null);
     }
 
     /**
@@ -64,6 +78,6 @@ public record OQLQueryRequest(
      * Create a request with default limit, offset, and no retained size calculation.
      */
     public OQLQueryRequest(String query) {
-        this(query, DEFAULT_LIMIT, DEFAULT_OFFSET, false, false);
+        this(query, DEFAULT_LIMIT, DEFAULT_OFFSET, false, false, null);
     }
 }

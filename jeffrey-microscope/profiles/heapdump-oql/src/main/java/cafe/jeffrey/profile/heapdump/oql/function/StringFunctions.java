@@ -40,7 +40,7 @@ public final class StringFunctions {
 
     public static String toStringValue(HeapView view, InstanceRow instance, JavaClassRow clazz) throws SQLException {
         if (clazz != null && JAVA_LANG_STRING.equals(clazz.name())) {
-            Optional<JavaStringDecoder.Decoded> d = JavaStringDecoder.decode(view, instance.instanceId());
+            Optional<JavaStringDecoder.Decoded> d = JavaStringDecoder.decode(view, instance);
             if (d.isPresent()) {
                 return d.get().content();
             }

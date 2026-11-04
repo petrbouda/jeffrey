@@ -258,7 +258,8 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
                 session.buildDominatorTreeIfNeeded();
             }
             try {
-                return oqlEngine.execute(plan, session.view(), new PageWindow(request.offset(), effectiveLimit));
+                return oqlEngine.execute(plan, session.view(),
+                        new PageWindow(request.offset(), effectiveLimit, request.resumeAfter()));
             } catch (SQLException e) {
                 LOG.warn("OQL execution failed: query={} error={}", query, e.getMessage());
                 return OQLQueryResult.error("Query failed: " + e.getMessage(), 0);
@@ -268,7 +269,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         OQLQueryResult r = elapsed.entity();
         return new OQLQueryResult(
                 r.results(), r.totalCount(), r.hasMore(),
-                elapsed.duration().toMillis(), r.errorMessage());
+                elapsed.duration().toMillis(), r.errorMessage(), r.resumeAfter());
     }
 
     // --- Threads ---------------------------------------------------------

@@ -83,6 +83,13 @@ public interface HeapView extends AutoCloseable {
      */
     Stream<InstanceRow> instances(long classId) throws SQLException;
 
+    /**
+     * The same stream as {@link #instances(long)}, starting at the instance {@code fromInstanceId}
+     * (or the first one after it): where a query that pages through a class's instances resumes,
+     * without reading the ones before. Must be closed by the caller.
+     */
+    Stream<InstanceRow> instancesFrom(long classId, long fromInstanceId) throws SQLException;
+
     Optional<InstanceRow> findInstanceById(long instanceId) throws SQLException;
 
     long instanceCount(long classId) throws SQLException;
@@ -227,6 +234,13 @@ public interface HeapView extends AutoCloseable {
      * array. {@code maxBytes <= 0} returns an empty array.
      */
     byte[] readPrimitiveArrayBytes(long instanceId, int maxBytes) throws SQLException;
+
+    /**
+     * The same bounded read as {@link #readPrimitiveArrayBytes(long, int)}, for an array the caller
+     * already holds as a row, so reading it costs no lookup of its own. Empty bytes for anything but
+     * a primitive array.
+     */
+    byte[] readPrimitiveArrayBytes(InstanceRow array, int maxBytes);
 
     /**
      * Returns the raw on-disk content bytes for any instance — INSTANCE_DUMP
