@@ -202,6 +202,8 @@ LIMIT 20`;
 
       <p>A CPU flamegraph cannot answer this question at all, and the reason is structural: a thread blocked on a monitor or a socket read is not on-CPU, so it is never sampled and the graph reports the application as idle rather than as waiting. <code>blocking_monitors</code> aggregates per lock class, which names the monitor rather than whichever call site happened to reach it, and <code>blocking_pinnedThreads</code> covers the failure mode Loom introduces &mdash; a pinned carrier blocks every virtual thread scheduled on it while looking merely busy.</p>
 
+      <p>Blocked time is thread-time: <code>blocking_monitors</code> sums every thread&rsquo;s wait, so four threads can block for 80&nbsp;s in a 30&nbsp;s recording. The skill quotes it as a total, a contention rate, a per-contention average or a share of the blocked threads&rsquo; own time &mdash; never as a share of the recording or of wall clock, which would read as the whole JVM standing still.</p>
+
       <p>For a request that is slow while every statement is fast, the answer is usually <code>jdbc_pools</code>: a connection wait shows up nowhere in the statement timings, and no change to a query will fix it.</p>
 
       <h2 id="chase-a-memory-problem">Chase a Memory Problem</h2>

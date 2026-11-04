@@ -18,6 +18,13 @@ Both report whether the event type was recorded at all, because these events are
 recording can hold none because nothing blocked for long enough as well as because the profiler was
 never asked. The two are different findings and the tools distinguish them.
 
+**Blocked time is thread-time.** `blocking_monitors` sums every thread's wait, so four threads can
+block for 80 s in a 30 s recording. Quote it as a total, a contention rate, a per-contention
+average, or a share of the blocked threads' own time — "the four workers spent about two thirds of
+their time waiting on `SessionCache`". Never put "of the recording" or "of wall clock" after the
+figure, even when it was divided by threads × recording length: "66% of the recording" reads as the
+whole JVM stalled for two thirds of it.
+
 ## Memory without a heap dump
 
 `memory_allocations` ranks the **types** allocated where the allocation flamegraph ranks the call
