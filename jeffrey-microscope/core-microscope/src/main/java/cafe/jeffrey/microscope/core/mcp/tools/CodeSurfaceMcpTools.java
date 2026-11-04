@@ -25,6 +25,7 @@ import cafe.jeffrey.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.code.FrameScope;
 import cafe.jeffrey.flamegraph.code.MethodKey;
+import cafe.jeffrey.flamegraph.code.MethodRef;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
@@ -271,12 +272,13 @@ public class CodeSurfaceMcpTools {
                 .map(site -> Site.of(site, info.id(), read))
                 .toList();
         Site top = shown.getFirst();
+        MethodRef topRef = MethodRef.of(new MethodKey(top.className(), top.methodName()));
         Optional<Site> repeated = shown.stream().filter(Site::repeatedPerTrace).findFirst();
         McpFollowUp followUp = NextSteps.builder(advertised)
                 .next(NextCalls.to(METHOD_TOOL)
                         .with(PROFILE_ID, info.id())
-                        .with(CLASS_NAME, top.className())
-                        .with(METHOD_NAME, top.methodName())
+                        .with(CLASS_NAME, topRef.className())
+                        .with(METHOD_NAME, topRef.methodName())
                         .with(FRAME_PREFIXES, prefixes)
                         .why(METHOD_WHY))
                 .nextWhen(repeated.isPresent() && !repeated.get().exemplarTraces().isEmpty(),
@@ -327,7 +329,7 @@ public class CodeSurfaceMcpTools {
         Statements statements = statementsRead.answer();
         OperationsRead operationsRead = operations(info, sampled, prefixes, whole, statementsRead.entries());
         Operations operations = operationsRead.answer();
-        Optional<MethodKey> entry = operationsRead.firstEntryPoint();
+        Optional<MethodRef> entryRef = operationsRead.firstEntryPoint().map(MethodRef::of);
         List<AttributeKey> keys = profileManager.traceAttributesManager().keys().stream()
                 .sorted(Comparator.comparingInt((TraceAttributeKeyRow row) -> sourceRank(row.source()))
                         .thenComparing(Comparator.comparingLong(TraceAttributeKeyRow::traceCount).reversed())
@@ -348,10 +350,10 @@ public class CodeSurfaceMcpTools {
                         .with(EVENT_TYPE, statements.statements().getFirst().eventType())
                         .with(FRAME_PREFIXES, prefixes)
                         .why(STATEMENTS_WHY))
-                .nextWhen(entry.isPresent(), () -> NextCalls.to(METHOD_TOOL)
+                .nextWhen(entryRef.isPresent(), () -> NextCalls.to(METHOD_TOOL)
                         .with(PROFILE_ID, info.id())
-                        .with(CLASS_NAME, entry.orElseThrow().className())
-                        .with(METHOD_NAME, entry.orElseThrow().methodName())
+                        .with(CLASS_NAME, entryRef.orElseThrow().className())
+                        .with(METHOD_NAME, entryRef.orElseThrow().methodName())
                         .with(FRAME_PREFIXES, prefixes)
                         .why(ENTRY_WHY))
                 .guidanceWhen(source == PrefixSource.SUGGESTED, SUGGESTED_GUIDANCE)
@@ -595,6 +597,8 @@ public class CodeSurfaceMcpTools {
     record Site(
             @McpDescription("Class#method of the deepest frame of yours on the events' stacks")
             String callSite,
+            @McpDescription(CodeAnswers.REFERENCE_DESCRIPTION)
+            String reference,
             String className,
             String methodName,
             @McpNullable
@@ -631,7 +635,8 @@ public class CodeSurfaceMcpTools {
         static Site of(CallSite site, String profileId, Read read) {
             String value = site.groupValue();
             boolean cut = value != null && value.length() > MAX_GROUP_VALUE_CHARS;
-            return new Site(site.method().displayName(), site.method().className(), site.method().methodName(),
+            return new Site(site.method().displayName(), MethodRef.of(site.method()).displayName(),
+                    site.method().className(), site.method().methodName(),
                     site.line() > 0 ? site.line() : null,
                     path(site),
                     cut ? value.substring(0, MAX_GROUP_VALUE_CHARS) : value,

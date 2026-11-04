@@ -251,11 +251,12 @@ public class CodeMcpTools {
         }
 
         MethodCost top = charged.getFirst();
+        MethodRef topRef = MethodRef.of(top.method());
         McpFollowUp followUp = NextSteps.builder(advertised)
                 .next(read.applyTo(NextCalls.to(METHOD_TOOL)
                                 .with(PROFILE_ID, info.id())
-                                .with(CLASS_NAME, top.method().className())
-                                .with(METHOD_NAME, top.method().methodName())
+                                .with(CLASS_NAME, topRef.className())
+                                .with(METHOD_NAME, topRef.methodName())
                                 .with(FRAME_PREFIXES, prefixes))
                         .with(EVENT_TYPE, type.code())
                         .why(METHOD_WHY))
@@ -669,6 +670,8 @@ public class CodeMcpTools {
             int rank,
             @McpDescription("Class#method, as the flamegraph exports name it")
             String frame,
+            @McpDescription(CodeAnswers.REFERENCE_DESCRIPTION)
+            String reference,
             String className,
             String methodName,
             @McpDescription("Samples whose deepest frame of your code is this method: its self time plus "
@@ -694,7 +697,8 @@ public class CodeMcpTools {
             String uiLink) {
 
         static Hotspot of(int rank, MethodCost cost, long total, String uiLink) {
-            return new Hotspot(rank, cost.method().displayName(), cost.method().className(),
+            return new Hotspot(rank, cost.method().displayName(), MethodRef.of(cost.method()).displayName(),
+                    cost.method().className(),
                     cost.method().methodName(), cost.charged(), CodeAnswers.pct(cost.charged(), total), cost.self(),
                     cost.inclusive(), CodeAnswers.pct(cost.inclusive(), total),
                     CodeAnswers.lines(cost.chargedLines(), cost.charged(), MAX_LINES),

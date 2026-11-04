@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
+import cafe.jeffrey.flamegraph.code.MethodKey;
+import cafe.jeffrey.flamegraph.code.MethodRef;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
@@ -71,6 +73,8 @@ class CodeSurfaceIntegrationTest extends TestappVolumeMicroscope {
             for (JsonNode site : answer.path("sites")) {
                 assertTrue(site.path("className").asString().startsWith(OWN_PACKAGE), site.toString());
                 assertTrue(site.path("ownPath").size() > 1, site.toString());
+                MethodKey frame = new MethodKey(site.path("className").asString(), site.path("methodName").asString());
+                assertTrue(MethodRef.parse(site.path("reference").asString()).matcher().matches(frame), site.toString());
                 byStatement.merge(site.path("groupValue").asString(), site.path("count").asInt(), Integer::sum);
             }
             Map<String, Integer> recorded = new HashMap<>();

@@ -33,6 +33,46 @@ class MethodRefTest {
     }
 
     @Nested
+    class SourceSpelling {
+
+        @Test
+        void namedNestedClassIsSpelledAsSourceWritesIt() {
+            MethodRef ref = MethodRef.of(new MethodKey("com.acme.Checkout$PriceCalculator", "formatLine"));
+            assertEquals("com.acme.Checkout.PriceCalculator", ref.className());
+            assertEquals("formatLine", ref.methodName());
+        }
+
+        @Test
+        void lambdaBodyIsNamedByTheMethodItIsWrittenIn() {
+            MethodRef ref = MethodRef.of(new MethodKey("com.acme.Checkout", "lambda$main$0"));
+            assertEquals("com.acme.Checkout", ref.className());
+            assertEquals("main", ref.methodName());
+            assertTrue(ref.matcher().matches(new MethodKey("com.acme.Checkout", "lambda$main$0")));
+        }
+
+        @Test
+        void lambdaOutsideAMethodAndOtherSyntheticNamesKeepTheirNames() {
+            assertEquals("lambda$static$0", MethodRef.of(new MethodKey("com.acme.Checkout", "lambda$static$0")).methodName());
+            assertEquals("lambda$new$2", MethodRef.of(new MethodKey("com.acme.Checkout", "lambda$new$2")).methodName());
+            assertEquals("access$000", MethodRef.of(new MethodKey("com.acme.Checkout", "access$000")).methodName());
+        }
+
+        @Test
+        void classNoSourceCanSpellKeepsItsBinaryName() {
+            assertEquals("com.acme.Checkout$1", MethodRef.of(new MethodKey("com.acme.Checkout$1", "run")).className());
+            assertEquals("com.acme.Foo$$Proxy",
+                    MethodRef.of(new MethodKey("com.acme.Foo$$Proxy", "call")).className());
+            assertEquals("com.acme.Foo$", MethodRef.of(new MethodKey("com.acme.Foo$", "call")).className());
+        }
+
+        @Test
+        void sourceSpellingMatchesTheFrameItCameFrom() {
+            MethodKey frame = new MethodKey("com.acme.Checkout$PriceCalculator", "formatLine");
+            assertTrue(MethodRef.of(frame).matcher().matches(frame));
+        }
+    }
+
+    @Nested
     class Parsing {
 
         @Test

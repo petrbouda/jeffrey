@@ -1334,6 +1334,32 @@
       ],
       "description": "The source commit the profiled build came from; null when unknown"
      },
+     "recordingCommitSource": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "TAG",
+       "SYSTEM_PROPERTY",
+       null
+      ],
+      "description": "Where recordingCommit was read: TAG (given at import, or by the pipeline) or SYSTEM_PROPERTY (-Dgit.commit on the profiled JVM); null when unknown"
+     },
+     "recordingDirty": {
+      "type": [
+       "boolean",
+       "null"
+      ],
+      "description": "Whether the build's working tree had uncommitted changes; null when nothing said"
+     },
+     "recordingBranch": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The branch the build was made on; null when nothing said"
+     },
      "followUp": {
       "type": "object",
       "properties": {
@@ -1407,6 +1433,9 @@
      "modified",
      "sizeInBytes",
      "recordingCommit",
+     "recordingCommitSource",
+     "recordingDirty",
+     "recordingBranch",
      "followUp",
      "uiLink"
     ],
@@ -3545,6 +3574,1784 @@
    },
    "_meta": {
     "jeffrey/cost": "CHEAP"
+   }
+  },
+  {
+   "name": "code_hotspots",
+   "title": "Code: Hotspots",
+   "description": "Ranks the application's own methods by the cost charged to them: each sample is charged to the deepest frame of your code on its stack, so the library, JDK and JVM work below it lands on the method of yours that asked for it - the method you can change. Each row has its charged, self and inclusive figures, the lines of the method the cost was taken on, the frames below it the cost went into (delegatedTo) and a uiLink to the graph with the method searched. framePrefixes are your source tree's root packages; omitted, the profile's busiest non-library packages are used and the answer says so. Not a call tree (flamegraph_export) and not a comparison (compare_methods). status NOT_RECORDED: no samples of eventType; NOT_SEEN: no stack held a frame under framePrefixes.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "eventType": {
+      "type": "string",
+      "description": "JFR event type to read, e.g. 'jdk.ExecutionSample' for CPU, 'jdk.ObjectAllocationSample' for allocation, 'jdk.JavaMonitorEnter' for lock contention. flamegraph_list names what this profile recorded."
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Your own package prefixes, e.g. [\"com.acme.\"] - the root packages of the source tree you are in. A trailing dot keeps com.acmegroup out. Omitted, the profile's busiest non-library packages are used."
+     },
+     "limit": {
+      "type": "integer",
+      "description": "How many methods to return (default 15, maximum 50)",
+      "default": 15,
+      "minimum": 1,
+      "maximum": 50
+     },
+     "startEpochMs": {
+      "type": "integer",
+      "description": "Start of the window, as UTC epoch milliseconds inside the recording. Omit, with endEpochMs, for the whole recording."
+     },
+     "endEpochMs": {
+      "type": "integer",
+      "description": "End of the window, as UTC epoch milliseconds inside the recording. Omit for the recording's own end."
+     },
+     "useWeight": {
+      "type": "boolean",
+      "description": "Count the event's weight (bytes allocated, nanoseconds blocked) instead of samples. Omitted: weighed for allocation and blocking, counted otherwise."
+     },
+     "excludeIdle": {
+      "type": "boolean",
+      "description": "Drop samples of threads that were idle"
+     }
+    },
+    "required": [
+     "profileId",
+     "eventType"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_RECORDED",
+       "NOT_SEEN",
+       "NO_STACKS"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there is no ranking; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "eventType": {
+      "type": "string"
+     },
+     "window": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "startEpochMs": {
+        "type": "integer",
+        "description": "Start of the window, as UTC epoch milliseconds"
+       },
+       "endEpochMs": {
+        "type": "integer",
+        "description": "End of the window, as UTC epoch milliseconds"
+       }
+      },
+      "required": [
+       "startEpochMs",
+       "endEpochMs"
+      ],
+      "additionalProperties": false,
+      "description": "The window read; null for the whole recording"
+     },
+     "weighted": {
+      "type": "boolean"
+     },
+     "excludeIdle": {
+      "type": "boolean"
+     },
+     "unit": {
+      "type": "string",
+      "enum": [
+       "SAMPLES",
+       "BYTES",
+       "NANOSECONDS"
+      ]
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "framePrefixesSource": {
+      "type": "string",
+      "enum": [
+       "GIVEN",
+       "SUGGESTED"
+      ]
+     },
+     "suggestedFramePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "The profile's busiest non-library packages; empty when framePrefixes were given and matched"
+     },
+     "total": {
+      "type": "integer",
+      "description": "Every sample (or unit of weight) read"
+     },
+     "chargedToOwnCode": {
+      "type": "integer",
+      "description": "The part of total whose stack held a frame of your code"
+     },
+     "ownSharePct": {
+      "type": "number",
+      "description": "chargedToOwnCode as a share of total, in percent; the rest ran no code of yours"
+     },
+     "methods": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "rank": {
+         "type": "integer"
+        },
+        "frame": {
+         "type": "string",
+         "description": "Class#method, as the flamegraph exports name it"
+        },
+        "reference": {
+         "type": "string",
+         "description": "The method as its source spells it - Outer.Inner#method, a lambda body by the method it is written in - which code_method and compare_methods take"
+        },
+        "className": {
+         "type": "string"
+        },
+        "methodName": {
+         "type": "string"
+        },
+        "charged": {
+         "type": "integer",
+         "description": "Samples whose deepest frame of your code is this method: its self time plus the library, JDK and JVM work below it. Adds up across methods to chargedToOwnCode"
+        },
+        "chargedPct": {
+         "type": "number",
+         "description": "charged as a share of total, in percent"
+        },
+        "self": {
+         "type": "integer",
+         "description": "Samples taken in this method itself"
+        },
+        "inclusive": {
+         "type": "integer",
+         "description": "Samples with this method anywhere on the stack, once per stack"
+        },
+        "inclusivePct": {
+         "type": "number",
+         "description": "inclusive as a share of total, in percent"
+        },
+        "lines": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "line": {
+            "type": "integer"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's figure, in percent"
+           }
+          },
+          "required": [
+           "line",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "Lines of this method the charged samples were taken on, highest first; share of charged. Empty when the recording kept no line numbers"
+        },
+        "delegatedTo": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frame": {
+            "type": "string",
+            "description": "The frame, as Class#method for Java and the bare symbol for native code"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's own figure this row is part of, in percent"
+           }
+          },
+          "required": [
+           "frame",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "The frames directly below this method its charged cost went into, highest first; share of charged. What is left is self"
+        },
+        "tiers": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frameType": {
+            "type": "string",
+            "description": "JIT_COMPILED, C1_COMPILED, INLINED or INTERPRETED"
+           },
+           "sharePct": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "frameType",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "How this method ran: JIT tiers by share of its inclusive samples"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The flamegraph with this method searched, for the user"
+        }
+       },
+       "required": [
+        "rank",
+        "frame",
+        "reference",
+        "className",
+        "methodName",
+        "charged",
+        "chargedPct",
+        "self",
+        "inclusive",
+        "inclusivePct",
+        "lines",
+        "delegatedTo",
+        "tiers",
+        "uiLink"
+       ],
+       "additionalProperties": false
+      },
+      "description": "Your methods, highest charged cost first"
+     },
+     "omittedMethods": {
+      "type": "integer",
+      "description": "Methods with a charged cost beyond the limit, counted rather than listed"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The flamegraph of the same samples in Microscope, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "eventType",
+     "window",
+     "weighted",
+     "excludeIdle",
+     "unit",
+     "framePrefixes",
+     "framePrefixesSource",
+     "suggestedFramePrefixes",
+     "total",
+     "chargedToOwnCode",
+     "ownSharePct",
+     "methods",
+     "omittedMethods",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE"
+   }
+  },
+  {
+   "name": "code_method",
+   "title": "Code: Method",
+   "description": "Everything a profile measured about one method or class you are reading, across every sample kind it recorded (or the event type named): inclusive and self figures with their share, its callers and callees, the nearest of your own methods that reach it (with framePrefixes), the lines inside it the samples were taken on, its JIT tiers, the exceptions thrown with it on the stack and the traced operations whose requests run it. The runtime names it matched - lambda bodies, nested classes, Kotlin's generated methods - are listed beside each figure. Answers 'is this hot', 'who calls this', 'which requests run this'. status NOT_SEEN is a measurement: no sample ran it, and nearestFrames names what did run under a similar name.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "className": {
+      "type": "string",
+      "description": "The class, fully qualified as in source (com.acme.Checkout, com.acme.Checkout.Pricing) or binary (com.acme.Checkout$Pricing)"
+     },
+     "methodName": {
+      "type": "string",
+      "description": "The method's name as written in source. Omit for the whole class and its nested classes."
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Your own package prefixes, e.g. [\"com.acme.\"]; adds ownCallers - the nearest of your methods above a library method"
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Read only this event type. Omitted, every sample kind the profile recorded (CPU, wall clock, allocation, locks, method traces), busiest first, at most 6. Any type recorded with stacks can be named."
+     },
+     "startEpochMs": {
+      "type": "integer",
+      "description": "Start of the window, as UTC epoch milliseconds inside the recording. Omit, with endEpochMs, for the whole recording."
+     },
+     "endEpochMs": {
+      "type": "integer",
+      "description": "End of the window, as UTC epoch milliseconds inside the recording. Omit for the recording's own end."
+     }
+    },
+    "required": [
+     "profileId",
+     "className"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_RECORDED",
+       "NOT_SEEN",
+       "NO_STACKS"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why the method has no figures; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "reference": {
+      "type": "string",
+      "description": "The reference as read: Class#method, or the class alone"
+     },
+     "className": {
+      "type": "string"
+     },
+     "methodName": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The method; null when the whole class was read"
+     },
+     "window": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "startEpochMs": {
+        "type": "integer",
+        "description": "Start of the window, as UTC epoch milliseconds"
+       },
+       "endEpochMs": {
+        "type": "integer",
+        "description": "End of the window, as UTC epoch milliseconds"
+       }
+      },
+      "required": [
+       "startEpochMs",
+       "endEpochMs"
+      ],
+      "additionalProperties": false,
+      "description": "The window read; null for the whole recording"
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "kinds": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "eventType": {
+         "type": "string"
+        },
+        "unit": {
+         "type": "string",
+         "enum": [
+          "SAMPLES",
+          "BYTES",
+          "NANOSECONDS"
+         ]
+        },
+        "total": {
+         "type": "integer",
+         "description": "Every sample (or unit of weight) of this type read"
+        },
+        "inclusive": {
+         "type": "integer",
+         "description": "Samples with the method anywhere on the stack, once per stack"
+        },
+        "inclusivePct": {
+         "type": "number"
+        },
+        "self": {
+         "type": "integer",
+         "description": "Samples taken in the method itself"
+        },
+        "selfPct": {
+         "type": "number"
+        },
+        "matchedFrames": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frame": {
+            "type": "string",
+            "description": "The runtime name the reference matched, as Class#method"
+           },
+           "inclusive": {
+            "type": "integer"
+           }
+          },
+          "required": [
+           "frame",
+           "inclusive"
+          ],
+          "additionalProperties": false
+         },
+         "description": "The runtime methods the reference matched, with their inclusive figure"
+        },
+        "callers": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frame": {
+            "type": "string",
+            "description": "The frame, as Class#method for Java and the bare symbol for native code"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's own figure this row is part of, in percent"
+           }
+          },
+          "required": [
+           "frame",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "Frames directly above the outermost matched frame; share of inclusive"
+        },
+        "callees": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frame": {
+            "type": "string",
+            "description": "The frame, as Class#method for Java and the bare symbol for native code"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's own figure this row is part of, in percent"
+           }
+          },
+          "required": [
+           "frame",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "Frames directly below the innermost matched frame; share of inclusive. What is left is self"
+        },
+        "ownCallers": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frame": {
+            "type": "string",
+            "description": "The frame, as Class#method for Java and the bare symbol for native code"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's own figure this row is part of, in percent"
+           }
+          },
+          "required": [
+           "frame",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "The nearest frame of your code above it, per stack; share of inclusive. Empty without framePrefixes"
+        },
+        "lines": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "line": {
+            "type": "integer"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's figure, in percent"
+           }
+          },
+          "required": [
+           "line",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "Lines of the innermost matched frame the samples were taken on; share of inclusive"
+        },
+        "tiers": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frameType": {
+            "type": "string",
+            "description": "JIT_COMPILED, C1_COMPILED, INLINED or INTERPRETED"
+           },
+           "sharePct": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "frameType",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         }
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The flamegraph of this type with the method searched, for the user"
+        }
+       },
+       "required": [
+        "eventType",
+        "unit",
+        "total",
+        "inclusive",
+        "inclusivePct",
+        "self",
+        "selfPct",
+        "matchedFrames",
+        "callers",
+        "callees",
+        "ownCallers",
+        "lines",
+        "tiers",
+        "uiLink"
+       ],
+       "additionalProperties": false
+      },
+      "description": "One read per event type, those that ran the method first, by its share"
+     },
+     "nearestFrames": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "When nothing ran the reference: sampled methods of the same class or of the same name, busiest first - a rename, an overload or a package move shows here"
+     },
+     "exceptions": {
+      "type": "object",
+      "properties": {
+       "state": {
+        "type": "string",
+        "enum": [
+         "READ",
+         "NOT_RECORDED",
+         "NOT_READ"
+        ]
+       },
+       "reason": {
+        "type": [
+         "string",
+         "null"
+        ],
+        "description": "Why nothing was read; null when state is READ"
+       },
+       "thrown": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "thrownClass": {
+           "type": "string"
+          },
+          "count": {
+           "type": "integer"
+          }
+         },
+         "required": [
+          "thrownClass",
+          "count"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Thrown classes, most throws first"
+       },
+       "omittedClasses": {
+        "type": "integer",
+        "description": "Further thrown classes, counted rather than listed"
+       }
+      },
+      "required": [
+       "state",
+       "reason",
+       "thrown",
+       "omittedClasses"
+      ],
+      "additionalProperties": false
+     },
+     "operations": {
+      "type": "object",
+      "properties": {
+       "state": {
+        "type": "string",
+        "enum": [
+         "READ",
+         "NOT_RECORDED",
+         "NOT_READ"
+        ]
+       },
+       "reason": {
+        "type": [
+         "string",
+         "null"
+        ],
+        "description": "What the section was read on, or why it was not"
+       },
+       "sampledEventType": {
+        "type": [
+         "string",
+         "null"
+        ],
+        "description": "The sampled event type the method was looked for inside each operation"
+       },
+       "operations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "operation": {
+           "type": "string"
+          },
+          "kind": {
+           "type": "string"
+          },
+          "eventType": {
+           "type": "string"
+          },
+          "samples": {
+           "type": "integer",
+           "description": "Samples inside the operation's spans with the method on the stack"
+          },
+          "operationSamples": {
+           "type": "integer",
+           "description": "Every sample inside the operation's spans"
+          },
+          "sharePct": {
+           "type": "number",
+           "description": "samples as a share of operationSamples, in percent"
+          },
+          "operationCount": {
+           "type": "integer",
+           "description": "How many times the operation ran"
+          },
+          "p95Nanos": {
+           "type": "integer"
+          },
+          "uiLink": {
+           "type": "string",
+           "description": "The operation in Microscope, for the user"
+          }
+         },
+         "required": [
+          "operation",
+          "kind",
+          "eventType",
+          "samples",
+          "operationSamples",
+          "sharePct",
+          "operationCount",
+          "p95Nanos",
+          "uiLink"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Operations whose spans held the method, highest share first"
+       }
+      },
+      "required": [
+       "state",
+       "reason",
+       "sampledEventType",
+       "operations"
+      ],
+      "additionalProperties": false
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The flamegraph with this method searched, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "reference",
+     "className",
+     "methodName",
+     "window",
+     "framePrefixes",
+     "kinds",
+     "nearestFrames",
+     "exceptions",
+     "operations",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "EXPENSIVE"
+   }
+  },
+  {
+   "name": "code_callSites",
+   "title": "Code: Call Sites",
+   "description": "Returns where events of one type were issued from in your own code: each event's deepest frame of yours and its line, split by one of the event's fields (a statement's name or sql, a host, a custom event's field), with count, total and longest duration, and - for events inside traces - how many requests issued it and how many times one request did (perTraceMax, perTraceMedian; repeatedPerTrace marks an N+1 shape), with exemplar traces. Answers 'which line issues this SQL' and 'where is the N+1'. Works for any event type recorded with stacks: jeffrey.Jdbc* statements, jdk.SocketRead, jdk.FileRead, jdk.JavaMonitorEnter, your own JFR events. status NO_STACKS: the type was recorded without stacks (HTTP, gRPC, spans - see code_runtimeSurface); NOT_RECORDED; NOT_SEEN: no stack held your code.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "eventType": {
+      "type": "string",
+      "description": "Event type to read, e.g. 'jeffrey.JdbcQuery', 'jdk.SocketRead', or your own event. flamegraph_list names the types recorded with stacks."
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Your own package prefixes, e.g. [\"com.acme.\"]. Omitted, the profile's busiest non-library packages are used."
+     },
+     "groupBy": {
+      "type": "string",
+      "description": "The event field to split call sites by: 'name' (the default for JDBC statements), 'sql', 'host', or any field jfr_describeEventType lists. Omitted for any other type: one row per call site."
+     },
+     "filterField": {
+      "type": "string",
+      "description": "With filterValue: keep only events whose field holds that value, e.g. 'group' for one statement group"
+     },
+     "filterValue": {
+      "type": "string",
+      "description": "The value filterField must hold"
+     },
+     "limit": {
+      "type": "integer",
+      "description": "How many call sites to return (default 15, maximum 50)",
+      "default": 15,
+      "minimum": 1,
+      "maximum": 50
+     },
+     "startEpochMs": {
+      "type": "integer",
+      "description": "Start of the window, as UTC epoch milliseconds inside the recording. Omit, with endEpochMs, for the whole recording."
+     },
+     "endEpochMs": {
+      "type": "integer",
+      "description": "End of the window, as UTC epoch milliseconds inside the recording. Omit for the recording's own end."
+     }
+    },
+    "required": [
+     "profileId",
+     "eventType"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_RECORDED",
+       "NOT_SEEN",
+       "NO_STACKS"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there are no call sites; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "eventType": {
+      "type": "string"
+     },
+     "window": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "startEpochMs": {
+        "type": "integer",
+        "description": "Start of the window, as UTC epoch milliseconds"
+       },
+       "endEpochMs": {
+        "type": "integer",
+        "description": "End of the window, as UTC epoch milliseconds"
+       }
+      },
+      "required": [
+       "startEpochMs",
+       "endEpochMs"
+      ],
+      "additionalProperties": false,
+      "description": "The window read; null for the whole recording"
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "framePrefixesSource": {
+      "type": "string",
+      "enum": [
+       "GIVEN",
+       "SUGGESTED"
+      ]
+     },
+     "suggestedFramePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "groupBy": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The event field the call sites are split by; null for none"
+     },
+     "filterField": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "filterValue": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "totalEvents": {
+      "type": "integer",
+      "description": "Every event read"
+     },
+     "totalNanos": {
+      "type": "integer"
+     },
+     "unattributedEvents": {
+      "type": "integer",
+      "description": "Events whose stack held no frame of your code"
+     },
+     "sites": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "callSite": {
+         "type": "string",
+         "description": "Class#method of the deepest frame of yours on the events' stacks"
+        },
+        "reference": {
+         "type": "string",
+         "description": "The method as its source spells it - Outer.Inner#method, a lambda body by the method it is written in - which code_method and compare_methods take"
+        },
+        "className": {
+         "type": "string"
+        },
+        "methodName": {
+         "type": "string"
+        },
+        "line": {
+         "type": [
+          "integer",
+          "null"
+         ],
+         "description": "The line the method was on when the events were committed; null when unknown"
+        },
+        "ownPath": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "description": "The deepest frames of yours on the events' stacks, deepest first, as Class#method:line - your own database or HTTP wrapper first, then the code that called it"
+        },
+        "groupValue": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "description": "The grouping field's value, cut to 200 characters; null when not grouped or the field was absent"
+        },
+        "groupValueChars": {
+         "type": [
+          "integer",
+          "null"
+         ],
+         "description": "The value's full length; null when there is none"
+        },
+        "count": {
+         "type": "integer"
+        },
+        "totalNanos": {
+         "type": "integer"
+        },
+        "meanNanos": {
+         "type": "integer"
+        },
+        "maxNanos": {
+         "type": "integer"
+        },
+        "traces": {
+         "type": "integer",
+         "description": "Distinct traces that issued it; 0 for events outside traces"
+        },
+        "perTraceMax": {
+         "type": "integer",
+         "description": "The most times one trace issued it"
+        },
+        "perTraceMedian": {
+         "type": "number",
+         "description": "The median times per trace, among the traces that issued it"
+        },
+        "repeatedPerTrace": {
+         "type": "boolean",
+         "description": "Whether one request issues it at least 5 times by the median: an N+1 shape"
+        },
+        "exemplarTraces": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "traceId": {
+            "type": "string",
+            "description": "The trace id as traces_traceExport takes it"
+           },
+           "uiLink": {
+            "type": "string",
+            "description": "The trace's span waterfall in Microscope, for the user"
+           }
+          },
+          "required": [
+           "traceId",
+           "uiLink"
+          ],
+          "additionalProperties": false
+         },
+         "description": "The traces that issued it most often"
+        },
+        "uiLink": {
+         "type": "string",
+         "description": "The flamegraph of the event type with this method searched, for the user"
+        }
+       },
+       "required": [
+        "callSite",
+        "reference",
+        "className",
+        "methodName",
+        "line",
+        "ownPath",
+        "groupValue",
+        "groupValueChars",
+        "count",
+        "totalNanos",
+        "meanNanos",
+        "maxNanos",
+        "traces",
+        "perTraceMax",
+        "perTraceMedian",
+        "repeatedPerTrace",
+        "exemplarTraces",
+        "uiLink"
+       ],
+       "additionalProperties": false
+      },
+      "description": "Call sites, longest total duration first"
+     },
+     "omittedSites": {
+      "type": "integer",
+      "description": "Further call sites, counted rather than listed"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The flamegraph of the event type in Microscope, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "eventType",
+     "window",
+     "framePrefixes",
+     "framePrefixesSource",
+     "suggestedFramePrefixes",
+     "groupBy",
+     "filterField",
+     "filterValue",
+     "totalEvents",
+     "totalNanos",
+     "unattributedEvents",
+     "sites",
+     "omittedSites",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE"
+   }
+  },
+  {
+   "name": "code_runtimeSurface",
+   "title": "Code: Runtime Surface",
+   "description": "Returns what the application did at runtime, tied to your code where the profile can show it: the busiest traced operations (HTTP and gRPC routes, jobs) with count, errors and p95 and, from the samples inside their spans, the methods of yours they entered through (entryPoints - the handler) and spent most in (topMethods); the JDBC statements with the lines of yours that issue them; the trace attribute keys with their cardinality; the notification types raised; and the application's own JFR event types, with whether each records stacks. Reconcile it with the source: routes never exercised, operations with no business attributes, statements issued from a loop. Each section says whether it is read from event stacks or inferred from samples.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Your own package prefixes, e.g. [\"com.acme.\"]. Omitted, the profile's busiest non-library packages are used."
+     }
+    },
+    "required": [
+     "profileId"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string"
+     },
+     "framePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "framePrefixesSource": {
+      "type": "string",
+      "enum": [
+       "GIVEN",
+       "SUGGESTED"
+      ]
+     },
+     "suggestedFramePrefixes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "operations": {
+      "type": "object",
+      "properties": {
+       "state": {
+        "type": "string",
+        "enum": [
+         "READ",
+         "NOT_RECORDED",
+         "NOT_READ"
+        ]
+       },
+       "note": {
+        "type": [
+         "string",
+         "null"
+        ],
+        "description": "How the section was read, or why it could not be"
+       },
+       "sampledEventType": {
+        "type": [
+         "string",
+         "null"
+        ],
+        "description": "The sampled event type operations were placed in code with; null when none"
+       },
+       "operations": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string"
+          },
+          "kind": {
+           "type": "string"
+          },
+          "eventType": {
+           "type": "string"
+          },
+          "count": {
+           "type": "integer"
+          },
+          "errorCount": {
+           "type": "integer"
+          },
+          "p95Nanos": {
+           "type": "integer"
+          },
+          "ownSamples": {
+           "type": [
+            "integer",
+            "null"
+           ],
+           "description": "Samples inside its spans that ran your code - what entryPoints and topMethods are shares of; a handful places the operation loosely. Null when it could not be placed"
+          },
+          "entryBasis": {
+           "type": "string",
+           "enum": [
+            "EVENT_STACK",
+            "SAMPLED_SPANS",
+            "NONE"
+           ],
+           "description": "How entryPoints were read: from the stacks of the statements its requests issued (EVENT_STACK, recorded), from samples inside its spans (SAMPLED_SPANS, inferred), or not at all"
+          },
+          "entryPoints": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "frame": {
+              "type": "string",
+              "description": "The frame, as Class#method for Java and the bare symbol for native code"
+             },
+             "value": {
+              "type": "integer"
+             },
+             "sharePct": {
+              "type": "number",
+              "description": "Its share of the method's own figure this row is part of, in percent"
+             }
+            },
+            "required": [
+             "frame",
+             "value",
+             "sharePct"
+            ],
+            "additionalProperties": false
+           },
+           "description": "The outermost methods of yours its requests entered through - the handler - with their share of the events or samples entryBasis names"
+          },
+          "topMethods": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "frame": {
+              "type": "string",
+              "description": "The frame, as Class#method for Java and the bare symbol for native code"
+             },
+             "value": {
+              "type": "integer"
+             },
+             "sharePct": {
+              "type": "number",
+              "description": "Its share of the method's own figure this row is part of, in percent"
+             }
+            },
+            "required": [
+             "frame",
+             "value",
+             "sharePct"
+            ],
+            "additionalProperties": false
+           },
+           "description": "Your methods its samples were charged to most; share of its own samples"
+          },
+          "uiLink": {
+           "type": "string",
+           "description": "The operation in Microscope, for the user"
+          }
+         },
+         "required": [
+          "name",
+          "kind",
+          "eventType",
+          "count",
+          "errorCount",
+          "p95Nanos",
+          "ownSamples",
+          "entryBasis",
+          "entryPoints",
+          "topMethods",
+          "uiLink"
+         ],
+         "additionalProperties": false
+        },
+        "description": "The busiest operations, by total time"
+       },
+       "omittedOperations": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "state",
+       "note",
+       "sampledEventType",
+       "operations",
+       "omittedOperations"
+      ],
+      "additionalProperties": false
+     },
+     "statements": {
+      "type": "object",
+      "properties": {
+       "state": {
+        "type": "string",
+        "enum": [
+         "READ",
+         "NOT_RECORDED",
+         "NOT_READ"
+        ]
+       },
+       "note": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "statements": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "eventType": {
+           "type": "string"
+          },
+          "statement": {
+           "type": "string",
+           "description": "The statement's name as recorded (verb and table, or Mapper.method)"
+          },
+          "count": {
+           "type": "integer"
+          },
+          "totalNanos": {
+           "type": "integer"
+          },
+          "callSites": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "ownPath": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              },
+              "description": "The frames of yours that issue it, deepest first, as Class#method:line"
+             },
+             "count": {
+              "type": "integer"
+             },
+             "repeatedPerTrace": {
+              "type": "boolean",
+              "description": "Whether one request issues it at least 5 times by the median"
+             }
+            },
+            "required": [
+             "ownPath",
+             "count",
+             "repeatedPerTrace"
+            ],
+            "additionalProperties": false
+           },
+           "description": "The lines of yours that issue it, longest first"
+          },
+          "omittedCallSites": {
+           "type": "integer"
+          }
+         },
+         "required": [
+          "eventType",
+          "statement",
+          "count",
+          "totalNanos",
+          "callSites",
+          "omittedCallSites"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Statements, longest total duration first"
+       },
+       "omittedStatements": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "state",
+       "note",
+       "statements",
+       "omittedStatements"
+      ],
+      "additionalProperties": false
+     },
+     "attributeKeys": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "key": {
+         "type": "string"
+        },
+        "source": {
+         "type": "string"
+        },
+        "valueKind": {
+         "type": "string"
+        },
+        "distinctValues": {
+         "type": "integer"
+        },
+        "traceCount": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "key",
+        "source",
+        "valueKind",
+        "distinctValues",
+        "traceCount"
+       ],
+       "additionalProperties": false
+      },
+      "description": "Trace attribute keys, most traces first: the business dimensions the application records on its spans"
+     },
+     "omittedAttributeKeys": {
+      "type": "integer"
+     },
+     "notifications": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "type": "string"
+        },
+        "severity": {
+         "type": "string"
+        },
+        "category": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer"
+        },
+        "traceCount": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "type",
+        "severity",
+        "category",
+        "count",
+        "traceCount"
+       ],
+       "additionalProperties": false
+      },
+      "description": "The notification types the application raised inside traces"
+     },
+     "customEventTypes": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "eventType": {
+         "type": "string"
+        },
+        "label": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "count": {
+         "type": "integer"
+        },
+        "withStacks": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "eventType",
+        "label",
+        "count",
+        "withStacks"
+       ],
+       "additionalProperties": false
+      },
+      "description": "Event types that are neither the JDK's, Jeffrey's nor a profiler's: the application's own"
+     },
+     "omittedCustomEventTypes": {
+      "type": "integer"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The traced operations in Microscope, for the user"
+     }
+    },
+    "required": [
+     "profileId",
+     "framePrefixes",
+     "framePrefixesSource",
+     "suggestedFramePrefixes",
+     "operations",
+     "statements",
+     "attributeKeys",
+     "omittedAttributeKeys",
+     "notifications",
+     "customEventTypes",
+     "omittedCustomEventTypes",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "EXPENSIVE"
    }
   },
   {
@@ -23375,7 +25182,7 @@
   {
    "name": "recordings_analyzeFile",
    "title": "Recordings: Analyze File",
-   "description": "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, .pprof or .otlp file in the user's repository or filesystem - by importing it into the Quick Analysis store and building a profile, and returns the profile id every other tool takes. The Jeffrey process opens the path, so the file has to be on the machine Jeffrey runs on. A file whose name and size match a stored recording is not imported again: its profile comes back with reused=true, or the stored recording is analysed when it has none yet; force=true imports it anyway. Perf counters (.hsperfdata) are always imported: every JVM's file has the same name and size. A small recording answers with status READY and its profileId; a large one with status RUNNING and an operationId, which operations_status follows through the copy and the analysis - or, for a client that declared the MCP tasks extension, with a task after about 5 s.",
+   "description": "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, .pprof or .otlp file in the user's repository or filesystem - by importing it into the Quick Analysis store and building a profile, and returns the profile id every other tool takes. The Jeffrey process opens the path, so the file has to be on the machine Jeffrey runs on. A file whose name and size match a stored recording is not imported again: its profile comes back with reused=true, or the stored recording is analysed when it has none yet; force=true imports it anyway. Perf counters (.hsperfdata) are always imported: every JVM's file has the same name and size. A small recording answers with status READY and its profileId; a large one with status RUNNING and an operationId, which operations_status follows through the copy and the analysis - or, for a client that declared the MCP tasks extension, with a task after about 5 s. commit (and dirty) record which source the recording measured, for a build made from the repository you are in; profiles_get reports it back. They apply to a fresh import, not a reused one.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -23390,6 +25197,14 @@
      "force": {
       "type": "boolean",
       "description": "Set true to import even when a stored recording already has a file with the same name and size, building a second profile of it. Omit to get the existing profile back"
+     },
+     "commit": {
+      "type": "string",
+      "description": "The Git commit the recorded build was made from, as git rev-parse HEAD prints it. Stored with the recording so a reader can tell whether their checkout is the code that ran"
+     },
+     "dirty": {
+      "type": "boolean",
+      "description": "Whether the working tree had uncommitted changes when the build was made (git status --porcelain printed anything). Needs commit"
      }
     },
     "required": [
@@ -24054,6 +25869,219 @@
    },
    "_meta": {
     "jeffrey/cost": "CHEAP"
+   }
+  },
+  {
+   "name": "ide_resolve",
+   "title": "IDE: Resolve",
+   "description": "Resolves where a class and method live in the reader's checkout - the absolute file path and the line - through IntelliJ itself rather than from the frame name, so nested classes, Kotlin facades, inherited methods and library code with sources attached all resolve correctly. Does NOT move the reader's editor. The flamegraph and trace exports carry call paths and numbers, not file paths, and the profiled build may differ from the checkout. The answer says whether the file is decompiled (the line numbers are a decompiler's), whether the position is imprecise (the class or method declaration rather than the requested line) and whether the file has been edited since the recording was taken. status NOT_LINKED: several windows could be meant, listed as candidates; NO_IDE_RUNNING: no IDE with the plugin answers.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "className": {
+      "type": "string",
+      "description": "Fully-qualified class name exactly as the frame spells it, with $ for a nested class, e.g. com.example.OrderService$Batch"
+     },
+     "methodName": {
+      "type": "string",
+      "description": "Method name from the frame, without the class prefix and without a signature. Omit to locate the class itself"
+     },
+     "line": {
+      "type": "integer",
+      "description": "Line number when one is known - the flamegraph export prints it after the method name (Class.method:214) when every sample at that frame agreed on one. Omit when unknown, and the answer is the method's declaration"
+     }
+    },
+    "required": [
+     "profileId",
+     "className"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_LINKED",
+       "NO_IDE_RUNNING"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "className": {
+      "type": "string"
+     },
+     "methodName": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "file": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The absolute path of the file; null unless status is OK"
+     },
+     "line": {
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "kind": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "How the IDE plugin found the position, as it names it: JAVA_LINE (a Java class, at the recorded line or its declaration), JAVA_PRECISE (a Java method found by name), KOTLIN_LINE (a Kotlin class) or KOTLIN_FALLBACK (a Kotlin file found by its facade's name); null unless status is OK"
+     },
+     "decompiled": {
+      "type": "boolean",
+      "description": "The file is decompiled, so the line is the decompiler's"
+     },
+     "imprecise": {
+      "type": "boolean",
+      "description": "The position is the declaration rather than the requested line"
+     },
+     "stale": {
+      "type": "boolean",
+      "description": "The file was edited well after the recording was taken"
+     },
+     "sourceModifiedAtEpochMs": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "When the file was last modified, as UTC epoch milliseconds"
+     },
+     "candidates": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "projectId": {
+         "type": "string",
+         "description": "Pass to ide_link"
+        },
+        "project": {
+         "type": "string"
+        },
+        "ide": {
+         "type": "string"
+        },
+        "basePath": {
+         "type": "string"
+        },
+        "hasClass": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "projectId",
+        "project",
+        "ide",
+        "basePath",
+        "hasClass"
+       ],
+       "additionalProperties": false
+      },
+      "description": "The windows that could be meant, when status is NOT_LINKED"
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "className",
+     "methodName",
+     "file",
+     "line",
+     "kind",
+     "decompiled",
+     "imprecise",
+     "stale",
+     "sourceModifiedAtEpochMs",
+     "candidates",
+     "followUp"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": true
+   },
+   "_meta": {
+    "jeffrey/cost": "CHEAP",
+    "jeffrey/requires": [
+     "IDE_LINKED"
+    ]
    }
   },
   {

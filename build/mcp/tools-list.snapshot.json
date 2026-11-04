@@ -698,6 +698,9 @@
                 "perTraceMedian": {
                   "type": "number"
                 },
+                "reference": {
+                  "type": "string"
+                },
                 "repeatedPerTrace": {
                   "type": "boolean"
                 },
@@ -725,6 +728,7 @@
                 "ownPath",
                 "perTraceMax",
                 "perTraceMedian",
+                "reference",
                 "repeatedPerTrace",
                 "totalNanos",
                 "traces",
@@ -999,6 +1003,9 @@
                 "rank": {
                   "type": "integer"
                 },
+                "reference": {
+                  "type": "string"
+                },
                 "self": {
                   "type": "integer"
                 },
@@ -1036,6 +1043,7 @@
                 "lines",
                 "methodName",
                 "rank",
+                "reference",
                 "self",
                 "tiers",
                 "uiLink"
@@ -2808,6 +2816,9 @@
                 },
                 "primaryCharged": {
                   "type": "integer"
+                },
+                "reference": {
+                  "type": "string"
                 }
               },
               "required": [
@@ -2815,7 +2826,8 @@
                 "chargedDelta",
                 "deltaSharePct",
                 "frame",
-                "primaryCharged"
+                "primaryCharged",
+                "reference"
               ],
               "type": "object"
             },

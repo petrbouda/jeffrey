@@ -30,10 +30,12 @@ import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * What the code tools ({@code code_hotspots}, {@code code_method}) and {@code compare_methods} share:
@@ -50,6 +52,13 @@ final class CodeAnswers {
     private static final Pattern SEARCH_METACHARACTERS = Pattern.compile("[\\\\^$.|?*+()\\[\\]{}]");
     /** The match, preceded by a backslash: {@code $0} is the matched character. */
     private static final String ESCAPED_MATCH = Matcher.quoteReplacement("\\") + "$0";
+    /** A dot of a class name as the reader wrote it: a package dot, or a nested class's, a {@code $} at runtime. */
+    private static final String SOURCE_DOT = "[.$]";
+    private static final String CLASS_DOT = ".";
+    private static final String METHOD_SEPARATOR = "#";
+    /** The {@code reference} of a row naming one of the reader's methods. */
+    static final String REFERENCE_DESCRIPTION = "The method as its source spells it - Outer.Inner#method, a lambda "
+            + "body by the method it is written in - which code_method and compare_methods take";
     private static final double PERCENT = 100.0;
     private static final double HUNDREDTHS = 100.0;
 
@@ -165,10 +174,14 @@ final class CodeAnswers {
     /**
      * The UI flamegraph search that marks this method's frames: the reference with every character
      * the search would read as regular-expression syntax escaped, so {@code Outer$Inner} is found as
-     * written.
+     * written, and each dot of the class matching a {@code $} as well, so the source spelling
+     * {@code Outer.Inner} finds the runtime's {@code Outer$Inner} frames.
      */
     static String search(MethodRef ref) {
-        return escaped(ref.displayName());
+        String className = Arrays.stream(ref.className().split(Pattern.quote(CLASS_DOT), -1))
+                .map(CodeAnswers::escaped)
+                .collect(Collectors.joining(SOURCE_DOT));
+        return ref.wholeClass() ? className : className + escaped(METHOD_SEPARATOR + ref.methodName());
     }
 
     /** The search for one runtime frame, escaped as {@link #search(MethodRef)} escapes a reference. */

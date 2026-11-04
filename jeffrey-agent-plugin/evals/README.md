@@ -37,13 +37,15 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 | `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
 | `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (about 0.4% of it), no tuning from one fired rule |
 | `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
-| `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `advise-jfr`, `compare-jfr`, `profile-run`) and makes that skill's first call |
+| `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `optimize-code`, `compare-jfr`, `profile-run`) and makes that skill's first call |
 | `route-two-revisions-not-profiled` | "Did my last commit make it slower? Nothing is profiled yet" | `regression-check`, not `compare-jfr`: the pair named (HEAD against its parent), both recorded the same way, no differential of the catalogue's unrelated pair |
-| `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export`, `blocking_monitors`), confidence stated, a **Not assessed** section |
+| `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export` or `code_hotspots` on CPU, `blocking_monitors`), confidence stated, a **Not assessed** section |
+| `code-own-hotspots` | "Which of our own methods does the CPU go to? This is the service's repository" | `code-insight` (or `optimize-code`), `code_hotspots` with the repository's root package, SessionCache.busyWait named with its charged share of the CPU samples and tied to its source |
+| `code-is-this-method-worth-it` | "Is PriceCalculator.formatLine worth optimizing?" | `code_method` for the method by its source name, and an answer that weighs every sample kind: about 6% of the CPU but about 95% of the allocated bytes, through `String.format` on line 200 |
 | `connector-not-configured` | "Why was checkout slow in production this morning? Its recordings should be on the connector" | `analyze-connector`, `connector_status` read, its `NOT_CONFIGURED` answer passed on: the `jeffrey.microscope.connector.*` properties (Azure file share or local directory) with placeholders and a restart, nothing claimed about production, no catalogue profile read as production's |
 
-Two more cases, under [`../evals-live/`](../evals-live/), ask what only SQL answers and run against a
-real Jeffrey — see [The SQL cases](#the-sql-cases).
+Three more cases, under [`../evals-live/`](../evals-live/), run against a real Jeffrey: two ask what
+only SQL answers, one compares the methods a change touched — see [The SQL cases](#the-sql-cases).
 
 ## Where the answers come from
 
@@ -89,7 +91,13 @@ What the mocks cannot do, so the cases stay away from it:
   are mocked). The SQL cases run against a real Jeffrey for that reason.
 - **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class
   (`Checkout$Order`) can key none: `heap_browseClassInstances` for one answers that the name "is not a
-  plain file-name segment", which a model reads as Jeffrey refusing the class.
+  plain file-name segment", which a model reads as Jeffrey refusing the class. The code tools take the
+  source spelling (`Checkout.PriceCalculator`) and every row of theirs carries it as `reference`, so a
+  model that copies it reaches a fixture; one that spells the runtime name does not.
+- **`code_method` on a whole class.** Its fixtures are addressed by the method too (the recorder's
+  addressing options), so a call without `methodName` has no file to answer it.
+- **A list the agent composes.** `compare_methods` takes the methods a diff touched as a list, which
+  no file name or `expect:` value can pin, so it is unmocked and measured in the live suite instead.
 - **The connector and the IDE.** The recording Jeffrey has no connector and no IntelliJ attached.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
@@ -99,11 +107,13 @@ What the mocks cannot do, so the cases stay away from it:
 `jfr-sql` and `heap-sql` are for the questions no dashboard or report shapes, and a question like that
 takes a query nobody can write down in advance — so no mock can answer it. Their two cases live in
 [`../evals-live/`](../evals-live/) and run with `--mocks off`, against a Jeffrey that holds the very
-recordings the mocks were taken from:
+recordings the mocks were taken from, beside a third whose argument no mock can pin either — the
+methods a diff touched, as a list:
 
 | Case | The question | What it holds the plugin to |
 |---|---|---|
 | `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
+| `compare-the-methods-my-diff-touched` | "My last change made reprice call formatLine for every line item. Did that make them more expensive?" | `compare_methods` with the two methods in source spelling, the candidate as primary; formatLine new (about 6% of the CPU, 95% of the bytes), reprice up by about 87% of its CPU samples, the growth put on the new call, nothing claimed about latency. Scaffolds the repository, as the code cases do; `compare_methods` takes a list no mock can pin |
 | `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
 
 ```bash
@@ -112,7 +122,7 @@ java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffr
   -Dserver.port=8585 -jar build/build-microscope/target/microscope.jar &
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
   --work-dir /tmp/jeffrey-recordings/plugin-evals --load
-claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off \
+claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off --scaffold \
   --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp -j 3 \
   --json /tmp/microscope-live-evals.json
 ```
@@ -179,6 +189,15 @@ Replayed against the 15 runs of the cases measured on 2026-10-31 (58 Jeffrey cal
 fails none: the first version, which rejected every unrecorded optional argument, failed 9 of 9 runs
 that called Jeffrey — `profiles_list` with `search`, the heap tools with `topN` or `limit`, and
 `flamegraph_export` with `detail: "SUMMARY"`, which the tools page recommends.
+
+Two rules came with the code tools. An optional argument that picks what the answer is about can
+address a fixture beside the required ones (the recorder's addressing options: `code_method`'s `methodName`, one
+fixture per method of a class). And a call that differs from a recorded one only in how the own
+packages were chosen — `framePrefixes` of `com.acme.` rather than `com.acme.checkout.`, or none, so
+Jeffrey suggests them — is accepted with that fixture when the recorder made it and its answer, its
+provenance (`framePrefixes`, `framePrefixesSource`, `suggestedFramePrefixes`, `followUp`) left out,
+carries the same figures; `_inputs.json` lists it beside the call it is equivalent to. A shorter root that took in
+other code would answer other figures and stay rejected.
 
 The checked-in input addresses were reconstructed mechanically from fixture names, recorder seeds
 and the response headers; answer contents and tool schemas were preserved. The recorder saves
@@ -971,3 +990,57 @@ unmarked replies linked a profile by its baseline name and by its length.
   `analyze-connector` to passing on the configuration — never inventing an address, never answering
   from the catalogue's own profiles.
 - Not measured yet: the cases have not been run on these mocks.
+
+## The code tools measured
+
+The cases had not run on the code tools (`code_hotspots`, `code_method`, `code_callSites`,
+`code_runtimeSurface`, `compare_methods`) or on the `optimize-code` rename. The mocks were re-recorded
+with `--reuse` from the same three files, so every figure stands. The recorder now seeds the code tools
+as the code skills call them, and two new rules let it address and accept their calls (see
+[Current replay and grading contract](#current-replay-and-grading-contract)). Three new cases: two
+mocked, one live.
+
+What the first full pass found, and what changed because of it:
+
+- **The models read the package root as `com.acme.`**, the two-segment root the shared own-code
+  section asks for. The recorder had seeded `com.acme.checkout.`, so `recorded-call-semantics` failed
+  six runs whose calls were right. For this workload both roots answer the same figures. The
+  recorder now repeats each seeded call with `com.acme.` and accepts it when the answers match.
+- **A nested class came back by its runtime name.** `code_hotspots` offered `code_method` with
+  `Checkout$SessionCache`, which no fixture can key and a developer never writes. Now every code-tool
+  row carries `reference` in source spelling (Checkout.SessionCache#busyWait, and a lambda body by
+  the method it is written in), and the offered calls use it. Separately, `code_method`'s flamegraph
+  search was built from the source spelling and never matched the runtime frame. Each class dot in
+  it now matches a `$` too (`[.$]`).
+- **`named-area-cpu` skipped the flamegraph** in two of three runs. With no repository in the working
+  directory, it called `code_hotspots` with guessed prefixes. `analyze-jfr` now says a Code area
+  opens on its graph, and the code tools take packages read off a checkout, never guessed.
+- **`route-write-it-up` read the user's CPU claim back with `code_hotspots`** in all three runs. That
+  ranks methods by the CPU charged to them, which answers "most of the CPU goes to formatLine" at
+  least as directly as the graph. Its grader now accepts either read, still on CPU samples.
+- **The live comparison's judge read only the last message.** In one run that message was just the
+  Implement fixes offer that followed a correct answer. The three code judges now read the agent's
+  replies over the whole trace.
+
+The full pass ran all 22 mocked cases. The cases these changes touch were run again (three runs
+each), and the table takes their re-run:
+
+| | 1.0.28 | Code tools (full pass, then the touched cases again) |
+|---|---|---|
+| Mocked cases at the threshold | 18 of 19 | 19 of 22 |
+| Overall score (mean of the cases) | 1.00 | 0.99 |
+| `code-own-hotspots` | — | 1.00: `code_hotspots` with the package root, busyWait named with its 85% |
+| `code-is-this-method-worth-it` | — | 1.00: `code_method`; about 6% of the CPU but 95% of the bytes, `String.format` on line 200 |
+| Live: `compare-the-methods-my-diff-touched` | — | 1.00: `compare_methods` with both methods; formatLine new, `reprice` +87% |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+| Spend, including the judge | $11.11 | $17.67 mocked (full pass $12.29, re-runs $5.38), $2.62 live |
+
+Three cases stay below the threshold, none on a code tool:
+
+- `named-area-cpu`: one unmarked link in its re-run.
+- `connector-not-configured`: one run's configuration advice failed its judge.
+- `slow-requests-from-traces`: one unmarked link.
+
+The skills reached match the routing intended: `code-insight` for both code questions, `compare-jfr`
+for the live comparison, and `optimize-code` for `route-what-to-change` (3 of 3).
+

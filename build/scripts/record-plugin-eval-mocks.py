@@ -131,10 +131,37 @@ COMPOSED_ARGUMENTS = {"query"}
 # The workload's own package, the way analyze-exceptions passes it, so the recorded throw sites name
 # their own frame — the first answer recorded for a key is the one a case gets.
 APPLICATION_PACKAGES = ["com.acme.checkout."]
+# The other roots a model may read off the scaffolded repository for the same code — the shared-code section asks
+# for the shortest package root of two or three segments, and the workload's one package gives `com.acme.` as
+# readily. Each seeded call that takes framePrefixes is repeated with them, and accepted with the recorded
+# fixture only when its answer carries the same figures (`equivalent`).
+EQUIVALENT_PACKAGES = (["com.acme."],)
 # The comparisons the compare and regression cases read, in both directions: compare_list offers one
 # event type, and a case may ask about any of these.
 COMPARED_EVENT_TYPES = (("jdk.ExecutionSample", False), ("jdk.ObjectAllocationSample", True),
                         ("jdk.JavaMonitorEnter", True))
+# The workload's methods a code case asks about, as a developer reading Checkout.java names them: the class in
+# source spelling (a nested class with a dot — a `$` cannot name a fixture) and the method.
+WORKLOAD_METHODS = (("com.acme.checkout.Checkout.PriceCalculator", "formatLine"),
+                    ("com.acme.checkout.Checkout.PriceCalculator", "reprice"),
+                    ("com.acme.checkout.Checkout.PriceCalculator", "taxOf"),
+                    ("com.acme.checkout.Checkout.SessionCache", "touch"),
+                    ("com.acme.checkout.Checkout.SessionCache", "busyWait"),
+                    ("com.acme.checkout.Checkout.CouponParser", "discount"),
+                    ("com.acme.checkout.Checkout.AuditLog", "record"),
+                    ("com.acme.checkout.Checkout", "checkout"))
+# Optional arguments that address a fixture beside the required ones, because they pick what the answer is about:
+# `code_method` answers one method of the class. A call without one is not answered (a missing file-name segment
+# is a tool error): code_method on a whole class has no mock.
+ADDRESSING_OPTIONS = {"code_method": ("methodName",)}
+# A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload method, on both recordings.
+MAX_FIXTURES_OF = {"code_method": 2 * len(WORKLOAD_METHODS) + MAX_FIXTURES_PER_TOOL}
+# The event types with stacks a call-site case groups: the monitor the workload contends on.
+CALL_SITE_EVENT_TYPES = ("jdk.JavaMonitorEnter",)
+# What may differ between two answers that address one fixture while the figures stay the same: the follow-up
+# and how the own packages were chosen. A call reached with other graded options is accepted with the
+# recorded fixture only when, these left out, its answer is the fixture's (`equivalent`).
+PROVENANCE_FIELDS = {"followUp", "framePrefixesSource", "framePrefixes", "suggestedFramePrefixes"}
 
 
 @dataclass(frozen=True)
@@ -174,6 +201,9 @@ class Recorded:
     answers: dict[str, dict[tuple, str]] = field(default_factory=lambda: collections.defaultdict(dict))
     fixed: dict[str, str] = field(default_factory=dict)
     inputs: dict[str, dict[tuple, dict]] = field(default_factory=lambda: collections.defaultdict(dict))
+    # Other inputs a fixture answers as it answers its own: same figures, different provenance.
+    aliases: dict[str, dict[tuple, list[dict]]] = field(
+        default_factory=lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
 
 
 class Jeffrey:
@@ -299,6 +329,9 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
         for event_type, weighted in COMPARED_EVENT_TYPES:
             calls += [(tool, {PROFILE_ID: primary, BASELINE_PROFILE_ID: baseline, "eventType": event_type,
                               **({"useWeight": True} if weighted else {})}) for primary, baseline in pairs]
+    calls += code_seed_calls(profiles)
+    calls += [(tool, {**arguments, "framePrefixes": packages}) for tool, arguments in list(calls)
+              if arguments.get("framePrefixes") == APPLICATION_PACKAGES for packages in EQUIVALENT_PACKAGES]
     for tool in tools:
         name, schema = tool["name"], tool.get("inputSchema") or {}
         if name in NOT_CALLED_FROM_ANSWERS or name == "operations_status":
@@ -319,6 +352,46 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
                 combinations = [{**combination, argument: value} for combination in combinations for value in values]
         calls += [(name, combination) for combination in combinations]
     return calls
+
+
+def code_seed_calls(profiles: Profiles) -> list[tuple[str, dict]]:
+    """The code tools as the code skills call them — with the workload's own package as `framePrefixes`, so the
+    answer a case gets is the one charged to the code in its repository."""
+    own = {"framePrefixes": APPLICATION_PACKAGES}
+    recordings = (profiles.candidate, profiles.baseline)
+    calls = [("code_hotspots", {PROFILE_ID: profile, "eventType": event_type, **own})
+             for profile in recordings for event_type, _ in COMPARED_EVENT_TYPES]
+    calls += [("code_method", {PROFILE_ID: profile, "className": class_name, "methodName": method, **own})
+              for profile in recordings for class_name, method in WORKLOAD_METHODS]
+    calls += [("code_callSites", {PROFILE_ID: profile, "eventType": event_type, **own})
+              for profile in recordings for event_type in CALL_SITE_EVENT_TYPES]
+    calls += [("code_runtimeSurface", {PROFILE_ID: profile, **own}) for profile in recordings]
+    return calls
+
+
+def addressing(tool: str, schema: dict) -> list[str]:
+    """The arguments a fixture is addressed by, sorted: the required ones and the tool's ADDRESSING_OPTIONS."""
+    return sorted(set(schema.get("required", [])) | set(ADDRESSING_OPTIONS.get(tool, ())))
+
+
+def without_provenance(node):
+    if isinstance(node, dict):
+        return {key: without_provenance(value) for key, value in node.items() if key not in PROVENANCE_FIELDS}
+    if isinstance(node, list):
+        return [without_provenance(value) for value in node]
+    return node
+
+
+def equivalent(recorded: str, answer: dict) -> bool:
+    """Whether an answer carries the same figures as a recorded fixture, its provenance left out."""
+    structured = answer.get("structuredContent")
+    if structured is None:
+        return False
+    try:
+        fixture = json.loads(recorded)
+    except json.JSONDecodeError:
+        return False
+    return without_provenance(fixture) == without_provenance(structured)
 
 
 def offered_calls(structured: dict) -> list[tuple[str, dict]]:
@@ -347,12 +420,13 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
         tool, arguments = queue.popleft()
         if tool not in schemas or tool in NOT_CALLED_FROM_ANSWERS:
             continue
-        required = schemas[tool].get("required", [])
+        required = addressing(tool, schemas[tool])
         if any(argument not in arguments for argument in required):
             continue
-        key = tuple(str(arguments[argument]) for argument in sorted(required))
+        key = tuple(str(arguments[argument]) for argument in required)
         identity = json.dumps([tool, arguments], sort_keys=True)
-        if identity in seen or (key and len(recorded.answers.get(tool, {})) >= MAX_FIXTURES_PER_TOOL):
+        limit = MAX_FIXTURES_OF.get(tool, MAX_FIXTURES_PER_TOOL)
+        if identity in seen or (key and len(recorded.answers.get(tool, {})) >= limit):
             continue
         seen.add(identity)
         calls += 1
@@ -372,6 +446,9 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
             if key not in recorded.answers[tool]:
                 recorded.answers[tool][key] = seen_by_model(answer)
                 recorded.inputs[tool][key] = arguments
+            elif (semantics(tool, schemas[tool], arguments) != semantics(tool, schemas[tool], recorded.inputs[tool][key])
+                  and equivalent(recorded.answers[tool][key], answer)):
+                recorded.aliases[tool][key].append(arguments)
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
 
@@ -408,7 +485,7 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     # rather than offering one that answers every call with a missing fixture.
     answered = {}
     for tool, answers in sorted(recorded.answers.items()):
-        required = sorted(schemas[tool].get("required", []))
+        required = addressing(tool, schemas[tool])
         named = addressed(required, answers)
         if named is None:
             answers = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
@@ -417,6 +494,7 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
             continue
         answered[tool] = answers
         recorded.inputs[tool] = {key: recorded.inputs[tool][key] for key in answers}
+        recorded.aliases[tool] = {key: recorded.aliases[tool][key] for key in answers if key in recorded.aliases[tool]}
         placeholders = "-".join(f"{{input.{argument}}}" for argument in named)
         expect = "".join(f"  {argument}: " + json.dumps(sorted({key[required.index(argument)] for key in answers}))
                          + "\n" for argument in required if argument not in named)
@@ -430,6 +508,9 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     (MOCKS / "_tools.json").write_text(json.dumps({"tools": listed}, indent=1, ensure_ascii=False) + "\n")
     inputs = [{"tool": tool, "arguments": arguments}
               for tool in sorted(mocked) for arguments in recorded.inputs[tool].values()]
+    inputs += [{"tool": tool, "arguments": arguments, "equivalentTo": recorded.inputs[tool][key]}
+               for tool in sorted(mocked) for key, aliases in sorted(recorded.aliases.get(tool, {}).items())
+               for arguments in aliases]
     (MOCKS / "_inputs.json").write_text(json.dumps(inputs, indent=1) + "\n")
     write_contract_graders(listed, inputs)
     print(f"wrote {len(mocked)} mocked tools, {sum(map(len, answered.values()))} fixtures", file=sys.stderr)
@@ -446,10 +527,13 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
 SEMANTIC_OPTIONS = {"useWeight", "startEpochMs", "endEpochMs", "excludeIdle", "excludeNonJava", "threadMode",
                     "bucketMs", "framePrefixes", "includeJvmInternal", "compute"}
 # A search elsewhere selects rows; on a flamegraph it adds the matches and their share.
-SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"}}
+SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"},
+                       # How the events are grouped, and which are counted, are what a call site's figures are.
+                       "code_callSites": {"groupBy", "filterField", "filterValue"}}
 WEIGHT_DEFAULTS = {"jdk.ExecutionSample": False, "jdk.ObjectAllocationSample": True,
                    "jdk.JavaMonitorEnter": True}
-WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements"}
+WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements", "code_hotspots",
+                        "compare_methods"}
 FALSE_DEFAULTS = {"excludeIdle", "excludeNonJava", "threadMode", "includeJvmInternal", "compute", "retry", "errorsOnly"}
 NO_DEFAULT = object()
 
@@ -471,8 +555,14 @@ def json_pattern(value) -> str:
     return re.escape(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
 
 
+def semantics(tool: str, schema: dict, arguments: dict) -> dict:
+    """The answer-changing options of a call, each as the server reads it: given, or its known default."""
+    return {name: arguments.get(name, server_default(tool, name, schema["properties"][name], arguments))
+            for name in semantic_options(tool, schema)}
+
+
 def semantic_options(tool: str, schema: dict) -> list[str]:
-    required = set(schema.get("required", []))
+    required = set(addressing(tool, schema))
     graded = SEMANTIC_OPTIONS | SEMANTIC_OPTIONS_OF.get(tool, set())
     return sorted(name for name in schema.get("properties", {}) if name in graded and name not in required)
 

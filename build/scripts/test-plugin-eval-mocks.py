@@ -42,7 +42,10 @@ def answer(value):
     return {'content': [{'type': 'text', 'text': json.dumps(value)}], 'structuredContent': value}
 
 
-class ReplayContractTest(unittest.TestCase):
+class RecorderSandbox(unittest.TestCase):
+    """The recorder writing into a temporary mocks directory and one case, and the grader it writes, run as the
+    harness runs it (JavaScript)."""
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -55,6 +58,15 @@ class ReplayContractTest(unittest.TestCase):
             p.start()
             self.addCleanup(p.stop)
 
+    def violates(self, pattern, tool, arguments):
+        call = {'tool': 'mcp__plugin_microscope_jeffrey__' + tool, 'input': arguments, 'output': 'fixture'}
+        result = subprocess.run(['node', '-e',
+            'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(new RegExp(x.pattern,"m").test(JSON.stringify(x.call))));'],
+            input=json.dumps({'pattern': pattern, 'call': call}), text=True, capture_output=True, check=True)
+        return result.stdout == 'true'
+
+
+class ReplayContractTest(RecorderSandbox):
     def capture(self, tool, arguments):
         schema = {'type': 'object', 'required': ['profileId', 'eventType'], 'properties': {
             'profileId': {'type': 'string'}, 'eventType': {'type': 'string'},
@@ -72,13 +84,6 @@ class ReplayContractTest(unittest.TestCase):
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         self.assertTrue(path.exists(), 'every case must reject unsupported semantic inputs')
         return yaml.safe_load(path.read_text().split('---')[1])['pattern']
-
-    def violates(self, pattern, tool, arguments):
-        call = {'tool': 'mcp__plugin_microscope_jeffrey__' + tool, 'input': arguments, 'output': 'fixture'}
-        result = subprocess.run(['node', '-e',
-            'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(new RegExp(x.pattern,"m").test(JSON.stringify(x.call))));'],
-            input=json.dumps({'pattern': pattern, 'call': call}), text=True, capture_output=True, check=True)
-        return result.stdout == 'true'
 
     def test_weighted_default_accepts_omission_and_true_but_rejects_false(self):
         args = {'profileId': 'b', 'eventType': 'jdk.ObjectAllocationSample'}
@@ -173,6 +178,68 @@ class ReplayContractTest(unittest.TestCase):
         self.assertEqual('h', profiles.heap)
         self.assertIn('operations_status', recorded.answers, 'RUNNING import must have a replayable poll')
         self.assertEqual('COMPLETED', json.loads(recorded.answers['operations_status'][('slow-heap',)])['status'])
+
+
+class CodeToolsTest(RecorderSandbox):
+    """The code tools: a method addresses its fixture beside the class, and a call that differs from the recorded
+    one only in how the own packages were chosen is accepted when its answer carries the same figures."""
+
+    METHOD_SCHEMA = {'type': 'object', 'required': ['className', 'profileId'], 'properties': {
+        'profileId': {'type': 'string'}, 'className': {'type': 'string'}, 'methodName': {'type': 'string'},
+        'eventType': {'type': 'string'}, 'framePrefixes': {'type': 'array'}}}
+    HOTSPOT_SCHEMA = {'type': 'object', 'required': ['eventType', 'profileId'], 'properties': {
+        'profileId': {'type': 'string'}, 'eventType': {'type': 'string'}, 'useWeight': {'type': 'boolean'},
+        'framePrefixes': {'type': 'array'}}}
+
+    def record(self, tool, schema, calls, respond):
+        tools = [{'name': tool, 'inputSchema': schema}]
+        recorded = recorder.Recorded()
+        class Server:
+            def call(self, name, args):
+                return answer(respond(args))
+        with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments) for arguments in calls]):
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h'), recorded)
+        recorder.write_mocks(tools, recorded)
+        path = self.cases / 'example/graders/recorded-call-semantics.md'
+        return recorded, yaml.safe_load(path.read_text().split('---')[1])['pattern']
+
+    def test_each_method_of_a_class_is_its_own_fixture(self):
+        own = {'framePrefixes': ['com.acme.']}
+        calls = [{'profileId': 'b', 'className': 'com.acme.Checkout.Cache', 'methodName': method, **own}
+                 for method in ('touch', 'busyWait')]
+        calls.append({'profileId': 'b', 'className': 'com.acme.Checkout.Cache', **own})
+        self.record('code_method', self.METHOD_SCHEMA, calls, lambda args: {'method': args.get('methodName')})
+        self.assertIn('{input.className}-{input.methodName}-{input.profileId}', (self.mocks / 'code_method.md').read_text())
+        fixtures = sorted(path.name for path in (self.mocks / 'fixtures').iterdir())
+        self.assertEqual(['code_method-com.acme.Checkout.Cache-busyWait-b.txt',
+                          'code_method-com.acme.Checkout.Cache-touch-b.txt'], fixtures)
+
+    def test_suggested_prefixes_with_the_same_figures_are_accepted(self):
+        given = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample', 'framePrefixes': ['com.acme.checkout.']}
+        suggested = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample'}
+        def respond(args):
+            prefixes = args.get('framePrefixes')
+            return {'framePrefixes': prefixes or ['com.acme.'], 'framePrefixesSource': 'GIVEN' if prefixes else 'SUGGESTED',
+                    'charged': 10, 'followUp': {'nextTools': [], 'guidance': [] if prefixes else ['check them']}}
+        recorded, pattern = self.record('code_hotspots', self.HOTSPOT_SCHEMA, [given, suggested], respond)
+        self.assertFalse(self.violates(pattern, 'code_hotspots', given))
+        self.assertFalse(self.violates(pattern, 'code_hotspots', suggested))
+        self.assertTrue(self.violates(pattern, 'code_hotspots', {**given, 'framePrefixes': ['org.other.']}))
+        inputs = json.loads((self.mocks / '_inputs.json').read_text())
+        self.assertEqual([given], [entry['equivalentTo'] for entry in inputs if 'equivalentTo' in entry])
+
+    def test_other_figures_are_not_accepted_with_the_fixture(self):
+        given = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample', 'framePrefixes': ['com.acme.checkout.']}
+        suggested = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample'}
+        _, pattern = self.record('code_hotspots', self.HOTSPOT_SCHEMA, [given, suggested],
+                                 lambda args: {'charged': 10 if args.get('framePrefixes') else 12})
+        self.assertTrue(self.violates(pattern, 'code_hotspots', suggested))
+
+    def test_the_weighting_follows_the_event_type_as_the_flamegraph_does(self):
+        args = {'profileId': 'b', 'eventType': 'jdk.ObjectAllocationSample', 'framePrefixes': ['com.acme.']}
+        _, pattern = self.record('code_hotspots', self.HOTSPOT_SCHEMA, [args], lambda _: {'charged': 1})
+        self.assertFalse(self.violates(pattern, 'code_hotspots', {**args, 'useWeight': True}))
+        self.assertTrue(self.violates(pattern, 'code_hotspots', {**args, 'useWeight': False}))
 
 
 class AddressingTest(unittest.TestCase):
@@ -287,11 +354,13 @@ class ScaffoldTest(unittest.TestCase):
 
     @staticmethod
     def scaffolds():
-        cases = ROOT / PLUGIN_DIR / 'evals/cases'
-        return sorted(script for script in cases.glob('*/setup.sh') if "<<'CHECKOUT_JAVA'" in script.read_text())
+        suites = (ROOT / PLUGIN_DIR / 'evals/cases', ROOT / PLUGIN_DIR / 'evals-live/cases')
+        return sorted((script for cases in suites for script in cases.glob('*/setup.sh')
+                       if "<<'CHECKOUT_JAVA'" in script.read_text()), key=lambda script: script.parent.name)
 
-    def test_the_implement_fixes_cases_scaffold_the_repository(self):
-        self.assertEqual(['heap-offers-implement-fixes', 'offers-implement-fixes'],
+    def test_the_implement_fixes_and_code_cases_scaffold_the_repository(self):
+        self.assertEqual(['code-is-this-method-worth-it', 'code-own-hotspots', 'compare-the-methods-my-diff-touched',
+                          'heap-offers-implement-fixes', 'offers-implement-fixes'],
                          [script.parent.name for script in self.scaffolds()])
 
     def test_the_scaffolded_repository_holds_the_recorded_workload_verbatim(self):

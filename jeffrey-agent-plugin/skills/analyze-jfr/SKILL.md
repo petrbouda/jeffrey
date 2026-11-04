@@ -119,7 +119,10 @@ not-recorded line, and stop.
 
 Every Code area opens on its flamegraph: CPU hotspots and Wall-clock time on the graph alone,
 Allocation and Lock contention on the graph and then their table — hand the graph to the analyst, as
-for CPU, and read the table here. **`moreFlamegraphs`** are the recorded types with stacks no area
+for CPU, and read the table here. The flamegraph comes first even when the question is where "our" code
+spends its time: `code_hotspots` and `code_method` rank the code by the packages read off a checked-out
+repository (the `code-insight` skill), and with no source in the working directory there are none to
+pass — never guess them from the frames. **`moreFlamegraphs`** are the recorded types with stacks no area
 opens (a second sampler, native allocation, method traces, custom events), in the Pages table's last
 line; a pick of one, under Other, sends its `export` unchanged.
 

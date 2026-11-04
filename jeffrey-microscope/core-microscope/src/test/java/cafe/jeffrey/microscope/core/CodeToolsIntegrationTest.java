@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
+import cafe.jeffrey.flamegraph.code.MethodKey;
+import cafe.jeffrey.flamegraph.code.MethodRef;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CodeToolsIntegrationTest extends CheckoutVolumeMicroscope {
 
     private static final String OWN_PACKAGE = "com.acme.";
+    private static final String RUNTIME_NESTED_SEPARATOR = "$";
     private static final String FORMAT_LINE = "com.acme.checkout.Checkout.PriceCalculator#formatLine";
     private static final String FORMAT_LINE_RUNTIME = "com.acme.checkout.Checkout$PriceCalculator#formatLine";
     private static final String DISCOUNT_CLASS = "com.acme.checkout.Checkout.CouponParser";
@@ -90,6 +93,26 @@ class CodeToolsIntegrationTest extends CheckoutVolumeMicroscope {
                 charged += method.path("charged").asLong();
             }
             assertEquals(chargedToOwn, charged);
+        }
+
+        @Test
+        void namesEachMethodAsItsSourceSpellsItAndThatNameFindsItsFrame() {
+            JsonNode hotspots = answer("code_hotspots", CANDIDATE, Json.createObject()
+                    .put("eventType", EXECUTION_SAMPLE)
+                    .put("limit", 50)
+                    .set("framePrefixes", own()));
+
+            for (JsonNode method : hotspots.path("methods")) {
+                String reference = method.path("reference").asString();
+                assertFalse(reference.contains(RUNTIME_NESTED_SEPARATOR), method.toString());
+                MethodKey frame = new MethodKey(method.path("className").asString(), method.path("methodName").asString());
+                assertTrue(MethodRef.parse(reference).matcher().matches(frame), method.toString());
+            }
+            JsonNode offered = hotspots.path("followUp").path("nextTools").get(0);
+            assertEquals("code_method", offered.path("tool").asString());
+            JsonNode top = hotspots.path("methods").get(0);
+            assertEquals(top.path("reference").asString(), offered.path("arguments").path("className").asString()
+                    + "#" + offered.path("arguments").path("methodName").asString());
         }
 
         @Test
@@ -178,6 +201,13 @@ class CodeToolsIntegrationTest extends CheckoutVolumeMicroscope {
             assertTrue(List.of("MORE", "NEW").contains(move.path("movement").asString()), move.toString());
             assertTrue(move.path("inclusiveDelta").asDouble() > 0, move.toString());
             assertTrue(names(move.path("primaryFrames")).contains(FORMAT_LINE_RUNTIME), move.toString());
+
+            assertFalse(comparison.path("unlistedMovers").isEmpty(), comparison::toString);
+            for (JsonNode mover : comparison.path("unlistedMovers")) {
+                String[] frame = mover.path("frame").asString().split("#", 2);
+                MethodRef reference = MethodRef.parse(mover.path("reference").asString());
+                assertTrue(reference.matcher().matches(new MethodKey(frame[0], frame[1])), mover.toString());
+            }
         }
     }
 

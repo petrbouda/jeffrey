@@ -1026,6 +1026,8 @@ public class CompareMcpTools {
     record Mover(
             @McpDescription("Class#method")
             String frame,
+            @McpDescription(CodeAnswers.REFERENCE_DESCRIPTION)
+            String reference,
             long primaryCharged,
             double baselineChargedScaled,
             @McpDescription("primaryCharged minus baselineChargedScaled; positive means the primary spends more")
@@ -1036,7 +1038,8 @@ public class CompareMcpTools {
         static Mover of(MethodKey method, long primaryCharged, long baselineCharged, double scale, long primaryTotal) {
             double scaled = baselineCharged * scale;
             double delta = primaryCharged - scaled;
-            return new Mover(method.displayName(), primaryCharged, round(scaled), round(delta),
+            return new Mover(method.displayName(), MethodRef.of(method).displayName(), primaryCharged, round(scaled),
+                    round(delta),
                     CodeAnswers.pct(delta, primaryTotal));
         }
     }

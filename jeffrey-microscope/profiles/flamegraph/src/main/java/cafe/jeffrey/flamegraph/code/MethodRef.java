@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.flamegraph.code;
 
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -39,6 +40,10 @@ public record MethodRef(String className, String methodName) {
     private static final char SOURCE_SEPARATOR = '.';
     private static final String METHOD_SEPARATOR = "#";
     private static final String KOTLIN_FACADE_SUFFIX = "Kt";
+    /** A javac lambda body, {@code lambda$<method>$<n>}: code written inside {@code <method>}. */
+    private static final Pattern JAVAC_LAMBDA = Pattern.compile("lambda\\$([^$]+)\\$\\d+");
+    /** What javac puts in a lambda's name when it is written outside a method: an initializer, a constructor. */
+    private static final Set<String> NOT_A_METHOD = Set.of("static", "new");
 
     /**
      * The synthetic names javac and kotlinc give code written inside a method or generated for it:
@@ -75,6 +80,50 @@ public record MethodRef(String className, String methodName) {
             return new MethodRef(trimmed, null);
         }
         return new MethodRef(trimmed.substring(0, separator), trimmed.substring(separator + 1));
+    }
+
+    /**
+     * The reference a developer writes for this frame: a named nested class in source spelling
+     * ({@code com.acme.Checkout$Inner} becomes {@code com.acme.Checkout.Inner}), so the name is the one
+     * the repository spells and an answer keyed by it greps there. A class with a segment no source can
+     * spell — an anonymous or local class ({@code Outer$1}), a generated one ({@code Foo$$Proxy}) — keeps
+     * its binary name, which the matcher reads as well. A javac lambda body ({@code lambda$checkout$1}) is
+     * named by the method it is written in ({@code checkout}), which the matcher widens back to that method
+     * and its lambdas; any other method keeps the name the bytecode gives it.
+     *
+     * @param frame a Java frame, with a class
+     */
+    public static MethodRef of(MethodKey frame) {
+        return new MethodRef(sourceSpelling(frame.className()), sourceMethod(frame.methodName()));
+    }
+
+    private static String sourceMethod(String methodName) {
+        var lambda = JAVAC_LAMBDA.matcher(methodName);
+        if (lambda.matches() && !NOT_A_METHOD.contains(lambda.group(1))) {
+            return lambda.group(1);
+        }
+        return methodName;
+    }
+
+    private static String sourceSpelling(String binaryName) {
+        int lastDot = binaryName.lastIndexOf(SOURCE_SEPARATOR);
+        String simpleNames = binaryName.substring(lastDot + 1);
+        if (simpleNames.indexOf(NESTED_SEPARATOR) < 0) {
+            return binaryName;
+        }
+        for (String segment : simpleNames.split(Pattern.quote(String.valueOf(NESTED_SEPARATOR)), -1)) {
+            if (!isSourceIdentifier(segment)) {
+                return binaryName;
+            }
+        }
+        return binaryName.replace(NESTED_SEPARATOR, SOURCE_SEPARATOR);
+    }
+
+    private static boolean isSourceIdentifier(String segment) {
+        if (segment.isEmpty() || !Character.isJavaIdentifierStart(segment.charAt(0))) {
+            return false;
+        }
+        return segment.chars().allMatch(Character::isJavaIdentifierPart);
     }
 
     /** Whether the reference names a whole class rather than one method of it. */

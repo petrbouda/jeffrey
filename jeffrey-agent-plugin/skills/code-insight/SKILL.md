@@ -64,7 +64,9 @@ A frame comes back by its runtime name, and source and runtime spell code differ
 runs as `Outer#lambda$method$1`, a nested class is `Outer$Inner` at runtime and `Outer.Inner` in
 source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or coroutine is a class named
 after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
-name it merged in `matchedFrames` — read them before you name a line of source for a figure.
+name it merged in `matchedFrames` — read them before you name a line of source for a figure. A row of
+`code_hotspots` or `code_callSites`, and each of `compare_methods`' `unlistedMovers`, carries its
+`reference` in that spelling: pass it on as it is.
 
 ## 2. Name the code as the JVM runs it
 
