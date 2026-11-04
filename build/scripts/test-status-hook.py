@@ -37,8 +37,10 @@ import threading
 import unittest
 from pathlib import Path
 
+from plugin_layout import PLUGIN_DIR
+
 ROOT = Path(__file__).resolve().parents[2]
-PLUGIN = ROOT / "jeffrey-claude-plugin"
+PLUGIN = ROOT / PLUGIN_DIR
 HOOK = PLUGIN / "hooks" / "jeffrey-status.sh"
 HOOKS_JSON = PLUGIN / "hooks" / "hooks.json"
 

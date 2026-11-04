@@ -57,8 +57,8 @@ const v140ConnectOptions: ConnectOption[] = [
     id: 'gemini',
     label: 'Gemini CLI',
     prerequisite: 'Not connectable yet: Gemini CLI does not speak MCP 2026-07-28. The extension is ready and connects once it does.',
-    intro: 'Install the extension from a checkout of the repository.',
-    command: 'gemini extensions install ./jeffrey/jeffrey-claude-plugin',
+    intro: 'Install the extension from its branch, which holds the plugin at its root.',
+    command: 'gemini extensions install https://github.com/petrbouda/jeffrey --ref gemini-extension',
     alternative: 'gemini mcp add jeffrey http://localhost:8585/api/mcp \\\n  --transport http --scope user --timeout 900000',
   },
   {

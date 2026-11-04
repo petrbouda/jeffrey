@@ -10,7 +10,7 @@ order it says, finds what the recording holds, and writes it up by the `report` 
 ## Running them
 
 ```bash
-claude plugin eval ./jeffrey-claude-plugin --scaffold --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
+claude plugin eval ./jeffrey-agent-plugin --scaffold --ablation none --threshold 1 --keep-temp -j 4 --max-cost-usd 20 \
   --json /tmp/microscope-evals.json
 python3 build/scripts/summarize-plugin-evals.py /tmp/microscope-evals.json
 ```
@@ -112,7 +112,7 @@ java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffr
   -Dserver.port=8585 -jar build/build-microscope/target/microscope.jar &
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
   --work-dir /tmp/jeffrey-recordings/plugin-evals --load
-claude plugin eval ./jeffrey-claude-plugin --eval-dir evals-live --mocks off \
+claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off \
   --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp -j 3 \
   --json /tmp/microscope-live-evals.json
 ```

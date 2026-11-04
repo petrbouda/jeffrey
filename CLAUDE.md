@@ -42,7 +42,8 @@ shared/                                common (utilities + hub↔provisioner con
                                        ui/common (@shared: generic components, services, design tokens), ui/version
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
-jeffrey-claude-plugin/                 the "microscope" plugin: skills, agents, manifests for Claude Code / Codex / Gemini
+jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
+                                       Codex / Gemini / Agent Plugins (manifests rendered from build/plugin/manifests/)
 jeffrey-intellij-plugin/               standalone Gradle project (Java 21), links to Microscope, never renders profiles
 jeffrey-pages/                         documentation site — keep in sync (see docs-sync rule)
 utilities/                             release root (jeffrey-utilities-parent + jreleaser.yml, release-utilities.yml) of two

@@ -29,7 +29,7 @@ import java.util.List;
  * ({@code plugin-evals/}, commit {@code 3017ffe}) and copied byte for byte beside this class.
  *
  * <p>The workload is the microscope plugin's eval workload
- * ({@code jeffrey-claude-plugin/evals/fixtures/workload/}), run for 30 s on JDK 25 under the JDK's own
+ * ({@code jeffrey-agent-plugin/evals/fixtures/workload/}), run for 30 s on JDK 25 under the JDK's own
  * recorder ({@code settings=profile}, every exception throw) with jeffrey-events and jeffrey-tracing on
  * its class path: four workers check orders out, and one checkout in {@value #TRACED_EVERY} is a traced
  * {@code POST /checkout} — a {@code jeffrey.HttpServerExchange} as the trace's root, with a

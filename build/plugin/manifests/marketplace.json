@@ -1,0 +1,17 @@
+{
+  "name": "jeffrey",
+  "owner": {
+    "name": "Petr Bouda",
+    "url": "https://www.jeffrey-analyst.cafe/"
+  },
+  "description": "Jeffrey — a self-hosted performance analyst for the JVM.",
+  "plugins": [
+    {
+      "name": "@identity",
+      "source": "@plugin-dir",
+      "version": "@identity",
+      "description": "@identity",
+      "author": "@identity"
+    }
+  ]
+}
