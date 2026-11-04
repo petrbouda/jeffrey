@@ -26,10 +26,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -97,6 +100,56 @@ class RecordingCommitResolverTest {
         void doesNotQueryForAMissingRecordingId() {
             assertTrue(resolver().resolve(null).isEmpty());
             assertTrue(resolver().resolve(" ").isEmpty());
+
+            verifyNoInteractions(recordingTagsRepository);
+        }
+    }
+
+    @Nested
+    class Revision {
+
+        private static final String COMMIT = "0123456789abcdef0123456789abcdef01234567";
+
+        @Test
+        void aTagWinsAndCarriesItsWorkingTreeState() {
+            when(recordingTagsRepository.listForRecording(RECORDING_ID)).thenReturn(List.of(
+                    new RecordingTag("git.commit", COMMIT), new RecordingTag("git.dirty", "true")));
+
+            SourceRevision revision = resolver().revision(RECORDING_ID, () -> {
+                throw new AssertionError("the system properties are read only without a tag");
+            }).orElseThrow();
+
+            assertEquals(new SourceRevision(COMMIT, SourceRevision.Source.TAG, true, null), revision);
+        }
+
+        @Test
+        void fallsBackToTheSystemPropertyTheJvmRanWith() {
+            when(recordingTagsRepository.listForRecording(RECORDING_ID)).thenReturn(List.of());
+
+            SourceRevision revision = resolver().revision(RECORDING_ID,
+                    () -> Map.of("git.commit", COMMIT, "git.branch", "main")).orElseThrow();
+
+            assertEquals(new SourceRevision(COMMIT, SourceRevision.Source.SYSTEM_PROPERTY, null, "main"), revision);
+        }
+
+        @Test
+        void aValueThatIsNotACommitIdIsNoRevision() {
+            when(recordingTagsRepository.listForRecording(RECORDING_ID))
+                    .thenReturn(List.of(new RecordingTag("git.commit", "release-42")));
+
+            assertTrue(resolver().revision(RECORDING_ID, () -> Map.of("git.commit", "unknown")).isEmpty());
+        }
+
+        @Test
+        void recordsTheCommitAndTheWorkingTreeState() {
+            resolver().record(RECORDING_ID, " " + COMMIT + " ", false);
+
+            verify(recordingTagsRepository).insert(RECORDING_ID, Map.of("git.commit", COMMIT, "git.dirty", "false"));
+        }
+
+        @Test
+        void refusesToRecordSomethingThatIsNotACommitId() {
+            assertThrows(IllegalArgumentException.class, () -> resolver().record(RECORDING_ID, "HEAD", null));
 
             verifyNoInteractions(recordingTagsRepository);
         }

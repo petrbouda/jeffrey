@@ -42,13 +42,15 @@ source for those findings. The gate in step 5 stays: nothing is edited before th
 Start from `profiles_list`, or `recordings_analyzeFile` when the user named a file (the
 `analyze-jfr` skill covers that path). Then `profiles_get` and read `recordingCommit`:
 
-- equal to `git rev-parse HEAD` — say so in one line and continue;
+- equal to `git rev-parse HEAD` — say so in one line and continue; when `recordingDirty` is true, add
+  that the build had uncommitted changes, so a line may not be where the checkout has it;
 - different — say so **before anything else**, name both commits, and ask whether to check the
   recording's commit out. Do not switch branches unasked. A profile of another commit describes
   code that may have moved, been renamed or been deleted; mapping it onto the wrong tree produces
   confident nonsense.
-- `null` — say the commit is unknown, not that it matched. (Tagging the recording with
-  `git.commit` at build time fixes that for next time.)
+- `null` — say the commit is unknown, not that it matched. Importing with `recordings_analyzeFile`
+  and its `commit` argument fixes that for a recording made here; `-Dgit.commit=<sha>` on the
+  profiled JVM fixes it for one made anywhere (`recordingCommitSource` then reads `SYSTEM_PROPERTY`).
 
 When the code being advised on is not this checkout but one open in the reader's IntelliJ,
 `ide_windows` reports the branch and HEAD commit of every open window and marks which of them is on
@@ -115,6 +117,14 @@ against the values the JVM really ran with.
 
 ## 3. Read each source the way it asks to be read
 
+**With this checkout open, rank before you export.** For each flamegraph group the user picked,
+`code_hotspots` with the group's event type, its options and your `framePrefixes` (see *Your own
+code*) ranks this repository's methods by the cost charged to them — each sample goes to the deepest
+frame of yours on its stack — with the `lines` it was taken on and `delegatedTo`, the frames below it
+the cost went into. That is what step 4 needs, in a few kilobytes rather than an export's tens of
+thousands. Export the tree only when a path matters — a method reached from several callers,
+orchestration whose children you have to walk.
+
 One export per flamegraph group the user picked, whole recording, default threshold. Every export
 opens with its own reading instructions and an analysis section written for that event type — what
 counts as a hotspot, what the frame tags mean, what to skip. That document governs, not generic
@@ -132,6 +142,12 @@ When the recommendation is written, offer at most two further areas the evidence
 with its tag — rather than analysing them.
 
 ## 4. Ground every finding in source
+
+For each method a finding will name, `code_method` with its class, method and your `framePrefixes`
+is one call for what grep and an export only approximate: its callers, the nearest of your methods
+above a library one, the lines inside it the samples landed on, the exceptions thrown under it and
+the traced requests that run it — every figure keyed by the source name, with `matchedFrames`
+listing the lambda bodies and nested classes merged into it.
 
 The export has call paths and numbers; a frame carries a line only when every sample at it agreed on
 one, so treat a printed line as a place to start reading and its absence as no information. Map the
@@ -192,9 +208,12 @@ For each accepted finding:
 1. Make the smallest edit that implements it; one reviewable change beats a sweeping rewrite.
 2. Run the project's build and tests the way a contributor would.
 3. If the recording can be reproduced (a benchmark, a load script, a command the user names),
-   run it, `recordings_analyzeFile` the new recording, and export the **same group with the same
-   parameters** — keep threshold and options identical, or a difference in pruning will read as a
-   change that is not there. Report the delta on the frames you changed.
+   run it, `recordings_analyzeFile` the new recording (with `commit` and `dirty`, so the profile says
+   which source it measured), and put it against the one the finding came from: `compare_methods`
+   with the methods you changed, the same event type and your `framePrefixes`, answers for exactly
+   those methods and lists `unlistedMovers` — a cost the change pushed somewhere else. A flamegraph
+   comparison needs the **same group with the same parameters** — keep threshold and options
+   identical, or a difference in pruning will read as a change that is not there.
 4. Never claim a saving you did not measure. Without a re-profile, the estimate is capped at the
    frame's own `total` share: a change cannot save more time than the frame used.
 5. With no reproduction at hand, offer **Re-profile and compare** rather than skipping the
@@ -220,6 +239,28 @@ Two traps worth naming. A request that is slow while every statement is fast is 
 connection: that is `jdbc_pools`, it appears nowhere else, and no change to a query will fix it. And
 an outbound call that is slow belongs to a dependency — the local change is to call it less often,
 batch it, cache it or stop waiting for it, not to optimise code you do not own.
+
+## Your own code
+
+Jeffrey never reads this repository, so it is told which code is the application's own: the root
+packages of the source tree you are in, passed as `framePrefixes`. Work them out once and reuse them
+for every call:
+
+- `Glob` for `**/src/main/java/**/*.java` and `**/src/main/kotlin/**/*.kt` and take the shortest
+  package roots shared by the files (usually two or three segments: `com.acme.orders.`). Fall back to
+  the `groupId` in `pom.xml` or the `group` in `build.gradle(.kts)`. In a multi-module repository
+  where the question is about one service, take that module's packages and the shared ones it uses.
+- Keep the trailing dot, so `com.acme.` does not also match `com.acmecorp.`.
+- Name them in one line — "your code is `com.acme.orders.`" — so the user can correct you before
+  anything depends on it. `code_hotspots` called without them answers with the profile's busiest
+  non-library packages as `suggestedFramePrefixes`; one that differs from yours means the profile is
+  of another application, or the code was shaded or relocated.
+
+A frame comes back by its runtime name, and source and runtime spell code differently: a lambda body
+runs as `Outer#lambda$method$1`, a nested class is `Outer$Inner` at runtime and `Outer.Inner` in
+source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or coroutine is a class named
+after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
+name it merged in `matchedFrames` — read them before you name a line of source for a figure.
 
 ## Link what you name
 

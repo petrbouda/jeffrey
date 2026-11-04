@@ -1,7 +1,7 @@
 ---
 name: regression-check
 description: Decides whether a change made this project slower, by profiling two revisions the same way and weighing them against each other — build and record each, import both into a running Jeffrey Microscope, then report what moved and by how much. Use when the user asks whether a commit, branch or pull request regressed performance, wants a before-and-after measured rather than argued, or suspects a slowdown appeared somewhere in a range of commits.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *) Bash(git status *) Bash(git diff *) Bash(git log *)
 argument-hint: "[baseline-ref] [candidate-ref] [workload]"
 ---
 
@@ -64,8 +64,8 @@ must differ in exactly one thing.
 Name them so the pair survives the session:
 
 ```
-recordings_analyzeFile(path="/abs/base.jfr", name="baseline <short-sha>", force=true)
-recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>", force=true)
+recordings_analyzeFile(path="/abs/base.jfr", name="baseline <short-sha>", force=true, commit="<baseline sha>")
+recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>", force=true, commit="<candidate sha>", dirty=<true for uncommitted changes>)
 ```
 
 `force=true` on both, because both files were just recorded: a re-run to the same path can match an
@@ -98,8 +98,17 @@ denominator under **Not assessed**.
 
 ## 5 and 6. Read what moved, then say what it means
 
-`compare_movements` ranks what grew and what shrank; `compare_flamegraph` shows where in the call
-tree. Use `useWeight: true` when comparing allocation or lock time rather than sample counts.
+Ask about the change first, then about everything else. `git diff <baseline sha>..<candidate sha>`
+(or against the working tree for uncommitted changes) names the methods the change touched; write
+each as `Class#method` in source spelling and pass them to `compare_methods` with the event type and
+your `framePrefixes` (see *Your own code*). Each comes back with its `movement` on both sides, the
+change scaled onto the candidate's length, and the callees that appeared or vanished below it — and
+`unlistedMovers` lists your methods outside the diff that moved most, which is where a change's cost
+often lands (a cache removed in one method shows up as work in its caller).
+
+Then `compare_movements` ranks everything that grew and shrank, and `compare_flamegraph` shows where
+in the call tree. Use `useWeight: true` when comparing allocation or lock time rather than sample
+counts.
 
 Report, in the `report` skill's shape:
 
@@ -156,6 +165,28 @@ offer **Re-profile and compare** — `profile-run` records the changed code, `co
 against this profile — so the fix is measured rather than assumed. A heap finding is measured by a
 second dump taken under the same load and put against this one with `heap_diff`, the earlier dump as
 the baseline.
+
+## Your own code
+
+Jeffrey never reads this repository, so it is told which code is the application's own: the root
+packages of the source tree you are in, passed as `framePrefixes`. Work them out once and reuse them
+for every call:
+
+- `Glob` for `**/src/main/java/**/*.java` and `**/src/main/kotlin/**/*.kt` and take the shortest
+  package roots shared by the files (usually two or three segments: `com.acme.orders.`). Fall back to
+  the `groupId` in `pom.xml` or the `group` in `build.gradle(.kts)`. In a multi-module repository
+  where the question is about one service, take that module's packages and the shared ones it uses.
+- Keep the trailing dot, so `com.acme.` does not also match `com.acmecorp.`.
+- Name them in one line — "your code is `com.acme.orders.`" — so the user can correct you before
+  anything depends on it. `code_hotspots` called without them answers with the profile's busiest
+  non-library packages as `suggestedFramePrefixes`; one that differs from yours means the profile is
+  of another application, or the code was shaded or relocated.
+
+A frame comes back by its runtime name, and source and runtime spell code differently: a lambda body
+runs as `Outer#lambda$method$1`, a nested class is `Outer$Inner` at runtime and `Outer.Inner` in
+source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or coroutine is a class named
+after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
+name it merged in `matchedFrames` — read them before you name a line of source for a figure.
 
 ## Link what you name
 

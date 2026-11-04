@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.manager.recordings.SourceRevision;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
@@ -76,6 +77,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -181,9 +184,14 @@ class ProfileMcpToolsTest {
         @Test
         void reportsTheRecordingsCommitWhenItWasTagged() {
             stubProfile(RecordingEventSource.JDK);
-            when(recordingCommitResolver.resolve("rec-1")).thenReturn(Optional.of("abc123"));
+            when(recordingCommitResolver.revision(eq("rec-1"), any())).thenReturn(Optional.of(
+                    new SourceRevision("abc1234", SourceRevision.Source.SYSTEM_PROPERTY, true, "main")));
 
-            assertTrue(tools().get().text().contains("\"recordingCommit\":\"abc123\""));
+            String result = tools().get().text();
+            assertTrue(result.contains("\"recordingCommit\":\"abc1234\""), result);
+            assertTrue(result.contains("\"recordingCommitSource\":\"SYSTEM_PROPERTY\""), result);
+            assertTrue(result.contains("\"recordingDirty\":true"), result);
+            assertTrue(result.contains("\"recordingBranch\":\"main\""), result);
         }
 
         /**

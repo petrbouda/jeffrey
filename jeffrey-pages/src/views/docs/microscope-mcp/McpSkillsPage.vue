@@ -36,6 +36,7 @@ const headings = [
   { id: 'regression-check', text: 'regression-check', level: 2 },
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'analyze-exceptions', text: 'analyze-exceptions', level: 2 },
+  { id: 'code-insight', text: 'code-insight', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
   { id: 'report', text: 'report', level: 2 },
@@ -97,6 +98,9 @@ const advisePrompt = `advise on the most recent Jeffrey profile - what should I 
 const exceptionsPrompt = `analyze the exceptions of orders-service - which ones are ours, and why?
 /microscope:analyze-exceptions orders-service java.net.SocketTimeoutException`;
 
+const codeInsightPrompt = `is OrderService.reprice hot? who calls it, and which requests run it?
+/microscope:code-insight com.acme.orders.OrderService#reprice`;
+
 const skillFrontmatter = `---
 name: analyze-jfr
 description: Analyses a JVM profile held by a running Jeffrey Microscope - CPU, ...
@@ -118,9 +122,9 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships twelve skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all twelve from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
+      <p>The plugin ships thirteen skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all thirteen from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
 
-      <p>The twelve are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
+      <p>The thirteen are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
       <p>The front matter only pre-approves those tools for the turn a skill runs in; it does not hide the others. <code>advise-jfr</code> lists Jeffrey's tools with <code>Read</code>, <code>Grep</code>, <code>Glob</code> and <code>git rev-parse</code> &mdash; the reading it does in your checkout &mdash; and leaves an edit or a build to ask as usual. A skill names each tool without the prefix your client puts in front of it, and says in one sentence what the three prefixes are &mdash; <code>mcp__plugin_microscope_jeffrey__</code> in Claude Code with the plugin, <code>mcp__jeffrey__</code> in Codex or wherever the server is registered by hand, <code>mcp_jeffrey_</code> in Gemini CLI. Each skill is self-contained: nothing in one points into another skill&rsquo;s directory, because a client that loads skills from the server reads only the files a skill lists as its own.</p>
@@ -182,6 +186,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <td>&ldquo;Analyse the exceptions of orders-service&rdquo; &middot; &ldquo;Why does the app throw so many timeouts?&rdquo;</td>
             <td><a href="#analyze-exceptions"><code>analyze-exceptions</code></a></td>
             <td>A JFR profile with throw events, and the checkout it was built from</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Is this method hot?&rdquo; &middot; &ldquo;Who calls this at runtime, and which requests run it?&rdquo;</td>
+            <td><a href="#code-insight"><code>code-insight</code></a></td>
+            <td>A JFR profile, and the checkout it was built from</td>
           </tr>
           <tr>
             <td>&ldquo;How many events of each type are there?&rdquo; &mdash; anything no purpose-built tool covers</td>
@@ -570,6 +579,39 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
           <p>A site with no <code>ownFrame</code> threw entirely inside the JDK or a library. The skill says so and reads the stack&rsquo;s deepest frames for what started the work, rather than blaming a line of the repository it never found.</p>
+        </aside>
+      </div>
+
+      <h2 id="code-insight">code-insight</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Is this method hot, and who calls it?&rdquo;</p>
+          <span class="skill-role">From the code you are reading to what the profile measured of it</span>
+        </div>
+
+        <p>The other skills start from a profile and work towards the code. This one starts from the code &mdash; a method open in the editor, a class about to change &mdash; and asks the profile about it by the names in the source. Jeffrey never reads the repository: the skill brings the package roots and the method, and the answer comes back keyed by the same names.</p>
+        <DocsCodeBlock :code="codeInsightPrompt" language="bash" />
+
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><code>profiles_get</code> compares the recording&rsquo;s commit with <code>HEAD</code> &mdash; and says when the build was dirty or the commit is unknown &mdash; before any figure is mapped onto the checkout.</li>
+            <li>The application&rsquo;s own packages are read off the checkout and passed as <code>framePrefixes</code>; the code is named as the JVM runs it (<code>Outer.Inner</code> for a nested class, <code>FileKt</code> for a Kotlin top-level function).</li>
+            <li><code>code_method</code> for one method or class: its inclusive and self figures per sample kind, callers, callees, the nearest own callers of a library method, the lines it was sampled on, the exceptions thrown under it and the traced requests that run it. <code>code_hotspots</code> when the question is the whole repository: its methods ranked by the cost charged to them.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>Every figure is tied to source that was read</strong>, at the lines the samples landed on, with the runtime names merged into it listed.</li>
+            <li><strong><code>NOT_SEEN</code> is a measurement</strong>, read against <code>nearestFrames</code> and the commit check before it is reported as &ldquo;not hot&rdquo;.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>A lambda body runs under its own name. A figure that counts <code>lambda$checkout$1</code> belongs to the lambda&rsquo;s body, not to the line that created it; the skill reads <code>matchedFrames</code> before naming a line.</p>
         </aside>
       </div>
 

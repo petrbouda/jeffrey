@@ -157,6 +157,16 @@ each moved method before naming a file or a line — never infer them from a fra
 the movements onto the actual diff. A regression that lines up with a hunk in the change is a
 finding; one that does not is a lead, and often a rename or an unrelated shift in load.
 
+**Ask about the diff directly.** When both profiles carry a `recordingCommit` (`profiles_get`),
+`git diff --stat <baseline commit>..<primary commit>` names the changed files; read each hunk and
+write down the methods it changed as `Class#method`, in source spelling. `compare_methods` with
+those `methods`, the same `eventType` and window as the ranking, and your `framePrefixes` answers
+for each of them on both sides — `movement` (`NEW`, `GONE`, `MORE`, `LESS`, `UNCHANGED`), the change
+scaled onto the primary's length, the callees that appeared or vanished below it, and the runtime
+names matched on each side. Read `unlistedMovers` before concluding: a method of yours outside the
+diff that moved as much is the finding the diff did not predict. `UNCHANGED` is below 0.1 % of the
+primary, inside the noise of a sampled profile — say so rather than "no effect".
+
 `advise-jfr` carries the full profile-to-code-change workflow once the regression is located.
 
 ## Hand the reading to the analyst
@@ -209,6 +219,28 @@ offer **Re-profile and compare** — `profile-run` records the changed code, `co
 against this profile — so the fix is measured rather than assumed. A heap finding is measured by a
 second dump taken under the same load and put against this one with `heap_diff`, the earlier dump as
 the baseline.
+
+## Your own code
+
+Jeffrey never reads this repository, so it is told which code is the application's own: the root
+packages of the source tree you are in, passed as `framePrefixes`. Work them out once and reuse them
+for every call:
+
+- `Glob` for `**/src/main/java/**/*.java` and `**/src/main/kotlin/**/*.kt` and take the shortest
+  package roots shared by the files (usually two or three segments: `com.acme.orders.`). Fall back to
+  the `groupId` in `pom.xml` or the `group` in `build.gradle(.kts)`. In a multi-module repository
+  where the question is about one service, take that module's packages and the shared ones it uses.
+- Keep the trailing dot, so `com.acme.` does not also match `com.acmecorp.`.
+- Name them in one line — "your code is `com.acme.orders.`" — so the user can correct you before
+  anything depends on it. `code_hotspots` called without them answers with the profile's busiest
+  non-library packages as `suggestedFramePrefixes`; one that differs from yours means the profile is
+  of another application, or the code was shaded or relocated.
+
+A frame comes back by its runtime name, and source and runtime spell code differently: a lambda body
+runs as `Outer#lambda$method$1`, a nested class is `Outer$Inner` at runtime and `Outer.Inner` in
+source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or coroutine is a class named
+after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
+name it merged in `matchedFrames` — read them before you name a line of source for a figure.
 
 ## Link what you name
 

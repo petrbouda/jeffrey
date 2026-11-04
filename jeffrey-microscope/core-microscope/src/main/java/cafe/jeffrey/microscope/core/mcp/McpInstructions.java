@@ -27,6 +27,7 @@ import java.util.Set;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.BLOCKING;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.COMPARE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.CODE;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.FLAMEGRAPH;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.GRPC;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HEAP;
@@ -48,7 +49,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TRACES;
 /**
  * What a client is told at {@code server/discover} about how to use this server.
  * <p>
- * A hundred-odd tools in nineteen families is a lot to meet with nothing but a tool list, and the
+ * A hundred-odd tools in twenty families is a lot to meet with nothing but a tool list, and the
  * account of how to use them lives in the plugin's skills — which a plugin user installs and nobody
  * else gets. This is the part of that account which is too important to leave behind a
  * {@code prompts/get}: where to start, the argument every tool wants, what the families are for, and
@@ -105,6 +106,7 @@ final class McpInstructions {
     private static final List<FamilyGuide> FAMILY_GUIDES = List.of(
             new FamilyGuide(PROFILES, "profiles_ the catalogue and what a profile can answer"),
             new FamilyGuide(FLAMEGRAPH, "flamegraph_ call trees for one event type"),
+            new FamilyGuide(CODE, "code_ the application's own methods, read by the names in your source"),
             new FamilyGuide(COMPARE, "compare_ two profiles against each other"),
             new FamilyGuide(TRACES, "traces_ latency, slow operations and spans"),
             new FamilyGuide(JVM, "jvm_ the machine underneath (GC, safepoints, JIT, threads, native "
@@ -142,6 +144,10 @@ final class McpInstructions {
             new OrderRule(Set.of(FLAMEGRAPH), "flamegraph_export takes any eventType this profile recorded - "
                     + "profiles_summary's eventTypes and flamegraph_list name them - and a type it did not "
                     + "record answers status NOT_RECORDED naming the ones it did, so no list call is needed first."),
+            new OrderRule(Set.of(CODE), "With the source checked out, code_hotspots with your root packages "
+                    + "as framePrefixes ranks the methods you can change, and code_method answers for the method "
+                    + "you are reading - is it hot, who calls it, which requests run it - without exporting a "
+                    + "whole tree first."),
             new OrderRule(Set.of(TIMELINE), "Before a flamegraph of anything bursty, timeline_hotWindows "
                     + "finds the window whose startEpochMs and endEpochMs make the export show the spike; "
                     + "timeline_zoom looks inside it or at a startup."),
@@ -299,11 +305,11 @@ final class McpInstructions {
             + "answer: heap_prepare builds it, heap_status reports on it.";
 
     private static final String PROMPTS = """
-            Fuller guidance is served as prompts and as skills. prompts/list names twelve: help, the \
+            Fuller guidance is served as prompts and as skills. prompts/list names thirteen: help, the \
             orientation to what can be investigated, and one per workflow — analyze-jfr, analyze-heap, \
-            analyze-connector, analyze-exceptions, compare-jfr, advise-jfr, profile-run, regression-check, \
+            analyze-connector, analyze-exceptions, code-insight, compare-jfr, advise-jfr, profile-run, regression-check, \
             jfr-sql, heap-sql, and report, which is the evidence discipline the others write to. skills/list (the io.modelcontextprotocol/skills \
-            extension) serves the same twelve to any client that asks, and their files are read with \
+            extension) serves the same thirteen to any client that asks, and their files are read with \
             resources/read. Read the one that matches the question before a long investigation. \
             The jeffrey://server resource reports which families this installation actually advertises.""";
 

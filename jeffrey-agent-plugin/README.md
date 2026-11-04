@@ -176,14 +176,15 @@ the property to change).
 
 ## What you get
 
-**Tools**, in nineteen families:
+**Tools**, in twenty families:
 
 | Family | What it does |
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, deep links into the UI, and a versioned evidence snapshot of one profile to cite |
 | `operations_` | The work the writers start — an import, a connector download or file fetch, a heap preparation — followed by its `operationId`: where it has got to, and a request that it stop |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
-| `compare_` | Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, and the differential call tree |
+| `code_` | Your own methods, asked about by the names in your source: which of them the samples are charged to, and everything measured about the one you are reading |
+| `compare_` | Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, the methods your diff touched, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees, span-scoped flamegraphs, and the attributes that say which population a trace belonged to |
 | `jvm_` | The machine underneath: garbage collection and the pages beneath it, safepoints, JIT compilation, threads, thread dumps, native memory, class loading, exceptions, the host and who else is on it, TLS and certificates, the container, the JVM flags and what it was started with |
 | `http_` | The HTTP traffic the application served: percentiles, endpoints, status codes, slowest requests |
@@ -227,6 +228,9 @@ loads a skill when the question calls for it:
 - `analyze-exceptions` — what an application threw and why: its own throws (libraries included)
   set apart from the JVM's class-loading and linking noise, each throw site traced to the line of
   your checkout that led to it, a recommendation, then the edit on request
+- `code-insight` — the other direction: what a profile measured of the code you are reading, asked
+  by the names in your source — whether a method is hot, who calls it, which of its lines the time
+  goes to, what it throws and which requests run it, and which of your methods the cost is charged to
 - `jfr-sql` — the JFR schema and the DuckDB idioms that go with it
 - `heap-sql` — the heap-dump index schema
 - `report` — the shape every finding is written in, and the evidence rules behind it: every figure
@@ -276,7 +280,7 @@ even though Gemini reads an extension's `agents/`: it validates that frontmatter
 any key it does not define, and the plugin's own agents carry Claude Code's `disallowedTools`,
 `skills` and `color`.
 
-**Prompts, skills and resources.** The server also serves the twelve skills over the protocol itself,
+**Prompts, skills and resources.** The server also serves the thirteen skills over the protocol itself,
 as MCP prompts and over the MCP skills extension — the same files the plugin ships, copied onto the
 server's classpath when it is built, so the two cannot drift. A client that cannot install a plugin
 (Cursor, VS Code, Kiro, anything registered by hand) gets them through `skills/list` when it speaks

@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedOperation;
+import cafe.jeffrey.microscope.core.mcp.tools.CodeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
@@ -117,6 +118,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_OPERATIONS = "operations";
     private static final String PREFIX_JFR = "jfr";
     private static final String PREFIX_FLAMEGRAPH = "flamegraph";
+    private static final String PREFIX_CODE = "code";
     private static final String PREFIX_COMPARE = "compare";
     private static final String PREFIX_TRACES = "traces";
     private static final String PREFIX_JVM = "jvm";
@@ -185,6 +187,9 @@ public class McpToolsetAssembler {
                                 jfrPanelProvider,
                                 stackSamplePanelProvider,
                                 advertised))),
+                ProfileScopedToolset.leased(CodeMcpTools.class, PREFIX_CODE,
+                        profileId -> scoped(contextCache, profileId,
+                                scope -> new CodeMcpTools(scope.profileManager(), advertised))),
                 ProfileScopedToolset.leased(CompareMcpTools.class, PREFIX_COMPARE,
                         profileId -> scoped(contextCache, profileId, scope -> new CompareMcpTools(
                                 scope.profileManager(), scope::profileManager, clock, advertised))),

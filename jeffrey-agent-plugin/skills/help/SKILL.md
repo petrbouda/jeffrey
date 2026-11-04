@@ -88,6 +88,7 @@ Nothing here? Say so, and offer the two ways in: a recording file on this machin
 |---|---|
 | Read a recording: where the time, CPU, allocations or waits went; GC, JIT, threads, the container | **analyze-jfr** |
 | Understand what an application threw | **analyze-exceptions** |
+| Ask what a profile measured of the code you are reading — is it hot, who calls it, which requests run it | **code-insight** |
 | Read a heap dump: what holds the memory | **analyze-heap** |
 | Compare two recordings, or check a change for a regression | **compare-jfr**, **regression-check** |
 | Analyse what a deployed environment recorded | **analyze-connector** |

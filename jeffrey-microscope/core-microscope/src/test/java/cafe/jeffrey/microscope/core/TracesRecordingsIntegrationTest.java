@@ -615,7 +615,8 @@ class TracesRecordingsIntegrationTest extends CheckoutVolumeMicroscope {
          */
         private static final Set<String> REACHED = Set.of(
                 "connector_status", "connector_sessions", "connector_download", "profiles_summary",
-                "profiles_features", "flamegraph_list", "flamegraph_export", "memory_allocations",
+                "profiles_features", "flamegraph_list", "flamegraph_export", "code_hotspots", "code_method",
+                "memory_allocations",
                 "memory_leakCandidates", "blocking_overview", "blocking_monitors", "timeline_hotWindows",
                 "timeline_zoom", "io_overview", "http_overview", "http_endpoint", "traces_overview",
                 "traces_attributeKeys", "traces_attributeValues", "traces_attributeSearch",

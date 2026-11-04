@@ -707,7 +707,7 @@ class CompareMcpToolsTest {
             assertEquals(MOVEMENTS_MARKDOWN.length(), out.get("markdownChars").asInt());
             assertEquals(MOVEMENTS_MARKDOWN, out.get("markdown").asString());
             assertEquals(List.of("compare_quality", "compare_flamegraph"), nextTools(out));
-            assertEquals(1, out.get("followUp").get("guidance").size());
+            assertEquals(2, out.get("followUp").get("guidance").size());
             assertEquals(2, McpNextToolConformance.assertFollowable(out, reachable()));
         }
 

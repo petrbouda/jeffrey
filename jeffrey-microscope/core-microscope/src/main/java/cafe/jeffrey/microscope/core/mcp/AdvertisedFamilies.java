@@ -45,6 +45,7 @@ public record AdvertisedFamilies(Set<String> families) {
     public static final String RECORDINGS = "recordings";
     public static final String JFR = "jfr";
     public static final String FLAMEGRAPH = "flamegraph";
+    public static final String CODE = "code";
     public static final String COMPARE = "compare";
     public static final String TRACES = "traces";
     public static final String JVM = "jvm";

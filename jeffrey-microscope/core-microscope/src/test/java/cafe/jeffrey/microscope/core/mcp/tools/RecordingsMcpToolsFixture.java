@@ -17,12 +17,16 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
+import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 
 import java.time.Clock;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * Builds {@link RecordingsMcpTools} for a test: analysis jobs that wait the standard budget, the
@@ -37,7 +41,8 @@ public record RecordingsMcpToolsFixture(
         OperationAnswers answers,
         int maxConcurrentImports,
         Clock clock,
-        AdvertisedFamilies advertised) {
+        AdvertisedFamilies advertised,
+        RecordingCommitResolver revisions) {
 
     public static RecordingsMcpToolsFixture of(
             RecordingsManager recordingsManager, PipelineRunRegistry<String> runRegistry,
@@ -45,26 +50,31 @@ public record RecordingsMcpToolsFixture(
         return new RecordingsMcpToolsFixture(recordingsManager, runRegistry,
                 ToolFixtures.jobs(BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, clock), operations,
                 ToolFixtures.answers(), RecordingsMcpTools.DEFAULT_MAX_CONCURRENT_IMPORTS, clock,
-                AdvertisedFamiliesFixture.EVERY_FAMILY);
+                AdvertisedFamiliesFixture.EVERY_FAMILY, new RecordingCommitResolver(mock(RecordingTagsRepository.class)));
     }
 
     public RecordingsMcpToolsFixture withJobs(BoundedJobs<String, String> replacement) {
         return new RecordingsMcpToolsFixture(recordingsManager, runRegistry, replacement, operations, answers,
-                maxConcurrentImports, clock, advertised);
+                maxConcurrentImports, clock, advertised, revisions);
     }
 
     public RecordingsMcpToolsFixture withAnswers(OperationAnswers replacement) {
         return new RecordingsMcpToolsFixture(recordingsManager, runRegistry, jobs, operations, replacement,
-                maxConcurrentImports, clock, advertised);
+                maxConcurrentImports, clock, advertised, revisions);
     }
 
     public RecordingsMcpToolsFixture withAdvertised(AdvertisedFamilies replacement) {
         return new RecordingsMcpToolsFixture(recordingsManager, runRegistry, jobs, operations, answers,
-                maxConcurrentImports, clock, replacement);
+                maxConcurrentImports, clock, replacement, revisions);
+    }
+
+    public RecordingsMcpToolsFixture withRevisions(RecordingCommitResolver replacement) {
+        return new RecordingsMcpToolsFixture(recordingsManager, runRegistry, jobs, operations, answers,
+                maxConcurrentImports, clock, advertised, replacement);
     }
 
     public RecordingsMcpTools build() {
         return new RecordingsMcpTools(recordingsManager, runRegistry, jobs, operations, answers,
-                maxConcurrentImports, clock, advertised);
+                maxConcurrentImports, clock, advertised, revisions);
     }
 }

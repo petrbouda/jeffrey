@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
 
 import org.slf4j.Logger;
@@ -122,6 +124,11 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
         LOG.debug("AI export generated: eventType={} durationMs={}",
                 params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return result;
+    }
+
+    @Override
+    public CodeAttribution codeAttribution(GraphParameters params, CodeQuery query) {
+        return generator.codeAttribution(adjustParams(params), query);
     }
 
     private GraphParameters adjustParams(GraphParameters params) {

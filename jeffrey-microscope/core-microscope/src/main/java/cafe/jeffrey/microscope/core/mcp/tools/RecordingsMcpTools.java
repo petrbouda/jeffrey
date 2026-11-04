@@ -17,7 +17,9 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.manager.recordings.SourceRevision;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.MicroscopePage;
@@ -93,6 +95,9 @@ public class RecordingsMcpTools {
     private static final String IMPORT_FAILED =
             "Importing and analysing the file failed; operations_status has the same detail: ";
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsMcpTools.class);
+
+    private static final String DIRTY_WITHOUT_COMMIT = "dirty describes the commit's working tree; pass commit "
+            + "(git rev-parse HEAD) with it.";
 
     /** The application property that caps how many {@code recordings_analyzeFile} imports run together. */
     public static final String MAX_CONCURRENT_IMPORTS_PROPERTY =
@@ -183,6 +188,7 @@ public class RecordingsMcpTools {
     private final McpOperationRegistry operations;
     private final OperationAnswers answers;
     private final AdvertisedFamilies advertised;
+    private final RecordingCommitResolver revisions;
 
     /**
      * @param runRegistry          the profile-init pipeline, so a poll can report which stage the parse
@@ -201,8 +207,9 @@ public class RecordingsMcpTools {
     public RecordingsMcpTools(RecordingsManager recordingsManager,
             PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
             McpOperationRegistry operations, OperationAnswers answers, int maxConcurrentImports, Clock clock,
-            AdvertisedFamilies advertised) {
+            AdvertisedFamilies advertised, RecordingCommitResolver revisions) {
         this.operations = operations;
+        this.revisions = revisions;
         this.answers = answers;
         this.advertised = advertised;
         this.imports = new BoundedJobs<>(jobs.waitBudget(), BoundedJobs.COMPLETED_RETENTION, clock,
@@ -222,7 +229,9 @@ public class RecordingsMcpTools {
             + "imported: every JVM's file has the same name and size. A small recording answers with "
             + "status READY and its profileId; a large one with status RUNNING and an operationId, "
             + "which operations_status follows through the copy and the analysis - or, for a client "
-            + "that declared the MCP tasks extension, with a task after about 5 s.")
+            + "that declared the MCP tasks extension, with a task after about 5 s. commit (and dirty) "
+            + "record which source the recording measured, for a build made from the repository you are in; "
+            + "profiles_get reports it back. They apply to a fresh import, not a reused one.")
     @McpOutputSchema(RecordingAnalysis.class)
     @McpToolMeta(cost = McpToolCost.SLOW)
     public McpToolOutcome analyzeFile(
@@ -238,9 +247,20 @@ public class RecordingsMcpTools {
                     + "already has a file with the same name and size, building a second profile of it. "
                     + "Omit to get the existing profile back")
             Boolean force,
+            @ToolParam(required = false, description = "The Git commit the recorded build was made from, as "
+                    + "git rev-parse HEAD prints it. Stored with the recording so a reader can tell whether "
+                    + "their checkout is the code that ran")
+            String commit,
+            @ToolParam(required = false, description = "Whether the working tree had uncommitted changes "
+                    + "when the build was made (git status --porcelain printed anything). Needs commit")
+            Boolean dirty,
             McpCallContext call) {
 
         Path recordingPath = validatedPath(path);
+        String revision = commit == null || commit.isBlank() ? null : SourceRevision.requireCommit(commit);
+        if (revision == null && dirty != null) {
+            throw new IllegalArgumentException(DIRTY_WITHOUT_COMMIT);
+        }
 
         ImportKey key;
         if (Boolean.TRUE.equals(force) || !ImportKey.identifiedByNameAndSize(recordingPath)) {
@@ -266,6 +286,9 @@ public class RecordingsMcpTools {
                     control.phase(OperationPhase.IMPORTING);
                     String recordingId = recordingsManager.importRecordingFromPath(recordingPath);
                     importedRecording.set(recordingId);
+                    if (revision != null) {
+                        revisions.record(recordingId, revision, dirty);
+                    }
                     control.progress(OperationDetails.recording(recordingId, List.of()));
                     control.checkCancellation();
                     control.phase(OperationPhase.ANALYZING);

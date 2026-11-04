@@ -17,6 +17,9 @@
 
 package cafe.jeffrey.flamegraph.api;
 
+import cafe.jeffrey.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.flamegraph.code.CodeAttributionBuilder;
+import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
@@ -43,6 +46,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     private static final String SPAN_FLAMEGRAPH_BRANCH = "flamegraph.branch";
     private static final String SPAN_TIMESERIES_BRANCH = "timeseries.branch";
     private static final String SPAN_MARSHALLING = "graph.marshalling";
+    private static final String SPAN_CODE_ATTRIBUTION = "flamegraph.code-attribution";
 
     private static final String SCOPE_HEADER = "scope";
     private static final String SCOPE_SPAN_PREFIX = "span — only the samples taken inside ";
@@ -159,6 +163,20 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         describeScope(builder, params.spanScope());
         String markdown = builder.build(root);
         return new AiExport(markdown, root);
+    }
+
+    /**
+     * What these stacks measured of the code, method by method, read from the same per-stack records the
+     * graph of these parameters is drawn from, so a method's figures and its frames in that graph agree.
+     *
+     * @param params the graph's parameters; their weight setting decides samples or weight
+     * @param query  whose code is own and which methods to describe
+     * @return the per-method reading
+     */
+    public CodeAttribution codeAttribution(GraphParameters params, CodeQuery query) {
+        boolean useWeight = Boolean.TRUE.equals(params.useWeight());
+        return Tracer.call(SPAN_CODE_ATTRIBUTION, () -> eventRepository.flamegraphStreamer(
+                FlamegraphDataProvider.configurer(params), new CodeAttributionBuilder(query, useWeight)));
     }
 
     /**

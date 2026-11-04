@@ -96,16 +96,18 @@ SHARED_SECTIONS = (
     SharedSection("shared/implement-fixes.md", "## Implement fixes", (
         "analyze-heap", "analyze-jfr", "compare-jfr", "regression-check")),
     SharedSection("shared/link-what-you-name.md", "## Link what you name", (
-        "advise-jfr", "analyze-heap", "analyze-jfr", "analyze-connector", "compare-jfr", "heap-sql", "help",
-        "jfr-sql", "profile-run", "regression-check")),
+        "advise-jfr", "analyze-heap", "analyze-jfr", "analyze-connector", "code-insight", "compare-jfr", "heap-sql",
+        "help", "jfr-sql", "profile-run", "regression-check")),
+    SharedSection("shared/own-code.md", "## Your own code", (
+        "advise-jfr", "code-insight", "compare-jfr", "regression-check")),
 )
 
 SHARED_SENTENCES = (
     SharedSentence("shared/tool-prefix.md",
                    re.compile(r"Tool names (?:below|here) omit the prefix your client puts in front of them — "
                               r".*?the rest of the name is exact camelCase"), (
-        "advise-jfr", "analyze-exceptions", "analyze-heap", "analyze-jfr", "analyze-connector", "compare-jfr",
-        "heap-sql", "help", "jfr-sql", "profile-run", "regression-check")),
+        "advise-jfr", "analyze-exceptions", "analyze-heap", "analyze-jfr", "analyze-connector", "code-insight",
+        "compare-jfr", "heap-sql", "help", "jfr-sql", "profile-run", "regression-check")),
 )
 
 

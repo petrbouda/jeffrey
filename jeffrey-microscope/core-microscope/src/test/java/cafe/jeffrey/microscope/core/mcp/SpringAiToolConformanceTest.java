@@ -17,6 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.CodeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.DuckDbMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
@@ -124,6 +125,7 @@ class SpringAiToolConformanceTest {
             EventTypeMcpTools.class,
             DuckDbMcpTools.class,
             FlamegraphMcpTools.class,
+            CodeMcpTools.class,
             CompareMcpTools.class,
             TracesMcpTools.class,
             TraceAttributesMcpTools.class,

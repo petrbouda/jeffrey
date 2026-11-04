@@ -119,6 +119,12 @@ retried, turned into a status code? When the reader has IntelliJ open with the J
 `ide_resolve` gives the exact file and line for anything a grep gets wrong (nested classes, Kotlin
 facades, overloads), and `ide_source` reads library code that is not in this repository.
 
+Who pays for a throw is the next question once its line is read: `code_method` with the own frame's
+class and method (and your `framePrefixes`) names its callers, the share of CPU its stack holds —
+constructing an exception walks the whole stack, so a hot throw costs where it is thrown — and the
+traced requests whose spans run it, each with its p95 and link. A throw inside every promo checkout is
+a different finding from one in a nightly job.
+
 A site with no `ownFrame` threw entirely inside the JDK or a library. Read its `stack`: the deepest
 frames name what started the work (a scheduler, a client's I/O thread, a framework's startup). Say
 so, rather than inventing a line of this repository to blame. Follow `nextCursor` only while the

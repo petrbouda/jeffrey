@@ -169,6 +169,7 @@ class FlamegraphMcpToolsTest {
     private static List<McpToolSpec> reachable() {
         return CatalogueSpecs.of(
                 CatalogueSpecs.profileScoped(FlamegraphMcpTools.class, AdvertisedFamilies.FLAMEGRAPH),
+                CatalogueSpecs.profileScoped(CodeMcpTools.class, AdvertisedFamilies.CODE),
                 CatalogueSpecs.profileScoped(TimelineMcpTools.class, AdvertisedFamilies.TIMELINE),
                 CatalogueSpecs.profileScoped(JvmMcpTools.class, AdvertisedFamilies.JVM),
                 CatalogueSpecs.profileScoped(ProfileMcpTools.class, AdvertisedFamilies.PROFILES));
@@ -608,7 +609,7 @@ class FlamegraphMcpToolsTest {
 
             assertFalse(export.get("useWeight").asBoolean());
             assertFalse(export.get("uiLink").asString().contains("useWeight"), export.get("uiLink").asString());
-            JsonNode timeline = export.get("followUp").get("nextTools").get(2).get("arguments");
+            JsonNode timeline = export.get("followUp").get("nextTools").get(3).get("arguments");
             assertFalse(timeline.get("useWeight").asBoolean(), timeline.toString());
         }
 
@@ -634,14 +635,17 @@ class FlamegraphMcpToolsTest {
         void aWholeRecordingExportNamesTheTimelineAndThePerThreadSplit() {
             JsonNode export = conforming("export", export(null, null, null, null));
 
-            assertEquals(List.of("jvm_threads", "flamegraph_export", "timeline_hotWindows"), nextTools(export));
+            assertEquals(List.of("jvm_threads", "flamegraph_export", "code_hotspots", "timeline_hotWindows"), nextTools(export));
             JsonNode perThread = export.get("followUp").get("nextTools").get(1).get("arguments");
             assertTrue(perThread.get("threadMode").asBoolean());
             assertEquals(CPU, perThread.get("eventType").asString());
-            JsonNode timeline = export.get("followUp").get("nextTools").get(2).get("arguments");
+            JsonNode hotspots = export.get("followUp").get("nextTools").get(2).get("arguments");
+            assertEquals(CPU, hotspots.get("eventType").asString());
+            assertFalse(hotspots.has("startEpochMs"), hotspots.toString());
+            JsonNode timeline = export.get("followUp").get("nextTools").get(3).get("arguments");
             assertEquals(CPU, timeline.get("eventType").asString());
             assertTrue(timeline.get("useWeight").asBoolean());
-            assertEquals(3, McpNextToolConformance.assertFollowable(export, reachable()));
+            assertEquals(4, McpNextToolConformance.assertFollowable(export, reachable()));
             assertEquals(1, export.get("followUp").get("guidance").size());
         }
 

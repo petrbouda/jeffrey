@@ -488,7 +488,8 @@ class McpToolsetAssemblerTest {
 
         /** Names that look like tool references: deliberate counter-examples and a SQL alias. */
         private static final Set<String> NOT_REFERENCES = Set.of(
-                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "connector_list_sessions", "heap_used");
+                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "connector_list_sessions", "heap_used",
+                "code_size");
 
         private List<McpToolSpec> specs() {
             return assembler(true).toolset().specs();
@@ -641,7 +642,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 112;
+        private static final int ADVERTISED_TOOLS = 115;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {
@@ -1647,11 +1648,11 @@ class McpToolsetAssemblerTest {
         @Test
         void defaultAllRetainsEveryFamilyAndEachPresetKeepsDiscovery() {
             Set<String> all = families(assembler(true));
-            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
+            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
                     "memory", "heap", "connector", "ide", "operations"), all);
             assertEquals(all, families(preset("all")));
-            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "traces",
+            assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "jvm", "compare", "traces",
                     "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory", "operations"),
                     families(preset("jfr")));
             assertEquals(Set.of("profiles", "recordings", "heap", "operations"), families(preset("heap")));

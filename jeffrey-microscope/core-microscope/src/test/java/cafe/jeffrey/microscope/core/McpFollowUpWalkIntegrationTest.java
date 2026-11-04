@@ -44,7 +44,8 @@ class McpFollowUpWalkIntegrationTest extends LocalVolumeMicroscope {
     private static final Set<String> REACHED = Set.of(
             "connector_status", "connector_sessions", "connector_files", "connector_download",
             "profiles_summary",
-            "flamegraph_list", "flamegraph_export", "memory_allocations", "blocking_overview", "blocking_monitors",
+            "flamegraph_list", "flamegraph_export", "code_hotspots", "code_method",
+            "memory_allocations", "blocking_overview", "blocking_monitors",
             "timeline_hotWindows", "timeline_zoom",
             "jfr_listEventTypes", "jfr_describeEventType", "jfr_queryEvents",
             "jvm_autoAnalysis", "jvm_sections", "jvm_system", "jvm_configuration", "jvm_flags", "jvm_container",

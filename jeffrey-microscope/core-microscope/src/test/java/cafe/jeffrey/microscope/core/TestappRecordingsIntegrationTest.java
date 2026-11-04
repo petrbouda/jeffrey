@@ -167,7 +167,8 @@ class TestappRecordingsIntegrationTest extends TestappVolumeMicroscope {
          */
         private static final Set<String> REACHED = Set.of(
                 "connector_status", "connector_sessions", "connector_download", "profiles_summary",
-                "profiles_features", "flamegraph_list", "flamegraph_export", "memory_allocations",
+                "profiles_features", "flamegraph_list", "flamegraph_export", "code_hotspots", "code_method",
+                "memory_allocations",
                 "memory_leakCandidates", "blocking_overview", "blocking_monitors", "timeline_hotWindows",
                 "timeline_zoom", "io_overview", "io_endpoints", "io_slowest", "http_overview", "http_endpoint",
                 "jdbc_overview", "jdbc_pools", "jdbc_statementGroup", "traces_overview", "traces_operations",

@@ -69,7 +69,7 @@ class McpSkillCatalogueTest {
     /** Where the plugin keeps its skills, from this module's directory (the test's working directory). */
     private static final Path PLUGIN_SKILLS = Path.of("../../jeffrey-agent-plugin/skills");
 
-    private static final int PLUGIN_SKILL_COUNT = 12;
+    private static final int PLUGIN_SKILL_COUNT = 13;
 
     private static final String GOOD = "---\nname: good\ndescription: A skill that loads.\n---\n\n# Good\n\nBody.\n";
 
