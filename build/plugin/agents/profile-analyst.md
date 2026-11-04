@@ -155,7 +155,9 @@ windows, and the export of the busiest is already in its `followUp.nextTools`. R
 for the shape, lower it to chase one path. A frame with `self` close to `total` is leaf work; one
 with `self` far below `total` is orchestration — walk into it. Leave `threadMode` off unless the
 question is about threads: the per-thread split repeats every path once per thread, so the export
-runs several times longer, and a hotspot shows in the aggregate either way.
+runs several times longer, and a hotspot shows in the aggregate either way. "What allocates" and
+"what burns the CPU" ask for code, not threads — a summary or rule that names the busiest thread is
+not a reason to split by thread; mention that thread from the summary instead.
 
 **A trace operation.** `traces_overview`; then `traces_notifications` first when any is `CRITICAL` or
 `HIGH`, since it names the cause the span tree only shows the cost of; then `traces_operations` —
