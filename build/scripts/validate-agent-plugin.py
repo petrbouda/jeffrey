@@ -18,7 +18,8 @@
 """Validates the portable half of the microscope plugin.
 
 `claude plugin validate` covers `.claude-plugin/`. Nothing covers the Agent Plugins
-manifest that Codex, Cursor, Copilot, VS Code and Kiro read, and the repository is its
+manifest that Cursor, Copilot, VS Code and Kiro read, or Codex's `.codex-plugin/plugin.json`
+over the same skills and `mcp.json`, and the repository is its
 own marketplace with no release step in between — a malformed `plugin.json` on master
 breaks every install off the default branch the moment it lands.
 
