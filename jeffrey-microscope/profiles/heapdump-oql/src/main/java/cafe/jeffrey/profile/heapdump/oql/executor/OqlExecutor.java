@@ -17,6 +17,7 @@
 package cafe.jeffrey.profile.heapdump.oql.executor;
 
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.HybridPlan;
 import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.JavaPlan;
@@ -26,6 +27,7 @@ import cafe.jeffrey.profile.heapdump.oql.compiler.ExecutionPlan.StringFallbackPl
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Top-level dispatch from a compiled {@link ExecutionPlan} to the right
@@ -37,7 +39,20 @@ public final class OqlExecutor {
     private OqlExecutor() {
     }
 
-    public static OQLQueryResult execute(ExecutionPlan plan, HeapView view, int limit) throws SQLException {
+    /** The page of the plan's rows the window asks for, and whether more follow it. */
+    public static OQLQueryResult execute(ExecutionPlan plan, HeapView view, PageWindow window) throws SQLException {
+        OQLQueryResult upToTheEnd = execute(plan, view, window.fetch());
+        if (!upToTheEnd.isSuccess() || window.offset() == 0) {
+            return upToTheEnd;
+        }
+        List<OQLResultEntry> rows = upToTheEnd.results();
+        List<OQLResultEntry> page = rows.subList(Math.min(window.offset(), rows.size()), rows.size());
+        return OQLQueryResult.success(List.copyOf(page), page.size(), upToTheEnd.hasMore(),
+                upToTheEnd.executionTimeMs());
+    }
+
+    /** The plan's first {@code limit} rows, and whether more follow them: what each executor answers. */
+    private static OQLQueryResult execute(ExecutionPlan plan, HeapView view, int limit) throws SQLException {
         return switch (plan) {
             case SqlPlan p -> SqlExecutor.execute(p, view, limit);
             case HybridPlan p -> HybridExecutor.execute(p, view, limit);

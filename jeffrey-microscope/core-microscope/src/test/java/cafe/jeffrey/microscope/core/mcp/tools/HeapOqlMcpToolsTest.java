@@ -287,6 +287,28 @@ class HeapOqlMcpToolsTest {
             assertEquals(QUERY, call(first, "heap_oql").get("query").asString());
         }
 
+        /** The engine counts only the rows it handed back: while more remain, the query's own count is unknown. */
+        @Test
+        void aPageWithMoreAfterItLeavesTheCountUnknown() {
+            answers(OQLQueryResult.success(twoInstances().results(), 2, true, 5));
+
+            JsonNode out = conforming(tools().oql(QUERY, 2, null, null, RESOURCE_READ));
+
+            assertTrue(out.get("totalCount").isNull(), out::toString);
+        }
+
+        /** The page that ends the rows knows them all: every page before it and its own. */
+        @Test
+        void theLastPageCountsEveryRowOfTheQuery() {
+            answers(OQLQueryResult.success(twoInstances().results(), 2, true, 5));
+            String cursor = conforming(tools().oql(QUERY, 2, null, null, RESOURCE_READ)).get("nextCursor").asString();
+            answers(OQLQueryResult.success(List.of(twoInstances().results().getFirst()), 1, false, 5));
+
+            JsonNode last = conforming(tools().oql(QUERY, 2, cursor, null, RESOURCE_READ));
+
+            assertEquals(3, last.get("totalCount").asInt(), last::toString);
+        }
+
         @Test
         void saysNothingOfANextPageOnTheLastOne() {
             answers(twoInstances());

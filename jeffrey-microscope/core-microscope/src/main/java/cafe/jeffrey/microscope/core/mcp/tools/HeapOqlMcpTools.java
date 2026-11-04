@@ -228,8 +228,11 @@ public class HeapOqlMcpTools {
                 .nextWhen(first.isPresent(), page.onObject(INSTANCE_DETAIL_TOOL, first).why(WHY_INSTANCE))
                 .guidance(SQL_GUIDANCE)
                 .followUp();
+        // The engine counts only the rows it handed back; the query's own count is known once its last
+        // row has been, and before that it is unknown rather than this page's size.
+        Integer totalCount = next.hasMore() ? null : page.offset() + rows.size();
         return new OqlAnswer(OqlStatus.OK, null, page.profileId(), page.query(), page.retained(), rows,
-                result.totalCount(), next.hasMore(), next.nextCursor(), result.executionTimeMs(), operationId,
+                totalCount, next.hasMore(), next.nextCursor(), result.executionTimeMs(), operationId,
                 operation, followUp, page.link(), LINK_NOTE);
     }
 
@@ -282,7 +285,8 @@ public class HeapOqlMcpTools {
             @McpDescription("The rows of this page; empty while the query runs")
             List<OqlRow> rows,
             @McpNullable
-            @McpDescription("How many rows the query matched; null while it runs")
+            @McpDescription("How many rows the query matched - known once the page that ends them is read; "
+                    + "null while rows remain after this page, and while the query runs")
             Integer totalCount,
             @McpDescription("Whether rows remain after these")
             boolean hasMore,
