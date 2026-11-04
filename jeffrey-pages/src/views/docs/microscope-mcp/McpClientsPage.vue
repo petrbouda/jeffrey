@@ -26,7 +26,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'one-package', text: 'One Package, Three Manifests', level: 2 },
+  { id: 'one-package', text: 'One Package, Four Manifests', level: 2 },
   { id: 'the-skills', text: 'The Twelve Skills', level: 2 },
   { id: 'the-agents', text: 'The Three Agents', level: 2 },
   { id: 'what-writes', text: 'The Eleven Tools That Write', level: 2 },
@@ -62,8 +62,10 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap,operations`;
         A plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
       </DocsCallout>
 
-      <h2 id="one-package">One Package, Three Manifests</h2>
-      <p>The plugin is one directory in the Jeffrey repository, <code>jeffrey-claude-plugin/</code>, with a manifest per client: Claude Code reads <code>.claude-plugin/plugin.json</code>, Codex and the other <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> clients read <code>plugin.json</code> beside it, and Gemini CLI reads <code>gemini-extension.json</code>. The skills, the agents and the MCP server underneath are the same files. Registering the server by hand instead gives you every tool and none of the rest; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> shows how.</p>
+      <h2 id="one-package">One Package, Four Manifests</h2>
+      <p>The plugin is one directory in the Jeffrey repository, <code>jeffrey-agent-plugin/</code>, with a manifest per client: Claude Code reads <code>.claude-plugin/plugin.json</code>, Codex reads <code>.codex-plugin/plugin.json</code>, the other <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> clients read <code>plugin.json</code> and <code>mcp.json</code> beside it, and Gemini CLI reads <code>gemini-extension.json</code>. The skills, the agents and the MCP server underneath are the same files. The four manifests and the plugin entry of both marketplaces are generated from one source, so they never disagree about the version or what the plugin says it does. Registering the server by hand instead gives you every tool and none of the rest; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> shows how.</p>
+
+      <p>A client keys an install by the plugin&rsquo;s name, <code>microscope@jeffrey</code>, never by the directory, so the move from the old <code>jeffrey-claude-plugin/</code> left every marketplace install where it was; only a <code>--plugin-dir</code> or a Gemini install from a clone names the path. The package also carries its behaviour evals (<code>evals/</code>), because <code>claude plugin eval</code> reads them only from inside the plugin; the Gemini extension branch leaves them out.</p>
 
       <table>
         <thead>

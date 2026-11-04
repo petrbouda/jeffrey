@@ -47,7 +47,7 @@ onMounted(() => {
 });
 
 const clonePlugin = `git clone https://github.com/petrbouda/jeffrey
-# the plugin directory is ./jeffrey/jeffrey-claude-plugin`;
+# the plugin directory is ./jeffrey/jeffrey-agent-plugin`;
 
 const vscodeMcpJson = `{
   "servers": {
@@ -437,7 +437,7 @@ const protocolError = `HTTP/1.1 404
       </DocsCallout>
 
       <h2 id="agent-plugins-clients">Agent Plugins Clients</h2>
-      <p>The plugin carries an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, the vendor-neutral format <strong>Cursor</strong>, <strong>GitHub Copilot</strong>, <strong>VS Code</strong> and <strong>Kiro</strong> read alongside Codex. Where a client installs a plugin from a directory, <code>jeffrey-claude-plugin/</code> in a clone is that directory:</p>
+      <p>The plugin carries an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, the vendor-neutral format <strong>Cursor</strong>, <strong>GitHub Copilot</strong>, <strong>VS Code</strong> and <strong>Kiro</strong> read alongside Codex. Where a client installs a plugin from a directory, <code>jeffrey-agent-plugin/</code> in a clone is that directory:</p>
       <DocsCodeBlock :code="clonePlugin" language="bash" />
 
       <p>What is standardised is the manifest, the twelve skills and the <code>streamable-http</code> server entry. Everything past that &mdash; how a plugin is browsed and installed, how skills are invoked, how tools are approved &mdash; is the client's own, and moves faster than this page can. The <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page is the closest map, since it documents the same portable half in detail.</p>

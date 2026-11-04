@@ -81,8 +81,8 @@ const disablePluginServer = `[plugins."microscope@jeffrey"]
 mcp_servers.jeffrey.enabled = false`;
 
 const agentInstall = `mkdir -p ~/.codex/agents
-cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
-cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
+cp jeffrey/jeffrey-agent-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
+cp jeffrey/jeffrey-agent-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
 
 const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
