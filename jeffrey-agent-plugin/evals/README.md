@@ -42,10 +42,12 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 | `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export` or `code_hotspots` on CPU, `blocking_monitors`), confidence stated, a **Not assessed** section |
 | `code-own-hotspots` | "Which of our own methods does the CPU go to? This is the service's repository" | `code-insight` (or `optimize-code`), `code_hotspots` with the repository's root package, SessionCache.busyWait named with its charged share of the CPU samples and tied to its source |
 | `code-is-this-method-worth-it` | "Is PriceCalculator.formatLine worth optimizing?" | `code_method` for the method by its source name, and an answer that weighs every sample kind: about 6% of the CPU but about 95% of the allocated bytes, through `String.format` on line 200 |
+| `code-n-plus-one` | "Does the order history endpoint have an N+1 query problem?" | `code_callSites` on `jeffrey.JdbcQuery`: order-lines.by-order run once per order (11,926 in 1,090 requests, a median of 11 per request) from findLines in the loop of `OrderService.history`, and one query for all the orders' lines offered |
+| `code-what-runs-at-runtime` | "What does the service actually do at runtime, and where in our code?" | `code_runtimeSurface`: `GET /orders/{customer}`, both statements with the code that issues them, and where the request runs in the service's code, read off the profile |
 | `connector-not-configured` | "Why was checkout slow in production this morning? Its recordings should be on the connector" | `analyze-connector`, `connector_status` read, its `NOT_CONFIGURED` answer passed on: the `jeffrey.microscope.connector.*` properties (Azure file share or local directory) with placeholders and a restart, nothing claimed about production, no catalogue profile read as production's |
 
-Three more cases, under [`../evals-live/`](../evals-live/), run against a real Jeffrey: two ask what
-only SQL answers, one compares the methods a change touched — see [The SQL cases](#the-sql-cases).
+Four more cases, under [`../evals-live/`](../evals-live/), run against a real Jeffrey: two ask what
+only SQL answers, two compare the methods a change touched — see [The SQL cases](#the-sql-cases).
 
 ## Where the answers come from
 
@@ -55,8 +57,16 @@ Jeffrey's answers, recorded by `build/scripts/record-plugin-eval-mocks.py` from 
 [`fixtures/workload/`](fixtures/workload/) — a checkout service in miniature with a CPU hotspot,
 allocation, lock contention, exceptions used as control flow and a slow leak, recorded twice
 (`baseline`, then `candidate` with a deliberate regression in the pricing path) and once as a heap
-dump. `mocks/jeffrey/_tools.json` is that Jeffrey's real `tools/list`, so each mocked tool carries its
-real description and input schema.
+dump — and a second workload, the service's order history (`OrderHistory.java`): every
+`GET /orders/{customer}` traced, one statement for the customer's orders and then one per order (an
+N+1), each through the service's own `Database.query`, which records it as a `jeffrey.JdbcQuery` event
+with its stack — no driver or database. It is the `order history` profile, recorded once. Its file is
+kept in this repository (`build/plugin-evals/order-history.jfr`, outside the plugin directory, so an
+install does not carry it), not in jeffrey-recordings: `--reuse` and `--load` copy it into
+`--work-dir`, and `--reuse --record-missing` records it again when it is missing. The recorder crawls
+it in a pass of its own after the checkout profiles, so it takes none of their budget or fixtures.
+`mocks/jeffrey/_tools.json` is that Jeffrey's real `tools/list`, so each mocked tool carries its real
+description and input schema.
 
 To re-record after a change to what the tools return — the answers describe the build they were
 recorded from — start a Jeffrey with an empty home directory and run the recorder. A recording from
@@ -107,14 +117,24 @@ What the mocks cannot do, so the cases stay away from it:
 `jfr-sql` and `heap-sql` are for the questions no dashboard or report shapes, and a question like that
 takes a query nobody can write down in advance — so no mock can answer it. Their two cases live in
 [`../evals-live/`](../evals-live/) and run with `--mocks off`, against a Jeffrey that holds the very
-recordings the mocks were taken from, beside a third whose argument no mock can pin either — the
+recordings the mocks were taken from, beside two whose argument no mock can pin either — the
 methods a diff touched, as a list:
 
 | Case | The question | What it holds the plugin to |
 |---|---|---|
 | `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
 | `compare-the-methods-my-diff-touched` | "My last change made reprice call formatLine for every line item. Did that make them more expensive?" | `compare_methods` with the two methods in source spelling, the candidate as primary; formatLine new (about 6% of the CPU, 95% of the bytes), reprice up by about 87% of its CPU samples, the growth put on the new call, nothing claimed about latency. Scaffolds the repository, as the code cases do; `compare_methods` takes a list no mock can pin |
+| `did-my-last-commit-make-it-worse` | "Did my last change to the pricing code make checkout more expensive?" (no method named) | the change read between the two profiles' commits — `git diff`/`git show` naming 1cc032a or c71aeee, not `HEAD~1`, which is a README commit — its methods passed to `compare_methods`, the checkout said to be past the profiled commit, formatLine new and reprice up |
 | `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
+
+**The commits.** The two code cases scaffold the repository with a fixed history — commit A
+(1cc032a: the source without the per-line formatLine call), commit B (c71aeee: the source both runs
+were recorded from), and, for `did-my-last-commit-make-it-worse`, a README commit C past them — with
+fixed author, committer and dates, so the hashes are the same on every machine. `--load` imports the
+baseline at A and the candidate at B (its live commits, pinned in `fixtures/recorded-profiles.json`), so
+`profiles_get` reports them as `recordingCommit` and the skills' commit check has something to check.
+The baseline ran the candidate's source with the call switched off, so its line numbers below
+`reprice` are commit B's, three lines past commit A's. The mocked suite's profiles carry no commit.
 
 ```bash
 git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings /tmp/jeffrey-recordings
@@ -123,7 +143,8 @@ java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffr
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
   --work-dir /tmp/jeffrey-recordings/plugin-evals --load
 claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off --scaffold \
-  --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp -j 3 \
+  --allow-tools 'mcp__plugin_microscope_jeffrey__*' 'Bash(git rev-parse *)' 'Bash(git diff *)' \
+  'Bash(git log *)' 'Bash(git show *)' --ablation none --keep-temp -j 3 \
   --json /tmp/microscope-live-evals.json
 ```
 
@@ -1044,3 +1065,47 @@ Three cases stay below the threshold, none on a code tool:
 The skills reached match the routing intended: `code-insight` for both code questions, `compare-jfr`
 for the live comparison, and `optimize-code` for `route-what-to-change` (3 of 3).
 
+
+## The order history, the diff and the commits measured
+
+- **`code_callSites` and `code_runtimeSurface` have questions to answer.** The order-history workload
+  gives the evals an N+1 (`code-n-plus-one`) and a service to describe (`code-what-runs-at-runtime`);
+  the recorder crawls it after the checkout profiles, which keep every fixture they had.
+- **A brace no longer breaks the call contract.** `recorded-call-semantics` looked for a key past
+  `[^{}\n]*`, so a call whose value held a brace — the operation `GET /orders/{customer}` — failed it
+  even when recorded. The lookahead now steps over whole JSON strings.
+- **`compare-jfr` reads the change.** Its skill may run `git rev-parse`, `diff`, `log` and `show`, and its
+  diff step says which range: the two profiles' `recordingCommit`s when they carry them (never
+  `HEAD~1`, with a line when HEAD has moved on), or the commit the user names when they do not.
+- **The live profiles carry commits.** The live scaffolds build a fixed history; `--load` imports the
+  baseline and the candidate at its two commits. `did-my-last-commit-make-it-worse` puts HEAD one README
+  commit past the candidate and names no method.
+- **The link rule names the two places links were left bare**: a profile under **Not assessed**, and a
+  figure's source given as a link.
+- Granting `Bash` to a case makes `claude plugin eval` run it in its sandbox, which needs `bubblewrap`
+  and `socat`; without them every case of the run is refused, the SQL ones included.
+
+One full pass of each suite, on one instrument:
+
+| | Code tools (combined) | This pass |
+|---|---|---|
+| Mocked cases at the threshold | 19 of 22 | 18 of 24 |
+| Overall score | 0.99 | 0.99 |
+| The four mocked code cases | 1.00 each | 1.00 each (12 of 12 runs) |
+| Live cases | 1.00, 1.00, 1.00 | `compare-the-methods-my-diff-touched` 1.00, `did-my-last-commit-make-it-worse` 0.78, SQL 1.00 and 1.00 |
+| Spend, including the judge | $17.67 mocked, $2.62 live | $13.57 mocked, $3.04 live |
+
+The six mocked misses are one run each, none on a code tool: two unmarked links (the analysed profile;
+a next step named by its tool), two calls no fixture holds (`flamegraph_export` with a `search`, and
+with `threadMode`), `compare-finds-the-regression` routed once to `regression-check`, and one
+`connector-not-configured` judge.
+
+`did-my-last-commit-make-it-worse` missed twice, both genuinely:
+
+- One run read `git show HEAD~1` before it had read the profiles' commits. It reached the right change
+  only because HEAD~1 is the candidate's commit here.
+- One run passed `Checkout#formatLine` to `compare_methods`, building it from `compare_movements`' runtime
+  frame (`Checkout$PriceCalculator#formatLine`), whose rows carry no `reference`. It then called the CPU
+  change noise despite `reprice`'s +87%.
+
+The second points at the next server change: `reference` on `compare_movements`' rows too.

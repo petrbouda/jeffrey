@@ -16323,6 +16323,334 @@
    }
   },
   {
+   "name": "jdbc_statementGroup",
+   "title": "JDBC: Statement Group",
+   "description": "Returns one statement group in detail: the same percentiles and slowest statements as jdbc_overview, narrowed to a single group. An unknown group is an error naming it. status NOT_RECORDED: the recording did not capture the JDBC events.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "profileId": {
+      "type": "string",
+      "description": "Id of the profile to work on, as listed by profiles_list."
+     },
+     "group": {
+      "type": "string",
+      "description": "Group name exactly as recorded, taken from the groups list in jdbc_overview."
+     }
+    },
+    "required": [
+     "profileId",
+     "group"
+    ],
+    "additionalProperties": false
+   },
+   "outputSchema": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "OK",
+       "NOT_RECORDED"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "Why there is no dashboard; null when status is OK"
+     },
+     "profileId": {
+      "type": "string"
+     },
+     "group": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The group asked about; null for jdbc_overview"
+     },
+     "header": {
+      "type": [
+       "object",
+       "null"
+      ],
+      "properties": {
+       "statementCount": {
+        "type": "integer"
+       },
+       "maxExecutionTimeNanos": {
+        "type": "integer"
+       },
+       "p99ExecutionTimeNanos": {
+        "type": "integer"
+       },
+       "p95ExecutionTimeNanos": {
+        "type": "integer"
+       },
+       "successRate": {
+        "type": "number",
+        "description": "Share of statements that did not fail, as the dashboard computes it"
+       },
+       "errorCount": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "statementCount",
+       "maxExecutionTimeNanos",
+       "p99ExecutionTimeNanos",
+       "p95ExecutionTimeNanos",
+       "successRate",
+       "errorCount"
+      ],
+      "additionalProperties": false,
+      "description": "The statements' totals; null when status is NOT_RECORDED"
+     },
+     "operations": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "label": {
+         "type": "string"
+        },
+        "value": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "label",
+        "value"
+       ],
+       "additionalProperties": false
+      }
+     },
+     "groups": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "group": {
+         "type": "string"
+        },
+        "count": {
+         "type": "integer"
+        },
+        "totalRowsProcessed": {
+         "type": "integer"
+        },
+        "totalExecutionTimeNanos": {
+         "type": "integer"
+        },
+        "maxExecutionTimeNanos": {
+         "type": "integer"
+        },
+        "p99ExecutionTimeNanos": {
+         "type": "integer"
+        },
+        "p95ExecutionTimeNanos": {
+         "type": "integer"
+        },
+        "errorCount": {
+         "type": "integer"
+        },
+        "statementNames": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "name": {
+            "type": "string"
+           },
+           "count": {
+            "type": "integer"
+           },
+           "p99ExecutionTimeNanos": {
+            "type": "integer"
+           }
+          },
+          "required": [
+           "name",
+           "count",
+           "p99ExecutionTimeNanos"
+          ],
+          "additionalProperties": false
+         }
+        }
+       },
+       "required": [
+        "group",
+        "count",
+        "totalRowsProcessed",
+        "totalExecutionTimeNanos",
+        "maxExecutionTimeNanos",
+        "p99ExecutionTimeNanos",
+        "p95ExecutionTimeNanos",
+        "errorCount",
+        "statementNames"
+       ],
+       "additionalProperties": false
+      },
+      "description": "The costliest statement groups, at most 40"
+     },
+     "omittedGroups": {
+      "type": [
+       "integer",
+       "null"
+      ],
+      "description": "Groups left out of groups by its cap of 40; null when status is NOT_RECORDED"
+     },
+     "slowStatements": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "atEpochMs": {
+         "type": "integer",
+         "description": "When the statement started, as UTC epoch milliseconds"
+        },
+        "sql": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "description": "The SQL, cut to 500 characters with a trailing '...'; null when not recorded"
+        },
+        "statementName": {
+         "type": "string"
+        },
+        "statementGroup": {
+         "type": "string"
+        },
+        "operation": {
+         "type": "string"
+        },
+        "executionTimeNanos": {
+         "type": "integer"
+        },
+        "rowsProcessed": {
+         "type": "integer"
+        },
+        "parameters": {
+         "type": [
+          "string",
+          "null"
+         ],
+         "description": "The bound parameters, cut to 200 characters; null when not recorded"
+        },
+        "success": {
+         "type": "boolean"
+        },
+        "batch": {
+         "type": "boolean"
+        },
+        "lob": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "atEpochMs",
+        "sql",
+        "statementName",
+        "statementGroup",
+        "operation",
+        "executionTimeNanos",
+        "rowsProcessed",
+        "parameters",
+        "success",
+        "batch",
+        "lob"
+       ],
+       "additionalProperties": false
+      }
+     },
+     "followUp": {
+      "type": "object",
+      "properties": {
+       "nextTools": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "properties": {
+          "tool": {
+           "type": "string",
+           "description": "An advertised tool name"
+          },
+          "arguments": {
+           "type": "object",
+           "description": "Arguments to pass unchanged"
+          },
+          "why": {
+           "type": "string",
+           "description": "What the call answers, in one short clause"
+          },
+          "weight": {
+           "type": "string",
+           "enum": [
+            "LIGHT",
+            "MEDIUM",
+            "HEAVY"
+           ],
+           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
+          }
+         },
+         "required": [
+          "tool",
+          "arguments",
+          "why",
+          "weight"
+         ],
+         "additionalProperties": false
+        },
+        "description": "Calls to make next, with their arguments ready to pass unchanged"
+       },
+       "guidance": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "description": "Advice that is not a tool call"
+       }
+      },
+      "required": [
+       "nextTools",
+       "guidance"
+      ],
+      "additionalProperties": false
+     },
+     "uiLink": {
+      "type": "string",
+      "description": "The statement page in the Microscope UI, for the user"
+     }
+    },
+    "required": [
+     "status",
+     "reason",
+     "profileId",
+     "group",
+     "header",
+     "operations",
+     "groups",
+     "omittedGroups",
+     "slowStatements",
+     "followUp",
+     "uiLink"
+    ],
+    "additionalProperties": false
+   },
+   "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+   },
+   "_meta": {
+    "jeffrey/cost": "MODERATE"
+   }
+  },
+  {
    "name": "grpc_overview",
    "title": "gRPC: Overview",
    "description": "Returns the gRPC server dashboard: call count, response-time percentiles in nanoseconds, success rate and error count, the services ranked by traffic (the busiest 40, with omittedServices counting the rest), the status-code breakdown and the slowest individual calls with their UTC epoch-millisecond instant. Answers gRPC latency questions. status NOT_RECORDED: the recording did not capture that direction's exchange events.",

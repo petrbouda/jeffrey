@@ -79,7 +79,7 @@ class ReplayContractTest(RecorderSandbox):
             def call(self, name, args):
                 return answer({'weighted': args.get('useWeight', True)})
         with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments)]):
-            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h'), recorded)
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o'), recorded)
         recorder.write_mocks(tools, recorded)
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         self.assertTrue(path.exists(), 'every case must reject unsupported semantic inputs')
@@ -147,6 +147,21 @@ class ReplayContractTest(RecorderSandbox):
         self.assertIsNone(re.search(pattern, spaced % json.dumps(args), re.M), 'the recorded call passes')
         self.assertIsNotNone(re.search(pattern, spaced % json.dumps({**args, 'useWeight': False}), re.M))
 
+    def test_a_value_holding_braces_is_still_read_as_one_value(self):
+        schema = {'required': ['profileId', 'name'], 'properties': {'profileId': {'type': 'string'},
+                  'name': {'type': 'string'}, 'framePrefixes': {'type': 'array'}}}
+        recorded = {'profileId': 'o', 'name': 'GET /orders/{customer}', 'framePrefixes': ['com.acme.']}
+        recorder.write_contract_graders([{'name': 'traces_slowestTraces', 'inputSchema': schema}],
+                                        [{'tool': 'traces_slowestTraces', 'arguments': recorded}])
+        path = self.cases / 'example/graders/recorded-call-semantics.md'
+        pattern = yaml.safe_load(path.read_text().split('---')[1])['pattern']
+        self.assertFalse(self.violates(pattern, 'traces_slowestTraces', recorded))
+        self.assertTrue(self.violates(pattern, 'traces_slowestTraces', {**recorded, 'framePrefixes': ['org.']}))
+        # A key spelled inside another value is not the key.
+        self.assertTrue(self.violates(pattern, 'traces_slowestTraces',
+                                      {'profileId': 'o', 'name': 'GET /orders/{customer}',
+                                       'note': '"framePrefixes":["com.acme."]'}))
+
     def test_optional_frame_prefixes_are_part_of_contract(self):
         schema = {'required': ['profileId'], 'properties': {'profileId': {'type': 'string'}, 'framePrefixes': {'type': 'array'}}}
         recorder.write_contract_graders([{'name': 'jvm_exceptionSites', 'inputSchema': schema}],
@@ -174,7 +189,7 @@ class ReplayContractTest(RecorderSandbox):
                 return answer({'status': 'COMPLETED'})
         recorded = recorder.Recorded()
         with patch.object(recorder.time, 'sleep'):
-            profiles = recorder.import_profiles(SlowServer(), {k: Path(k) for k in ['baseline', 'candidate', 'heap']}, recorded)
+            profiles = recorder.import_profiles(SlowServer(), {k: Path(k) for k in ['baseline', 'candidate', 'heap', 'orders']}, recorded)
         self.assertEqual('h', profiles.heap)
         self.assertIn('operations_status', recorded.answers, 'RUNNING import must have a replayable poll')
         self.assertEqual('COMPLETED', json.loads(recorded.answers['operations_status'][('slow-heap',)])['status'])
@@ -198,7 +213,7 @@ class CodeToolsTest(RecorderSandbox):
             def call(self, name, args):
                 return answer(respond(args))
         with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments) for arguments in calls]):
-            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h'), recorded)
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o'), recorded)
         recorder.write_mocks(tools, recorded)
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         return recorded, yaml.safe_load(path.read_text().split('---')[1])['pattern']
@@ -350,7 +365,11 @@ class AnswerSizeTest(unittest.TestCase):
 
 
 class ScaffoldTest(unittest.TestCase):
-    """Every case that scaffolds the checkout repository embeds the recorded workload, byte for byte."""
+    """Every case that scaffolds the checkout repository embeds the recorded workloads, byte for byte, and the
+    live ones build the history the live recordings were imported at."""
+
+    WORKLOADS = {'CHECKOUT_JAVA': 'Checkout.java', 'ORDER_HISTORY_JAVA': 'OrderHistory.java'}
+    LIVE = ROOT / PLUGIN_DIR / 'evals-live/cases'
 
     @staticmethod
     def scaffolds():
@@ -358,30 +377,55 @@ class ScaffoldTest(unittest.TestCase):
         return sorted((script for cases in suites for script in cases.glob('*/setup.sh')
                        if "<<'CHECKOUT_JAVA'" in script.read_text()), key=lambda script: script.parent.name)
 
+    @staticmethod
+    def scaffold(script, temp):
+        subprocess.run(['bash', str(script)], cwd=temp, check=True, capture_output=True)
+
+    @staticmethod
+    def git(temp, *arguments):
+        return subprocess.run(['git', *arguments], cwd=temp, check=True, capture_output=True, text=True).stdout
+
     def test_the_implement_fixes_and_code_cases_scaffold_the_repository(self):
-        self.assertEqual(['code-is-this-method-worth-it', 'code-own-hotspots', 'compare-the-methods-my-diff-touched',
-                          'heap-offers-implement-fixes', 'offers-implement-fixes'],
+        self.assertEqual(['code-is-this-method-worth-it', 'code-n-plus-one', 'code-own-hotspots',
+                          'code-what-runs-at-runtime', 'compare-the-methods-my-diff-touched',
+                          'did-my-last-commit-make-it-worse', 'heap-offers-implement-fixes', 'offers-implement-fixes'],
                          [script.parent.name for script in self.scaffolds()])
 
-    def test_the_scaffolded_repository_holds_the_recorded_workload_verbatim(self):
-        workload = (ROOT / PLUGIN_DIR / 'evals/fixtures/workload/com/acme/checkout/Checkout.java').read_text()
-        for script in self.scaffolds():
-            with self.subTest(case=script.parent.name):
-                embedded = re.search(r"<<'CHECKOUT_JAVA'\n(.*?)^CHECKOUT_JAVA$", script.read_text(), re.S | re.M)
-                self.assertIsNotNone(embedded, 'setup.sh no longer embeds Checkout.java between its markers')
-                self.assertEqual(workload if workload.endswith('\n') else workload + '\n', embedded.group(1))
+    def test_the_scaffolded_repository_holds_the_recorded_workloads_verbatim(self):
+        for marker, name in self.WORKLOADS.items():
+            workload = (ROOT / PLUGIN_DIR / 'evals/fixtures/workload/com/acme/checkout' / name).read_text()
+            for script in self.scaffolds():
+                with self.subTest(case=script.parent.name, workload=name):
+                    embedded = re.search(rf"<<'{marker}'\n(.*?)^{marker}$", script.read_text(), re.S | re.M)
+                    self.assertIsNotNone(embedded, f'setup.sh no longer embeds {name} between its markers')
+                    self.assertEqual(workload if workload.endswith('\n') else workload + '\n', embedded.group(1))
 
     def test_the_scaffold_builds_a_repository_with_the_classes_the_profiles_name(self):
         for script in self.scaffolds():
             with self.subTest(case=script.parent.name), tempfile.TemporaryDirectory() as temp:
-                subprocess.run(['bash', str(script)], cwd=temp, check=True, capture_output=True)
-                source = (Path(temp) / 'src/main/java/com/acme/checkout/Checkout.java').read_text()
-                self.assertIn('busyWait', source)
-                self.assertIn('class AuditLog', source)
-                head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=temp, check=True, capture_output=True,
-                                      text=True)
-                self.assertRegex(head.stdout.strip(), r'^[0-9a-f]{40}$')
+                self.scaffold(script, temp)
+                checkout = Path(temp) / 'src/main/java/com/acme/checkout'
+                self.assertIn('busyWait', (checkout / 'Checkout.java').read_text())
+                self.assertIn('class AuditLog', (checkout / 'Checkout.java').read_text())
+                self.assertIn('findLines', (checkout / 'OrderHistory.java').read_text())
+                self.assertRegex(self.git(temp, 'rev-parse', 'HEAD').strip(), r'^[0-9a-f]{40}$')
+                self.assertEqual('', self.git(temp, 'status', '--porcelain'))
 
+    def test_the_live_history_is_the_one_the_live_recordings_were_imported_at(self):
+        commits = json.loads((ROOT / PLUGIN_DIR / 'evals/fixtures/recorded-profiles.json').read_text())['liveCommits']
+        heads = {'compare-the-methods-my-diff-touched': 'candidate', 'did-my-last-commit-make-it-worse': None}
+        for case, head in heads.items():
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as temp:
+                self.scaffold(self.LIVE / case / 'setup.sh', temp)
+                log = self.git(temp, 'log', '--format=%H').split()
+                self.assertEqual([commits['candidate'], commits['baseline']], log[-2:])
+                if head:
+                    self.assertEqual(commits[head], log[0])
+                else:
+                    self.assertNotIn(log[0], commits.values(), 'the checkout has moved past the profiled commit')
+                diff = self.git(temp, 'diff', commits['baseline'], commits['candidate'])
+                self.assertIn('+                    total += formatLine(line).length();', diff)
+                self.assertEqual(3, sum(1 for line in diff.splitlines() if line.startswith('+ ')))
 
 class VerdictContractTest(unittest.TestCase):
     def test_false_slowdown_is_explicitly_a_semantic_failure(self):

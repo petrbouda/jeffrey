@@ -1,7 +1,7 @@
 ---
 name: compare-jfr
 description: Compares two JVM profiles held by a running Jeffrey Microscope — a before and an after — using differential flamegraphs, to answer whether a change made the application slower, faster, or allocate more. Use whenever the user asks if a change regressed performance, what got slower or faster between two runs, to compare two recordings, benchmarks or branches, or mentions a baseline, a before/after or a performance regression. For a single profile, analyze-jfr applies instead; for a heap dump, analyze-heap.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *) Bash(git diff *) Bash(git log *) Bash(git show *)
 ---
 
 # Comparing two Jeffrey profiles
@@ -157,9 +157,19 @@ each moved method before naming a file or a line — never infer them from a fra
 the movements onto the actual diff. A regression that lines up with a hunk in the change is a
 finding; one that does not is a lead, and often a rename or an unrelated shift in load.
 
-**Ask about the diff directly.** When both profiles carry a `recordingCommit` (`profiles_get`),
-`git diff --stat <baseline commit>..<primary commit>` names the changed files; read each hunk and
-write down the methods it changed as `Class#method`, in source spelling. `compare_methods` with
+**Ask about the diff directly.** Which change to read:
+
+- **Both profiles carry a `recordingCommit`** (`profiles_get`): the change is
+  `<baseline commit>..<primary commit>` — never `HEAD~1..HEAD`. When `git rev-parse HEAD` is past the
+  primary's commit, say so in one line ("profiled at c71aeee, HEAD is 0870842, one commit later") and
+  read the source at the primary's commit (`git show <commit>:<path>`) before naming a line.
+- **Neither carries one**, and the user says which change ("my last commit", a branch): read it with
+  `git log -1 --stat` and `git show <that commit>`, and say the pairing is the user's word — nothing
+  in the profiles ties them to those commits.
+
+`git diff --stat` over that range names the changed files; read each hunk and write down the
+methods it changed — the method a hunk sits in, and each method it adds a call to — as
+`Class#method`, in source spelling. `compare_methods` with
 those `methods`, the same `eventType` and window as the ranking, and your `framePrefixes` answers
 for each of them on both sides — `movement` (`NEW`, `GONE`, `MORE`, `LESS`, `UNCHANGED`), the change
 scaled onto the primary's length, the callees that appeared or vanished below it, and the runtime
@@ -251,8 +261,9 @@ trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
-a page named in passing ("the exceptions page"), the links most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
 a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
