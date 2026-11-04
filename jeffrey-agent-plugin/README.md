@@ -6,10 +6,10 @@ analyses it, then lists the recordings you have analysed, queries their DuckDB t
 flamegraph, trace and heap-dump exports straight into a session in your own repository — so the
 profile and the source code are in front of the same reader.
 
-One package, three plugin formats. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** and
-the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plugin.json` and
-`mcp.json`; **Gemini CLI** reads `gemini-extension.json`. The skills and the MCP server underneath
-are the same files for all three.
+One package, four manifests. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** reads
+`.codex-plugin/plugin.json`; the other [Agent Plugins](https://agent-plugins.org/) clients read the
+root `plugin.json` and `mcp.json`; **Gemini CLI** reads `gemini-extension.json`. The skills and the
+MCP server underneath are the same files for all of them.
 
 **Jeffrey speaks MCP `2026-07-28` only.** A client that still opens with `initialize` is refused with
 `-32602` (HTTP 400), an error whose message and `data.supported` name that version, so which clients
@@ -371,7 +371,7 @@ Or, once the hotspot is known, in the repository that produced it:
 
 ```
 jeffrey-agent-plugin/
-├── plugin.json               Agent Plugins 1.0.0 manifest — Codex, Cursor, Copilot, VS Code, Kiro
+├── plugin.json               Agent Plugins 1.0.0 manifest — Cursor, Copilot, VS Code, Kiro
 ├── mcp.json                  Agent Plugins MCP config — the streamable-http endpoint
 ├── .claude-plugin/
 │   └── plugin.json           Claude Code manifest — same plugin, with the configurable endpoint

@@ -28,7 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'one-package', text: 'One Package, Four Manifests', level: 2 },
   { id: 'the-skills', text: 'The Twelve Skills', level: 2 },
-  { id: 'the-agents', text: 'The Three Agents', level: 2 },
+  { id: 'the-agents', text: 'The Two Agents', level: 2 },
   { id: 'what-writes', text: 'The Eleven Tools That Write', level: 2 },
   { id: 'long-calls', text: 'Long Calls', level: 2 },
   { id: 'the-tool-list', text: 'The Size of the Tool List', level: 2 },
@@ -115,7 +115,7 @@ jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap,operations`;
 
       <p>The same skills are also served by Jeffrey itself, so a client with no plugin at all can still read them: over the MCP skills extension, where a client that speaks <code>2026-07-28</code> with that extension gets all twelve and loads them on its own, and as MCP <strong>prompts</strong> &mdash; <router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the calls.</p>
 
-      <h2 id="the-agents">The Three Agents</h2>
+      <h2 id="the-agents">The Two Agents</h2>
       <p><code>profile-analyst</code> and <code>heap-triage</code> read an export end to end and return only the findings, so the raw document never lands in the main conversation. What each one is for is on the <router-link to="/docs/microscope-mcp/agent">Agents</router-link> page. How a client gets them differs: Claude Code carries them in the plugin with a tool deny-list; Codex and Gemini take them as files to copy, held to reading by an instruction rather than a wall. The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping the copy costs context rather than correctness.</p>
 
       <h2 id="what-writes">The Eleven Tools That Write</h2>
