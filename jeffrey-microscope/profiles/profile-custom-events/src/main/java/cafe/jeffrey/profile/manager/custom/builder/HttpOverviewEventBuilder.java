@@ -114,8 +114,11 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
 
     private final Map<String, UriInfoBuilder> uriInfos = new HashMap<>();
 
-    private final PriorityQueue<HttpSlowRequest> slowRequests = new PriorityQueue<>(
-            Comparator.comparingLong(HttpSlowRequest::responseTime));
+    /** Slowest last, so the queue's head is the fastest of the slow ones: the one a slower request evicts. */
+    private static final Comparator<HttpSlowRequest> BY_RESPONSE_TIME =
+            Comparator.comparingLong(HttpSlowRequest::responseTime);
+
+    private final PriorityQueue<HttpSlowRequest> slowRequests = new PriorityQueue<>(BY_RESPONSE_TIME);
 
     private final LongLongHashMap responseTimeSerie;
     private final LongLongHashMap requestCountSerie;
@@ -244,7 +247,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
                 uris,
                 toHttpStatusStats(statusCodeCounts),
                 toHttpMethodStats(methodCounts),
-                List.copyOf(slowRequests),
+                slowestFirst(),
                 TimeseriesUtils.buildSerie("Response Time", responseTimeSerie),
                 TimeseriesUtils.buildSerie("Request Count", requestCountSerie));
     }
@@ -301,5 +304,10 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    /** The slow requests, slowest first: the queue keeps them as a heap, in no order a reader can use. */
+    private List<HttpSlowRequest> slowestFirst() {
+        return slowRequests.stream().sorted(BY_RESPONSE_TIME.reversed()).toList();
     }
 }

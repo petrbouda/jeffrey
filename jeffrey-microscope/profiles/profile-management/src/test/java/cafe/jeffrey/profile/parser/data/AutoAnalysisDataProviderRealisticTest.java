@@ -22,7 +22,7 @@ import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.test.recording.PersonsRecording;
+import cafe.jeffrey.test.recording.TestappRecording;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
@@ -43,15 +43,15 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static cafe.jeffrey.test.recording.PersonsRecording.DIRECT;
-import static cafe.jeffrey.test.recording.PersonsRecording.DOM;
+import static cafe.jeffrey.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.test.recording.TestappRecording.DOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The JMC rules over realistic recordings: two runs of one service under load, which the rules
- * judge — context switches, errors thrown, the GC's parallelism, competing processes and CPU, long
- * socket reads, what is allocated and by whom.
+ * judge — errors thrown, the GC's parallelism and setup, the process it ran as, what is allocated and
+ * by whom, what was sampled most.
  *
  * <p>Each file is a {@code jfrsync} recording: the JDK's chain and async-profiler's both define
  * {@code jdk.ActiveSetting} and {@code jdk.ActiveRecording}, with different fields. Loaded together,
@@ -68,23 +68,29 @@ class AutoAnalysisDataProviderRealisticTest {
             "Method Profiling", "Allocated Classes", "Threads Allocating", "TLAB Allocation Ratio",
             "GC Freed Ratio", "GC Pressure");
 
-    /** What each run is warned about. */
-    private static final Map<PersonsRecording, Set<String>> WARNINGS = new EnumMap<>(Map.of(
-            DIRECT, Set.of("Competing CPU Ratio Usage", "Context Switches", "Thrown Errors", "Inverted Parallelism"),
-            DOM, Set.of("Context Switches", "Thrown Errors", "Inverted Parallelism")));
+    /** What each run is warned about: the same service in the same container, so the same three. */
+    private static final Map<TestappRecording, Set<String>> WARNINGS = new EnumMap<>(Map.of(
+            DIRECT, Set.of("Thrown Errors", "Inverted Parallelism", "PID-1 Rule"),
+            DOM, Set.of("Thrown Errors", "Inverted Parallelism", "PID-1 Rule")));
 
     /** What each run is told beside its warnings. */
-    private static final Map<PersonsRecording, Set<String>> NOTES = new EnumMap<>(Map.of(
-            DIRECT, Set.of("Allocated Classes", "Competing Processes", "Process Started", "Socket Read Peak Duration"),
-            DOM, Set.of("Allocated Classes", "Competing Processes", "Process Started", "Socket Read Peak Duration")));
+    private static final Map<TestappRecording, Set<String>> NOTES = new EnumMap<>(Map.of(
+            DIRECT, Set.of("Allocated Classes", "Threads Allocating", "GC Setup", "Metaspace Live Set Trend",
+                    "Method Profiling", "Process Started"),
+            DOM, Set.of("Allocated Classes", "Threads Allocating", "GC Setup", "Metaspace Live Set Trend",
+                    "Method Profiling", "Process Started")));
 
     /** How often the GC's parallelism inverted, of how many events: the figure the warning reports. */
-    private static final Map<PersonsRecording, String> INVERTED_PARALLELISM = new EnumMap<>(Map.of(
-            DIRECT, "8 times out of 501 recorded events",
-            DOM, "15 times out of 213 recorded events"));
+    private static final Map<TestappRecording, String> INVERTED_PARALLELISM = new EnumMap<>(Map.of(
+            DIRECT, "6 times out of 22 recorded events",
+            DOM, "5 times out of 26 recorded events"));
+
+    /** How many errors a minute each run threw: the figure the warning reports. */
+    private static final Map<TestappRecording, String> ERRORS_PER_MINUTE = new EnumMap<>(Map.of(
+            DIRECT, "an average of 129 errors per minute",
+            DOM, "an average of 131 errors per minute"));
 
     private static final String THROWN_ERRORS = "Thrown Errors";
-    private static final String ERRORS_PER_MINUTE = "an average of 130 errors per minute";
     private static final String INVERTED_PARALLELISM_RULE = "Inverted Parallelism";
     private static final String ALLOCATED_CLASSES = "Allocated Classes";
     private static final String MOST_ALLOCATED = "The most allocated type is likely ''byte[]''";
@@ -95,16 +101,16 @@ class AutoAnalysisDataProviderRealisticTest {
     static Path work;
 
     /** Each run judged once from its plain file, for every test that only reads the judgement. */
-    private static final Map<PersonsRecording, List<AutoAnalysisResult>> JUDGED = new ConcurrentHashMap<>();
+    private static final Map<TestappRecording, List<AutoAnalysisResult>> JUDGED = new ConcurrentHashMap<>();
 
     @Nested
     @DisplayName("What each run is told")
     class Findings {
 
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
+        @EnumSource(TestappRecording.class)
         @DisplayName("every rule answers; the warnings and notes are the run's own")
-        void theWarningsAndNotesAreTheRunsOwn(PersonsRecording recording) {
+        void theWarningsAndNotesAreTheRunsOwn(TestappRecording recording) {
             List<AutoAnalysisResult> results = judged(recording);
 
             assertEquals(RuleRegistry.getRules().size(), results.size());
@@ -114,9 +120,9 @@ class AutoAnalysisDataProviderRealisticTest {
 
         /** Each of them once answered "not enough samples" or "ignored" on one evaluation in two. */
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
+        @EnumSource(TestappRecording.class)
         @DisplayName("the rules that read the recording's settings all answer")
-        void theRulesThatReadTheSettingsAllAnswer(PersonsRecording recording) {
+        void theRulesThatReadTheSettingsAllAnswer(TestappRecording recording) {
             Map<String, AutoAnalysisResult> byRule = byRule(judged(recording));
 
             for (String rule : SETTINGS_READERS) {
@@ -126,12 +132,13 @@ class AutoAnalysisDataProviderRealisticTest {
         }
 
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
+        @EnumSource(TestappRecording.class)
         @DisplayName("the warnings state the figures the run holds")
-        void theWarningsStateTheRunsFigures(PersonsRecording recording) {
+        void theWarningsStateTheRunsFigures(TestappRecording recording) {
             Map<String, AutoAnalysisResult> byRule = byRule(judged(recording));
 
-            assertTrue(byRule.get(THROWN_ERRORS).summary().contains(ERRORS_PER_MINUTE), byRule.get(THROWN_ERRORS)::summary);
+            assertTrue(byRule.get(THROWN_ERRORS).summary().contains(ERRORS_PER_MINUTE.get(recording)),
+                    byRule.get(THROWN_ERRORS)::summary);
             assertTrue(byRule.get(INVERTED_PARALLELISM_RULE).summary().contains(INVERTED_PARALLELISM.get(recording)),
                     byRule.get(INVERTED_PARALLELISM_RULE)::summary);
         }
@@ -143,31 +150,31 @@ class AutoAnalysisDataProviderRealisticTest {
     class AlikeEveryTime {
 
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
+        @EnumSource(TestappRecording.class)
         @DisplayName("judged again, every answer is the same")
-        void judgedAgainEveryAnswerIsTheSame(PersonsRecording recording) {
+        void judgedAgainEveryAnswerIsTheSame(TestappRecording recording) {
             assertEquals(judged(recording), provider().generate(List.of(plain(recording))));
         }
 
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
+        @EnumSource(TestappRecording.class)
         @DisplayName("the archive is judged as the file it compresses")
-        void theArchiveIsJudgedAsThePlainFile(PersonsRecording recording) {
+        void theArchiveIsJudgedAsThePlainFile(TestappRecording recording) {
             assertEquals(judged(recording), provider().generate(List.of(archive(recording))));
         }
 
         /** The rules take every file at once, so a run in pieces is the run. */
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
+        @EnumSource(TestappRecording.class)
         @DisplayName("its chunks as separate files are judged as the file")
-        void theChunksAsFilesAreJudgedAsTheFile(PersonsRecording recording) {
+        void theChunksAsFilesAreJudgedAsTheFile(TestappRecording recording) {
             List<Path> pieces = JfrParser.disassemble(plain(recording), work.resolve("pieces-" + recording));
 
             assertEquals(judged(recording), provider().generate(pieces));
         }
     }
 
-    private static List<AutoAnalysisResult> judged(PersonsRecording recording) {
+    private static List<AutoAnalysisResult> judged(TestappRecording recording) {
         return JUDGED.computeIfAbsent(recording, r -> provider().generate(List.of(plain(r))));
     }
 
@@ -186,22 +193,22 @@ class AutoAnalysisDataProviderRealisticTest {
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
-    private static Path archive(PersonsRecording recording) {
-        Path archive = work.resolve(recording.fileName());
+    private static Path archive(TestappRecording recording) {
+        Path archive = work.resolve(recording + ".jfr.lz4");
         if (Files.notExists(archive)) {
-            try {
-                Files.write(archive, recording.bytes());
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+            Lz4Compressor.compress(plain(recording), archive);
         }
         return archive;
     }
 
-    private static Path plain(PersonsRecording recording) {
+    private static Path plain(TestappRecording recording) {
         Path plain = work.resolve(recording + ".jfr");
         if (Files.notExists(plain)) {
-            Lz4Compressor.decompress(archive(recording), plain);
+            try {
+                Files.write(plain, recording.bytes());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
         return plain;
     }

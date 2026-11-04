@@ -68,6 +68,44 @@ class DiffTreeGeneratorTest {
         }
     }
 
+    /** A native library unpacked to a temporary file is one frame in both runs, shown by the primary's name. */
+    @Nested
+    class NativeLibrariesUnpackedPerRun {
+
+        private static final String PRIMARY_LIBRARY = "/tmp/sqlite-3.53.4.0-53d288d8-0e69-4a19-940f-2f0eabc33180-libsqlitejdbc.so";
+        private static final String BASELINE_LIBRARY = "/tmp/sqlite-3.53.4.0-40f3afff-c82e-434d-806d-fc77c2aa2e39-libsqlitejdbc.so";
+
+        @Test
+        void theSameLibraryIsSharedThoughItsPathDiffers() {
+            Frame primary = createFrameWithSamples("main", 100, 1000);
+            primary.put(PRIMARY_LIBRARY, createFrameWithType(PRIMARY_LIBRARY, FrameType.NATIVE));
+            Frame secondary = createFrameWithSamples("main", 50, 500);
+            secondary.put(BASELINE_LIBRARY, createFrameWithType(BASELINE_LIBRARY, FrameType.NATIVE));
+
+            DiffFrame result = new DiffTreeGenerator(primary, secondary).generate();
+
+            assertEquals(1, result.size());
+            DiffFrame library = result.get(PRIMARY_LIBRARY);
+            assertNotNull(library, result::toString);
+            assertEquals(DiffFrame.Type.SHARED, library.type);
+        }
+
+        /** Two of them on one side cannot be told apart by their key: each is matched by its own name. */
+        @Test
+        void twoUnpackingsInOneProfileStayApart() {
+            Frame primary = createFrameWithSamples("main", 100, 1000);
+            primary.put(PRIMARY_LIBRARY, createFrameWithType(PRIMARY_LIBRARY, FrameType.NATIVE));
+            primary.put(BASELINE_LIBRARY, createFrameWithType(BASELINE_LIBRARY, FrameType.NATIVE));
+            Frame secondary = createFrameWithSamples("main", 50, 500);
+            secondary.put(BASELINE_LIBRARY, createFrameWithType(BASELINE_LIBRARY, FrameType.NATIVE));
+
+            DiffFrame result = new DiffTreeGenerator(primary, secondary).generate();
+
+            assertEquals(DiffFrame.Type.ADDED, result.get(PRIMARY_LIBRARY).type);
+            assertEquals(DiffFrame.Type.SHARED, result.get(BASELINE_LIBRARY).type);
+        }
+    }
+
     @Nested
     class AddedFrames {
 

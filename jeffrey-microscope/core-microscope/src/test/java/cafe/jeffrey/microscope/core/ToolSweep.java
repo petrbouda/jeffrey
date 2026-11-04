@@ -54,6 +54,30 @@ final class ToolSweep {
      * probe, each saying the profile is not a heap dump.
      */
     static void assertEveryToolAnswersARecording(MicroscopeClient microscope, String profileId) {
+        Sweep sweep = sweep(microscope, profileId);
+
+        assertFalse(sweep.heapTools().isEmpty(), "The sweep reached no heap tool");
+        assertEquals(sweep.heapTools(), sweep.refusals().keySet(), () -> "Refused: " + sweep.refusals());
+        String notAHeapDump = "Profile " + profileId + " is not a heap dump";
+        sweep.refusals().forEach((tool, text) ->
+                assertTrue(text.contains(notAHeapDump), () -> tool + ": " + text));
+    }
+
+    /**
+     * Sweeps a profile built from a prepared heap dump: every heap tool answers, and a tool that reads
+     * a recording refuses in a sentence.
+     */
+    static void assertEveryToolAnswersAHeapDump(MicroscopeClient microscope, String profileId) {
+        Sweep sweep = sweep(microscope, profileId);
+
+        assertFalse(sweep.heapTools().isEmpty(), "The sweep reached no heap tool");
+        Set<String> refusedHeapTools = new TreeSet<>(sweep.heapTools());
+        refusedHeapTools.retainAll(sweep.refusals().keySet());
+        assertEquals(Set.of(), refusedHeapTools, () -> "Refused: " + sweep.refusals());
+    }
+
+    /** Every tool callable with the profile alone, called: what refused, and no answer an internal failure. */
+    private static Sweep sweep(MicroscopeClient microscope, String profileId) {
         Set<String> heapTools = new TreeSet<>();
         Map<String, String> refusals = new TreeMap<>();
         List<String> failures = new ArrayList<>();
@@ -82,13 +106,12 @@ final class ToolSweep {
         }
 
         assertTrue(failures.isEmpty(), () -> String.join("\n\n", failures));
-        assertFalse(heapTools.isEmpty(), "The sweep reached no heap tool");
-        assertEquals(heapTools, refusals.keySet(), () -> "Refused: " + refusals);
-        String notAHeapDump = "Profile " + profileId + " is not a heap dump";
-        refusals.forEach((tool, text) -> {
-            assertFalse(text.startsWith(INTERNAL_FAILURE), () -> tool + ": " + text);
-            assertTrue(text.contains(notAHeapDump), () -> tool + ": " + text);
-        });
+        refusals.forEach((tool, text) -> assertFalse(text.startsWith(INTERNAL_FAILURE), () -> tool + ": " + text));
+        return new Sweep(heapTools, refusals);
+    }
+
+    /** What a sweep called of the heap family, and what refused. */
+    private record Sweep(Set<String> heapTools, Map<String, String> refusals) {
     }
 
     /** No argument required beyond the profile: what an agent can call before it has chosen anything. */

@@ -148,6 +148,8 @@ public class TracesMcpTools {
             "opens the operation's flamegraphs tab, which draws its own panels rather than this event type and flags";
 
     private static final String OPERATIONS_WHY = "where the wall-clock went, by operation";
+    private static final String ATTRIBUTE_KEYS_WHY =
+            "the keys the requests carry, to tell which population of them was slow";
     private static final String NOTIFICATIONS_WHY =
             "what the application said went wrong: CRITICAL or HIGH notifications were raised";
     private static final String UNFILTERED_WHY = "the same list without the filters";
@@ -194,6 +196,7 @@ public class TracesMcpTools {
                 .nextWhen(overview.urgentNotificationCount() > 0,
                         call(FollowUpCalls.TRACES_NOTIFICATIONS).why(NOTIFICATIONS_WHY))
                 .next(call(FollowUpCalls.TRACES_OPERATIONS).why(OPERATIONS_WHY))
+                .next(call(FollowUpCalls.TRACES_ATTRIBUTE_KEYS).why(ATTRIBUTE_KEYS_WHY))
                 .followUp();
         return McpToolResult.of(new Overview(OverviewStatus.OK, null, profileId(), overview, followUp, uiLink));
     }

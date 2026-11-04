@@ -64,6 +64,11 @@ public final class VolumeWriter {
         return directories(instanceDir.resolve(sessionIdAt(start)));
     }
 
+    /** A session's directory, under the name a real provisioner gave it. */
+    public static Path session(Path instanceDir, String sessionId) {
+        return directories(instanceDir.resolve(sessionId));
+    }
+
     /**
      * The name the provisioner gives a session started at {@code start}: a time-ordered UUID
      * carrying it, which is what an instance's sessions are ordered by.

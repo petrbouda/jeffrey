@@ -91,6 +91,13 @@ class JdbcTraceRepositoryTest {
     private static final long MS = 1_000_000L;
     private static final long US_PER_MS = 1_000L;
     private static final long SLOW_TRACE = Long.MAX_VALUE;
+    /** The two traces of insert-colliding-payload-exchanges.sql, one exchange each. */
+    private static final long COLLIDING_FIRST_TRACE = 501L;
+    /** The trace of insert-self-duration-traces.sql whose child outlives its root. */
+    private static final long OVERRUN_TRACE = 8004L;
+    /** The trace of insert-sub-microsecond-overhang.sql: its last step appears to end 500 ns after it. */
+    private static final long OVERHANG_TRACE = 8101L;
+    private static final long COLLIDING_SECOND_TRACE = 502L;
     private static final long FAST_TRACE = Long.MIN_VALUE;
     private static final long NEGATIVE_SPAN_ID = -8113938001533374712L;
     /** The HTTP exchange the whole slow trace hangs off, and the parent of both statements. */
@@ -580,6 +587,26 @@ class JdbcTraceRepositoryTest {
                     "the earliest occurrence wins, the row the waterfall would have drawn anyway");
             assertEquals(spans.size(), repository.summaryOf(SLOW_TRACE).orElseThrow().spanCount(),
                     "span_count must agree with the rows the waterfall draws");
+        }
+
+        /**
+         * Two payloads DuckDB's {@code hash()} cannot tell apart — taken from a real recording — are
+         * two dictionary rows, each span pointing at its own: keyed by that hash, the second was a
+         * duplicate key and the whole derivation failed.
+         */
+        @Test
+        @DisplayName("two payloads whose hashes collide are kept apart")
+        void keepsPayloadsWhoseHashesCollideApart(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-colliding-payload-exchanges.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            TraceSpanRecord first = repository.spansOf(COLLIDING_FIRST_TRACE, NO_FOLDING).getFirst();
+            TraceSpanRecord second = repository.spansOf(COLLIDING_SECOND_TRACE, NO_FOLDING).getFirst();
+
+            assertTrue(first.eventFields().contains("\"remotePort\":50218"), first.eventFields());
+            assertTrue(second.eventFields().contains("\"remotePort\":50238"), second.eventFields());
         }
 
         @Test
@@ -1335,6 +1362,33 @@ class JdbcTraceRepositoryTest {
                     "the child covered 20..50ms of the parent, not 20..100ms");
             assertEquals(80 * MS, spans.get("overrun-child").selfDurationNanos(),
                     "the child itself has no children, so all of its time is its own");
+        }
+
+        @Test
+        @DisplayName("a child outliving its root carries the trace on to its own end")
+        void aChildOutlivingItsRootExtendsTheTrace(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-self-duration-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            assertEquals(100 * MS, repository.summaryOf(OVERRUN_TRACE).orElseThrow().durationNanos(),
+                    "the root ran 0..50ms, its child 20..100ms");
+        }
+
+        /**
+         * A step that ended with its request can appear to end up to a microsecond after it — its start
+         * is stored to the microsecond — and the trace is still exactly as long as the request.
+         */
+        @Test
+        @DisplayName("an overhang shorter than the timestamp's microsecond leaves the root's duration")
+        void anOverhangUnderAMicrosecondLeavesTheRootsDuration(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-sub-microsecond-overhang.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            assertEquals(10_000L, repository.summaryOf(OVERHANG_TRACE).orElseThrow().durationNanos());
         }
 
         @Test

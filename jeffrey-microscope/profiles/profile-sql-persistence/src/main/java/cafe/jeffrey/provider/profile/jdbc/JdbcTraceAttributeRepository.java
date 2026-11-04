@@ -289,7 +289,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     private static final String DERIVE_VALUES = """
             INSERT INTO trace_attribute_values (value_id, value_text)
             <<flat>>
-            SELECT DISTINCT CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT), value_text
+            SELECT DISTINCT <<value_id>>, value_text
             FROM (
                 SELECT value_text FROM flat
                 UNION ALL
@@ -312,7 +312,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 source,
                 owner,
                 attr_key,
-                CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT),
+                <<value_id>>,
                 value_num,
                 event_type
             FROM flat
@@ -336,7 +336,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 source,
                 owner,
                 attr_key,
-                CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT),
+                <<value_id>>,
                 value_num,
                 event_type
             FROM notification_flat
@@ -817,8 +817,9 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 .replace("<<notification_event_type>>", EventTypeName.NOTIFICATION);
 
         // FLAT_ATTRIBUTES opens the WITH; the other two are further CTEs in the same one.
-        return statement.replace(
-                "<<flat>>", flat.stripTrailing() + ",\n" + carriers.stripTrailing() + ",\n" + notificationFlat);
+        return statement
+                .replace("<<flat>>", flat.stripTrailing() + ",\n" + carriers.stripTrailing() + ",\n" + notificationFlat)
+                .replace("<<value_id>>", TextIds.of("value_text"));
     }
 
     /** Renders a catalog statement with the two indexes spliced in as one relation. */

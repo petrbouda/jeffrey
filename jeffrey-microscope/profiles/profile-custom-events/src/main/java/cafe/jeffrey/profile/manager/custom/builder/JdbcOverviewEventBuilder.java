@@ -97,8 +97,11 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
     private final Map<String, GroupBuilder> groups = new HashMap<>();
 
-    private final PriorityQueue<JdbcSlowStatement> slowRequests = new PriorityQueue<>(
-            Comparator.comparingLong(JdbcSlowStatement::executionTime));
+    /** Slowest last, so the queue's head is the fastest of the slow ones: the one a slower statement evicts. */
+    private static final Comparator<JdbcSlowStatement> BY_EXECUTION_TIME =
+            Comparator.comparingLong(JdbcSlowStatement::executionTime);
+
+    private final PriorityQueue<JdbcSlowStatement> slowRequests = new PriorityQueue<>(BY_EXECUTION_TIME);
 
     private final LongLongHashMap executionTimeSerie;
     private final LongLongHashMap statementCountSerie;
@@ -201,7 +204,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
                 header,
                 toJdbcOperationStats(operationCounts),
                 builtGroups,
-                List.copyOf(slowRequests),
+                slowestFirst(),
                 TimeseriesUtils.buildSerie("Execution Time", executionTimeSerie),
                 TimeseriesUtils.buildSerie("Executions", statementCountSerie));
     }
@@ -231,5 +234,10 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         }
         return BigDecimal.valueOf(requestCount - errors)
                 .divide(BigDecimal.valueOf(requestCount), 4, RoundingMode.HALF_UP);
+    }
+
+    /** The slow statements, slowest first: the queue keeps them as a heap, in no order a reader can use. */
+    private List<JdbcSlowStatement> slowestFirst() {
+        return slowRequests.stream().sorted(BY_EXECUTION_TIME.reversed()).toList();
     }
 }

@@ -30,6 +30,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -121,6 +122,24 @@ final class MicroscopeClient {
         HttpResponse<String> response = send(HttpRequest.newBuilder(uri(path)).GET());
         assertEquals(HTTP_OK, response.statusCode(), () -> "GET " + path + ": " + response.body());
         return Json.readTree(response.body());
+    }
+
+    /** A UI read the page posts its options to, answered 200 with a binary body: a protobuf graph. */
+    byte[] postForBytes(String path, ObjectNode body) {
+        HttpRequest.Builder request = HttpRequest.newBuilder(uri(path))
+                .header(CONTENT_TYPE, JSON)
+                .POST(HttpRequest.BodyPublishers.ofString(body.toString()));
+        try {
+            HttpResponse<byte[]> response = HTTP.send(request.timeout(TIMEOUT).build(), HttpResponse.BodyHandlers.ofByteArray());
+            assertEquals(HTTP_OK, response.statusCode(),
+                    () -> "POST " + path + ": " + new String(response.body(), StandardCharsets.UTF_8));
+            return response.body();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while calling Microscope", e);
+        }
     }
 
     /** A UI change, answered as it comes. */

@@ -59,7 +59,7 @@ onMounted(() => {
       <ul>
         <li><strong>Upload</strong> a <code>.hsperfdata</code> file on the <router-link to="/docs/microscope/recordings">Recordings</router-link> page &mdash; the drop zone&rsquo;s <strong>Perf counters</strong> pill lists the extension, and the <strong>Perf Counters</strong> type filter shows only these recordings.</li>
         <li><strong>Download a connector session</strong> provisioned with <router-link to="/docs/provisioner/configuration">perf counters enabled</router-link>: the JVM saves <code>perf-counters.hsperfdata</code> into its session directory on exit (<code>-XX:PerfDataSaveFile</code>), and the download lands it as the bundle&rsquo;s <strong>Perf Counters</strong> item.</li>
-        <li><strong>From a coding agent</strong>, <code>recordings_analyzeFile</code> accepts a <code>.hsperfdata</code> path like any other initializable file.</li>
+        <li><strong>From a coding agent</strong>, <code>recordings_analyzeFile</code> accepts a <code>.hsperfdata</code> path like any other initializable file, and imports it every time: unlike a recording, it is never taken for an earlier import of the same name and size, since every JVM's counters share both.</li>
       </ul>
 
       <h2 id="initialization">Initialization</h2>

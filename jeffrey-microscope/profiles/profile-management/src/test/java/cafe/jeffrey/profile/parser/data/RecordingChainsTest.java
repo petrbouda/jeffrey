@@ -19,8 +19,8 @@ package cafe.jeffrey.profile.parser.data;
 
 import cafe.jeffrey.jfrparser.raw.JfrParser;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.test.recording.PersonsRecording;
 import cafe.jeffrey.test.recording.RecordedSession;
+import cafe.jeffrey.test.recording.TestappRecording;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -53,24 +52,24 @@ class RecordingChainsTest {
 
     /**
      * A {@code jfrsync} file is cut into its chunks, each to the chain of the profiler that wrote
-     * it: the JDK's two, async-profiler's three, each beginning where the file says it did.
+     * it: the JDK's two, async-profiler's one, each beginning where the file says it did.
      */
     @Test
     void aJfrsyncFileIsCutIntoItsTwoChains() throws IOException {
-        PersonsRecording recording = PersonsRecording.DIRECT;
-        Path file = Files.write(dir.resolve(recording.fileName()), recording.bytes());
+        TestappRecording recording = TestappRecording.DIRECT;
+        Path file = Files.write(dir.resolve(TestappRecording.RECORDING_FILE), recording.bytes());
 
         Map<RecordingEventSource, List<Path>> chains = RecordingChains.of(List.of(file), dir.resolve("scratch"));
 
         List<Instant> starts = recording.chunkStarts();
         assertEquals(List.of(starts.get(0), starts.get(1)), startsOf(chains.get(RecordingEventSource.JDK)));
-        assertEquals(recording.profilerChunks().stream().map(recording::openedAt).toList(),
+        assertEquals(List.of(starts.get(TestappRecording.PROFILER_CHUNK)),
                 startsOf(chains.get(RecordingEventSource.ASYNC_PROFILER)));
     }
 
     private static List<Instant> startsOf(List<Path> files) {
         return files.stream()
-                .map(file -> JfrParser.collectChunks(file).getFirst().startTime().truncatedTo(ChronoUnit.SECONDS))
+                .map(file -> JfrParser.collectChunks(file).getFirst().startTime())
                 .toList();
     }
 }

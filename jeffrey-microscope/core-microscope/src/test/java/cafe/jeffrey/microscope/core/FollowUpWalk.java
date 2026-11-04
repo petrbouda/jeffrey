@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -53,10 +55,14 @@ final class FollowUpWalk {
     private static final String FIELD_ARGUMENTS = "arguments";
     private static final String FIELD_WHY = "why";
 
+    /** The argument a paged answer continues by: one page more of the same query. */
+    private static final String CURSOR = "cursor";
+
     private final MicroscopeClient microscope;
     private final Deque<Call> pending = new ArrayDeque<>();
     private final Set<String> seen = new HashSet<>();
     private final SortedSet<String> toolsReached = new TreeSet<>();
+    private final Map<String, Integer> callsByTool = new TreeMap<>();
     private final List<String> failures = new ArrayList<>();
     private int calls;
 
@@ -81,6 +87,7 @@ final class FollowUpWalk {
             Call call = pending.poll();
             calls++;
             toolsReached.add(call.tool());
+            callsByTool.merge(call.tool(), 1, Integer::sum);
             JsonNode answer;
             try {
                 answer = microscope.answer(call.tool(), call.arguments());
@@ -91,7 +98,7 @@ final class FollowUpWalk {
             }
             collectSuggestions(answer, call.key());
         }
-        assertTrue(calls < MAX_CALLS, "The walk did not converge within " + MAX_CALLS + " calls");
+        assertTrue(calls < MAX_CALLS, () -> "The walk did not converge within " + MAX_CALLS + " calls: " + callsByTool);
         assertTrue(failures.isEmpty(), () -> failures.size() + " of " + calls
                 + " suggested calls failed:\n\n" + String.join("\n\n", failures));
         return toolsReached;
@@ -119,8 +126,18 @@ final class FollowUpWalk {
     /** One call, as an answer suggested it, and the answer that did. */
     private record Call(String tool, ObjectNode arguments, String suggestedBy) {
 
-        /** Two suggestions of one tool with one set of arguments are one call, whoever made them. */
+        /**
+         * Two suggestions of one tool with one set of arguments are one call, whoever made them. A
+         * continuation is keyed by its query alone: the walk follows one page past the first, which is
+         * what proves a cursor works — every page of a real recording's thousands of matches would only
+         * repeat it.
+         */
         String key() {
+            if (arguments.has(CURSOR)) {
+                ObjectNode query = arguments.deepCopy();
+                query.remove(CURSOR);
+                return tool + " " + query + " continued";
+            }
             return tool + " " + arguments;
         }
     }

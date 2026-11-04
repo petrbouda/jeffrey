@@ -54,7 +54,7 @@
         </dependency>
 
         <!-- Test dependencies -->
-        <!-- RecordedSession and PersonsRecording: real recordings with their figures pinned -->
+        <!-- RecordedSession, TestappRecording and CheckoutRecording: real recordings with their figures pinned -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>test</artifactId>

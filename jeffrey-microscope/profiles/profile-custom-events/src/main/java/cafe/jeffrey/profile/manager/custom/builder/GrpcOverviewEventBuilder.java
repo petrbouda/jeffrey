@@ -155,11 +155,15 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
 
     private final Map<String, ServiceInfoBuilder> serviceInfos = new HashMap<>();
 
-    private final PriorityQueue<GrpcSlowCall> slowCalls = new PriorityQueue<>(
-            Comparator.comparingLong(GrpcSlowCall::responseTime));
+    /** Slowest last, so the queue's head is the fastest of the slow ones: the one a slower call evicts. */
+    private static final Comparator<GrpcSlowCall> BY_RESPONSE_TIME = Comparator.comparingLong(GrpcSlowCall::responseTime);
 
-    private final PriorityQueue<GrpcLargestCall> largestCalls = new PriorityQueue<>(
-            Comparator.comparingLong(GrpcLargestCall::totalSize));
+    /** Largest last, so the queue's head is the smallest of the large ones: the one a larger call evicts. */
+    private static final Comparator<GrpcLargestCall> BY_TOTAL_SIZE = Comparator.comparingLong(GrpcLargestCall::totalSize);
+
+    private final PriorityQueue<GrpcSlowCall> slowCalls = new PriorityQueue<>(BY_RESPONSE_TIME);
+
+    private final PriorityQueue<GrpcLargestCall> largestCalls = new PriorityQueue<>(BY_TOTAL_SIZE);
 
     private final LongLongHashMap responseTimeSerie;
     private final LongLongHashMap callCountSerie;
@@ -287,7 +291,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
                 header,
                 services,
                 toGrpcStatusStats(globalStatusCounts),
-                List.copyOf(slowCalls),
+                slowestFirst(),
                 TimeseriesUtils.buildSerie("Response Time", responseTimeSerie),
                 TimeseriesUtils.buildSerie("Call Count", callCountSerie));
     }
@@ -316,7 +320,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
                 builder.maxResponseSize);
 
         // Filter slow calls for this service
-        List<GrpcSlowCall> serviceSlowCalls = slowCalls.stream()
+        List<GrpcSlowCall> serviceSlowCalls = slowestFirst().stream()
                 .filter(call -> service.equals(call.service()))
                 .toList();
 
@@ -342,7 +346,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
                 TimeseriesUtils.buildSerie("Request Size", requestSizeSerie),
                 TimeseriesUtils.buildSerie("Response Size", responseSizeSerie),
                 buckets,
-                List.copyOf(largestCalls));
+                largestCalls.stream().sorted(BY_TOTAL_SIZE.reversed()).toList());
     }
 
     private GrpcHeader buildHeader() {
@@ -397,5 +401,10 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         statusCounts.keyValuesView().each(pair ->
                 result.add(new GrpcStatusStats(pair.getOne(), pair.getTwo())));
         return result;
+    }
+
+    /** The slow calls, slowest first: the queue keeps them as a heap, in no order a reader can use. */
+    private List<GrpcSlowCall> slowestFirst() {
+        return slowCalls.stream().sorted(BY_RESPONSE_TIME.reversed()).toList();
     }
 }

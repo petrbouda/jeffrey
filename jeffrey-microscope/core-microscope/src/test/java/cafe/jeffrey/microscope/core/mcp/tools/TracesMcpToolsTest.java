@@ -265,11 +265,12 @@ class TracesMcpToolsTest {
         @Test
         void routesToTheNotificationsOnlyWhenAnUrgentOneWasRaised() {
             when(traceManager.overview()).thenReturn(TRACED);
-            assertEquals(List.of("traces_notifications", "traces_operations"),
+            assertEquals(List.of("traces_notifications", "traces_operations", "traces_attributeKeys"),
                     StructuredAnswers.nextTools(json("overview", tools().overview())));
 
             when(traceManager.overview()).thenReturn(TRACED_CALMLY);
-            assertEquals(List.of("traces_operations"), StructuredAnswers.nextTools(json("overview", tools().overview())));
+            assertEquals(List.of("traces_operations", "traces_attributeKeys"),
+                    StructuredAnswers.nextTools(json("overview", tools().overview())));
         }
 
         /** A probe answers either way: a profile without traces is a status, not an empty dashboard. */

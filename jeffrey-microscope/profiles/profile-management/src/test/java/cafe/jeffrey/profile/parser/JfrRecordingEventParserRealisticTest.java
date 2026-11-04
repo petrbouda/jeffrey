@@ -21,9 +21,10 @@ import cafe.jeffrey.jfrparser.raw.JfrParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.test.recording.PersonsRecording;
-import cafe.jeffrey.test.recording.PersonsRecording.Counts;
-import cafe.jeffrey.test.recording.PersonsRecording.ProfilerChunk;
+import cafe.jeffrey.test.recording.CheckoutRecording;
+import cafe.jeffrey.test.recording.TestappRecording;
+import cafe.jeffrey.test.recording.TestappRecording.Counts;
+import cafe.jeffrey.test.recording.TestappRecording.Traces;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,21 +41,29 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-import static cafe.jeffrey.test.recording.PersonsRecording.ALLOCATION_IN_NEW_TLAB;
-import static cafe.jeffrey.test.recording.PersonsRecording.DIRECT;
-import static cafe.jeffrey.test.recording.PersonsRecording.DOM;
-import static cafe.jeffrey.test.recording.PersonsRecording.EXECUTION_SAMPLE;
-import static cafe.jeffrey.test.recording.PersonsRecording.MONITOR_ENTER;
-import static cafe.jeffrey.test.recording.PersonsRecording.THREAD_PARK;
-import static cafe.jeffrey.test.recording.PersonsRecording.WALL_CLOCK_SAMPLE;
+import static cafe.jeffrey.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
+import static cafe.jeffrey.test.recording.TestappRecording.CONNECTION_ACQUIRED;
+import static cafe.jeffrey.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.test.recording.TestappRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
+import static cafe.jeffrey.test.recording.TestappRecording.JDBC_DELETE;
+import static cafe.jeffrey.test.recording.TestappRecording.JDBC_QUERY;
+import static cafe.jeffrey.test.recording.TestappRecording.JDBC_UPDATE;
+import static cafe.jeffrey.test.recording.TestappRecording.MONITOR_ENTER;
+import static cafe.jeffrey.test.recording.TestappRecording.POOL_STATISTICS;
+import static cafe.jeffrey.test.recording.TestappRecording.PROFILER_CHUNK;
+import static cafe.jeffrey.test.recording.TestappRecording.THREAD_PARK;
+import static cafe.jeffrey.test.recording.TestappRecording.TRACE_SPAN;
+import static cafe.jeffrey.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The event parser over realistic recordings: files a profiler with {@code jfrsync} wrote, each two
  * chains of chunks overlapping in time — the JDK's own and async-profiler's — whose event types are
- * numbered differently, kept LZ4-compressed as the hub leaves them. What reaches the writer is held
- * to what {@link PersonsRecording} pins, however the file is read.
+ * numbered differently. What reaches the writer is held to what {@link TestappRecording} pins, however
+ * the file is read: as the provisioner left it, compressed as the hub leaves it, split, or as its
+ * chunks in files of their own.
  */
 @DisplayName("JfrRecordingEventParser over realistic recordings")
 class JfrRecordingEventParserRealisticTest {
@@ -71,6 +80,9 @@ class JfrRecordingEventParserRealisticTest {
     private static final List<String> PROFILER_TYPES =
             List.of(EXECUTION_SAMPLE, WALL_CLOCK_SAMPLE, ALLOCATION_IN_NEW_TLAB, THREAD_PARK, MONITOR_ENTER);
 
+    private static final List<String> SERVICE_TYPES = List.of(HTTP_SERVER_EXCHANGE, TRACE_SPAN, JDBC_QUERY,
+            JDBC_UPDATE, JDBC_DELETE, CONNECTION_ACQUIRED, POOL_STATISTICS);
+
     @TempDir
     static Path work;
 
@@ -82,12 +94,13 @@ class JfrRecordingEventParserRealisticTest {
     class WhatARunHolds {
 
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
-        @DisplayName("reaches the writer, every event and every sample")
-        void everyEventAndSampleReachesTheWriter(PersonsRecording recording) {
-            EventTally tally = archive(recording);
+        @EnumSource(TestappRecording.class)
+        @DisplayName("reaches the writer, every sample and every one of the service's own events")
+        void everyEventAndSampleReachesTheWriter(TestappRecording recording) {
+            EventTally tally = plain(recording, ALWAYS_SPLIT);
 
             assertCounts(recording.counts(), tally);
+            assertTraces(recording.traces(), tally);
         }
     }
 
@@ -117,46 +130,69 @@ class JfrRecordingEventParserRealisticTest {
         }
     }
 
-    /** What each chain contributes: the profiler's samples from one, the JDK's events from the other. */
+    /** What each chain contributes: the profiler's samples from one, the JDK's and the service's events from the other. */
     @Nested
     @DisplayName("Two chains in one file")
     class Chains {
 
-        @Test
-        @DisplayName("the profiler's chunks alone hold every profiler event of the run")
-        void theProfilersChunksHoldEveryProfilerEvent() {
-            EventTally profiler = reading("profiler chunks " + DOM,
-                    () -> new RecordingSources(profilerChunkFiles(DOM)), ALWAYS_SPLIT);
+        @ParameterizedTest
+        @EnumSource(TestappRecording.class)
+        @DisplayName("the profiler's chunk alone holds every profiler event of the run, and none of the service's")
+        void theProfilersChunkHoldsEveryProfilerEvent(TestappRecording recording) {
+            EventTally profiler = reading("profiler chunk " + recording,
+                    () -> RecordingSources.of(chunkFiles(recording).get(PROFILER_CHUNK)), ALWAYS_SPLIT);
 
-            assertCounts(DOM.counts(), profiler);
+            assertCounts(recording.counts(), profiler);
+            for (String type : SERVICE_TYPES) {
+                assertEquals(0, profiler.events(type), type);
+            }
             assertEquals(0, profiler.events(JDK_GC_EVENT));
         }
 
         @ParameterizedTest
-        @EnumSource(PersonsRecording.class)
-        @DisplayName("each of the profiler's chunks holds its own share")
-        void eachProfilerChunkHoldsItsShare(PersonsRecording recording) {
+        @EnumSource(TestappRecording.class)
+        @DisplayName("the JDK's chunks hold none of the profiler's events, and all of its own and the service's")
+        void theJdksChunksHoldNoneOfTheProfilersEvents(TestappRecording recording) {
             List<Path> files = chunkFiles(recording);
-            for (ProfilerChunk chunk : recording.profilerChunks()) {
-                EventTally alone = reading("chunk " + chunk.index() + " " + recording,
-                        () -> RecordingSources.of(files.get(chunk.index())), ALWAYS_SPLIT);
-
-                assertCounts(chunk.counts(), alone);
-            }
-        }
-
-        @Test
-        @DisplayName("the JDK's chunks hold none of the profiler's events, and all of its own")
-        void theJdksChunksHoldNoneOfTheProfilersEvents() {
-            List<Path> files = chunkFiles(DOM);
-            EventTally jdk = reading("jdk chunks " + DOM,
+            EventTally jdk = reading("jdk chunks " + recording,
                     () -> new RecordingSources(List.of(files.get(0), files.get(1))), ALWAYS_SPLIT);
 
             for (String type : PROFILER_TYPES) {
                 assertEquals(0, jdk.events(type), type);
             }
+            assertTraces(recording.traces(), jdk);
             assertTrue(jdk.events(JDK_GC_EVENT) > 0, "the JDK's chain holds the GC events");
-            assertEquals(jdk.events(JDK_GC_EVENT), archive(DOM).events(JDK_GC_EVENT));
+            assertEquals(jdk.events(JDK_GC_EVENT), plain(recording, ALWAYS_SPLIT).events(JDK_GC_EVENT));
+        }
+    }
+
+    /**
+     * The traced checkout runs: one chunk each, the JDK's own recorder only, with the tracing library's
+     * events — a request's root and its steps — beside the JDK's samples.
+     */
+    @Nested
+    @DisplayName("A traced run")
+    class TracedRun {
+
+        @ParameterizedTest
+        @EnumSource(CheckoutRecording.class)
+        @DisplayName("reaches the writer with every span, root and sample, however it is read")
+        void everySpanRootAndSampleReachesTheWriter(CheckoutRecording recording) {
+            Path file = work.resolve(recording.fileName());
+            if (Files.notExists(file)) {
+                write(file, recording.bytes());
+            }
+            EventTally split = reading("split " + recording, () -> RecordingSources.of(file), ALWAYS_SPLIT);
+            EventTally asItLies = reading("as it lies " + recording, () -> RecordingSources.of(file), AS_IT_LIES);
+
+            CheckoutRecording.Counts counts = recording.counts();
+            assertEquals(counts.exchanges(), split.events(CheckoutRecording.HTTP_SERVER_EXCHANGE));
+            assertEquals(counts.spans(), split.events(CheckoutRecording.TRACE_SPAN));
+            assertEquals(counts.executionSamples(), split.events(CheckoutRecording.EXECUTION_SAMPLE));
+            assertEquals(counts.allocationSamples(), split.events(CheckoutRecording.ALLOCATION_SAMPLE));
+            assertEquals(counts.monitorEnters(), split.events(CheckoutRecording.MONITOR_ENTER));
+            assertEquals(counts.exceptionThrows(), split.events(CheckoutRecording.EXCEPTION_THROW));
+            assertEquals(split.events(), asItLies.events());
         }
     }
 
@@ -169,23 +205,34 @@ class JfrRecordingEventParserRealisticTest {
         assertEquals(counts.monitorEnters(), tally.events(MONITOR_ENTER), MONITOR_ENTER);
     }
 
+    private static void assertTraces(Traces traces, EventTally tally) {
+        assertEquals(traces.exchanges(), tally.events(HTTP_SERVER_EXCHANGE), HTTP_SERVER_EXCHANGE);
+        assertEquals(traces.spans(), tally.events(TRACE_SPAN), TRACE_SPAN);
+        assertEquals(traces.queries(), tally.events(JDBC_QUERY), JDBC_QUERY);
+        assertEquals(traces.updates(), tally.events(JDBC_UPDATE), JDBC_UPDATE);
+        assertEquals(traces.deletes(), tally.events(JDBC_DELETE), JDBC_DELETE);
+        assertEquals(traces.connectionsAcquired(), tally.events(CONNECTION_ACQUIRED), CONNECTION_ACQUIRED);
+        assertEquals(traces.poolStatistics(), tally.events(POOL_STATISTICS), POOL_STATISTICS);
+    }
+
     /**
-     * Two readings of {@link PersonsRecording#DIRECT} agree on every type — how many events, how many
+     * Two readings of {@link TestappRecording#DIRECT} agree on every type — how many events, how many
      * samples — and on the run's own figures: two readings that lost the same events would still
      * agree with each other.
      */
     private static void assertSame(EventTally expected, EventTally actual) {
         assertCounts(DIRECT.counts(), actual);
+        assertTraces(DIRECT.traces(), actual);
         assertEquals(expected.events(), actual.events());
         assertEquals(expected.samples(), actual.samples());
     }
 
-    /** The run as kept, compressed: an archive is always split, its decompression in the same pass. */
-    private static EventTally archive(PersonsRecording recording) {
+    /** The run compressed as the hub leaves it: an archive is always split, its decompression in the same pass. */
+    private static EventTally archive(TestappRecording recording) {
         return reading("archive " + recording, () -> RecordingSources.of(archiveFile(recording)), ALWAYS_SPLIT);
     }
 
-    private static EventTally plain(PersonsRecording recording, int chunkSplitThreshold) {
+    private static EventTally plain(TestappRecording recording, int chunkSplitThreshold) {
         return reading("plain " + recording + " " + chunkSplitThreshold,
                 () -> RecordingSources.of(plainFile(recording)), chunkSplitThreshold);
     }
@@ -200,24 +247,24 @@ class JfrRecordingEventParserRealisticTest {
         });
     }
 
-    private static Path archiveFile(PersonsRecording recording) {
-        Path archive = work.resolve(recording.fileName());
-        if (Files.notExists(archive)) {
-            write(archive, recording.bytes());
-        }
-        return archive;
-    }
-
-    private static Path plainFile(PersonsRecording recording) {
+    private static Path plainFile(TestappRecording recording) {
         Path plain = work.resolve(recording + ".jfr");
         if (Files.notExists(plain)) {
-            Lz4Compressor.decompress(archiveFile(recording), plain);
+            write(plain, recording.bytes());
         }
         return plain;
     }
 
+    private static Path archiveFile(TestappRecording recording) {
+        Path archive = work.resolve(recording + ".jfr.lz4");
+        if (Files.notExists(archive)) {
+            Lz4Compressor.compress(plainFile(recording), archive);
+        }
+        return archive;
+    }
+
     /** Every chunk of the file as a file of its own, in the order the file holds them. */
-    private static List<Path> chunkFiles(PersonsRecording recording) {
+    private static List<Path> chunkFiles(TestappRecording recording) {
         Path pieces = work.resolve("pieces-" + recording);
         if (Files.notExists(pieces)) {
             return JfrParser.disassemble(plainFile(recording), pieces);
@@ -227,11 +274,6 @@ class JfrRecordingEventParserRealisticTest {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private static List<Path> profilerChunkFiles(PersonsRecording recording) {
-        List<Path> files = chunkFiles(recording);
-        return recording.profilerChunks().stream().map(chunk -> files.get(chunk.index())).toList();
     }
 
     private static void write(Path file, byte[] bytes) {
