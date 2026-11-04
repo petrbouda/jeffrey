@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.flamegraph.code.CodeAttribution.FocusCost;
+import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
+import cafe.jeffrey.flamegraph.code.MethodKey;
+import cafe.jeffrey.flamegraph.code.MethodRef;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
@@ -38,6 +43,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -214,6 +221,42 @@ class CompareMcpToolsTest {
                 .findFirst()
                 .orElseThrow();
         return McpSchemaGenerator.schemaOf(tool.getAnnotation(McpOutputSchema.class).value());
+    }
+
+    @Nested
+    class MethodNormalization {
+
+        @ParameterizedTest
+        @CsvSource({"10, 3600, 1000, 360000", "1, 40000, 100, 4000000"})
+        void identicalRatesRemainUnchanged(long primarySeconds, long baselineSeconds,
+                                          long primarySamples, long baselineSamples) {
+            primaryLasting(primarySeconds);
+            baselineLasting(baselineSeconds);
+            when(primaryFlamegraphManager.graphableEventSummaries())
+                    .thenReturn(List.of(exclusive(CPU_EVENT, primarySamples)));
+            when(baselineFlamegraphManager.graphableEventSummaries())
+                    .thenReturn(List.of(exclusive(CPU_EVENT, baselineSamples)));
+            MethodRef ref = MethodRef.parse("com.acme.Service#run");
+            when(primaryFlamegraphManager.codeAttribution(any(), any()))
+                    .thenReturn(attribution(ref, primarySamples));
+            when(baselineFlamegraphManager.codeAttribution(any(), any()))
+                    .thenReturn(attribution(ref, baselineSamples));
+
+            JsonNode comparison = conforming("methods", tools().methods(BASELINE_ID, List.of(ref.displayName()),
+                    CPU_EVENT, null, null, null, null, null));
+
+            JsonNode move = comparison.path("methods").get(0);
+            assertEquals("UNCHANGED", move.path("movement").asString(), comparison::toString);
+            assertEquals(primarySamples, move.path("baselineInclusiveScaled").asDouble());
+            assertEquals(0.0, move.path("inclusiveDelta").asDouble());
+        }
+
+        private static CodeAttribution attribution(MethodRef ref, long samples) {
+            MethodKey key = new MethodKey(ref.className(), ref.methodName());
+            FocusCost focus = new FocusCost(ref, List.of(new MethodValue(key, samples)), samples, samples,
+                    List.of(), List.of(), List.of(), List.of(), List.of());
+            return new CodeAttribution(samples, 0, List.of(), List.of(), List.of(), List.of(focus));
+        }
     }
 
     private static List<McpToolSpec> reachable() {

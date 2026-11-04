@@ -130,7 +130,6 @@ public class CompareMcpTools {
     private static final int MAX_UNLISTED_MOVERS = 8;
     private static final int MAX_CALLEE_CHANGES = 5;
     private static final double HUNDREDTHS = 100.0;
-    private static final double SCALE_PRECISION = 10_000.0;
 
     /**
      * A change smaller than this share of the primary's total is reported UNCHANGED: a sampled
@@ -583,7 +582,7 @@ public class CompareMcpTools {
         if (primaryMs <= 0 || baselineMs <= 0) {
             return 1.0;
         }
-        return Math.round((double) primaryMs / baselineMs * SCALE_PRECISION) / SCALE_PRECISION;
+        return (double) primaryMs / baselineMs;
     }
 
     /**

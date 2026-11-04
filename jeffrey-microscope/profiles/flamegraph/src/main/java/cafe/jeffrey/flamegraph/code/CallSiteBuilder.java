@@ -155,16 +155,19 @@ public final class CallSiteBuilder implements CallSiteReader<CallSites> {
      */
     private List<OperationEntry> operationEntries() {
         List<OperationEntry> entries = new ArrayList<>();
+        Map<TraceOperationId, Long> totals = new HashMap<>();
+        outermostOwnEntries.forEach((key, events) -> totals.merge(key.operation(), events, Long::sum));
         for (Map.Entry<TraceOperationId, EntryTrunk> operation : trunks.entrySet()) {
+            long totalEvents = totals.get(operation.getKey());
             List<EntryTrunk.Entry> onTrunk = operation.getValue().entries();
             if (!onTrunk.isEmpty()) {
                 onTrunk.forEach(entry ->
-                        entries.add(new OperationEntry(operation.getKey(), entry.method(), entry.value())));
+                        entries.add(new OperationEntry(operation.getKey(), entry.method(), entry.value(), totalEvents)));
                 continue;
             }
             outermostOwnEntries.forEach((key, events) -> {
                 if (key.operation().equals(operation.getKey())) {
-                    entries.add(new OperationEntry(key.operation(), key.method(), events));
+                    entries.add(new OperationEntry(key.operation(), key.method(), events, totalEvents));
                 }
             });
         }

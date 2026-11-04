@@ -28,7 +28,7 @@ import java.util.List;
  *
  * @param totalEvents        every event read
  * @param totalNanos         their summed duration
- * @param unattributedEvents the events whose stack held no own frame
+ * @param unattributedEvents the events without stacks or whose stack held no own frame
  * @param sites              the call sites, longest total first
  * @param operationEntries   for events issued inside traced requests, the outermost own frame of their
  *                           stacks per operation -- the handler the request entered the code through,
@@ -51,8 +51,9 @@ public record CallSites(
      * {@link EntryTrunk} entry, or, when the trunk reaches no own code, each stack's outermost own frame.
      *
      * @param events how many of its events ran through that frame
+     * @param totalEvents the operation's events with own code, counted once even when entry candidates overlap
      */
-    public record OperationEntry(TraceOperationId operation, MethodKey method, long events) {
+    public record OperationEntry(TraceOperationId operation, MethodKey method, long events, long totalEvents) {
     }
 
     /**

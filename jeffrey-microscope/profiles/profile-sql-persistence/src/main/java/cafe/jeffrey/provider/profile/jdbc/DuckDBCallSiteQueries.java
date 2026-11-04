@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.CallSiteReader;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 
 import java.util.regex.Pattern;
@@ -76,15 +77,15 @@ final class DuckDBCallSiteQueries {
             ),
             per_trace AS (
                 SELECT
-                    p.path_id,
+                    COALESCE(p.path_id, %4$d) AS path_id,
                     <<group_expression>> AS group_value,
                     %1$s AS trace_id,
                     COUNT(*) AS event_count,
                     SUM(COALESCE(e.duration, 0)) AS total_duration,
                     MAX(COALESCE(e.duration, 0)) AS max_duration
                 FROM events e
-                INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
-                INNER JOIN paths p ON p.stacktrace_hash = e.stacktrace_hash
+                LEFT JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
+                LEFT JOIN paths p ON p.stacktrace_hash = e.stacktrace_hash
                 WHERE e.event_type = :event_type
             %2$s
                 GROUP BY ALL
@@ -133,12 +134,13 @@ final class DuckDBCallSiteQueries {
     }
 
     /**
-     * The events of each site path and grouping value, grouped by the field when one is named.
+     * The events of each site path and grouping value, grouped by the field when one is named. Events
+     * without a recorded stack remain in the unattributed path, including a read with no stacks at all.
      *
      * @param exemplars how many of the busiest traces each row names
      */
     static String sites(String groupField, EventQueryConfigurer configurer, int exemplars) {
-        String template = SITES.formatted(TRACE_ID, FILTERS, exemplars)
+        String template = SITES.formatted(TRACE_ID, FILTERS, exemplars, CallSiteReader.UNATTRIBUTED)
                 .replace(PLACEHOLDER_GROUP, groupField == null ? NO_GROUP : GROUP_BY_FIELD);
         return EventQueryFilters.splice(template, configurer);
     }

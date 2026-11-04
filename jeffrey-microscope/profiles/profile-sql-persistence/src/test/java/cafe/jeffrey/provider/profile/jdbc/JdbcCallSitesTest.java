@@ -131,6 +131,43 @@ class JdbcCallSitesTest {
     class Stacks {
 
         @Test
+        void eventsWithoutStacksRemainInTheTotals(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, FIXTURE);
+            insertStacklessEvent(dataSource);
+
+            RecordingReader reader = streamRepository(dataSource).callSites(
+                    new EventQueryConfigurer().withEventType(STATEMENT), SQL_FIELD, new RecordingReader());
+
+            assertEquals(16, reader.sites.stream().mapToLong(CallSiteRow::count).sum());
+            assertEquals(1, reader.site(CallSiteReader.UNATTRIBUTED, null).count());
+            assertEquals(100, reader.site(CallSiteReader.UNATTRIBUTED, null).totalNanos());
+        }
+
+        @Test
+        void aReadWithOnlyStacklessEventsStillCountsThem(DataSource dataSource) throws SQLException {
+            insertStacklessEvent(dataSource);
+
+            RecordingReader reader = streamRepository(dataSource).callSites(
+                    new EventQueryConfigurer().withEventType(STATEMENT), SQL_FIELD, new RecordingReader());
+
+            assertTrue(reader.stacks.isEmpty());
+            assertEquals(1, reader.sites.size());
+            assertEquals(1, reader.site(CallSiteReader.UNATTRIBUTED, null).count());
+            assertEquals(100, reader.site(CallSiteReader.UNATTRIBUTED, null).totalNanos());
+            assertTrue(reader.operationEvents.isEmpty());
+        }
+
+        private static void insertStacklessEvent(DataSource dataSource) throws SQLException {
+            try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
+                statement.executeUpdate("""
+                        INSERT INTO events_raw (event_type, start_timestamp, duration, samples,
+                                                stacktrace_hash, thread_hash, fields)
+                        VALUES ('jeffrey.JdbcStatement', '2025-01-15T10:00:00.008Z', 100, 1, NULL, 1, '{}')
+                        """);
+            }
+        }
+
+        @Test
         void everyDistinctStackOfTheTypeIsChargedOnce(DataSource dataSource) throws SQLException {
             RecordingReader reader = read(dataSource, SQL_FIELD);
 

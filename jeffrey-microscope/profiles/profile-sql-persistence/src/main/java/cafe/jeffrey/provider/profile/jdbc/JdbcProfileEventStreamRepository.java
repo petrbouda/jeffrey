@@ -251,10 +251,6 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                     stackHashes.add(stack.id());
                     pathIds.add(reader.pathOf(stack));
                 });
-        if (stacks.isEmpty()) {
-            return reader.build();
-        }
-
         params.addValue(STACK_HASHES_PARAM, stackHashes)
                 .addValue(PATH_IDS_PARAM, pathIds);
         databaseClient.queryStream(
@@ -263,6 +259,9 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                 params,
                 (rs, _) -> siteOf(rs),
                 reader::onSite);
+        if (stacks.isEmpty()) {
+            return reader.build();
+        }
         databaseClient.queryStream(
                 StatementLabel.STREAM_EVENTS,
                 DuckDBCallSiteQueries.operationStacks(configurer),

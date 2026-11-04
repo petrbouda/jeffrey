@@ -65,6 +65,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -283,11 +284,11 @@ public class CodeSurfaceMcpTools {
         MethodRef topRef = MethodRef.of(new MethodKey(top.className(), top.methodName()));
         Optional<Site> repeated = shown.stream().filter(Site::repeatedPerTrace).findFirst();
         McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(NextCalls.to(METHOD_TOOL)
+                .next(read.applyTo(NextCalls.to(METHOD_TOOL)
                         .with(PROFILE_ID, info.id())
                         .with(CLASS_NAME, topRef.className())
                         .with(METHOD_NAME, topRef.methodName())
-                        .with(FRAME_PREFIXES, prefixes)
+                        .with(FRAME_PREFIXES, prefixes))
                         .why(METHOD_WHY))
                 .nextWhen(repeated.isPresent() && !repeated.get().exemplarTraces().isEmpty(),
                         () -> NextCalls.to(TRACE_EXPORT_TOOL)
@@ -409,7 +410,7 @@ public class CodeSurfaceMcpTools {
             List<OperationEntry> recorded = entriesFromStatements.getOrDefault(
                     new TraceOperationId(row.name(), row.kind(), row.eventType()), List.of());
             if (!recorded.isEmpty()) {
-                long events = recorded.stream().mapToLong(OperationEntry::events).sum();
+                long events = recorded.getFirst().totalEvents();
                 entries = recorded.stream()
                         .limit(MAX_CODE_PER_OPERATION)
                         .map(entryRow -> new FrameShare(entryRow.method().displayName(), entryRow.events(),
@@ -464,13 +465,18 @@ public class CodeSurfaceMcpTools {
                     new Statements(SectionState.NOT_RECORDED, NO_STATEMENTS_NOTE, List.of(), 0), Map.of());
         }
         Map<TraceOperationId, Map<MethodKey, Long>> entries = new LinkedHashMap<>();
+        Map<TraceOperationId, Long> operationEvents = new LinkedHashMap<>();
         FrameScope scope = FrameScope.of(prefixes);
         Map<StatementKey, StatementAccumulator> byStatement = new LinkedHashMap<>();
         for (Type type : types) {
             CallSites sites = profileManager.flamegraphManager().callSites(
                     CodeAnswers.params(type, whole, false, false, null),
                     new CallSiteQuery(scope, STATEMENT_NAME_FIELD, null, null));
+            Set<TraceOperationId> countedOperations = new HashSet<>();
             for (OperationEntry entry : sites.operationEntries()) {
+                if (countedOperations.add(entry.operation())) {
+                    operationEvents.merge(entry.operation(), entry.totalEvents(), Long::sum);
+                }
                 entries.computeIfAbsent(entry.operation(), _ -> new LinkedHashMap<>())
                         .merge(entry.method(), entry.events(), Long::sum);
             }
@@ -488,7 +494,8 @@ public class CodeSurfaceMcpTools {
         List<Statement> shown = ToolArguments.firstOf(all, MAX_STATEMENTS);
         Map<TraceOperationId, List<OperationEntry>> byOperation = new LinkedHashMap<>();
         entries.forEach((operation, methods) -> byOperation.put(operation, methods.entrySet().stream()
-                .map(method -> new OperationEntry(operation, method.getKey(), method.getValue()))
+                .map(method -> new OperationEntry(operation, method.getKey(), method.getValue(),
+                        operationEvents.get(operation)))
                 .sorted(Comparator.comparingLong(OperationEntry::events).reversed()
                         .thenComparing(OperationEntry::method))
                 .toList()));

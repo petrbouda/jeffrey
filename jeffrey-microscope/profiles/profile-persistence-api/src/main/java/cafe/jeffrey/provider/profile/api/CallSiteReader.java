@@ -31,7 +31,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
  */
 public interface CallSiteReader<T> {
 
-    /** The path of a stack whose events are charged to no site: no frame of the reader's own code on it. */
+    /** Events charged to no site: no recorded stack, or no frame of the reader's own code on it. */
     int UNATTRIBUTED = -1;
 
     /**

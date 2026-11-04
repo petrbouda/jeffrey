@@ -130,6 +130,34 @@ class MethodRefTest {
         }
 
         @Test
+        void aSourceSpelledNestedClassTakesItsDeeperClasses() {
+            assertTrue(matches("com.acme.Outer.Inner", "com.acme.Outer$Inner$Child", "run"));
+            assertTrue(matches("com.acme.Outer.Inner", "com.acme.Outer$Inner$1", "run"));
+            assertFalse(matches("com.acme.Outer.Inner", "com.acme.Outer$InnerOther$Child", "run"));
+            assertFalse(matches("com.acme.Outer.Inner", "com.acme.Outer.Inner.helpers.Other", "run"));
+            assertFalse(matches("com.acme.Outer", "com.acme.Outer.helpers.Other", "run"));
+        }
+
+        @Test
+        void aSourceSpelledNestedMethodTakesItsKotlinBodies() {
+            assertTrue(matches("com.acme.Outer.Inner#load", "com.acme.Outer$Inner$load$1", "invokeSuspend"));
+            assertFalse(matches("com.acme.Outer.Inner#load", "com.acme.Outer$Inner$loadAll$1", "invokeSuspend"));
+        }
+
+        @Test
+        void aTopLevelKotlinFunctionTakesItsFacadeBodies() {
+            assertTrue(matches("com.acme.Checkout#load", "com.acme.CheckoutKt$load$1", "invokeSuspend"));
+            assertTrue(matches("com.acme.CheckoutKt#load", "com.acme.CheckoutKt$load$1", "invokeSuspend"));
+            assertFalse(matches("com.acme.Checkout#load", "com.acme.CheckoutKt$loadAll$1", "invokeSuspend"));
+        }
+
+        @Test
+        void aDollarInAMethodNameIsKeptInItsGeneratedHolder() {
+            assertTrue(matches("com.acme.Checkout#load$items", "com.acme.Checkout$load$items$1", "invokeSuspend"));
+            assertTrue(matches("com.acme.Outer.Inner#load$items", "com.acme.Outer$Inner$load$items$1", "invokeSuspend"));
+        }
+
+        @Test
         void neverMatchesANativeFrame() {
             assertFalse(matches("com.acme.Checkout", "", "read"));
         }
