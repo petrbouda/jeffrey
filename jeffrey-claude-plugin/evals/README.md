@@ -40,6 +40,7 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 | `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `advise-jfr`, `compare-jfr`, `profile-run`) and makes that skill's first call |
 | `route-two-revisions-not-profiled` | "Did my last commit make it slower? Nothing is profiled yet" | `regression-check`, not `compare-jfr`: the pair named (HEAD against its parent), both recorded the same way, no differential of the catalogue's unrelated pair |
 | `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export`, `blocking_monitors`), confidence stated, a **Not assessed** section |
+| `connector-not-configured` | "Why was checkout slow in production this morning? Its recordings should be on the connector" | `analyze-connector`, `connector_status` read, its `NOT_CONFIGURED` answer passed on: the `jeffrey.microscope.connector.*` properties (Azure file share or local directory) with placeholders and a restart, nothing claimed about production, no catalogue profile read as production's |
 
 Two more cases, under [`../evals-live/`](../evals-live/), ask what only SQL answers and run against a
 real Jeffrey — see [The SQL cases](#the-sql-cases).
@@ -956,3 +957,17 @@ fixture holds. The live SQL cases are untouched by this change (1.00 and 1.00 at
 
 The miss: one run of `exceptions-to-the-throw-site` without its check before parsing. The two
 unmarked replies linked a profile by its baseline name and by its length.
+
+## Mocks re-recorded; the connector case
+
+- **Re-recorded with `--reuse`** from the same three files (their checksums unchanged), so the figures
+  stand and only the profile ids moved. What the answers changed: `connector_status` carries `kind`
+  and names both kinds of connector in its `NOT_CONFIGURED` reason (the local directory came after
+  the last recording), and `traces_overview` offers `traces_attributeKeys` beside `traces_operations`,
+  whose answer for the candidate run is now recorded too.
+- **New case `connector-not-configured`.** The recording Jeffrey has no connector, and the skill's main
+  path runs through `connector_download`, a writer the recorder does not call, so the case the mocks can
+  answer is the one before it: a question about production when no connector is declared. It holds
+  `analyze-connector` to passing on the configuration — never inventing an address, never answering
+  from the catalogue's own profiles.
+- Not measured yet: the cases have not been run on these mocks.
