@@ -440,7 +440,7 @@ CREATE TABLE IF NOT EXISTS trace_exceptions
 --
 -- TRACE SPAN PAYLOADS TABLE
 -- The distinct `event_fields` payloads, one row per distinct JSON text, keyed by the text's own
--- 64-bit hash (DuckDB's hash(), cast to BIGINT) so the derivation can compute a span's reference
+-- 63-bit MD5-derived key (TextKeys) so the derivation can compute a span's reference
 -- inline without coordinating a sequence. A collision fails the primary key loudly during
 -- derivation instead of silently showing one span another span's payload.
 --
@@ -559,7 +559,7 @@ CREATE TABLE IF NOT EXISTS trace_notification_attributes
 --
 -- TRACE ATTRIBUTE VALUES TABLE
 -- The distinct attribute value texts, one row per distinct text across every source and key,
--- keyed by the text's own 64-bit hash (DuckDB's hash(), cast to BIGINT) so the derivation computes
+-- keyed by the text's own 63-bit MD5-derived key (TextKeys) so the derivation computes
 -- each row's reference inline. Shared across keys deliberately: `UNSET` recorded by ten thousand
 -- spans under three different keys is still one row here. A collision fails the primary key loudly
 -- during derivation instead of silently merging two values.

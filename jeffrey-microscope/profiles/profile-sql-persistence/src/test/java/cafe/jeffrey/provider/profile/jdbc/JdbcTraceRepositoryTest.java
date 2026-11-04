@@ -1811,6 +1811,58 @@ class JdbcTraceRepositoryTest {
         }
     }
 
+    /**
+     * A payload's key has to tell apart texts that DuckDB's {@code hash()} does not. Keyed by that
+     * hash, two statements whose SQL differed in two aligned bytes collided on the
+     * {@code trace_span_payloads} primary key and failed the whole profile initialization.
+     */
+    @Nested
+    @DisplayName("Payload keys")
+    class PayloadKeys {
+
+        private static final long FIRST_TRACE = 9400L;
+        private static final long SECOND_TRACE = 9401L;
+        private static final String FIRST_SQL = "SELECT * FROM orderb WHERE fd = 1";
+        private static final String SECOND_SQL = "SELECT * FROM ordere WHERE ad = 1";
+
+        private static JdbcTraceRepository derived(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-colliding-payload-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        @Test
+        @DisplayName("payloads hash() cannot tell apart are two rows, each span pointing at its own")
+        void payloadsThatHashAlikeKeepTheirOwnRows(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            String first = repository.spansOf(FIRST_TRACE, NO_FOLDING).getFirst().eventFields();
+            String second = repository.spansOf(SECOND_TRACE, NO_FOLDING).getFirst().eventFields();
+
+            assertTrue(first.contains(FIRST_SQL), "the first statement keeps its own sql: " + first);
+            assertTrue(second.contains(SECOND_SQL), "the second statement keeps its own sql: " + second);
+        }
+
+        @Test
+        @DisplayName("hash() really does map the two payloads to one value")
+        void theFixtureCollidesUnderHash(DataSource dataSource) throws SQLException {
+            derived(dataSource);
+
+            try (Connection connection = dataSource.getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet rs = statement.executeQuery(
+                         "SELECT COUNT(*), COUNT(DISTINCT hash(payload)) FROM trace_span_payloads "
+                                 + "WHERE payload LIKE '%FROM order%'")) {
+                assertTrue(rs.next());
+                assertEquals(2, rs.getLong(1), "both payloads are stored");
+                assertEquals(1, rs.getLong(2),
+                        "the fixture has to keep colliding under hash(), or it no longer tests the key");
+            }
+        }
+    }
+
     @Nested
     @DisplayName("Notification groups and counts")
     class NotificationGroups {

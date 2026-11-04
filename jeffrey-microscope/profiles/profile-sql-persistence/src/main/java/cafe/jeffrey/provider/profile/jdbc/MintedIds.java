@@ -28,7 +28,7 @@ import java.util.List;
  * them, so the same event got another id in another analysis of the same recording. The occurrence
  * keeps two byte-identical events (a re-imported chunk) two ids, numbered in an order their content
  * decides. The digest is MD5 folded into {@code [1, 2^63-1]} — never 0, the wire encoding for "absent",
- * never negative — for the reason {@link TextIds} gives: DuckDB's {@code hash()} collides on
+ * never negative — for the reason {@link TextKeys} gives: DuckDB's {@code hash()} collides on
  * near-identical input.
  */
 final class MintedIds {

@@ -183,9 +183,10 @@ public class JdbcTraceRepository implements TraceRepository {
     /*
      * The distinct event_fields payloads, written before the spans so every reference the span
      * insert computes has a row to land on. One row per distinct JSON text, keyed by the text's own
-     * hash: a million statement spans carry a few thousand distinct payloads, and storing the text
-     * once per payload instead of once per span is most of the difference between a trace table
-     * that fits in memory and one that dominates the profile file.
+     * key (TextKeys): a million statement spans carry a few thousand distinct payloads, and storing
+     * the text once per payload instead of once per span is most of the difference between a trace
+     * table that fits in memory and one that dominates the profile file. DISTINCT runs before the
+     * key, so the MD5 is paid once per distinct payload rather than once per event.
      *
      * Two branches, mirroring the two the span insert below assembles. Each reads its events
      * exactly as that insert does -- the recorded branch through the view, the blocking branch off
@@ -199,22 +200,27 @@ public class JdbcTraceRepository implements TraceRepository {
     //language=SQL
     private static final String DERIVE_SPAN_PAYLOADS = """
             INSERT INTO trace_span_payloads (payload_id, payload)
-            SELECT DISTINCT <<payload_id>>, payload
+            SELECT <<payload_key>>, payload
             FROM (
-                SELECT %s AS payload
-                FROM events
-                WHERE event_type IN (%s)
-                  AND COALESCE(json_extract_string(fields, '$.traceId')::BIGINT, 0) <> 0
-                  AND COALESCE(json_extract_string(fields, '$.spanId')::BIGINT, 0) <> 0
-                UNION ALL
-                SELECT NULLIF(CAST(json_merge_patch(<<rehydrated>>, '{%s}') AS VARCHAR), '{}') AS payload
-                FROM events_raw e
-                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
-                WHERE e.event_type IN (:promoted_event_types)
-                  AND e.thread_hash IS NOT NULL
+                SELECT DISTINCT payload
+                FROM (
+                    SELECT %s AS payload
+                    FROM events
+                    WHERE event_type IN (%s)
+                      AND COALESCE(json_extract_string(fields, '$.traceId')::BIGINT, 0) <> 0
+                      AND COALESCE(json_extract_string(fields, '$.spanId')::BIGINT, 0) <> 0
+                    UNION ALL
+                    SELECT NULLIF(CAST(json_merge_patch(<<rehydrated>>, '{%s}') AS VARCHAR), '{}') AS payload
+                    FROM events_raw e
+                    LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
+                    WHERE e.event_type IN (:promoted_event_types)
+                      AND e.thread_hash IS NOT NULL
+                )
+                WHERE payload IS NOT NULL
             )
-            WHERE payload IS NOT NULL
-            """.replace("<<rehydrated>>", REHYDRATED_FIELDS).replace("<<payload_id>>", TextIds.of("payload"));
+            """
+            .replace("<<rehydrated>>", REHYDRATED_FIELDS)
+            .replace("<<payload_key>>", TextKeys.of("payload"));
 
     /*
      * The identity columns are a flat projection, because there is nothing left to work out: Tracer
@@ -664,7 +670,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 s.event_type                                            AS event_type,
                 s.attributes                                            AS attributes,
                 CASE WHEN s.payload IS NULL THEN NULL
-                     ELSE <<span_payload_id>>
+                     ELSE <<payload_key>>
                 END                                                     AS event_fields_ref,
                 s.synthesized                                           AS synthesized,
                 s.io_origin                                             AS io_origin
@@ -673,8 +679,9 @@ public class JdbcTraceRepository implements TraceRepository {
               ON c.trace_id = s.trace_id
              AND c.span_id = s.span_id
             ORDER BY s.trace_id, s.start_timestamp, s.span_id
-            """.replace("<<rehydrated>>", REHYDRATED_FIELDS)
-            .replace("<<span_payload_id>>", TextIds.of("s.payload"))
+            """
+            .replace("<<rehydrated>>", REHYDRATED_FIELDS)
+            .replace("<<payload_key>>", TextKeys.of("s.payload"))
             .replace("<<minted_span_id>>", MintedIds.of(
                     List.of("t.trace_id", "t.thread_hash", "t.event_type", "t.start_us"),
                     List.of("t.duration", "CAST(t.fields AS VARCHAR)")));
@@ -857,15 +864,17 @@ public class JdbcTraceRepository implements TraceRepository {
     //language=SQL
     private static final String DERIVE_TRACE_NOTIFICATION_MESSAGES = """
             INSERT INTO trace_notification_messages (message_id, message_text)
-            SELECT DISTINCT <<message_id>>, message
+            SELECT <<message_key>>, message
             FROM (
-                SELECT json_extract_string(<<rehydrated>>, '$.message') AS message
+                SELECT DISTINCT json_extract_string(<<rehydrated>>, '$.message') AS message
                 FROM events_raw e
                 LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
                 WHERE e.event_type = :notification_event_type
             )
             WHERE message IS NOT NULL
-            """.replace("<<rehydrated>>", REHYDRATED_FIELDS).replace("<<message_id>>", TextIds.of("message"));
+            """
+            .replace("<<rehydrated>>", REHYDRATED_FIELDS)
+            .replace("<<message_key>>", TextKeys.of("message"));
 
     //language=SQL
     private static final String DELETE_TRACE_NOTIFICATION_MESSAGES =
@@ -911,8 +920,9 @@ public class JdbcTraceRepository implements TraceRepository {
             JOIN traces tr ON tr.trace_id = n.trace_id
             LEFT JOIN trace_spans s ON s.trace_id = n.trace_id AND s.span_id = n.span_id
             ORDER BY n.trace_id, n.start_timestamp
-            """.replace("<<rehydrated>>", REHYDRATED_FIELDS)
-            .replace("<<message_ref>>", TextIds.of("json_extract_string(fields, '$.message')"))
+            """
+            .replace("<<rehydrated>>", REHYDRATED_FIELDS)
+            .replace("<<message_ref>>", TextKeys.of("json_extract_string(fields, '$.message')"))
             .replace("<<minted_notification_id>>", MintedIds.of(
                     List.of("e.event_type", "EPOCH_US(e.start_timestamp)", "e.thread_hash"),
                     List.of("CAST(e.fields AS VARCHAR)", "e.pooled_text_hash")));
