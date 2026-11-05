@@ -128,7 +128,10 @@ value no file name can hold — an operation's name such as `GET /persons/{count
 `type: agent` mock whose fixture holds every answer recorded for the profile, and the judge hands back the
 one the call names, verbatim, or the server's own error for an operation it does not hold. That is how
 `traces_slowestTraces` and `traces_operationExport` answer every traced operation, which the recorder
-reaches row by row from `traces_operations`. The mocks are a real
+reaches row by row from `traces_operations`, and `http_endpoint` every endpoint of `http_overview`. Three small
+tools — `code_hotspots`, `compare_movements`, `code_callSites` — are relayed by their options as well, so the wall
+clock with idle threads left out gets its own figures; a flamegraph is too large to copy, so `flamegraph_export`
+answers one recorded call per event type and the `recorded-call-semantics` grader fails a run that asked for another. The mocks are a real
 Jeffrey's answers, recorded by `build/scripts/record-plugin-eval-mocks.py` from the workload in
 [`fixtures/workload/`](fixtures/workload/) — a checkout service in miniature with a CPU hotspot,
 allocation, lock contention, exceptions used as control flow and a slow leak, recorded twice

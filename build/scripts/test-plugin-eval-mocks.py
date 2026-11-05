@@ -248,9 +248,32 @@ class CodeToolsTest(RecorderSandbox):
     def test_other_figures_are_not_accepted_with_the_fixture(self):
         given = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample', 'framePrefixes': ['com.acme.checkout.']}
         suggested = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample'}
-        _, pattern = self.record('code_hotspots', self.HOTSPOT_SCHEMA, [given, suggested],
+        _, pattern = self.record('flamegraph_export', self.HOTSPOT_SCHEMA, [given, suggested],
                                  lambda args: {'charged': 10 if args.get('framePrefixes') else 12})
-        self.assertTrue(self.violates(pattern, 'code_hotspots', suggested))
+        self.assertTrue(self.violates(pattern, 'flamegraph_export', suggested))
+        self.assertEqual('fixed', yaml.safe_load((self.mocks / 'flamegraph_export.md').read_text().split('---')[1])['type'])
+
+    def test_other_figures_of_a_small_tool_are_a_variant_its_relay_answers(self):
+        schema = {**self.HOTSPOT_SCHEMA, 'properties': {**self.HOTSPOT_SCHEMA['properties'], 'excludeIdle': {'type': 'boolean'}}}
+        whole = {'profileId': 'b', 'eventType': 'profiler.WallClockSample', 'framePrefixes': ['com.acme.']}
+        idle_out = {**whole, 'excludeIdle': True}
+        idle_out_shorter = {**idle_out, 'framePrefixes': ['com.']}
+        respond = lambda args: {'excludeIdle': args.get('excludeIdle', False), 'framePrefixes': args['framePrefixes'],
+                                'charged': 4 if args.get('excludeIdle') else 10}
+        recorded, pattern = self.record('code_hotspots', schema, [whole, idle_out, idle_out_shorter], respond)
+        for arguments in (whole, idle_out, idle_out_shorter):
+            self.assertFalse(self.violates(pattern, 'code_hotspots', arguments))
+        self.assertTrue(self.violates(pattern, 'code_hotspots', {**whole, 'useWeight': True}))
+        mock = (self.mocks / 'code_hotspots.md').read_text()
+        self.assertEqual('agent', yaml.safe_load(mock.split('---')[1])['type'])
+        self.assertIn('{{file:fixtures/code_hotspots-{input.eventType}-{input.profileId}.txt}}', mock)
+        self.assertIn('excludeIdle = {{input.excludeIdle}}', mock)
+        fixture = (self.mocks / 'fixtures/code_hotspots-profiler.WallClockSample-b.txt').read_text()
+        self.assertEqual([recorded.answers['code_hotspots'][('profiler.WallClockSample', 'b')],
+                          recorded.variants['code_hotspots'][('profiler.WallClockSample', 'b')][0].answer],
+                         recorder.relay_answers(fixture))
+        self.assertIn('Left out, an argument has the value: {"excludeIdle": false', fixture)
+        self.assertIn(json.dumps({'excludeIdle': True, 'framePrefixes': ['com.']}), fixture)
 
     def test_the_weighting_follows_the_event_type_as_the_flamegraph_does(self):
         args = {'profileId': 'b', 'eventType': 'jdk.ObjectAllocationSample', 'framePrefixes': ['com.acme.']}
@@ -345,6 +368,12 @@ class RelayTest(RecorderSandbox):
         front = yaml.safe_load((self.mocks / 'traces_slowestTraces.md').read_text().split('---')[1])
         self.assertEqual('fixed', front['type'])
         self.assertEqual(['GET /persons/{count}'], front['expect']['name'])
+
+    def test_every_endpoint_of_an_http_dashboard_is_asked_for(self):
+        overview = {'endpoints': [{'uri': '/persons/{count}', 'requestCount': 664}, {'uri': '/persons'}, {'uri': None}]}
+        self.assertEqual([('http_endpoint', {'profileId': 'pm', 'uri': '/persons/{count}'}),
+                          ('http_endpoint', {'profileId': 'pm', 'uri': '/persons'})],
+                         recorder.row_calls('http_overview', {'profileId': 'pm', 'direction': 'SERVER'}, overview))
 
     def test_answers_a_file_name_can_hold_keep_their_fixed_mock(self):
         required = ['className', 'profileId']

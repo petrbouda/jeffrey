@@ -237,12 +237,14 @@ PERSONS_OPERATIONS = ("GET /persons/{count}", "GET /persons")
 # The persons runs' event types a code case groups by call site: its statements and its monitors.
 PERSONS_CALL_SITE_EVENT_TYPES = (JDBC_QUERY, "jdk.JavaMonitorEnter")
 # A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings;
-# each traced operation of every profile (`ROW_CALLS`), and the slowest trace each of them names with its span frames.
+# each traced operation and HTTP endpoint of every profile (`ROW_CALLS`), and the slowest trace each operation names
+# with its span frames.
 MAX_OPERATION_FIXTURES = 64
 MAX_TRACE_FIXTURES = 32
 MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_METHODS)) + MAX_FIXTURES_PER_TOOL,
                    "traces_slowestTraces": MAX_OPERATION_FIXTURES, "traces_operationExport": MAX_OPERATION_FIXTURES,
-                   "traces_traceExport": MAX_TRACE_FIXTURES, "traces_spanFlamegraphExport": MAX_TRACE_FIXTURES}
+                   "traces_traceExport": MAX_TRACE_FIXTURES, "traces_spanFlamegraphExport": MAX_TRACE_FIXTURES,
+                   "http_endpoint": MAX_OPERATION_FIXTURES}
 
 
 @dataclass(frozen=True)
@@ -254,15 +256,22 @@ class RowCalls:
 
 
 # An answer that lists subjects offers its follow-ups for the first one only, and a model asks about the one its
-# question is about: every operation's slowest traces and export are recorded, not only the first's.
+# question is about: every operation's slowest traces and export, and every endpoint's dashboard, are recorded.
 ROW_CALLS = {"traces_operations": RowCalls("operations", ("traces_slowestTraces", "traces_operationExport"),
-                                           ("name", "kind", "eventType"))}
+                                           ("name", "kind", "eventType")),
+             "http_overview": RowCalls("endpoints", ("http_endpoint",), ("uri",))}
 # The arguments a relay's fixture is chosen by, where a tool takes them: its answers are kept one file per profile.
 RELAY_FILE_ARGUMENTS = (PROFILE_ID, BASELINE_PROFILE_ID)
 # What a relay asks the real server for, in place of every value no fixture file can be named by, to record the
 # answer a call naming none of the recorded ones gets.
 UNRECORDED_VALUE = "(not recorded)"
 RELAY_ANSWER = re.compile(r"<answer>\n(.*?)\n</answer>", re.S)
+# The tools a relay also answers by their answer-changing options (`SEMANTIC_OPTIONS`), where a variant was recorded
+# whose figures differ — the wall clock with idle threads left out. Their answers are small enough for the judge to
+# hand back verbatim; a flamegraph (up to MAX_CHARS) is not, so flamegraph_export keeps its fixed mock and its other
+# variants stay rejected by the call-contract grader.
+OPTION_RELAYED_TOOLS = ("code_hotspots", "compare_movements", "code_callSites")
+WALL_CLOCK = "profiler.WallClockSample"
 
 # What may differ between two answers that address one fixture while the figures stay the same: the follow-up
 # and how the own packages were chosen. A call reached with other graded options is accepted with the
@@ -314,6 +323,13 @@ class Profiles:
 
 
 @dataclass
+class Variant:
+    """An answer recorded under a key another answer already holds, with the inputs that ask for it."""
+    inputs: list[dict]
+    answer: str
+
+
+@dataclass
 class Recorded:
     """Each tool's answers by the values of its required arguments, in the order they were made."""
     answers: dict[str, dict[tuple, str]] = field(default_factory=lambda: collections.defaultdict(dict))
@@ -321,6 +337,10 @@ class Recorded:
     inputs: dict[str, dict[tuple, dict]] = field(default_factory=lambda: collections.defaultdict(dict))
     # Other inputs a fixture answers as it answers its own: same figures, different provenance.
     aliases: dict[str, dict[tuple, list[dict]]] = field(
+        default_factory=lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
+    # Other answers recorded under a fixture's key, asked with other options and holding other figures: kept for an
+    # OPTION_RELAYED_TOOLS tool only, each with the inputs it answers.
+    variants: dict[str, dict[tuple, list["Variant"]]] = field(
         default_factory=lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
     # A relayed tool's answer to a call naming none of the recorded values, by its relay file: the input and the error.
     unmatched: dict[str, dict[tuple, tuple[dict, str]]] = field(default_factory=lambda: collections.defaultdict(dict))
@@ -522,6 +542,15 @@ def persons_seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str,
     calls += [("code_callSites", {PROFILE_ID: profile, "eventType": event_type, **own})
               for profile in runs for event_type in PERSONS_CALL_SITE_EVENT_TYPES]
     calls += [("code_runtimeSurface", {PROFILE_ID: profile, **own}) for profile in runs]
+    # The wall clock with idle threads left out, as a latency question reads it — other figures than the whole wall
+    # clock, recorded after it as a variant its relay answers too (OPTION_RELAYED_TOOLS) — and the call sites asked
+    # without the repository at hand, as the hotspots are above.
+    idle_out = {"eventType": WALL_CLOCK, "excludeIdle": True}
+    calls += [("code_hotspots", {PROFILE_ID: profile, **idle_out, **own}) for profile in runs]
+    calls += [("compare_movements", {PROFILE_ID: primary, BASELINE_PROFILE_ID: baseline, **idle_out})
+              for primary, baseline in pairs]
+    calls += [("code_callSites", {PROFILE_ID: profile, "eventType": event_type})
+              for profile in runs for event_type in PERSONS_CALL_SITE_EVENT_TYPES]
     calls += [(tool, {**arguments, "framePrefixes": packages}) for tool, arguments in list(calls)
               if arguments.get("framePrefixes") == PERSONS_PACKAGES for packages in PERSONS_EQUIVALENT_PACKAGES]
     # What each mode's case reads first, seeded rather than left to the walk: its graphs, weighted as the
@@ -664,12 +693,23 @@ def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]
             if key not in recorded.answers[tool]:
                 recorded.answers[tool][key] = seen_by_model(answer)
                 recorded.inputs[tool][key] = arguments
-            elif (semantics(tool, schemas[tool], arguments) != semantics(tool, schemas[tool], recorded.inputs[tool][key])
-                  and equivalent(recorded.answers[tool][key], answer)):
-                recorded.aliases[tool][key].append(arguments)
+            elif semantics(tool, schemas[tool], arguments) != semantics(tool, schemas[tool], recorded.inputs[tool][key]):
+                if equivalent(recorded.answers[tool][key], answer):
+                    recorded.aliases[tool][key].append(arguments)
+                elif tool in OPTION_RELAYED_TOOLS:
+                    add_variant(recorded.variants[tool][key], arguments, answer)
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
         queue.extend(row_calls(tool, arguments, answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
+
+
+def add_variant(variants: list[Variant], arguments: dict, answer: dict) -> None:
+    """Another answer for a key: an input of the variant whose figures it carries, or a variant of its own."""
+    for variant in variants:
+        if equivalent(variant.answer, answer):
+            variant.inputs.append(arguments)
+            return
+    variants.append(Variant([arguments], seen_by_model(answer)))
 
 
 def row_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, dict]]:
@@ -791,11 +831,11 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     # A tool none of whose calls could be keyed gets no mock, so the runs do not offer it at all
     # rather than offering one that answers every call with a missing fixture.
     answered = {}
-    relayed = relayed_tools(schemas, recorded)
+    relays = relays_of(schemas, recorded)
     for tool, answers in sorted(recorded.answers.items()):
         required = addressing(tool, schemas[tool])
-        if tool in relayed:
-            write_relay_mock(tool, required, relayed[tool], recorded)
+        if tool in relays:
+            write_relay_mock(relays[tool])
             answered[tool] = answers
             continue
         named = addressed(required, answers)
@@ -821,15 +861,81 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     mocked = set(recorded.fixed) | set(answered)
     listed = [tool for tool in tools if tool["name"] in mocked]
     (MOCKS / "_tools.json").write_text(json.dumps({"tools": listed}, indent=1, ensure_ascii=False) + "\n")
+    variants = {tool: recorded.variants[tool] for tool in relays if tool in recorded.variants}
     inputs = [{"tool": tool, "arguments": arguments}
               for tool in sorted(mocked) for arguments in recorded.inputs[tool].values()]
+    inputs += [{"tool": tool, "arguments": variant.inputs[0]}
+               for tool in sorted(variants) for _, kept in sorted(variants[tool].items()) for variant in kept]
     inputs += [{"tool": tool, "arguments": arguments, "equivalentTo": recorded.inputs[tool][key]}
                for tool in sorted(mocked) for key, aliases in sorted(recorded.aliases.get(tool, {}).items())
                for arguments in aliases]
+    inputs += [{"tool": tool, "arguments": arguments, "equivalentTo": variant.inputs[0]}
+               for tool in sorted(variants) for _, kept in sorted(variants[tool].items()) for variant in kept
+               for arguments in variant.inputs[1:]]
     (MOCKS / "_inputs.json").write_text(json.dumps(inputs, indent=1) + "\n")
     write_contract_graders(listed, inputs)
-    print(f"wrote {len(mocked)} mocked tools ({len(relayed)} relayed), {sum(map(len, answered.values()))} fixtures",
+    print(f"wrote {len(mocked)} mocked tools ({len(relays)} relayed), {sum(map(len, answered.values()))} fixtures",
           file=sys.stderr)
+
+
+@dataclass(frozen=True)
+class RelayEntry:
+    """One recorded answer of a relay, with every input that asks for it: the recorded one and its aliases."""
+    inputs: tuple[dict, ...]
+    answer: str
+
+
+@dataclass(frozen=True)
+class Relay:
+    """What a relay mock is written from: the arguments its fixture file is named by, the ones the judge matches the
+    call on, and per fixture file the recorded answers, the value an option left out stands for, and the server's
+    answer to a call that names nothing recorded."""
+    tool: str
+    file_arguments: tuple[str, ...]
+    chosen_by: tuple[str, ...]
+    files: dict[tuple, list[RelayEntry]]
+    defaults: dict[tuple, dict]
+    unmatched: dict[tuple, tuple[dict, str]]
+
+
+def relays_of(schemas: dict[str, dict], recorded: Recorded) -> dict[str, Relay]:
+    """Every tool a relay answers: one addressed by a value no file name can hold, and an OPTION_RELAYED_TOOLS tool
+    with a variant recorded."""
+    relays = {tool: operation_relay(tool, addressing(tool, schemas[tool]), file_arguments, recorded)
+              for tool, file_arguments in relayed_tools(schemas, recorded).items()}
+    for tool in OPTION_RELAYED_TOOLS:
+        if tool in schemas and tool not in relays and any(recorded.variants.get(tool, {}).values()):
+            relay = option_relay(tool, schemas[tool], recorded)
+            if relay is not None:
+                relays[tool] = relay
+    return relays
+
+
+def operation_relay(tool: str, required: list[str], file_arguments: list[str], recorded: Recorded) -> Relay:
+    """A relay choosing by the values no file name can hold — an operation's name — one fixture per profile."""
+    files = collections.defaultdict(list)
+    for key, text in recorded.answers[tool].items():
+        files[relay_file(required, file_arguments, key)].append(RelayEntry((recorded.inputs[tool][key],), text))
+    return Relay(tool, tuple(file_arguments), tuple(argument for argument in required if argument not in file_arguments),
+                 dict(files), {}, dict(recorded.unmatched.get(tool, {})))
+
+
+def option_relay(tool: str, schema: dict, recorded: Recorded) -> Relay | None:
+    """A relay choosing by the answer-changing options, one fixture per fixed mock's key; None when a key cannot name
+    a file, which leaves the tool its fixed mock."""
+    required = addressing(tool, schema)
+    answers = recorded.answers[tool]
+    if addressed(required, answers) != required:
+        return None
+    options = semantic_options(tool, schema)
+    files, defaults = {}, {}
+    for key, text in answers.items():
+        primary = recorded.inputs[tool][key]
+        files[key] = [RelayEntry((primary, *recorded.aliases[tool].get(key, [])), text)]
+        files[key] += [RelayEntry(tuple(variant.inputs), variant.answer)
+                       for variant in recorded.variants.get(tool, {}).get(key, [])]
+        defaults[key] = {name: server_default(tool, name, schema["properties"][name], primary) for name in options}
+    return Relay(tool, tuple(required), tuple(options), files, defaults, {})
 
 
 RELAY_ABORT_WHEN = ("Never. A call that matches no recorded call is answered with a tool error, as the "
@@ -838,7 +944,7 @@ RELAY_INSTRUCTIONS = """You stand in for the `{tool}` tool of a real Jeffrey. Ev
 when this suite was recorded; you hand back the one this call asks for, and you never compose one.
 
 This call asks for: {call}.
-
+{left_out}
 Find the recorded call whose arguments are exactly these, character for character. The call's other arguments
 (a limit, a page size, a level of detail) do not choose the answer. Reply with that recorded call's answer,
 the text between its <answer> and </answer> lines, exactly as recorded: every character as written, with
@@ -850,36 +956,44 @@ arguments, naming them.
 
 {fixture}
 """
+RELAY_LEFT_OUT = """An argument shown empty was left out of the call: it stands for the value the recorded calls below
+say a left-out argument has, and one with no such value matches only a recorded call that leaves it out too.
+"""
 
 
-def write_relay_mock(tool: str, required: list[str], file_arguments: list[str], recorded: Recorded) -> None:
-    """A `type: agent` mock for a tool whose answers no fixture file name can tell apart: one fixture per relay file
-    (the profile) holding each recorded call's arguments and answer, and the judge model hands back the one whose
-    arguments match the call's — verbatim, so the answer is still the real server's."""
-    matched = [argument for argument in required if argument not in file_arguments]
-    placeholders = "".join(f"-{{input.{argument}}}" for argument in file_arguments)
-    calls = collections.defaultdict(list)
-    for key, text in recorded.answers[tool].items():
-        calls[relay_file(required, file_arguments, key)].append((recorded.inputs[tool][key], text))
+def write_relay_mock(relay: Relay) -> None:
+    """A `type: agent` mock for a tool no fixed fixture can answer every recorded call of: one fixture per relay file
+    holding each recorded call's arguments and answer, and the judge model hands back the one whose arguments match
+    the call's — verbatim, so the answer is still the real server's."""
+    placeholders = "".join(f"-{{input.{argument}}}" for argument in relay.file_arguments)
     instructions = RELAY_INSTRUCTIONS.format(
-        tool=tool, call=", ".join(f"{argument} = {{{{input.{argument}}}}}" for argument in matched),
-        fixture=f"{{{{file:fixtures/{tool}{placeholders}.txt}}}}")
-    (MOCKS / f"{tool}.md").write_text("---\ntype: agent\nabort_when: " + json.dumps(RELAY_ABORT_WHEN)
-                                      + "\n---\n\n" + instructions)
-    for file, entries in calls.items():
+        tool=relay.tool, call=", ".join(f"{argument} = {{{{input.{argument}}}}}" for argument in relay.chosen_by),
+        left_out=RELAY_LEFT_OUT if relay.defaults else "", fixture=f"{{{{file:fixtures/{relay.tool}{placeholders}.txt}}}}")
+    (MOCKS / f"{relay.tool}.md").write_text("---\ntype: agent\nabort_when: " + json.dumps(RELAY_ABORT_WHEN)
+                                            + "\n---\n\n" + instructions)
+    for file, entries in relay.files.items():
         sections = []
-        for number, (arguments, text) in enumerate(entries, start=1):
-            chosen_by = {argument: arguments[argument] for argument in matched if argument in arguments}
-            sections.append(f"Recorded call {number}, arguments: {json.dumps(chosen_by, ensure_ascii=False)}\n"
-                            f"<answer>\n{text}\n</answer>")
-        unmatched = recorded.unmatched.get(tool, {}).get(file)
+        defaults = relay.defaults.get(file)
+        if defaults:
+            given = {name: value for name, value in defaults.items() if value is not NO_DEFAULT}
+            sections.append(f"Left out, an argument has the value: {json.dumps(given, ensure_ascii=False)}; "
+                            f"one not named here has none.")
+        for number, entry in enumerate(entries, start=1):
+            asked = " or ".join(json.dumps(relay_arguments(relay, arguments), ensure_ascii=False)
+                                for arguments in entry.inputs)
+            sections.append(f"Recorded call {number}, arguments: {asked}\n<answer>\n{entry.answer}\n</answer>")
+        unmatched = relay.unmatched.get(file)
         if unmatched is not None:
             probe, error = unmatched
             sections.append(f"Recorded unmatched answer, a tool error, to the input "
-                            f"{json.dumps({argument: probe[argument] for argument in matched}, ensure_ascii=False)}\n"
-                            f"<error>\n{error}\n</error>")
+                            f"{json.dumps(relay_arguments(relay, probe), ensure_ascii=False)}\n<error>\n{error}\n</error>")
         name = "".join(f"-{value}" for value in file)
-        (FIXTURES / f"{tool}{name}.txt").write_text("\n\n".join(sections) + "\n")
+        (FIXTURES / f"{relay.tool}{name}.txt").write_text("\n\n".join(sections) + "\n")
+
+
+def relay_arguments(relay: Relay, arguments: dict) -> dict:
+    """The arguments of a recorded call the judge matches on, as the call gave them."""
+    return {argument: arguments[argument] for argument in relay.chosen_by if argument in arguments}
 
 
 def relay_answers(text: str) -> list[str]:
