@@ -1,1 +1,0 @@
-{"profileId":"01a1acd1-ea07-7bf4-b0c8-34a38c672d1b","view":"socket-io","objectId":null,"uiLink":"http://localhost:8586/profiles/01a1acd1-ea07-7bf4-b0c8-34a38c672d1b/socket-io"}
