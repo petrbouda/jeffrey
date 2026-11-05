@@ -87,6 +87,7 @@ import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.profile.trace.export.TraceAiMarkdownBuilder;
+import cafe.jeffrey.profile.trace.export.TraceOnCpu;
 import cafe.jeffrey.profile.trace.export.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.shared.common.Json;
@@ -1243,7 +1244,8 @@ class McpToolsetAssemblerTest {
         @Test
         void theFixtureTraceRunsPastTheExportsSpanCap() {
             String export = new TraceAiMarkdownBuilder(
-                    new TraceExportSource(traceDetail(), traceContext(), List.of())).build();
+                    new TraceExportSource(traceDetail(), traceContext(), List.of()),
+                    new TraceOnCpu.NotMeasured("not counted in this test")).build();
 
             assertTrue(export.contains("(truncated: "), "the fixture trace fits the export whole");
         }

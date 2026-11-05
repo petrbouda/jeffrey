@@ -133,6 +133,7 @@ rather than left as an unexplained gap.`;
 
       <ul>
         <li><strong>It is never added to the why-slow panel.</strong> The panel's percentages are taken against the trace's own window, and a window-derived total summed beside measured pauses would push the accounted time past what actually elapsed — silently shrinking "own work" to cover the difference. Throttling explains a trace; it does not account for it.</li>
+        <li><strong>A coding agent sees it the same way.</strong> <code>traces_traceExport</code> lists each overlapping window as a <code>CPU_THROTTLED</code> line beside the pauses &mdash; periods throttled of periods elapsed, the parked time and the window&rsquo;s length &mdash; and keeps it out of its ranking too. Beneath the ranking&rsquo;s own-work line it counts the on-CPU samples taken on the trace&rsquo;s threads inside its window: own work those samples do not cover is a thread that was not running, which is how a throttled request reads.</li>
         <li><strong>The parked time is not scaled down by overlap.</strong> When a window only partly covers the trace, the figure is still the window's whole throttled time. Throttling is not spread evenly through a window, so apportioning it by time would invent a number the counters never supported.</li>
       </ul>
 

@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceRunDurations;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceThrottleWindow;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -41,11 +42,14 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraceAiMarkdownBuilderTest {
 
     private static final long MS = 1_000_000L;
+    private static final TraceOnCpu NOT_COUNTED = new TraceOnCpu.NotMeasured("not counted in this test");
+    private static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
 
     /**
      * The worked example the whole feature exists for: a span that looks slow because of its own
@@ -86,12 +90,16 @@ class TraceAiMarkdownBuilderTest {
      * synthesized spans — one group per span, since no two fixture spans share a payload.
      */
     private static TraceAiMarkdownBuilder builderOf(TraceDetail detail, TraceContext context) {
+        return builderOf(detail, context, NOT_COUNTED);
+    }
+
+    private static TraceAiMarkdownBuilder builderOf(TraceDetail detail, TraceContext context, TraceOnCpu onCpu) {
         List<TracePromotedGroup> promoted = detail.spans().stream()
                 .filter(TraceSpanRow::synthesized)
                 .map(span -> new TracePromotedGroup(
                         span.eventType(), span.eventFields(), 1, span.durationNanos(), span.durationNanos()))
                 .toList();
-        return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context, promoted));
+        return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context, promoted), onCpu);
     }
 
     private static TraceSpanRow span(
@@ -107,8 +115,8 @@ class TraceAiMarkdownBuilderTest {
     private static TraceContext context() {
         return new TraceContext(
                 List.of(new TracePause("GC_PAUSE", "G1 Young", 145_000L, 100 * MS, false)),
-                // The markdown export does not read throttle windows: they explain a trace rather
-                // than accounting for it, and the summary below is what the export renders.
+                // No throttle windows here: they explain a trace rather than accounting for it, and the
+                // ranking below never holds them (the Throttling tests add some).
                 List.of(),
                 Map.of("02", List.of(new TraceContextSlice("MONITOR_BLOCKED", 4 * MS, 1))),
                 List.of(
@@ -257,6 +265,144 @@ class TraceAiMarkdownBuilderTest {
     }
 
     @Nested
+    @DisplayName("The residual: running or not running")
+    class Residual {
+
+        /*
+         * The residual of the worked example is 316ms. Code running and a thread held off the CPU leave
+         * the same residual; the on-CPU samples on the trace's threads are what tell them apart.
+         */
+
+        @Test
+        @DisplayName("a trace on one thread splits its residual into on CPU and not seen running")
+        void splitsTheResidualOfOneThread() {
+            String out = builderOf(detail(), context(), new TraceOnCpu.Measured(EXECUTION_SAMPLE, 4, 1, 40 * MS, 10 * MS)).build();
+
+            assertTrue(out.contains("OWN_WORK — 316ms (75%) — the residual: time no category accounts for, "
+                    + "the code running or the thread not running"), out);
+            String line = lineWith(out, "on CPU: ");
+            assertTrue(line.startsWith("  - on CPU: ~40ms (4 jdk.ExecutionSample samples on the trace's thread inside its "
+                    + "window, one per 10ms of running)"), line);
+            assertTrue(line.contains("not seen running: ~276ms (87% of the residual)"), line);
+            assertTrue(line.endsWith("sampled, so an estimate"), line);
+        }
+
+        @Test
+        @DisplayName("samples summed over several threads are never subtracted from one window")
+        void doesNotSubtractAcrossThreads() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.Measured(EXECUTION_SAMPLE, 50, 3, 500 * MS, 10 * MS)).build(), "on CPU: ");
+
+            assertTrue(line.contains("summed over the trace's 3 threads"), line);
+            assertFalse(line.contains("not seen running"), line);
+        }
+
+        @Test
+        @DisplayName("no sample is under one interval on CPU, so the rest is a lower bound")
+        void noSampleIsUnderOneInterval() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.Measured(EXECUTION_SAMPLE, 0, 1, 0L, 10 * MS)).build(), "on CPU: ");
+
+            assertTrue(line.startsWith("  - on CPU: under 10ms (0 jdk.ExecutionSample samples on the trace's thread "
+                    + "inside its window, one per 10ms of running)"), line);
+            assertTrue(line.contains("not seen running: at least ~306ms (97% of the residual)"), line);
+        }
+
+        @Test
+        @DisplayName("samples without a known period are counted, not timed")
+        void countsSamplesOfAnUnknownPeriod() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.Measured(EXECUTION_SAMPLE, 7, 1, null, null)).build(), "on CPU: ");
+
+            assertTrue(line.contains("7 jdk.ExecutionSample samples"), line);
+            assertTrue(line.contains("no time is put on them"), line);
+        }
+
+        @Test
+        @DisplayName("a residual nothing could count says why, and that it cannot be split")
+        void saysWhyNothingWasCounted() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.NotMeasured("the profile recorded no on-CPU samples")).build(), "on CPU: ");
+
+            assertTrue(line.contains("not measured — the profile recorded no on-CPU samples"), line);
+            assertTrue(line.contains("cannot be told apart from the thread not running"), line);
+        }
+
+        @Test
+        @DisplayName("an execution sample stands for the interval the profile sampled at")
+        void timesExecutionSamplesByTheirInterval() {
+            TraceOnCpu.Measured measured = TraceOnCpu.Measured.of(
+                    EXECUTION_SAMPLE, 3, 0, Map.of("sample_interval", String.valueOf(10 * MS)), 1);
+
+            assertEquals(30 * MS, measured.onCpuNanos());
+            assertEquals(10 * MS, measured.intervalNanos());
+        }
+
+        @Test
+        @DisplayName("a CPU-time sample carries its own period as its weight")
+        void timesCpuTimeSamplesByTheirWeight() {
+            TraceOnCpu.Measured measured = TraceOnCpu.Measured.of("jdk.CPUTimeSample", 2, 21 * MS, Map.of(), 1);
+
+            assertEquals(21 * MS, measured.onCpuNanos());
+            assertEquals(10_500_000L, measured.intervalNanos());
+        }
+
+        @Test
+        @DisplayName("no sample is no time, and samples of an unknown period are no figure")
+        void zeroAndUnknown() {
+            assertEquals(0L, TraceOnCpu.Measured.of(EXECUTION_SAMPLE, 0, 0, Map.of(), 1).onCpuNanos());
+            assertEquals(10 * MS, TraceOnCpu.Measured.of(EXECUTION_SAMPLE, 0, 0,
+                    Map.of("sample_interval", String.valueOf(10 * MS)), 1).intervalNanos());
+            assertNull(TraceOnCpu.Measured.of(EXECUTION_SAMPLE, 5, 0, Map.of(), 1).onCpuNanos());
+        }
+    }
+
+    @Nested
+    @DisplayName("Container CPU throttling")
+    class Throttling {
+
+        private TraceContext throttled() {
+            TraceContext base = context();
+            return new TraceContext(base.pauses(),
+                    List.of(new TraceThrottleWindow(0, 20_000_000L, 2_700 * MS, 118, 301, 39.2)),
+                    base.spanWaits(), base.summary());
+        }
+
+        @Test
+        @DisplayName("names the throttled windows beside the pauses, as windows rather than instants")
+        void rendersThrottledWindows() {
+            String out = builderOf(detail(), throttled()).build();
+
+            assertTrue(out.contains("the container's CPU quota ran out, stalling every thread"), out);
+            assertTrue(out.contains("- CPU_THROTTLED — 118 of 301 CFS periods throttled (39%), 2700ms throttled "
+                    + "in a 20.0s window overlapping this trace"), out);
+        }
+
+        @Test
+        @DisplayName("keeps them out of the ranking, whose shares are of the trace's own window")
+        void keepsThemOutOfTheRanking() {
+            String out = builderOf(detail(), throttled()).build();
+            int ranked = out.indexOf("\n## Where the time went\n");
+            String ranking = out.substring(ranked, out.indexOf("\n## I/O operations\n", ranked));
+
+            assertFalse(ranking.contains("CPU_THROTTLED"), ranking);
+        }
+
+        @Test
+        @DisplayName("throttling alone is context, not an empty section")
+        void throttlingAloneIsContext() {
+            TraceContext onlyThrottled = new TraceContext(List.of(),
+                    List.of(new TraceThrottleWindow(0, 1_000_000L, 5 * MS, 2, 10, 20.0)), Map.of(), List.of());
+            String out = builderOf(detail(), onlyThrottled).build();
+            int context0 = out.indexOf("\n## JVM context\n");
+            String context = out.substring(context0, out.indexOf("\n## Where the time went\n", context0));
+
+            assertTrue(context.contains("- CPU_THROTTLED — 2 of 10 CFS periods throttled (20%)"), context);
+            assertFalse(context.contains("were recorded during this trace"), context);
+        }
+    }
+
+    @Nested
     @DisplayName("JVM context")
     class Context {
 
@@ -316,7 +462,7 @@ class TraceAiMarkdownBuilderTest {
         void survivesEmptyContext() {
             String out = builderOf(detail(), TraceContext.EMPTY).build();
 
-            assertTrue(out.contains("no GC pauses, safepoints or blocking events"));
+            assertTrue(out.contains("no GC pauses, safepoints, CPU throttling or blocking events"));
             assertTrue(out.contains("reserveInventory"), "the tree is still the point");
         }
 
@@ -856,7 +1002,7 @@ class TraceAiMarkdownBuilderTest {
         }
 
         private String build(TraceDetail detail, List<TracePromotedGroup> promoted) {
-            return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context(), promoted)).build();
+            return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context(), promoted), NOT_COUNTED).build();
         }
 
         @Test

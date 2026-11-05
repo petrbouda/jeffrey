@@ -27,6 +27,17 @@ technology families below. With traces, they answer it request by request:
    dashboards rule things out. `traces_operationExport` adds the population (where the operation's
    time goes span by span across all its traces) when one trace may not be typical, and
    `traces_spanFlamegraphExport` the frames inside a single slow span.
+4. **Is the tail the endpoint's, or the whole process's?** Put the slowest requests of two unrelated
+   operations side by side — `traces_slowestTraces` of each, their `startEpochMs` and durations. When
+   requests of different endpoints start within a few milliseconds of each other and last about as
+   long, every thread stalled at once, and no endpoint's code is the cause: the trace export then
+   shows the time as `OWN_WORK` with nothing under it, and the line beneath it says how little of it
+   the threads were seen running. Look process-wide — the export's `CPU_THROTTLED` lines and
+   `jvm_container` (a container held to its CPU quota stalls every thread), `jvm_gc` and
+   `jvm_safepoints` for pauses at those instants, `jvm_system` for the host — and rule the
+   statements and the pool out by their own figures (`jdbc_overview`'s percentiles, `jdbc_pools`'
+   waiting threads) before naming either. Medians near a millisecond with a tail like this are a
+   stalled process, never "every request is slow".
 
 ## The edges of the application: `http_`, `jdbc_`, `grpc_`, `methodtracing_`
 

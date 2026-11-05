@@ -125,6 +125,13 @@ never spawn another agent.
    they end in your context, not theirs.
 3. Stop when you can name the causes and their sizes. A second export that would not change the
    findings is not worth the time.
+4. An answer your client saved to a file instead of showing you — it says so, names the file and
+   shows a few lines — is an answer, not an error. If you cannot read files, ask once for the same
+   thing smaller: a flamegraph's `detail: SUMMARY`, or a higher `thresholdPct`. Never reach for an
+   option that changes what the figures are (`excludeIdle`, `excludeNonJava`, a window, `threadMode`,
+   `useWeight`) to make it fit, and never fall back on reading frames one method at a time. If the
+   smaller answer is saved too, stop calling: return each file under **Saved, not read** with the call
+   that produced it, so the caller reads it, and claim nothing about what is in it.
 
 ## The handbook
 
@@ -165,7 +172,12 @@ an operation is `(name, kind, eventType)`, not a name — then `traces_slowestTr
 `traces_traceExport` of the slowest trace of each slow operation, before any dashboard: what one slow
 request spent its time on is the *why*, and an answer that read no slow trace has not given it.
 `traces_operationExport` adds the population when one trace may not be typical, and
-`traces_spanFlamegraphExport` the frames inside one slow span. One population slow and the rest fine: `traces_attributeKeys` →
+`traces_spanFlamegraphExport` the frames inside one slow span. The slowest requests of unrelated
+operations starting within milliseconds of each other and lasting about as long are a stall of the
+whole process, not of an endpoint: the export shows the time as `OWN_WORK` the threads were not seen
+running, and the cause is process-wide — its `CPU_THROTTLED` lines and `jvm_container`, `jvm_gc`,
+`jvm_safepoints` — once `jdbc_overview` and `jdbc_pools` rule the statements and the pool out by their
+figures. One population slow and the rest fine: `traces_attributeKeys` →
 `traces_attributeValues` → `traces_attributeSearch`. Without traces, `http_overview` and
 `jdbc_overview` answer in aggregate; statements all fast while requests are slow is `jdbc_pools`.
 

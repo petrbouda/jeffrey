@@ -247,6 +247,11 @@ the conversation never saw.
 Whatever it reports, keep here: mapping frames onto the checkout, the recommendation, and every
 question to the user. The analyst has no file tools and never proposes changes.
 
+A client may save an answer too long for it to a file rather than show it. The analyst cannot open
+one: it returns such files under **Saved, not read**, with the call behind each. Read each of them
+here with your own file tools before you write the answer — the one case an export is read in this
+conversation beside an analyst's — and never take the analyst's silence about one as a finding.
+
 ## Grounding claims
 
 The exports carry call paths and figures. A frame may also carry a line, as `Class.method:214`, and

@@ -25,10 +25,13 @@ import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceThrottleWindow;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Renders one trace as Markdown written to be read by a model rather than by a person.
@@ -128,10 +131,20 @@ public final class TraceAiMarkdownBuilder {
             on its thread when the event **began**. A wait that straddles a child span's
             start is therefore charged wholly to one of the two, not split between them.
 
+            **Container CPU throttling** (`CPU_THROTTLED`) is global too, and weaker still:
+            the cgroup reports it per sampling window, so a line says the process's CPU
+            quota ran out somewhere inside a window that overlapped this trace — how often
+            (CFS periods throttled) and for how long in total — not when. It is listed beside
+            the pauses and never added to the ranking.
+
             **`OWN_WORK`** in the ranking is the residual — the part of the trace's window
-            that no category accounts for, which is the code actually running. It is
-            reported explicitly so that the listed waiting is never mistaken for the whole
-            story.
+            that no category accounts for. It is either the code running or the thread not
+            running at all: descheduled behind other threads, or held while the container's
+            CPU quota was spent. The line beneath it says which, from the on-CPU samples
+            taken on the trace's threads inside its window: what they cover was code
+            running; what they leave was the thread off the CPU, with nothing recorded to
+            say why. It is reported explicitly so that the listed waiting is never mistaken
+            for the whole story.
 
             ## Accounting invariant
 
@@ -250,7 +263,10 @@ public final class TraceAiMarkdownBuilder {
             Then check that self time against the JVM context before blaming the code. If a
             span's self time is largely a GC pause, a lock wait or I/O, then tuning the
             method recovers only the remainder, and the real lever is elsewhere: allocation
-            pressure, contention, or the remote call.
+            pressure, contention, or the remote call. If it is `OWN_WORK` that the on-CPU
+            samples do not cover, the thread was not running: the code is not the lever.
+            Look at what stalls every thread at once — CPU throttling beside the pauses,
+            the slowest requests of other operations at the same instant.
 
             When a span's time turns out to be I/O, read the I/O section before concluding
             that the disk or the remote system is slow. Many small operations against one
@@ -285,7 +301,11 @@ public final class TraceAiMarkdownBuilder {
     private static final String ERROR_STATUS = "ERROR";
     private static final String OWN_WORK_CATEGORY = "OWN_WORK";
     private static final String NO_CONTEXT_NOTE =
-            "(no GC pauses, safepoints or blocking events were recorded during this trace)";
+            "(no GC pauses, safepoints, CPU throttling or blocking events were recorded during this trace)";
+    private static final String THROTTLED_CATEGORY = "CPU_THROTTLED";
+    private static final long NANOS_PER_MICRO = 1_000L;
+    private static final String OWN_WORK_NOTE =
+            " — the residual: time no category accounts for, the code running or the thread not running";
     private static final String NO_SPANS_NOTE = "(this trace has no spans)";
     private static final String NO_IO_NOTE =
             "(no socket or file operations were recorded during this trace)";
@@ -332,8 +352,15 @@ public final class TraceAiMarkdownBuilder {
     private final TraceIoSummary io;
     private final TraceThrowSummary throwSummary;
     private final TraceNotificationSummary notificationSummary;
+    private final TraceOnCpu onCpu;
 
-    public TraceAiMarkdownBuilder(TraceExportSource source) {
+    /**
+     * @param source the trace and what the JVM was doing to it
+     * @param onCpu  the on-CPU samples taken on the trace's threads inside its window, which tell its
+     *               {@code OWN_WORK} running apart from not running; or why none could be counted
+     */
+    public TraceAiMarkdownBuilder(TraceExportSource source, TraceOnCpu onCpu) {
+        this.onCpu = Objects.requireNonNull(onCpu, "onCpu");
         this.detail = source.detail();
         this.context = source.context();
         this.io = TraceIoSummary.of(source.promoted());
@@ -498,8 +525,9 @@ public final class TraceAiMarkdownBuilder {
         out.append(HEADING_CONTEXT).append('\n').append('\n');
 
         List<TracePause> pauses = context.pauses();
+        List<TraceThrottleWindow> throttled = context.throttleWindows();
         boolean hasWaits = !context.spanWaits().isEmpty();
-        if (pauses.isEmpty() && !hasWaits) {
+        if (pauses.isEmpty() && throttled.isEmpty() && !hasWaits) {
             out.append(NO_CONTEXT_NOTE).append('\n');
             return;
         }
@@ -517,9 +545,40 @@ public final class TraceAiMarkdownBuilder {
             out.append('\n');
         }
 
+        if (!throttled.isEmpty()) {
+            renderThrottling(out, throttled);
+        }
+
         if (hasWaits) {
             renderSpanWaits(out);
         }
+    }
+
+    /**
+     * The container's CPU throttling in the windows that overlapped the trace. Each window says the
+     * quota ran out somewhere inside it, not when, so it is stated with the window's length beside it
+     * and kept out of the ranking, whose shares are taken against the trace's own window.
+     */
+    private static void renderThrottling(StringBuilder out, List<TraceThrottleWindow> windows) {
+        out.append("Global — the container's CPU quota ran out, stalling every thread (per sampling window, "
+                + "not per instant):").append('\n').append('\n');
+        for (TraceThrottleWindow window : windows) {
+            long windowNanos = Math.max(0, window.endEpochMicros() - window.startEpochMicros()) * NANOS_PER_MICRO;
+            out.append(BULLET_PREFIX)
+                    .append(THROTTLED_CATEGORY)
+                    .append(DASH_SEPARATOR)
+                    .append(window.throttledSlices()).append(" of ")
+                    .append(TraceAiFormat.count(window.elapsedSlices(), "CFS period"))
+                    .append(" throttled (")
+                    .append(String.format(Locale.ROOT, "%.0f%%", window.ratioPercent()))
+                    .append("), ")
+                    .append(TraceAiFormat.duration(window.throttledNanos()))
+                    .append(" throttled in a ")
+                    .append(TraceAiFormat.duration(windowNanos))
+                    .append(" window overlapping this trace")
+                    .append('\n');
+        }
+        out.append('\n');
     }
 
     /**
@@ -587,12 +646,57 @@ public final class TraceAiMarkdownBuilder {
                     .append(TraceAiFormat.duration(slice.totalNanos()))
                     .append(" (").append(TraceAiFormat.percent(slice.totalNanos(), traceNanos)).append(')');
             if (OWN_WORK_CATEGORY.equals(slice.category())) {
-                out.append(" — the residual: time no category accounts for, i.e. the code running");
-            } else if (slice.occurrences() > 0) {
+                out.append(OWN_WORK_NOTE).append('\n');
+                renderOnCpu(out, slice.totalNanos());
+                continue;
+            }
+            if (slice.occurrences() > 0) {
                 out.append(", ").append(TraceAiFormat.count(slice.occurrences(), "event"));
             }
             out.append('\n');
         }
+    }
+
+    /**
+     * Which part of the residual the trace's threads were seen running, beneath the {@code OWN_WORK}
+     * line. The rest is stated only for a trace on one thread: samples summed over threads running side
+     * by side can add up to more than the window the residual is a part of.
+     */
+    private void renderOnCpu(StringBuilder out, long ownWorkNanos) {
+        out.append(INDENT_UNIT).append(BULLET_PREFIX);
+        switch (onCpu) {
+            case TraceOnCpu.NotMeasured notMeasured -> out
+                    .append("on CPU: not measured — ").append(notMeasured.reason())
+                    .append("; the residual cannot be told apart from the thread not running");
+            case TraceOnCpu.Measured measured -> renderMeasured(out, measured, ownWorkNanos);
+        }
+        out.append('\n');
+    }
+
+    private static void renderMeasured(StringBuilder out, TraceOnCpu.Measured measured, long ownWorkNanos) {
+        String samples = TraceAiFormat.count(measured.samples(), measured.eventType() + " sample");
+        String where = measured.threads() == 1
+                ? " on the trace's thread inside its window"
+                : " summed over the trace's " + measured.threads() + " threads inside their windows";
+        if (measured.onCpuNanos() == null) {
+            out.append("on CPU: ").append(samples).append(where)
+                    .append("; the profile does not say how often it sampled, so no time is put on them");
+            return;
+        }
+        Long interval = measured.intervalNanos();
+        String resolution = interval == null ? "" : ", one per " + TraceAiFormat.duration(interval) + " of running";
+        // A sampled figure is good to about one interval: no sample is "under one interval", not zero.
+        boolean none = measured.samples() == 0 && interval != null;
+        long onCpuNanos = none ? interval : measured.onCpuNanos();
+        out.append(none ? "on CPU: under " + TraceAiFormat.duration(interval) : "on CPU: ~" + TraceAiFormat.duration(onCpuNanos))
+                .append(" (").append(samples).append(where).append(resolution).append(")");
+        if (measured.threads() == 1) {
+            long notRunning = Math.max(0, ownWorkNanos - onCpuNanos);
+            out.append(none ? "; not seen running: at least ~" : "; not seen running: ~")
+                    .append(TraceAiFormat.duration(notRunning))
+                    .append(" (").append(TraceAiFormat.percent(notRunning, ownWorkNanos)).append(" of the residual)");
+        }
+        out.append(" — sampled, so an estimate");
     }
 
     /**

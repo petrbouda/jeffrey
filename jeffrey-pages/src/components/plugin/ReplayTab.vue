@@ -67,6 +67,20 @@ const runFacts = computed<string[]>(() => {
 
 const trail = computed(() => model.replayTrail(steps.value.slice(0, playback.position.value + 1)));
 
+// Why the run missed, readable after its trace is gone: each failed grader's reason, and the reply it judged.
+const failedReasons = computed(() =>
+  run.value.graders.filter(grader => grader.passed === false && grader.explanation)
+);
+const reply = computed(() => run.value.reply ?? null);
+const replyCut = computed(() =>
+  reply.value !== null && (run.value.replyChars ?? 0) > reply.value.length
+);
+
+function graderTitle(passed: boolean | null, explanation?: string): string {
+  const verdict = passed ? 'passed' : 'failed';
+  return explanation ? `${verdict}: ${explanation}` : verdict;
+}
+
 function runMark(passed: boolean | null): string {
   if (passed === null) {
     return '';
@@ -114,12 +128,17 @@ function runMark(passed: boolean | null): string {
           :key="grader.name"
           class="replay-grader"
           :class="grader.passed ? 'replay-grader--passed' : 'replay-grader--failed'"
-          :title="grader.passed ? 'passed' : 'failed'"
+          :title="graderTitle(grader.passed, grader.explanation)"
         >
           <i class="bi" :class="grader.passed ? 'bi-check-lg' : 'bi-x-lg'" aria-hidden="true"></i>
           {{ grader.name }}
         </span>
       </div>
+      <ul v-if="failedReasons.length" class="replay-reasons">
+        <li v-for="grader in failedReasons" :key="grader.name">
+          <b>{{ grader.name }}</b> — {{ grader.explanation }}
+        </li>
+      </ul>
 
       <div class="replay-card replay-player">
         <ReplayPlayer
@@ -143,6 +162,14 @@ function runMark(passed: boolean | null): string {
         Each row is one call, in order; the time is from the run's first call and playback squeezes the gaps.
         Calls to the tool-search helper are left out.
       </p>
+
+      <template v-if="reply !== null">
+        <div class="replay-prompt-label">The reply</div>
+        <p class="replay-prompt replay-reply">{{ reply }}</p>
+        <p v-if="replyCut" class="replay-note">
+          The first {{ reply.length }} of its {{ run.replyChars }} characters.
+        </p>
+      </template>
     </section>
 
     <aside class="replay-side">
@@ -329,6 +356,23 @@ function runMark(passed: boolean | null): string {
 .replay-grader--failed {
   border-color: var(--ap-no-line);
   color: var(--ap-no);
+}
+
+.replay-reasons {
+  margin: -6px 0 16px;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ap-no);
+}
+
+.replay-reasons li + li {
+  margin-top: 4px;
+}
+
+.replay-reply {
+  max-height: 420px;
+  overflow-y: auto;
 }
 
 .replay-card {

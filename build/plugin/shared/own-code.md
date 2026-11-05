@@ -23,7 +23,11 @@ source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or corout
 after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
 name it merged in `matchedFrames` — read them before you name a line of source for a figure. A row of
 `code_hotspots` or `code_callSites`, and each of `compare_methods`' `unlistedMovers`, carries its
-`reference` in that spelling: pass it on as it is. A method `compare_methods` answers `NOT_SEEN` lists
+`reference` in that spelling: pass it on as it is, never the row's runtime `methodName`. A hotspot that
+is your own wrapper — a database client, an HTTP helper, a generic executor — is charged everything
+below it, so the change is rarely in it: its `calledFrom` names the code of yours in another class that
+asked for the cost (the repository method behind a query, the service behind a call), and that is where
+a fix lands. Name both. A method `compare_methods` answers `NOT_SEEN` lists
 `nearestReferences` — most often the same method with its nested class or package spelled out
 (`com.acme.Checkout.PriceCalculator#formatLine` for `Checkout#formatLine`). A `NOT_SEEN` method has
 no figures: if the answer's first `nextTools` entry is `compare_methods`, make that call before you

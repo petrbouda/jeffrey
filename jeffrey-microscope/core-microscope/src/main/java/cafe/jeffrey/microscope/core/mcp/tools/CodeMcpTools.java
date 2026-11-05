@@ -87,6 +87,8 @@ public class CodeMcpTools {
     /** How many rows of each list a code answer carries; the rest is counted, not listed. */
     private static final int MAX_LINES = 5;
     private static final int MAX_NEIGHBOURS = 8;
+    /** How many callers a hotspot names: the code that asked for a wrapper's cost is one or two methods. */
+    private static final int MAX_CALLED_FROM = 3;
     private static final int MAX_MATCHED = 10;
     private static final int MAX_EXCEPTION_CLASSES = 10;
 
@@ -167,7 +169,8 @@ public class CodeMcpTools {
             + "is charged to the deepest frame of your code on its stack, so the library, JDK and JVM work "
             + "below it lands on the method of yours that asked for it - the method you can change. Each "
             + "row has its charged, self and inclusive figures, the lines of the method the cost was taken "
-            + "on, the frames below it the cost went into (delegatedTo) and a uiLink to the graph with the "
+            + "on, the frames below it the cost went into (delegatedTo), the code of yours in another class "
+            + "that called it (calledFrom: for a wrapper, the code that asked) and a uiLink to the graph with the "
             + "method searched. framePrefixes are your source tree's root packages; omitted, the profile's "
             + "busiest non-library packages are used and the answer says so. Not a call tree "
             + "(flamegraph_export) and not a comparison (compare_methods). status NOT_RECORDED: no samples "
@@ -681,6 +684,10 @@ public class CodeMcpTools {
             @McpDescription("The frames directly below this method its charged cost went into, highest "
                     + "first; share of charged. What is left is self")
             List<FrameShare> delegatedTo,
+            @McpDescription("The nearest frame of your code in another class above this method on the stacks "
+                    + "charged to it, highest first; share of charged. For a wrapper - a database client, a "
+                    + "helper - the code that asked for the cost. Empty where your code was entered here")
+            List<FrameShare> calledFrom,
             @McpDescription("How this method ran: JIT tiers by share of its inclusive samples")
             List<TierShare> tiers,
             @McpDescription("The flamegraph with this method searched, for the user")
@@ -693,6 +700,7 @@ public class CodeMcpTools {
                     cost.inclusive(), CodeAnswers.pct(cost.inclusive(), total),
                     CodeAnswers.lines(cost.chargedLines(), cost.charged(), MAX_LINES),
                     CodeAnswers.frames(cost.delegatedTo(), cost.charged(), MAX_NEIGHBOURS),
+                    CodeAnswers.frames(cost.calledFrom(), cost.charged(), MAX_CALLED_FROM),
                     CodeAnswers.tiers(cost.tiers()), uiLink);
         }
     }

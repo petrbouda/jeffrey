@@ -323,6 +323,14 @@ fails none: the first version, which rejected every unrecorded optional argument
 that called Jeffrey — `profiles_list` with `search`, the heap tools with `topN` or `limit`, and
 `flamegraph_export` with `detail: "SUMMARY"`, which the tools page recommends.
 
+The addressing options are held like the required arguments: a `code_method` call names a recorded
+method, or the grader fails it (the fixed mock answers a missing fixture with a tool error, and a run
+that called `lambda$queryLong$0` or a Spring class had gone off the recording). Its `eventType` is
+graded too, because a method's figures are per sample kind: a call is accepted with a fixture recorded
+for that kind, or with one recorded without an event type — Jeffrey then reads every recorded kind — when
+that answer's `kinds` hold it. Before, a CPU call on `ServerApplication.main` was
+accepted with the only recorded answer, an allocation one.
+
 Two rules came with the code tools. An optional argument that picks what the answer is about can
 address a fixture beside the required ones (the recorder's addressing options: `code_method`'s `methodName`, one
 fixture per method of a class). And a call that differs from a recorded one only in how the own
@@ -340,6 +348,19 @@ collide. It still captures only a bounded subset of calls; it is not a general s
 second import). A slow future import retains its initial operation answer and records the terminal
 `operations_status` for that operation, so the model can poll to the same profile. No synthetic
 operation answer has been added to the current synchronous-import fixtures.
+
+**A long answer reaches the eval child as a file.** `claude plugin eval` reads `_tools.json` for each
+tool's name, description and input schema only, so the `_meta` of the recorded `tools/list` —
+`anthropic/maxResultSizeChars: 120000` on the exports — never reaches the child, and every tool is held
+to the client's default limit (`MAX_MCP_OUTPUT_TOKENS`, 25,000 tokens). Nothing restores it: a case's
+`execution.env` takes `EVAL_*` keys only, and the child drops `MAX_MCP_OUTPUT_TOKENS` from the
+operator's environment whenever a mock is an agent (a relay). So an export past the default — the
+persons CPU flamegraph at 55,230 characters, and every fixture `test-plugin-eval-mocks.py`'s
+`EvalHostLimitTest` lists — is saved to a file in an eval and arrives inline from a real Jeffrey. The
+main conversation reads such a file; an analyst has no file tools. Before the analysts returned these
+under **Saved, not read**, a blind `jfr-analyst` re-asked for the same export with other options (the
+fixed mock gives the same document for any `detail` or `thresholdPct`) and then for frames one method
+at a time, and the variants failed `recorded-call-semantics` — two of three `fix-it` runs on 1.0.31.
 
 The comparison uses an `honest-verdict` semantic judge again. “Confidence” or “comparable” alone
 cannot establish honest limits; the rubric rejects invented end-to-end slowdowns and unqualified
@@ -1320,3 +1341,39 @@ On the mocks re-recorded with the relays, three runs each:
 | `dom-regression`, `what-runs`, `what-to-change`, `why-slow`, `pool-latency` | — | 3 of 3 each (1.00) | — |
 
 Spend: $7.41.
+
+## Why fix-it and slow-endpoints still missed, and what changed
+
+Read off the 1.0.31 replays (the traces were gone; the map kept the calls and the graders' verdicts):
+
+- **`fix-it`: the analyst could not read its export.** The eval host drops the declared result size (see
+  *A long answer reaches the eval child as a file* above), so the persons CPU flamegraph (55,230 characters)
+  was saved to a file, and `jfr-analyst` has no file tools. It asked again with `detail`, `thresholdPct` and
+  `excludeIdle` — the fixed mock answers each with the same document — and then for frames one method at a
+  time, by their runtime names. The `excludeIdle` call failed `recorded-call-semantics` in run 1, and run 2's
+  other calls (a `code_method` without `framePrefixes`, or an `excludeNonJava` variant: its arguments were cut
+  in the replay) did in run 2. The analysts now ask once for the same thing smaller and otherwise return the file
+  under **Saved, not read**, which the skill that delegated reads.
+- **`fix-it`: the top hotspot was the wrapper.** `code_hotspots` charges the driver's work to
+  `DatabaseClient#lambda$queryLong$0` (636 of 5,097 samples), and `PersonRepository.count`, which the judge
+  wants the offer to name, is charged 7; only a second call found it. Each row now carries `calledFrom`: the
+  nearest own frame of another class above it on the stacks charged to it — for that row
+  `PersonRepository#count` — and the code skills say to name both, the fix landing in the caller.
+- **`slow-endpoints`: nothing said the tail was the whole process's.** The slowest requests of every endpoint
+  start at the same instants (four endpoints at 130.4–130.6 ms from one millisecond on), and their exports
+  showed 100 % `OWN_WORK`, described as "the code running". `latency.md` and the analyst's handbook now
+  compare the slowest requests across operations and send a shared stall to `jvm_container`, `jvm_gc` and
+  `jvm_safepoints`, with the statements and the pool ruled out by their figures. `traces_traceExport` lists
+  the container's CPU-throttling windows that overlap the trace (`CPU_THROTTLED`, beside the pauses, never in
+  the ranking), and splits `OWN_WORK` by the on-CPU samples on the trace's threads inside its window into time
+  on CPU and time not seen running.
+- **The grader passed calls it should not have.** `code_method`'s `methodName` and `eventType` are now graded
+  (above). Against every recorded step of the 1.0.31 replays the regenerated grader changes no verdict.
+- **A failed run can be read after its trace is gone.** `plugin-usage-map.py` keeps each run's final reply
+  (up to 6,000 characters, its full length beside it) and each grader's `explanation`; the Agent Plugin page
+  shows the failed graders' reasons and the reply under the replay.
+
+These changes are not measured yet. The mocks predate `calledFrom` and the split residual: the
+`code_hotspots` and `traces_traceExport` fixtures hold the answers recorded before them, so a re-recording
+(`record-plugin-eval-mocks.py`) has to come before a paid run of `fix-it` and `slow-endpoints` can say what
+they changed.

@@ -104,9 +104,11 @@ TOKENS_OUTSIDE_THE_SCHEMAS = {
     "AND", "ATTACH", "INSTANCEOF", "LIKE", "LIMIT", "NULL", "SELECT", "UNNEST",
     # environment variables the clients and the hook read
     "CLAUDE_PLUGIN_ROOT", "JAVA_TOOL_OPTIONS", "JEFFREY_MCP_ENDPOINT", "JEFFREY_MCP_TOKEN",
-    "MCP_SDK_GENERATION",
+    "MCP_SDK_GENERATION", "MAX_MCP_OUTPUT_TOKENS",
     # git and the operating system
     "HEAD", "SIGSEGV",
+    # categories of traces_traceExport's Markdown document, not values of a record
+    "CPU_THROTTLED", "OWN_WORK",
 }
 
 

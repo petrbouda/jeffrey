@@ -149,7 +149,9 @@ bytes, GC-root path — with everything it read left in its own context. It carr
 this skill and `heap-sql`, and it runs `heap_prepare` when a report or a retained size is missing
 rather than reporting an empty result. It is the plugin's one heap agent; the JFR one never reads a
 dump. The Claude Code plugin ships it as `microscope:heap-analyst`; in Codex it
-is the custom agent from `codex/agents/heap-analyst.toml`. Without one, read here.
+is the custom agent from `codex/agents/heap-analyst.toml`. Without one, read here. An answer the client
+saved to a file the agent cannot open comes back under **Saved, not read**, with its call: read those
+files here before answering.
 
 Delegate only with a `profileId` in hand. The agent may not import, so a dump the user named as a
 file is imported here first — `recordings_analyzeFile` with its absolute path, followed to the

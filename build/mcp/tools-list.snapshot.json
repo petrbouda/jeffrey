@@ -933,6 +933,29 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "calledFrom": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frame": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frame",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
                 "charged": {
                   "type": "integer"
                 },
@@ -1033,6 +1056,7 @@
                 }
               },
               "required": [
+                "calledFrom",
                 "charged",
                 "chargedPct",
                 "className",
