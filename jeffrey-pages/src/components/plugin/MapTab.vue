@@ -96,9 +96,7 @@ const query = ref('');
 
 <style scoped>
 .map-tab {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 22px 40px 48px;
+  padding: 24px 28px 48px;
 }
 
 .map-toolbar {
@@ -243,7 +241,7 @@ const query = ref('');
 
 @media (max-width: 1199px) {
   .map-tab {
-    padding: 20px 24px 40px;
+    padding: 22px 24px 40px;
   }
 
   .map-body {

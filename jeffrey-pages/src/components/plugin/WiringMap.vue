@@ -29,7 +29,7 @@ import {
 } from '@/composables/usePluginUsage';
 import type { AreaName } from '@/types/pluginUsage';
 
-// Skills → agents → tool families, each line as wide as how often its two ends meet: in the
+// Who calls → tool families, each line as wide as how often its two ends meet: in the
 // instructions (described) or in the runs (observed). A family opens into its tools. Hovering or
 // picking a node lights it and its neighbours; the trail marks what a replayed run went through.
 
@@ -65,8 +65,14 @@ interface MapEdge {
 
 const WIDTH = 780;
 const TOP = 34;
-const COLUMN_X = { skill: 52, agent: 254, tool: 446 } as const;
-const COLUMN_W = { skill: 172, agent: 156, tool: 326 } as const;
+// Two columns: who calls (the area's agent first, then its skills) and the tools. The agent is a helper the
+// skills hand work to, not a stage between them and the tools, so it has no column of its own.
+const COLUMN_X = { caller: 52, tool: 380 } as const;
+const COLUMN_W = { caller: 200, tool: 392 } as const;
+const AGENT_ROW = 26;
+const AGENT_GAP = 8;
+const AGENT_GLYPH_PX = 16;
+const SHARE_BAR_PX = 3;
 const SKILL_PITCH = 32;
 const FAMILY_PITCH = 27;
 const TOOL_PITCH = 22;
@@ -96,7 +102,7 @@ interface MapBand {
   h: number;
 }
 
-/** One horizontal band per area under the lens, each holding its skills, its agent and its families. */
+/** One horizontal band per area under the lens: its agent and skills on the left, its families on the right. */
 const layout = computed(() => {
   const nodes = new Map<string, MapNode>();
   const bands: MapBand[] = [];
@@ -104,13 +110,20 @@ const layout = computed(() => {
   for (const area of model.areasFor(props.lens)) {
     const bandTop = y;
     const rowTop = bandTop + BAND_HEAD;
+    let firstSkill = rowTop;
+    if (area.agent) {
+      const id = nodeId('agent', area.agent);
+      nodes.set(id, { id, kind: 'agent', x: COLUMN_X.caller, y: rowTop, w: COLUMN_W.caller, h: AGENT_ROW,
+        label: area.agent, count: model.agentSpawns(area.agent) });
+      firstSkill = rowTop + AGENT_ROW + AGENT_GAP;
+    }
     const skills = model.skillsByUse.filter((skill) => area.skills.includes(skill.name));
     skills.forEach((skill, i) => {
       const id = nodeId('skill', skill.name);
-      nodes.set(id, { id, kind: 'skill', x: COLUMN_X.skill, y: rowTop + i * SKILL_PITCH, w: COLUMN_W.skill, h: 24,
+      nodes.set(id, { id, kind: 'skill', x: COLUMN_X.caller, y: firstSkill + i * SKILL_PITCH, w: COLUMN_W.caller, h: 24,
         label: skill.name, count: model.skillInvocations(skill.name) });
     });
-    const skillBottom = rowTop + skills.length * SKILL_PITCH;
+    const skillBottom = firstSkill + skills.length * SKILL_PITCH;
     let familyY = rowTop;
     for (const family of model.families.filter((candidate) => area.families.includes(candidate))) {
       const open = props.expanded.has(family);
@@ -129,12 +142,6 @@ const layout = computed(() => {
         familyY += 4;
       }
     }
-    if (area.agent) {
-      const id = nodeId('agent', area.agent);
-      const centre = (rowTop + Math.max(skillBottom, rowTop + SKILL_PITCH)) / 2;
-      nodes.set(id, { id, kind: 'agent', x: COLUMN_X.agent, y: centre - 13, w: COLUMN_W.agent, h: 26,
-        label: area.agent, count: model.agentSpawns(area.agent) });
-    }
     const bandBottom = Math.max(skillBottom, familyY) + BAND_PAD;
     bands.push({ area: area.name, title: area.agent ? `${area.label} · worked by ${area.agent}` : `${area.label} · used by both`,
       y: bandTop, h: bandBottom - bandTop });
@@ -143,11 +150,14 @@ const layout = computed(() => {
   return { nodes, bands, height: y };
 });
 
+const isCaller = (node: MapNode): boolean => node.kind === 'skill' || node.kind === 'agent';
+
 function edgePath(from: MapNode, to: MapNode): string {
   const y1 = from.y + from.h / 2;
   const y2 = to.y + to.h / 2;
-  if (from.kind === 'skill' && to.kind === 'skill') {
-    const bend = 22 + Math.abs(y2 - y1) * 0.18;
+  // Between two callers (a hand-over, a hand-off to the agent): a curve on the left, kept inside the band.
+  if (isCaller(from) && isCaller(to)) {
+    const bend = Math.min(from.x - 14, 22 + Math.abs(y2 - y1) * 0.18);
     return `M${from.x},${y1} C${from.x - bend},${y1} ${to.x - bend},${y2} ${to.x},${y2}`;
   }
   const x1 = from.x + from.w;
@@ -156,7 +166,7 @@ function edgePath(from: MapNode, to: MapNode): string {
   return `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`;
 }
 
-const edges = computed<MapEdge[]>(() => {
+const allEdges = computed<MapEdge[]>(() => {
   const merged = new Map<string, number>();
   for (const edge of model.edges(props.mode)) {
     const key = `${visible(edge.from)}|${visible(edge.to)}`;
@@ -181,6 +191,35 @@ const visibleTrailEdges = computed(() => new Set(props.trail.edges.map((edge) =>
 )));
 const focus = computed(() => hover.value ?? props.selected);
 
+/** An agent's calls to the tools: drawn only for the agent in focus, or where the replayed run made them. */
+const edges = computed<MapEdge[]>(() => allEdges.value.filter((edge) =>
+  edge.from.kind !== 'agent' || edge.to.kind === 'agent' || edge.from.id === focus.value || visibleTrailEdges.value.has(edge.key)
+));
+
+/** In the runs: how many of each tool row's calls an agent made, shown as a green share of the row. */
+const viaAgent = computed(() => {
+  const shares = new Map<string, number>();
+  if (props.mode !== 'observed') {
+    return shares;
+  }
+  for (const edge of allEdges.value) {
+    if (edge.from.kind === 'agent' && !isCaller(edge.to)) {
+      shares.set(edge.to.id, (shares.get(edge.to.id) ?? 0) + edge.count);
+    }
+  }
+  return shares;
+});
+
+/** What an agent's row says it called, when its lines are not drawn. */
+function agentSummary(node: MapNode): string {
+  const calls = allEdges.value.filter((edge) => edge.from.id === node.id && !isCaller(edge.to));
+  const total = calls.reduce((sum, edge) => sum + edge.count, 0);
+  return calls.length ? `${formatCount(total)} calls · ${calls.length} ${calls.length === 1 ? 'family' : 'families'} ▸` : '';
+}
+
+const shareWidth = (node: MapNode): number =>
+  node.count ? Math.max(4, ((node.w - 2) * (viaAgent.value.get(node.id) ?? 0)) / node.count) : 0;
+
 const neighbours = computed(() => {
   const near = new Set<string>();
   if (!focus.value) {
@@ -200,6 +239,9 @@ const neighbours = computed(() => {
 
 function edgeClass(edge: MapEdge): string[] {
   const classes = ['map-edge', `map-edge--from-${edge.from.kind}`];
+  if (edge.to.kind === 'agent') {
+    classes.push('map-edge--handoff');
+  }
   if (focus.value) {
     classes.push(edge.from.id === focus.value || edge.to.id === focus.value ? 'map-edge--hot' : 'map-edge--dim');
   }
@@ -245,12 +287,11 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
       aria-label="Skills, agents and tool families"
       @mouseleave="hover = null"
     >
-      <text class="map-column" :x="COLUMN_X.skill" y="18">Skills · invocations</text>
-      <text class="map-column" :x="COLUMN_X.agent" y="18">Agents · spawns</text>
+      <text class="map-column" :x="COLUMN_X.caller" y="18">Who calls · invocations / spawns</text>
       <text class="map-column" :x="COLUMN_X.tool" y="18">Tools · calls</text>
       <g v-for="band in layout.bands" :key="band.area" class="map-band" :class="`map-band--${band.area}`">
         <rect x="4" :y="band.y" :width="WIDTH - 8" :height="band.h" rx="10" />
-        <text class="map-band-title" :x="COLUMN_X.skill - 36" :y="band.y + 18">{{ band.title }}</text>
+        <text class="map-band-title" :x="COLUMN_X.caller - 36" :y="band.y + 18">{{ band.title }}</text>
       </g>
       <path
         v-for="edge in edges"
@@ -277,8 +318,19 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
         @keydown.space.prevent="emit('select', node.id)"
       >
         <rect :x="node.x" :y="node.y" :width="node.w" :height="node.h" rx="6" />
-        <text class="map-label" :x="node.x + 8" :y="node.y + node.h / 2 + 4">{{ node.label }}</text>
+        <text v-if="node.kind === 'agent'" class="map-agent-glyph" :x="node.x + 8" :y="node.y + node.h / 2 + 4" aria-hidden="true">⤷</text>
+        <text class="map-label" :x="node.x + 8 + (node.kind === 'agent' ? AGENT_GLYPH_PX : 0)" :y="node.y + node.h / 2 + 4">{{ node.label }}</text>
         <text class="map-count" :x="node.x + node.w - 8" :y="node.y + node.h / 2 + 4">{{ node.count ? formatCount(node.count) : '–' }}</text>
+        <template v-if="viaAgent.has(node.id)">
+          <rect class="map-share" :x="node.x + 1" :y="node.y + node.h - SHARE_BAR_PX - 1" :width="shareWidth(node)" :height="SHARE_BAR_PX" rx="1.5" />
+          <text class="map-share-text" :x="node.x + node.w - 44" :y="node.y + node.h / 2 + 4">{{ formatCount(viaAgent.get(node.id) ?? 0) }} via agent</text>
+        </template>
+        <text
+          v-if="node.kind === 'agent' && node.id !== focus && agentSummary(node)"
+          class="map-agent-note"
+          :x="node.x + node.w + 10"
+          :y="node.y + node.h / 2 + 4"
+        >{{ agentSummary(node) }}</text>
       </g>
     </svg>
   </div>
@@ -350,6 +402,30 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 .map-edge--hot.map-edge--from-agent,
 .map-edge--trail.map-edge--from-agent {
   stroke: var(--ap-agent);
+}
+
+.map-edge--handoff {
+  stroke: var(--ap-agent);
+  opacity: 0.55;
+}
+
+.map-share {
+  fill: var(--ap-agent);
+}
+
+.map-share-text,
+.map-agent-note {
+  font-size: 10.5px;
+  fill: var(--ap-agent);
+}
+
+.map-share-text {
+  text-anchor: end;
+}
+
+.map-agent-glyph {
+  font-size: 11.5px;
+  fill: var(--ap-agent);
 }
 
 .map-edge--trail {

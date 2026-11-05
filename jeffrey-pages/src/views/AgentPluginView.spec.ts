@@ -92,6 +92,35 @@ describe('Agent Plugin navigation', () => {
   });
 });
 
+describe('Overview and the bar', () => {
+  it('opens on the overview, with the figures and no area switch', async () => {
+    await openPage('/agent-plugin');
+    expect(screen.getByRole('tab', { name: /^Overview/ }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('recorded eval runs')).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: 'Area of the plugin' })).toBeNull();
+  });
+
+  it('shows the area switch on the tabs scoped to an area', async () => {
+    await openPage('/agent-plugin');
+    await userEvent.setup().click(screen.getByRole('tab', { name: /^Map/ }));
+    expect(screen.getByRole('radio', { name: /^JFR recordings/ }).getAttribute('aria-checked')).toBe('true');
+  });
+});
+
+describe('The agent on the map', () => {
+  const agentCalls = (map: HTMLElement) =>
+    Array.from(map.querySelectorAll('path')).filter((path) => path.textContent?.startsWith('jfr-analyst → '));
+
+  it('shows what the agent called as shares of the tool rows, and its lines only once it is picked', async () => {
+    await openPage('/agent-plugin?tab=map&area=jfr');
+    const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });
+    expect(agentCalls(map)).toHaveLength(0);
+    expect(within(map).getByText('38 via agent')).toBeTruthy();
+    await userEvent.setup().click(screen.getByRole('button', { name: /^agent jfr-analyst,/ }));
+    expect(agentCalls(map).length).toBeGreaterThan(0);
+  });
+});
+
 describe('Replay trail', () => {
   it('opens a replay in observed mode even after inspecting the described wiring', async () => {
     await openPage('/agent-plugin?area=jfr&case=named-area-cpu&run=3');

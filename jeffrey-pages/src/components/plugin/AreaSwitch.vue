@@ -58,45 +58,47 @@ const OPTIONS: LensOption[] = AREA_LENSES.map((lens) => {
       class="area-option"
       :class="[`area-option--${option.lens}`, { 'area-option--on': option.lens === lens }]"
       :aria-checked="option.lens === lens"
+      :title="option.detail"
       @click="emit('change', option.lens)"
     >
       <i class="bi area-icon" :class="option.icon" aria-hidden="true"></i>
-      <span class="area-text">
-        <span class="area-label">{{ option.label }}</span>
-        <span class="area-detail">{{ option.detail }}</span>
-      </span>
+      {{ option.label }}
     </button>
   </div>
 </template>
 
 <style scoped>
+/* A two-option toggle for the page's bar; each option's agent, skills and cases are in its title. */
 .area-switch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: inline-flex;
+  border: 1px solid var(--site-line-strong);
+  border-radius: var(--site-radius-sm);
+  overflow: hidden;
 }
 
 .area-option {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px 8px 12px;
-  border: 1px solid var(--site-line-strong);
-  border-radius: var(--site-radius-sm);
+  gap: 7px;
+  padding: 6px 12px;
+  border: 0;
   background: var(--site-surface);
-  color: var(--site-ink);
-  text-align: left;
+  color: var(--site-muted);
+  font-size: 13.5px;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+}
+
+.area-option + .area-option {
+  border-left: 1px solid var(--site-line-strong);
 }
 
 .area-option:hover {
-  border-color: var(--site-faint);
+  color: var(--site-ink);
 }
 
 .area-icon {
-  font-size: 17px;
-  color: var(--site-faint);
+  font-size: 14px;
 }
 
 .area-option--jfr .area-icon {
@@ -107,50 +109,13 @@ const OPTIONS: LensOption[] = AREA_LENSES.map((lens) => {
   color: var(--ap-heap);
 }
 
-.area-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-
-.area-label {
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-.area-detail {
-  font-size: 11.5px;
-  color: var(--site-faint);
-}
-
-.area-option--on {
-  border-color: var(--site-ink);
+.area-option--on,
+.area-option--on:hover {
   background: var(--site-ink);
   color: var(--site-surface);
 }
 
-.area-option--on .area-icon,
-.area-option--on .area-detail {
+.area-option--on .area-icon {
   color: inherit;
-  opacity: 0.85;
-}
-
-@media (max-width: 859px) {
-  .area-switch {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .area-option {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 8px 10px;
-  }
-
-  .area-detail {
-    display: none;
-  }
 }
 </style>

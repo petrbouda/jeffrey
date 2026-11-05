@@ -35,13 +35,17 @@ site shows it on its **Agent Plugin** page (`/agent-plugin`, next to Docs in the
 Set `--recorded-version` to the plugin version used by the runs. All ingested traces must share
 that version; the generator requires this declaration because traces do not identify it reliably.
 
-The page has three tabs:
+The page has four tabs, and a **JFR recordings / Heap dumps** switch on the last three that shows one
+area's skills, agent and tool families together with the shared ones:
+- **Overview.** The figures of the recorded runs, one card per area (its agent, skills, tool families,
+  cases and runs passed), and the cases with a failed run.
 - **Replay.** Each case's latest runs, picked from a list with a pass/fail dot per run. Every Skill,
   Agent and tool call appears in order, in its lane: the main conversation, or the agent it was
   handed to. Play, step or scrub through them.
-- **Map.** Skills, agents and tool families, wired either as the skills' instructions name them or
-  as the runs called them. Each Jeffrey call is charged to the skill active in its lane, or to that
-  agent.
+- **Map.** Who calls (the area's agent first, then its skills) and the tool families, wired either as
+  the skills' instructions name them or as the runs called them. Each Jeffrey call is charged to the
+  skill active in its lane, or to that agent. The agent's own calls show as a green share of each tool
+  row; picking the agent draws its lines.
 - **Tools.** Every tool: which skills name it, which agents may call it, and how often the runs did.
 
 The traces are temporary, so regenerate the map after a suite run, before the directories go.

@@ -20,10 +20,11 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useRoute, useRouter, type LocationQuery } from 'vue-router';
 import AreaSwitch from '@/components/plugin/AreaSwitch.vue';
 import MapTab from '@/components/plugin/MapTab.vue';
+import OverviewTab from '@/components/plugin/OverviewTab.vue';
+import ReplayCaseList from '@/components/plugin/ReplayCaseList.vue';
 import ReplayTab from '@/components/plugin/ReplayTab.vue';
 import ToolsTab from '@/components/plugin/ToolsTab.vue';
 import {
-  formatCount,
   nodeId,
   parseNodeId,
   usePluginUsage,
@@ -34,14 +35,18 @@ import {
 } from '@/composables/usePluginUsage';
 import type { AreaName } from '@/types/pluginUsage';
 
-// The microscope coding-agent plugin in action: its recorded eval runs replayed call by call, the
-// wiring of its skills, agents and tools, and every tool with how often the runs called it. The data
-// is src/data/plugin-usage.json, written by build/scripts/plugin-usage-map.py.
+// The microscope coding-agent plugin in action. One bar under the site header holds the tabs and, where a
+// tab is scoped to an area, the JFR recordings / Heap dumps switch; Overview carries the figures of the
+// recorded runs, Replay plays them call by call beside the case list, Map and Tools show the wiring. The
+// data is src/data/plugin-usage.json, written by build/scripts/plugin-usage-map.py.
 
-type Tab = 'replay' | 'map' | 'tools';
+type Tab = 'overview' | 'replay' | 'map' | 'tools';
 
-const TABS: Tab[] = ['replay', 'map', 'tools'];
-const DEFAULT_TAB: Tab = 'replay';
+const TABS: Tab[] = ['overview', 'replay', 'map', 'tools'];
+const DEFAULT_TAB: Tab = 'overview';
+const LINKED_CASE_TAB: Tab = 'replay';
+/** The tabs that show one area at a time, and so carry the area switch. */
+const AREA_TABS = new Set<Tab>(['replay', 'map', 'tools']);
 const QUERY_TAB = 'tab';
 const QUERY_CASE = 'case';
 const QUERY_RUN = 'run';
@@ -49,21 +54,10 @@ const QUERY_AREA = 'area';
 const DEFAULT_LENS: AreaLens = 'jfr';
 
 const model = usePluginUsage();
-const { totals } = model;
 const replays = model.data.replays;
 const route = useRoute();
 const router = useRouter();
 
-
-const FACTS: { value: number; label: string }[] = [
-  { value: totals.skills, label: 'skills' },
-  { value: totals.agents, label: 'agents' },
-  { value: totals.tools, label: `tools in ${totals.families} families` },
-  { value: totals.runs, label: 'recorded eval runs' },
-  { value: totals.skillInvocations, label: 'skill invocations' },
-  { value: totals.handOffs, label: 'agent hand-offs' },
-  { value: totals.toolCalls, label: 'Jeffrey tool calls' }
-];
 
 function single(query: LocationQuery, key: string): string | null {
   const value = query[key];
@@ -83,7 +77,8 @@ const lens = ref<AreaLens>(DEFAULT_LENS);
 
 function readQuery(query: LocationQuery): void {
   const asked = single(query, QUERY_TAB);
-  tab.value = TABS.find((candidate) => candidate === asked) ?? DEFAULT_TAB;
+  // A link to a case opens its replay; the bare page opens on the overview.
+  tab.value = TABS.find((candidate) => candidate === asked) ?? (single(query, QUERY_CASE) ? LINKED_CASE_TAB : DEFAULT_TAB);
   const area = single(query, QUERY_AREA);
   const askedLens = AREA_LENSES.find((candidate) => candidate === area) ?? DEFAULT_LENS;
   caseIndex.value = caseIndexOf(single(query, QUERY_CASE), askedLens);
@@ -112,16 +107,16 @@ watch([tab, lens, caseIndex, runIndex], () => {
 }, { immediate: true });
 
 // A tab opens at its top: the reader may have scrolled far down the previous one.
-const tabsBar = ref<HTMLElement | null>(null);
+const bar = ref<HTMLElement | null>(null);
 const HEADER_OFFSET_PX = 70;
 
 watch(tab, async () => {
   await nextTick();
-  const bar = tabsBar.value;
-  if (!bar) {
+  const element = bar.value;
+  if (!element) {
     return;
   }
-  const top = bar.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET_PX;
+  const top = element.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET_PX;
   if (window.scrollY > top) {
     window.scrollTo({ top });
   }
@@ -144,6 +139,7 @@ const tabLabels = computed<Record<Tab, { label: string; count: string }>>(() => 
   const tools = families.reduce((sum, family) => sum + (model.familyTools.get(family)?.length ?? 0), 0);
   const cases = shown.reduce((sum, area) => sum + model.casesOf(area.name).length, 0);
   return {
+    overview: { label: 'Overview', count: '' },
     replay: { label: 'Replay', count: `${cases} cases` },
     map: { label: 'Map', count: `${skills} · ${agents} · ${families.length}` },
     tools: { label: 'Tools', count: `${tools}` }
@@ -234,42 +230,45 @@ function selectCase(index: number): void {
   runIndex.value = 0;
 }
 
+function openArea(area: AreaLens, next: 'replay' | 'map'): void {
+  changeLens(area);
+  tab.value = next;
+}
+
 </script>
 
 <template>
   <main class="agent-plugin">
-    <header class="ap-header">
-      <div class="ap-header-inner">
-        <div class="ap-eyebrow">Coding-agent plugin · runs v{{ model.data.plugin }} · wiring v{{ model.data.wiringPlugin }}</div>
-        <p v-if="model.data.plugin !== model.data.wiringPlugin" class="ap-history">Recorded agent names are preserved; the map links them to their current names. These runs do not validate changes in the current wiring version.</p>
-        <h1 class="visually-hidden">Agent Plugin</h1>
-        <AreaSwitch class="ap-areas" :lens="lens" @change="changeLens" />
-        <ul class="ap-facts">
-          <li v-for="fact in FACTS" :key="fact.label"><b>{{ formatCount(fact.value) }}</b> {{ fact.label }}</li>
-        </ul>
-        <nav ref="tabsBar" class="ap-tabs" role="tablist" aria-label="Agent plugin">
-          <button
-            v-for="item in TABS"
-            :key="item"
-            type="button"
-            role="tab"
-            class="ap-tab"
-            :class="{ 'ap-tab--on': item === tab }"
-            :aria-selected="item === tab"
-            @click="tab = item"
-          >
-            {{ tabLabels[item].label }}<span class="ap-tab-count">{{ tabLabels[item].count }}</span>
-          </button>
-        </nav>
-      </div>
-    </header>
+    <h1 class="visually-hidden">Agent Plugin</h1>
+    <div ref="bar" class="ap-bar">
+      <nav class="ap-tabs" role="tablist" aria-label="Agent plugin">
+        <button
+          v-for="item in TABS"
+          :key="item"
+          type="button"
+          role="tab"
+          class="ap-tab"
+          :class="{ 'ap-tab--on': item === tab }"
+          :aria-selected="item === tab"
+          @click="tab = item"
+        >
+          {{ tabLabels[item].label }}<span v-if="tabLabels[item].count" class="ap-tab-count">{{ tabLabels[item].count }}</span>
+        </button>
+      </nav>
+      <AreaSwitch v-if="AREA_TABS.has(tab)" class="ap-areas" :lens="lens" @change="changeLens" />
+    </div>
 
+    <div class="ap-shell" :class="{ 'ap-shell--rail': tab === 'replay' }">
+      <aside v-if="tab === 'replay'" class="ap-rail">
+        <ReplayCaseList :replays="replays" :selected="caseIndex" :lens="lens" @select="selectCase" />
+      </aside>
+
+      <div class="ap-content">
+    <OverviewTab v-if="tab === 'overview'" @open-area="openArea" @open-case="openCase" />
     <ReplayTab
-      v-if="tab === 'replay'"
+      v-else-if="tab === 'replay'"
       :case-index="caseIndex"
       :run-index="runIndex"
-      :lens="lens"
-      @select-case="selectCase"
       @select-run="runIndex = $event"
       @open-map="openMapWithTrail"
       @pick="pickOnMap"
@@ -288,6 +287,8 @@ function selectCase(index: number): void {
       @open-case="openCase"
     />
     <ToolsTab v-else :lens="lens" @show="pickOnMap(nodeId('tool', $event))" />
+      </div>
+    </div>
   </main>
 </template>
 
@@ -313,77 +314,44 @@ function selectCase(index: number): void {
   --ap-heap-band: rgba(109, 63, 214, 0.06);
   --ap-shared-band: rgba(48, 32, 12, 0.03);
   --ap-tab-start: #ffab00;
+  --ap-bar-height: 52px;
   --ap-edge: rgba(48, 32, 12, 0.14);
   --ap-radius-xs: 3px;
   --ap-radius-md: 14px;
   --ap-radius-pill: 999px;
+  min-height: calc(100vh - var(--site-header-height));
   background: var(--site-paper);
   color: var(--site-ink);
 }
 
-.ap-header {
+/* One bar under the site header: the tabs keep their place, the area switch sits at its right end. */
+.ap-bar {
+  position: sticky;
+  top: var(--site-header-height);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--site-line);
   background: var(--site-surface);
-}
-
-.ap-header-inner {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 26px 40px 0;
-}
-
-.ap-eyebrow {
-  font-family: var(--site-font-mono);
-  font-size: 11.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--site-ember);
-}
-
-.ap-history {
-  margin: 8px 0 0;
-  font-size: 12.5px;
-  color: var(--site-muted);
-}
-
-
-
-
-.ap-areas {
-  margin-top: 12px;
-}
-
-.ap-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 26px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 13.5px;
-  color: var(--site-muted);
-}
-
-.ap-facts b {
-  margin-right: 4px;
-  font-size: 17px;
-  color: var(--site-ink);
 }
 
 .ap-tabs {
   display: flex;
   gap: 4px;
-  margin-top: 16px;
   overflow-x: auto;
 }
 
 .ap-tab {
   position: relative;
-  padding: 10px 16px 12px;
+  padding: 15px 14px 14px;
   border: 0;
   background: transparent;
   color: var(--site-muted);
   font-size: 14.5px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -392,16 +360,16 @@ function selectCase(index: number): void {
   color: var(--site-ink);
 }
 
+/* The active tab changes colour, not weight, so no tab moves when another is picked. */
 .ap-tab--on {
   color: var(--site-ink);
-  font-weight: 600;
 }
 
 .ap-tab--on::after {
   content: '';
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 10px;
+  right: 10px;
   bottom: 0;
   height: 2px;
   border-radius: var(--ap-radius-xs);
@@ -415,24 +383,60 @@ function selectCase(index: number): void {
   color: var(--site-faint);
 }
 
+.ap-areas {
+  margin-left: auto;
+}
+
+/* Full width like the docs; on Replay the case list is a rail on the left, under the bar. */
+.ap-shell--rail {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.ap-rail {
+  position: sticky;
+  top: calc(var(--site-header-height) + var(--ap-bar-height));
+  align-self: start;
+  max-height: calc(100vh - var(--site-header-height) - var(--ap-bar-height));
+  overflow-y: auto;
+  padding: 14px 12px 24px;
+  border-right: 1px solid var(--site-line);
+  background: var(--site-surface);
+}
+
+.ap-content {
+  min-width: 0;
+}
+
 @media (max-width: 859px) {
-  .ap-header-inner {
-    padding: 18px 16px 0;
-  }
-
-
-
-  .ap-facts {
-    gap: 4px 16px;
-    font-size: 12.5px;
-  }
-
-  .ap-facts b {
-    font-size: 15px;
+  .ap-bar {
+    flex-wrap: wrap;
+    gap: 0 12px;
+    padding: 0 8px 8px;
   }
 
   .ap-tab {
-    padding: 10px 12px 12px;
+    padding: 14px 10px 12px;
+  }
+
+  .ap-tab-count {
+    display: none;
+  }
+
+  .ap-areas {
+    margin-left: 6px;
+  }
+
+  .ap-shell--rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ap-rail {
+    position: static;
+    max-height: none;
+    padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--site-line);
   }
 }
 </style>

@@ -220,9 +220,7 @@ const summary = computed(() => {
 
 <style scoped>
 .tools-tab {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 22px 40px 48px;
+  padding: 24px 28px 48px;
 }
 
 .tools-toolbar {
@@ -398,7 +396,7 @@ const summary = computed(() => {
 
 @media (max-width: 1199px) {
   .tools-tab {
-    padding: 20px 24px 40px;
+    padding: 22px 24px 40px;
   }
 }
 

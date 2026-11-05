@@ -17,20 +17,18 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import ReplayCaseList from '@/components/plugin/ReplayCaseList.vue';
 import ReplayPlayer from '@/components/plugin/ReplayPlayer.vue';
 import ReplayRoute from '@/components/plugin/ReplayRoute.vue';
 import ReplayStepCard from '@/components/plugin/ReplayStepCard.vue';
 import ReplayTimeline from '@/components/plugin/ReplayTimeline.vue';
-import { formatDay, formatUsd, usePluginUsage, type AreaLens, type ReplayTrail } from '@/composables/usePluginUsage';
+import { formatDay, formatUsd, usePluginUsage, type ReplayTrail } from '@/composables/usePluginUsage';
 import { useReplayPlayback } from '@/composables/useReplayPlayback';
 
 // One eval case at a time: pick it on the left, play a run in the middle, follow its route on the right.
 
-const props = defineProps<{ caseIndex: number; runIndex: number; lens: AreaLens }>();
+const props = defineProps<{ caseIndex: number; runIndex: number }>();
 
 const emit = defineEmits<{
-  (e: 'select-case', index: number): void;
   (e: 'select-run', index: number): void;
   (e: 'open-map', trail: ReplayTrail): void;
   (e: 'pick', id: string): void;
@@ -74,10 +72,6 @@ function runMark(passed: boolean | null): string {
 
 <template>
   <div class="replay">
-    <aside class="replay-cases">
-      <ReplayCaseList :replays="replays" :selected="caseIndex" :lens="lens" @select="emit('select-case', $event)" />
-    </aside>
-
     <section class="replay-main" aria-live="polite">
       <div class="replay-title-row">
         <div>
@@ -158,21 +152,11 @@ function runMark(passed: boolean | null): string {
 </template>
 
 <style scoped>
+/* The case list lives in the page's rail; here the run, and its route beside it. */
 .replay {
   display: grid;
-  grid-template-columns: 270px minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   min-height: 720px;
-}
-
-.replay-cases {
-  position: sticky;
-  top: var(--site-header-height);
-  align-self: start;
-  max-height: calc(100vh - var(--site-header-height));
-  overflow-y: auto;
-  padding: 14px 12px 24px;
-  border-right: 1px solid var(--site-line);
-  background: var(--site-surface);
 }
 
 .replay-main {
@@ -351,11 +335,10 @@ function runMark(passed: boolean | null): string {
 
 @media (max-width: 1199px) {
   .replay {
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .replay-side {
-    grid-column: 2;
     border-left: 0;
     border-top: 1px solid var(--site-line);
     padding: 22px 28px 40px;
@@ -368,20 +351,11 @@ function runMark(passed: boolean | null): string {
     min-height: 0;
   }
 
-  .replay-cases {
-    position: static;
-    max-height: none;
-    padding: 14px 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--site-line);
-  }
-
   .replay-main {
     padding: 18px 16px 24px;
   }
 
   .replay-side {
-    grid-column: 1;
     padding: 20px 16px 32px;
   }
 }
