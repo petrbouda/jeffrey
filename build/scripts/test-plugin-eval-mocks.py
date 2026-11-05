@@ -248,15 +248,163 @@ class CodeToolsTest(RecorderSandbox):
     def test_other_figures_are_not_accepted_with_the_fixture(self):
         given = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample', 'framePrefixes': ['com.acme.checkout.']}
         suggested = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample'}
-        _, pattern = self.record('code_hotspots', self.HOTSPOT_SCHEMA, [given, suggested],
+        _, pattern = self.record('flamegraph_export', self.HOTSPOT_SCHEMA, [given, suggested],
                                  lambda args: {'charged': 10 if args.get('framePrefixes') else 12})
-        self.assertTrue(self.violates(pattern, 'code_hotspots', suggested))
+        self.assertTrue(self.violates(pattern, 'flamegraph_export', suggested))
+        self.assertEqual('fixed', yaml.safe_load((self.mocks / 'flamegraph_export.md').read_text().split('---')[1])['type'])
+
+    def test_other_figures_of_a_small_tool_are_a_variant_its_relay_answers(self):
+        schema = {**self.HOTSPOT_SCHEMA, 'properties': {**self.HOTSPOT_SCHEMA['properties'], 'excludeIdle': {'type': 'boolean'}}}
+        whole = {'profileId': 'b', 'eventType': 'profiler.WallClockSample', 'framePrefixes': ['com.acme.']}
+        idle_out = {**whole, 'excludeIdle': True}
+        idle_out_shorter = {**idle_out, 'framePrefixes': ['com.']}
+        respond = lambda args: {'excludeIdle': args.get('excludeIdle', False), 'framePrefixes': args['framePrefixes'],
+                                'charged': 4 if args.get('excludeIdle') else 10}
+        recorded, pattern = self.record('code_hotspots', schema, [whole, idle_out, idle_out_shorter], respond)
+        for arguments in (whole, idle_out, idle_out_shorter):
+            self.assertFalse(self.violates(pattern, 'code_hotspots', arguments))
+        self.assertTrue(self.violates(pattern, 'code_hotspots', {**whole, 'useWeight': True}))
+        mock = (self.mocks / 'code_hotspots.md').read_text()
+        self.assertEqual('agent', yaml.safe_load(mock.split('---')[1])['type'])
+        self.assertIn('{{file:fixtures/code_hotspots-{input.eventType}-{input.profileId}.txt}}', mock)
+        self.assertIn('excludeIdle = {{input.excludeIdle}}', mock)
+        fixture = (self.mocks / 'fixtures/code_hotspots-profiler.WallClockSample-b.txt').read_text()
+        self.assertEqual([recorded.answers['code_hotspots'][('profiler.WallClockSample', 'b')],
+                          recorded.variants['code_hotspots'][('profiler.WallClockSample', 'b')][0].answer],
+                         recorder.relay_answers(fixture))
+        self.assertIn('Left out, an argument has the value: {"excludeIdle": false', fixture)
+        self.assertIn(json.dumps({'excludeIdle': True, 'framePrefixes': ['com.'], 'useWeight': 'unset'}), fixture)
+        self.assertIn(json.dumps({'excludeIdle': False, 'framePrefixes': ['com.acme.'], 'useWeight': 'unset'}), fixture)
 
     def test_the_weighting_follows_the_event_type_as_the_flamegraph_does(self):
         args = {'profileId': 'b', 'eventType': 'jdk.ObjectAllocationSample', 'framePrefixes': ['com.acme.']}
         _, pattern = self.record('code_hotspots', self.HOTSPOT_SCHEMA, [args], lambda _: {'charged': 1})
         self.assertFalse(self.violates(pattern, 'code_hotspots', {**args, 'useWeight': True}))
         self.assertTrue(self.violates(pattern, 'code_hotspots', {**args, 'useWeight': False}))
+
+
+class RelayTest(RecorderSandbox):
+    """A tool addressed by an operation's name: every operation a listing names is recorded, and a relay hands the
+    model the real answer for the one its call names — no fixed mock can, since a name is not a file-name segment."""
+
+    OPERATIONS_SCHEMA = {'type': 'object', 'required': ['profileId'], 'properties': {'profileId': {'type': 'string'}}}
+    OPERATION_SCHEMA = {'type': 'object', 'required': ['eventType', 'kind', 'name', 'profileId'], 'properties': {
+        'profileId': {'type': 'string'}, 'name': {'type': 'string'}, 'eventType': {'type': 'string'},
+        'kind': {'type': 'string', 'enum': ['SERVER', 'CLIENT']}, 'limit': {'type': 'integer'}}}
+    OPERATIONS = [{'name': 'GET /persons/{count}', 'kind': 'SERVER', 'eventType': 'jeffrey.HttpServerExchange'},
+                  {'name': 'POST /persons', 'kind': 'SERVER', 'eventType': 'jeffrey.HttpServerExchange'}]
+    NO_SUCH = 'No such operation: {name} (kind={kind}, eventType={eventType}).'
+    # The harness's own rule for a value substituted into a fixture's path (Claude Code's eval mock stand-in).
+    HARNESS_FILE_NAME_SEGMENT = re.compile(r'^(?!\.{1,2}$)[A-Za-z0-9._-]+$')
+
+    def record(self, profiles=('pm', 'pd')):
+        tools = [{'name': 'traces_operations', 'inputSchema': self.OPERATIONS_SCHEMA},
+                 {'name': 'traces_slowestTraces', 'inputSchema': self.OPERATION_SCHEMA}]
+        recorded = recorder.Recorded()
+        names = {operation['name'] for operation in self.OPERATIONS}
+
+        class Server:
+            def call(self, name, args):
+                if name == 'traces_operations':
+                    return answer({'profileId': args['profileId'], 'operations': RelayTest.OPERATIONS})
+                if args['name'] not in names:
+                    return {'content': [{'type': 'text', 'text': RelayTest.NO_SUCH.format(**args)}], 'isError': True}
+                return answer({'profileId': args['profileId'], 'name': args['name'], 'traces': [{'traceId': 'ab'}]})
+
+        seeds = [('traces_operations', {'profileId': profile}) for profile in profiles]
+        with patch.object(recorder, 'seed_calls', return_value=seeds), \
+                patch.object(recorder, 'persons_seed_calls', return_value=[]):
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm', 'pn', 'pl', 'pe'), recorded)
+            recorder.probe_unmatched(Server(), tools, recorded)
+        recorder.write_mocks(tools, recorded)
+        return recorded
+
+    def test_every_operation_a_listing_names_is_recorded(self):
+        recorded = self.record()
+        self.assertEqual({(operation['eventType'], operation['kind'], operation['name'], profile)
+                          for operation in self.OPERATIONS for profile in ('pm', 'pd')},
+                         set(recorded.answers['traces_slowestTraces']))
+
+    def test_an_operation_tool_is_relayed_from_one_fixture_per_profile(self):
+        self.record()
+        mock = (self.mocks / 'traces_slowestTraces.md').read_text()
+        front = yaml.safe_load(mock.split('---')[1])
+        self.assertEqual('agent', front['type'])
+        self.assertIn('abort_when', front)
+        self.assertNotIn('expect', front)
+        self.assertIn('{{file:fixtures/traces_slowestTraces-{input.profileId}.txt}}', mock)
+        for argument in ('name', 'kind', 'eventType'):
+            self.assertIn('{{input.' + argument + '}}', mock)
+        fixtures = sorted(path.name for path in (self.mocks / 'fixtures').glob('traces_slowestTraces-*'))
+        self.assertEqual(['traces_slowestTraces-pd.txt', 'traces_slowestTraces-pm.txt'], fixtures)
+
+    def test_the_relay_fixture_holds_each_real_answer_verbatim_with_its_arguments(self):
+        recorded = self.record()
+        fixture = (self.mocks / 'fixtures/traces_slowestTraces-pm.txt').read_text()
+        expected = [text for key, text in recorded.answers['traces_slowestTraces'].items() if key[-1] == 'pm']
+        self.assertEqual(expected, recorder.relay_answers(fixture))
+        for operation in self.OPERATIONS:
+            self.assertIn(json.dumps(operation, sort_keys=True), {
+                json.dumps(json.loads(line.split('arguments: ', 1)[1]), sort_keys=True)
+                for line in fixture.splitlines() if line.startswith('Recorded call ')})
+
+    def test_a_call_naming_no_recorded_operation_gets_the_servers_own_error(self):
+        self.record()
+        fixture = (self.mocks / 'fixtures/traces_slowestTraces-pm.txt').read_text()
+        error = re.search(r'<error>\n(.*?)\n</error>', fixture, re.S).group(1)
+        self.assertEqual(self.NO_SUCH.format(name=recorder.UNRECORDED_VALUE, kind='SERVER',
+                                             eventType='jeffrey.HttpServerExchange'), error)
+
+    def test_a_relayed_tool_is_listed_with_its_recorded_inputs(self):
+        self.record()
+        listed = [tool['name'] for tool in json.loads((self.mocks / '_tools.json').read_text())['tools']]
+        self.assertIn('traces_slowestTraces', listed)
+        inputs = [entry['arguments'] for entry in json.loads((self.mocks / '_inputs.json').read_text())
+                  if entry['tool'] == 'traces_slowestTraces']
+        self.assertEqual(4, len(inputs))
+
+    def test_one_operation_a_profile_keeps_its_fixed_mock(self):
+        with patch.object(RelayTest, 'OPERATIONS', self.OPERATIONS[:1]):
+            self.record()
+        front = yaml.safe_load((self.mocks / 'traces_slowestTraces.md').read_text().split('---')[1])
+        self.assertEqual('fixed', front['type'])
+        self.assertEqual(['GET /persons/{count}'], front['expect']['name'])
+
+    def test_an_answer_too_long_to_copy_keeps_the_first_answer_per_profile_instead(self):
+        long = {'traces': [{'traceId': 'ab', 'frames': 'x' * recorder.RELAY_MAX_ANSWER_CHARS}]}
+        with patch.object(recorder, 'seen_by_model', lambda answer: json.dumps({**answer.get('structuredContent', {}), **long})):
+            self.record()
+        front = yaml.safe_load((self.mocks / 'traces_slowestTraces.md').read_text().split('---')[1])
+        self.assertEqual('fixed', front['type'])
+        self.assertEqual(['GET /persons/{count}'], front['expect']['name'])
+        fixtures = sorted(path.name for path in (self.mocks / 'fixtures').glob('traces_slowestTraces-*'))
+        self.assertEqual(['traces_slowestTraces-jeffrey.HttpServerExchange-SERVER-pd.txt',
+                          'traces_slowestTraces-jeffrey.HttpServerExchange-SERVER-pm.txt'], fixtures)
+
+    def test_every_endpoint_of_an_http_dashboard_is_asked_for(self):
+        overview = {'endpoints': [{'uri': '/persons/{count}', 'requestCount': 664}, {'uri': '/persons'}, {'uri': None}]}
+        self.assertEqual([('http_endpoint', {'profileId': 'pm', 'uri': '/persons/{count}'}),
+                          ('http_endpoint', {'profileId': 'pm', 'uri': '/persons'})],
+                         recorder.row_calls('http_overview', {'profileId': 'pm', 'direction': 'SERVER'}, overview))
+
+    def test_answers_a_file_name_can_hold_keep_their_fixed_mock(self):
+        required = ['className', 'profileId']
+        answers = {('com.acme.Checkout$Order', 'pm'): 'a', ('com.acme.Checkout.Order', 'pm'): 'b',
+                   ('com.acme.Checkout$Line', 'pm'): 'c'}
+        self.assertIsNone(recorder.relay_file_arguments(required, answers))
+
+    def test_a_query_the_agent_writes_is_never_relayed(self):
+        answers = {('pm', 'SELECT * FROM events LIMIT 10'): 'a', ('pm', 'SELECT 1'): 'b'}
+        self.assertIsNone(recorder.relay_file_arguments(['profileId', 'query'], answers))
+
+    def test_every_checked_in_fixture_path_names_only_values_the_harness_takes(self):
+        inputs = json.loads((MOCKS / '_inputs.json').read_text())
+        for mock in sorted(MOCKS.glob('*.md')):
+            for include in re.findall(r'\{\{file:([^}]*(?:\{input\.[A-Za-z0-9_.-]+\}[^}]*)*)\}\}', mock.read_text()):
+                for argument in re.findall(r'\{input\.([A-Za-z0-9_.-]+)\}', include):
+                    for entry in (entry for entry in inputs if entry['tool'] == mock.stem):
+                        with self.subTest(mock=mock.name, argument=argument, arguments=entry['arguments']):
+                            self.assertRegex(str(entry['arguments'].get(argument)), self.HARNESS_FILE_NAME_SEGMENT)
 
 
 class AddressingTest(unittest.TestCase):
@@ -361,8 +509,12 @@ class AnswerSizeTest(unittest.TestCase):
             body = fixture.read_text()
             if fixture.suffix == '.md':
                 body = body.split('---', 2)[-1].strip()
-            if len(body) > self.UNDECLARED_MAX_CHARS:
-                oversized.append(f'{fixture.name}: {len(body)}')
+            # A relay's fixture holds every answer recorded for its profile, and the model is handed one of them.
+            relayed = fixture.suffix == '.txt' and \
+                yaml.safe_load((mocks / f'{tool}.md').read_text().split('---')[1]).get('type') == 'agent'
+            for each in (recorder.relay_answers(body) if relayed else [body]):
+                if len(each) > self.UNDECLARED_MAX_CHARS:
+                    oversized.append(f'{fixture.name}: {len(each)}')
         self.assertEqual([], oversized)
 
 

@@ -123,7 +123,15 @@ library — and two checkout cases ask what only SQL answers, two compare the me
 ## Where the answers come from
 
 An eval run never starts the plugin's server: every tool is answered by a mock under
-[`mocks/jeffrey/`](mocks/jeffrey/), and a tool with no mock is not offered at all. The mocks are a real
+[`mocks/jeffrey/`](mocks/jeffrey/), and a tool with no mock is not offered at all. A tool chosen by a
+value no file name can hold — an operation's name such as `GET /persons/{count}` — is answered by a relay: a
+`type: agent` mock whose fixture holds every answer recorded for the profile, and the judge hands back the
+one the call names, verbatim, or the server's own error for an operation it does not hold. That is how
+`traces_slowestTraces` and `traces_operationExport` answer every traced operation, which the recorder
+reaches row by row from `traces_operations`, and `http_endpoint` every endpoint of `http_overview`. Three small
+tools — `code_hotspots`, `compare_movements`, `code_callSites` — are relayed by their options as well, so the wall
+clock with idle threads left out gets its own figures; a flamegraph is too large to copy, so `flamegraph_export`
+answers one recorded call per event type and the `recorded-call-semantics` grader fails a run that asked for another. The mocks are a real
 Jeffrey's answers, recorded by `build/scripts/record-plugin-eval-mocks.py` from the workload in
 [`fixtures/workload/`](fixtures/workload/) — a checkout service in miniature with a CPU hotspot,
 allocation, lock contention, exceptions used as control flow and a slow leak, recorded twice
@@ -190,10 +198,11 @@ What the mocks cannot do, so the cases stay away from it:
 
 - **State.** A mock answers the same for the same arguments: the heap dump is recorded already
   prepared, and `jvm_autoAnalysis` as not yet computed.
-- **Free-text arguments.** A tool whose required argument is a SQL query, a URI or a path other than
-  the recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql`,
-  `jfr_getProfileInfo`, `http_endpoint` and the like are absent from the runs (85 of the 112 tools
-  are mocked). The SQL cases run against a real Jeffrey for that reason.
+- **Free-text arguments.** A tool whose required argument is a SQL query or a path other than the
+  recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql`,
+  `jfr_getProfileInfo` and the like are absent from the runs. The SQL cases run against a real Jeffrey
+  for that reason. A name or URI copied from an answer (`http_endpoint`, the trace tools) is relayed,
+  above.
 - **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class
   (`Checkout$Order`) can key none: `heap_browseClassInstances` for one answers that the name "is not a
   plain file-name segment", which a model reads as Jeffrey refusing the class. The code tools take the

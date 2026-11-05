@@ -98,9 +98,11 @@ not a reason to split by thread; mention that thread from the summary instead.
 
 **A trace operation.** `traces_overview`; then `traces_notifications` first when any is `CRITICAL` or
 `HIGH`, since it names the cause the span tree only shows the cost of; then `traces_operations` —
-an operation is `(name, kind, eventType)`, not a name — `traces_operationExport` for the population,
-`traces_slowestTraces` → `traces_traceExport` for one exemplar, and `traces_spanFlamegraphExport` for
-the frames inside one slow span. One population slow and the rest fine: `traces_attributeKeys` →
+an operation is `(name, kind, eventType)`, not a name — then `traces_slowestTraces` →
+`traces_traceExport` of the slowest trace of each slow operation, before any dashboard: what one slow
+request spent its time on is the *why*, and an answer that read no slow trace has not given it.
+`traces_operationExport` adds the population when one trace may not be typical, and
+`traces_spanFlamegraphExport` the frames inside one slow span. One population slow and the rest fine: `traces_attributeKeys` →
 `traces_attributeValues` → `traces_attributeSearch`. Without traces, `http_overview` and
 `jdbc_overview` answer in aggregate; statements all fast while requests are slow is `jdbc_pools`.
 
