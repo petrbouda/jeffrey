@@ -1,6 +1,6 @@
 ---
 name: heap-dump-what-holds-memory
-tags: [routing, heap]
+tags: [routing, heap, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

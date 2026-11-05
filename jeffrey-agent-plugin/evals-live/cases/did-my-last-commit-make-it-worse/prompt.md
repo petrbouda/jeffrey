@@ -1,6 +1,6 @@
 ---
 name: did-my-last-commit-make-it-worse
-tags: [code, compare, provenance]
+tags: [code, compare, provenance, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

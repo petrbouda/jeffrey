@@ -57,6 +57,8 @@ export interface Replay {
   suite: Suite;
   case: string;
   prompt: string;
+  /** The plugin version these runs were recorded with. */
+  plugin?: string;
   at: string | null;
   runs: ReplayRun[];
 }
@@ -114,9 +116,19 @@ export interface UsageTotals {
   other: Record<string, number>;
 }
 
+export interface PluginWorkload {
+  name: string;
+  label: string;
+  /** True for a real service's recorded runs, false for a workload written for the evals. */
+  real: boolean;
+  detail: string;
+}
+
 export interface PluginUsage {
-  /** The version the retained runs were recorded with. */
+  /** The version the newest runs were recorded with. */
   plugin: string;
+  /** Every version the kept runs were recorded with, oldest first. */
+  pluginVersions?: string[];
   wiringPlugin: string;
   /** Recorded agent name → current agent name; history keeps its original identities. */
   agentAliases: Record<string, string>;
@@ -125,6 +137,10 @@ export interface PluginUsage {
   agents: PluginAgent[];
   /** Every skill and tool family in exactly one of them. */
   areas: PluginArea[];
+  /** What the eval cases run on: a real service's recorded runs, or a workload made up for the evals. */
+  workloads: PluginWorkload[];
+  /** Eval case name → the workload its prompt's tags declare; null for a case that reads no recording. */
+  caseWorkloads: Record<string, string | null>;
   usage: UsageTotals;
   /** Node id (s:, a:) → node id (s:, a:, t:) → calls charged to the first while it was active. */
   observed: Record<string, Record<string, number>>;

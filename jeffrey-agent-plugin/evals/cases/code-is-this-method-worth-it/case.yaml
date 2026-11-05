@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: code-is-this-method-worth-it
-context:
-  scaffold_script: setup.sh

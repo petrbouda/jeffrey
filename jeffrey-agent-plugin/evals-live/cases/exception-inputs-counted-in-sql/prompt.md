@@ -1,6 +1,6 @@
 ---
 name: exception-inputs-counted-in-sql
-tags: [sql, exceptions]
+tags: [sql, exceptions, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

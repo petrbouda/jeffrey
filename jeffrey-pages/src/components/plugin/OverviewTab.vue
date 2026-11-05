@@ -16,6 +16,7 @@
 -->
 
 <script setup lang="ts">
+import WorkloadMark from '@/components/plugin/WorkloadMark.vue';
 import { formatCount, usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
 import type { Replay } from '@/types/pluginUsage';
 
@@ -36,6 +37,8 @@ interface AreaSummary {
   cases: number;
   passed: number;
   runs: number;
+  real: number;
+  madeUp: number;
 }
 
 const AREA_LENSES_SHOWN: AreaLens[] = ['jfr', 'heap'];
@@ -57,6 +60,7 @@ const FACTS: { value: number; label: string }[] = [
 const AREAS: AreaSummary[] = AREA_LENSES_SHOWN.map((lens) => {
   const area = model.areas.get(lens)!;
   const runs = model.casesOf(lens).flatMap((index) => replays[index].runs);
+  const workloads = model.casesOf(lens).map((index) => model.workloadOf(replays[index]));
   return {
     lens,
     label: area.label,
@@ -65,7 +69,9 @@ const AREAS: AreaSummary[] = AREA_LENSES_SHOWN.map((lens) => {
     families: area.families.length,
     cases: model.casesOf(lens).length,
     passed: runs.filter((run) => run.passed).length,
-    runs: runs.length
+    runs: runs.length,
+    real: workloads.filter((workload) => workload?.real).length,
+    madeUp: workloads.filter((workload) => workload && !workload.real).length
   };
 });
 
@@ -73,7 +79,10 @@ const FAILING: { index: number; replay: Replay; area: string }[] = replays
   .map((replay, index) => ({ index, replay, area: model.areas.get(model.caseArea(replay))?.label ?? '' }))
   .filter(({ replay }) => replay.runs.some((run) => run.passed === false));
 
-const differentWiring = model.data.plugin !== model.data.wiringPlugin;
+const RUN_VERSIONS: string[] = model.data.pluginVersions?.length ? model.data.pluginVersions : [model.data.plugin];
+const OLDER_VERSIONS = RUN_VERSIONS.filter((version) => version !== model.data.wiringPlugin);
+const differentWiring = OLDER_VERSIONS.length > 0;
+const runVersions = RUN_VERSIONS.map((version) => `v${version}`).join(', ');
 
 function runState(passed: boolean | null): string {
   if (passed === null) {
@@ -85,9 +94,10 @@ function runState(passed: boolean | null): string {
 
 <template>
   <div class="overview">
-    <div class="overview-eyebrow">Coding-agent plugin · runs v{{ model.data.plugin }} · wiring v{{ model.data.wiringPlugin }}</div>
+    <div class="overview-eyebrow">Coding-agent plugin · runs {{ runVersions }} · wiring v{{ model.data.wiringPlugin }}</div>
     <p v-if="differentWiring" class="overview-history">
-      The runs were recorded with v{{ model.data.plugin }}; their agent names are linked to the current ones, and they do not
+      {{ RUN_VERSIONS.length > 1 ? 'Some runs were' : 'The runs were' }} recorded with
+      {{ OLDER_VERSIONS.map((version) => `v${version}`).join(', ') }}; their agent names are linked to the current ones, and they do not
       validate changes made in v{{ model.data.wiringPlugin }}.
     </p>
 
@@ -105,6 +115,9 @@ function runState(passed: boolean | null): string {
         <p class="overview-area-facts">
           {{ area.skills }} skills · {{ area.families }} {{ area.families === 1 ? 'tool family' : 'tool families' }} · {{ area.cases }} cases ·
           {{ area.passed }}/{{ area.runs }} runs passed
+        </p>
+        <p class="overview-area-data">
+          {{ area.real }} {{ area.real === 1 ? 'case' : 'cases' }} on a real service · {{ area.madeUp }} on a made-up workload
         </p>
         <div class="overview-area-actions">
           <button type="button" class="overview-button" @click="emit('open-area', area.lens, 'replay')">
@@ -129,6 +142,7 @@ function runState(passed: boolean | null): string {
         @click="emit('open-case', item.index)"
       >
         <span class="overview-case-name">{{ item.replay.case }}</span>
+        <WorkloadMark v-if="model.workloadOf(item.replay)" :workload="model.workloadOf(item.replay)!" />
         <span class="overview-case-area">{{ item.area }}</span>
         <span class="overview-dots" :aria-label="item.replay.runs.map((run) => `run ${run.run} ${runState(run.passed)}`).join(', ')">
           <i v-for="run in item.replay.runs" :key="run.run" class="overview-dot" :class="`overview-dot--${runState(run.passed)}`"></i>
@@ -235,6 +249,12 @@ function runState(passed: boolean | null): string {
 
 .overview-area-facts {
   margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--site-faint);
+}
+
+.overview-area-data {
+  margin: 2px 0 0;
   font-size: 13px;
   color: var(--site-faint);
 }

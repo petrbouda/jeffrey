@@ -1,6 +1,6 @@
 ---
 name: lock-contention-not-wall-clock
-tags: [routing, waiting]
+tags: [routing, waiting, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

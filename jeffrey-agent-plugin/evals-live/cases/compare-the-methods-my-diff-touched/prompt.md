@@ -1,6 +1,6 @@
 ---
 name: compare-the-methods-my-diff-touched
-tags: [code, compare]
+tags: [code, compare, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

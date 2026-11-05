@@ -18,17 +18,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import PluginNodeChip from '@/components/plugin/PluginNodeChip.vue';
+import WorkloadMark from '@/components/plugin/WorkloadMark.vue';
 import {
   formatCount,
   nodeId,
   parseNodeId,
   usePluginUsage,
+  type CaseUse,
   type NodeKind
 } from '@/composables/usePluginUsage';
-import type { Replay } from '@/types/pluginUsage';
 
 // What a picked skill, agent, tool family or tool is: what it names, who it hands over to, what the
-// runs called through it, and which replays to watch it in.
+// runs called through it, and its use cases: the eval cases whose runs reached it, each to replay.
 
 const props = defineProps<{ id: string | null }>();
 const emit = defineEmits<{ (e: 'select', id: string): void; (e: 'open-case', index: number): void }>();
@@ -53,7 +54,7 @@ interface Detail {
   description: string | null;
   facts: string;
   groups: ChipGroup[];
-  replays: Replay[];
+  uses: CaseUse[];
 }
 
 const model = usePluginUsage();
@@ -87,7 +88,7 @@ function skillDetail(name: string): Detail {
       { title: 'Tools it names · calls in runs', chips: named.map((tool) => chip(nodeId('tool', tool), model.toolCalls(tool))) },
       { title: 'What the runs called through it', chips: observedFrom(nodeId('skill', name)), empty: 'Nothing yet.' }
     ],
-    replays: model.replaysWhere((step) => step.kind === 'skill' && step.name === name)
+    uses: model.casesUsing((step) => step.kind === 'skill' && step.name === name)
   };
 }
 
@@ -104,7 +105,7 @@ function agentDetail(name: string): Detail {
       { title: 'What it called', chips: observedFrom(nodeId('agent', name)), empty: 'Nothing yet.' },
       { title: 'Withheld from it', chips: agent.denied.map((tool) => chip(nodeId('tool', tool))) }
     ],
-    replays: model.replaysWhere((step) => step.kind === 'agent' && model.agentName(step.name) === name)
+    uses: model.casesUsing((step) => step.kind === 'agent' && model.agentName(step.name) === name)
   };
 }
 
@@ -118,7 +119,7 @@ function familyDetail(name: string): Detail {
     description: null,
     facts: `${tools.length} tools · ${formatCount(model.familyCalls(name))} calls in runs · ${never} never called`,
     groups: [{ title: 'Its tools · calls in runs', chips: tools.map((tool) => chip(nodeId('tool', tool), model.toolCalls(tool))) }],
-    replays: model.replaysWhere((step) => step.kind === 'jeffrey' && model.familyOf(step.name) === name)
+    uses: model.casesUsing((step) => step.kind === 'jeffrey' && model.familyOf(step.name) === name)
   };
 }
 
@@ -142,7 +143,7 @@ function toolDetail(name: string): Detail {
       { title: 'Agents that may call it', chips: model.agentsAllowing(name).map((agent) => chip(nodeId('agent', agent))), empty: 'Neither agent.' },
       { title: 'Called while active', chips: callers }
     ],
-    replays: model.replaysWhere((step) => step.kind === 'jeffrey' && step.name === name)
+    uses: model.casesUsing((step) => step.kind === 'jeffrey' && step.name === name)
   };
 }
 
@@ -161,7 +162,12 @@ const detail = computed<Detail | null>(() => {
   return DETAILS[kind](name);
 });
 
-const caseIndex = (replay: Replay): number => model.data.replays.indexOf(replay);
+function runState(passed: boolean | null): string {
+  if (passed === null) {
+    return 'unknown';
+  }
+  return passed ? 'passed' : 'failed';
+}
 </script>
 
 <template>
@@ -189,17 +195,23 @@ const caseIndex = (replay: Replay): number => model.data.replays.indexOf(replay)
         </section>
       </template>
 
-      <section v-if="detail.replays.length" class="detail-group">
-        <h4 class="detail-group-title">Replays to watch it in</h4>
-        <div class="detail-chips">
+      <section v-if="detail.uses.length" class="detail-group">
+        <h4 class="detail-group-title">Use cases ({{ detail.uses.length }})</h4>
+        <div class="detail-uses">
           <button
-            v-for="replay in detail.replays"
-            :key="replay.case"
+            v-for="use in detail.uses"
+            :key="use.replay.case"
             type="button"
-            class="detail-case"
-            @click="emit('open-case', caseIndex(replay))"
+            class="detail-use"
+            :title="use.replay.prompt.trim()"
+            @click="emit('open-case', use.index)"
           >
-            <i class="bi bi-play-circle" aria-hidden="true"></i> {{ replay.case }}
+            <span class="detail-use-name">{{ use.replay.case }}</span>
+            <WorkloadMark v-if="model.workloadOf(use.replay)" :workload="model.workloadOf(use.replay)!" compact />
+            <span class="detail-use-runs">{{ use.runsUsing }} of {{ use.replay.runs.length }} runs</span>
+            <span class="detail-use-dots" :aria-label="use.replay.runs.map((run) => `run ${run.run} ${runState(run.passed)}`).join(', ')">
+              <i v-for="run in use.replay.runs" :key="run.run" class="detail-use-dot" :class="`detail-use-dot--${runState(run.passed)}`"></i>
+            </span>
           </button>
         </div>
       </section>
@@ -286,21 +298,67 @@ const caseIndex = (replay: Replay): number => model.data.replays.indexOf(replay)
   color: var(--site-faint);
 }
 
-.detail-case {
-  display: inline-flex;
+.detail-uses {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-use {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border: 1px solid var(--site-line-strong);
-  border-radius: var(--ap-radius-pill);
-  background: var(--site-surface);
-  color: var(--site-muted);
-  font-size: 12px;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--site-radius-sm);
+  background: transparent;
+  color: var(--site-ink);
+  font-size: 12.5px;
+  text-align: left;
   cursor: pointer;
 }
 
-.detail-case:hover {
-  border-color: var(--site-ember);
-  color: var(--site-ember);
+.detail-use:hover {
+  background: var(--ap-hover);
+}
+
+.detail-use-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-use-runs {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--site-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-use-dots {
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+}
+
+.detail-use-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--ap-radius-pill);
+}
+
+.detail-use-dot--passed {
+  background: var(--ap-ok);
+}
+
+.detail-use-dot--failed {
+  background: var(--ap-no);
+}
+
+.detail-use-dot--unknown {
+  background: var(--site-line-strong);
 }
 </style>

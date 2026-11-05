@@ -21,6 +21,7 @@ import ReplayPlayer from '@/components/plugin/ReplayPlayer.vue';
 import ReplayRoute from '@/components/plugin/ReplayRoute.vue';
 import ReplayStepCard from '@/components/plugin/ReplayStepCard.vue';
 import ReplayTimeline from '@/components/plugin/ReplayTimeline.vue';
+import WorkloadMark from '@/components/plugin/WorkloadMark.vue';
 import { formatDay, formatUsd, usePluginUsage, type ReplayTrail } from '@/composables/usePluginUsage';
 import { useReplayPlayback } from '@/composables/useReplayPlayback';
 
@@ -45,9 +46,13 @@ const steps = computed(() => run.value.steps);
 const playback = useReplayPlayback(steps);
 
 const area = computed(() => model.areas.get(model.caseArea(replay.value))!);
+const workload = computed(() => model.workloadOf(replay.value));
 
 const runFacts = computed<string[]>(() => {
   const facts: string[] = [SUITE_LABELS[replay.value.suite], formatDay(replay.value.at)];
+  if (replay.value.plugin) {
+    facts.push(`plugin v${replay.value.plugin}`);
+  }
   if (run.value.turns !== null) {
     facts.push(`${run.value.turns} turns`);
   }
@@ -79,6 +84,10 @@ function runMark(passed: boolean | null): string {
           <p class="replay-facts">
             <span class="replay-area" :class="`replay-area--${area.name}`">{{ area.label }}</span>
             {{ runFacts.join(' · ') }}
+          </p>
+          <p v-if="workload" class="replay-data">
+            <WorkloadMark :workload="workload" />
+            <span><b>{{ workload.label }}</b> · {{ workload.detail }}</span>
           </p>
         </div>
         <div class="replay-runs" role="tablist" aria-label="Runs">
@@ -190,6 +199,32 @@ function runMark(passed: boolean | null): string {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--site-faint);
+}
+
+.replay-data {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: 760px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--site-muted);
+}
+
+@media (max-width: 859px) {
+  .replay-data {
+    display: block;
+  }
+
+  .replay-data .workload-mark {
+    margin-right: 6px;
+  }
+}
+
+.replay-data b {
+  font-weight: 600;
+  color: var(--site-ink);
 }
 
 .replay-area {

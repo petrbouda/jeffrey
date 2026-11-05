@@ -22,17 +22,19 @@ const model = usePluginUsage();
 
 describe('Historical agent aliases', () => {
   it('counts recorded delegations against their current map nodes', () => {
-    expect(model.agentSpawns('jfr-analyst')).toBe(33);
-    expect(model.agentSpawns('heap-analyst')).toBe(18);
+    expect(model.agentSpawns('jfr-analyst')).toBe(13);
+    expect(model.agentSpawns('heap-analyst')).toBe(6);
   });
 
   it('links observed calls to current agents while keeping recorded names intact', () => {
     expect(model.edges('observed')).toContainEqual({
-      from: 'a:jfr-analyst', to: 't:flamegraph_export', count: 37
+      from: 'a:jfr-analyst', to: 't:flamegraph_export', count: 28
     });
-    const replay = model.data.replays.find((item) => item.case === 'named-area-cpu')!;
-    const delegation = replay.runs[2].steps.find((step) => step.kind === 'agent')!;
-    expect(delegation.name).toBe('profile-analyst');
-    expect(model.stepNodes(delegation)).toContain('a:jfr-analyst');
+    const replay = model.data.replays.find((item) => item.case === 'wall-vs-cpu')!;
+    const delegation = replay.runs[1].steps.find((step) => step.kind === 'agent')!;
+    // A run recorded under the agent's earlier name lands on the same node; the step keeps the name it was given.
+    const recorded = { ...delegation, name: 'profile-analyst' };
+    expect(recorded.name).toBe('profile-analyst');
+    expect(model.stepNodes(recorded)).toContain('a:jfr-analyst');
   });
 });

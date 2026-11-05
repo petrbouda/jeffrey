@@ -51,7 +51,7 @@ describe('Agent Plugin navigation', () => {
   it('opens a cross-area replay in its own area and preserves the linked run on reload', async () => {
     const page = await openPage('/agent-plugin?area=jfr');
     const user = await openProfilesTool();
-    await user.click(screen.getByRole('button', { name: 'orders-by-coupon-in-sql' }));
+    await user.click(screen.getByRole('button', { name: /^orders-by-coupon-in-sql/ }));
     await waitFor(() => {
       expect(screen.getByRole('radio', { name: /^Heap dumps/ }).getAttribute('aria-checked')).toBe('true');
     });
@@ -79,7 +79,7 @@ describe('Agent Plugin navigation', () => {
   it('keeps the current area when opening a shared replay', async () => {
     await openPage('/agent-plugin?area=heap');
     const user = await openProfilesTool();
-    await user.click(screen.getByRole('button', { name: 'help-what-is-here' }));
+    await user.click(screen.getByRole('button', { name: /^help-what-is-here/ }));
     expect(screen.getByRole('heading', { name: 'help-what-is-here' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: /^Heap dumps/ }).getAttribute('aria-checked')).toBe('true');
   });
@@ -107,6 +107,36 @@ describe('Overview and the bar', () => {
   });
 });
 
+describe('What a case ran on', () => {
+  it('marks a case on the made-up workload, names its data in the run, and leaves a case without a recording unmarked', async () => {
+    await openPage('/agent-plugin?area=jfr&case=lock-contention-not-wall-clock&run=1');
+    const row = screen.getByRole('button', { name: /^lock-contention-not-wall-clock/ });
+    expect(within(row).getByRole('img', { name: 'Made-up workload' })).toBeTruthy();
+    expect(screen.getByText(/A made-up checkout service/)).toBeTruthy();
+    const real = screen.getByRole('button', { name: /^gc-pauses/ });
+    expect(within(real).getByRole('img', { name: 'Real service' })).toBeTruthy();
+    const advice = screen.getByRole('button', { name: /^record-exceptions-next-time/ });
+    expect(within(advice).queryByRole('img')).toBeNull();
+  });
+});
+
+describe('The use cases of a tool', () => {
+  it('lists the cases whose runs called it, marked by their data, as many as the Tools table counts', async () => {
+    await openPage('/agent-plugin?area=jfr');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('tab', { name: /^Tools/ }));
+    const row = screen.getByText('profiles_list', { selector: 'td' }).closest('tr')!;
+    const counted = Number(row.querySelectorAll('td')[6].textContent);
+    await user.click(screen.getByText('profiles_list', { selector: 'td' }));
+    const heading = screen.getByRole('heading', { name: /^Use cases \(\d+\)$/ });
+    expect(heading.textContent).toBe(`Use cases (${counted})`);
+    const uses = heading.parentElement!.querySelectorAll('button');
+    expect(uses).toHaveLength(counted);
+    expect(within(uses[0] as HTMLElement).getByRole('img', { name: /workload|Real service/ })).toBeTruthy();
+    expect(within(uses[0] as HTMLElement).getByText(/^\d+ of \d+ runs$/)).toBeTruthy();
+  });
+});
+
 describe('The agent on the map', () => {
   const agentCalls = (map: HTMLElement) =>
     Array.from(map.querySelectorAll('path')).filter((path) => path.textContent?.startsWith('jfr-analyst → '));
@@ -115,7 +145,7 @@ describe('The agent on the map', () => {
     await openPage('/agent-plugin?tab=map&area=jfr');
     const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });
     expect(agentCalls(map)).toHaveLength(0);
-    expect(within(map).getByText('38 via agent')).toBeTruthy();
+    expect(within(map).getByText('29 via agent')).toBeTruthy();
     await userEvent.setup().click(screen.getByRole('button', { name: /^agent jfr-analyst,/ }));
     expect(agentCalls(map).length).toBeGreaterThan(0);
   });
@@ -141,7 +171,7 @@ describe('The agent on the map', () => {
 
 describe('Replay trail', () => {
   it('opens a replay in observed mode even after inspecting the described wiring', async () => {
-    await openPage('/agent-plugin?area=jfr&case=named-area-cpu&run=3');
+    await openPage('/agent-plugin?area=jfr&case=wall-vs-cpu&run=2');
     const user = userEvent.setup();
     await user.click(screen.getByRole('tab', { name: /^Map/ }));
     await user.click(screen.getByRole('radio', { name: 'As the instructions describe it' }));
@@ -151,7 +181,7 @@ describe('Replay trail', () => {
   });
 
   it('excludes future calls when mapping a scrubbed replay prefix', async () => {
-    await openPage('/agent-plugin?area=jfr&case=named-area-cpu&run=3');
+    await openPage('/agent-plugin?area=jfr&case=wall-vs-cpu&run=2');
     await fireEvent.input(screen.getByRole('slider', { name: 'Position in the run' }), { target: { value: '0' } });
     await userEvent.setup().click(screen.getByRole('button', { name: /Show it on the full map/ }));
     const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });
@@ -161,7 +191,7 @@ describe('Replay trail', () => {
 
 
   it('highlights actual owner-to-tool calls without adding edges from other runs', async () => {
-    await openPage('/agent-plugin?area=jfr&case=named-area-cpu&run=3');
+    await openPage('/agent-plugin?area=jfr&case=wall-vs-cpu&run=2');
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Show it on the full map/ }));
     const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });

@@ -2,73 +2,109 @@
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "blocking_monitors",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "blocking_monitors",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "blocking_monitors",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "blocking_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "blocking_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "blocking_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "blocking_pinnedThreads",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "blocking_pinnedThreads",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "blocking_pinnedThreads",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "blocking_pinnedThreads",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "blocking_pinnedThreads",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -78,7 +114,7 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -88,7 +124,7 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "framePrefixes": [
     "com.acme.checkout."
@@ -96,9 +132,49 @@
   }
  },
  {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jeffrey.JdbcQuery",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jeffrey.JdbcQuery",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -108,7 +184,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -118,7 +194,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -128,7 +204,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -138,7 +214,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -148,7 +224,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -158,7 +234,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -166,7 +242,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -174,7 +250,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   }
@@ -182,7 +258,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -190,7 +266,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadSleep",
    "useWeight": true
   }
@@ -198,7 +274,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "useWeight": false
   }
@@ -206,7 +282,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadPark",
    "useWeight": true
   }
@@ -214,7 +290,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -222,7 +298,7 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -230,15 +306,95 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaErrorThrow",
    "useWeight": false
   }
  },
  {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -249,7 +405,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -260,7 +416,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -271,7 +427,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -282,7 +438,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -293,7 +449,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -304,7 +460,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -315,7 +471,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -326,7 +482,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -337,7 +493,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -348,7 +504,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -359,7 +515,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -370,7 +526,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -381,7 +537,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -392,7 +548,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -403,7 +559,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -414,7 +570,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout",
    "methodName": "traced",
    "framePrefixes": [
@@ -426,7 +582,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query",
    "framePrefixes": [
@@ -437,7 +593,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history",
    "framePrefixes": [
@@ -448,7 +604,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.OrderService",
    "methodName": "summarize",
    "framePrefixes": [
@@ -460,7 +616,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory",
    "methodName": "traced",
    "framePrefixes": [
@@ -472,7 +628,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory",
    "methodName": "main",
    "framePrefixes": [
@@ -482,9 +638,300 @@
   }
  },
  {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findByIds",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "count",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "modifyOpinion",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findByIds",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "count",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "modifyOpinion",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "queryLong",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "update",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.JavaMonitorEnter"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "delete",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.JavaMonitorEnter"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "queryLong",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "personCount",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "personCount",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -493,7 +940,7 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -502,39 +949,57 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "framePrefixes": [
     "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_runtimeSurface",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_runtimeSurface",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "framePrefixes": [
+    "jeffrey.testapp."
    ]
   }
  },
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -542,8 +1007,8 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -551,8 +1016,8 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -560,47 +1025,129 @@
  {
   "tool": "compare_flamegraph",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample"
+  }
+ },
+ {
+  "tool": "compare_flamegraph",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample"
   }
  },
  {
   "tool": "compare_list",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "compare_list",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
+  }
+ },
+ {
+  "tool": "compare_list",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
+  }
+ },
+ {
+  "tool": "compare_list",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
   }
  },
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -608,8 +1155,8 @@
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -617,8 +1164,8 @@
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -626,24 +1173,106 @@
  {
   "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
  },
  {
-  "tool": "compare_quality",
+  "tool": "compare_movements",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample"
+  }
+ },
+ {
+  "tool": "compare_movements",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample"
   }
  },
  {
   "tool": "compare_quality",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
+  }
+ },
+ {
+  "tool": "compare_quality",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
+  }
+ },
+ {
+  "tool": "compare_quality",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
+  }
+ },
+ {
+  "tool": "compare_quality",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
   }
  },
  {
@@ -657,21 +1286,21 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -679,7 +1308,7 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -687,7 +1316,7 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -695,7 +1324,7 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -703,505 +1332,627 @@
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.Deoptimization"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ObjectAllocationSample"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadSleep"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadPark"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.Deoptimization"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaErrorThrow"
   }
  },
  {
-  "tool": "flamegraph_list",
+  "tool": "flamegraph_export",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample"
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "flamegraph_list",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "flamegraph_list",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "flamegraph_list",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "flamegraph_list",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "grpc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "grpc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "grpc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "grpc_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "grpc_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "grpc_traffic",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "grpc_traffic",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "grpc_traffic",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "grpc_traffic",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "grpc_traffic",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "heap_browseClassInstances",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "className": "java.lang.Long"
   }
  },
  {
   "tool": "heap_browseClassInstances",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "className": "java.util.concurrent.ConcurrentHashMap"
   }
  },
  {
   "tool": "heap_browseClassInstances",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "className": "java.lang.String"
   }
  },
  {
   "tool": "heap_describeTable",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "tableName": "class"
   }
  },
  {
   "tool": "heap_diff",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "baselineProfileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "baselineProfileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "heap_diff",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "baselineProfileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "baselineProfileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
+  }
+ },
+ {
+  "tool": "heap_diff",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "baselineProfileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
+  }
+ },
+ {
+  "tool": "heap_diff",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "baselineProfileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
   }
  },
  {
   "tool": "heap_getBiggestObjects",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getClassHistogram",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getClassLoaderLeakChains",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getCollectionAnalysis",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777239184"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "31060918632"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30778542096"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777623672"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777219160"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777622904"
   }
  },
  {
   "tool": "heap_getDominatorTreeChildren",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30779216240"
   }
  },
  {
   "tool": "heap_getDominatorTreeRoots",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getDumpMetadata",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getGCRootSummary",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getHeapSummary",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774786992"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773702592"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773609664"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777219688"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30776472360"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774620104"
   }
  },
  {
   "tool": "heap_getInstanceDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773702656"
   }
  },
  {
   "tool": "heap_getLeakSuspects",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777239184"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774786992"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773702592"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "31060918632"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773609664"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30778542096"
   }
  },
  {
   "tool": "heap_getPathToGCRoot",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30776472360"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777239184"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774131800"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30774786992"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773702592"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "31060918632"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30773609664"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30777219688"
   }
  },
  {
   "tool": "heap_getReferrers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "objectId": "30778542096"
   }
  },
  {
   "tool": "heap_getStringAnalysis",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getThreads",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_getTopConsumers",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_listTables",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_prepare",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "heap_status",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "heap_status",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "heap_status",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "heap_status",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "heap_status",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "uri": "/checkout",
    "direction": "SERVER"
   }
@@ -1209,7 +1960,7 @@
  {
   "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "uri": "/checkout",
    "direction": "SERVER"
   }
@@ -1217,40 +1968,68 @@
  {
   "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "uri": "/orders/{customer}",
    "direction": "SERVER"
   }
  },
  {
-  "tool": "http_overview",
+  "tool": "http_endpoint",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
-  }
- },
- {
-  "tool": "http_overview",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
-  }
- },
- {
-  "tool": "http_overview",
-  "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
-  }
- },
- {
-  "tool": "http_overview",
-  "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "uri": "/persons/{count}",
    "direction": "SERVER"
+  }
+ },
+ {
+  "tool": "http_endpoint",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "uri": "/persons/{count}",
+   "direction": "SERVER"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
+   "direction": "SERVER"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "http_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine"
   }
@@ -1258,7 +2037,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch"
   }
@@ -1266,7 +2045,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount"
   }
@@ -1274,7 +2053,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record"
   }
@@ -1282,7 +2061,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query"
   }
@@ -1290,7 +2069,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history"
   }
@@ -1298,7 +2077,7 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory",
    "methodName": "traced"
   }
@@ -1306,324 +2085,586 @@
  {
   "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.OrderService",
    "methodName": "summarize"
   }
  },
  {
-  "tool": "ide_windows",
+  "tool": "ide_resolve",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "lambda$queryLong$0"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "delete"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById"
+  }
+ },
+ {
+  "tool": "ide_resolve",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons"
   }
  },
  {
   "tool": "ide_windows",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "ide_windows",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
+  }
+ },
+ {
+  "tool": "ide_windows",
+  "arguments": {
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "ide_windows",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "ide_windows",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "io_endpoints",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "kind": "SOCKET"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "kind": "FILE"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "kind": "SOCKET"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "kind": "FILE"
-  }
- },
- {
-  "tool": "io_endpoints",
-  "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_endpoints",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_endpoints",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "kind": "SOCKET"
-  }
- },
- {
-  "tool": "io_slowest",
-  "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "kind": "FILE"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
    "kind": "SOCKET"
   }
  },
  {
   "tool": "io_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "kind": "FILE"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "kind": "SOCKET"
+  }
+ },
+ {
+  "tool": "io_slowest",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
    "kind": "FILE"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jdbc_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jdbc_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jdbc_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jdbc_pools",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jdbc_pools",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jdbc_pools",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jdbc_pools",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jdbc_pools",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jdbc_statementGroup",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "group": "orders"
   }
  },
  {
+  "tool": "jdbc_statementGroup",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "group": "person-repository"
+  }
+ },
+ {
+  "tool": "jdbc_statementGroup",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "group": "person-repository"
+  }
+ },
+ {
   "tool": "jfr_describeEventType",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "jfr_describeEventType",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaExceptionThrow"
   }
  },
  {
   "tool": "jfr_describeEventType",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery"
   }
  },
  {
+  "tool": "jfr_describeEventType",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample"
+  }
+ },
+ {
+  "tool": "jfr_describeEventType",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample"
+  }
+ },
+ {
   "tool": "jfr_describeTable",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "tableName": "events"
   }
  },
  {
   "tool": "jfr_describeTable",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "tableName": "events"
   }
  },
  {
   "tool": "jfr_describeTable",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5",
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
+   "tableName": "events"
+  }
+ },
+ {
+  "tool": "jfr_describeTable",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "tableName": "events"
+  }
+ },
+ {
+  "tool": "jfr_describeTable",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
    "tableName": "events"
   }
  },
  {
   "tool": "jfr_getProfileInfo",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jfr_getProfileInfo",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jfr_getProfileInfo",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jfr_getProfileInfo",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jfr_getProfileInfo",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jfr_listEventTypes",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jfr_listEventTypes",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jfr_listEventTypes",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jfr_listTables",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jfr_listTables",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jfr_listTables",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jfr_listTables",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jfr_listTables",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaExceptionThrow",
    "limit": 10
   }
@@ -1631,7 +2672,7 @@
  {
   "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaExceptionThrow",
    "limit": 10
   }
@@ -1639,105 +2680,169 @@
  {
   "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "limit": 10
   }
  },
  {
-  "tool": "jvm_autoAnalysis",
+  "tool": "jfr_queryEvents",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "limit": 10
+  }
+ },
+ {
+  "tool": "jfr_queryEvents",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "limit": 10
   }
  },
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_autoAnalysis",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_autoAnalysis",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_autoAnalysis",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_autoAnalysis",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_classLoading",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_classLoading",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_classLoading",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_classLoading",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_classLoading",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_configuration",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_configuration",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_configuration",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_container",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_container",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_container",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -1746,7 +2851,7 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -1755,471 +2860,755 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "thrownClass": "com.sun.tools.javac.comp.Infer$InferenceException"
   }
  },
  {
-  "tool": "jvm_exceptions",
+  "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "jvm_exceptionSites",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_exceptions",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_exceptions",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_exceptions",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_exceptions",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_flags",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_flags",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_flags",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_gc",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_gc",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_gc",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "page": "CONFIGURATION"
   }
  },
  {
-  "tool": "jvm_jit",
+  "tool": "jvm_gcDetail",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_gcDetail",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_jit",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_jit",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_jit",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_jit",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_nativeMemory",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_nativeMemory",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_nativeMemory",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_safepoints",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_safepoints",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_safepoints",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_sections",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_sections",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_sections",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_sections",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_sections",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_security",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_security",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_security",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_security",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_security",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_system",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_system",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_system",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
+  }
+ },
+ {
+  "tool": "jvm_threadDump",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "index": 0
+  }
+ },
+ {
+  "tool": "jvm_threadDump",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "index": 0
   }
  },
  {
   "tool": "jvm_threadDumps",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_threadDumps",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_threadDumps",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "jvm_threadDumps",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_threadDumps",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "jvm_threads",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "jvm_threads",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "jvm_threads",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "memory_allocations",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "memory_allocations",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "memory_allocations",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "memory_leakCandidates",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "memory_leakCandidates",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "memory_leakCandidates",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "methodtracing_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "methodtracing_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "methodtracing_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "methodtracing_overview",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "methodtracing_overview",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "methodtracing_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "methodtracing_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "methodtracing_slowest",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "methodtracing_slowest",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "methodtracing_slowest",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "methodtracing_timing",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "methodtracing_timing",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "methodtracing_timing",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "methodtracing_timing",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "methodtracing_timing",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "operations_status",
   "arguments": {
-   "operationId": "5175a2a6-1275-4868-aaea-c5bcdbb2b9a6"
+   "operationId": "9170f722-673e-4e80-a7e5-573f9b4a85a7"
   }
  },
  {
   "tool": "profiles_evidence",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "profiles_evidence",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "profiles_evidence",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "profiles_evidence",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "profiles_evidence",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "profiles_features",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "profiles_features",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "profiles_features",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "profiles_get",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "profiles_get",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "profiles_get",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "profiles_get",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "profiles_get",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "profiles_link",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "profiles_link",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "profiles_link",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "profiles_link",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "profiles_link",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
@@ -2229,84 +3618,150 @@
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "profiles_samplerHealth",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "profiles_samplerHealth",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "profiles_samplerHealth",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "profiles_summary",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "profiles_summary",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "profiles_summary",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "view": "dashboard"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "view": "auto-analysis"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "view": "overview"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "view": "event-types"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "view": "flags"
   }
  },
  {
   "tool": "profiles_viewLink",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "view": "garbage-collection"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "view": "dashboard"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "view": "auto-analysis"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "view": "overview"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "view": "event-types"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "view": "flags"
+  }
+ },
+ {
+  "tool": "profiles_viewLink",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
    "view": "garbage-collection"
   }
  },
@@ -2323,21 +3778,21 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -2345,7 +3800,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -2353,7 +3808,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -2361,7 +3816,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   }
@@ -2369,7 +3824,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -2377,7 +3832,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -2385,7 +3840,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   }
@@ -2393,7 +3848,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   }
@@ -2401,7 +3856,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadSleep",
    "useWeight": true
   }
@@ -2409,7 +3864,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "useWeight": false
   }
@@ -2417,7 +3872,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadPark",
    "useWeight": true
   }
@@ -2425,7 +3880,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.Deoptimization",
    "useWeight": false
   }
@@ -2433,7 +3888,7 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaExceptionThrow",
    "useWeight": false
   }
@@ -2441,15 +3896,77 @@
  {
   "tool": "timeline_hotWindows",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaErrorThrow",
+   "useWeight": false
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "useWeight": false
+  }
+ },
+ {
+  "tool": "timeline_hotWindows",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
    "useWeight": false
   }
  },
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample",
    "startEpochMs": 1793543395435,
    "endEpochMs": 1793543396435
@@ -2458,7 +3975,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample",
    "startEpochMs": 1793543423174,
    "endEpochMs": 1793543424174
@@ -2467,7 +3984,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "startEpochMs": 1793543392435,
    "endEpochMs": 1793543393435
@@ -2476,7 +3993,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "startEpochMs": 1793543426174,
    "endEpochMs": 1793543427174
@@ -2485,7 +4002,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "startEpochMs": 1793543425174,
    "endEpochMs": 1793543426174
@@ -2494,7 +4011,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "startEpochMs": 1793543394435,
    "endEpochMs": 1793543395435
@@ -2503,7 +4020,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaExceptionThrow",
    "startEpochMs": 1793543392435,
    "endEpochMs": 1793543393435
@@ -2512,7 +4029,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.Deoptimization",
    "startEpochMs": 1793543392435,
    "endEpochMs": 1793543393435
@@ -2521,7 +4038,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ExecutionSample",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2530,7 +4047,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ObjectAllocationSample",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2539,7 +4056,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadSleep",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2548,7 +4065,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "startEpochMs": 1793803325745,
    "endEpochMs": 1793803326745
@@ -2557,7 +4074,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.ThreadPark",
    "startEpochMs": 1793803342745,
    "endEpochMs": 1793803343745
@@ -2566,7 +4083,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.Deoptimization",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2575,7 +4092,7 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaExceptionThrow",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
@@ -2584,40 +4101,124 @@
  {
   "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jdk.JavaErrorThrow",
    "startEpochMs": 1793803323745,
    "endEpochMs": 1793803324745
   }
  },
  {
-  "tool": "traces_attributeKeys",
+  "tool": "timeline_zoom",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "startEpochMs": 1793733202689,
+   "endEpochMs": 1793733203689
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "startEpochMs": 1793733190691,
+   "endEpochMs": 1793733191691
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "startEpochMs": 1793733213689,
+   "endEpochMs": 1793733214689
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "startEpochMs": 1793733212691,
+   "endEpochMs": 1793733213691
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "startEpochMs": 1793733206689,
+   "endEpochMs": 1793733207689
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "startEpochMs": 1793733216691,
+   "endEpochMs": 1793733217691
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "startEpochMs": 1793733188689,
+   "endEpochMs": 1793733189689
+  }
+ },
+ {
+  "tool": "timeline_zoom",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "startEpochMs": 1793733188691,
+   "endEpochMs": 1793733189691
   }
  },
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "traces_attributeKeys",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
+  }
+ },
+ {
+  "tool": "traces_attributeKeys",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "traces_attributeKeys",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "traces_attributeKeys",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "traces_attributeSearch",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "key": "coupon",
    "source": "ATTRIBUTE",
    "operator": "EQ",
@@ -2627,7 +4228,7 @@
  {
   "tool": "traces_attributeSearch",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "key": "coupon",
    "source": "ATTRIBUTE",
    "operator": "EQ",
@@ -2637,7 +4238,7 @@
  {
   "tool": "traces_attributeSearch",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "key": "customer.segment",
    "source": "ATTRIBUTE",
    "operator": "EQ",
@@ -2645,9 +4246,29 @@
   }
  },
  {
+  "tool": "traces_attributeSearch",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "key": "testapp.mode",
+   "source": "ATTRIBUTE",
+   "operator": "EQ",
+   "value": "dom"
+  }
+ },
+ {
+  "tool": "traces_attributeSearch",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "key": "testapp.mode",
+   "source": "ATTRIBUTE",
+   "operator": "EQ",
+   "value": "direct"
+  }
+ },
+ {
   "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "key": "coupon",
    "source": "ATTRIBUTE"
   }
@@ -2655,7 +4276,7 @@
  {
   "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "key": "coupon",
    "source": "ATTRIBUTE"
   }
@@ -2663,165 +4284,133 @@
  {
   "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "key": "customer.segment",
    "source": "ATTRIBUTE"
   }
  },
  {
-  "tool": "traces_notifications",
+  "tool": "traces_attributeValues",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "key": "testapp.mode",
+   "source": "ATTRIBUTE"
+  }
+ },
+ {
+  "tool": "traces_attributeValues",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "key": "testapp.mode",
+   "source": "ATTRIBUTE"
   }
  },
  {
   "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
-  "tool": "traces_operationExport",
+  "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "name": "POST /checkout",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
-  "tool": "traces_operationExport",
+  "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "name": "POST /checkout",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
   }
  },
  {
-  "tool": "traces_operationExport",
+  "tool": "traces_notifications",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
-   "name": "GET /orders/{customer}",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange"
-  }
- },
- {
-  "tool": "traces_operationFlamegraphExport",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "name": "POST /checkout",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange",
-   "graphEventType": "jdk.ExecutionSample"
-  }
- },
- {
-  "tool": "traces_operationFlamegraphExport",
-  "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "name": "POST /checkout",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange",
-   "graphEventType": "jdk.ExecutionSample"
-  }
- },
- {
-  "tool": "traces_operationFlamegraphExport",
-  "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
-   "name": "GET /orders/{customer}",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange",
-   "graphEventType": "jdk.ExecutionSample"
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "traces_operations",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
+  }
+ },
+ {
+  "tool": "traces_operations",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  }
+ },
+ {
+  "tool": "traces_operations",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2e61-7d3f-b15e-ee7651952fb5"
+   "profileId": "01a1abe2-f72d-7828-b594-844e2a4ebfb6"
   }
  },
  {
   "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271"
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4"
   }
  },
  {
-  "tool": "traces_slowestTraces",
+  "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "name": "POST /checkout",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange"
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
   }
  },
  {
-  "tool": "traces_slowestTraces",
+  "tool": "traces_overview",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "name": "POST /checkout",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange"
-  }
- },
- {
-  "tool": "traces_slowestTraces",
-  "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
-   "name": "GET /orders/{customer}",
-   "kind": "SERVER",
-   "eventType": "jeffrey.HttpServerExchange"
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
   }
  },
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "fcd87a5057f7b73f",
    "spanId": "0fe3ece11d03e4ce",
    "eventType": "jdk.ExecutionSample"
@@ -2830,7 +4419,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "9ed8314d39152f33",
    "spanId": "6e47d0cf49b31e09",
    "eventType": "jdk.ExecutionSample"
@@ -2839,7 +4428,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "9dba93df56cbd56e",
    "spanId": "2e93482f764f2785",
    "eventType": "jdk.ExecutionSample"
@@ -2848,7 +4437,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "4e2c5fe776a6304a",
    "spanId": "1241d5a15fc9ac44",
    "eventType": "jdk.ExecutionSample"
@@ -2857,7 +4446,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "7aa978ddf275d5fa",
    "spanId": "69438d2906f61a4a",
    "eventType": "jdk.ExecutionSample"
@@ -2866,7 +4455,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "e27ae4d7044906e6",
    "spanId": "583cc27acf3acdb0",
    "eventType": "jdk.ExecutionSample"
@@ -2875,7 +4464,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "2870fe9fe3a4da15",
    "spanId": "65c8a6cfafefdd83",
    "eventType": "jdk.ExecutionSample"
@@ -2884,7 +4473,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "7e284e0cea7ead37",
    "spanId": "2d898eb0443e93d9",
    "eventType": "jdk.ExecutionSample"
@@ -2893,7 +4482,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "86a24e660f653375",
    "spanId": "68a093dcde495953",
    "eventType": "jdk.ExecutionSample"
@@ -2902,7 +4491,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "b5cd7801ec902926",
    "spanId": "87d22aa4886185fe",
    "eventType": "jdk.ExecutionSample"
@@ -2911,7 +4500,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "4380b283048224d2",
    "spanId": "0a7a1cec142666f7",
    "eventType": "jdk.ExecutionSample"
@@ -2920,7 +4509,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "6965943ca8bf365c",
    "spanId": "874d4824b76c92c5",
    "eventType": "jdk.ExecutionSample"
@@ -2929,7 +4518,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "282e540a3d60e012",
    "spanId": "c3c744c1957443e9",
    "eventType": "jdk.ExecutionSample"
@@ -2938,7 +4527,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "c9771812c71bcf8a",
    "spanId": "14968b5695c51a7f",
    "eventType": "jdk.ExecutionSample"
@@ -2947,7 +4536,7 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "8cde619167671b99",
    "spanId": "a42bc5c92d882671",
    "eventType": "jdk.ExecutionSample"
@@ -2956,135 +4545,263 @@
  {
   "tool": "traces_spanFlamegraphExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "50f68fc0ca275192",
    "spanId": "23dd961517ef1306",
    "eventType": "jdk.ExecutionSample"
   }
  },
  {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "dd73dbb42241026b",
+   "spanId": "be1a92e586fb01cd",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "7c55c7ddd4fc88e9",
+   "spanId": "744cb3df832b3d70",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "6ad8927daf96cd9c",
+   "spanId": "5b17000074a88392",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "464bab1b577b34c3",
+   "spanId": "d379691f0904a8f9",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "60a9a7ee6c2a27d5",
+   "spanId": "35c249d2b4a9f734",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "01bd9f45c70a1787",
+   "spanId": "3e3ce9a83a499351",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "db3fd1d28109f5b8",
+   "spanId": "28e52bd09802168b",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "traces_spanFlamegraphExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "845c88a29594c112",
+   "spanId": "825769a8d33b8548",
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "fcd87a5057f7b73f"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "9ed8314d39152f33"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "9dba93df56cbd56e"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "4e2c5fe776a6304a"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "7aa978ddf275d5fa"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "e27ae4d7044906e6"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "traceId": "2870fe9fe3a4da15"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "traceId": "7e284e0cea7ead37"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "86a24e660f653375"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "b5cd7801ec902926"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "4380b283048224d2"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "6965943ca8bf365c"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "282e540a3d60e012"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "c9771812c71bcf8a"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "8cde619167671b99"
   }
  },
  {
   "tool": "traces_traceExport",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "traceId": "50f68fc0ca275192"
   }
  },
  {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "dd73dbb42241026b"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "7c55c7ddd4fc88e9"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "6ad8927daf96cd9c"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "464bab1b577b34c3"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "60a9a7ee6c2a27d5"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "01bd9f45c70a1787"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "traceId": "db3fd1d28109f5b8"
+  }
+ },
+ {
+  "tool": "traces_traceExport",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "traceId": "845c88a29594c112"
+  }
+ },
+ {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3094,14 +4811,14 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3111,14 +4828,48 @@
  {
   "tool": "code_callSites",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "eventType": "jeffrey.JdbcQuery",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3126,16 +4877,50 @@
   }
  },
  {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jeffrey.JdbcQuery",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jeffrey.JdbcQuery",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_callSites",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jeffrey.JdbcQuery",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jeffrey.JdbcQuery",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3145,12 +4930,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3160,14 +4945,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3177,12 +4962,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample",
    "useWeight": false
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ExecutionSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3192,14 +4977,106 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "useWeight": false
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "useWeight": false
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ExecutionSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3209,12 +5086,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3224,14 +5101,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3241,12 +5118,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.JavaMonitorEnter",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3256,14 +5133,198 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "useWeight": true
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.JavaMonitorEnter",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3273,12 +5334,12 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3288,14 +5349,14 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
@@ -3305,22 +5366,114 @@
  {
   "tool": "code_hotspots",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "useWeight": true
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "eventType": "jdk.ObjectAllocationSample",
    "framePrefixes": [
     "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "useWeight": false
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_hotspots",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "useWeight": false
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "profiler.WallClockSample",
+   "framePrefixes": [
+    "jeffrey.testapp."
    ]
   }
  },
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3328,7 +5481,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3339,7 +5492,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3347,7 +5500,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout",
    "methodName": "checkout",
    "framePrefixes": [
@@ -3358,7 +5511,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -3366,26 +5519,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "className": "com.acme.checkout.Checkout.AuditLog",
-   "methodName": "record",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "className": "com.acme.checkout.Checkout.AuditLog",
-   "methodName": "record",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.AuditLog",
    "methodName": "record",
    "framePrefixes": [
@@ -3396,7 +5530,26 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "className": "com.acme.checkout.Checkout.AuditLog",
+   "methodName": "record",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "className": "com.acme.checkout.Checkout.AuditLog",
+   "methodName": "record",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -3404,7 +5557,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -3415,7 +5568,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -3423,7 +5576,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.CouponParser",
    "methodName": "discount",
    "framePrefixes": [
@@ -3434,7 +5587,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -3442,26 +5595,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "className": "com.acme.checkout.Checkout.PriceCalculator",
-   "methodName": "formatLine",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "className": "com.acme.checkout.Checkout.PriceCalculator",
-   "methodName": "formatLine",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "formatLine",
    "framePrefixes": [
@@ -3472,7 +5606,26 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "className": "com.acme.checkout.Checkout.PriceCalculator",
+   "methodName": "formatLine",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "className": "com.acme.checkout.Checkout.PriceCalculator",
+   "methodName": "formatLine",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -3480,7 +5633,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -3491,7 +5644,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -3499,7 +5652,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "reprice",
    "framePrefixes": [
@@ -3510,7 +5663,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -3518,26 +5671,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "className": "com.acme.checkout.Checkout.PriceCalculator",
-   "methodName": "taxOf",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "code_method",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "className": "com.acme.checkout.Checkout.PriceCalculator",
-   "methodName": "taxOf",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.PriceCalculator",
    "methodName": "taxOf",
    "framePrefixes": [
@@ -3548,7 +5682,26 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "className": "com.acme.checkout.Checkout.PriceCalculator",
+   "methodName": "taxOf",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
+   "className": "com.acme.checkout.Checkout.PriceCalculator",
+   "methodName": "taxOf",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -3556,7 +5709,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -3567,7 +5720,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -3575,7 +5728,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "busyWait",
    "framePrefixes": [
@@ -3586,7 +5739,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3594,7 +5747,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3605,7 +5758,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3613,7 +5766,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "className": "com.acme.checkout.Checkout.SessionCache",
    "methodName": "touch",
    "framePrefixes": [
@@ -3624,7 +5777,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query",
    "framePrefixes": [
@@ -3632,7 +5785,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.Database",
    "methodName": "query",
    "framePrefixes": [
@@ -3643,7 +5796,7 @@
  {
   "tool": "code_method",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history",
    "framePrefixes": [
@@ -3651,7 +5804,7 @@
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "className": "com.acme.checkout.OrderHistory.OrderController",
    "methodName": "history",
    "framePrefixes": [
@@ -3660,15 +5813,519 @@
   }
  },
  {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "personCount",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "personCount",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "personCount",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "personCount",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonController",
+   "methodName": "toJsonTree",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "count",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "count",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "count",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "count",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findById",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findByIds",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findByIds",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findByIds",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "findByIds",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "modifyOpinion",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "modifyOpinion",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "modifyOpinion",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.PersonRepository",
+   "methodName": "modifyOpinion",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ],
+   "eventType": "jdk.ExecutionSample"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ],
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.ServerApplication",
+   "methodName": "main",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "delete",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ],
+   "eventType": "jdk.JavaMonitorEnter"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "delete",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.JavaMonitorEnter"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "queryLong",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "queryLong",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "queryLong",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ],
+   "eventType": "jdk.ExecutionSample"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "queryLong",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.ExecutionSample"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "update",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ],
+   "eventType": "jdk.JavaMonitorEnter"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.metrics.DatabaseClient",
+   "methodName": "update",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ],
+   "eventType": "jdk.JavaMonitorEnter"
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getNPersons",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_method",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "className": "jeffrey.testapp.server.service.InefficientPersonService",
+   "methodName": "getRandomPerson",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3677,10 +6334,10 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e"
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02"
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3689,13 +6346,13 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3704,10 +6361,10 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7"
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca"
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3716,13 +6373,106 @@
  {
   "tool": "code_runtimeSurface",
   "arguments": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-2f61-72e1-9983-52adfe6e9271",
+   "profileId": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
+   "framePrefixes": [
+    "com.acme.checkout."
+   ]
+  }
+ },
+ {
+  "tool": "code_runtimeSurface",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_runtimeSurface",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_runtimeSurface",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "framePrefixes": [
+    "jeffrey.testapp.server."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "code_runtimeSurface",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "framePrefixes": [
+    "jeffrey.testapp."
+   ]
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "flamegraph_export",
+  "arguments": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB"
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+   "eventType": "jdk.ObjectAllocationInNewTLAB",
+   "useWeight": true
+  }
+ },
+ {
+  "tool": "jvm_exceptionSites",
+  "arguments": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
+   "framePrefixes": [
+    "com.acme."
+   ]
+  },
+  "equivalentTo": {
+   "profileId": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
    "framePrefixes": [
     "com.acme.checkout."
    ]
@@ -3731,28 +6481,13 @@
  {
   "tool": "jvm_exceptionSites",
   "arguments": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme."
    ]
   },
   "equivalentTo": {
-   "profileId": "01a1a7a0-1d1c-7280-b8ea-fa0fda3a6f4e",
-   "framePrefixes": [
-    "com.acme.checkout."
-   ]
-  }
- },
- {
-  "tool": "jvm_exceptionSites",
-  "arguments": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
-   "framePrefixes": [
-    "com.acme."
-   ]
-  },
-  "equivalentTo": {
-   "profileId": "01a1a7a0-267b-73d9-a6fb-f3c71d1c4cc7",
+   "profileId": "01a1abe2-eda5-79dc-b693-2038acdcacca",
    "framePrefixes": [
     "com.acme.checkout."
    ]

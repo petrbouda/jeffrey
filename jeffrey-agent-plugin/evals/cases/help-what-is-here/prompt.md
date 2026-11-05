@@ -1,6 +1,6 @@
 ---
 name: help-what-is-here
-tags: [routing, help]
+tags: [routing, help, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

@@ -1,6 +1,6 @@
 ---
 name: exceptions-to-the-throw-site
-tags: [routing, exceptions]
+tags: [routing, exceptions, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

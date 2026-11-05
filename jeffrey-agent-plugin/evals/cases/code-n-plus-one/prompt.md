@@ -1,6 +1,6 @@
 ---
 name: code-n-plus-one
-tags: [routing, code]
+tags: [routing, code, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

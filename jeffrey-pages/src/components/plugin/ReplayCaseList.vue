@@ -17,12 +17,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import WorkloadMark from '@/components/plugin/WorkloadMark.vue';
 import { usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
 import type { AreaName, Replay } from '@/types/pluginUsage';
 
 // Every replayed eval case under the lens, grouped by the area whose skills it invokes, with one dot
-// per run: green passed, orange failed; a case run against a live Jeffrey says so. On a phone the
-// list folds into a select.
+// per run: green passed, orange failed; a case run against a live Jeffrey says so, and each case is
+// marked with what it ran on: a real service's recorded runs or a made-up workload. On a phone the list
+// folds into a select.
 
 const props = defineProps<{ replays: Replay[]; selected: number; lens: AreaLens }>();
 const emit = defineEmits<{ (e: 'select', index: number): void }>();
@@ -62,6 +64,15 @@ function runState(passed: boolean | null): string {
   return passed ? 'passed' : 'failed';
 }
 
+/** On a phone the select carries what the row's mark says. */
+function optionSuffix(replay: Replay): string {
+  const workload = model.workloadOf(replay);
+  if (!workload) {
+    return '';
+  }
+  return workload.real ? ' · real service' : ' · made-up';
+}
+
 function onSelectChange(event: Event): void {
   emit('select', Number((event.target as HTMLSelectElement).value));
 }
@@ -73,7 +84,7 @@ function onSelectChange(event: Event): void {
       <span class="visually-hidden">Eval case</span>
       <select class="case-select" :value="selected" @change="onSelectChange">
         <optgroup v-for="group in groups" :key="group.area" :label="`${group.label} (${group.size})`">
-          <option v-for="item in group.cases" :key="item.index" :value="item.index">{{ item.replay.case }}</option>
+          <option v-for="item in group.cases" :key="item.index" :value="item.index">{{ item.replay.case }}{{ optionSuffix(item.replay) }}</option>
         </optgroup>
       </select>
     </label>
@@ -84,6 +95,11 @@ function onSelectChange(event: Event): void {
         <span class="visually-hidden">Search cases</span>
         <input v-model="query" type="search" placeholder="Search cases or prompts…" />
       </label>
+
+      <p class="case-key">
+        <span>Data:</span>
+        <WorkloadMark v-for="workload in model.data.workloads" :key="workload.name" :workload="workload" />
+      </p>
 
       <section v-for="group in groups" :key="group.area" class="case-group" :class="`case-group--${group.area}`">
         <h3 class="case-group-title">
@@ -103,6 +119,7 @@ function onSelectChange(event: Event): void {
         >
           <span class="case-name">{{ item.replay.case }}</span>
           <span v-if="item.replay.suite === 'live'" class="case-live" title="Run against a live Jeffrey">live</span>
+          <WorkloadMark v-if="model.workloadOf(item.replay)" :workload="model.workloadOf(item.replay)!" compact />
           <span class="case-dots" :aria-label="item.replay.runs.map((run) => `run ${run.run} ${runState(run.passed)}`).join(', ')">
             <i v-for="run in item.replay.runs" :key="run.run" class="case-dot" :class="`case-dot--${runState(run.passed)}`"></i>
           </span>
@@ -186,12 +203,21 @@ function onSelectChange(event: Event): void {
 
 .case-live {
   flex: none;
-  margin-left: auto;
   padding: 0 6px;
   border: 1px solid var(--site-line-strong);
   border-radius: var(--ap-radius-pill);
   font-size: 10.5px;
   font-weight: 500;
+  color: var(--site-faint);
+}
+
+.case-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 2px 0;
+  font-size: 12px;
   color: var(--site-faint);
 }
 

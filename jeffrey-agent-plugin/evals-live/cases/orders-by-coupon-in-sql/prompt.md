@@ -1,6 +1,6 @@
 ---
 name: orders-by-coupon-in-sql
-tags: [sql, heap]
+tags: [sql, heap, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

@@ -120,6 +120,9 @@ class HistoricalRuns(unittest.TestCase):
             plugin = Path(tmp)
             trace_path = plugin / "trace.jsonl"
             trace_path.write_text("\n".join(trace))
+            case = plugin / "evals/cases/delegation"
+            case.mkdir(parents=True)
+            (case / "prompt.md").write_text("---\nname: delegation\ntags: [routing]\n---\n\nDelegate it.\n")
             result = plugin / "evals/results/old/aggregate-result.json"
             result.parent.mkdir(parents=True)
             result.write_text(json.dumps({"cases": [{"name": "delegation", "arms": {"with": [
@@ -182,6 +185,9 @@ class RecordedVersion(unittest.TestCase):
             trace = plugin / "trace.jsonl"
             trace.write_text(assistant("2026-11-04T10:00:00Z", ("a1", "Agent", {
                 "subagent_type": "microscope:profile-analyst"})))
+            case = plugin / "evals/cases/delegation"
+            case.mkdir(parents=True)
+            (case / "prompt.md").write_text("---\nname: delegation\ntags: [routing]\n---\n\nDelegate it.\n")
             result = plugin / "evals/results/old/aggregate-result.json"
             result.parent.mkdir(parents=True)
             result.write_text(json.dumps({"cases": [{"name": "delegation", "arms": {"with": [
@@ -194,6 +200,60 @@ class RecordedVersion(unittest.TestCase):
         self.assertEqual(generated["plugin"], "1.0.30")
         self.assertEqual(generated["wiringPlugin"], "1.0.31")
         self.assertEqual(generated["usage"]["agent"], {"profile-analyst": 1})
+
+
+class LatestRuns(unittest.TestCase):
+    """A case run again counts once, by its latest runs; a case no longer in its suite, and a run the harness
+    refused, are left out."""
+
+    def test_counts_each_current_case_by_its_latest_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            case = plugin / "evals/cases/kept"
+            case.mkdir(parents=True)
+            (case / "prompt.md").write_text("---\nname: kept\ntags: [routing]\n---\n\nKeep it.\n")
+            trace = plugin / "trace.jsonl"
+            trace.write_text(assistant("2026-11-05T10:00:00Z", ("k1", "Skill", {"skill": "microscope:help"})) + "\n")
+            refused = plugin / "evals/results/c/aggregate-result.json"
+            refused.parent.mkdir(parents=True)
+            refused.write_text(json.dumps({"startedAt": "c", "cases": [
+                {"name": "kept", "arms": {"with": [{"tracePath": str(trace), "error": "exit 1: refused"}]}}]}))
+            moved = plugin / "evals-live/results/a/aggregate-result.json"
+            moved.parent.mkdir(parents=True)
+            moved.write_text(json.dumps({"startedAt": "a", "cases": [
+                {"name": "kept", "arms": {"with": [{"tracePath": str(trace)}]}}]}))
+            for stamp, cases in (("a", ["kept", "gone"]), ("b", ["kept"])):
+                result = plugin / f"evals/results/{stamp}/aggregate-result.json"
+                result.parent.mkdir(parents=True)
+                result.write_text(json.dumps({"startedAt": stamp, "cases": [
+                    {"name": name, "arms": {"with": [{"tracePath": str(trace)}, {"tracePath": str(trace)}]}}
+                    for name in cases]}))
+            usage = usage_map.usage_of(plugin)
+            self.assertEqual([("kept", "b")], [(replay["case"], replay["at"]) for replay in usage["replays"]])
+            self.assertEqual(2, usage["usage"]["runs"])
+            self.assertEqual({"help": 2}, usage["usage"]["skill"])
+
+    def test_keeps_an_earlier_replay_of_a_current_case_with_no_runs_on_disk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            for name in ("kept", "rerun"):
+                case = plugin / f"evals/cases/{name}"
+                case.mkdir(parents=True)
+                (case / "prompt.md").write_text(f"---\nname: {name}\ntags: [routing]\n---\n\nAsk.\n")
+            trace = plugin / "trace.jsonl"
+            trace.write_text(assistant("2026-11-05T10:00:00Z", ("k1", "Skill", {"skill": "microscope:help"})) + "\n")
+            result = plugin / "evals/results/b/aggregate-result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps({"startedAt": "b", "cases": [
+                {"name": "rerun", "arms": {"with": [{"tracePath": str(trace)}]}}]}))
+            step = {"kind": "skill", "name": "report", "lane": "main"}
+            old = {"suite": "mocked", "prompt": "", "at": "a", "runs": [{"run": 1, "steps": [step], "lanes": {}}]}
+            earlier = {"plugin": "1.0.1", "replays": [old | {"case": "kept"}, old | {"case": "rerun"}, old | {"case": "gone"}]}
+            usage = usage_map.usage_of(plugin, "1.0.2", earlier)
+            self.assertEqual([("kept", "1.0.1", "a"), ("rerun", "1.0.2", "b")],
+                             [(r["case"], r["plugin"], r["at"]) for r in usage["replays"]])
+            self.assertEqual(["1.0.1", "1.0.2"], usage["pluginVersions"])
+            self.assertEqual({"help": 1, "report": 1}, usage["usage"]["skill"])
 
 
 class CommittedMap(unittest.TestCase):
@@ -278,6 +338,29 @@ class Areas(unittest.TestCase):
         worked = [area["agent"] for area in usage_map.AREAS if area["agent"]]
         self.assertLessEqual(set(worked), agents)
         self.assertEqual(len(worked), len(set(worked)))
+
+
+class Workloads(unittest.TestCase):
+    """Every eval case says what it runs on: one workload tag, or a place in NO_RECORDING."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = usage_map.case_workloads(ROOT / PLUGIN_DIR)
+
+    def test_every_case_declares_its_workload_or_reads_no_recording(self):
+        undeclared = sorted(case for case, workload in self.cases.items()
+                            if workload is None and case not in usage_map.NO_RECORDING)
+        self.assertEqual(undeclared, [], "add a workload tag (" + ", ".join(w["name"] for w in usage_map.WORKLOADS)
+                         + ") to each case's prompt.md, or name it in NO_RECORDING")
+
+    def test_no_recording_names_only_cases_without_a_workload(self):
+        self.assertEqual(sorted(name for name in usage_map.NO_RECORDING if self.cases.get(name) is not None
+                                or name not in self.cases), [])
+
+    def test_case_names_are_unique_across_the_suites(self):
+        plugin = ROOT / PLUGIN_DIR
+        names = [p.parent.name for suite in usage_map.SUITES for p in (plugin / suite / "cases").glob("*/prompt.md")]
+        self.assertEqual(len(names), len(set(names)))
 
 
 class WiringOnly(unittest.TestCase):

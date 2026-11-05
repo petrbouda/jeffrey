@@ -84,7 +84,22 @@ AREAS = [
      "families": ["connector", "operations", "profiles", "recordings"]},
 ]
 
+# What each eval case runs on, declared as one tag in its prompt's frontmatter: a real service's recorded
+# runs, or the made-up workload written for the evals. The page marks every case with it; a case that reads
+# no recording at all is named in NO_RECORDING instead, and test-plugin-usage-map.py fails on a case that is
+# in neither.
+WORKLOADS = [
+    {"name": "checkout", "label": "checkout", "real": False,
+     "detail": "A made-up checkout service: two Java files written for the evals, with a planted CPU hotspot, "
+               "lock contention, exceptions, a slow leak, an N+1 and a regression between two runs."},
+    {"name": "persons", "label": "persons service", "real": True,
+     "detail": "Two real runs of jeffrey-testapp, a persons REST service with a database, under load and "
+               "traced: writing each person out directly, then through a JSON tree."},
+]
+NO_RECORDING = {"record-exceptions-next-time"}
+
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.S)
+TAG_LIST = re.compile(r"^\[(.*)\]$")
 BACKTICKED_NAME = re.compile(r"`(?:microscope:)?([a-z][a-z-]+)`")
 
 spec = importlib.util.spec_from_file_location("references", ROOT / "build/scripts/check-plugin-references.py")
@@ -236,29 +251,51 @@ def node_of(by: list[str]) -> str:
     return KIND_PREFIX[by[0]] + by[1]
 
 
-def usage_of(plugin: Path) -> dict:
-    """Totals over every run whose trace is still on disk, and each case's latest runs as replays."""
-    totals = {kind: Counter() for kind in ("skill", "agent", "jeffrey", "other")}
-    observed = defaultdict(Counter)
-    latest, runs, missing = {}, 0, 0
+def case_tags(prompt: Path) -> list[str]:
+    tags = field(frontmatter(prompt.read_text()), "tags") or ""
+    match = TAG_LIST.match(tags)
+    return [tag.strip() for tag in match.group(1).split(",")] if match else []
+
+
+def case_workloads(plugin: Path) -> dict[str, str | None]:
+    """Each eval case of both suites, by name, with the workload its prompt's tags declare (None: no recording)."""
+    names = {workload["name"] for workload in WORKLOADS}
+    cases = {}
+    for suite in SUITES:
+        for prompt in sorted((plugin / suite / "cases").glob("*/prompt.md")):
+            declared = [tag for tag in case_tags(prompt) if tag in names]
+            if len(declared) > 1:
+                raise ValueError(f"{prompt}: more than one workload tag {declared}")
+            cases[prompt.parent.name] = declared[0] if declared else None
+    return cases
+
+
+def usage_of(plugin: Path, recorded_version: str | None = None, earlier: dict | None = None) -> dict:
+    """Each current case's latest runs whose traces are still on disk, as replays, and the totals over exactly
+    those runs: a case run again replaces its earlier runs rather than adding to them, a case no longer in its
+    suite is left out (one moved to the other suite counts there), and so is a run the harness refused.
+    A current case with no runs on disk keeps its replay from the `earlier` map, with the plugin version it was
+    recorded with, so a suite that cannot run here does not drop off the page."""
+    current = {(label, prompt.parent.name) for suite, label in SUITES.items()
+               for prompt in (plugin / suite / "cases").glob("*/prompt.md")}
+    latest = {}
     for suite, label in SUITES.items():
         for result in sorted((plugin / suite).glob(RESULTS_GLOB)):
             report = json.loads(result.read_text())
             for case in report["cases"]:
-                replays = []
+                if (label, case["name"]) not in current:
+                    continue
+                replays, missing = [], 0
                 for number, run in enumerate(case["arms"]["with"], start=1):
+                    if run.get("error"):
+                        # The harness refused or aborted it: nothing the plugin did is in it.
+                        continue
                     trace = Path(run.get("tracePath") or "")
                     if not trace.is_file():
                         missing += 1
                         continue
                     with trace.open() as lines:
                         steps, lanes = steps_of(lines)
-                    runs += 1
-                    for step in steps:
-                        totals[step["kind"]][step["name"]] += 1
-                        by = step.get("by")
-                        if by and not (step["kind"] == "skill" and by == ["skill", step["name"]]):
-                            observed[node_of(by)][KIND_PREFIX[step["kind"]] + step["name"]] += 1
                     replays.append({"run": number, "score": run.get("score"), "passed": run.get("passed"),
                                     "turns": run.get("turns"), "costUsd": run.get("costUsd"),
                                     "durationSeconds": run.get("durationSeconds"),
@@ -266,12 +303,30 @@ def usage_of(plugin: Path) -> dict:
                                                 for g in run.get("graders", [])],
                                     "lanes": lanes, "steps": steps})
                 if replays:
-                    latest[(label, case["name"])] = {"suite": label, "case": case["name"],
-                                                     "prompt": case.get("promptMarkdown", ""),
-                                                     "at": report.get("startedAt"), "runs": replays}
-    return {"usage": {"runs": runs, "missingTraces": missing} | {k: dict(v) for k, v in totals.items()},
+                    latest[(label, case["name"])] = ({"suite": label, "case": case["name"],
+                                                      "prompt": case.get("promptMarkdown", ""),
+                                                      "at": report.get("startedAt"), "plugin": recorded_version,
+                                                      "runs": replays}, missing)
+    for replay in (earlier or {}).get("replays", []):
+        key = (replay["suite"], replay["case"])
+        if key in current and key not in latest:
+            latest[key] = (replay | {"plugin": replay.get("plugin") or earlier.get("plugin")}, 0)
+    totals = {kind: Counter() for kind in ("skill", "agent", "jeffrey", "other")}
+    observed = defaultdict(Counter)
+    for replay, _ in latest.values():
+        for run in replay["runs"]:
+            for step in run["steps"]:
+                totals[step["kind"]][step["name"]] += 1
+                by = step.get("by")
+                if by and not (step["kind"] == "skill" and by == ["skill", step["name"]]):
+                    observed[node_of(by)][KIND_PREFIX[step["kind"]] + step["name"]] += 1
+    runs = sum(len(replay["runs"]) for replay, _ in latest.values())
+    missing = sum(count for _, count in latest.values())
+    versions = sorted({replay["plugin"] for replay, _ in latest.values() if replay.get("plugin")})
+    return {"pluginVersions": versions,
+            "usage": {"runs": runs, "missingTraces": missing} | {k: dict(v) for k, v in totals.items()},
             "observed": {k: dict(v) for k, v in observed.items()},
-            "replays": [latest[key] for key in sorted(latest)]}
+            "replays": [latest[key][0] for key in sorted(latest)]}
 
 
 def wiring_of(plugin: Path, snapshot: dict) -> dict:
@@ -283,11 +338,12 @@ def wiring_of(plugin: Path, snapshot: dict) -> dict:
     return {"wiringPlugin": json.loads((plugin / "plugin.json").read_text()).get("version"),
             "agentAliases": AGENT_ALIASES,
             "tools": tools, "skills": skills_of(plugin, tool_names, skill_names, agent_names),
-            "agents": agents_of(plugin, tool_names, skill_names, agent_names), "areas": AREAS}
+            "agents": agents_of(plugin, tool_names, skill_names, agent_names), "areas": AREAS,
+            "workloads": WORKLOADS, "caseWorkloads": case_workloads(plugin)}
 
 
-def usage_map(plugin: Path, snapshot: dict, recorded_version: str) -> dict:
-    return ({"plugin": recorded_version} | wiring_of(plugin, snapshot) | usage_of(plugin))
+def usage_map(plugin: Path, snapshot: dict, recorded_version: str, earlier: dict | None = None) -> dict:
+    return ({"plugin": recorded_version} | wiring_of(plugin, snapshot) | usage_of(plugin, recorded_version, earlier))
 
 
 def to_json(data: dict) -> str:
@@ -300,6 +356,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--wiring-only", action="store_true",
                         help="rewrite only the documented wiring of --out, keeping its runs; needs no traces")
     parser.add_argument("--recorded-version", help="the plugin version used for every ingested trace; required for full generation")
+    parser.add_argument("--drop-earlier", action="store_true",
+                        help="keep no replay from the existing map: a case with no runs on disk leaves the page")
     args = parser.parse_args(argv)
     if args.wiring_only and args.recorded_version is not None:
         parser.error("--recorded-version cannot be combined with --wiring-only; the recorded version stays unchanged")
@@ -314,7 +372,8 @@ def main(argv: list[str]) -> int:
         # "plugin" stays: it is the version the kept runs were recorded with.
         data = json.loads(args.out.read_text()) | wiring_of(PLUGIN, snapshot)
     else:
-        data = usage_map(PLUGIN, snapshot, args.recorded_version)
+        earlier = json.loads(args.out.read_text()) if args.out.is_file() and not args.drop_earlier else None
+        data = usage_map(PLUGIN, snapshot, args.recorded_version, earlier)
         if not data["usage"]["runs"]:
             print("No eval trace is on disk: run `claude plugin eval … --keep-temp` first "
                   f"({data['usage']['missingTraces']} runs had their traces removed).", file=sys.stderr)

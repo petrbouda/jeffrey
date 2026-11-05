@@ -26,7 +26,7 @@ import type { AreaName } from '@/types/pluginUsage';
 const props = defineProps<{ lens: AreaLens }>();
 const emit = defineEmits<{ (e: 'show', tool: string): void }>();
 
-type SortKey = 'name' | 'area' | 'family' | 'named' | 'agents' | 'calls' | 'access' | 'cost';
+type SortKey = 'name' | 'area' | 'family' | 'named' | 'agents' | 'calls' | 'cases' | 'access' | 'cost';
 type Usage = 'all' | 'called' | 'never';
 
 interface ToolRow {
@@ -38,6 +38,8 @@ interface ToolRow {
   named: string[];
   agents: string[];
   calls: number;
+  /** The eval cases whose runs called it. */
+  cases: string[];
   access: string;
   cost: string | null;
 }
@@ -55,6 +57,7 @@ const COLUMNS: Column[] = [
   { key: 'named', label: 'Named by skills' },
   { key: 'agents', label: 'Agents' },
   { key: 'calls', label: 'Calls in runs', numeric: true },
+  { key: 'cases', label: 'Use cases', numeric: true },
   { key: 'access', label: 'Access' },
   { key: 'cost', label: 'Cost' }
 ];
@@ -82,6 +85,7 @@ const rows: ToolRow[] = model.data.tools.map((tool) => ({
   named: model.namedBy(tool.name),
   agents: model.agentsAllowing(tool.name),
   calls: model.toolCalls(tool.name),
+  cases: model.casesUsing((step) => step.kind === 'jeffrey' && step.name === tool.name).map((use) => use.replay.case),
   access: tool.destructive ? 'destructive' : tool.readOnly ? 'read-only' : 'writes',
   cost: tool.cost ? tool.cost.toLowerCase() : null
 }));
@@ -93,6 +97,7 @@ const SORT_VALUES: Record<SortKey, (row: ToolRow) => string | number> = {
   named: (row) => row.named.length,
   agents: (row) => row.agents.length,
   calls: (row) => row.calls,
+  cases: (row) => row.cases.length,
   access: (row) => row.access,
   cost: (row) => model.costOrder(row.cost)
 };
@@ -207,6 +212,7 @@ const summary = computed(() => {
               <td>{{ row.named.length ? row.named.join(', ') : '–' }}</td>
               <td>{{ row.agents.length ? row.agents.join(', ') : '–' }}</td>
               <td class="tools-num">{{ row.calls ? formatCount(row.calls) : '0' }}</td>
+              <td class="tools-num" :title="row.cases.join(', ') || undefined">{{ row.cases.length }}</td>
               <td>{{ row.access }}</td>
               <td>{{ row.cost ?? '–' }}</td>
             </tr>

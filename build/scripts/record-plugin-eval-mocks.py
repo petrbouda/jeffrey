@@ -79,6 +79,12 @@ WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java
 # RECORDINGS_REPO: --reuse and --load copy it into --work-dir when it is not there.
 ORDERS_WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/OrderHistory.java"
 ORDERS_RECORDING = Path("build/plugin-evals/order-history.jfr")
+# The real service: two runs of jeffrey-testapp-server, a persons REST service with a database, profiled under
+# load by the provisioner and kept in this repository for the tests (TestappRecording): writing each person
+# out directly, then through a JSON tree. Not recorded by this script — imported as they are.
+PERSONS_RESOURCES = Path("shared/test/src/main/resources/cafe/jeffrey/test/recording/testapp")
+PERSONS_RECORDINGS = {"personsDirect": PERSONS_RESOURCES / "direct/rec-20261103-191259+0000.jfr",
+                      "personsDom": PERSONS_RESOURCES / "dom/rec-20261103-191259+0000.jfr"}
 ORDERS_SECONDS = 20
 # What the workload's traces are written with: the HTTP exchange event, the Tracer, and where the Tracer keeps
 # the span in progress. Built by TRACING_BUILD; the workload runs on JDK 25, but the ThreadLocal storage is
@@ -117,13 +123,18 @@ OPERATION_BUDGET_SECONDS = 900
 MAX_CALLS = 1500
 # The order history's own pass (crawl): a handful of seeds and what their answers offer.
 ORDERS_MAX_CALLS = 400
+# The persons service's own pass: every profile-only tool on both runs, the comparison both ways, the code tools
+# on its methods, and what their answers offer.
+PERSONS_MAX_CALLS = 1200
 # Breadth first, so the answers kept are the ones nearest the seeds: a heap walk offers a path, the
 # referrers and the children of every object it names, and a model reads the first few.
 MAX_FIXTURES_PER_TOOL = 8
 
 PROFILE_NAMES = {"baseline": "checkout baseline", "candidate": "checkout candidate", "heap": "checkout heap dump",
-                 "orders": "order history"}
+                 "orders": "order history", "personsDirect": "persons direct", "personsDom": "persons dom"}
 PROFILE_KINDS = tuple(PROFILE_NAMES)
+# The profiles this script records by running a workload; the persons runs are kept, never re-recorded.
+WORKLOAD_KINDS = ("baseline", "candidate", "heap", "orders")
 # The commits the live suite's scaffold history gives the two checkout runs (`liveCommits` in RECORDED_PROFILES,
 # checked against the scaffold by test-plugin-eval-mocks.py): --load imports each run at its commit, so the live
 # cases read `recordingCommit` against a repository that holds it.
@@ -170,12 +181,31 @@ WORKLOAD_METHODS = (("com.acme.checkout.Checkout.PriceCalculator", "formatLine")
 # `code_method` answers one method of the class. A call without one is not answered (a missing file-name segment
 # is a tool error): code_method on a whole class has no mock.
 ADDRESSING_OPTIONS = {"code_method": ("methodName",)}
-# A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload method, on both recordings.
-MAX_FIXTURES_OF = {"code_method": 2 * len(WORKLOAD_METHODS) + MAX_FIXTURES_PER_TOOL}
 # The order history's statements: Jeffrey's JDBC query event, the one statement event that carries a stack.
 JDBC_QUERY = "jeffrey.JdbcQuery"
 # The event types with stacks a call-site case groups: the monitor the workload contends on.
 CALL_SITE_EVENT_TYPES = ("jdk.JavaMonitorEnter",)
+# The persons service's own package and the methods its code cases ask about, as its sources name them.
+PERSONS_PACKAGES = ["jeffrey.testapp."]
+PERSONS_EQUIVALENT_PACKAGES = (["jeffrey.testapp.server."],)
+PERSONS_METHODS = (("jeffrey.testapp.server.PersonController", "toJsonTree"),
+                   ("jeffrey.testapp.server.PersonController", "getNPersons"),
+                   ("jeffrey.testapp.server.PersonController", "getRandomPerson"),
+                   ("jeffrey.testapp.server.service.InefficientPersonService", "getRandomPerson"),
+                   ("jeffrey.testapp.server.service.InefficientPersonService", "getNPersons"),
+                   ("jeffrey.testapp.server.PersonRepository", "findById"),
+                   ("jeffrey.testapp.server.PersonRepository", "findByIds"),
+                   ("jeffrey.testapp.server.PersonRepository", "count"),
+                   ("jeffrey.testapp.server.PersonRepository", "modifyOpinion"))
+# The persons runs' samples as async-profiler took them: CPU, allocation (TLAB, weighted by bytes), the monitors
+# and the wall clock — compared both ways and charged to the service's own code.
+PERSONS_COMPARED_EVENT_TYPES = (("jdk.ExecutionSample", False), ("jdk.ObjectAllocationInNewTLAB", True),
+                                ("jdk.JavaMonitorEnter", True), ("profiler.WallClockSample", False))
+# The persons runs' event types a code case groups by call site: its statements and its monitors.
+PERSONS_CALL_SITE_EVENT_TYPES = (JDBC_QUERY, "jdk.JavaMonitorEnter")
+# A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings.
+MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_METHODS)) + MAX_FIXTURES_PER_TOOL}
+
 # What may differ between two answers that address one fixture while the figures stay the same: the follow-up
 # and how the own packages were chosen. A call reached with other graded options is accepted with the
 # recorded fixture only when, these left out, its answer is the fixture's (`equivalent`).
@@ -208,6 +238,8 @@ class Profiles:
     candidate: str
     heap: str
     orders: str
+    personsDirect: str
+    personsDom: str
 
     @property
     def all(self) -> tuple[str, ...]:
@@ -291,7 +323,7 @@ def seen_by_model(answer: dict) -> str:
     return json.dumps(structured, ensure_ascii=False, separators=(",", ":"))
 
 
-def record_workload(java: str, work_dir: Path, seconds: int, kinds: tuple[str, ...] = PROFILE_KINDS) -> dict[str, Path]:
+def record_workload(java: str, work_dir: Path, seconds: int, kinds: tuple[str, ...] = WORKLOAD_KINDS) -> dict[str, Path]:
     """Runs the workloads behind `kinds` under JFR into work_dir; the heap dump comes with the candidate run."""
     work_dir.mkdir(parents=True, exist_ok=True)
     files = recorded_files(work_dir)
@@ -344,7 +376,7 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
             if operation:
                 recorded.answers["operations_status"][(operation,)] = seen_by_model(final)
                 recorded.inputs["operations_status"][(operation,)] = {OPERATION_ID: operation}
-    profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"], ids["orders"])
+    profiles = Profiles(**{kind: ids[kind] for kind in PROFILE_KINDS})
     jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
     # so a heap_prepare recorded while it was still running would tell the model to poll a preparation
@@ -368,6 +400,13 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
     calls += code_seed_calls(profiles)
     calls += [(tool, {**arguments, "framePrefixes": packages}) for tool, arguments in list(calls)
               if arguments.get("framePrefixes") == APPLICATION_PACKAGES for packages in EQUIVALENT_PACKAGES]
+    calls += profile_only_calls(tools, profiles.all, pairs)
+    return calls
+
+
+def profile_only_calls(tools: list[dict], profiles: tuple[str, ...], pairs: list[tuple[str, str]]) -> list[tuple[str, dict]]:
+    """Each tool whose required arguments are a profile, a profile pair or an enum's values, for each of them."""
+    calls = []
     for tool in tools:
         name, schema = tool["name"], tool.get("inputSchema") or {}
         if name in NOT_CALLED_FROM_ANSWERS or name == "operations_status":
@@ -381,12 +420,41 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
         if BASELINE_PROFILE_ID in required:
             combinations = [{PROFILE_ID: primary, BASELINE_PROFILE_ID: baseline} for primary, baseline in pairs]
         elif PROFILE_ID in required:
-            combinations = [{PROFILE_ID: profile} for profile in profiles.all]
+            combinations = [{PROFILE_ID: profile} for profile in profiles]
         for argument in required:
             values = schema["properties"][argument].get("enum")
             if values:
                 combinations = [{**combination, argument: value} for combination in combinations for value in values]
         calls += [(name, combination) for combination in combinations]
+    return calls
+
+
+def persons_seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
+    """The persons service as its cases reach it: the throw sites and the code tools on its own package (each
+    repeated with the equivalent package root), the comparison of the two runs both ways — the DOM run as the
+    one that changed first — then every profile-only tool on both runs."""
+    runs = (profiles.personsDom, profiles.personsDirect)
+    pairs = [(profiles.personsDom, profiles.personsDirect), (profiles.personsDirect, profiles.personsDom)]
+    own = {"framePrefixes": PERSONS_PACKAGES}
+    calls = [("jvm_exceptionSites", {PROFILE_ID: profile, **own}) for profile in runs]
+    for tool in ("compare_movements", "compare_flamegraph"):
+        for event_type, weighted in PERSONS_COMPARED_EVENT_TYPES:
+            calls += [(tool, {PROFILE_ID: primary, BASELINE_PROFILE_ID: baseline, "eventType": event_type,
+                              **({"useWeight": True} if weighted else {})}) for primary, baseline in pairs]
+    calls += [("code_hotspots", {PROFILE_ID: profile, "eventType": event_type, **own})
+              for profile in runs for event_type, _ in PERSONS_COMPARED_EVENT_TYPES]
+    # Asked without the repository at hand, an agent lets Jeffrey suggest the packages (SUGGESTED): same figures
+    # when its suggestion is the service's own, an alias of the fixture above.
+    calls += [("code_hotspots", {PROFILE_ID: profile, "eventType": event_type})
+              for profile in runs for event_type, _ in PERSONS_COMPARED_EVENT_TYPES]
+    calls += [("code_method", {PROFILE_ID: profile, "className": class_name, "methodName": method, **own})
+              for profile in runs for class_name, method in PERSONS_METHODS]
+    calls += [("code_callSites", {PROFILE_ID: profile, "eventType": event_type, **own})
+              for profile in runs for event_type in PERSONS_CALL_SITE_EVENT_TYPES]
+    calls += [("code_runtimeSurface", {PROFILE_ID: profile, **own}) for profile in runs]
+    calls += [(tool, {**arguments, "framePrefixes": packages}) for tool, arguments in list(calls)
+              if arguments.get("framePrefixes") == PERSONS_PACKAGES for packages in PERSONS_EQUIVALENT_PACKAGES]
+    calls += profile_only_calls(tools, runs, pairs)
     return calls
 
 
@@ -465,10 +533,12 @@ def offered_calls(structured: dict) -> list[tuple[str, dict]]:
 
 
 def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Recorded) -> None:
-    """The checkout profiles first, as the cases have always been recorded, then the order history in a pass
-    of its own, so its answers never take the budget or a tool's fixtures from the checkout's."""
+    """The checkout profiles first, as the cases have always been recorded, then the order history and the
+    persons service each in a pass of its own, so their answers never take the budget or a tool's fixtures
+    from the checkout's."""
     crawl_from(jeffrey, tools, seed_calls(tools, profiles), recorded, MAX_CALLS)
     crawl_from(jeffrey, tools, orders_seed_calls(profiles), recorded, ORDERS_MAX_CALLS)
+    crawl_from(jeffrey, tools, persons_seed_calls(tools, profiles), recorded, PERSONS_MAX_CALLS)
 
 
 def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]], recorded: Recorded,
@@ -489,7 +559,10 @@ def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]
         key = tuple(str(arguments[argument]) for argument in required)
         identity = json.dumps([tool, arguments], sort_keys=True)
         limit = MAX_FIXTURES_OF.get(tool, MAX_FIXTURES_PER_TOOL)
-        if identity in seen or (key and len(recorded.answers.get(tool, {})) - held.get(tool, 0) >= limit):
+        # The limit counts fixtures, so a call that would only be another input of a fixture already held — an
+        # equivalent package root, a size or page of the same figures — is still made and kept as its alias.
+        full = key and key not in recorded.answers.get(tool, {}) and len(recorded.answers.get(tool, {})) - held.get(tool, 0) >= limit
+        if identity in seen or full:
             continue
         seen.add(identity)
         calls += 1
@@ -763,7 +836,9 @@ def main() -> int:
         if files is None:
             return 1
     else:
-        files = record_workload(options.java, options.work_dir.resolve(), options.seconds)
+        record_workload(options.java, options.work_dir.resolve(), options.seconds, kinds=WORKLOAD_KINDS)
+        copy_kept_recordings(options.work_dir.resolve())
+        files = recorded_files(options.work_dir.resolve())
     recorded = Recorded()
     profiles = import_profiles(jeffrey, files, recorded)
     print(f"profiles: {profiles}", file=sys.stderr)
@@ -775,8 +850,7 @@ def main() -> int:
     write_mocks(tools, recorded)
     previous = json.loads(RECORDED_PROFILES.read_text()) if RECORDED_PROFILES.exists() else {}
     RECORDED_PROFILES.write_text(json.dumps(
-        {"baseline": profiles.baseline, "candidate": profiles.candidate, "heap": profiles.heap,
-         "orders": profiles.orders, "heapDumpPath": str(files["heap"]), "figures": figures,
+        {**{kind: getattr(profiles, kind) for kind in PROFILE_KINDS}, "heapDumpPath": str(files["heap"]), "figures": figures,
          "files": {path.name: sha256_of(path) for path in files.values()},
          LIVE_COMMITS: previous.get(LIVE_COMMITS) or {}}, indent=1) + "\n")
     return 0
@@ -784,15 +858,18 @@ def main() -> int:
 
 def recorded_files(work_dir: Path) -> dict[str, Path]:
     return {"baseline": work_dir / "checkout-baseline.jfr", "candidate": work_dir / "checkout-candidate.jfr",
-            "heap": work_dir / "checkout.hprof", "orders": work_dir / "order-history.jfr"}
+            "heap": work_dir / "checkout.hprof", "orders": work_dir / "order-history.jfr",
+            "personsDirect": work_dir / "persons-direct.jfr", "personsDom": work_dir / "persons-dom.jfr"}
 
 
 def copy_kept_recordings(work_dir: Path) -> None:
-    """The order history's recording is kept in this repository; a work dir without it gets the kept copy."""
-    orders = recorded_files(work_dir)["orders"]
-    if not orders.exists() and ORDERS_RECORDING.exists():
-        work_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ORDERS_RECORDING, orders)
+    """The order history's and the persons service's recordings are kept in this repository; a work dir without
+    them gets the kept copies."""
+    files = recorded_files(work_dir)
+    for kind, kept in (("orders", ORDERS_RECORDING), *PERSONS_RECORDINGS.items()):
+        if not files[kind].exists() and kept.exists():
+            work_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(kept, files[kind])
 
 
 def sha256_of(path: Path) -> str:

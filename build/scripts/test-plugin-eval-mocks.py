@@ -78,8 +78,9 @@ class ReplayContractTest(RecorderSandbox):
         class Server:
             def call(self, name, args):
                 return answer({'weighted': args.get('useWeight', True)})
-        with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments)]):
-            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o'), recorded)
+        with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments)]), \
+                patch.object(recorder, 'persons_seed_calls', return_value=[]):
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm'), recorded)
         recorder.write_mocks(tools, recorded)
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         self.assertTrue(path.exists(), 'every case must reject unsupported semantic inputs')
@@ -189,7 +190,7 @@ class ReplayContractTest(RecorderSandbox):
                 return answer({'status': 'COMPLETED'})
         recorded = recorder.Recorded()
         with patch.object(recorder.time, 'sleep'):
-            profiles = recorder.import_profiles(SlowServer(), {k: Path(k) for k in ['baseline', 'candidate', 'heap', 'orders']}, recorded)
+            profiles = recorder.import_profiles(SlowServer(), {k: Path(k) for k in recorder.PROFILE_KINDS}, recorded)
         self.assertEqual('h', profiles.heap)
         self.assertIn('operations_status', recorded.answers, 'RUNNING import must have a replayable poll')
         self.assertEqual('COMPLETED', json.loads(recorded.answers['operations_status'][('slow-heap',)])['status'])
@@ -212,8 +213,9 @@ class CodeToolsTest(RecorderSandbox):
         class Server:
             def call(self, name, args):
                 return answer(respond(args))
-        with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments) for arguments in calls]):
-            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o'), recorded)
+        with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments) for arguments in calls]), \
+                patch.object(recorder, 'persons_seed_calls', return_value=[]):
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm'), recorded)
         recorder.write_mocks(tools, recorded)
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         return recorded, yaml.safe_load(path.read_text().split('---')[1])['pattern']
@@ -311,7 +313,7 @@ class CheckedInContractTest(unittest.TestCase):
 
     def test_checked_in_inputs_and_weighting_counterexamples_in_javascript(self):
         mocks = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
-        path = ROOT / PLUGIN_DIR / 'evals/cases/named-area-cpu/graders/recorded-call-semantics.md'
+        path = ROOT / PLUGIN_DIR / 'evals/cases/gc-pauses/graders/recorded-call-semantics.md'
         pattern = yaml.safe_load(path.read_text().split('---')[1])['pattern']
         inputs = json.loads((mocks / '_inputs.json').read_text())
         tests = [{'call': {'tool': 'mcp__plugin_microscope_jeffrey__' + x['tool'], 'input': x['arguments']}, 'fails': False}
@@ -386,9 +388,8 @@ class ScaffoldTest(unittest.TestCase):
         return subprocess.run(['git', *arguments], cwd=temp, check=True, capture_output=True, text=True).stdout
 
     def test_the_implement_fixes_and_code_cases_scaffold_the_repository(self):
-        self.assertEqual(['code-is-this-method-worth-it', 'code-n-plus-one', 'code-own-hotspots',
-                          'code-what-runs-at-runtime', 'compare-the-methods-my-diff-touched',
-                          'did-my-last-commit-make-it-worse', 'heap-offers-implement-fixes', 'offers-implement-fixes'],
+        self.assertEqual(['code-n-plus-one', 'compare-the-methods-my-diff-touched',
+                          'did-my-last-commit-make-it-worse', 'heap-offers-implement-fixes'],
                          [script.parent.name for script in self.scaffolds()])
 
     def test_the_scaffolded_repository_holds_the_recorded_workloads_verbatim(self):
@@ -427,13 +428,55 @@ class ScaffoldTest(unittest.TestCase):
                 self.assertIn('+                    total += formatLine(line).length();', diff)
                 self.assertEqual(3, sum(1 for line in diff.splitlines() if line.startswith('+ ')))
 
+class PersonsScaffoldTest(unittest.TestCase):
+    """Every persons case that works on the code scaffolds the persons service's repository: the sources the two
+    real runs were built from (fixtures/testapp/), each byte for byte between its marker, committed."""
+
+    SOURCES = ROOT / PLUGIN_DIR / 'evals/fixtures/testapp'
+    CASES = ROOT / PLUGIN_DIR / 'evals/cases'
+
+    @classmethod
+    def scaffolds(cls):
+        return sorted((script for script in cls.CASES.glob('*/setup.sh') if "<<'TESTAPP_" in script.read_text()),
+                      key=lambda script: script.parent.name)
+
+    def test_the_persons_code_cases_scaffold_the_repository(self):
+        self.assertEqual(['fix-it', 'hot-methods', 'method-worth-it', 'what-runs'],
+                         [script.parent.name for script in self.scaffolds()])
+
+    def test_the_scaffold_is_the_one_the_writer_writes(self):
+        spec = importlib.util.spec_from_file_location('scaffold', ROOT / 'build/scripts/write-persons-scaffold.py')
+        writer = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(writer)
+        for script in self.scaffolds():
+            with self.subTest(case=script.parent.name):
+                self.assertEqual(writer.script(), script.read_text(),
+                                 'run python3 build/scripts/write-persons-scaffold.py')
+
+    def test_the_scaffolded_repository_holds_the_sources_verbatim(self):
+        sources = sorted(path.relative_to(self.SOURCES) for path in self.SOURCES.rglob('*') if path.is_file())
+        for script in self.scaffolds():
+            with self.subTest(case=script.parent.name), tempfile.TemporaryDirectory() as temp:
+                subprocess.run(['bash', str(script)], cwd=temp, check=True, capture_output=True)
+                written = sorted(path.relative_to(temp) for path in Path(temp).rglob('*')
+                                 if path.is_file() and '.git' not in path.relative_to(temp).parts)
+                self.assertEqual(sources, written)
+                for source in sources:
+                    self.assertEqual((self.SOURCES / source).read_bytes(), (Path(temp) / source).read_bytes(), str(source))
+                self.assertIn('class InefficientPersonService',
+                              (Path(temp) / 'server/src/main/java/jeffrey/testapp/server/service/InefficientPersonService.java').read_text())
+                status = subprocess.run(['git', 'status', '--porcelain'], cwd=temp, check=True, capture_output=True, text=True)
+                self.assertEqual('', status.stdout)
+
+
 class VerdictContractTest(unittest.TestCase):
     def test_false_slowdown_is_explicitly_a_semantic_failure(self):
-        graders = ROOT / PLUGIN_DIR / 'evals/cases/compare-finds-the-regression/graders'
+        graders = ROOT / PLUGIN_DIR / 'evals/cases/dom-regression/graders'
         judges = [p for p in graders.glob('*.md') if yaml.safe_load(p.read_text().split('---')[1])['type'] == 'llm']
         self.assertTrue(judges, 'a semantic verdict requires an LLM rubric, not keyword presence')
         rubrics = '\n'.join(p.read_text() for p in judges)
-        self.assertIn('High confidence: formatLine makes checkout 25 percent slower end-to-end. Both runs are directly comparable.', rubrics)
+        self.assertIn('High confidence: the new build makes the persons service 25 percent slower end-to-end because of the '
+                      'JSON tree. Both runs are directly comparable.', rubrics)
         self.assertIn('FAIL', rubrics)
         self.assertIn('PASS', rubrics)
 

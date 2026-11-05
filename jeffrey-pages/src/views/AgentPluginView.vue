@@ -323,6 +323,8 @@ function openArea(area: AreaLens, next: 'replay' | 'map'): void {
   --ap-jfr-band: rgba(255, 109, 0, 0.055);
   --ap-heap: #6d3fd6;
   --ap-heap-band: rgba(109, 63, 214, 0.06);
+  --ap-real: #0f6f8a;
+  --ap-real-bg: #e1f1f6;
   --ap-shared-band: rgba(48, 32, 12, 0.03);
   --ap-tab-start: #ffab00;
   --ap-bar-height: 52px;

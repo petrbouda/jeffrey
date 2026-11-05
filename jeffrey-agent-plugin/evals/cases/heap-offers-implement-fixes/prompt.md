@@ -1,6 +1,6 @@
 ---
 name: heap-offers-implement-fixes
-tags: [routing, fixes, heap]
+tags: [routing, fixes, heap, checkout]
 max_turns: 25
 timeout_seconds: 600
 runs: 3

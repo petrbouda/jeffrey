@@ -22,6 +22,7 @@ import type {
   PluginArea,
   PluginSkill,
   PluginTool,
+  PluginWorkload,
   PluginUsage,
   Replay,
   ReplayRun,
@@ -242,6 +243,25 @@ function replaysWhere(accepts: (step: ReplayStep) => boolean): Replay[] {
   return data.replays.filter((replay) => replay.runs.some((run) => run.steps.some(accepts)));
 }
 
+/** One eval case that used a skill, agent, family or tool: in how many of its runs it did. */
+export interface CaseUse {
+  index: number;
+  replay: Replay;
+  runsUsing: number;
+}
+
+/**
+ * The use cases of something on the map: every case whose recorded runs reached it, the ones on a real service
+ * first, then by name.
+ */
+function casesUsing(accepts: (step: ReplayStep) => boolean): CaseUse[] {
+  return data.replays
+    .map((replay, index) => ({ index, replay, runsUsing: replay.runs.filter((run) => run.steps.some(accepts)).length }))
+    .filter((use) => use.runsUsing > 0)
+    .sort((a, b) => Number(workloadOf(b.replay)?.real ?? false) - Number(workloadOf(a.replay)?.real ?? false)
+      || a.replay.case.localeCompare(b.replay.case));
+}
+
 // ---------- areas: JFR recordings and heap dumps, each worked by its own agent, and what both use ----------
 
 /** Which part of the plugin a view shows: one area, with what it shares with the other. */
@@ -304,6 +324,14 @@ function areasFor(lens: AreaLens): PluginArea[] {
   return [lens, SHARED].flatMap((name) => areas.get(name) ?? []);
 }
 
+const workloads = new Map(data.workloads.map((workload) => [workload.name, workload]));
+
+/** What a case runs on: a real service or a made-up workload; null when it reads no recording. */
+function workloadOf(replay: Replay): PluginWorkload | null {
+  const name = data.caseWorkloads[replay.case];
+  return name ? workloads.get(name) ?? null : null;
+}
+
 const SUITE_ORDER: Record<Suite, number> = { mocked: 0, live: 1 };
 
 /** The cases of an area, as indices into the replays: the mocked ones first, then by name. */
@@ -353,12 +381,14 @@ const MODEL = {
   orderedLanes,
   laneLabel,
   replaysWhere,
+  casesUsing,
   areas,
   areaOfNode,
   caseArea,
   inLens,
   areasFor,
-  casesOf
+  casesOf,
+  workloadOf
 };
 
 export type PluginUsageModel = typeof MODEL;
