@@ -15,7 +15,7 @@ says what each of its tools answers.
 | `http_` | `overview`, `endpoint` — HTTP traffic, `SERVER` (served) or `CLIENT` (called out) |
 | `jdbc_` | `overview`, `statementGroup`, `pools` — the queries it ran, and the pool in front of them |
 | `grpc_` | `overview`, `service`, `traffic` — gRPC latency and message sizes, `SERVER` or `CLIENT` |
-| `methodtracing_` | `overview`, `slowest`, `timing` — instrumented method timings (JEP 520) |
+| `methodtracing_` | `overview`, `slowest`, `timing` — instrumented methods (JEP 520) outside traced requests, and `jdk.MethodTiming`; inside a request a traced method is a `traces_` span |
 | `io_` | `overview`, `endpoints`, `slowest` — socket and file I/O, the waiting a CPU graph cannot see |
 | `blocking_` | `overview`, `monitors`, `pinnedThreads` — contended locks, waits, parks, virtual-thread pinning |
 | `timeline_` | `hotWindows` (when the samples landed), `zoom` (sub-second, inside one window) |

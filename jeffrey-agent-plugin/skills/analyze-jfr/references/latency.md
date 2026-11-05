@@ -45,15 +45,20 @@ one endpoint, service or statement group.
 | `code_callSites` | Which lines of your code issue a statement (event type `jeffrey.JdbcQuery` and its siblings, which carry their caller's stack), and how many times one request does — the N+1 shape |
 | `grpc_overview` / `grpc_service` | gRPC latency overall and per service, broken down by method |
 | `grpc_traffic` | Message sizes rather than timings — where an oversized payload shows up |
-| `methodtracing_overview` / `_slowest` / `_timing` | Instrumented method timings: by cost, the worst invocations, the JVM's own aggregates |
+| `methodtracing_overview` / `_slowest` / `_timing` | Instrumented methods (JEP 520) outside traced requests: by cost, the worst invocations, and the JVM's own per-method aggregates (`jdk.MethodTiming`) |
 
-Three things worth knowing before reading them:
+Four things worth knowing before reading them:
 
 - **Without traces, "this endpoint is slow" starts here, not in a flamegraph.** `http_overview` names
   the endpoint and `jdbc_overview` says whether the database is the reason, in two calls. With traces,
   the traces come first (above) and these dashboards check what a slow trace points at — the pool, a
   statement — beside it, never instead of it; `flamegraph_export` once the question is which frames
   burned the time.
+- **A traced method inside a request is already a span.** Every `jdk.MethodTrace` invocation that runs
+  inside a recorded span is part of that trace, named `Class#method`: read it in `traces_traceExport` or
+  `traces_operationExport`. `methodtracing_` is for the invocations outside any request (a service
+  without tracing, a batch job, startup) and for `jdk.MethodTiming`, which has no span form. A traced
+  method's callers are `flamegraph_export` with `eventType: jdk.MethodTrace`.
 - **Slow requests whose statements are all fast are usually waiting for a connection.** That is
   `jdbc_pools`, and nothing in the statement view can show it — a pool with acquisition timeouts
   makes every query look fine while the request waits in front of them.
