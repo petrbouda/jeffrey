@@ -273,7 +273,8 @@ class CodeToolsTest(RecorderSandbox):
                           recorded.variants['code_hotspots'][('profiler.WallClockSample', 'b')][0].answer],
                          recorder.relay_answers(fixture))
         self.assertIn('Left out, an argument has the value: {"excludeIdle": false', fixture)
-        self.assertIn(json.dumps({'excludeIdle': True, 'framePrefixes': ['com.']}), fixture)
+        self.assertIn(json.dumps({'excludeIdle': True, 'framePrefixes': ['com.'], 'useWeight': 'unset'}), fixture)
+        self.assertIn(json.dumps({'excludeIdle': False, 'framePrefixes': ['com.acme.'], 'useWeight': 'unset'}), fixture)
 
     def test_the_weighting_follows_the_event_type_as_the_flamegraph_does(self):
         args = {'profileId': 'b', 'eventType': 'jdk.ObjectAllocationSample', 'framePrefixes': ['com.acme.']}
@@ -369,13 +370,16 @@ class RelayTest(RecorderSandbox):
         self.assertEqual('fixed', front['type'])
         self.assertEqual(['GET /persons/{count}'], front['expect']['name'])
 
-    def test_an_answer_too_long_to_copy_leaves_the_tool_unmocked(self):
+    def test_an_answer_too_long_to_copy_keeps_the_first_answer_per_profile_instead(self):
         long = {'traces': [{'traceId': 'ab', 'frames': 'x' * recorder.RELAY_MAX_ANSWER_CHARS}]}
         with patch.object(recorder, 'seen_by_model', lambda answer: json.dumps({**answer.get('structuredContent', {}), **long})):
             self.record()
-        self.assertFalse((self.mocks / 'traces_slowestTraces.md').exists())
-        listed = [tool['name'] for tool in json.loads((self.mocks / '_tools.json').read_text())['tools']]
-        self.assertNotIn('traces_slowestTraces', listed)
+        front = yaml.safe_load((self.mocks / 'traces_slowestTraces.md').read_text().split('---')[1])
+        self.assertEqual('fixed', front['type'])
+        self.assertEqual(['GET /persons/{count}'], front['expect']['name'])
+        fixtures = sorted(path.name for path in (self.mocks / 'fixtures').glob('traces_slowestTraces-*'))
+        self.assertEqual(['traces_slowestTraces-jeffrey.HttpServerExchange-SERVER-pd.txt',
+                          'traces_slowestTraces-jeffrey.HttpServerExchange-SERVER-pm.txt'], fixtures)
 
     def test_every_endpoint_of_an_http_dashboard_is_asked_for(self):
         overview = {'endpoints': [{'uri': '/persons/{count}', 'requestCount': 664}, {'uri': '/persons'}, {'uri': None}]}

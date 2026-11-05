@@ -970,9 +970,12 @@ arguments, naming them.
 
 {fixture}
 """
-RELAY_LEFT_OUT = """An argument shown empty was left out of the call: it stands for the value the recorded calls below
-say a left-out argument has, and one with no such value matches only a recorded call that leaves it out too.
+RELAY_LEFT_OUT = """An argument shown empty was left out of the call. Before comparing, put in its place the value the
+line below gives a left-out argument, or "unset" where that line gives none: every recorded call lists each of
+these arguments that way, so the call's filled-in arguments equal a recorded call's exactly or not at all.
 """
+# How a relay writes an answer-changing option that was left out and has no default.
+RELAY_UNSET = "unset"
 
 
 def write_relay_mock(relay: Relay) -> None:
@@ -993,7 +996,7 @@ def write_relay_mock(relay: Relay) -> None:
             sections.append(f"Left out, an argument has the value: {json.dumps(given, ensure_ascii=False)}; "
                             f"one not named here has none.")
         for number, entry in enumerate(entries, start=1):
-            asked = " or ".join(json.dumps(relay_arguments(relay, arguments), ensure_ascii=False)
+            asked = " or ".join(json.dumps(relay_arguments(relay, arguments, defaults), ensure_ascii=False)
                                 for arguments in entry.inputs)
             sections.append(f"Recorded call {number}, arguments: {asked}\n<answer>\n{entry.answer}\n</answer>")
         unmatched = relay.unmatched.get(file)
@@ -1005,9 +1008,13 @@ def write_relay_mock(relay: Relay) -> None:
         (FIXTURES / f"{relay.tool}{name}.txt").write_text("\n\n".join(sections) + "\n")
 
 
-def relay_arguments(relay: Relay, arguments: dict) -> dict:
-    """The arguments of a recorded call the judge matches on, as the call gave them."""
-    return {argument: arguments[argument] for argument in relay.chosen_by if argument in arguments}
+def relay_arguments(relay: Relay, arguments: dict, defaults: dict | None = None) -> dict:
+    """The arguments of a recorded call the judge matches on: as the call gave them, and — where the relay knows what
+    a left-out one stands for — every one of them, the left-out ones filled in (RELAY_UNSET where none is known)."""
+    if not defaults:
+        return {argument: arguments[argument] for argument in relay.chosen_by if argument in arguments}
+    return {argument: arguments.get(argument, RELAY_UNSET if defaults[argument] is NO_DEFAULT else defaults[argument])
+            for argument in relay.chosen_by}
 
 
 def relay_answers(text: str) -> list[str]:
