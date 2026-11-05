@@ -115,7 +115,11 @@ export interface UsageTotals {
 }
 
 export interface PluginUsage {
+  /** The version the retained runs were recorded with. */
   plugin: string;
+  wiringPlugin: string;
+  /** Recorded agent name → current agent name; history keeps its original identities. */
+  agentAliases: Record<string, string>;
   tools: PluginTool[];
   skills: PluginSkill[];
   agents: PluginAgent[];

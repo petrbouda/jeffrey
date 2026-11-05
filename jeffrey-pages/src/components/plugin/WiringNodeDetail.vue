@@ -64,7 +64,7 @@ function chip(id: string, count: number | null = null): ChipItem {
 }
 
 function observedFrom(id: string): ChipItem[] {
-  return Object.entries(model.data.observed[id] ?? {})
+  return Object.entries(model.observed[id] ?? {})
     .sort((a, b) => b[1] - a[1])
     .map(([target, count]) => chip(target, count));
 }
@@ -104,7 +104,7 @@ function agentDetail(name: string): Detail {
       { title: 'What it called', chips: observedFrom(nodeId('agent', name)), empty: 'Nothing yet.' },
       { title: 'Withheld from it', chips: agent.denied.map((tool) => chip(nodeId('tool', tool))) }
     ],
-    replays: model.replaysWhere((step) => step.kind === 'agent' && step.name === name)
+    replays: model.replaysWhere((step) => step.kind === 'agent' && model.agentName(step.name) === name)
   };
 }
 
@@ -127,7 +127,7 @@ function toolDetail(name: string): Detail {
   const id = nodeId('tool', name);
   const access = tool.destructive ? 'Destructive' : tool.readOnly ? 'Read-only' : 'Writes';
   const needs = tool.requires.length ? ` · needs ${tool.requires.join(', ').toLowerCase().replace(/_/g, ' ')}` : '';
-  const callers = Object.entries(model.data.observed)
+  const callers = Object.entries(model.observed)
     .filter(([, targets]) => targets[id])
     .sort((a, b) => b[1][id] - a[1][id])
     .map(([caller, targets]) => chip(caller, targets[id]));

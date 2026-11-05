@@ -29,8 +29,10 @@ import {
   usePluginUsage,
   AREA_LENSES,
   type AreaLens,
+  type ReplayTrail,
   type WiringMode
 } from '@/composables/usePluginUsage';
+import type { AreaName } from '@/types/pluginUsage';
 
 // The microscope coding-agent plugin in action: its recorded eval runs replayed call by call, the
 // wiring of its skills, agents and tools, and every tool with how often the runs called it. The data
@@ -83,8 +85,10 @@ function readQuery(query: LocationQuery): void {
   const asked = single(query, QUERY_TAB);
   tab.value = TABS.find((candidate) => candidate === asked) ?? DEFAULT_TAB;
   const area = single(query, QUERY_AREA);
-  lens.value = AREA_LENSES.find((candidate) => candidate === area) ?? DEFAULT_LENS;
-  caseIndex.value = caseIndexOf(single(query, QUERY_CASE), lens.value);
+  const askedLens = AREA_LENSES.find((candidate) => candidate === area) ?? DEFAULT_LENS;
+  caseIndex.value = caseIndexOf(single(query, QUERY_CASE), askedLens);
+  const caseArea = model.caseArea(replays[caseIndex.value]);
+  lens.value = caseArea === 'shared' ? askedLens : caseArea;
   const run = Number(single(query, QUERY_RUN) ?? 1);
   const runs = replays[caseIndex.value]?.runs ?? [];
   runIndex.value = Math.max(0, runs.findIndex((item) => item.run === run));
@@ -105,7 +109,7 @@ watch([tab, lens, caseIndex, runIndex], () => {
   if (!same) {
     router.replace({ query });
   }
-});
+}, { immediate: true });
 
 // A tab opens at its top: the reader may have scrolled far down the previous one.
 const tabsBar = ref<HTMLElement | null>(null);
@@ -128,7 +132,7 @@ watch(tab, async () => {
 const mode = ref<WiringMode>('observed');
 const selected = ref<string | null>(null);
 const expanded = ref(new Set<string>());
-const trail = ref(new Set<string>());
+const trail = ref<ReplayTrail>({ nodes: [], edges: [] });
 const trailLabel = ref<string | null>(null);
 
 /** Each tab's count under the lens: cases; skills · agents · families; tools. */
@@ -146,21 +150,26 @@ const tabLabels = computed<Record<Tab, { label: string; count: string }>>(() => 
   };
 });
 
-// Under a lens the open case and the picked node belong to it, or the first ones that do take over.
-watch(
-  lens,
-  () => {
-    const shown = (index: number): boolean => model.inLens(lens.value, model.caseArea(replays[index]));
-    if (!shown(caseIndex.value)) {
-      caseIndex.value = model.areasFor(lens.value).flatMap((area) => model.casesOf(area.name))[0] ?? 0;
-      runIndex.value = 0;
-    }
-    if (selected.value && !model.inLens(lens.value, model.areaOfNode(selected.value))) {
-      selected.value = null;
-    }
-  },
-  { immediate: true }
-);
+// Keep the area and its destinations coherent before the query watcher sees a change.
+function changeLens(next: AreaLens): void {
+  lens.value = next;
+  if (!model.inLens(next, model.caseArea(replays[caseIndex.value]))) {
+    caseIndex.value = model.areasFor(next).flatMap((area) => model.casesOf(area.name))[0] ?? 0;
+    runIndex.value = 0;
+  }
+}
+
+function revealArea(area: AreaName): void {
+  if (area !== 'shared' && area !== lens.value) {
+    changeLens(area);
+  }
+}
+
+watch(lens, () => {
+  if (selected.value && !model.inLens(lens.value, model.areaOfNode(selected.value))) {
+    selected.value = null;
+  }
+});
 
 function expand(family: string | undefined): void {
   if (family && !expanded.value.has(family)) {
@@ -170,6 +179,7 @@ function expand(family: string | undefined): void {
 
 /** A family opens or closes; a tool opens its family; anything else toggles its selection. */
 function select(id: string): void {
+  revealArea(model.areaOfNode(id));
   const { kind, name } = parseNodeId(id);
   if (kind === 'family') {
     const next = new Set(expanded.value);
@@ -193,11 +203,12 @@ function pickOnMap(id: string): void {
   tab.value = 'map';
 }
 
-function openMapWithTrail(ids: string[]): void {
-  trail.value = new Set(ids);
+function openMapWithTrail(runTrail: ReplayTrail): void {
+  mode.value = 'observed';
+  trail.value = runTrail;
   const replay = replays[caseIndex.value];
   trailLabel.value = `${replay.case} · run ${replay.runs[runIndex.value]?.run ?? 1}`;
-  for (const id of ids) {
+  for (const id of runTrail.nodes) {
     const { kind, name } = parseNodeId(id);
     if (kind === 'tool') {
       expand(model.familyOf(name));
@@ -207,11 +218,12 @@ function openMapWithTrail(ids: string[]): void {
 }
 
 function clearTrail(): void {
-  trail.value = new Set();
+  trail.value = { nodes: [], edges: [] };
   trailLabel.value = null;
 }
 
 function openCase(index: number): void {
+  revealArea(model.caseArea(replays[index]));
   caseIndex.value = index;
   runIndex.value = 0;
   tab.value = 'replay';
@@ -228,9 +240,10 @@ function selectCase(index: number): void {
   <main class="agent-plugin">
     <header class="ap-header">
       <div class="ap-header-inner">
-        <div class="ap-eyebrow">Coding-agent plugin · runs recorded with v{{ model.data.plugin }}</div>
+        <div class="ap-eyebrow">Coding-agent plugin · runs v{{ model.data.plugin }} · wiring v{{ model.data.wiringPlugin }}</div>
+        <p v-if="model.data.plugin !== model.data.wiringPlugin" class="ap-history">Recorded agent names are preserved; the map links them to their current names. These runs do not validate changes in the current wiring version.</p>
         <h1 class="visually-hidden">Agent Plugin</h1>
-        <AreaSwitch class="ap-areas" :lens="lens" @change="lens = $event" />
+        <AreaSwitch class="ap-areas" :lens="lens" @change="changeLens" />
         <ul class="ap-facts">
           <li v-for="fact in FACTS" :key="fact.label"><b>{{ formatCount(fact.value) }}</b> {{ fact.label }}</li>
         </ul>
@@ -325,6 +338,12 @@ function selectCase(index: number): void {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--site-ember);
+}
+
+.ap-history {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--site-muted);
 }
 
 

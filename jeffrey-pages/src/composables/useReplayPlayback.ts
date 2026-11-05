@@ -61,7 +61,7 @@ export function useReplayPlayback(steps: Ref<ReplayStep[]>) {
   function delayToNext(): number {
     const here = steps.value[position.value]?.t ?? 0;
     const next = steps.value[position.value + 1]?.t ?? here;
-    return Math.min(MAX_DELAY_MS, Math.max(MIN_DELAY_MS, (next - here) / speed.value));
+    return Math.min(MAX_DELAY_MS, Math.max(MIN_DELAY_MS, next - here)) / speed.value;
   }
 
   function tick(): void {
@@ -97,6 +97,13 @@ export function useReplayPlayback(steps: Ref<ReplayStep[]>) {
     },
     { immediate: true }
   );
+
+  watch(speed, () => {
+    if (playing.value) {
+      clearTimer();
+      tick();
+    }
+  });
 
   onBeforeUnmount(pause);
 

@@ -63,7 +63,7 @@ const stops = computed<RouteStop[]>(() => {
   for (const step of props.run.steps.slice(0, props.position + 1)) {
     if (step.kind === 'skill' || step.kind === 'agent') {
       const from = step.by ? step.by[1] : null;
-      stopFor(nodeId(step.kind, step.name), step.kind, step.name, from).calls += 1;
+      stopFor(model.currentNodeId(nodeId(step.kind, step.name)), step.kind, step.name, from).calls += 1;
     } else if (step.kind === 'jeffrey') {
       const family = model.familyOf(step.name);
       const owner = step.by ? stopFor(ownerKey(step), step.by[0], step.by[1], null) : stopFor(MAIN, 'main', 'Main conversation', null);

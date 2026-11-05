@@ -60,7 +60,17 @@ export function parseNodeId(id: string): NodeRef {
 }
 
 export function ownerNodeId(owner: StepOwner): string {
-  return nodeId(owner[0], owner[1]);
+  return currentNodeId(nodeId(owner[0], owner[1]));
+}
+
+function agentName(name: string): string {
+  return data.agentAliases[name] ?? name;
+}
+
+/** Resolve recorded identities only at the map boundary; never mutate the recorded data. */
+function currentNodeId(id: string): string {
+  const { kind, name } = parseNodeId(id);
+  return nodeId(kind, kind === 'agent' ? agentName(name) : name);
 }
 
 /** As the skills' and agents' instructions name it, or as the runs used it. */
@@ -70,6 +80,11 @@ export interface WiringEdge {
   from: string;
   to: string;
   count: number;
+}
+
+export interface ReplayTrail {
+  nodes: string[];
+  edges: WiringEdge[];
 }
 
 const COST_ORDER: Record<string, number> = { cheap: 0, moderate: 1, expensive: 2, slow: 3 };
@@ -141,9 +156,20 @@ function describedEdges(): WiringEdge[] {
 }
 
 function observedEdges(): WiringEdge[] {
-  return Object.entries(data.observed).flatMap(([from, targets]) =>
+  return Object.entries(observed).flatMap(([from, targets]) =>
     Object.entries(targets).map(([to, count]) => ({ from, to, count }))
   );
+}
+
+// Old and current identities can coexist after new evals. Merge their counts on current map nodes.
+const observed: Record<string, Record<string, number>> = {};
+for (const [source, targets] of Object.entries(data.observed)) {
+  const from = currentNodeId(source);
+  const merged = observed[from] ??= {};
+  for (const [target, count] of Object.entries(targets)) {
+    const to = currentNodeId(target);
+    merged[to] = (merged[to] ?? 0) + count;
+  }
 }
 
 const EDGES: Record<WiringMode, WiringEdge[]> = {
@@ -157,7 +183,7 @@ function stepNodes(step: ReplayStep): string[] {
   if (step.kind === 'skill') {
     ids.push(nodeId('skill', step.name));
   } else if (step.kind === 'agent') {
-    ids.push(nodeId('agent', step.name));
+    ids.push(nodeId('agent', agentName(step.name)));
   } else if (step.kind === 'jeffrey' && tools.has(step.name)) {
     ids.push(nodeId('tool', step.name));
   }
@@ -165,6 +191,29 @@ function stepNodes(step: ReplayStep): string[] {
     ids.push(ownerNodeId(step.by));
   }
   return ids;
+}
+
+/** A replay prefix's actual relationships, independent of the global aggregate wiring. */
+function replayTrail(steps: ReplayStep[]): ReplayTrail {
+  const nodes = new Set<string>();
+  const edges = new Map<string, WiringEdge>();
+  for (const step of steps) {
+    const ids = stepNodes(step);
+    for (const id of ids) {
+      nodes.add(id);
+    }
+    if (step.by && step.kind !== 'other' && ids.length) {
+      const from = ownerNodeId(step.by);
+      const to = ids[0];
+      if (from !== to) {
+        const key = `${from}|${to}`;
+        const edge = edges.get(key) ?? { from, to, count: 0 };
+        edge.count += 1;
+        edges.set(key, edge);
+      }
+    }
+  }
+  return { nodes: [...nodes], edges: [...edges.values()] };
 }
 
 /** The main conversation first, then each agent's lane in the order its first call appears. */
@@ -268,6 +317,9 @@ function casesOf(area: AreaName): number[] {
 
 const MODEL = {
   data,
+  observed,
+  agentName,
+  currentNodeId,
   tools,
   skills,
   agents,
@@ -288,13 +340,16 @@ const MODEL = {
   toolCalls,
   familyCalls,
   skillInvocations: (skill: string): number => data.usage.skill[skill] ?? 0,
-  agentSpawns: (agent: string): number => data.usage.agent[agent] ?? 0,
+  agentSpawns: (agent: string): number => sum(Object.entries(data.usage.agent)
+    .filter(([name]) => agentName(name) === agent)
+    .map(([, count]) => count)),
   familyOf: (tool: string): string | undefined => tools.get(tool)?.family,
   namedBy: (tool: string): string[] => data.skills.filter((skill) => skill.tools[tool]).map((skill) => skill.name),
   agentsAllowing: (tool: string): string[] => data.agents.filter((agent) => agent.tools.includes(tool)).map((a) => a.name),
   costOrder: (cost: string | null): number => COST_ORDER[(cost ?? '').toLowerCase()] ?? UNKNOWN_COST_ORDER,
   edges: (mode: WiringMode): WiringEdge[] => EDGES[mode],
   stepNodes,
+  replayTrail,
   orderedLanes,
   laneLabel,
   replaysWhere,

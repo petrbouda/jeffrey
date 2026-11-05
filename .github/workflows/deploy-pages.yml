@@ -71,6 +71,10 @@ jobs:
         working-directory: jeffrey/jeffrey-pages
         run: npm install
 
+      - name: Test the documentation site
+        working-directory: jeffrey/jeffrey-pages
+        run: npm test
+
       - name: Build the documentation site
         working-directory: jeffrey/jeffrey-pages
         run: npm run build

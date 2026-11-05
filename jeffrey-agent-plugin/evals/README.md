@@ -26,12 +26,14 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 ## Seeing the runs
 
 ```bash
-python3 build/scripts/plugin-usage-map.py
+python3 build/scripts/plugin-usage-map.py --recorded-version 1.0.31
 ```
 
 This reads the traces `--keep-temp` left behind, through every `results/*/aggregate-result.json` in
 `evals/` and `evals-live/`, and writes `jeffrey-pages/src/data/plugin-usage.json`. The documentation
 site shows it on its **Agent Plugin** page (`/agent-plugin`, next to Docs in the header).
+Set `--recorded-version` to the plugin version used by the runs. All ingested traces must share
+that version; the generator requires this declaration because traces do not identify it reliably.
 
 The page has three tabs:
 - **Replay.** Each case's latest runs, picked from a list with a pass/fail dot per run. Every Skill,
@@ -45,6 +47,10 @@ The page has three tabs:
 The traces are temporary, so regenerate the map after a suite run, before the directories go.
 A change to a skill, an agent or a tool needs no suite run: `--wiring-only` rewrites only the
 documented wiring of the committed map and keeps its runs.
+Run it without `--recorded-version`; combining the two flags is rejected to preserve the recorded version.
+The map keeps the recorded plugin version in `plugin` and the current wiring's version in
+`wiringPlugin`. Historical agent names remain in usage totals, observed edges, replay steps and
+lanes; `agentAliases` links renamed agents to their current wiring for the map and replay.
 `build/scripts/test-plugin-usage-map.py` checks the reading offline, and checks that the committed
 map's wiring is what the skills, agents and tools snapshot say now; it fails until `--wiring-only`
 has been run.

@@ -24,6 +24,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from plugin_layout import PLUGIN_DIR
 
@@ -106,6 +107,95 @@ class Wiring(unittest.TestCase):
         self.assertEqual(usage_map.agent_tools(front, "disallowedTools", names), ["heap_prepare"])
 
 
+class HistoricalRuns(unittest.TestCase):
+
+    def test_keeps_recorded_agent_names_in_totals_edges_and_replays(self):
+        trace = [
+            assistant("2026-11-04T10:00:00Z", ("a1", "Agent", {"subagent_type": "microscope:profile-analyst"})),
+            assistant("2026-11-04T10:00:01Z", ("t1", J + "jvm_gc", {}), parent="a1"),
+            assistant("2026-11-04T10:00:02Z", ("a2", "Agent", {"subagent_type": "microscope:heap-triage"}), parent="a1"),
+            assistant("2026-11-04T10:00:03Z", ("t2", J + "heap_getHeapSummary", {}), parent="a2"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            trace_path = plugin / "trace.jsonl"
+            trace_path.write_text("\n".join(trace))
+            result = plugin / "evals/results/old/aggregate-result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps({"cases": [{"name": "delegation", "arms": {"with": [
+                {"tracePath": str(trace_path)}]}}]}))
+            data = usage_map.usage_of(plugin)
+            out = plugin / "map.json"
+            out.write_text(usage_map.to_json({"plugin": "1.0.30"} | data))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
+            refreshed = json.loads(out.read_text())
+        self.assertEqual(data["usage"]["agent"], {"profile-analyst": 1, "heap-triage": 1})
+        self.assertEqual(data["observed"], {
+            "a:profile-analyst": {"t:jvm_gc": 1, "a:heap-triage": 1},
+            "a:heap-triage": {"t:heap_getHeapSummary": 1}})
+        replay = data["replays"][0]["runs"][0]
+        self.assertEqual(replay["lanes"], {"main": "main", "a1": "profile-analyst", "a2": "heap-triage"})
+        self.assertEqual([s["name"] for s in replay["steps"]],
+                         ["profile-analyst", "jvm_gc", "heap-triage", "heap_getHeapSummary"])
+        self.assertEqual([s.get("by") for s in replay["steps"]],
+                         [None, ["agent", "profile-analyst"], ["agent", "profile-analyst"], ["agent", "heap-triage"]])
+        for key, value in data.items():
+            self.assertEqual(refreshed[key], value)
+        self.assertEqual(refreshed.get("agentAliases"), {"profile-analyst": "jfr-analyst", "heap-triage": "heap-analyst"})
+
+
+class RecordedVersion(unittest.TestCase):
+
+    def run_main(self, args):
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            try:
+                code = usage_map.main(args)
+            except SystemExit as error:
+                code = error.code
+        return code, stderr.getvalue()
+
+    def test_requires_a_recorded_version_before_touching_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "map.json"
+            out.write_text("existing output")
+            code, error = self.run_main(["--out", str(out)])
+            self.assertNotEqual(code, 0)
+            self.assertIn("--recorded-version is required", error)
+            self.assertEqual(out.read_text(), "existing output")
+
+    def test_wiring_refresh_rejects_a_recorded_version_without_touching_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "map.json"
+            out.write_text(usage_map.to_json({"plugin": "1.0.30"}))
+            before = out.read_bytes()
+            code, error = self.run_main(["--wiring-only", "--recorded-version", "1.0.31", "--out", str(out)])
+            self.assertNotEqual(code, 0)
+            self.assertIn("--recorded-version cannot be combined with --wiring-only", error)
+            self.assertEqual(out.read_bytes(), before)
+
+    def test_full_generation_uses_declared_version_and_current_wiring_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            (plugin / "plugin.json").write_text(json.dumps({"version": "1.0.31"}))
+            trace = plugin / "trace.jsonl"
+            trace.write_text(assistant("2026-11-04T10:00:00Z", ("a1", "Agent", {
+                "subagent_type": "microscope:profile-analyst"})))
+            result = plugin / "evals/results/old/aggregate-result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps({"cases": [{"name": "delegation", "arms": {"with": [
+                {"tracePath": str(trace)}]}}]}))
+            out = plugin / "map.json"
+            with patch.object(usage_map, "PLUGIN", plugin):
+                code, error = self.run_main(["--recorded-version", "1.0.30", "--out", str(out)])
+            self.assertEqual(code, 0, error)
+            generated = json.loads(out.read_text())
+        self.assertEqual(generated["plugin"], "1.0.30")
+        self.assertEqual(generated["wiringPlugin"], "1.0.31")
+        self.assertEqual(generated["usage"]["agent"], {"profile-analyst": 1})
+
+
 class CommittedMap(unittest.TestCase):
     """The committed map names what the plugin and the server have now; a rename fails here, traces or not."""
 
@@ -130,16 +220,37 @@ class CommittedMap(unittest.TestCase):
         agents = {a["name"] for a in self.data["agents"]}
         self.assertLessEqual(set(self.data["usage"]["jeffrey"]), tools)
         self.assertLessEqual(set(self.data["usage"]["skill"]), skills)
-        self.assertLessEqual(set(self.data["usage"]["agent"]), agents)
+        aliases = self.data.get("agentAliases", {})
+        self.assertLessEqual({aliases.get(name, name) for name in self.data["usage"]["agent"]}, agents)
+
+    def test_historical_agent_references_resolve_to_current_wiring(self):
+        agents = {a["name"] for a in self.data["agents"]}
+        aliases = self.data.get("agentAliases", {})
+        self.assertLessEqual(set(aliases.values()), agents)
+        recorded = set(self.data["usage"]["agent"])
+        for source, targets in self.data["observed"].items():
+            for node in [source, *targets]:
+                if node.startswith("a:"):
+                    self.assertIn(node[2:], recorded)
+        for case in self.data["replays"]:
+            for run in case["runs"]:
+                for name in run["lanes"].values():
+                    if name != "main":
+                        self.assertIn(name, recorded)
+                        self.assertIn(aliases.get(name, name), agents)
+                for step in run["steps"]:
+                    if step["kind"] == "agent":
+                        self.assertIn(step["name"], recorded)
+                    if step.get("by") and step["by"][0] == "agent":
+                        self.assertIn(step["by"][1], recorded)
+                        self.assertEqual(step["by"][1], run["lanes"][step["lane"]])
 
     def test_holds_the_wiring_the_plugin_and_the_snapshot_describe_now(self):
         snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
         fresh = usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot)
-        for key, entries in fresh.items():
-            committed = {entry["name"]: entry for entry in self.data.get(key, [])}
-            stale = sorted(entry["name"] for entry in entries if committed.get(entry["name"]) != entry)
-            self.assertEqual(stale, [], f"the committed map's {key} are stale: "
-                                        "run `python3 build/scripts/plugin-usage-map.py --wiring-only`")
+        for key, value in fresh.items():
+            self.assertEqual(self.data.get(key), value, f"the committed map's {key} is stale: "
+                                                       "run `python3 build/scripts/plugin-usage-map.py --wiring-only`")
 
 
 class Areas(unittest.TestCase):
@@ -178,18 +289,26 @@ class WiringOnly(unittest.TestCase):
         stale["skills"][0]["tools"] = {}
         stale["agents"] = []
         stale["plugin"] = "0.0.1"
+        stale["wiringPlugin"] = "0.0.2"
+        stale["agentAliases"] = {"wrong": "alias"}
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "plugin-usage.json"
             out.write_text(usage_map.to_json(stale))
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
             refreshed = json.loads(out.read_text())
+            first = out.read_bytes()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
+            self.assertEqual(out.read_bytes(), first)
         snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
         for key, value in usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot).items():
             self.assertEqual(refreshed[key], value)
         for key in ("usage", "observed", "replays"):
             self.assertEqual(refreshed[key], committed[key])
         self.assertEqual(refreshed["plugin"], "0.0.1")
+        self.assertEqual(refreshed["wiringPlugin"], json.loads((ROOT / PLUGIN_DIR / "plugin.json").read_text())["version"])
+        self.assertEqual(refreshed["agentAliases"], {"profile-analyst": "jfr-analyst", "heap-triage": "heap-analyst"})
 
     def test_needs_a_map_to_refresh(self):
         with tempfile.TemporaryDirectory() as tmp:

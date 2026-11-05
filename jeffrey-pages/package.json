@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "bootstrap": "^5.3.7",
@@ -16,9 +17,13 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@testing-library/user-event": "^14.6.8",
+    "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.2.3",
+    "jsdom": "^26.1.0",
     "typescript": "^5.5.2",
     "vite": "^6.3.5",
+    "vitest": "^4.1.12",
     "vue-tsc": "^2.0.21"
   }
 }

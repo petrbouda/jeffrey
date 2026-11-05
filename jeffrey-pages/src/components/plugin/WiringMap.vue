@@ -24,6 +24,7 @@ import {
   usePluginUsage,
   type AreaLens,
   type NodeKind,
+  type ReplayTrail,
   type WiringMode
 } from '@/composables/usePluginUsage';
 import type { AreaName } from '@/types/pluginUsage';
@@ -36,7 +37,7 @@ const props = defineProps<{
   mode: WiringMode;
   selected: string | null;
   expanded: Set<string>;
-  trail: Set<string>;
+  trail: ReplayTrail;
   query: string;
   lens: AreaLens;
 }>();
@@ -174,7 +175,10 @@ const edges = computed<MapEdge[]>(() => {
   return list;
 });
 
-const visibleTrail = computed(() => new Set([...props.trail].map(visible)));
+const visibleTrail = computed(() => new Set(props.trail.nodes.map(visible)));
+const visibleTrailEdges = computed(() => new Set(props.trail.edges.map((edge) =>
+  `${visible(edge.from)}|${visible(edge.to)}`
+)));
 const focus = computed(() => hover.value ?? props.selected);
 
 const neighbours = computed(() => {
@@ -199,7 +203,7 @@ function edgeClass(edge: MapEdge): string[] {
   if (focus.value) {
     classes.push(edge.from.id === focus.value || edge.to.id === focus.value ? 'map-edge--hot' : 'map-edge--dim');
   }
-  if (visibleTrail.value.has(edge.from.id) && visibleTrail.value.has(edge.to.id)) {
+  if (visibleTrailEdges.value.has(edge.key)) {
     classes.push('map-edge--trail');
   }
   return classes;

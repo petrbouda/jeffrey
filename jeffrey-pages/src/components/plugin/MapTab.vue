@@ -19,7 +19,7 @@
 import { ref } from 'vue';
 import WiringMap from '@/components/plugin/WiringMap.vue';
 import WiringNodeDetail from '@/components/plugin/WiringNodeDetail.vue';
-import type { AreaLens, WiringMode } from '@/composables/usePluginUsage';
+import type { AreaLens, ReplayTrail, WiringMode } from '@/composables/usePluginUsage';
 
 // The whole wiring: the map on the left, what is picked on it on the right.
 
@@ -27,7 +27,7 @@ defineProps<{
   mode: WiringMode;
   selected: string | null;
   expanded: Set<string>;
-  trail: Set<string>;
+  trail: ReplayTrail;
   trailLabel: string | null;
   lens: AreaLens;
 }>();

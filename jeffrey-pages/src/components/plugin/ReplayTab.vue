@@ -22,7 +22,7 @@ import ReplayPlayer from '@/components/plugin/ReplayPlayer.vue';
 import ReplayRoute from '@/components/plugin/ReplayRoute.vue';
 import ReplayStepCard from '@/components/plugin/ReplayStepCard.vue';
 import ReplayTimeline from '@/components/plugin/ReplayTimeline.vue';
-import { formatDay, formatUsd, usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
+import { formatDay, formatUsd, usePluginUsage, type AreaLens, type ReplayTrail } from '@/composables/usePluginUsage';
 import { useReplayPlayback } from '@/composables/useReplayPlayback';
 
 // One eval case at a time: pick it on the left, play a run in the middle, follow its route on the right.
@@ -32,7 +32,7 @@ const props = defineProps<{ caseIndex: number; runIndex: number; lens: AreaLens 
 const emit = defineEmits<{
   (e: 'select-case', index: number): void;
   (e: 'select-run', index: number): void;
-  (e: 'open-map', trail: string[]): void;
+  (e: 'open-map', trail: ReplayTrail): void;
   (e: 'pick', id: string): void;
 }>();
 
@@ -62,9 +62,7 @@ const runFacts = computed<string[]>(() => {
   return facts;
 });
 
-const trail = computed(() => [
-  ...new Set(steps.value.slice(0, playback.position.value + 1).flatMap((step) => model.stepNodes(step)))
-]);
+const trail = computed(() => model.replayTrail(steps.value.slice(0, playback.position.value + 1)));
 
 function runMark(passed: boolean | null): string {
   if (passed === null) {

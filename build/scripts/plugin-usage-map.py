@@ -29,13 +29,16 @@ Two sources go into one JSON:
 The JSON keeps every run's totals and, for each eval case, the latest results' runs step by step. It
 is written into jeffrey-pages, whose Agent Plugin page (`/agent-plugin`) replays the runs over a map
 of the wiring. Traces live in temporary directories, so a run whose trace is gone is skipped.
+Full generation requires `--recorded-version`: every ingested trace must come from that plugin
+version. Trace metadata does not identify it, so the current manifest cannot supply it.
 
-`--wiring-only` needs no traces: it rewrites only the documented wiring (`tools`, `skills`, `agents`, `areas`)
-of the map at `--out` and keeps its runs, so a skill, agent or tool change updates the committed map
-without a suite run. `test-plugin-usage-map.py` fails until it does.
+`--wiring-only` needs no traces: it refreshes the documented wiring and its `wiringPlugin` version
+at `--out`, keeping the recorded `plugin` version and runs. `agentAliases` links historical agent
+names to current wiring without changing the recorded names. `test-plugin-usage-map.py` fails until
+the wiring is refreshed after a skill, agent or tool change.
 
 Usage:
-    python3 build/scripts/plugin-usage-map.py [--out jeffrey-pages/src/data/plugin-usage.json]
+    python3 build/scripts/plugin-usage-map.py --recorded-version VERSION [--out …]
     python3 build/scripts/plugin-usage-map.py --wiring-only [--out …]
 """
 import argparse
@@ -63,6 +66,7 @@ DEFAULT_AGENT = "general-purpose"
 MAIN_LANE = "main"
 INPUT_CHARS = 160
 KIND_PREFIX = {"skill": "s:", "agent": "a:", "jeffrey": "t:"}
+AGENT_ALIASES = {"profile-analyst": "jfr-analyst", "heap-triage": "heap-analyst"}
 
 # The plugin's two areas, each worked by its own agent, and what both of them use. Every skill and every
 # tool family belongs to exactly one; test-plugin-usage-map.py fails on one that is new or gone.
@@ -186,7 +190,8 @@ def steps_of(lines) -> tuple[list[dict], dict[str, str]]:
     """The ordered tool calls of one stream-json trace, and its lanes (the main one and one per agent call).
 
     Each Skill, Agent and Jeffrey call carries `by`: the skill active in its lane before it, or the lane's
-    agent. A lane's skill is the last Skill called in it.
+    agent. A lane's skill is the last Skill called in it. Agent names stay as recorded; aliases belong
+    to the current wiring, not the historical steps or lanes.
     """
     steps, start, agent_lanes = [], None, {}
     for line in lines:
@@ -270,18 +275,19 @@ def usage_of(plugin: Path) -> dict:
 
 
 def wiring_of(plugin: Path, snapshot: dict) -> dict:
-    """The documented wiring alone: every tool of the snapshot, the plugin's skills and agents, and its areas."""
+    """The current documented wiring, its plugin version, and links from historical agent names."""
     tools = tools_of(snapshot)
     tool_names = {tool["name"] for tool in tools}
     skill_names = sorted(p.parent.name for p in (plugin / "skills").glob("*/SKILL.md"))
     agent_names = sorted(p.stem for p in (plugin / "agents").glob("*.md"))
-    return {"tools": tools, "skills": skills_of(plugin, tool_names, skill_names, agent_names),
+    return {"wiringPlugin": json.loads((plugin / "plugin.json").read_text()).get("version"),
+            "agentAliases": AGENT_ALIASES,
+            "tools": tools, "skills": skills_of(plugin, tool_names, skill_names, agent_names),
             "agents": agents_of(plugin, tool_names, skill_names, agent_names), "areas": AREAS}
 
 
-def usage_map(plugin: Path, snapshot: dict) -> dict:
-    return ({"plugin": json.loads((plugin / "plugin.json").read_text()).get("version")}
-            | wiring_of(plugin, snapshot) | usage_of(plugin))
+def usage_map(plugin: Path, snapshot: dict, recorded_version: str) -> dict:
+    return ({"plugin": recorded_version} | wiring_of(plugin, snapshot) | usage_of(plugin))
 
 
 def to_json(data: dict) -> str:
@@ -293,16 +299,22 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="the JSON to write")
     parser.add_argument("--wiring-only", action="store_true",
                         help="rewrite only the documented wiring of --out, keeping its runs; needs no traces")
+    parser.add_argument("--recorded-version", help="the plugin version used for every ingested trace; required for full generation")
     args = parser.parse_args(argv)
+    if args.wiring_only and args.recorded_version is not None:
+        parser.error("--recorded-version cannot be combined with --wiring-only; the recorded version stays unchanged")
+    if not args.wiring_only and not args.recorded_version:
+        parser.error("--recorded-version is required for full generation; supply the plugin version used for every ingested trace")
     snapshot = json.loads((ROOT / references.TOOLS_SNAPSHOT).read_text())
     if args.wiring_only:
         if not args.out.is_file():
-            print(f"No map to refresh at {args.out}: run without --wiring-only first.", file=sys.stderr)
+            print(f"No map to refresh at {args.out}: run with --recorded-version VERSION and without --wiring-only first.",
+                  file=sys.stderr)
             return 1
         # "plugin" stays: it is the version the kept runs were recorded with.
         data = json.loads(args.out.read_text()) | wiring_of(PLUGIN, snapshot)
     else:
-        data = usage_map(PLUGIN, snapshot)
+        data = usage_map(PLUGIN, snapshot, args.recorded_version)
         if not data["usage"]["runs"]:
             print("No eval trace is on disk: run `claude plugin eval … --keep-temp` first "
                   f"({data['usage']['missingTraces']} runs had their traces removed).", file=sys.stderr)
