@@ -20,6 +20,9 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import userEvent from '@testing-library/user-event';
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router';
 import AgentPluginView from './AgentPluginView.vue';
+import { usePluginUsage } from '@/composables/usePluginUsage';
+
+const model = usePluginUsage();
 
 // Exercise the real page, router, recorded data and SVG; no component or model doubles.
 async function openPage(path: string) {
@@ -109,8 +112,8 @@ describe('Overview and the bar', () => {
 
 describe('What a case ran on', () => {
   it('marks a case on the made-up workload, names its data in the run, and leaves a case without a recording unmarked', async () => {
-    await openPage('/agent-plugin?area=jfr&case=lock-contention-not-wall-clock&run=1');
-    const row = screen.getByRole('button', { name: /^lock-contention-not-wall-clock/ });
+    await openPage('/agent-plugin?area=jfr&case=two-areas-delegated&run=1');
+    const row = screen.getByRole('button', { name: /^two-areas-delegated/ });
     expect(within(row).getByRole('img', { name: 'Made-up workload' })).toBeTruthy();
     expect(screen.getByText(/A made-up checkout service/)).toBeTruthy();
     const real = screen.getByRole('button', { name: /^gc-pauses/ });
@@ -145,7 +148,11 @@ describe('The agent on the map', () => {
     await openPage('/agent-plugin?tab=map&area=jfr');
     const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });
     expect(agentCalls(map)).toHaveLength(0);
-    expect(within(map).getByText('29 via agent')).toBeTruthy();
+    // The flamegraph_* row's share: every call the agent made to one of its tools, in the recorded runs.
+    const toFlamegraphs = Object.entries(model.data.observed['a:jfr-analyst'] ?? {})
+      .filter(([tool]) => tool.startsWith('t:flamegraph_'))
+      .reduce((sum, [, count]) => sum + count, 0);
+    expect(within(map).getByText(`${toFlamegraphs} via agent`)).toBeTruthy();
     await userEvent.setup().click(screen.getByRole('button', { name: /^agent jfr-analyst,/ }));
     expect(agentCalls(map).length).toBeGreaterThan(0);
   });

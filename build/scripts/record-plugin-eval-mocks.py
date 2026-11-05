@@ -44,8 +44,9 @@ URI) gets no mock and is absent from the eval runs; so are the writers this scri
 The answers describe this Jeffrey's build — re-record after a change to what the tools return.
 
 The SQL cases (`evals-live/`) run against a real Jeffrey instead, which `--load` prepares: it imports
-the files a recording left in `--work-dir` (or the copies kept in jeffrey-recordings/plugin-evals,
-with the dump gzipped, and the order history kept here) into an empty Jeffrey, under the names the
+the files a recording left in `--work-dir` (or the copies kept in this repository: the checkout runs and the
+dump gzipped beside the tests' recordings, the order history and the persons modes under build/plugin-evals/,
+the persons pair in shared/test) into an empty Jeffrey, under the names the
 mocks carry — the two checkout runs at the commits the live scaffold history gives them
 (`liveCommits`) — and checks the figures those cases' graders name against it. A recording measures those figures
 (`FIGURES`) and rewrites them in the graders, as it does the profile ids.
@@ -75,8 +76,8 @@ from plugin_layout import PLUGIN_DIR as PLUGIN_PATH
 PLUGIN_DIR = Path(PLUGIN_PATH)
 WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java"
 # The second workload: the service's order history, whose every request runs one statement per order (an N+1),
-# recorded once as the `orders` profile. Its recording is kept in this repository (ORDERS_RECORDING), not in
-# RECORDINGS_REPO: --reuse and --load copy it into --work-dir when it is not there.
+# recorded once as the `orders` profile. Its recording is kept in this repository (ORDERS_RECORDING): --reuse
+# and --load copy it into --work-dir when it is not there, as they do every kept recording (KEPT_RECORDINGS).
 ORDERS_WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/OrderHistory.java"
 ORDERS_RECORDING = Path("build/plugin-evals/order-history.jfr")
 # The real service: two runs of jeffrey-testapp-server, a persons REST service with a database, profiled under
@@ -85,6 +86,21 @@ ORDERS_RECORDING = Path("build/plugin-evals/order-history.jfr")
 PERSONS_RESOURCES = Path("shared/test/src/main/resources/cafe/jeffrey/test/recording/testapp")
 PERSONS_RECORDINGS = {"personsDirect": PERSONS_RESOURCES / "direct/rec-20261103-191259+0000.jfr",
                       "personsDom": PERSONS_RESOURCES / "dom/rec-20261103-191259+0000.jfr"}
+# The same service in its planted-problem modes (testapp.mode n-plus-one, lock, exceptions), recorded with the
+# JDK's JFR (profile settings, monitors and parks from 1 ms, every exception thrown) under the testapp's own
+# client and kept gzipped in this repository beside the order history: n-plus-one and exceptions 60 s on one
+# core under one client; lock 30 s on two cores under six clients' worth of load, the concurrency at which a
+# monitor held across the database call is what the requests wait on.
+MODE_RECORDINGS = {"personsNPlusOne": Path("build/plugin-evals/persons-n-plus-one.jfr.gz"),
+                   "personsLock": Path("build/plugin-evals/persons-lock.jfr.gz"),
+                   "personsExceptions": Path("build/plugin-evals/persons-exceptions.jfr.gz")}
+# The checkout runs and their heap dump, kept beside the tests' recordings (CheckoutRecording): the files the
+# mocks were first recorded from, byte for byte, the dump gzipped.
+CHECKOUT_RESOURCES = Path("shared/test/src/main/resources/cafe/jeffrey/test/recording/checkout")
+KEPT_RECORDINGS = {"baseline": CHECKOUT_RESOURCES / "checkout-baseline.jfr",
+                   "candidate": CHECKOUT_RESOURCES / "checkout-candidate.jfr",
+                   "heap": CHECKOUT_RESOURCES / "checkout.hprof.gz",
+                   "orders": ORDERS_RECORDING, **PERSONS_RECORDINGS, **MODE_RECORDINGS}
 ORDERS_SECONDS = 20
 # What the workload's traces are written with: the HTTP exchange event, the Tracer, and where the Tracer keeps
 # the span in progress. Built by TRACING_BUILD; the workload runs on JDK 25, but the ThreadLocal storage is
@@ -101,9 +117,6 @@ TRACING_BUILD = ("mvn -f utilities/pom.xml -pl jeffrey-events,jeffrey-tracing-pa
 MOCKS = PLUGIN_DIR / "evals/mocks/jeffrey"
 FIXTURES = MOCKS / "fixtures"
 RECORDED_PROFILES = PLUGIN_DIR / "evals/fixtures/recorded-profiles.json"
-# Where the recording behind the mocks is kept, for --load on another machine: plugin-evals/ holds the two
-# JFR files and the dump gzipped, under the names recorded_files() gives them.
-RECORDINGS_REPO = "https://github.com/petrbouda/jeffrey-recordings (plugin-evals/)"
 GZIP_SUFFIX = ".gz"
 MOCKED_CASES = PLUGIN_DIR / "evals/cases"
 # Run with --mocks off, so they have no mock_calls to grade and get no call-contract grader.
@@ -125,13 +138,18 @@ MAX_CALLS = 1500
 ORDERS_MAX_CALLS = 400
 # The persons service's own pass: every profile-only tool on both runs, the comparison both ways, the code tools
 # on its methods, and what their answers offer.
-PERSONS_MAX_CALLS = 1200
+PERSONS_MAX_CALLS = 3500
+# The persons pass reads five runs where the others read one or two: each tool keeps this many times its
+# fixtures there, so the modes' answers are not crowded out by the provisioner pair's.
+PERSONS_FIXTURE_SCALE = 5
 # Breadth first, so the answers kept are the ones nearest the seeds: a heap walk offers a path, the
 # referrers and the children of every object it names, and a model reads the first few.
 MAX_FIXTURES_PER_TOOL = 8
 
 PROFILE_NAMES = {"baseline": "checkout baseline", "candidate": "checkout candidate", "heap": "checkout heap dump",
-                 "orders": "order history", "personsDirect": "persons direct", "personsDom": "persons dom"}
+                 "orders": "order history", "personsDirect": "persons direct", "personsDom": "persons dom",
+                 "personsNPlusOne": "persons n-plus-one", "personsLock": "persons lock",
+                 "personsExceptions": "persons exceptions"}
 PROFILE_KINDS = tuple(PROFILE_NAMES)
 # The profiles this script records by running a workload; the persons runs are kept, never re-recorded.
 WORKLOAD_KINDS = ("baseline", "candidate", "heap", "orders")
@@ -196,11 +214,22 @@ PERSONS_METHODS = (("jeffrey.testapp.server.PersonController", "toJsonTree"),
                    ("jeffrey.testapp.server.PersonRepository", "findById"),
                    ("jeffrey.testapp.server.PersonRepository", "findByIds"),
                    ("jeffrey.testapp.server.PersonRepository", "count"),
-                   ("jeffrey.testapp.server.PersonRepository", "modifyOpinion"))
+                   ("jeffrey.testapp.server.PersonRepository", "modifyOpinion"),
+                   ("jeffrey.testapp.server.service.NPlusOnePersonService", "getNPersons"),
+                   ("jeffrey.testapp.server.service.LockPersonService", "getRandomPerson"),
+                   ("jeffrey.testapp.server.service.LockPersonService", "getNPersons"),
+                   ("jeffrey.testapp.server.service.ExceptionsPersonService", "normalizePhone"),
+                   ("jeffrey.testapp.server.service.ExceptionsPersonService", "getNPersons"))
 # The persons runs' samples as async-profiler took them: CPU, allocation (TLAB, weighted by bytes), the monitors
 # and the wall clock — compared both ways and charged to the service's own code.
 PERSONS_COMPARED_EVENT_TYPES = (("jdk.ExecutionSample", False), ("jdk.ObjectAllocationInNewTLAB", True),
                                 ("jdk.JavaMonitorEnter", True), ("profiler.WallClockSample", False))
+# The modes' graphs a case reads (JDK-only recordings: CPU, allocation in TLABs, monitors, thrown exceptions)
+# and the endpoints whose traces hold their problems.
+MODE_GRAPHED_EVENT_TYPES = (("jdk.ExecutionSample", False), ("jdk.ObjectAllocationInNewTLAB", True),
+                            ("jdk.JavaMonitorEnter", True), ("jdk.JavaExceptionThrow", False))
+HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange"
+PERSONS_OPERATIONS = ("GET /persons/{count}", "GET /persons")
 # The persons runs' event types a code case groups by call site: its statements and its monitors.
 PERSONS_CALL_SITE_EVENT_TYPES = (JDBC_QUERY, "jdk.JavaMonitorEnter")
 # A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings.
@@ -226,9 +255,13 @@ ORDERS_COUPONS = ("FROM instance i JOIN class c USING (class_id) "
                   "JOIN class_instance_field f ON f.class_id = c.class_id AND f.field_index = r.field_id "
                   "JOIN string_content s ON s.instance_id = r.target_id "
                   "WHERE c.name = 'com.acme.checkout.Checkout$Order' AND f.name = 'coupon'")
+# The persons service's statements by name, as the graders of its live cases name them.
+PERSONS_STATEMENTS = "SELECT COUNT(*) FROM events WHERE event_type = 'jeffrey.JdbcQuery' AND (fields->>'name') = '{name}'"
 FIGURES = (
     Figure("orders", "heap_executeQuery", "heap", f"SELECT COUNT(*) {ORDERS_COUPONS}"),
     Figure("promoOrders", "heap_executeQuery", "heap", f"SELECT COUNT(*) {ORDERS_COUPONS} AND s.content LIKE 'SPRING-%'"),
+    # count-queries: the COUNT statements of the DOM run, against its 7,161 count requests.
+    Figure("domCountQueries", "jfr_executeQuery", "personsDom", PERSONS_STATEMENTS.format(name="count_query")),
 )
 
 
@@ -240,6 +273,9 @@ class Profiles:
     orders: str
     personsDirect: str
     personsDom: str
+    personsNPlusOne: str
+    personsLock: str
+    personsExceptions: str
 
     @property
     def all(self) -> tuple[str, ...]:
@@ -431,9 +467,12 @@ def profile_only_calls(tools: list[dict], profiles: tuple[str, ...], pairs: list
 
 def persons_seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
     """The persons service as its cases reach it: the throw sites and the code tools on its own package (each
-    repeated with the equivalent package root), the comparison of the two runs both ways — the DOM run as the
-    one that changed first — then every profile-only tool on both runs."""
-    runs = (profiles.personsDom, profiles.personsDirect)
+    repeated with the equivalent package root), the comparison of the provisioner's two runs both ways — the
+    DOM run as the one that changed first — then every profile-only tool on every persons run, the modes'
+    included."""
+    runs = (profiles.personsDom, profiles.personsDirect, profiles.personsNPlusOne, profiles.personsLock,
+            profiles.personsExceptions)
+    # Compared: the provisioner's pair. The modes ran elsewhere (a laptop, JDK-only), so each is read on its own.
     pairs = [(profiles.personsDom, profiles.personsDirect), (profiles.personsDirect, profiles.personsDom)]
     own = {"framePrefixes": PERSONS_PACKAGES}
     calls = [("jvm_exceptionSites", {PROFILE_ID: profile, **own}) for profile in runs]
@@ -454,6 +493,17 @@ def persons_seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str,
     calls += [("code_runtimeSurface", {PROFILE_ID: profile, **own}) for profile in runs]
     calls += [(tool, {**arguments, "framePrefixes": packages}) for tool, arguments in list(calls)
               if arguments.get("framePrefixes") == PERSONS_PACKAGES for packages in PERSONS_EQUIVALENT_PACKAGES]
+    # What each mode's case reads first, seeded rather than left to the walk: its graphs, weighted as the
+    # flamegraph weighs them by default, and the traces of the endpoints the problem sits in.
+    modes = (profiles.personsNPlusOne, profiles.personsLock, profiles.personsExceptions)
+    calls += [("flamegraph_export", {PROFILE_ID: profile, "eventType": event_type,
+                                     **({"useWeight": True} if weighted else {})})
+              for profile in modes for event_type, weighted in MODE_GRAPHED_EVENT_TYPES]
+    # The DOM run's too: where one fixture per profile is all a mock can keep (first_per_address), it is the
+    # slow endpoint's, the one its cases read.
+    calls += [(tool, {PROFILE_ID: profile, "name": operation, "kind": "SERVER", "eventType": HTTP_SERVER_EXCHANGE})
+              for profile in (profiles.personsDom, *modes) for operation in PERSONS_OPERATIONS
+              for tool in ("traces_slowestTraces", "traces_operationExport")]
     calls += profile_only_calls(tools, runs, pairs)
     return calls
 
@@ -538,13 +588,14 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
     from the checkout's."""
     crawl_from(jeffrey, tools, seed_calls(tools, profiles), recorded, MAX_CALLS)
     crawl_from(jeffrey, tools, orders_seed_calls(profiles), recorded, ORDERS_MAX_CALLS)
-    crawl_from(jeffrey, tools, persons_seed_calls(tools, profiles), recorded, PERSONS_MAX_CALLS)
+    crawl_from(jeffrey, tools, persons_seed_calls(tools, profiles), recorded, PERSONS_MAX_CALLS,
+               fixture_scale=PERSONS_FIXTURE_SCALE)
 
 
 def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]], recorded: Recorded,
-               budget: int) -> None:
-    """Breadth first from the seeds, at most `budget` calls and each tool's fixture limit counted from what
-    this pass found it holding."""
+               budget: int, fixture_scale: int = 1) -> None:
+    """Breadth first from the seeds, at most `budget` calls and each tool's fixture limit (times
+    `fixture_scale`) counted from what this pass found it holding."""
     schemas = {tool["name"]: tool.get("inputSchema") or {} for tool in tools}
     held = {tool: len(answers) for tool, answers in recorded.answers.items()}
     queue = collections.deque(seeds)
@@ -558,7 +609,7 @@ def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]
             continue
         key = tuple(str(arguments[argument]) for argument in required)
         identity = json.dumps([tool, arguments], sort_keys=True)
-        limit = MAX_FIXTURES_OF.get(tool, MAX_FIXTURES_PER_TOOL)
+        limit = MAX_FIXTURES_OF.get(tool, MAX_FIXTURES_PER_TOOL) * fixture_scale
         # The limit counts fixtures, so a call that would only be another input of a fixture already held — an
         # equivalent package root, a size or page of the same figures — is still made and kept as its alias.
         full = key and key not in recorded.answers.get(tool, {}) and len(recorded.answers.get(tool, {})) - held.get(tool, 0) >= limit
@@ -607,6 +658,22 @@ def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | Non
     return named if len(projections) == len(answers) else None
 
 
+def first_per_address(required: list[str], answers: dict[tuple, str]) -> dict[tuple, str]:
+    """When the file-safe arguments cannot tell a tool's answers apart — two operations of one profile, whose
+    names (`GET /persons/{count}`) cannot be part of a file name — the first answer recorded for each of their
+    values, so the tool stays mocked: the others' values leave the mock's `expect:` list with them, and a call
+    naming one fails the call-contract grader instead of the whole tool going unoffered. None (an empty dict)
+    when a composed argument would be left to `expect:`."""
+    safe = [argument for index, argument in enumerate(required)
+            if all(FILE_NAME_SAFE.fullmatch(key[index]) for key in answers)]
+    if COMPOSED_ARGUMENTS & (set(required) - set(safe)):
+        return {}
+    first = {}
+    for key, text in answers.items():
+        first.setdefault(tuple(key[required.index(argument)] for argument in safe), (key, text))
+    return dict(first.values())
+
+
 def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     shutil.rmtree(MOCKS, ignore_errors=True)
     FIXTURES.mkdir(parents=True)
@@ -624,9 +691,12 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
         required = addressing(tool, schemas[tool])
         named = addressed(required, answers)
         if named is None:
-            answers = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
-            named = addressed(required, answers)
-        if not answers:
+            safe = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
+            named = addressed(required, safe) if safe else None
+            answers = safe if named is not None else first_per_address(required, answers)
+            if named is None and answers:
+                named = addressed(required, answers)
+        if not answers or named is None:
             continue
         answered[tool] = answers
         recorded.inputs[tool] = {key: recorded.inputs[tool][key] for key in answers}
@@ -859,17 +929,20 @@ def main() -> int:
 def recorded_files(work_dir: Path) -> dict[str, Path]:
     return {"baseline": work_dir / "checkout-baseline.jfr", "candidate": work_dir / "checkout-candidate.jfr",
             "heap": work_dir / "checkout.hprof", "orders": work_dir / "order-history.jfr",
-            "personsDirect": work_dir / "persons-direct.jfr", "personsDom": work_dir / "persons-dom.jfr"}
+            "personsDirect": work_dir / "persons-direct.jfr", "personsDom": work_dir / "persons-dom.jfr",
+            "personsNPlusOne": work_dir / "persons-n-plus-one.jfr", "personsLock": work_dir / "persons-lock.jfr",
+            "personsExceptions": work_dir / "persons-exceptions.jfr"}
 
 
 def copy_kept_recordings(work_dir: Path) -> None:
-    """The order history's and the persons service's recordings are kept in this repository; a work dir without
-    them gets the kept copies."""
+    """Every recording the mocks are taken from is kept in this repository (KEPT_RECORDINGS); a work dir without
+    one gets the kept copy — the gzipped ones (the dump, the persons modes) as they are, for unpack_kept."""
     files = recorded_files(work_dir)
-    for kind, kept in (("orders", ORDERS_RECORDING), *PERSONS_RECORDINGS.items()):
-        if not files[kind].exists() and kept.exists():
+    for kind, kept in KEPT_RECORDINGS.items():
+        target = files[kind].with_name(files[kind].name + GZIP_SUFFIX) if kept.name.endswith(GZIP_SUFFIX) else files[kind]
+        if not files[kind].exists() and not target.exists() and kept.exists():
             work_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(kept, files[kind])
+            shutil.copyfile(kept, target)
 
 
 def sha256_of(path: Path) -> str:
@@ -880,32 +953,31 @@ def sha256_of(path: Path) -> str:
     return digest.hexdigest()
 
 
-def unpack_heap_dump(work_dir: Path) -> None:
-    """The recordings are kept with the dump gzipped (RECORDINGS_REPO); the import reads it unpacked."""
-    dump = recorded_files(work_dir)["heap"]
-    packed = dump.with_name(dump.name + GZIP_SUFFIX)
-    if not dump.exists() and packed.exists():
-        with gzip.open(packed, "rb") as source, dump.open("wb") as target:
-            shutil.copyfileobj(source, target)
+def unpack_kept(work_dir: Path) -> None:
+    """The dump and the persons modes are kept gzipped (KEPT_RECORDINGS); the import reads them unpacked."""
+    for path in recorded_files(work_dir).values():
+        packed = path.with_name(path.name + GZIP_SUFFIX)
+        if not path.exists() and packed.exists():
+            with gzip.open(packed, "rb") as source, path.open("wb") as target:
+                shutil.copyfileobj(source, target)
 
 
 def verified_files(work_dir: Path) -> dict[str, Path] | None:
     """The recording the mocks were taken from, as a recording left it in work_dir or a clone of the
     recordings repository holds it; None, with the reason printed, when a file is missing or is not
     that recording (its checksum)."""
-    unpack_heap_dump(work_dir)
+    unpack_kept(work_dir)
     files = recorded_files(work_dir)
     missing = [str(path) for path in files.values() if not path.exists()]
     if missing:
-        print(f"--load and --reuse take the files a recording left in --work-dir, or a clone of "
-              f"{RECORDINGS_REPO} (the order history is kept at {ORDERS_RECORDING}, and --record-missing records "
-              f"it); missing: {missing}", file=sys.stderr)
+        print(f"--load and --reuse take the files a recording left in --work-dir, or the copies kept in this "
+              f"repository ({', '.join(sorted({str(path.parent) for path in KEPT_RECORDINGS.values()}))}; "
+              f"--record-missing records the order history); missing: {missing}", file=sys.stderr)
         return None
     sums = json.loads(RECORDED_PROFILES.read_text()).get("files") or {}
     wrong = [path.name for path in files.values() if path.name in sums and sha256_of(path) != sums[path.name]]
     if wrong:
-        print(f"these files are not the recording the mocks were taken from: {wrong} (see {RECORDINGS_REPO})",
-              file=sys.stderr)
+        print(f"these files are not the recording the mocks were taken from: {wrong}", file=sys.stderr)
         return None
     return files
 

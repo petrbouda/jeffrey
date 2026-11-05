@@ -7,7 +7,10 @@ import jeffrey.testapp.server.leak.NativeMemoryAllocator;
 import jeffrey.testapp.server.leak.NativeMemoryAllocatorImpl;
 import jeffrey.testapp.server.leak.NoopNativeMemoryAllocator;
 import jeffrey.testapp.server.service.EfficientPersonService;
+import jeffrey.testapp.server.service.ExceptionsPersonService;
 import jeffrey.testapp.server.service.InefficientPersonService;
+import jeffrey.testapp.server.service.LockPersonService;
+import jeffrey.testapp.server.service.NPlusOnePersonService;
 import jeffrey.testapp.server.service.PersonService;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,23 +30,33 @@ import java.util.Queue;
 public class ApplicationConfiguration {
 
     private static final String ATTRIBUTE_SERVICE_MODE = "testapp.mode";
-    private static final String MODE_DIRECT = "direct";
-    private static final String MODE_DOM = "dom";
 
     private static final String NOTIFICATION_NATIVE_MEMORY_LEAK = "NATIVE_MEMORY_LEAK_MODE_ENABLED";
     private static final String NOTIFICATION_CATEGORY = "RESOURCE";
     private static final String NOTIFICATION_SOURCE = "testapp-server";
 
     /**
-     * Adds the service mode to every request span's attributes. Jeffrey indexes attributes one key
-     * at a time, so {@code testapp.mode} becomes a facet in Traces → Attributes. Low-cardinality by
-     * construction: it is one of two values.
+     * The service's mode: {@code testapp.mode} ({@code direct}, {@code dom}, {@code n-plus-one}, {@code lock},
+     * {@code exceptions}), or, when that is not set, {@code efficient.mode} choosing {@code direct} or {@code dom}.
      */
     @Bean
-    public HttpExchangeAttributesCustomizer serviceModeAttributesCustomizer(
+    public ServiceMode serviceMode(
+            @Value("${testapp.mode:}") String mode,
             @Value("${efficient.mode:true}") boolean efficientMode) {
 
-        String mode = efficientMode ? MODE_DIRECT : MODE_DOM;
+        ServiceMode resolved = ServiceMode.resolve(mode, efficientMode);
+        System.out.println("TESTAPP_MODE=" + resolved.value());
+        return resolved;
+    }
+
+    /**
+     * Adds the service mode to every request span's attributes. Jeffrey indexes attributes one key
+     * at a time, so {@code testapp.mode} becomes a facet in Traces → Attributes. Low-cardinality by
+     * construction: it is one of the {@link ServiceMode} values.
+     */
+    @Bean
+    public HttpExchangeAttributesCustomizer serviceModeAttributesCustomizer(ServiceMode serviceMode) {
+        String mode = serviceMode.value();
         return (attributes, request, response) -> attributes.put(ATTRIBUTE_SERVICE_MODE, mode);
     }
 
@@ -68,14 +81,17 @@ public class ApplicationConfiguration {
 
     @Bean
     public PersonService personService(
-            @Value("${efficient.mode:true}") boolean efficientMode,
+            ServiceMode serviceMode,
             PersonRepository personRepository,
             NativeMemoryAllocator nativeMemoryAllocator) {
 
-        System.out.println("EFFICIENT_MODE=" + efficientMode);
-        return efficientMode
-                ? new EfficientPersonService(personRepository, nativeMemoryAllocator)
-                : new InefficientPersonService(personRepository, nativeMemoryAllocator);
+        return switch (serviceMode) {
+            case DIRECT -> new EfficientPersonService(personRepository, nativeMemoryAllocator);
+            case DOM -> new InefficientPersonService(personRepository, nativeMemoryAllocator);
+            case N_PLUS_ONE -> new NPlusOnePersonService(personRepository, nativeMemoryAllocator);
+            case LOCK -> new LockPersonService(personRepository, nativeMemoryAllocator);
+            case EXCEPTIONS -> new ExceptionsPersonService(personRepository, nativeMemoryAllocator);
+        };
     }
 
     @Bean

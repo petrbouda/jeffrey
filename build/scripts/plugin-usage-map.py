@@ -93,8 +93,9 @@ WORKLOADS = [
      "detail": "A made-up checkout service: two Java files written for the evals, with a planted CPU hotspot, "
                "lock contention, exceptions, a slow leak, an N+1 and a regression between two runs."},
     {"name": "persons", "label": "persons service", "real": True,
-     "detail": "Two real runs of jeffrey-testapp, a persons REST service with a database, under load and "
-               "traced: writing each person out directly, then through a JSON tree."},
+     "detail": "Runs of jeffrey-testapp, a persons REST service with a database, under load and traced: "
+               "direct and dom profiled by the provisioner, and the n-plus-one, lock and exceptions modes "
+               "(one problem planted each) recorded with JFR under the testapp's own client."},
 ]
 NO_RECORDING = {"record-exceptions-next-time"}
 

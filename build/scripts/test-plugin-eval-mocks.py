@@ -80,7 +80,7 @@ class ReplayContractTest(RecorderSandbox):
                 return answer({'weighted': args.get('useWeight', True)})
         with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments)]), \
                 patch.object(recorder, 'persons_seed_calls', return_value=[]):
-            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm'), recorded)
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm', 'pn', 'pl', 'pe'), recorded)
         recorder.write_mocks(tools, recorded)
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         self.assertTrue(path.exists(), 'every case must reject unsupported semantic inputs')
@@ -215,7 +215,7 @@ class CodeToolsTest(RecorderSandbox):
                 return answer(respond(args))
         with patch.object(recorder, 'seed_calls', return_value=[(tool, arguments) for arguments in calls]), \
                 patch.object(recorder, 'persons_seed_calls', return_value=[]):
-            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm'), recorded)
+            recorder.crawl(Server(), tools, recorder.Profiles('a', 'b', 'h', 'o', 'pd', 'pm', 'pn', 'pl', 'pe'), recorded)
         recorder.write_mocks(tools, recorded)
         path = self.cases / 'example/graders/recorded-call-semantics.md'
         return recorded, yaml.safe_load(path.read_text().split('---')[1])['pattern']
@@ -388,7 +388,7 @@ class ScaffoldTest(unittest.TestCase):
         return subprocess.run(['git', *arguments], cwd=temp, check=True, capture_output=True, text=True).stdout
 
     def test_the_implement_fixes_and_code_cases_scaffold_the_repository(self):
-        self.assertEqual(['code-n-plus-one', 'compare-the-methods-my-diff-touched',
+        self.assertEqual(['compare-the-methods-my-diff-touched',
                           'did-my-last-commit-make-it-worse', 'heap-offers-implement-fixes'],
                          [script.parent.name for script in self.scaffolds()])
 
@@ -428,6 +428,26 @@ class ScaffoldTest(unittest.TestCase):
                 self.assertIn('+                    total += formatLine(line).length();', diff)
                 self.assertEqual(3, sum(1 for line in diff.splitlines() if line.startswith('+ ')))
 
+class AddressTest(unittest.TestCase):
+    """A tool whose answers only a name that cannot be a file name tells apart keeps its first answer per
+    address, rather than going unmocked."""
+
+    def test_keeps_the_first_answer_per_profile_when_operation_names_cannot_address_them(self):
+        required = ['eventType', 'kind', 'name', 'profileId']
+        answers = {('jeffrey.HttpServerExchange', 'SERVER', 'GET /persons/{count}', 'p1'): 'first',
+                   ('jeffrey.HttpServerExchange', 'SERVER', 'GET /persons', 'p1'): 'second',
+                   ('jeffrey.HttpServerExchange', 'SERVER', 'POST /checkout', 'p2'): 'other profile'}
+        self.assertIsNone(recorder.addressed(required, answers))
+        kept = recorder.first_per_address(required, answers)
+        self.assertEqual(['first', 'other profile'], sorted(kept.values()))
+        self.assertEqual(['eventType', 'kind', 'profileId'], recorder.addressed(required, kept))
+
+    def test_never_leaves_a_composed_argument_to_the_expect_list(self):
+        required = ['profileId', 'query']
+        answers = {('p1', 'SELECT 1'): 'a', ('p1', 'SELECT 2'): 'b'}
+        self.assertEqual({}, recorder.first_per_address(required, answers))
+
+
 class PersonsScaffoldTest(unittest.TestCase):
     """Every persons case that works on the code scaffolds the persons service's repository: the sources the two
     real runs were built from (fixtures/testapp/), each byte for byte between its marker, committed."""
@@ -441,7 +461,7 @@ class PersonsScaffoldTest(unittest.TestCase):
                       key=lambda script: script.parent.name)
 
     def test_the_persons_code_cases_scaffold_the_repository(self):
-        self.assertEqual(['fix-it', 'hot-methods', 'method-worth-it', 'what-runs'],
+        self.assertEqual(['fix-it', 'hot-methods', 'method-worth-it', 'n-plus-one', 'what-runs'],
                          [script.parent.name for script in self.scaffolds()])
 
     def test_the_scaffold_is_the_one_the_writer_writes(self):

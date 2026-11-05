@@ -19,7 +19,10 @@ import jeffrey.testapp.server.leak.NativeMemoryAllocator;
 import jeffrey.testapp.server.leak.NativeMemoryAllocatorImpl;
 import jeffrey.testapp.server.leak.NoopNativeMemoryAllocator;
 import jeffrey.testapp.server.service.EfficientPersonService;
+import jeffrey.testapp.server.service.ExceptionsPersonService;
 import jeffrey.testapp.server.service.InefficientPersonService;
+import jeffrey.testapp.server.service.LockPersonService;
+import jeffrey.testapp.server.service.NPlusOnePersonService;
 import jeffrey.testapp.server.service.PersonService;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,23 +42,33 @@ import java.util.Queue;
 public class ApplicationConfiguration {
 
     private static final String ATTRIBUTE_SERVICE_MODE = "testapp.mode";
-    private static final String MODE_DIRECT = "direct";
-    private static final String MODE_DOM = "dom";
 
     private static final String NOTIFICATION_NATIVE_MEMORY_LEAK = "NATIVE_MEMORY_LEAK_MODE_ENABLED";
     private static final String NOTIFICATION_CATEGORY = "RESOURCE";
     private static final String NOTIFICATION_SOURCE = "testapp-server";
 
     /**
-     * Adds the service mode to every request span's attributes. Jeffrey indexes attributes one key
-     * at a time, so {@code testapp.mode} becomes a facet in Traces → Attributes. Low-cardinality by
-     * construction: it is one of two values.
+     * The service's mode: {@code testapp.mode} ({@code direct}, {@code dom}, {@code n-plus-one}, {@code lock},
+     * {@code exceptions}), or, when that is not set, {@code efficient.mode} choosing {@code direct} or {@code dom}.
      */
     @Bean
-    public HttpExchangeAttributesCustomizer serviceModeAttributesCustomizer(
+    public ServiceMode serviceMode(
+            @Value("${testapp.mode:}") String mode,
             @Value("${efficient.mode:true}") boolean efficientMode) {
 
-        String mode = efficientMode ? MODE_DIRECT : MODE_DOM;
+        ServiceMode resolved = ServiceMode.resolve(mode, efficientMode);
+        System.out.println("TESTAPP_MODE=" + resolved.value());
+        return resolved;
+    }
+
+    /**
+     * Adds the service mode to every request span's attributes. Jeffrey indexes attributes one key
+     * at a time, so {@code testapp.mode} becomes a facet in Traces → Attributes. Low-cardinality by
+     * construction: it is one of the {@link ServiceMode} values.
+     */
+    @Bean
+    public HttpExchangeAttributesCustomizer serviceModeAttributesCustomizer(ServiceMode serviceMode) {
+        String mode = serviceMode.value();
         return (attributes, request, response) -> attributes.put(ATTRIBUTE_SERVICE_MODE, mode);
     }
 
@@ -80,14 +93,17 @@ public class ApplicationConfiguration {
 
     @Bean
     public PersonService personService(
-            @Value("${efficient.mode:true}") boolean efficientMode,
+            ServiceMode serviceMode,
             PersonRepository personRepository,
             NativeMemoryAllocator nativeMemoryAllocator) {
 
-        System.out.println("EFFICIENT_MODE=" + efficientMode);
-        return efficientMode
-                ? new EfficientPersonService(personRepository, nativeMemoryAllocator)
-                : new InefficientPersonService(personRepository, nativeMemoryAllocator);
+        return switch (serviceMode) {
+            case DIRECT -> new EfficientPersonService(personRepository, nativeMemoryAllocator);
+            case DOM -> new InefficientPersonService(personRepository, nativeMemoryAllocator);
+            case N_PLUS_ONE -> new NPlusOnePersonService(personRepository, nativeMemoryAllocator);
+            case LOCK -> new LockPersonService(personRepository, nativeMemoryAllocator);
+            case EXCEPTIONS -> new ExceptionsPersonService(personRepository, nativeMemoryAllocator);
+        };
     }
 
     @Bean
@@ -409,7 +425,6 @@ import tools.jackson.databind.json.JsonMapper;
 import jeffrey.testapp.server.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -430,16 +445,17 @@ public class PersonController {
      */
     private static final String SPAN_TO_JSON_TREE = "person.to-json-tree";
 
+    /** Whether responses go straight out; only the {@code dom} mode builds a JSON tree first. */
     private final boolean efficientMode;
     private final PersonService service;
     private final PersonRepository repository;
 
     public PersonController(
-            @Value("${efficient.mode:true}") boolean efficientMode,
+            ServiceMode serviceMode,
             PersonService service,
             PersonRepository repository) {
 
-        this.efficientMode = efficientMode;
+        this.efficientMode = !serviceMode.buildsJsonTree();
         this.service = service;
         this.repository = repository;
     }
@@ -934,6 +950,65 @@ public class ServerApplication implements ApplicationListener<ApplicationStarted
     }
 }
 TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVERAPPLICATION_JAVA
+cat > server/src/main/java/jeffrey/testapp/server/ServiceMode.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICEMODE_JAVA'
+package jeffrey.testapp.server;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+/**
+ * How the service serves its persons. {@code direct} is the efficient baseline; every other mode is that
+ * baseline with one problem planted in it, so a recording of a mode shows exactly that problem against a
+ * {@code direct} recording taken under the same load. The mode travels on every request span as the
+ * {@code testapp.mode} attribute and names the Jeffrey project its sessions go to.
+ */
+public enum ServiceMode {
+
+    /** Picks the ids in memory, loads them in one statement, writes the persons straight out. */
+    DIRECT("direct", false),
+    /** Counts the table before every pick and builds each response as a JSON tree. */
+    DOM("dom", true),
+    /** Loads the persons of {@code GET /persons/{count}} one statement per person. */
+    N_PLUS_ONE("n-plus-one", false),
+    /** Serializes every lookup behind one monitor that is held across the database call. */
+    LOCK("lock", false),
+    /** Normalizes every person's phone by trying to parse it as a number and catching the failure. */
+    EXCEPTIONS("exceptions", false);
+
+    private final String value;
+    private final boolean buildsJsonTree;
+
+    ServiceMode(String value, boolean buildsJsonTree) {
+        this.value = value;
+        this.buildsJsonTree = buildsJsonTree;
+    }
+
+    /** The mode as {@code testapp.mode} spells it. */
+    public String value() {
+        return value;
+    }
+
+    /** Whether responses go through a JSON tree ({@code person.to-json-tree}) before they are written. */
+    public boolean buildsJsonTree() {
+        return buildsJsonTree;
+    }
+
+    /**
+     * The mode {@code testapp.mode} names; without one, {@code efficient.mode} picks {@code direct} or
+     * {@code dom} as it always has.
+     */
+    public static ServiceMode resolve(String mode, boolean efficientMode) {
+        if (mode == null || mode.isBlank()) {
+            return efficientMode ? DIRECT : DOM;
+        }
+        return Arrays.stream(values())
+                .filter(candidate -> candidate.value.equals(mode.trim()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown testapp.mode '" + mode + "', expected one of: "
+                        + Arrays.stream(values()).map(ServiceMode::value).collect(Collectors.joining(", "))));
+    }
+}
+TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICEMODE_JAVA
 cat > server/src/main/java/jeffrey/testapp/server/leak/NativeMemoryAllocator.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_LEAK_NATIVEMEMORYALLOCATOR_JAVA'
 package jeffrey.testapp.server.leak;
 
@@ -1350,7 +1425,8 @@ import java.util.Optional;
 
 /**
  * Picks the random ids from the in-memory {@link IDHolder}: the {@code person.pick-id(s)} span
- * holds no SQL, compare it with {@link InefficientPersonService}.
+ * holds no SQL, compare it with {@link InefficientPersonService}. The other modes pick the same way
+ * ({@link #pickId()}, {@link #pickIds(int)}) and differ only in the problem each plants.
  */
 public class EfficientPersonService implements PersonService {
 
@@ -1368,11 +1444,7 @@ public class EfficientPersonService implements PersonService {
     @Override
     public Optional<Person> getRandomPerson() {
         try (var __ = nativeMemoryAllocator.allocate()) {
-            long personId = Tracer.call(SPAN_PICK_ID, () -> {
-                int personIndex = Helpers.generateId(IDHolder.IDS.size());
-                return safeIdLookup(personIndex);
-            });
-            return repository.findById(personId);
+            return repository.findById(pickId());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -1381,16 +1453,25 @@ public class EfficientPersonService implements PersonService {
     @Override
     public List<Person> getNPersons(int count) {
         try (var __ = nativeMemoryAllocator.allocate()) {
-            List<Long> personIds = Tracer.call(SPAN_PICK_IDS, () -> {
-                Collection<Integer> indices = Helpers.generateIds(IDHolder.IDS.size(), count);
-                return indices.stream()
-                        .map(EfficientPersonService::safeIdLookup)
-                        .toList();
-            });
-            return repository.findByIds(personIds);
+            return repository.findByIds(pickIds(count));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /** A random id from the in-memory {@link IDHolder}, in the {@code person.pick-id} span. */
+    static long pickId() {
+        return Tracer.call(SPAN_PICK_ID, () -> safeIdLookup(Helpers.generateId(IDHolder.IDS.size())));
+    }
+
+    /** {@code count} random ids from the in-memory {@link IDHolder}, in the {@code person.pick-ids} span. */
+    static List<Long> pickIds(int count) {
+        return Tracer.call(SPAN_PICK_IDS, () -> {
+            Collection<Integer> indices = Helpers.generateIds(IDHolder.IDS.size(), count);
+            return indices.stream()
+                    .map(EfficientPersonService::safeIdLookup)
+                    .toList();
+        });
     }
 
     private static long safeIdLookup(int index) {
@@ -1402,6 +1483,79 @@ public class EfficientPersonService implements PersonService {
     }
 }
 TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_EFFICIENTPERSONSERVICE_JAVA
+cat > server/src/main/java/jeffrey/testapp/server/service/ExceptionsPersonService.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_EXCEPTIONSPERSONSERVICE_JAVA'
+package jeffrey.testapp.server.service;
+
+import cafe.jeffrey.jfr.events.trace.Tracer;
+import jeffrey.testapp.server.Person;
+import jeffrey.testapp.server.PersonRepository;
+import jeffrey.testapp.server.leak.NativeMemoryAllocator;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+/**
+ * The {@code exceptions} mode: picks and loads as {@link EfficientPersonService} does, then normalizes every
+ * person's phone in the {@code person.normalize-phones} span by trying {@link Long#parseLong} and falling
+ * back on the {@link NumberFormatException}. The stored phones are formatted ({@code (898) 957-6965}), so
+ * every person served throws one: exceptions used as control flow, thrown in the service's own code.
+ */
+public class ExceptionsPersonService implements PersonService {
+
+    private static final String SPAN_NORMALIZE_PHONES = "person.normalize-phones";
+    private static final Pattern NOT_A_DIGIT = Pattern.compile("[^0-9]");
+
+    private final PersonRepository repository;
+    private final NativeMemoryAllocator nativeMemoryAllocator;
+
+    public ExceptionsPersonService(PersonRepository repository, NativeMemoryAllocator nativeMemoryAllocator) {
+        this.repository = repository;
+        this.nativeMemoryAllocator = nativeMemoryAllocator;
+    }
+
+    @Override
+    public Optional<Person> getRandomPerson() {
+        try (var __ = nativeMemoryAllocator.allocate()) {
+            Optional<Person> person = repository.findById(EfficientPersonService.pickId());
+            return Tracer.call(SPAN_NORMALIZE_PHONES, () -> person.map(ExceptionsPersonService::withNormalizedPhone));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<Person> getNPersons(int count) {
+        try (var __ = nativeMemoryAllocator.allocate()) {
+            List<Person> persons = repository.findByIds(EfficientPersonService.pickIds(count));
+            return Tracer.call(SPAN_NORMALIZE_PHONES, () -> persons.stream()
+                    .map(ExceptionsPersonService::withNormalizedPhone)
+                    .toList());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static Person withNormalizedPhone(Person person) {
+        return new Person(person.id(), person.firstname(), person.lastname(), person.city(), person.country(),
+                normalizePhone(person.phone()), person.politicalOpinion());
+    }
+
+    /** The phone as digits only: kept when it already parses as a number, stripped when parsing throws. */
+    static String normalizePhone(String phone) {
+        if (phone == null) {
+            return null;
+        }
+        try {
+            Long.parseLong(phone);
+            return phone;
+        } catch (NumberFormatException notDigitsOnly) {
+            return NOT_A_DIGIT.matcher(phone).replaceAll("");
+        }
+    }
+}
+TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_EXCEPTIONSPERSONSERVICE_JAVA
 cat > server/src/main/java/jeffrey/testapp/server/service/InefficientPersonService.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_INEFFICIENTPERSONSERVICE_JAVA'
 package jeffrey.testapp.server.service;
 
@@ -1476,6 +1630,113 @@ public class InefficientPersonService implements PersonService {
     }
 }
 TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_INEFFICIENTPERSONSERVICE_JAVA
+cat > server/src/main/java/jeffrey/testapp/server/service/LockPersonService.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_LOCKPERSONSERVICE_JAVA'
+package jeffrey.testapp.server.service;
+
+import jeffrey.testapp.server.Person;
+import jeffrey.testapp.server.PersonRepository;
+import jeffrey.testapp.server.leak.NativeMemoryAllocator;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * The {@code lock} mode: picks its ids as {@link EfficientPersonService} does, but every lookup runs in a
+ * {@code synchronized} method of this one service instance, so the monitor is held across the database call
+ * and concurrent requests queue on it ({@code jdk.JavaMonitorEnter} on {@code LockPersonService}) while one of
+ * them waits for SQLite.
+ */
+public class LockPersonService implements PersonService {
+
+    private final PersonRepository repository;
+    private final NativeMemoryAllocator nativeMemoryAllocator;
+
+    public LockPersonService(PersonRepository repository, NativeMemoryAllocator nativeMemoryAllocator) {
+        this.repository = repository;
+        this.nativeMemoryAllocator = nativeMemoryAllocator;
+    }
+
+    @Override
+    public Optional<Person> getRandomPerson() {
+        try (var __ = nativeMemoryAllocator.allocate()) {
+            return lookup(EfficientPersonService.pickId());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<Person> getNPersons(int count) {
+        try (var __ = nativeMemoryAllocator.allocate()) {
+            return lookupAll(EfficientPersonService.pickIds(count));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private synchronized Optional<Person> lookup(long personId) {
+        return repository.findById(personId);
+    }
+
+    private synchronized List<Person> lookupAll(List<Long> personIds) {
+        return repository.findByIds(personIds);
+    }
+}
+TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_LOCKPERSONSERVICE_JAVA
+cat > server/src/main/java/jeffrey/testapp/server/service/NPlusOnePersonService.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_NPLUSONEPERSONSERVICE_JAVA'
+package jeffrey.testapp.server.service;
+
+import cafe.jeffrey.jfr.events.trace.Tracer;
+import jeffrey.testapp.server.Person;
+import jeffrey.testapp.server.PersonRepository;
+import jeffrey.testapp.server.leak.NativeMemoryAllocator;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * The {@code n-plus-one} mode: {@code GET /persons/{count}} picks its ids as {@link EfficientPersonService}
+ * does, then loads the persons one {@code find_by_id} statement each, inside the {@code person.load-each}
+ * span, where the efficient service runs one {@code find_all_by_ids}. The statements' stacks lead to the
+ * loop in {@link #getNPersons(int)}.
+ */
+public class NPlusOnePersonService implements PersonService {
+
+    private static final String SPAN_LOAD_EACH = "person.load-each";
+
+    private final PersonRepository repository;
+    private final NativeMemoryAllocator nativeMemoryAllocator;
+
+    public NPlusOnePersonService(PersonRepository repository, NativeMemoryAllocator nativeMemoryAllocator) {
+        this.repository = repository;
+        this.nativeMemoryAllocator = nativeMemoryAllocator;
+    }
+
+    @Override
+    public Optional<Person> getRandomPerson() {
+        try (var __ = nativeMemoryAllocator.allocate()) {
+            return repository.findById(EfficientPersonService.pickId());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<Person> getNPersons(int count) {
+        try (var __ = nativeMemoryAllocator.allocate()) {
+            List<Long> personIds = EfficientPersonService.pickIds(count);
+            return Tracer.call(SPAN_LOAD_EACH, () -> personIds.stream()
+                    .map(repository::findById)
+                    .flatMap(Optional::stream)
+                    .toList());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_NPLUSONEPERSONSERVICE_JAVA
 cat > server/src/main/java/jeffrey/testapp/server/service/PersonService.java <<'TESTAPP_SERVER_SRC_MAIN_JAVA_JEFFREY_TESTAPP_SERVER_SERVICE_PERSONSERVICE_JAVA'
 package jeffrey.testapp.server.service;
 
@@ -1512,7 +1773,14 @@ database.cleanup-on-shutdown=false
 database.pool.max-size=10
 database.pool.min-idle=1
 
-# override program args: --efficient.mode=false
+# The service's mode, one problem planted per mode against the direct baseline:
+#   direct      ids picked in memory, one statement per request, persons written straight out
+#   dom         a COUNT before every pick, each response built as a JSON tree first
+#   n-plus-one  GET /persons/{count} loads its persons one find_by_id statement each
+#   lock        every lookup in a synchronized method of the service, its monitor held across the database call
+#   exceptions  every served person's phone normalized by parsing it and catching NumberFormatException
+# Empty: efficient.mode picks direct (true) or dom (false), as before. Program args: --testapp.mode=lock
+testapp.mode=
 efficient.mode=true
 
 # Starts leaking a small number of native-memory allocations

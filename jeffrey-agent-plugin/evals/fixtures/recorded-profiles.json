@@ -1,14 +1,18 @@
 {
- "baseline": "01a1abe2-e196-7544-9c1b-ac1f8defed02",
- "candidate": "01a1abe2-eda5-79dc-b693-2038acdcacca",
- "heap": "01a1abe2-f72d-7828-b594-844e2a4ebfb6",
- "orders": "01a1abe2-f83c-76b1-bd2a-4945da3a3ba4",
- "personsDirect": "01a1abe3-04fb-75eb-bdd8-0418276859a8",
- "personsDom": "01a1abe3-262f-7d45-85c1-aa27819dfb54",
+ "baseline": "01a1acd1-b803-79a4-870f-9250c6418d43",
+ "candidate": "01a1acd1-c32c-7774-b4bb-f4e8158a4d78",
+ "heap": "01a1acd1-cc98-7787-a77b-2360942bc24b",
+ "orders": "01a1acd1-cdc0-7bc9-a3b0-d66ed9d9c48f",
+ "personsDirect": "01a1acd1-d78c-7672-8f56-d746e627aa32",
+ "personsDom": "01a1acd1-ea07-7bf4-b0c8-34a38c672d1b",
+ "personsNPlusOne": "01a1acd1-fb87-7ec8-b5ac-f2a1494c5767",
+ "personsLock": "01a1acd2-0ca0-72eb-beb2-8eceb69e03ab",
+ "personsExceptions": "01a1acd2-285a-79f7-9aec-6b05745f8d35",
  "heapDumpPath": "/tmp/jeffrey-eval/checkout.hprof",
  "figures": {
   "orders": 5822,
-  "promoOrders": 1441
+  "promoOrders": 1441,
+  "domCountQueries": 11141
  },
  "files": {
   "checkout-baseline.jfr": "dd35c8532fec0a289286211ca8ad0dad09284933c3c5619f900ee92682a1c7fc",
@@ -16,7 +20,10 @@
   "checkout.hprof": "e5e6d03e0f4dafbaa67192943e1edb20ab02de7a412289c175b2ccd54718ad04",
   "order-history.jfr": "2ece26a85f89668a6440d988d20f7c0d002ce46225ef21db3b7ee797c591910f",
   "persons-direct.jfr": "6d07f57fd090c55ac5e646d3d4909b771ddf50c49dfb9367a8a39e31f8d5a791",
-  "persons-dom.jfr": "20717fca7cc0702246e52d0c38bb200399e7b28f4374e592a7c64764fb6c6424"
+  "persons-dom.jfr": "20717fca7cc0702246e52d0c38bb200399e7b28f4374e592a7c64764fb6c6424",
+  "persons-n-plus-one.jfr": "8848a54051eb31a405f8856292dd44960adb9e7dec89db8f15d068410c020320",
+  "persons-lock.jfr": "55049a16c73fbd99e24a2e5886e4364f93504185297ad32300023d52c9ebb8c6",
+  "persons-exceptions.jfr": "55f11bacf2a64a5ea6f7bb3357c45dcd304d40f8eb02b5d804d061dc4d049052"
  },
  "liveCommits": {
   "baseline": "70686f526b4ae0c5da4553cbb752bbb58dc0fa24",

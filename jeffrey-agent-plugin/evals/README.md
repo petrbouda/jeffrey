@@ -93,19 +93,19 @@ marks it: **real service** or **made-up**.
 | `pool-latency` | "Is the connection pool what makes requests slow?" | `jdbc_pools`: one connection of ten ever active, no waiting thread, ~21 µs to acquire — not the pool |
 | `jvm-health` | "Before we scale up: is the JVM healthy?" | the JVM's sections read: GC fine, the one-core container throttled in ~39% of its CFS periods (~2.7 s parked) named as what to address first |
 | `wall-vs-cpu` (live) | "Requests feel slow but the CPU is low — where do the threads wait?" | the wall clock (57,373 samples, a third idle) read against the CPU (5,097), idle kept apart, where the request threads spend it named |
+| `n-plus-one` | "Does GET /persons/{count} have an N+1? This is the repository" (`persons n-plus-one`) | `code_callSites` on `jeffrey.JdbcQuery`: find_by_id 13,720 times in 555 requests (about 25 each) from the loop in NPlusOnePersonService.getNPersons, one `IN` query offered |
+| `lock-contention` | "Which locks hold the threads back?" (`persons lock`) | `blocking_monitors`, `LockPersonService`'s monitor named, its ~48 s of blocked time across 31 threads read as thread-time, never as a share of the 36 s recording |
+| `exception-sites` | "Why so many exceptions? The source is not checked out" (`persons exceptions`) | `jvm_exceptions`, `jvm_exceptionSites` with the service's package: 16,094 `NumberFormatException`s from ExceptionsPersonService.normalizePhone, classified as control flow, a check before parsing proposed |
 
-**On the made-up checkout workload** — kept for what the real runs do not hold: a heap dump, exceptions
-thrown by requests, a contended lock, an N+1 and a regression between two commits:
+**On the made-up checkout workload** — kept for what the real runs do not hold: a heap dump and a regression
+between two commits:
 
 | Case | The question | What it holds the plugin to |
 |---|---|---|
-| `exceptions-to-the-throw-site` | "Why so many exceptions?" | `jvm_exceptions`, `jvm_exceptionSites` with the application's package, the throw site named and classified |
 | `heap-dump-what-holds-memory` | "What holds the memory in this .hprof?" | the import, a GC-root path behind the leak claim, one dump read as a state |
 | `heap-offers-implement-fixes` | the heap dump, with the repository | **Implement fixes** offered for what holds the memory |
 | `help-what-is-here` | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
 | `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `jfr-analyst` |
-| `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
-| `code-n-plus-one` | "Does the order history endpoint have an N+1 query problem?" | `code_callSites` on `jeffrey.JdbcQuery`: order-lines.by-order run once per order (11,926 in 1,090 requests) from findLines in the loop of `OrderService.history` |
 
 `record-exceptions-next-time` ("How do I record the exception types?") reads no recording: it holds the
 plugin to `jdk.JavaExceptionThrow#enabled=true`, and to saying that `settings=profile` alone does not name
@@ -133,7 +133,7 @@ dump — and a second workload, the service's order history (`OrderHistory.java`
 N+1), each through the service's own `Database.query`, which records it as a `jeffrey.JdbcQuery` event
 with its stack — no driver or database. It is the `order history` profile, recorded once. Its file is
 kept in this repository (`build/plugin-evals/order-history.jfr`, outside the plugin directory, so an
-install does not carry it), not in jeffrey-recordings: `--reuse` and `--load` copy it into
+install does not carry it): `--reuse` and `--load` copy it into
 `--work-dir`, and `--reuse --record-missing` records it again when it is missing. The recorder crawls
 it in a pass of its own after the checkout profiles, so it takes none of their budget or fixtures.
 The **persons service** is real: two runs of `jeffrey-testapp-server` ([petrbouda/jeffrey-testapp](https://github.com/petrbouda/jeffrey-testapp)),
@@ -143,7 +143,15 @@ runs are the same build in its two modes: `persons direct` writes each person st
 counts the table before every random pick (an extra `count_query` in the `person.pick-id(s)` spans) and
 builds each response as a JSON tree (`person.to-json-tree`). Their files are the ones the Java tests pin
 (`shared/test/src/main/resources/cafe/jeffrey/test/recording/testapp/{direct,dom}/`, `TestappRecording`);
-the recorder imports them as they are and crawls them in a pass of their own. The cases that work on the
+the recorder imports them as they are and crawls them in a pass of their own. The same service in its other three modes — the baseline with one problem planted each — is
+`persons n-plus-one` (`GET /persons/{count}` loads each person with its own `find_by_id`), `persons lock`
+(every lookup in a `synchronized` method of `LockPersonService`, its monitor held across the database call) and `persons exceptions` (each served
+person's phone parsed as a number and the `NumberFormatException` caught). They were recorded locally with
+the JDK's JFR (profile settings, monitors and parks from 1 ms, every exception thrown) under the testapp's own
+client: `n-plus-one` and `exceptions` 60 s on one core under one client, `lock` 30 s on two cores under six
+clients' worth of load, the concurrency at which a lock held across a database call is what requests wait
+on. They are kept gzipped in `build/plugin-evals/`, read on their own (never compared with the provisioner's
+pair), and crawled in the persons pass. The cases that work on the
 code scaffold the service's sources — `fixtures/testapp/`, the server of that repository — written into
 each `setup.sh` by `build/scripts/write-persons-scaffold.py`.
 
@@ -165,9 +173,14 @@ python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8586/ap
 ```
 
 It refuses a Jeffrey that already holds profiles, and rewrites the profile ids the graders name to
-the new recording's. With `--reuse` it records from the files already in `--work-dir` — a copy of
-jeffrey-recordings' `plugin-evals/`, checked by checksum — instead of running the workload again, so
-the mocks follow a server change while the recording, and every figure the graders name, stay put.
+the new recording's. With `--reuse` it records from the files kept in this repository — copied into
+`--work-dir` when they are not there, and checked by checksum — instead of running the workload again, so
+the mocks follow a server change while the recording, and every figure the graders name, stay put:
+
+- the checkout runs and the heap dump (gzipped) beside the tests' recordings, in
+  `shared/test/src/main/resources/cafe/jeffrey/test/recording/checkout/` (`CheckoutRecording`);
+- the persons pair in `shared/test/…/recording/testapp/` (`TestappRecording`);
+- the order history and the persons modes in `build/plugin-evals/`.
 
 A mock replays what Claude Code hands the model, which for a result with `structuredContent` is that
 JSON and not the text content beside it; the recorder writes it so. Recorded from the text, the mocks
@@ -191,6 +204,13 @@ What the mocks cannot do, so the cases stay away from it:
 - **A list the agent composes.** `compare_methods` takes the methods a diff touched as a list, which
   no file name or `expect:` value can pin, so it is unmocked and measured in the live suite instead.
 - **The connector and the IDE.** The recording Jeffrey has no connector and no IntelliJ attached.
+- **An exploring variant of a call.** A fixture answers a call whatever its optional arguments say, so a variant
+  that changes what the figures are — the wall clock with idle threads left out (`excludeIdle`), statements
+  grouped or filtered on `code_callSites` (`groupBy`, `filterField`), a library's package roots as
+  `framePrefixes`, a `search` or thread split on a flamegraph — fails the call-contract grader unless the
+  recorder made exactly it, and two variants of one call cannot both be its fixture. Real data invites such
+  exploration where a planted workload did not, so an open question whose good answers take it is a live case
+  (`count-queries`, `endpoint-cpu`, `wall-vs-cpu`), not a mocked one.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
 
@@ -220,11 +240,10 @@ call takes are comments, so every line the baseline's frames name is the same li
 suite's profiles carry no commit.
 
 ```bash
-git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings /tmp/jeffrey-recordings
 java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffrey-live-home \
   -Dserver.port=8585 -jar build/build-microscope/target/microscope.jar &
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
-  --work-dir /tmp/jeffrey-recordings/plugin-evals --load
+  --work-dir /tmp/jeffrey-eval --load
 claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off --scaffold \
   --allow-tools 'mcp__plugin_microscope_jeffrey__*' 'Bash(git rev-parse *)' 'Bash(git diff *)' \
   'Bash(git log *)' 'Bash(git show *)' --ablation none --keep-temp -j 3 \
@@ -232,13 +251,13 @@ claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off --sc
 ```
 
 Port 8585 is the plugin's default endpoint, which the runs connect to. The recording the mocks were
-taken from is kept in [jeffrey-recordings](https://github.com/petrbouda/jeffrey-recordings)
-(`plugin-evals/`: the two JFR files and the dump gzipped, 8 MB), since the workload is random and no
-re-run reproduces it. `--load` unpacks the dump, imports the three files, and refuses them unless their
+taken from is kept in this repository (see [Where the answers come from](#where-the-answers-come-from)),
+since no workload re-run reproduces it. `--load` copies the kept files into `--work-dir`, unpacks the dump,
+imports them all, and refuses them unless their
 checksums are the ones in `fixtures/recorded-profiles.json` and they answer the figures the graders
 name (`figures`, measured by the recorder's figure queries). A re-recording measures those figures and
-checksums anew and rewrites the figures in the graders, as it rewrites the profile ids — and its three
-files then replace the ones in `plugin-evals/`, or the live cases cannot be loaded anywhere else.
+checksums anew and rewrites the figures in the graders, as it rewrites the profile ids — and a re-recorded
+workload's files then replace the kept ones, or the live cases cannot be loaded anywhere else.
 
 **Why not a stand-in.** `claude plugin eval` can mock a tool with an agent — the judge model playing
 the server from a description — so the first version of these cases did that: each SQL tool was

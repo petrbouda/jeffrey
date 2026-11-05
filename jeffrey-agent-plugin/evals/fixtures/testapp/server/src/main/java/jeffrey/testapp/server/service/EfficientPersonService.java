@@ -14,7 +14,8 @@ import java.util.Optional;
 
 /**
  * Picks the random ids from the in-memory {@link IDHolder}: the {@code person.pick-id(s)} span
- * holds no SQL, compare it with {@link InefficientPersonService}.
+ * holds no SQL, compare it with {@link InefficientPersonService}. The other modes pick the same way
+ * ({@link #pickId()}, {@link #pickIds(int)}) and differ only in the problem each plants.
  */
 public class EfficientPersonService implements PersonService {
 
@@ -32,11 +33,7 @@ public class EfficientPersonService implements PersonService {
     @Override
     public Optional<Person> getRandomPerson() {
         try (var __ = nativeMemoryAllocator.allocate()) {
-            long personId = Tracer.call(SPAN_PICK_ID, () -> {
-                int personIndex = Helpers.generateId(IDHolder.IDS.size());
-                return safeIdLookup(personIndex);
-            });
-            return repository.findById(personId);
+            return repository.findById(pickId());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -45,16 +42,25 @@ public class EfficientPersonService implements PersonService {
     @Override
     public List<Person> getNPersons(int count) {
         try (var __ = nativeMemoryAllocator.allocate()) {
-            List<Long> personIds = Tracer.call(SPAN_PICK_IDS, () -> {
-                Collection<Integer> indices = Helpers.generateIds(IDHolder.IDS.size(), count);
-                return indices.stream()
-                        .map(EfficientPersonService::safeIdLookup)
-                        .toList();
-            });
-            return repository.findByIds(personIds);
+            return repository.findByIds(pickIds(count));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /** A random id from the in-memory {@link IDHolder}, in the {@code person.pick-id} span. */
+    static long pickId() {
+        return Tracer.call(SPAN_PICK_ID, () -> safeIdLookup(Helpers.generateId(IDHolder.IDS.size())));
+    }
+
+    /** {@code count} random ids from the in-memory {@link IDHolder}, in the {@code person.pick-ids} span. */
+    static List<Long> pickIds(int count) {
+        return Tracer.call(SPAN_PICK_IDS, () -> {
+            Collection<Integer> indices = Helpers.generateIds(IDHolder.IDS.size(), count);
+            return indices.stream()
+                    .map(EfficientPersonService::safeIdLookup)
+                    .toList();
+        });
     }
 
     private static long safeIdLookup(int index) {

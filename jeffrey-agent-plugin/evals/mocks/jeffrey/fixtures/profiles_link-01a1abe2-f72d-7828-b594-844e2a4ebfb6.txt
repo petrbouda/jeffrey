@@ -1,1 +1,0 @@
-{"profileId":"01a1abe2-f72d-7828-b594-844e2a4ebfb6","uiLink":"http://localhost:8586/profiles/01a1abe2-f72d-7828-b594-844e2a4ebfb6"}

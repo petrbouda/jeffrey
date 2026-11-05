@@ -6,7 +6,6 @@ import tools.jackson.databind.json.JsonMapper;
 import jeffrey.testapp.server.service.PersonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,16 +26,17 @@ public class PersonController {
      */
     private static final String SPAN_TO_JSON_TREE = "person.to-json-tree";
 
+    /** Whether responses go straight out; only the {@code dom} mode builds a JSON tree first. */
     private final boolean efficientMode;
     private final PersonService service;
     private final PersonRepository repository;
 
     public PersonController(
-            @Value("${efficient.mode:true}") boolean efficientMode,
+            ServiceMode serviceMode,
             PersonService service,
             PersonRepository repository) {
 
-        this.efficientMode = efficientMode;
+        this.efficientMode = !serviceMode.buildsJsonTree();
         this.service = service;
         this.repository = repository;
     }
