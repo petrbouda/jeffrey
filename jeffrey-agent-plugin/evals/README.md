@@ -43,8 +43,11 @@ The page has three parts:
   how often the runs did.
 
 The traces are temporary, so regenerate the map after a suite run, before the directories go.
-`build/scripts/test-plugin-usage-map.py` checks the reading offline and checks that the committed map
-still names every tool, skill and agent.
+A change to a skill, an agent or a tool needs no suite run: `--wiring-only` rewrites only the
+documented wiring of the committed map and keeps its runs.
+`build/scripts/test-plugin-usage-map.py` checks the reading offline, and checks that the committed
+map's wiring is what the skills, agents and tools snapshot say now; it fails until `--wiring-only`
+has been run.
 
 ## The cases
 

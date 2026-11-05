@@ -122,7 +122,8 @@ jobs:
     - name: Test recorded eval contracts
       run: python3 build/scripts/test-plugin-eval-mocks.py
 
-    # Offline: the usage map's trace reading and wiring, and that the committed map still names every
-    # tool, skill and agent there is. Regenerating it needs eval traces, which CI does not keep.
+    # Offline: the usage map's trace reading and wiring, and that the committed map's wiring is the
+    # plugin's and the snapshot's now (`--wiring-only` refreshes it). Its runs need eval traces, which CI
+    # does not keep.
     - name: Test the plugin usage map
       run: python3 build/scripts/test-plugin-usage-map.py

@@ -30,8 +30,13 @@ The JSON keeps every run's totals and, for each eval case, the latest results' r
 `--render` inlines it into `plugin-usage.template.html`, a self-contained page that replays them over
 a map of the wiring. Traces live in temporary directories, so a run whose trace is gone is skipped.
 
+`--wiring-only` needs no traces: it rewrites only the documented wiring (`tools`, `skills`, `agents`)
+of the map at `--out` and keeps its runs, so a skill, agent or tool change updates the committed map
+without a suite run. `test-plugin-usage-map.py` fails until it does.
+
 Usage:
     python3 build/scripts/plugin-usage-map.py [--out build/plugin-evals/plugin-usage.json] [--render page.html]
+    python3 build/scripts/plugin-usage-map.py --wiring-only [--out …] [--render page.html]
 """
 import argparse
 import importlib.util
@@ -250,14 +255,23 @@ def usage_of(plugin: Path) -> dict:
             "replays": [latest[key] for key in sorted(latest)]}
 
 
-def usage_map(plugin: Path, snapshot: dict) -> dict:
+def wiring_of(plugin: Path, snapshot: dict) -> dict:
+    """The documented wiring alone: every tool of the snapshot, and the plugin's skills and agents."""
     tools = tools_of(snapshot)
     tool_names = {tool["name"] for tool in tools}
     skill_names = sorted(p.parent.name for p in (plugin / "skills").glob("*/SKILL.md"))
     agent_names = sorted(p.stem for p in (plugin / "agents").glob("*.md"))
-    return {"plugin": json.loads((plugin / "plugin.json").read_text()).get("version"), "tools": tools,
-            "skills": skills_of(plugin, tool_names, skill_names, agent_names),
-            "agents": agents_of(plugin, tool_names, skill_names, agent_names)} | usage_of(plugin)
+    return {"tools": tools, "skills": skills_of(plugin, tool_names, skill_names, agent_names),
+            "agents": agents_of(plugin, tool_names, skill_names, agent_names)}
+
+
+def usage_map(plugin: Path, snapshot: dict) -> dict:
+    return ({"plugin": json.loads((plugin / "plugin.json").read_text()).get("version")}
+            | wiring_of(plugin, snapshot) | usage_of(plugin))
+
+
+def to_json(data: dict) -> str:
+    return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def render(data: str, template: Path, page: Path) -> None:
@@ -268,15 +282,24 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="the JSON to write")
     parser.add_argument("--render", type=Path, help="also write the self-contained page here")
+    parser.add_argument("--wiring-only", action="store_true",
+                        help="rewrite only the documented wiring of --out, keeping its runs; needs no traces")
     args = parser.parse_args(argv)
     snapshot = json.loads((ROOT / references.TOOLS_SNAPSHOT).read_text())
-    data = usage_map(PLUGIN, snapshot)
+    if args.wiring_only:
+        if not args.out.is_file():
+            print(f"No map to refresh at {args.out}: run without --wiring-only first.", file=sys.stderr)
+            return 1
+        # "plugin" stays: it is the version the kept runs were recorded with.
+        data = json.loads(args.out.read_text()) | wiring_of(PLUGIN, snapshot)
+    else:
+        data = usage_map(PLUGIN, snapshot)
+        if not data["usage"]["runs"]:
+            print("No eval trace is on disk: run `claude plugin eval … --keep-temp` first "
+                  f"({data['usage']['missingTraces']} runs had their traces removed).", file=sys.stderr)
+            return 1
     usage = data["usage"]
-    if not usage["runs"]:
-        print("No eval trace is on disk: run `claude plugin eval … --keep-temp` first "
-              f"({usage['missingTraces']} runs had their traces removed).", file=sys.stderr)
-        return 1
-    text = json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    text = to_json(data)
     args.out.write_text(text)
     if args.render:
         render(text, TEMPLATE, args.render)

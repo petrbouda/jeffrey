@@ -16,7 +16,9 @@
 # limitations under the License.
 #
 """Offline tests for plugin-usage-map.py: trace reading, wiring and the committed map; no eval traces needed."""
+import contextlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -130,8 +132,45 @@ class CommittedMap(unittest.TestCase):
         self.assertLessEqual(set(self.data["usage"]["skill"]), skills)
         self.assertLessEqual(set(self.data["usage"]["agent"]), agents)
 
+    def test_holds_the_wiring_the_plugin_and_the_snapshot_describe_now(self):
+        snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
+        fresh = usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot)
+        for key, entries in fresh.items():
+            committed = {entry["name"]: entry for entry in self.data[key]}
+            stale = sorted(entry["name"] for entry in entries if committed.get(entry["name"]) != entry)
+            self.assertEqual(stale, [], f"the committed map's {key} are stale: "
+                                        "run `python3 build/scripts/plugin-usage-map.py --wiring-only`")
+
     def test_the_page_template_has_the_data_slot(self):
         self.assertIn(usage_map.DATA_SLOT, usage_map.TEMPLATE.read_text())
+
+
+class WiringOnly(unittest.TestCase):
+    """`--wiring-only` refreshes the documented wiring of a map and keeps its runs, without any trace."""
+
+    def test_rewrites_the_wiring_and_keeps_the_runs(self):
+        committed = json.loads(COMMITTED.read_text())
+        stale = json.loads(COMMITTED.read_text())
+        stale["skills"][0]["tools"] = {}
+        stale["agents"] = []
+        stale["plugin"] = "0.0.1"
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "plugin-usage.json"
+            out.write_text(usage_map.to_json(stale))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
+            refreshed = json.loads(out.read_text())
+        snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
+        for key, value in usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot).items():
+            self.assertEqual(refreshed[key], value)
+        for key in ("usage", "observed", "replays"):
+            self.assertEqual(refreshed[key], committed[key])
+        self.assertEqual(refreshed["plugin"], "0.0.1")
+
+    def test_needs_a_map_to_refresh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(Path(tmp) / "none.json")]), 1)
 
 
 if __name__ == "__main__":
