@@ -296,6 +296,90 @@ class JdbcCallSitesTest {
         }
     }
 
+    /** Numbers paths in the order stacks arrive, as the real reader does, so the order reaches the ranking. */
+    private static final class ArrivalOrderReader implements CallSiteReader<ArrivalOrderReader> {
+
+        private final List<Long> stacks = new ArrayList<>();
+        private final List<CallSiteRow> sites = new ArrayList<>();
+
+        @Override
+        public int pathOf(JfrStackTrace stackTrace) {
+            stacks.add(stackTrace.id());
+            return stacks.size() - 1;
+        }
+
+        @Override
+        public void onTotals(CallSiteTotals totals) {
+        }
+
+        @Override
+        public void onGroup(CallSiteGroupRow group) {
+        }
+
+        @Override
+        public void onSite(CallSiteRow row) {
+            sites.add(row);
+        }
+
+        @Override
+        public void onOperationStack(OperationStackRow row) {
+        }
+
+        @Override
+        public ArrivalOrderReader build() {
+            return this;
+        }
+
+        long stackOfFirstSite() {
+            return stacks.get(sites.getFirst().pathId());
+        }
+    }
+
+    @Nested
+    class TiesAtTheCap {
+
+        /** Two sites alike in duration and count, written newest stack first. */
+        private static void insertTiedSites(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, FIXTURE);
+            try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
+                statement.executeUpdate("DELETE FROM events_raw");
+                statement.executeUpdate("""
+                        INSERT INTO events_raw (event_type, start_timestamp, duration, samples,
+                                                stacktrace_hash, thread_hash, fields)
+                        VALUES
+                        ('jeffrey.JdbcStatement', '2025-01-15T10:00:00.001Z', 100, 1, 5003, 1, '{"sql":"tied"}'),
+                        ('jeffrey.JdbcStatement', '2025-01-15T10:00:00.002Z', 100, 1, 5002, 1, '{"sql":"tied"}'),
+                        ('jeffrey.JdbcStatement', '2025-01-15T10:00:00.003Z', 100, 1, 5001, 1, '{"sql":"tied"}')
+                        """);
+            }
+        }
+
+        @Test
+        void stacksArriveInHashOrder(DataSource dataSource) throws SQLException {
+            insertTiedSites(dataSource);
+
+            ArrivalOrderReader reader = streamRepository(dataSource).callSites(
+                    new EventQueryConfigurer().withEventType(STATEMENT), SQL_FIELD,
+                    new CallSiteSelection.Sites(1), new ArrivalOrderReader());
+
+            assertEquals(List.of(5001L, 5002L, 5003L), reader.stacks);
+        }
+
+        @Test
+        void aCapBreaksATieByTheLowestStackEveryTime(DataSource dataSource) throws SQLException {
+            insertTiedSites(dataSource);
+
+            for (CallSiteSelection selection : List.of(new CallSiteSelection.Sites(1), new CallSiteSelection.Groups(1, 1))) {
+                ArrivalOrderReader reader = streamRepository(dataSource).callSites(
+                        new EventQueryConfigurer().withEventType(STATEMENT), SQL_FIELD, selection,
+                        new ArrivalOrderReader());
+
+                assertEquals(1, reader.sites.size(), selection.toString());
+                assertEquals(5001L, reader.stackOfFirstSite(), selection.toString());
+            }
+        }
+    }
+
     @Nested
     class Stacks {
 

@@ -23,6 +23,7 @@ import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.regex.Pattern;
 import java.util.List;
 
@@ -53,6 +54,37 @@ class CodeAnswersTest {
 
             assertEquals(List.of(related, unrelated), CodeAnswers.nearest(MethodRef.parse("com.acme.Orders#save"),
                     List.of(unrelated, related)));
+        }
+    }
+
+    @Nested
+    class NearbyMethodsPastTheCap {
+
+        @Test
+        void aBigClassLeavesTheLastSlotToTheNamesakeElsewhere() {
+            List<MethodValue> pool = new ArrayList<>();
+            for (int i = 0; i < CodeAnswers.MAX_NEAREST + 3; i++) {
+                pool.add(new MethodValue(new MethodKey("com.acme.Orders", "load" + i), 100 - i));
+            }
+            MethodValue namesake = new MethodValue(new MethodKey("com.acme.Invoices", "save"), 1);
+            pool.add(namesake);
+
+            List<MethodValue> nearest = CodeAnswers.nearest(MethodRef.parse("com.acme.Orders#save"), pool);
+
+            assertEquals(CodeAnswers.MAX_NEAREST, nearest.size());
+            assertEquals(namesake, nearest.getLast());
+            assertEquals(pool.subList(0, CodeAnswers.MAX_NEAREST - 1), nearest.subList(0, CodeAnswers.MAX_NEAREST - 1));
+        }
+
+        @Test
+        void withoutANamesakeTheClassFillsEverySlot() {
+            List<MethodValue> pool = new ArrayList<>();
+            for (int i = 0; i < CodeAnswers.MAX_NEAREST + 3; i++) {
+                pool.add(new MethodValue(new MethodKey("com.acme.Orders", "load" + i), 100 - i));
+            }
+
+            assertEquals(pool.subList(0, CodeAnswers.MAX_NEAREST),
+                    CodeAnswers.nearest(MethodRef.parse("com.acme.Orders#save"), pool));
         }
     }
 

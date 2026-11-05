@@ -185,13 +185,31 @@ public record MethodRef(String className, String methodName) {
         private boolean matchesNestedClass(String binaryName) {
             for (int boundary = binaryName.indexOf(NESTED_SEPARATOR); boundary >= 0;
                  boundary = binaryName.indexOf(NESTED_SEPARATOR, boundary + 1)) {
-                String enclosingClass = sourceName(binaryName.substring(0, boundary));
-                if ((enclosingClass.equals(sourceClassName) || enclosingClass.equals(kotlinFacade))
+                boolean enclosedByReference = spelledAs(binaryName, boundary, sourceClassName)
+                        || spelledAs(binaryName, boundary, kotlinFacade);
+                if (enclosedByReference
                         && (methodName == null || binaryName.startsWith(methodHolderSuffix, boundary + 1))) {
                     return true;
                 }
             }
             return false;
+        }
+
+        /**
+         * Whether the binary name's first {@code length} characters spell the source name, each {@code $}
+         * read as a dot: {@link #sourceName} of that prefix compared, without building it for every frame.
+         */
+        private static boolean spelledAs(String binaryName, int length, String source) {
+            if (source.length() != length) {
+                return false;
+            }
+            for (int i = 0; i < length; i++) {
+                char c = binaryName.charAt(i);
+                if ((c == NESTED_SEPARATOR ? SOURCE_SEPARATOR : c) != source.charAt(i)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static String sourceName(String binaryName) {

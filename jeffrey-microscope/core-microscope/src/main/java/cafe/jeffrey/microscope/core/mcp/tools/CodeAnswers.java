@@ -221,10 +221,21 @@ final class CodeAnswers {
                 byProximity.computeIfAbsent(proximity, _ -> new ArrayList<>()).add(value);
             }
         }
-        return byProximity.values().stream().flatMap(List::stream)
+        List<MethodValue> ranked = byProximity.values().stream().flatMap(List::stream)
                 .filter(distinctMethods())
-                .limit(MAX_NEAREST)
                 .toList();
+        if (ranked.size() <= MAX_NEAREST) {
+            return ranked;
+        }
+        List<MethodValue> shown = new ArrayList<>(ranked.subList(0, MAX_NEAREST));
+        // A class with many sampled methods must not push out the method itself, written in another class.
+        Set<MethodKey> listed = new HashSet<>();
+        shown.forEach(value -> listed.add(value.method()));
+        List<MethodValue> namesakes = byProximity.getOrDefault(Proximity.SAME_METHOD, List.of());
+        if (!namesakes.isEmpty() && namesakes.stream().noneMatch(value -> listed.contains(value.method()))) {
+            shown.set(MAX_NEAREST - 1, namesakes.getFirst());
+        }
+        return List.copyOf(shown);
     }
 
     /** A unique best source reference from the complete pool, never from a capped suggestion list. */

@@ -130,6 +130,8 @@ public class CompareMcpTools {
     private static final int MAX_UNLISTED_MOVERS = 8;
     private static final int MAX_CALLEE_CHANGES = 5;
     private static final double HUNDREDTHS = 100.0;
+    /** The reported scale's precision; every figure is computed with the exact ratio. */
+    private static final double SCALE_PRECISION = 10_000.0;
 
     /**
      * A change smaller than this share of the primary's total is reported UNCHANGED: a sampled
@@ -141,7 +143,7 @@ public class CompareMcpTools {
     private static final String COMPARE_METHODS_TOOL = "compare_methods";
     private static final String METHODS = "methods";
     private static final String RESPELLED_WHY = "the same comparison with each method nothing ran spelled as the "
-            + "profile runs it - the method of the same name nearestReferences found";
+            + "profile runs it - the one sampled method of that name in the class you named";
     private static final String CODE_METHOD_TOOL = "code_method";
     private static final String CLASS_NAME = "className";
     private static final String METHOD_NAME = "methodName";
@@ -512,8 +514,9 @@ public class CompareMcpTools {
                 .guidance(RENAME_GUIDANCE)
                 .followUp();
         return McpToolResult.of(new MethodComparison(CodeStatus.OK, null, primaryId, baselineId,
-                request.type().code(), unit, window.compared(), weighted, request.excludesIdle(), prefixes, scale,
-                primary.total(), base.total(), moves, movers, followUp, uiLink));
+                request.type().code(), unit, window.compared(), weighted, request.excludesIdle(), prefixes,
+                Math.round(scale * SCALE_PRECISION) / SCALE_PRECISION, primary.total(), base.total(), moves, movers,
+                followUp, uiLink));
     }
 
     @Tool(description = "Assesses the recording evidence behind a comparison: both identities and "

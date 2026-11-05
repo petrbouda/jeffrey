@@ -65,6 +65,11 @@ public final class EntryTrunk {
         }
     }
 
+    /** The weight of every stack added: what each entry's share is taken of. */
+    public long weight() {
+        return root.value;
+    }
+
     /**
      * The entry points and the weight through each: one, unless the trunk holds several equally long runs of
      * own frames — an own filter and a handler of one frame each, say — when every one of them is a candidate,

@@ -62,13 +62,19 @@ final class DuckDBCallSiteQueries {
                     <<json_field_filter>>
             """;
 
+    /**
+     * Ordered by hash: the reader numbers the paths in the order stacks arrive, and the ranking breaks ties
+     * by path, so an unordered DISTINCT would let two reads of one profile keep different sites at a cap.
+     */
     //language=SQL
     private static final String STACKS = """
             SELECT DISTINCT e.stacktrace_hash, s.frame_hashes
             FROM events e
             INNER JOIN stacktraces s ON e.stacktrace_hash = s.stacktrace_hash
             WHERE e.event_type = :event_type
-            """ + FILTERS;
+            """ + FILTERS + """
+            ORDER BY e.stacktrace_hash
+            """;
 
     //language=SQL
     private static final String SITES = """
