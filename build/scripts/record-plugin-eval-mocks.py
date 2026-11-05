@@ -273,8 +273,8 @@ RELAY_ANSWER = re.compile(r"<answer>\n(.*?)\n</answer>", re.S)
 OPTION_RELAYED_TOOLS = ("code_hotspots", "compare_movements", "code_callSites")
 # The longest answer a relay hands back: the judge copies it verbatim, which holds for the small answers (the largest
 # relayed today is about 20,000 characters) and not for a flamegraph. A tool with a longer recorded answer is not
-# relayed — an operation's flamegraph (traces_operationFlamegraphExport) stays unmocked, an option relay keeps its
-# fixed mock.
+# relayed: an operation's flamegraph (traces_operationFlamegraphExport) keeps the first answer per profile
+# (first_per_address), an option relay its fixed mock.
 RELAY_MAX_ANSWER_CHARS = 25_000
 WALL_CLOCK = "profiler.WallClockSample"
 
@@ -564,8 +564,8 @@ def persons_seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str,
     calls += [("flamegraph_export", {PROFILE_ID: profile, "eventType": event_type,
                                      **({"useWeight": True} if weighted else {})})
               for profile in modes for event_type, weighted in MODE_GRAPHED_EVENT_TYPES]
-    # The DOM run's too: where one fixture per profile is all a mock can keep (first_per_address), it is the
-    # slow endpoint's, the one its cases read.
+    # The DOM run's too, so the slow endpoint's answers are among those a relay holds — and, where a tool's answers
+    # are too long to relay and one fixture per profile is all a mock can keep (first_per_address), the one kept.
     calls += [(tool, {PROFILE_ID: profile, "name": operation, "kind": "SERVER", "eventType": HTTP_SERVER_EXCHANGE})
               for profile in (profiles.personsDom, *modes) for operation in PERSONS_OPERATIONS
               for tool in ("traces_slowestTraces", "traces_operationExport")]
@@ -751,10 +751,11 @@ def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | Non
 
 def first_per_address(required: list[str], answers: dict[tuple, str]) -> dict[tuple, str]:
     """When the file-safe arguments cannot tell a tool's answers apart — two operations of one profile, whose
-    names (`GET /persons/{count}`) cannot be part of a file name — the first answer recorded for each of their
-    values, so the tool stays mocked: the others' values leave the mock's `expect:` list with them, and a call
-    naming one fails the call-contract grader instead of the whole tool going unoffered. None (an empty dict)
-    when a composed argument would be left to `expect:`."""
+    names (`GET /persons/{count}`) cannot be part of a file name — and no relay answers the tool (its answers are
+    too long to copy, RELAY_MAX_ANSWER_CHARS), the first answer recorded for each of their values, so the tool
+    stays mocked: the others' values leave the mock's `expect:` list with them, and a call naming one aborts the
+    run instead of the whole tool going unoffered. None (an empty dict) when a composed argument would be left to
+    `expect:`."""
     safe = [argument for index, argument in enumerate(required)
             if all(FILE_NAME_SAFE.fullmatch(key[index]) for key in answers)]
     if COMPOSED_ARGUMENTS & (set(required) - set(safe)):
