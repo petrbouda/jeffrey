@@ -32,15 +32,19 @@ takes them from one that does:
 3. calls every tool the way a model following the skills would reach it: each tool whose required
    arguments are only a profile (or a profile pair, or one of an enum's values), for every profile,
    then every call an answer offers in `followUp.nextTools`, `investigationAreas[].nextTools` or
-   `topFindings[].nextTool`, breadth first;
+   `topFindings[].nextTool`, and the calls each row of a listing stands for (`ROW_CALLS`: every traced
+   operation's slowest traces and export), breadth first;
 4. rewrites the profile ids the cases' graders name to the new ones, and writes one mock per tool
    that answered, addressed by its required arguments and graded against its full input — at most
    `MAX_FIXTURES_PER_TOOL` answers a tool, the first reached —
    (`{{file:fixtures/<tool>-{input.a}-….json}}`), and `_tools.json`, the real `tools/list` for those
    tools, so each mocked tool carries its real description and input schema.
 
-A tool whose required argument takes free text that cannot be part of a file name (a SQL query, a
-URI) gets no mock and is absent from the eval runs; so are the writers this script does not call.
+A tool whose required argument takes free text that cannot be part of a file name (an operation's name,
+a URI), with more than one value a profile, is answered by a relay instead (`write_relay_mock`): a
+`type: agent` mock whose fixture holds every answer recorded for the profile, which the judge model hands
+back verbatim for the call that matches. A query the agent writes itself (a SQL query) gets no mock and is
+absent from the eval runs; so are the writers this script does not call.
 The answers describe this Jeffrey's build — re-record after a change to what the tools return.
 
 The SQL cases (`evals-live/`) run against a real Jeffrey instead, which `--load` prepares: it imports
@@ -232,8 +236,33 @@ HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange"
 PERSONS_OPERATIONS = ("GET /persons/{count}", "GET /persons")
 # The persons runs' event types a code case groups by call site: its statements and its monitors.
 PERSONS_CALL_SITE_EVENT_TYPES = (JDBC_QUERY, "jdk.JavaMonitorEnter")
-# A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings.
-MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_METHODS)) + MAX_FIXTURES_PER_TOOL}
+# A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings;
+# each traced operation of every profile (`ROW_CALLS`), and the slowest trace each of them names with its span frames.
+MAX_OPERATION_FIXTURES = 64
+MAX_TRACE_FIXTURES = 32
+MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_METHODS)) + MAX_FIXTURES_PER_TOOL,
+                   "traces_slowestTraces": MAX_OPERATION_FIXTURES, "traces_operationExport": MAX_OPERATION_FIXTURES,
+                   "traces_traceExport": MAX_TRACE_FIXTURES, "traces_spanFlamegraphExport": MAX_TRACE_FIXTURES}
+
+
+@dataclass(frozen=True)
+class RowCalls:
+    """The calls each row of an answer stands for: `tools`, called with the answer's profile and the row's `fields`."""
+    rows: str
+    tools: tuple[str, ...]
+    fields: tuple[str, ...]
+
+
+# An answer that lists subjects offers its follow-ups for the first one only, and a model asks about the one its
+# question is about: every operation's slowest traces and export are recorded, not only the first's.
+ROW_CALLS = {"traces_operations": RowCalls("operations", ("traces_slowestTraces", "traces_operationExport"),
+                                           ("name", "kind", "eventType"))}
+# The arguments a relay's fixture is chosen by, where a tool takes them: its answers are kept one file per profile.
+RELAY_FILE_ARGUMENTS = (PROFILE_ID, BASELINE_PROFILE_ID)
+# What a relay asks the real server for, in place of every value no fixture file can be named by, to record the
+# answer a call naming none of the recorded ones gets.
+UNRECORDED_VALUE = "(not recorded)"
+RELAY_ANSWER = re.compile(r"<answer>\n(.*?)\n</answer>", re.S)
 
 # What may differ between two answers that address one fixture while the figures stay the same: the follow-up
 # and how the own packages were chosen. A call reached with other graded options is accepted with the
@@ -293,6 +322,8 @@ class Recorded:
     # Other inputs a fixture answers as it answers its own: same figures, different provenance.
     aliases: dict[str, dict[tuple, list[dict]]] = field(
         default_factory=lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
+    # A relayed tool's answer to a call naming none of the recorded values, by its relay file: the input and the error.
+    unmatched: dict[str, dict[tuple, tuple[dict, str]]] = field(default_factory=lambda: collections.defaultdict(dict))
 
 
 class Jeffrey:
@@ -637,7 +668,22 @@ def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]
                   and equivalent(recorded.answers[tool][key], answer)):
                 recorded.aliases[tool][key].append(arguments)
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
+        queue.extend(row_calls(tool, arguments, answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
+
+
+def row_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, dict]]:
+    """The calls `ROW_CALLS` says each row of this answer stands for, on the profile the answer is about."""
+    expansion = ROW_CALLS.get(tool)
+    if expansion is None:
+        return []
+    profile = {name: arguments[name] for name in RELAY_FILE_ARGUMENTS if name in arguments}
+    calls = []
+    for row in structured.get(expansion.rows) or []:
+        if all(isinstance(row.get(name), str) for name in expansion.fields):
+            subject = {name: row[name] for name in expansion.fields}
+            calls += [(each, {**profile, **subject}) for each in expansion.tools]
+    return calls
 
 
 def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | None:
@@ -647,8 +693,8 @@ def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | Non
     an operation's name, "POST /checkout" — is pinned instead, by the mock's `expect:` list of the values recorded,
     which the harness enforces by aborting a run that passes another; that works only while the addressing
     arguments still tell each answer apart, and only for text copied from an answer: free text with many values
-    (a class name per object) fails the first, a query the agent writes (`COMPOSED_ARGUMENTS`) the second, and
-    both stay unmocked.
+    (an operation's name per operation) fails the first and goes to a relay (`relay_file_arguments`) when no fixed
+    mock is left, a query the agent writes (`COMPOSED_ARGUMENTS`) fails the second and stays unmocked.
     """
     named = [argument for index, argument in enumerate(required)
              if all(FILE_NAME_SAFE.fullmatch(key[index]) for key in answers)]
@@ -674,6 +720,64 @@ def first_per_address(required: list[str], answers: dict[tuple, str]) -> dict[tu
     return dict(first.values())
 
 
+def relay_file_arguments(required: list[str], answers: dict[tuple, str]) -> list[str] | None:
+    """For a tool no fixed mock can answer at all, the arguments its relay's fixture file is named by — the profile,
+    where it takes one. None when a fixed mock answers it: all its answers (`addressed`), or those whose values can
+    all be part of a file name, the rest left out as before; and None when a query the agent writes is among the
+    values no file can be named by, which no recording answers."""
+    if addressed(required, answers) is not None:
+        return None
+    if any(all(map(FILE_NAME_SAFE.fullmatch, key)) for key in answers):
+        return None
+    unnamed = unnamed_arguments(required, answers)
+    if COMPOSED_ARGUMENTS & unnamed:
+        return None
+    return [argument for argument in RELAY_FILE_ARGUMENTS if argument in required and argument not in unnamed]
+
+
+def unnamed_arguments(required: list[str], answers: dict[tuple, str]) -> set[str]:
+    """The required arguments some recorded value of which cannot be part of a file name."""
+    return {argument for index, argument in enumerate(required)
+            if not all(FILE_NAME_SAFE.fullmatch(key[index]) for key in answers)}
+
+
+def relay_file(required: list[str], file_arguments: list[str], key: tuple) -> tuple:
+    return tuple(key[required.index(argument)] for argument in file_arguments)
+
+
+def relayed_tools(schemas: dict[str, dict], recorded: Recorded) -> dict[str, list[str]]:
+    """Each recorded tool a relay answers, with the arguments its fixture file is named by."""
+    relayed = {}
+    for tool, answers in recorded.answers.items():
+        file_arguments = relay_file_arguments(addressing(tool, schemas[tool]), answers)
+        if file_arguments is not None:
+            relayed[tool] = file_arguments
+    return relayed
+
+
+def probe_unmatched(jeffrey: Jeffrey, tools: list[dict], recorded: Recorded) -> None:
+    """A relayed tool's real answer to a call that names none of the recorded values: once per relay file, the first
+    recorded input with each value no file name can hold replaced by UNRECORDED_VALUE. Only an error is kept — the
+    answer the server gives a subject it does not hold."""
+    schemas = {tool["name"]: tool.get("inputSchema") or {} for tool in tools}
+    for tool, file_arguments in sorted(relayed_tools(schemas, recorded).items()):
+        required = addressing(tool, schemas[tool])
+        unnamed = unnamed_arguments(required, recorded.answers[tool])
+        for key in recorded.answers[tool]:
+            file = relay_file(required, file_arguments, key)
+            if file in recorded.unmatched[tool]:
+                continue
+            probe = {name: UNRECORDED_VALUE if name in unnamed else value
+                     for name, value in recorded.inputs[tool][key].items()}
+            try:
+                answer = jeffrey.call(tool, probe)
+            except RuntimeError as error:
+                print(f"  no unmatched answer for {tool} {probe}: {error}", file=sys.stderr)
+                continue
+            if answer.get("isError"):
+                recorded.unmatched[tool][file] = (probe, text_of(answer))
+
+
 def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     shutil.rmtree(MOCKS, ignore_errors=True)
     FIXTURES.mkdir(parents=True)
@@ -687,8 +791,13 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     # A tool none of whose calls could be keyed gets no mock, so the runs do not offer it at all
     # rather than offering one that answers every call with a missing fixture.
     answered = {}
+    relayed = relayed_tools(schemas, recorded)
     for tool, answers in sorted(recorded.answers.items()):
         required = addressing(tool, schemas[tool])
+        if tool in relayed:
+            write_relay_mock(tool, required, relayed[tool], recorded)
+            answered[tool] = answers
+            continue
         named = addressed(required, answers)
         if named is None:
             safe = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
@@ -719,7 +828,63 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
                for arguments in aliases]
     (MOCKS / "_inputs.json").write_text(json.dumps(inputs, indent=1) + "\n")
     write_contract_graders(listed, inputs)
-    print(f"wrote {len(mocked)} mocked tools, {sum(map(len, answered.values()))} fixtures", file=sys.stderr)
+    print(f"wrote {len(mocked)} mocked tools ({len(relayed)} relayed), {sum(map(len, answered.values()))} fixtures",
+          file=sys.stderr)
+
+
+RELAY_ABORT_WHEN = ("Never. A call that matches no recorded call is answered with a tool error, as the "
+                    "instructions say; it does not end the run.")
+RELAY_INSTRUCTIONS = """You stand in for the `{tool}` tool of a real Jeffrey. Every answer below is one that Jeffrey gave
+when this suite was recorded; you hand back the one this call asks for, and you never compose one.
+
+This call asks for: {call}.
+
+Find the recorded call whose arguments are exactly these, character for character. The call's other arguments
+(a limit, a page size, a level of detail) do not choose the answer. Reply with that recorded call's answer,
+the text between its <answer> and </answer> lines, exactly as recorded: every character as written, with
+nothing before or after it, no code fence, no comment, nothing reformatted, shortened or recomputed.
+
+When no recorded call has these arguments, answer with a tool error: the recorded unmatched answer, if there is
+one, with the call's values in place of its input's; otherwise one line saying that no recorded call has these
+arguments, naming them.
+
+{fixture}
+"""
+
+
+def write_relay_mock(tool: str, required: list[str], file_arguments: list[str], recorded: Recorded) -> None:
+    """A `type: agent` mock for a tool whose answers no fixture file name can tell apart: one fixture per relay file
+    (the profile) holding each recorded call's arguments and answer, and the judge model hands back the one whose
+    arguments match the call's — verbatim, so the answer is still the real server's."""
+    matched = [argument for argument in required if argument not in file_arguments]
+    placeholders = "".join(f"-{{input.{argument}}}" for argument in file_arguments)
+    calls = collections.defaultdict(list)
+    for key, text in recorded.answers[tool].items():
+        calls[relay_file(required, file_arguments, key)].append((recorded.inputs[tool][key], text))
+    instructions = RELAY_INSTRUCTIONS.format(
+        tool=tool, call=", ".join(f"{argument} = {{{{input.{argument}}}}}" for argument in matched),
+        fixture=f"{{{{file:fixtures/{tool}{placeholders}.txt}}}}")
+    (MOCKS / f"{tool}.md").write_text("---\ntype: agent\nabort_when: " + json.dumps(RELAY_ABORT_WHEN)
+                                      + "\n---\n\n" + instructions)
+    for file, entries in calls.items():
+        sections = []
+        for number, (arguments, text) in enumerate(entries, start=1):
+            chosen_by = {argument: arguments[argument] for argument in matched if argument in arguments}
+            sections.append(f"Recorded call {number}, arguments: {json.dumps(chosen_by, ensure_ascii=False)}\n"
+                            f"<answer>\n{text}\n</answer>")
+        unmatched = recorded.unmatched.get(tool, {}).get(file)
+        if unmatched is not None:
+            probe, error = unmatched
+            sections.append(f"Recorded unmatched answer, a tool error, to the input "
+                            f"{json.dumps({argument: probe[argument] for argument in matched}, ensure_ascii=False)}\n"
+                            f"<error>\n{error}\n</error>")
+        name = "".join(f"-{value}" for value in file)
+        (FIXTURES / f"{tool}{name}.txt").write_text("\n\n".join(sections) + "\n")
+
+
+def relay_answers(text: str) -> list[str]:
+    """The recorded answers a relay fixture holds, each as the model is handed it."""
+    return RELAY_ANSWER.findall(text)
 
 
 # Fixed mocks have neither optional/default substitutions nor conditional dispatch: a fixture is
@@ -913,6 +1078,7 @@ def main() -> int:
     profiles = import_profiles(jeffrey, files, recorded)
     print(f"profiles: {profiles}", file=sys.stderr)
     crawl(jeffrey, tools, profiles, recorded)
+    probe_unmatched(jeffrey, tools, recorded)
     # The graders are renamed before the mocks are written, so the call-contract graders written
     # with the mocks carry the new ids and are not renamed a second time.
     figures = measure_figures(jeffrey, profiles)
