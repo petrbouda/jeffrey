@@ -271,6 +271,11 @@ RELAY_ANSWER = re.compile(r"<answer>\n(.*?)\n</answer>", re.S)
 # hand back verbatim; a flamegraph (up to MAX_CHARS) is not, so flamegraph_export keeps its fixed mock and its other
 # variants stay rejected by the call-contract grader.
 OPTION_RELAYED_TOOLS = ("code_hotspots", "compare_movements", "code_callSites")
+# The longest answer a relay hands back: the judge copies it verbatim, which holds for the small answers (the largest
+# relayed today is about 20,000 characters) and not for a flamegraph. A tool with a longer recorded answer is not
+# relayed — an operation's flamegraph (traces_operationFlamegraphExport) stays unmocked, an option relay keeps its
+# fixed mock.
+RELAY_MAX_ANSWER_CHARS = 25_000
 WALL_CLOCK = "profiler.WallClockSample"
 
 # What may differ between two answers that address one fixture while the figures stay the same: the follow-up
@@ -908,7 +913,16 @@ def relays_of(schemas: dict[str, dict], recorded: Recorded) -> dict[str, Relay]:
             relay = option_relay(tool, schemas[tool], recorded)
             if relay is not None:
                 relays[tool] = relay
-    return relays
+    return {tool: relay for tool, relay in relays.items() if copyable(relay)}
+
+
+def copyable(relay: Relay) -> bool:
+    """Whether every answer a relay holds is short enough for the judge to hand back verbatim."""
+    longest = max(len(entry.answer) for entries in relay.files.values() for entry in entries)
+    if longest > RELAY_MAX_ANSWER_CHARS:
+        print(f"  not relayed: {relay.tool}, an answer of {longest} characters", file=sys.stderr)
+        return False
+    return True
 
 
 def operation_relay(tool: str, required: list[str], file_arguments: list[str], recorded: Recorded) -> Relay:

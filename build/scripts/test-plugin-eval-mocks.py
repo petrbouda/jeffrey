@@ -369,6 +369,14 @@ class RelayTest(RecorderSandbox):
         self.assertEqual('fixed', front['type'])
         self.assertEqual(['GET /persons/{count}'], front['expect']['name'])
 
+    def test_an_answer_too_long_to_copy_leaves_the_tool_unmocked(self):
+        long = {'traces': [{'traceId': 'ab', 'frames': 'x' * recorder.RELAY_MAX_ANSWER_CHARS}]}
+        with patch.object(recorder, 'seen_by_model', lambda answer: json.dumps({**answer.get('structuredContent', {}), **long})):
+            self.record()
+        self.assertFalse((self.mocks / 'traces_slowestTraces.md').exists())
+        listed = [tool['name'] for tool in json.loads((self.mocks / '_tools.json').read_text())['tools']]
+        self.assertNotIn('traces_slowestTraces', listed)
+
     def test_every_endpoint_of_an_http_dashboard_is_asked_for(self):
         overview = {'endpoints': [{'uri': '/persons/{count}', 'requestCount': 664}, {'uri': '/persons'}, {'uri': None}]}
         self.assertEqual([('http_endpoint', {'profileId': 'pm', 'uri': '/persons/{count}'}),
