@@ -624,6 +624,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope-mcp/McpAgentPage.vue')
       },
       {
+        path: 'microscope-mcp/agent/jfr-analyst',
+        name: 'DocsMicroscopeMcpJfrAnalyst',
+        component: () => import('@/views/docs/microscope-mcp/McpJfrAnalystPage.vue')
+      },
+      {
+        path: 'microscope-mcp/agent/heap-analyst',
+        name: 'DocsMicroscopeMcpHeapAnalyst',
+        component: () => import('@/views/docs/microscope-mcp/McpHeapAnalystPage.vue')
+      },
+      {
         path: 'microscope-mcp/recipes',
         name: 'DocsMicroscopeMcpRecipes',
         component: () => import('@/views/docs/microscope-mcp/McpRecipesPage.vue')

@@ -103,8 +103,8 @@ const agentTools = `tools:
   - mcp_jeffrey_*`;
 
 const agentInstall = `mkdir -p ~/.gemini/agents
-cp jeffrey/jeffrey-agent-plugin/gemini/agents/profile-analyst.md ~/.gemini/agents/
-cp jeffrey/jeffrey-agent-plugin/gemini/agents/heap-triage.md ~/.gemini/agents/`;
+cp jeffrey/jeffrey-agent-plugin/gemini/agents/jfr-analyst.md ~/.gemini/agents/
+cp jeffrey/jeffrey-agent-plugin/gemini/agents/heap-analyst.md ~/.gemini/agents/`;
 
 const endpointEnv = `export JEFFREY_MCP_ENDPOINT=http://localhost:9000/api/mcp`;
 
@@ -187,7 +187,7 @@ const update = `gemini extensions update microscope`;
       </DocsCallout>
 
 
-      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>profile-analyst</code> off the three <code>recordings_</code> writers, the whole <code>connector_</code> family, <code>heap_prepare</code>, <code>operations_cancel</code> and all five <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep the nine tools that write away from the whole session instead:</p>
+      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>jfr-analyst</code> off the three <code>recordings_</code> writers, the whole <code>connector_</code> family, the whole <code>heap_</code> family, <code>operations_cancel</code> and all five <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep the nine tools that write away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />
 
       <h2 id="tool-names">Tool Names Are Spelled Differently</h2>

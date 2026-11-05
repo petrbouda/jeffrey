@@ -17,14 +17,17 @@
 
 import raw from '@/data/plugin-usage.json';
 import type {
+  AreaName,
   PluginAgent,
+  PluginArea,
   PluginSkill,
   PluginTool,
   PluginUsage,
   Replay,
   ReplayRun,
   ReplayStep,
-  StepOwner
+  StepOwner,
+  Suite
 } from '@/types/pluginUsage';
 
 // The map of the microscope plugin's skills, agents and tools, and of how its recorded eval runs used
@@ -190,6 +193,79 @@ function replaysWhere(accepts: (step: ReplayStep) => boolean): Replay[] {
   return data.replays.filter((replay) => replay.runs.some((run) => run.steps.some(accepts)));
 }
 
+// ---------- areas: JFR recordings and heap dumps, each worked by its own agent, and what both use ----------
+
+/** Which part of the plugin a view shows: one area, with what it shares with the other. */
+export type AreaLens = Exclude<AreaName, 'shared'>;
+
+export const AREA_LENSES: AreaLens[] = ['jfr', 'heap'];
+
+const SHARED: AreaName = 'shared';
+
+const areas = new Map<AreaName, PluginArea>(data.areas.map((area) => [area.name, area]));
+
+function areaIndex(pick: (area: PluginArea) => (string | null)[]): Map<string, AreaName> {
+  const byName = new Map<string, AreaName>();
+  for (const area of data.areas) {
+    for (const name of pick(area)) {
+      if (name) {
+        byName.set(name, area.name);
+      }
+    }
+  }
+  return byName;
+}
+
+const skillArea = areaIndex((area) => area.skills);
+const familyArea = areaIndex((area) => area.families);
+const agentArea = areaIndex((area) => [area.agent]);
+
+function areaOfNode(id: string): AreaName {
+  const { kind, name } = parseNodeId(id);
+  const lookup: Record<NodeKind, () => AreaName | undefined> = {
+    skill: () => skillArea.get(name),
+    agent: () => agentArea.get(name),
+    family: () => familyArea.get(name),
+    tool: () => familyArea.get(tools.get(name)?.family ?? '')
+  };
+  return lookup[kind]() ?? SHARED;
+}
+
+/** The area whose skills a case's runs invoke; a case that invokes only shared skills, or both areas', is shared. */
+function caseArea(replay: Replay): AreaName {
+  const invoked = new Set<AreaName>();
+  for (const run of replay.runs) {
+    for (const step of run.steps) {
+      const area = step.kind === 'skill' ? skillArea.get(step.name) : undefined;
+      if (area && area !== SHARED) {
+        invoked.add(area);
+      }
+    }
+  }
+  return invoked.size === 1 ? [...invoked][0] : SHARED;
+}
+
+/** Whether something of this area shows under the lens: the lens's own area and the shared one do. */
+function inLens(lens: AreaLens, area: AreaName): boolean {
+  return area === lens || area === SHARED;
+}
+
+/** The areas a lens shows, in order: its own first, then the shared one. */
+function areasFor(lens: AreaLens): PluginArea[] {
+  return [lens, SHARED].flatMap((name) => areas.get(name) ?? []);
+}
+
+const SUITE_ORDER: Record<Suite, number> = { mocked: 0, live: 1 };
+
+/** The cases of an area, as indices into the replays: the mocked ones first, then by name. */
+function casesOf(area: AreaName): number[] {
+  return data.replays
+    .map((replay, index) => ({ replay, index }))
+    .filter(({ replay }) => caseArea(replay) === area)
+    .sort((a, b) => SUITE_ORDER[a.replay.suite] - SUITE_ORDER[b.replay.suite] || a.replay.case.localeCompare(b.replay.case))
+    .map(({ index }) => index);
+}
+
 const MODEL = {
   data,
   tools,
@@ -221,7 +297,13 @@ const MODEL = {
   stepNodes,
   orderedLanes,
   laneLabel,
-  replaysWhere
+  replaysWhere,
+  areas,
+  areaOfNode,
+  caseArea,
+  inLens,
+  areasFor,
+  casesOf
 };
 
 export type PluginUsageModel = typeof MODEL;

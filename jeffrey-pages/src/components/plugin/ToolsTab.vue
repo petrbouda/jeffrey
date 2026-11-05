@@ -17,18 +17,22 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { formatCount, usePluginUsage } from '@/composables/usePluginUsage';
+import { formatCount, nodeId, usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
+import type { AreaName } from '@/types/pluginUsage';
 
 // Every tool of the server: which skills name it, which agents may call it, and how often the runs
 // did. Sortable, searchable, and a row opens the tool on the map.
 
+const props = defineProps<{ lens: AreaLens }>();
 const emit = defineEmits<{ (e: 'show', tool: string): void }>();
 
-type SortKey = 'name' | 'family' | 'named' | 'agents' | 'calls' | 'access' | 'cost';
+type SortKey = 'name' | 'area' | 'family' | 'named' | 'agents' | 'calls' | 'access' | 'cost';
 type Usage = 'all' | 'called' | 'never';
 
 interface ToolRow {
   name: string;
+  area: AreaName;
+  areaLabel: string;
   family: string;
   title: string | null;
   named: string[];
@@ -46,6 +50,7 @@ interface Column {
 
 const COLUMNS: Column[] = [
   { key: 'name', label: 'Tool' },
+  { key: 'area', label: 'Area' },
   { key: 'family', label: 'Family' },
   { key: 'named', label: 'Named by skills' },
   { key: 'agents', label: 'Agents' },
@@ -70,6 +75,8 @@ const model = usePluginUsage();
 
 const rows: ToolRow[] = model.data.tools.map((tool) => ({
   name: tool.name,
+  area: model.areaOfNode(nodeId('tool', tool.name)),
+  areaLabel: model.areas.get(model.areaOfNode(nodeId('tool', tool.name)))?.label ?? '',
   family: tool.family,
   title: tool.title,
   named: model.namedBy(tool.name),
@@ -81,6 +88,7 @@ const rows: ToolRow[] = model.data.tools.map((tool) => ({
 
 const SORT_VALUES: Record<SortKey, (row: ToolRow) => string | number> = {
   name: (row) => row.name,
+  area: (row) => row.areaLabel,
   family: (row) => row.family,
   named: (row) => row.named.length,
   agents: (row) => row.agents.length,
@@ -108,6 +116,7 @@ const shown = computed<ToolRow[]>(() => {
   const value = SORT_VALUES[sortKey.value];
   const direction = descending.value ? -1 : 1;
   return rows
+    .filter((row) => model.inLens(props.lens, row.area))
     .filter(USAGE_FILTERS[usage.value])
     .filter((row) => !needle || row.name.toLowerCase().includes(needle) || row.family.includes(needle)
       || row.named.some((skill) => skill.includes(needle)) || (row.title ?? '').toLowerCase().includes(needle))
@@ -129,8 +138,11 @@ const ariaSort = (key: SortKey): 'ascending' | 'descending' | undefined => {
 };
 
 const summary = computed(() => {
-  const { tools, families, toolsCalled, runs } = model.totals;
-  return `${tools} tools in ${families} families · ${toolsCalled} called at least once across ${formatCount(runs)} recorded runs, ${tools - toolsCalled} never.`;
+  const inLens = rows.filter((row) => model.inLens(props.lens, row.area));
+  const families = new Set(inLens.map((row) => row.family)).size;
+  const called = inLens.filter((row) => row.calls > 0).length;
+  const scope = ` in ${model.areas.get(props.lens)?.label} and the shared families`;
+  return `${inLens.length} tools in ${families} families${scope} · ${called} called at least once across ${formatCount(model.totals.runs)} recorded runs, ${inLens.length - called} never.`;
 });
 </script>
 
@@ -190,6 +202,7 @@ const summary = computed(() => {
               @keydown.enter="emit('show', row.name)"
             >
               <td class="tools-mono" :title="row.title ?? undefined">{{ row.name }}</td>
+              <td><span class="tools-area" :class="`tools-area--${row.area}`">{{ row.areaLabel }}</span></td>
               <td class="tools-mono tools-faint">{{ row.family }}</td>
               <td>{{ row.named.length ? row.named.join(', ') : '–' }}</td>
               <td>{{ row.agents.length ? row.agents.join(', ') : '–' }}</td>
@@ -287,7 +300,7 @@ const summary = computed(() => {
 
 .tools-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 980px;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -348,6 +361,27 @@ const summary = computed(() => {
 
 .tools-faint {
   color: var(--site-faint) !important;
+}
+
+.tools-area {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: var(--ap-radius-pill);
+  background: var(--ap-hover);
+  color: var(--site-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tools-area--jfr {
+  background: var(--ap-jfr-band);
+  color: var(--ap-jfr);
+}
+
+.tools-area--heap {
+  background: var(--ap-heap-band);
+  color: var(--ap-heap);
 }
 
 .tools-num {

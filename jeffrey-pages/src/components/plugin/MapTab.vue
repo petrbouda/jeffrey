@@ -19,7 +19,7 @@
 import { ref } from 'vue';
 import WiringMap from '@/components/plugin/WiringMap.vue';
 import WiringNodeDetail from '@/components/plugin/WiringNodeDetail.vue';
-import type { WiringMode } from '@/composables/usePluginUsage';
+import type { AreaLens, WiringMode } from '@/composables/usePluginUsage';
 
 // The whole wiring: the map on the left, what is picked on it on the right.
 
@@ -29,6 +29,7 @@ defineProps<{
   expanded: Set<string>;
   trail: Set<string>;
   trailLabel: string | null;
+  lens: AreaLens;
 }>();
 
 const emit = defineEmits<{
@@ -84,7 +85,7 @@ const query = ref('');
             {{ mode === 'described' ? 'A line: the skill or agent names it in its instructions.' : 'A line: calls made while that skill or agent was active.' }}
           </span>
         </div>
-        <WiringMap :mode="mode" :selected="selected" :expanded="expanded" :trail="trail" :query="query" @select="emit('select', $event)" />
+        <WiringMap :mode="mode" :selected="selected" :expanded="expanded" :trail="trail" :query="query" :lens="lens" @select="emit('select', $event)" />
       </section>
       <aside class="map-detail">
         <WiringNodeDetail :id="selected" @select="emit('select', $event)" @open-case="emit('open-case', $event)" />

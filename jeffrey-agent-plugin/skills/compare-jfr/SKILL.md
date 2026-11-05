@@ -182,9 +182,9 @@ primary, inside the noise of a sampled profile — say so rather than "no effect
 
 ## Hand the reading to the analyst
 
-Comparison documents are large, and answering well often takes several. A **`profile-analyst`**
-agent — `microscope:profile-analyst` from the Claude Code plugin, or the Codex custom agent from
-`codex/agents/profile-analyst.toml` — runs a sequence and returns only the findings. Give it both
+Comparison documents are large, and answering well often takes several. A **`jfr-analyst`**
+agent — `microscope:jfr-analyst` from the Claude Code plugin, or the Codex custom agent from
+`codex/agents/jfr-analyst.toml` — runs a sequence and returns only the findings. Give it both
 profile ids, which is the baseline, and the one question. Delegate when more than one event type is
 in play or the chase runs deep; read here when there is exactly one document and it will be
 discussed turn by turn.

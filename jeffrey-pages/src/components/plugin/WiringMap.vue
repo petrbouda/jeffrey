@@ -22,9 +22,11 @@ import {
   nodeId,
   parseNodeId,
   usePluginUsage,
+  type AreaLens,
   type NodeKind,
   type WiringMode
 } from '@/composables/usePluginUsage';
+import type { AreaName } from '@/types/pluginUsage';
 
 // Skills → agents → tool families, each line as wide as how often its two ends meet: in the
 // instructions (described) or in the runs (observed). A family opens into its tools. Hovering or
@@ -36,6 +38,7 @@ const props = defineProps<{
   expanded: Set<string>;
   trail: Set<string>;
   query: string;
+  lens: AreaLens;
 }>();
 
 const emit = defineEmits<{ (e: 'select', id: string): void }>();
@@ -68,6 +71,9 @@ const FAMILY_PITCH = 27;
 const TOOL_PITCH = 22;
 const TOOL_INDENT = 14;
 const MIN_QUERY = 2;
+const BAND_HEAD = 28;
+const BAND_PAD = 10;
+const BAND_GAP = 10;
 
 const model = usePluginUsage();
 const hover = ref<string | null>(null);
@@ -82,39 +88,58 @@ function visible(id: string): string {
   return family && !props.expanded.has(family) ? nodeId('family', family) : id;
 }
 
+interface MapBand {
+  area: AreaName;
+  title: string;
+  y: number;
+  h: number;
+}
+
+/** One horizontal band per area under the lens, each holding its skills, its agent and its families. */
 const layout = computed(() => {
   const nodes = new Map<string, MapNode>();
-  model.skillsByUse.forEach((skill, i) => {
-    const id = nodeId('skill', skill.name);
-    nodes.set(id, { id, kind: 'skill', x: COLUMN_X.skill, y: TOP + i * SKILL_PITCH, w: COLUMN_W.skill, h: 24,
-      label: skill.name, count: model.skillInvocations(skill.name) });
-  });
+  const bands: MapBand[] = [];
   let y = TOP;
-  for (const family of model.families) {
-    const open = props.expanded.has(family);
-    const id = nodeId('family', family);
-    const tools = model.familyTools.get(family) ?? [];
-    nodes.set(id, { id, kind: 'family', x: COLUMN_X.tool, y, w: COLUMN_W.tool, h: 22,
-      label: `${open ? '▾' : '▸'} ${family}_*  (${tools.length})`, count: model.familyCalls(family) });
-    y += FAMILY_PITCH;
-    if (open) {
-      for (const tool of tools) {
-        const toolId = nodeId('tool', tool);
-        nodes.set(toolId, { id: toolId, kind: 'tool', x: COLUMN_X.tool + TOOL_INDENT, y, w: COLUMN_W.tool - TOOL_INDENT, h: 19,
-          label: tool, count: model.toolCalls(tool) });
-        y += TOOL_PITCH;
+  for (const area of model.areasFor(props.lens)) {
+    const bandTop = y;
+    const rowTop = bandTop + BAND_HEAD;
+    const skills = model.skillsByUse.filter((skill) => area.skills.includes(skill.name));
+    skills.forEach((skill, i) => {
+      const id = nodeId('skill', skill.name);
+      nodes.set(id, { id, kind: 'skill', x: COLUMN_X.skill, y: rowTop + i * SKILL_PITCH, w: COLUMN_W.skill, h: 24,
+        label: skill.name, count: model.skillInvocations(skill.name) });
+    });
+    const skillBottom = rowTop + skills.length * SKILL_PITCH;
+    let familyY = rowTop;
+    for (const family of model.families.filter((candidate) => area.families.includes(candidate))) {
+      const open = props.expanded.has(family);
+      const id = nodeId('family', family);
+      const tools = model.familyTools.get(family) ?? [];
+      nodes.set(id, { id, kind: 'family', x: COLUMN_X.tool, y: familyY, w: COLUMN_W.tool, h: 22,
+        label: `${open ? '▾' : '▸'} ${family}_*  (${tools.length})`, count: model.familyCalls(family) });
+      familyY += FAMILY_PITCH;
+      if (open) {
+        for (const tool of tools) {
+          const toolId = nodeId('tool', tool);
+          nodes.set(toolId, { id: toolId, kind: 'tool', x: COLUMN_X.tool + TOOL_INDENT, y: familyY, w: COLUMN_W.tool - TOOL_INDENT, h: 19,
+            label: tool, count: model.toolCalls(tool) });
+          familyY += TOOL_PITCH;
+        }
+        familyY += 4;
       }
-      y += 4;
     }
+    if (area.agent) {
+      const id = nodeId('agent', area.agent);
+      const centre = (rowTop + Math.max(skillBottom, rowTop + SKILL_PITCH)) / 2;
+      nodes.set(id, { id, kind: 'agent', x: COLUMN_X.agent, y: centre - 13, w: COLUMN_W.agent, h: 26,
+        label: area.agent, count: model.agentSpawns(area.agent) });
+    }
+    const bandBottom = Math.max(skillBottom, familyY) + BAND_PAD;
+    bands.push({ area: area.name, title: area.agent ? `${area.label} · worked by ${area.agent}` : `${area.label} · used by both`,
+      y: bandTop, h: bandBottom - bandTop });
+    y = bandBottom + BAND_GAP;
   }
-  const skillBottom = TOP + model.skillsByUse.length * SKILL_PITCH;
-  model.data.agents.forEach((agent, i) => {
-    const id = nodeId('agent', agent.name);
-    const centre = TOP + ((skillBottom - TOP) * (i + 1)) / (model.data.agents.length + 1);
-    nodes.set(id, { id, kind: 'agent', x: COLUMN_X.agent, y: centre - 13, w: COLUMN_W.agent, h: 26,
-      label: agent.name, count: model.agentSpawns(agent.name) });
-  });
-  return { nodes, height: Math.max(y, skillBottom) + 12 };
+  return { nodes, bands, height: y };
 });
 
 function edgePath(from: MapNode, to: MapNode): string {
@@ -219,6 +244,10 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
       <text class="map-column" :x="COLUMN_X.skill" y="18">Skills · invocations</text>
       <text class="map-column" :x="COLUMN_X.agent" y="18">Agents · spawns</text>
       <text class="map-column" :x="COLUMN_X.tool" y="18">Tools · calls</text>
+      <g v-for="band in layout.bands" :key="band.area" class="map-band" :class="`map-band--${band.area}`">
+        <rect x="4" :y="band.y" :width="WIDTH - 8" :height="band.h" rx="10" />
+        <text class="map-band-title" :x="COLUMN_X.skill - 36" :y="band.y + 18">{{ band.title }}</text>
+      </g>
       <path
         v-for="edge in edges"
         :key="edge.key"
@@ -270,6 +299,33 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
   letter-spacing: 0.1em;
   text-transform: uppercase;
   fill: var(--site-faint);
+}
+
+.map-band rect {
+  fill: var(--ap-shared-band);
+}
+
+.map-band--jfr rect {
+  fill: var(--ap-jfr-band);
+}
+
+.map-band--heap rect {
+  fill: var(--ap-heap-band);
+}
+
+.map-band-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  fill: var(--site-muted);
+}
+
+.map-band--jfr .map-band-title {
+  fill: var(--ap-jfr);
+}
+
+.map-band--heap .map-band-title {
+  fill: var(--ap-heap);
 }
 
 .map-edge {

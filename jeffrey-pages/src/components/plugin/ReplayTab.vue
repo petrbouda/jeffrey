@@ -22,12 +22,12 @@ import ReplayPlayer from '@/components/plugin/ReplayPlayer.vue';
 import ReplayRoute from '@/components/plugin/ReplayRoute.vue';
 import ReplayStepCard from '@/components/plugin/ReplayStepCard.vue';
 import ReplayTimeline from '@/components/plugin/ReplayTimeline.vue';
-import { formatDay, formatUsd, usePluginUsage } from '@/composables/usePluginUsage';
+import { formatDay, formatUsd, usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
 import { useReplayPlayback } from '@/composables/useReplayPlayback';
 
 // One eval case at a time: pick it on the left, play a run in the middle, follow its route on the right.
 
-const props = defineProps<{ caseIndex: number; runIndex: number }>();
+const props = defineProps<{ caseIndex: number; runIndex: number; lens: AreaLens }>();
 
 const emit = defineEmits<{
   (e: 'select-case', index: number): void;
@@ -45,6 +45,8 @@ const replay = computed(() => replays[props.caseIndex]);
 const run = computed(() => replay.value.runs[props.runIndex] ?? replay.value.runs[0]);
 const steps = computed(() => run.value.steps);
 const playback = useReplayPlayback(steps);
+
+const area = computed(() => model.areas.get(model.caseArea(replay.value))!);
 
 const runFacts = computed<string[]>(() => {
   const facts: string[] = [SUITE_LABELS[replay.value.suite], formatDay(replay.value.at)];
@@ -75,14 +77,17 @@ function runMark(passed: boolean | null): string {
 <template>
   <div class="replay">
     <aside class="replay-cases">
-      <ReplayCaseList :replays="replays" :selected="caseIndex" @select="emit('select-case', $event)" />
+      <ReplayCaseList :replays="replays" :selected="caseIndex" :lens="lens" @select="emit('select-case', $event)" />
     </aside>
 
     <section class="replay-main" aria-live="polite">
       <div class="replay-title-row">
         <div>
           <h2 class="replay-title">{{ replay.case }}</h2>
-          <p class="replay-facts">{{ runFacts.join(' · ') }}</p>
+          <p class="replay-facts">
+            <span class="replay-area" :class="`replay-area--${area.name}`">{{ area.label }}</span>
+            {{ runFacts.join(' · ') }}
+          </p>
         </div>
         <div class="replay-runs" role="tablist" aria-label="Runs">
           <button
@@ -203,6 +208,27 @@ function runMark(passed: boolean | null): string {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--site-faint);
+}
+
+.replay-area {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 8px;
+  border-radius: var(--ap-radius-pill);
+  background: var(--ap-hover);
+  color: var(--site-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.replay-area--jfr {
+  background: var(--ap-jfr-band);
+  color: var(--ap-jfr);
+}
+
+.replay-area--heap {
+  background: var(--ap-heap-band);
+  color: var(--ap-heap);
 }
 
 .replay-runs {

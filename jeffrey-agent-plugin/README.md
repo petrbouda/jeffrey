@@ -246,35 +246,28 @@ prefixes are; the full table is in
 points into another's directory: a client that loads the skills from the server reads only the files
 a skill lists as its own.
 
-**Two agents.** `profile-analyst` is the general one. A single flamegraph export can run to 120,000 characters,
-and a question usually takes several. The analyst runs a sequence and returns only the findings — the
-hot frames with their shares, or the retaining classes with their GC-root paths — leaving everything
-it read in its own context. The skills hand it the reading and keep what needs your conversation:
-mapping frames onto the checkout, the recommendation, and every question put to you.
+**Two agents, one per kind of profile.** `jfr-analyst` reads a JFR recording — flamegraphs, traces,
+comparisons of two runs — and `heap-analyst` reads a heap dump, building a missing report with
+`heap_prepare`. A skill hands an agent the reading; the agent returns only the findings and keeps the
+exports in its own context. `jfr-analyst` is denied every `heap_` tool. An open question ("why is
+this service slow") has no agent of its own: `analyze-jfr` puts the profile's investigation areas to
+you and sends the ones you pick to `jfr-analyst` in one message.
 
-`heap-triage` is the heap specialist: it carries a handbook cut from `analyze-heap` and `heap-sql`, runs the whole leak
-route, and will build a missing dominator tree or report with `heap_prepare` rather than reporting an
-empty result.
-
-An open-ended question — "why is this service slow", "review this recording" — needs no agent of its
-own: the skill puts the profile's menu of investigation areas to you, and sends the areas you pick to
-the analysts in one message so they run at once, while it can still ask you.
-
-Claude Code gets them from the plugin as `microscope:profile-analyst` and `microscope:heap-triage`,
+Claude Code gets them from the plugin as `microscope:jfr-analyst` and `microscope:heap-analyst`,
 with no file tools and no writer that leaves Jeffrey's caches, so they
 cannot touch your files, import a recording, pull one off the connector, move your editor or propose
-an edit. They are not strictly read-only: `jvm_autoAnalysis` with `compute` and `heap_oql` with
-`includeRetainedSize` fill a cache, and `heap-triage` also runs `heap_prepare` to build a missing
-report — `profile-analyst` is denied that one. **Agent Plugins defines only
+an edit. They are not strictly read-only: `jvm_autoAnalysis` with `compute` (`jfr-analyst`) and
+`heap_oql` with `includeRetainedSize` (`heap-analyst`) fill a cache, and `heap-analyst` also runs
+`heap_prepare` to build a missing report. **Agent Plugins defines only
 skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
-[`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml) and
-[`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) to `~/.codex/agents/` instead.
+[`codex/agents/jfr-analyst.toml`](codex/agents/jfr-analyst.toml) and
+[`codex/agents/heap-analyst.toml`](codex/agents/heap-analyst.toml) to `~/.codex/agents/` instead.
 Those versions are sandboxed read-only, but their tool restriction is instruction-level rather than
 enforced.
 
 **Gemini CLI gets both, also as files to copy** —
-[`gemini/agents/profile-analyst.md`](gemini/agents/profile-analyst.md) and
-[`gemini/agents/heap-triage.md`](gemini/agents/heap-triage.md) to `~/.gemini/agents/` for every
+[`gemini/agents/jfr-analyst.md`](gemini/agents/jfr-analyst.md) and
+[`gemini/agents/heap-analyst.md`](gemini/agents/heap-analyst.md) to `~/.gemini/agents/` for every
 repository, or `.gemini/agents/` for one; `/agents` then lists them. The extension cannot carry them
 even though Gemini reads an extension's `agents/`: it validates that frontmatter strictly and rejects
 any key it does not define, and the plugin's own agents carry Claude Code's `disallowedTools`,
@@ -385,14 +378,14 @@ jeffrey-agent-plugin/
 ├── hooks/                    SessionStart check — is Jeffrey actually serving (Claude Code and Gemini)
 ├── skills/                   Twelve skills, read by all three formats
 ├── agents/
-│   ├── profile-analyst.md    Claude Code subagent
-│   └── heap-triage.md        …and the heap specialist
+│   ├── jfr-analyst.md    Claude Code subagent
+│   └── heap-analyst.md        …and the heap specialist
 ├── codex/agents/
-│   ├── profile-analyst.toml  The same agents as Codex custom agents, installed by hand
-│   └── heap-triage.toml
+│   ├── jfr-analyst.toml  The same agents as Codex custom agents, installed by hand
+│   └── heap-analyst.toml
 ├── gemini/agents/
-│   ├── profile-analyst.md    The same two as Gemini CLI subagents, also installed by hand
-│   └── heap-triage.md
+│   ├── jfr-analyst.md    The same two as Gemini CLI subagents, also installed by hand
+│   └── heap-analyst.md
 ├── evals/                    Behaviour evals against recorded Jeffrey answers (see evals/README.md)
 └── evals-live/               The SQL cases, run against a live Jeffrey
 ```

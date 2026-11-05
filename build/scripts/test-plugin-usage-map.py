@@ -47,7 +47,7 @@ TRACE = [
     assistant("2026-11-04T10:00:00.000Z", ("u1", "Skill", {"skill": "microscope:analyze-heap", "args": "/tmp/a.hprof"})),
     assistant("2026-11-04T10:00:01.000Z", ("u2", "ToolSearch", {"query": "select:x"})),
     assistant("2026-11-04T10:00:02.500Z", ("u3", J + "recordings_analyzeFile", {"path": "/tmp/a.hprof"})),
-    assistant("2026-11-04T10:00:03.000Z", ("u4", "Agent", {"subagent_type": "microscope:heap-triage", "description": "Triage"})),
+    assistant("2026-11-04T10:00:03.000Z", ("u4", "Agent", {"subagent_type": "microscope:heap-analyst", "description": "Triage"})),
     assistant("2026-11-04T10:00:04.000Z", ("u5", J + "heap_getHeapSummary", {"profileId": "p"}), parent="u4"),
     assistant("2026-11-04T10:00:09.000Z", ("u6", "Grep", {"pattern": "AuditLog"})),
     "not json",
@@ -61,17 +61,17 @@ class StepsOfATrace(unittest.TestCase):
 
     def test_keeps_the_calls_in_order_without_the_tool_search(self):
         self.assertEqual([(s["kind"], s["name"]) for s in self.steps], [
-            ("skill", "analyze-heap"), ("jeffrey", "recordings_analyzeFile"), ("agent", "heap-triage"),
+            ("skill", "analyze-heap"), ("jeffrey", "recordings_analyzeFile"), ("agent", "heap-analyst"),
             ("jeffrey", "heap_getHeapSummary"), ("other", "Grep")])
         self.assertEqual([s["t"] for s in self.steps], [0, 2500, 3000, 4000, 9000])
 
     def test_puts_an_agents_calls_in_its_own_lane(self):
-        self.assertEqual(self.lanes, {"main": "main", "u4": "heap-triage"})
+        self.assertEqual(self.lanes, {"main": "main", "u4": "heap-analyst"})
         self.assertEqual([s["lane"] for s in self.steps], ["main", "main", "main", "u4", "main"])
 
     def test_charges_each_call_to_the_active_skill_or_to_its_agent(self):
         by = [s.get("by") for s in self.steps]
-        self.assertEqual(by, [None, ["skill", "analyze-heap"], ["skill", "analyze-heap"], ["agent", "heap-triage"], None])
+        self.assertEqual(by, [None, ["skill", "analyze-heap"], ["skill", "analyze-heap"], ["agent", "heap-analyst"], None])
 
     def test_cuts_long_inputs(self):
         steps, _ = usage_map.steps_of([assistant("2026-11-04T10:00:00Z", ("u1", "Bash", {"command": "x" * 500}))])
@@ -86,15 +86,15 @@ class Wiring(unittest.TestCase):
             skill = Path(tmp) / "skills/analyze-heap"
             (skill / "references").mkdir(parents=True)
             (skill / "SKILL.md").write_text("---\nname: analyze-heap\ndescription: Heap dumps\n---\n"
-                                            "Call `heap_prepare`, then hand over to `microscope:heap-triage` "
+                                            "Call `heap_prepare`, then hand over to `microscope:heap-analyst` "
                                             "or `report`.\n```\nheap_oql\n```\n")
             (skill / "references/more.md").write_text("Also `mcp__jeffrey__heap_status`.\n")
             (Path(tmp) / "skills/report").mkdir()
             (Path(tmp) / "skills/report/SKILL.md").write_text("---\nname: report\n---\nBack to `analyze-heap`.\n")
             skills = usage_map.skills_of(Path(tmp), {"heap_prepare", "heap_oql", "heap_status"},
-                                         ["analyze-heap", "report"], ["heap-triage"])
+                                         ["analyze-heap", "report"], ["heap-analyst"])
         self.assertEqual(skills[0]["tools"], {"heap_prepare": 1, "heap_status": 1})
-        self.assertEqual(skills[0]["agents"], {"heap-triage": 1})
+        self.assertEqual(skills[0]["agents"], {"heap-analyst": 1})
         self.assertEqual(skills[0]["skills"], {"report": 1})
         self.assertEqual(skills[0]["description"], "Heap dumps")
 
@@ -136,10 +136,37 @@ class CommittedMap(unittest.TestCase):
         snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
         fresh = usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot)
         for key, entries in fresh.items():
-            committed = {entry["name"]: entry for entry in self.data[key]}
+            committed = {entry["name"]: entry for entry in self.data.get(key, [])}
             stale = sorted(entry["name"] for entry in entries if committed.get(entry["name"]) != entry)
             self.assertEqual(stale, [], f"the committed map's {key} are stale: "
                                         "run `python3 build/scripts/plugin-usage-map.py --wiring-only`")
+
+
+class Areas(unittest.TestCase):
+    """Each skill and tool family sits in exactly one area, and each area's agent is one of the plugin's."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data = json.loads(COMMITTED.read_text())
+
+    def assert_partitions(self, key, names):
+        placed = [name for area in usage_map.AREAS for name in area[key]]
+        twice = sorted({name for name in placed if placed.count(name) > 1})
+        self.assertEqual(twice, [], f"{key} in more than one area")
+        self.assertEqual(sorted(set(placed) - names), [], f"{key} in an area but not in the plugin or snapshot")
+        self.assertEqual(sorted(names - set(placed)), [], f"{key} in no area: add each to one in AREAS")
+
+    def test_every_skill_is_in_one_area(self):
+        self.assert_partitions("skills", {s["name"] for s in self.data["skills"]})
+
+    def test_every_tool_family_is_in_one_area(self):
+        self.assert_partitions("families", {t["family"] for t in self.data["tools"]})
+
+    def test_each_area_is_worked_by_one_of_the_plugins_agents(self):
+        agents = {a["name"] for a in self.data["agents"]}
+        worked = [area["agent"] for area in usage_map.AREAS if area["agent"]]
+        self.assertLessEqual(set(worked), agents)
+        self.assertEqual(len(worked), len(set(worked)))
 
 
 class WiringOnly(unittest.TestCase):

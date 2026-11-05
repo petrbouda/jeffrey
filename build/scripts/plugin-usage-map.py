@@ -30,7 +30,7 @@ The JSON keeps every run's totals and, for each eval case, the latest results' r
 is written into jeffrey-pages, whose Agent Plugin page (`/agent-plugin`) replays the runs over a map
 of the wiring. Traces live in temporary directories, so a run whose trace is gone is skipped.
 
-`--wiring-only` needs no traces: it rewrites only the documented wiring (`tools`, `skills`, `agents`)
+`--wiring-only` needs no traces: it rewrites only the documented wiring (`tools`, `skills`, `agents`, `areas`)
 of the map at `--out` and keeps its runs, so a skill, agent or tool change updates the committed map
 without a suite run. `test-plugin-usage-map.py` fails until it does.
 
@@ -63,6 +63,22 @@ DEFAULT_AGENT = "general-purpose"
 MAIN_LANE = "main"
 INPUT_CHARS = 160
 KIND_PREFIX = {"skill": "s:", "agent": "a:", "jeffrey": "t:"}
+
+# The plugin's two areas, each worked by its own agent, and what both of them use. Every skill and every
+# tool family belongs to exactly one; test-plugin-usage-map.py fails on one that is new or gone.
+AREAS = [
+    {"name": "jfr", "label": "JFR recordings", "agent": "jfr-analyst",
+     "skills": ["analyze-exceptions", "analyze-jfr", "code-insight", "compare-jfr", "jfr-sql", "optimize-code",
+                "profile-run", "regression-check"],
+     "families": ["blocking", "code", "compare", "flamegraph", "grpc", "http", "ide", "io", "jdbc", "jfr", "jvm",
+                  "memory", "methodtracing", "timeline", "traces"]},
+    {"name": "heap", "label": "Heap dumps", "agent": "heap-analyst",
+     "skills": ["analyze-heap", "heap-sql"],
+     "families": ["heap"]},
+    {"name": "shared", "label": "Shared", "agent": None,
+     "skills": ["analyze-connector", "help", "report"],
+     "families": ["connector", "operations", "profiles", "recordings"]},
+]
 
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.S)
 BACKTICKED_NAME = re.compile(r"`(?:microscope:)?([a-z][a-z-]+)`")
@@ -254,13 +270,13 @@ def usage_of(plugin: Path) -> dict:
 
 
 def wiring_of(plugin: Path, snapshot: dict) -> dict:
-    """The documented wiring alone: every tool of the snapshot, and the plugin's skills and agents."""
+    """The documented wiring alone: every tool of the snapshot, the plugin's skills and agents, and its areas."""
     tools = tools_of(snapshot)
     tool_names = {tool["name"] for tool in tools}
     skill_names = sorted(p.parent.name for p in (plugin / "skills").glob("*/SKILL.md"))
     agent_names = sorted(p.stem for p in (plugin / "agents").glob("*.md"))
     return {"tools": tools, "skills": skills_of(plugin, tool_names, skill_names, agent_names),
-            "agents": agents_of(plugin, tool_names, skill_names, agent_names)}
+            "agents": agents_of(plugin, tool_names, skill_names, agent_names), "areas": AREAS}
 
 
 def usage_map(plugin: Path, snapshot: dict) -> dict:

@@ -16,8 +16,9 @@
 -->
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useRoute, useRouter, type LocationQuery } from 'vue-router';
+import AreaSwitch from '@/components/plugin/AreaSwitch.vue';
 import MapTab from '@/components/plugin/MapTab.vue';
 import ReplayTab from '@/components/plugin/ReplayTab.vue';
 import ToolsTab from '@/components/plugin/ToolsTab.vue';
@@ -26,6 +27,8 @@ import {
   nodeId,
   parseNodeId,
   usePluginUsage,
+  AREA_LENSES,
+  type AreaLens,
   type WiringMode
 } from '@/composables/usePluginUsage';
 
@@ -37,10 +40,11 @@ type Tab = 'replay' | 'map' | 'tools';
 
 const TABS: Tab[] = ['replay', 'map', 'tools'];
 const DEFAULT_TAB: Tab = 'replay';
-const DEFAULT_CASE = 'heap-dump-what-holds-memory';
 const QUERY_TAB = 'tab';
 const QUERY_CASE = 'case';
 const QUERY_RUN = 'run';
+const QUERY_AREA = 'area';
+const DEFAULT_LENS: AreaLens = 'jfr';
 
 const model = usePluginUsage();
 const { totals } = model;
@@ -48,11 +52,6 @@ const replays = model.data.replays;
 const route = useRoute();
 const router = useRouter();
 
-const TAB_LABELS: Record<Tab, { label: string; count: string }> = {
-  replay: { label: 'Replay', count: `${replays.length} cases` },
-  map: { label: 'Map', count: `${totals.skills} · ${totals.agents} · ${totals.families}` },
-  tools: { label: 'Tools', count: `${totals.tools}` }
-};
 
 const FACTS: { value: number; label: string }[] = [
   { value: totals.skills, label: 'skills' },
@@ -69,19 +68,23 @@ function single(query: LocationQuery, key: string): string | null {
   return typeof value === 'string' ? value : null;
 }
 
-function caseIndexOf(name: string | null): number {
-  const index = replays.findIndex((replay) => replay.case === (name ?? DEFAULT_CASE));
-  return Math.max(0, index);
+/** The named case, or the first one of the lens's own area. */
+function caseIndexOf(name: string | null, lens: AreaLens): number {
+  const index = replays.findIndex((replay) => replay.case === name);
+  return index >= 0 ? index : (model.areasFor(lens).flatMap((area) => model.casesOf(area.name))[0] ?? 0);
 }
 
 const tab = ref<Tab>(DEFAULT_TAB);
 const caseIndex = ref(0);
 const runIndex = ref(0);
+const lens = ref<AreaLens>(DEFAULT_LENS);
 
 function readQuery(query: LocationQuery): void {
   const asked = single(query, QUERY_TAB);
   tab.value = TABS.find((candidate) => candidate === asked) ?? DEFAULT_TAB;
-  caseIndex.value = caseIndexOf(single(query, QUERY_CASE));
+  const area = single(query, QUERY_AREA);
+  lens.value = AREA_LENSES.find((candidate) => candidate === area) ?? DEFAULT_LENS;
+  caseIndex.value = caseIndexOf(single(query, QUERY_CASE), lens.value);
   const run = Number(single(query, QUERY_RUN) ?? 1);
   const runs = replays[caseIndex.value]?.runs ?? [];
   runIndex.value = Math.max(0, runs.findIndex((item) => item.run === run));
@@ -90,10 +93,11 @@ function readQuery(query: LocationQuery): void {
 readQuery(route.query);
 watch(() => route.query, readQuery);
 
-watch([tab, caseIndex, runIndex], () => {
+watch([tab, lens, caseIndex, runIndex], () => {
   const replay = replays[caseIndex.value];
   const query = {
     [QUERY_TAB]: tab.value,
+    [QUERY_AREA]: lens.value,
     [QUERY_CASE]: replay?.case,
     [QUERY_RUN]: String(replay?.runs[runIndex.value]?.run ?? 1)
   };
@@ -126,6 +130,37 @@ const selected = ref<string | null>(null);
 const expanded = ref(new Set<string>());
 const trail = ref(new Set<string>());
 const trailLabel = ref<string | null>(null);
+
+/** Each tab's count under the lens: cases; skills · agents · families; tools. */
+const tabLabels = computed<Record<Tab, { label: string; count: string }>>(() => {
+  const shown = model.areasFor(lens.value);
+  const skills = shown.reduce((sum, area) => sum + area.skills.length, 0);
+  const agents = shown.filter((area) => area.agent).length;
+  const families = shown.flatMap((area) => area.families);
+  const tools = families.reduce((sum, family) => sum + (model.familyTools.get(family)?.length ?? 0), 0);
+  const cases = shown.reduce((sum, area) => sum + model.casesOf(area.name).length, 0);
+  return {
+    replay: { label: 'Replay', count: `${cases} cases` },
+    map: { label: 'Map', count: `${skills} · ${agents} · ${families.length}` },
+    tools: { label: 'Tools', count: `${tools}` }
+  };
+});
+
+// Under a lens the open case and the picked node belong to it, or the first ones that do take over.
+watch(
+  lens,
+  () => {
+    const shown = (index: number): boolean => model.inLens(lens.value, model.caseArea(replays[index]));
+    if (!shown(caseIndex.value)) {
+      caseIndex.value = model.areasFor(lens.value).flatMap((area) => model.casesOf(area.name))[0] ?? 0;
+      runIndex.value = 0;
+    }
+    if (selected.value && !model.inLens(lens.value, model.areaOfNode(selected.value))) {
+      selected.value = null;
+    }
+  },
+  { immediate: true }
+);
 
 function expand(family: string | undefined): void {
   if (family && !expanded.value.has(family)) {
@@ -193,12 +228,9 @@ function selectCase(index: number): void {
   <main class="agent-plugin">
     <header class="ap-header">
       <div class="ap-header-inner">
-        <div class="ap-eyebrow">Coding-agent plugin · v{{ model.data.plugin }}</div>
-        <h1 class="ap-title">The plugin in action</h1>
-        <p class="ap-lede">
-          How the <code>microscope</code> plugin's skills and agents route a coding agent's performance questions
-          to Jeffrey's MCP tools, replayed call by call from the plugin's recorded eval runs.
-        </p>
+        <div class="ap-eyebrow">Coding-agent plugin · runs recorded with v{{ model.data.plugin }}</div>
+        <h1 class="visually-hidden">Agent Plugin</h1>
+        <AreaSwitch class="ap-areas" :lens="lens" @change="lens = $event" />
         <ul class="ap-facts">
           <li v-for="fact in FACTS" :key="fact.label"><b>{{ formatCount(fact.value) }}</b> {{ fact.label }}</li>
         </ul>
@@ -213,7 +245,7 @@ function selectCase(index: number): void {
             :aria-selected="item === tab"
             @click="tab = item"
           >
-            {{ TAB_LABELS[item].label }}<span class="ap-tab-count">{{ TAB_LABELS[item].count }}</span>
+            {{ tabLabels[item].label }}<span class="ap-tab-count">{{ tabLabels[item].count }}</span>
           </button>
         </nav>
       </div>
@@ -223,6 +255,7 @@ function selectCase(index: number): void {
       v-if="tab === 'replay'"
       :case-index="caseIndex"
       :run-index="runIndex"
+      :lens="lens"
       @select-case="selectCase"
       @select-run="runIndex = $event"
       @open-map="openMapWithTrail"
@@ -235,12 +268,13 @@ function selectCase(index: number): void {
       :expanded="expanded"
       :trail="trail"
       :trail-label="trailLabel"
+      :lens="lens"
       @mode="mode = $event"
       @select="select"
       @clear-trail="clearTrail"
       @open-case="openCase"
     />
-    <ToolsTab v-else @show="pickOnMap(nodeId('tool', $event))" />
+    <ToolsTab v-else :lens="lens" @show="pickOnMap(nodeId('tool', $event))" />
   </main>
 </template>
 
@@ -260,6 +294,11 @@ function selectCase(index: number): void {
   --ap-no-line: rgba(194, 65, 12, 0.35);
   --ap-hover: rgba(48, 32, 12, 0.04);
   --ap-current: #fff4ea;
+  --ap-jfr: var(--site-ember);
+  --ap-jfr-band: rgba(255, 109, 0, 0.055);
+  --ap-heap: #6d3fd6;
+  --ap-heap-band: rgba(109, 63, 214, 0.06);
+  --ap-shared-band: rgba(48, 32, 12, 0.03);
   --ap-tab-start: #ffab00;
   --ap-edge: rgba(48, 32, 12, 0.14);
   --ap-radius-xs: 3px;
@@ -288,25 +327,11 @@ function selectCase(index: number): void {
   color: var(--site-ember);
 }
 
-.ap-title {
-  margin: 8px 0 6px;
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
 
-.ap-lede {
-  max-width: 760px;
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--site-muted);
-}
 
-.ap-lede code {
-  font-family: var(--site-font-mono);
-  font-size: 13.5px;
-  color: var(--site-ink);
+
+.ap-areas {
+  margin-top: 12px;
 }
 
 .ap-facts {
@@ -376,13 +401,7 @@ function selectCase(index: number): void {
     padding: 18px 16px 0;
   }
 
-  .ap-title {
-    font-size: 26px;
-  }
 
-  .ap-lede {
-    font-size: 14px;
-  }
 
   .ap-facts {
     gap: 4px 16px;

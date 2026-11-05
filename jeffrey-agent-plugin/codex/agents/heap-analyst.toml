@@ -1,16 +1,16 @@
-# Jeffrey Microscope — heap-triage, as a Codex custom agent.
+# Jeffrey Microscope — heap-analyst, as a Codex custom agent.
 #
 # The Claude Code plugin ships this as a subagent that Codex plugins cannot carry: the Agent Plugins
 # format defines exactly two component types, skills and MCP servers, so a Codex user installs it by
-# hand. Copy this file to ~/.codex/agents/heap-triage.toml for every repository, or to
-# .codex/agents/heap-triage.toml for one.
+# hand. Copy this file to ~/.codex/agents/heap-analyst.toml for every repository, or to
+# .codex/agents/heap-analyst.toml for one.
 #
-# As with profile-analyst, the tool restriction here is instruction-level rather than enforced: Codex
+# As with jfr-analyst, the tool restriction here is instruction-level rather than enforced: Codex
 # has no per-agent tool deny-list, so the "never write" rules below are the only thing keeping this
 # agent off recordings_, connector_, operations_cancel and the two ide_ tools that act on your editor.
 # Read-only sandboxing keeps it out of your files.
 
-name = "heap-triage"
+name = "heap-analyst"
 
 description = """
 Works a heap dump end to end and returns only the findings — what is holding the memory, with class \

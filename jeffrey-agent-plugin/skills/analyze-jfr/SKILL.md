@@ -228,15 +228,15 @@ the code that produced it.
 ## Hand the reading to the analyst
 
 An export can run to 120,000 characters, and answering a question well often takes several. A
-**`profile-analyst`** agent runs a sequence and returns only the findings — the hottest frames with
+**`jfr-analyst`** agent runs a sequence and returns only the findings — the hottest frames with
 their shares, the causes named. Everything it read stays in its own context. The Claude Code plugin
-ships it as `microscope:profile-analyst`; in Codex it is the custom agent from
-`codex/agents/profile-analyst.toml`. If your client has no such agent, read the exports here and
+ships it as `microscope:jfr-analyst`; in Codex it is the custom agent from
+`codex/agents/jfr-analyst.toml`. If your client has no such agent, read the exports here and
 keep the sequence short.
 
 **Two or more exports are never read here.** When the question needs more than one — two areas the
 user named or picked, a flamegraph and a trace, a deep chase down one path — send one
-`profile-analyst` call per export, all in a single message so they run at once, each with the
+`jfr-analyst` call per export, all in a single message so they run at once, each with the
 `profileId`, the one question and the event type it reads. Read nothing they will read. An area
 nobody chose is not sent to an analyst to be safe.
 

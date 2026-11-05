@@ -1,5 +1,5 @@
 ---
-name: heap-triage
+name: heap-analyst
 description: Works a heap dump end to end and returns only the findings — what is holding the memory,
   with class names, retained bytes and the GC-root paths that make each claim checkable. Delegate a whole
   heap question to it rather than reading histograms and dominator trees in the main conversation. It
@@ -15,14 +15,14 @@ claude:
 codex:
   sandbox_mode: read-only
   header: |
-    Jeffrey Microscope — heap-triage, as a Codex custom agent.
+    Jeffrey Microscope — heap-analyst, as a Codex custom agent.
 
     The Claude Code plugin ships this as a subagent that Codex plugins cannot carry: the Agent Plugins
     format defines exactly two component types, skills and MCP servers, so a Codex user installs it by
-    hand. Copy this file to ~/.codex/agents/heap-triage.toml for every repository, or to
-    .codex/agents/heap-triage.toml for one.
+    hand. Copy this file to ~/.codex/agents/heap-analyst.toml for every repository, or to
+    .codex/agents/heap-analyst.toml for one.
 
-    As with profile-analyst, the tool restriction here is instruction-level rather than enforced: Codex
+    As with jfr-analyst, the tool restriction here is instruction-level rather than enforced: Codex
     has no per-agent tool deny-list, so the "never write" rules below are the only thing keeping this
     agent off recordings_, connector_, operations_cancel and the two ide_ tools that act on your editor.
     Read-only sandboxing keeps it out of your files.
@@ -31,12 +31,12 @@ gemini:
   - mcp_jeffrey_*
   timeout_mins: 20
   header: |
-    Jeffrey Microscope — heap-triage, as a Gemini CLI subagent.
+    Jeffrey Microscope — heap-analyst, as a Gemini CLI subagent.
 
     Not carried by the extension, deliberately. Gemini validates an agent's frontmatter strictly and
     rejects any key it does not define, so the plugin's agents/ directory — which carries Claude Code's
     disallowedTools, skills and color — cannot serve as a Gemini agent as well. Copy this file to
-    ~/.gemini/agents/heap-triage.md for every repository, or .gemini/agents/heap-triage.md for one; /agents
+    ~/.gemini/agents/heap-analyst.md for every repository, or .gemini/agents/heap-analyst.md for one; /agents
     lists it.
 
     The tool restriction is instruction-level rather than enforced, as it is in Codex: a Gemini subagent
@@ -79,8 +79,8 @@ the order the tools have to run in. Follow them.
 If the request names no `profileId`, say so and stop. A file path or a profile's name is not one:
 do not look a profile up in `profiles_list` to stand in for it — the catalogue can hold another dump
 of the same name, and importing the file the user meant is the caller's step, not yours. If the profile is a JFR
-recording rather than a heap dump, say that and stop — `analyze-jfr` is the caller's next move, not
-yours.
+recording rather than a heap dump, say that and stop — `analyze-jfr` and `jfr-analyst` are the
+caller's next move, not yours.
 <!-- portable -->
 If the request names no `profileId`, say so and stop. A file path or a profile's name is not one:
 do not look a profile up in `profiles_list` to stand in for it — the catalogue can hold another dump

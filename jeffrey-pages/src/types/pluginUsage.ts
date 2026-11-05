@@ -93,6 +93,18 @@ export interface PluginAgent {
   agents: Record<string, number>;
 }
 
+/** 'jfr' and 'heap' are each worked by one agent; 'shared' is what both of them use. */
+export type AreaName = 'jfr' | 'heap' | 'shared';
+
+export interface PluginArea {
+  name: AreaName;
+  label: string;
+  /** The agent that works this area; null for the shared one. */
+  agent: string | null;
+  skills: string[];
+  families: string[];
+}
+
 export interface UsageTotals {
   runs: number;
   missingTraces: number;
@@ -107,6 +119,8 @@ export interface PluginUsage {
   tools: PluginTool[];
   skills: PluginSkill[];
   agents: PluginAgent[];
+  /** Every skill and tool family in exactly one of them. */
+  areas: PluginArea[];
   usage: UsageTotals;
   /** Node id (s:, a:) → node id (s:, a:, t:) → calls charged to the first while it was active. */
   observed: Record<string, Record<string, number>>;
