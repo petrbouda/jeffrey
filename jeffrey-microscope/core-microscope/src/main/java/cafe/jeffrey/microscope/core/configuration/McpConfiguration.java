@@ -167,12 +167,13 @@ public class McpConfiguration {
             @Value("${" + RecordingsMcpTools.MAX_CONCURRENT_IMPORTS_PROPERTY + ":"
                     + RecordingsMcpTools.DEFAULT_MAX_CONCURRENT_IMPORTS + "}") int maxConcurrentImports,
             Clock applicationClock,
-            AdvertisedFamilies advertisedFamilies) {
+            AdvertisedFamilies advertisedFamilies,
+            RecordingCommitResolver recordingCommitResolver) {
         BoundedJobs<String, String> analyses = new BoundedJobs<>(
                 BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, applicationClock,
                 Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, analyses, operations,
-                operationAnswers, maxConcurrentImports, applicationClock, advertisedFamilies);
+                operationAnswers, maxConcurrentImports, applicationClock, advertisedFamilies, recordingCommitResolver);
     }
 
     /**

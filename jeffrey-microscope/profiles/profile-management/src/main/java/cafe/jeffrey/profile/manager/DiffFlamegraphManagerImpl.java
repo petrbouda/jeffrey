@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.flamegraph.code.CallSites;
+import cafe.jeffrey.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
 
 import cafe.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
@@ -173,6 +177,23 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
     public List<EventSummaryResult> eventSummaries(SpanScope spanScope) {
         throw new UnsupportedOperationException(
                 "Span-scoped event summaries are not supported for differential flamegraphs");
+    }
+
+    /**
+     * A comparison reads each profile's code on its own -- {@code compare_methods} asks the primary and the
+     * baseline separately and scales them -- so the merged tree has no per-method reading of its own.
+     */
+    @Override
+    public CodeAttribution codeAttribution(GraphParameters parameters, CodeQuery query) {
+        throw new UnsupportedOperationException(
+                "Per-method code reads are made on each profile of a comparison, not on the differential");
+    }
+
+    /** Call sites are read on one profile; a comparison has none of its own. */
+    @Override
+    public CallSites callSites(GraphParameters parameters, CallSiteQuery query) {
+        throw new UnsupportedOperationException(
+                "Call sites are read on each profile of a comparison, not on the differential");
     }
 
     @Override

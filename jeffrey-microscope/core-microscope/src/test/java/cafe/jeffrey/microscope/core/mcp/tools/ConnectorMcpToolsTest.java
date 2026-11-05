@@ -626,9 +626,13 @@ class ConnectorMcpToolsTest {
             // Configuration is the only place a connector is declared; the UI cannot connect one.
             assertTrue(reason.contains("configuration only"), reason);
             assertFalse(reason.contains("Connector page"), reason);
-            assertTrue(reason.contains("jeffrey.microscope.connector.name=Production"), reason);
+            assertTrue(reason.contains("jeffrey.microscope.connector.name=<"), reason);
             assertFalse(reason.contains("hostname"), reason);
-            assertTrue(reason.contains("jeffrey.microscope.connector.azure-files.share="), reason);
+            assertTrue(reason.contains("jeffrey.microscope.connector.azure-files.share=<share>"), reason);
+            // Every value only the user knows is a placeholder: an example value was copied into answers as
+            // if it were the user's own.
+            assertFalse(reason.contains("=Production") || reason.contains("=recordings"), reason);
+            assertTrue(reason.contains("jeffrey.microscope.connector.local.path=<"), reason);
             assertTrue(result.text().contains(UiLinks.page(MicroscopePage.CONNECTOR)), result.text());
         }
     }

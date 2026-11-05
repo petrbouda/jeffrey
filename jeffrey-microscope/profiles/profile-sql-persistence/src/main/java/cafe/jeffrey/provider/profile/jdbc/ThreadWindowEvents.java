@@ -38,11 +38,13 @@ final class ThreadWindowEvents {
      */
     static final int ROW_LIMIT = 5000;
 
+    private static final long MICROS_PER_MILLI = 1_000L;
+
     /*
-     * The window bounds compare the raw start_timestamp against epoch-micros literals so the
-     * predicate stays sargable (no per-row EPOCH_MS). They replicate the millisecond-floor semantics
-     * of `EPOCH_MS(ts) BETWEEN :from_ms AND :to_ms`: floor(ts) >= from <=> ts >= from, and
-     * floor(ts) <= to <=> ts < to + 1ms.
+     * The window is microseconds, both ends included, compared against the raw start_timestamp so the
+     * predicate stays sargable (no per-row EPOCH_US). A span's window is its own microseconds; a window
+     * known only to the millisecond (the thread timeline's, an async-profiler span's) is widened to the
+     * whole milliseconds it names by `params`.
      */
     //language=SQL
     private static final String QUERY = """
@@ -54,8 +56,8 @@ final class ThreadWindowEvents {
             FROM events e
             WHERE e.thread_hash = :thread_hash
                 AND %s
-                AND e.start_timestamp >= make_timestamptz(:from_ms * 1000)
-                AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
+                AND e.start_timestamp >= make_timestamptz(:from_us)
+                AND e.start_timestamp <= make_timestamptz(:to_us)
             ORDER BY e.start_timestamp
             LIMIT :limit
             """;
@@ -73,25 +75,28 @@ final class ThreadWindowEvents {
     }
 
     /**
-     * The bind parameters every caller supplies, capped at {@link #ROW_LIMIT}. The exclusion's own
-     * parameters, if it has any, are added by the caller on top of these.
+     * The bind parameters for a window known to the millisecond, capped at {@link #ROW_LIMIT}: every
+     * microsecond of the milliseconds it names. The exclusion's own parameters, if it has any, are added by
+     * the caller on top of these.
      *
      * @param fromEpochMillis window start, inclusive
      * @param toEpochMillis   window end, inclusive
      */
     static MapSqlParameterSource params(long threadHash, long fromEpochMillis, long toEpochMillis) {
-        return params(threadHash, fromEpochMillis, toEpochMillis, ROW_LIMIT);
+        return micros(threadHash, fromEpochMillis * MICROS_PER_MILLI,
+                toEpochMillis * MICROS_PER_MILLI + MICROS_PER_MILLI - 1, ROW_LIMIT);
     }
 
     /**
-     * Same bind parameters with the caller's own row cap — what a caller binds when it wants to
-     * detect truncation by fetching one row past {@link #ROW_LIMIT}.
+     * The bind parameters for a window in microseconds, both ends included, with the caller's own row
+     * cap — what a caller binds when it wants to detect truncation by fetching one row past
+     * {@link #ROW_LIMIT}.
      */
-    static MapSqlParameterSource params(long threadHash, long fromEpochMillis, long toEpochMillis, int limit) {
+    static MapSqlParameterSource micros(long threadHash, long fromEpochMicros, long toEpochMicros, int limit) {
         return new MapSqlParameterSource()
                 .addValue("thread_hash", threadHash)
-                .addValue("from_ms", fromEpochMillis)
-                .addValue("to_ms", toEpochMillis)
+                .addValue("from_us", fromEpochMicros)
+                .addValue("to_us", toEpochMicros)
                 .addValue("limit", limit);
     }
 

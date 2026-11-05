@@ -60,25 +60,23 @@ final class SpanScopeSql {
     private static final String CTE_SEPARATOR = ",";
 
     static final String THREAD_HASHES = "span_thread_hashes";
-    static final String FROM_MS = "span_from_ms";
-    static final String TO_MS = "span_to_ms";
+    static final String FROM_US = "span_from_us";
+    static final String TO_US = "span_to_us";
 
     private static final String ROOT_NAME = "root_name";
     private static final String ROOT_KIND = "root_kind";
     private static final String ROOT_EVENT_TYPE = "root_event_type";
 
     /**
-     * How wide one hash bucket is. A second is well above the duration of the windows this scopes —
+     * How wide one hash bucket is, in microseconds. A second is well above the duration of the windows this scopes —
      * requests and lock waits — so nearly every window falls in one bucket, while still being coarse
      * enough that a long window does not expand into thousands of rows.
      */
-    private static final long BUCKET_MILLIS = 1_000L;
-    private static final long MICROS_PER_MILLI = 1_000L;
-    private static final long MICROS_PER_BUCKET = BUCKET_MILLIS * MICROS_PER_MILLI;
+    private static final long MICROS_PER_BUCKET = 1_000_000L;
 
     /**
-     * Windows the caller holds. The lists are zipped by {@code UNNEST} and render as native DuckDB
-     * list literals, the way {@code :included_tags} does.
+     * Windows the caller holds, in microseconds. The lists are zipped by {@code UNNEST} and render as
+     * native DuckDB list literals, the way {@code :included_tags} does.
      */
     //language=SQL
     private static final String INTERVALS_CTE = """
@@ -93,9 +91,8 @@ final class SpanScopeSql {
             """;
 
     /**
-     * Windows one operation occupied, derived here rather than fetched. The bounds arrive in
-     * microseconds — the resolution the stored timestamp carries — and cross into the events table's
-     * millisecond domain once, here.
+     * Windows one operation occupied, derived here rather than fetched, in the microseconds the stored
+     * timestamps carry.
      */
     //language=SQL
     private static final String OPERATION_CTE = """
@@ -103,8 +100,8 @@ final class SpanScopeSql {
                 SELECT
                     w.thread_hash               AS th,
                     bucket.b                    AS b,
-                    w.from_epoch_us // %d       AS f,
-                    w.to_epoch_us // %d         AS t
+                    w.from_epoch_us             AS f,
+                    w.to_epoch_us               AS t
                 FROM (
             %s
                 ) w, UNNEST(range(w.from_epoch_us // %d, w.to_epoch_us // %d + 1)) AS bucket(b)
@@ -112,21 +109,21 @@ final class SpanScopeSql {
             """;
 
     /**
-     * An event survives only if it was taken on a scoped thread inside one of that thread's windows.
-     * {@code %1$s} is the alias of the events table in the enclosing query.
+     * An event survives only if it was taken on a scoped thread inside one of that thread's windows,
+     * compared in microseconds, both ends included. {@code %1$s} is the alias of the events table in the
+     * enclosing query.
      * <p>
-     * The event's millisecond is its microseconds floored, exactly as the windows' bounds are. DuckDB's
-     * {@code EPOCH_MS} of a {@code TIMESTAMPTZ} rounds to the nearest millisecond instead, which put a
-     * sample taken up to half a millisecond before a window opened inside it — on a recording of
-     * sub-millisecond requests, nearly a quarter of an operation's samples.
+     * Not in milliseconds: a window floored to its milliseconds claimed every sample of each one it
+     * touched, and on a recording of 100-microsecond requests half of an operation's samples were taken
+     * outside its requests (DuckDB's {@code EPOCH_MS} rounds, which was worse still).
      */
     //language=SQL
     private static final String PREDICATE = """
             AND EXISTS (
                 SELECT 1 FROM %2$s iv
                 WHERE %1$s.thread_hash = iv.th
-                  AND iv.b = EPOCH_US(%1$s.start_timestamp) // %4$d
-                  AND EPOCH_US(%1$s.start_timestamp) // %3$d BETWEEN iv.f AND iv.t
+                  AND iv.b = EPOCH_US(%1$s.start_timestamp) // %3$d
+                  AND EPOCH_US(%1$s.start_timestamp) BETWEEN iv.f AND iv.t
             )
             """;
 
@@ -147,10 +144,9 @@ final class SpanScopeSql {
         }
         return switch (scope) {
             case SpanScope.Intervals _ -> INTERVALS_CTE.formatted(
-                    SCOPE_RELATION, THREAD_HASHES, FROM_MS, TO_MS, BUCKET_MILLIS, BUCKET_MILLIS);
+                    SCOPE_RELATION, THREAD_HASHES, FROM_US, TO_US, MICROS_PER_BUCKET, MICROS_PER_BUCKET);
             case SpanScope.Operation _ -> OPERATION_CTE.formatted(
                     SCOPE_RELATION,
-                    MICROS_PER_MILLI, MICROS_PER_MILLI,
                     JdbcTraceRepository.OPERATION_INTERVALS.indent(8),
                     MICROS_PER_BUCKET, MICROS_PER_BUCKET);
         };
@@ -161,7 +157,7 @@ final class SpanScopeSql {
         if (!enabled(scope)) {
             return "";
         }
-        return PREDICATE.formatted(eventsAlias, SCOPE_RELATION, MICROS_PER_MILLI, MICROS_PER_BUCKET);
+        return PREDICATE.formatted(eventsAlias, SCOPE_RELATION, MICROS_PER_BUCKET);
     }
 
     /**
@@ -201,8 +197,8 @@ final class SpanScopeSql {
             case SpanScope.Intervals intervals -> {
                 List<SpanInterval> windows = intervals.intervals();
                 params.addValue(THREAD_HASHES, longsOf(windows, SpanInterval::threadHash))
-                        .addValue(FROM_MS, longsOf(windows, SpanInterval::fromEpochMillis))
-                        .addValue(TO_MS, longsOf(windows, SpanInterval::toEpochMillis));
+                        .addValue(FROM_US, longsOf(windows, SpanInterval::fromEpochMicros))
+                        .addValue(TO_US, longsOf(windows, SpanInterval::toEpochMicros));
             }
             case SpanScope.Operation operation -> params
                     .addValue(ROOT_NAME, operation.name())
@@ -213,8 +209,8 @@ final class SpanScopeSql {
 
     private static void bindNothing(MapSqlParameterSource params) {
         params.addValue(THREAD_HASHES, null)
-                .addValue(FROM_MS, null)
-                .addValue(TO_MS, null);
+                .addValue(FROM_US, null)
+                .addValue(TO_US, null);
     }
 
     private static List<Long> longsOf(List<SpanInterval> intervals, ToLongFunction<SpanInterval> extractor) {

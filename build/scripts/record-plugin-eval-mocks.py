@@ -25,8 +25,9 @@ takes them from one that does:
 1. records the eval workload (`evals/fixtures/workload`) under JFR twice — `baseline`, then
    `candidate` with its deliberate regression and a heap dump at the end — with jeffrey-events and
    jeffrey-tracing on its class path (`TRACING_JARS`, built from `utilities/`), so the recordings carry
-   sampled traces;
-2. imports the three files into the Jeffrey at `--url` with `recordings_analyzeFile`, as a user would,
+   sampled traces; and the order history (`OrderHistory.java`, an N+1 through the service's own JDBC
+   wrapper) once, kept at `ORDERS_RECORDING`;
+2. imports the four files into the Jeffrey at `--url` with `recordings_analyzeFile`, as a user would,
    and prepares the heap dump with `heap_prepare`;
 3. calls every tool the way a model following the skills would reach it: each tool whose required
    arguments are only a profile (or a profile pair, or one of an enum's values), for every profile,
@@ -44,12 +45,13 @@ The answers describe this Jeffrey's build — re-record after a change to what t
 
 The SQL cases (`evals-live/`) run against a real Jeffrey instead, which `--load` prepares: it imports
 the files a recording left in `--work-dir` (or the copies kept in jeffrey-recordings/plugin-evals,
-with the dump gzipped) into an empty Jeffrey, under the names the mocks carry, and
-checks the figures those cases' graders name against it. A recording measures those figures
+with the dump gzipped, and the order history kept here) into an empty Jeffrey, under the names the
+mocks carry — the two checkout runs at the commits the live scaffold history gives them
+(`liveCommits`) — and checks the figures those cases' graders name against it. A recording measures those figures
 (`FIGURES`) and rewrites them in the graders, as it does the profile ids.
 
 Usage: record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp --work-dir /tmp/jeffrey-eval
-                                   [--java /path/to/java] [--seconds 30] [--load]
+                                   [--java /path/to/java] [--seconds 30] [--load | --reuse [--record-missing]]
 """
 
 import argparse
@@ -72,6 +74,12 @@ from plugin_layout import PLUGIN_DIR as PLUGIN_PATH
 
 PLUGIN_DIR = Path(PLUGIN_PATH)
 WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/Checkout.java"
+# The second workload: the service's order history, whose every request runs one statement per order (an N+1),
+# recorded once as the `orders` profile. Its recording is kept in this repository (ORDERS_RECORDING), not in
+# RECORDINGS_REPO: --reuse and --load copy it into --work-dir when it is not there.
+ORDERS_WORKLOAD = PLUGIN_DIR / "evals/fixtures/workload/com/acme/checkout/OrderHistory.java"
+ORDERS_RECORDING = Path("build/plugin-evals/order-history.jfr")
+ORDERS_SECONDS = 20
 # What the workload's traces are written with: the HTTP exchange event, the Tracer, and where the Tracer keeps
 # the span in progress. Built by TRACING_BUILD; the workload runs on JDK 25, but the ThreadLocal storage is
 # what jeffrey-tracing's own starter brings, and a recording's spans do not depend on which one holds them.
@@ -107,11 +115,19 @@ OPERATION_POLL_SECONDS = 2
 OPERATION_FINISHED = ("COMPLETED", "FAILED", "CANCELLED")
 OPERATION_BUDGET_SECONDS = 900
 MAX_CALLS = 1500
+# The order history's own pass (crawl): a handful of seeds and what their answers offer.
+ORDERS_MAX_CALLS = 400
 # Breadth first, so the answers kept are the ones nearest the seeds: a heap walk offers a path, the
 # referrers and the children of every object it names, and a model reads the first few.
 MAX_FIXTURES_PER_TOOL = 8
 
-PROFILE_NAMES = {"baseline": "checkout baseline", "candidate": "checkout candidate", "heap": "checkout heap dump"}
+PROFILE_NAMES = {"baseline": "checkout baseline", "candidate": "checkout candidate", "heap": "checkout heap dump",
+                 "orders": "order history"}
+PROFILE_KINDS = tuple(PROFILE_NAMES)
+# The commits the live suite's scaffold history gives the two checkout runs (`liveCommits` in RECORDED_PROFILES,
+# checked against the scaffold by test-plugin-eval-mocks.py): --load imports each run at its commit, so the live
+# cases read `recordingCommit` against a repository that holds it.
+LIVE_COMMITS = "liveCommits"
 
 PROFILE_ID = "profileId"
 BASELINE_PROFILE_ID = "baselineProfileId"
@@ -131,10 +147,39 @@ COMPOSED_ARGUMENTS = {"query"}
 # The workload's own package, the way analyze-exceptions passes it, so the recorded throw sites name
 # their own frame — the first answer recorded for a key is the one a case gets.
 APPLICATION_PACKAGES = ["com.acme.checkout."]
+# The other roots a model may read off the scaffolded repository for the same code — the shared-code section asks
+# for the shortest package root of two or three segments, and the workload's one package gives `com.acme.` as
+# readily. Each seeded call that takes framePrefixes is repeated with them, and accepted with the recorded
+# fixture only when its answer carries the same figures (`equivalent`).
+EQUIVALENT_PACKAGES = (["com.acme."],)
 # The comparisons the compare and regression cases read, in both directions: compare_list offers one
 # event type, and a case may ask about any of these.
 COMPARED_EVENT_TYPES = (("jdk.ExecutionSample", False), ("jdk.ObjectAllocationSample", True),
                         ("jdk.JavaMonitorEnter", True))
+# The workload's methods a code case asks about, as a developer reading Checkout.java names them: the class in
+# source spelling (a nested class with a dot — a `$` cannot name a fixture) and the method.
+WORKLOAD_METHODS = (("com.acme.checkout.Checkout.PriceCalculator", "formatLine"),
+                    ("com.acme.checkout.Checkout.PriceCalculator", "reprice"),
+                    ("com.acme.checkout.Checkout.PriceCalculator", "taxOf"),
+                    ("com.acme.checkout.Checkout.SessionCache", "touch"),
+                    ("com.acme.checkout.Checkout.SessionCache", "busyWait"),
+                    ("com.acme.checkout.Checkout.CouponParser", "discount"),
+                    ("com.acme.checkout.Checkout.AuditLog", "record"),
+                    ("com.acme.checkout.Checkout", "checkout"))
+# Optional arguments that address a fixture beside the required ones, because they pick what the answer is about:
+# `code_method` answers one method of the class. A call without one is not answered (a missing file-name segment
+# is a tool error): code_method on a whole class has no mock.
+ADDRESSING_OPTIONS = {"code_method": ("methodName",)}
+# A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload method, on both recordings.
+MAX_FIXTURES_OF = {"code_method": 2 * len(WORKLOAD_METHODS) + MAX_FIXTURES_PER_TOOL}
+# The order history's statements: Jeffrey's JDBC query event, the one statement event that carries a stack.
+JDBC_QUERY = "jeffrey.JdbcQuery"
+# The event types with stacks a call-site case groups: the monitor the workload contends on.
+CALL_SITE_EVENT_TYPES = ("jdk.JavaMonitorEnter",)
+# What may differ between two answers that address one fixture while the figures stay the same: the follow-up
+# and how the own packages were chosen. A call reached with other graded options is accepted with the
+# recorded fixture only when, these left out, its answer is the fixture's (`equivalent`).
+PROVENANCE_FIELDS = {"followUp", "framePrefixesSource", "framePrefixes", "suggestedFramePrefixes"}
 
 
 @dataclass(frozen=True)
@@ -162,9 +207,12 @@ class Profiles:
     baseline: str
     candidate: str
     heap: str
+    orders: str
 
     @property
     def all(self) -> tuple[str, ...]:
+        """The profiles every profile-only tool is seeded with: the checkout runs. The order history gets the
+        calls its cases make (`orders_seed_calls`), so the crawl's budget for the checkout answers stays."""
         return self.baseline, self.candidate, self.heap
 
 
@@ -174,6 +222,9 @@ class Recorded:
     answers: dict[str, dict[tuple, str]] = field(default_factory=lambda: collections.defaultdict(dict))
     fixed: dict[str, str] = field(default_factory=dict)
     inputs: dict[str, dict[tuple, dict]] = field(default_factory=lambda: collections.defaultdict(dict))
+    # Other inputs a fixture answers as it answers its own: same figures, different provenance.
+    aliases: dict[str, dict[tuple, list[dict]]] = field(
+        default_factory=lambda: collections.defaultdict(lambda: collections.defaultdict(list)))
 
 
 class Jeffrey:
@@ -240,17 +291,27 @@ def seen_by_model(answer: dict) -> str:
     return json.dumps(structured, ensure_ascii=False, separators=(",", ":"))
 
 
-def record_workload(java: str, work_dir: Path, seconds: int) -> dict[str, Path]:
+def record_workload(java: str, work_dir: Path, seconds: int, kinds: tuple[str, ...] = PROFILE_KINDS) -> dict[str, Path]:
+    """Runs the workloads behind `kinds` under JFR into work_dir; the heap dump comes with the candidate run."""
     work_dir.mkdir(parents=True, exist_ok=True)
     files = recorded_files(work_dir)
-    for path in files.values():
-        path.unlink(missing_ok=True)
+    for kind in kinds:
+        files[kind].unlink(missing_ok=True)
     for mode in ("baseline", "candidate"):
+        if mode not in kinds:
+            continue
         command = [java, "-cp", tracing_class_path(), f"-XX:StartFlightRecording={JFR_OPTIONS},filename={files[mode]}",
                    str(WORKLOAD.resolve()), mode, str(seconds)]
         if mode == "candidate":
             command.append(str(files["heap"]))
         subprocess.run(command, check=True, cwd=work_dir, stdout=subprocess.DEVNULL)
+    if "orders" in kinds:
+        command = [java, "-cp", tracing_class_path(),
+                   f"-XX:StartFlightRecording={JFR_OPTIONS},filename={files['orders']}",
+                   str(ORDERS_WORKLOAD.resolve()), str(ORDERS_SECONDS)]
+        subprocess.run(command, check=True, cwd=work_dir, stdout=subprocess.DEVNULL)
+        ORDERS_RECORDING.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(files["orders"], ORDERS_RECORDING)
     return files
 
 
@@ -261,10 +322,15 @@ def tracing_class_path() -> str:
     return ":".join(str(jar.resolve()) for jar in TRACING_JARS)
 
 
-def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded) -> Profiles:
+def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded,
+                    commits: dict[str, str] | None = None) -> Profiles:
+    """Imports each file under its profile name — at its commit, for the kinds `commits` names."""
     ids = {}
     for kind, path in files.items():
-        answer = jeffrey.call("recordings_analyzeFile", {"path": str(path), "name": PROFILE_NAMES[kind], "force": True})
+        arguments = {"path": str(path), "name": PROFILE_NAMES[kind], "force": True}
+        if commits and kind in commits:
+            arguments["commit"] = commits[kind]
+        answer = jeffrey.call("recordings_analyzeFile", arguments)
         final = jeffrey.finished(answer)
         ids[kind] = (final.get("structuredContent") or {}).get(PROFILE_ID) \
             or ((final.get("structuredContent") or {}).get("result") or {}).get(PROFILE_ID)
@@ -278,7 +344,7 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
             if operation:
                 recorded.answers["operations_status"][(operation,)] = seen_by_model(final)
                 recorded.inputs["operations_status"][(operation,)] = {OPERATION_ID: operation}
-    profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"])
+    profiles = Profiles(ids["baseline"], ids["candidate"], ids["heap"], ids["orders"])
     jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
     # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
     # so a heap_prepare recorded while it was still running would tell the model to poll a preparation
@@ -299,6 +365,9 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
         for event_type, weighted in COMPARED_EVENT_TYPES:
             calls += [(tool, {PROFILE_ID: primary, BASELINE_PROFILE_ID: baseline, "eventType": event_type,
                               **({"useWeight": True} if weighted else {})}) for primary, baseline in pairs]
+    calls += code_seed_calls(profiles)
+    calls += [(tool, {**arguments, "framePrefixes": packages}) for tool, arguments in list(calls)
+              if arguments.get("framePrefixes") == APPLICATION_PACKAGES for packages in EQUIVALENT_PACKAGES]
     for tool in tools:
         name, schema = tool["name"], tool.get("inputSchema") or {}
         if name in NOT_CALLED_FROM_ANSWERS or name == "operations_status":
@@ -321,6 +390,62 @@ def seed_calls(tools: list[dict], profiles: Profiles) -> list[tuple[str, dict]]:
     return calls
 
 
+def code_seed_calls(profiles: Profiles) -> list[tuple[str, dict]]:
+    """The code tools as the code skills call them — with the workload's own package as `framePrefixes`, so the
+    answer a case gets is the one charged to the code in its repository."""
+    own = {"framePrefixes": APPLICATION_PACKAGES}
+    recordings = (profiles.candidate, profiles.baseline)
+    calls = [("code_hotspots", {PROFILE_ID: profile, "eventType": event_type, **own})
+             for profile in recordings for event_type, _ in COMPARED_EVENT_TYPES]
+    calls += [("code_method", {PROFILE_ID: profile, "className": class_name, "methodName": method, **own})
+              for profile in recordings for class_name, method in WORKLOAD_METHODS]
+    calls += [("code_callSites", {PROFILE_ID: profile, "eventType": event_type, **own})
+              for profile in recordings for event_type in CALL_SITE_EVENT_TYPES]
+    calls += [("code_runtimeSurface", {PROFILE_ID: profile, **own}) for profile in recordings]
+    return calls
+
+
+def addressing(tool: str, schema: dict) -> list[str]:
+    """The arguments a fixture is addressed by, sorted: the required ones and the tool's ADDRESSING_OPTIONS."""
+    return sorted(set(schema.get("required", [])) | set(ADDRESSING_OPTIONS.get(tool, ())))
+
+
+def orders_seed_calls(profiles: Profiles) -> list[tuple[str, dict]]:
+    """The order history as its cases reach it: the summary, the statements and where they are issued, the
+    runtime surface, the database dashboard and the traces — the equivalent package root repeated, as the
+    checkout's seeds are."""
+    profile = {PROFILE_ID: profiles.orders}
+    own = {"framePrefixes": APPLICATION_PACKAGES}
+    shorter = [{"framePrefixes": packages} for packages in EQUIVALENT_PACKAGES]
+    return [("profiles_summary", profile),
+            ("code_callSites", {**profile, "eventType": JDBC_QUERY, **own}),
+            ("code_runtimeSurface", {**profile, **own}),
+            *[(tool, {**profile, **extra, **variant}) for tool, extra in
+              (("code_callSites", {"eventType": JDBC_QUERY}), ("code_runtimeSurface", {})) for variant in shorter],
+            ("jdbc_overview", profile),
+            ("traces_overview", profile)]
+
+
+def without_provenance(node):
+    if isinstance(node, dict):
+        return {key: without_provenance(value) for key, value in node.items() if key not in PROVENANCE_FIELDS}
+    if isinstance(node, list):
+        return [without_provenance(value) for value in node]
+    return node
+
+
+def equivalent(recorded: str, answer: dict) -> bool:
+    """Whether an answer carries the same figures as a recorded fixture, its provenance left out."""
+    structured = answer.get("structuredContent")
+    if structured is None:
+        return False
+    try:
+        fixture = json.loads(recorded)
+    except json.JSONDecodeError:
+        return False
+    return without_provenance(fixture) == without_provenance(structured)
+
+
 def offered_calls(structured: dict) -> list[tuple[str, dict]]:
     """Every ready call an answer offers, wherever in it the server put one."""
     calls = []
@@ -340,19 +465,31 @@ def offered_calls(structured: dict) -> list[tuple[str, dict]]:
 
 
 def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Recorded) -> None:
+    """The checkout profiles first, as the cases have always been recorded, then the order history in a pass
+    of its own, so its answers never take the budget or a tool's fixtures from the checkout's."""
+    crawl_from(jeffrey, tools, seed_calls(tools, profiles), recorded, MAX_CALLS)
+    crawl_from(jeffrey, tools, orders_seed_calls(profiles), recorded, ORDERS_MAX_CALLS)
+
+
+def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]], recorded: Recorded,
+               budget: int) -> None:
+    """Breadth first from the seeds, at most `budget` calls and each tool's fixture limit counted from what
+    this pass found it holding."""
     schemas = {tool["name"]: tool.get("inputSchema") or {} for tool in tools}
-    queue = collections.deque(seed_calls(tools, profiles))
+    held = {tool: len(answers) for tool, answers in recorded.answers.items()}
+    queue = collections.deque(seeds)
     seen, calls = set(), 0
-    while queue and calls < MAX_CALLS:
+    while queue and calls < budget:
         tool, arguments = queue.popleft()
         if tool not in schemas or tool in NOT_CALLED_FROM_ANSWERS:
             continue
-        required = schemas[tool].get("required", [])
+        required = addressing(tool, schemas[tool])
         if any(argument not in arguments for argument in required):
             continue
-        key = tuple(str(arguments[argument]) for argument in sorted(required))
+        key = tuple(str(arguments[argument]) for argument in required)
         identity = json.dumps([tool, arguments], sort_keys=True)
-        if identity in seen or (key and len(recorded.answers.get(tool, {})) >= MAX_FIXTURES_PER_TOOL):
+        limit = MAX_FIXTURES_OF.get(tool, MAX_FIXTURES_PER_TOOL)
+        if identity in seen or (key and len(recorded.answers.get(tool, {})) - held.get(tool, 0) >= limit):
             continue
         seen.add(identity)
         calls += 1
@@ -372,6 +509,9 @@ def crawl(jeffrey: Jeffrey, tools: list[dict], profiles: Profiles, recorded: Rec
             if key not in recorded.answers[tool]:
                 recorded.answers[tool][key] = seen_by_model(answer)
                 recorded.inputs[tool][key] = arguments
+            elif (semantics(tool, schemas[tool], arguments) != semantics(tool, schemas[tool], recorded.inputs[tool][key])
+                  and equivalent(recorded.answers[tool][key], answer)):
+                recorded.aliases[tool][key].append(arguments)
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
 
@@ -408,7 +548,7 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     # rather than offering one that answers every call with a missing fixture.
     answered = {}
     for tool, answers in sorted(recorded.answers.items()):
-        required = sorted(schemas[tool].get("required", []))
+        required = addressing(tool, schemas[tool])
         named = addressed(required, answers)
         if named is None:
             answers = {key: text for key, text in answers.items() if all(map(FILE_NAME_SAFE.fullmatch, key))}
@@ -417,6 +557,7 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
             continue
         answered[tool] = answers
         recorded.inputs[tool] = {key: recorded.inputs[tool][key] for key in answers}
+        recorded.aliases[tool] = {key: recorded.aliases[tool][key] for key in answers if key in recorded.aliases[tool]}
         placeholders = "-".join(f"{{input.{argument}}}" for argument in named)
         expect = "".join(f"  {argument}: " + json.dumps(sorted({key[required.index(argument)] for key in answers}))
                          + "\n" for argument in required if argument not in named)
@@ -430,6 +571,9 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
     (MOCKS / "_tools.json").write_text(json.dumps({"tools": listed}, indent=1, ensure_ascii=False) + "\n")
     inputs = [{"tool": tool, "arguments": arguments}
               for tool in sorted(mocked) for arguments in recorded.inputs[tool].values()]
+    inputs += [{"tool": tool, "arguments": arguments, "equivalentTo": recorded.inputs[tool][key]}
+               for tool in sorted(mocked) for key, aliases in sorted(recorded.aliases.get(tool, {}).items())
+               for arguments in aliases]
     (MOCKS / "_inputs.json").write_text(json.dumps(inputs, indent=1) + "\n")
     write_contract_graders(listed, inputs)
     print(f"wrote {len(mocked)} mocked tools, {sum(map(len, answered.values()))} fixtures", file=sys.stderr)
@@ -446,10 +590,13 @@ def write_mocks(tools: list[dict], recorded: Recorded) -> None:
 SEMANTIC_OPTIONS = {"useWeight", "startEpochMs", "endEpochMs", "excludeIdle", "excludeNonJava", "threadMode",
                     "bucketMs", "framePrefixes", "includeJvmInternal", "compute"}
 # A search elsewhere selects rows; on a flamegraph it adds the matches and their share.
-SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"}}
+SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"},
+                       # How the events are grouped, and which are counted, are what a call site's figures are.
+                       "code_callSites": {"groupBy", "filterField", "filterValue"}}
 WEIGHT_DEFAULTS = {"jdk.ExecutionSample": False, "jdk.ObjectAllocationSample": True,
                    "jdk.JavaMonitorEnter": True}
-WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements"}
+WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements", "code_hotspots",
+                        "compare_methods"}
 FALSE_DEFAULTS = {"excludeIdle", "excludeNonJava", "threadMode", "includeJvmInternal", "compute", "retry", "errorsOnly"}
 NO_DEFAULT = object()
 
@@ -471,8 +618,14 @@ def json_pattern(value) -> str:
     return re.escape(json.dumps(value, ensure_ascii=False, separators=(",", ":")))
 
 
+def semantics(tool: str, schema: dict, arguments: dict) -> dict:
+    """The answer-changing options of a call, each as the server reads it: given, or its known default."""
+    return {name: arguments.get(name, server_default(tool, name, schema["properties"][name], arguments))
+            for name in semantic_options(tool, schema)}
+
+
 def semantic_options(tool: str, schema: dict) -> list[str]:
-    required = set(schema.get("required", []))
+    required = set(addressing(tool, schema))
     graded = SEMANTIC_OPTIONS | SEMANTIC_OPTIONS_OF.get(tool, set())
     return sorted(name for name in schema.get("properties", {}) if name in graded and name not in required)
 
@@ -488,16 +641,22 @@ def server_default(tool: str, name: str, prop: dict, arguments: dict):
     return prop["default"] if "default" in prop else NO_DEFAULT
 
 
+# What may stand between an input object's `{` and one of its own keys: characters outside any string and other
+# than braces, or whole JSON strings — a value may hold a brace (an operation named "GET /orders/{customer}"),
+# and a key inside a nested object never matches.
+SAME_OBJECT = r'(?:[^{}"\n]|"(?:[^"\\\n]|\\.)*")*'
+
+
 def input_pattern(tool: str, schema: dict, arguments: dict) -> str:
     """A regex for the input objects the recorded call answers: each answer-changing option holds the
     recorded value, or is left out where that value is the server's default; anything else is free."""
     # The required arguments name the fixture, and decide defaults such as an event type's weighting,
     # so an option is held to the recorded call with the same ones.
-    checks = [r'(?=[^{}\n]*"' + re.escape(name) + r'"\s*:\s*' + json_pattern(arguments[name]) + r"(?=\s*[,}]))"
+    checks = [r'(?=' + SAME_OBJECT + r'"' + re.escape(name) + r'"\s*:\s*' + json_pattern(arguments[name]) + r"(?=\s*[,}]))"
               for name in sorted(set(schema.get("required", [])) & set(arguments))]
     for name in semantic_options(tool, schema):
         prop = schema["properties"][name]
-        key = r'[^{}\n]*"' + re.escape(name) + r'"\s*:'
+        key = SAME_OBJECT + r'"' + re.escape(name) + r'"\s*:'
         absent = "(?!" + key + ")"
         default = server_default(tool, name, prop, arguments)
         value = arguments.get(name, default)
@@ -556,7 +715,7 @@ def rename_in_cases(profiles: Profiles, figures: dict[str, int]) -> None:
     if not RECORDED_PROFILES.exists():
         return
     previous = json.loads(RECORDED_PROFILES.read_text())
-    renames = {previous[kind]: getattr(profiles, kind) for kind in ("baseline", "candidate", "heap")}
+    renames = {previous[kind]: getattr(profiles, kind) for kind in PROFILE_KINDS if kind in previous}
     for name, value in (previous.get("figures") or {}).items():
         # A count under a thousand has no separator to anchor its pattern, and would rename any number.
         if name in figures and value >= 1000:
@@ -581,6 +740,9 @@ def main() -> int:
     parser.add_argument("--reuse", action="store_true",
                         help="record the mocks from the files already in --work-dir (a clone of the recordings "
                              "repository) instead of running the workload again")
+    parser.add_argument("--record-missing", action="store_true",
+                        help="with --reuse: run the workload of a recording that is neither in --work-dir nor kept "
+                             "in this repository (the order history), instead of refusing")
     options = parser.parse_args()
     jeffrey = Jeffrey(options.url)
     catalogue = (jeffrey.call("profiles_list", {}).get("structuredContent") or {}).get("profiles") or []
@@ -593,7 +755,11 @@ def main() -> int:
         return load(jeffrey, options.work_dir.resolve())
     tools = jeffrey.tools()
     if options.reuse:
-        files = verified_files(options.work_dir.resolve())
+        work_dir = options.work_dir.resolve()
+        copy_kept_recordings(work_dir)
+        if options.record_missing and not recorded_files(work_dir)["orders"].exists():
+            record_workload(options.java, work_dir, options.seconds, kinds=("orders",))
+        files = verified_files(work_dir)
         if files is None:
             return 1
     else:
@@ -607,16 +773,26 @@ def main() -> int:
     figures = measure_figures(jeffrey, profiles)
     rename_in_cases(profiles, figures)
     write_mocks(tools, recorded)
+    previous = json.loads(RECORDED_PROFILES.read_text()) if RECORDED_PROFILES.exists() else {}
     RECORDED_PROFILES.write_text(json.dumps(
         {"baseline": profiles.baseline, "candidate": profiles.candidate, "heap": profiles.heap,
-         "heapDumpPath": str(files["heap"]), "figures": figures,
-         "files": {path.name: sha256_of(path) for path in files.values()}}, indent=1) + "\n")
+         "orders": profiles.orders, "heapDumpPath": str(files["heap"]), "figures": figures,
+         "files": {path.name: sha256_of(path) for path in files.values()},
+         LIVE_COMMITS: previous.get(LIVE_COMMITS) or {}}, indent=1) + "\n")
     return 0
 
 
 def recorded_files(work_dir: Path) -> dict[str, Path]:
     return {"baseline": work_dir / "checkout-baseline.jfr", "candidate": work_dir / "checkout-candidate.jfr",
-            "heap": work_dir / "checkout.hprof"}
+            "heap": work_dir / "checkout.hprof", "orders": work_dir / "order-history.jfr"}
+
+
+def copy_kept_recordings(work_dir: Path) -> None:
+    """The order history's recording is kept in this repository; a work dir without it gets the kept copy."""
+    orders = recorded_files(work_dir)["orders"]
+    if not orders.exists() and ORDERS_RECORDING.exists():
+        work_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ORDERS_RECORDING, orders)
 
 
 def sha256_of(path: Path) -> str:
@@ -645,7 +821,8 @@ def verified_files(work_dir: Path) -> dict[str, Path] | None:
     missing = [str(path) for path in files.values() if not path.exists()]
     if missing:
         print(f"--load and --reuse take the files a recording left in --work-dir, or a clone of "
-              f"{RECORDINGS_REPO}; missing: {missing}", file=sys.stderr)
+              f"{RECORDINGS_REPO} (the order history is kept at {ORDERS_RECORDING}, and --record-missing records "
+              f"it); missing: {missing}", file=sys.stderr)
         return None
     sums = json.loads(RECORDED_PROFILES.read_text()).get("files") or {}
     wrong = [path.name for path in files.values() if path.name in sums and sha256_of(path) != sums[path.name]]
@@ -660,18 +837,21 @@ def load(jeffrey: Jeffrey, work_dir: Path) -> int:
     """The live cases' Jeffrey: the recordings the mocks were taken from, imported under the same names,
     refused when they are not the files the mocks were recorded from (their checksums) or do not answer
     the figures the graders name."""
+    copy_kept_recordings(work_dir)
     files = verified_files(work_dir)
     if files is None:
         return 1
     recorded = json.loads(RECORDED_PROFILES.read_text())
-    profiles = import_profiles(jeffrey, files, Recorded())
+    commits = recorded.get(LIVE_COMMITS) or {}
+    profiles = import_profiles(jeffrey, files, Recorded(), commits)
     expected = recorded.get("figures") or {}
     measured = measure_figures(jeffrey, profiles)
     if measured != expected:
         print(f"these files are not the recording the graders name: figures {measured}, expected {expected}",
               file=sys.stderr)
         return 1
-    print(f"loaded {profiles}; figures {measured} as the graders name them", file=sys.stderr)
+    print(f"loaded {profiles} at commits {commits or 'none'}; figures {measured} as the graders name them",
+          file=sys.stderr)
     return 0
 
 

@@ -37,13 +37,17 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 | `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
 | `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (about 0.4% of it), no tuning from one fired rule |
 | `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
-| `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `advise-jfr`, `compare-jfr`, `profile-run`) and makes that skill's first call |
+| `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `optimize-code`, `compare-jfr`, `profile-run`) and makes that skill's first call |
 | `route-two-revisions-not-profiled` | "Did my last commit make it slower? Nothing is profiled yet" | `regression-check`, not `compare-jfr`: the pair named (HEAD against its parent), both recorded the same way, no differential of the catalogue's unrelated pair |
-| `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export`, `blocking_monitors`), confidence stated, a **Not assessed** section |
+| `route-write-it-up` | "Write up what I found, for my team" | `report`, each of the user's figures read back from Jeffrey before it is written down (`flamegraph_export` or `code_hotspots` on CPU, `blocking_monitors`), confidence stated, a **Not assessed** section |
+| `code-own-hotspots` | "Which of our own methods does the CPU go to? This is the service's repository" | `code-insight` (or `optimize-code`), `code_hotspots` with the repository's root package, SessionCache.busyWait named with its charged share of the CPU samples and tied to its source |
+| `code-is-this-method-worth-it` | "Is PriceCalculator.formatLine worth optimizing?" | `code_method` for the method by its source name, and an answer that weighs every sample kind: about 6% of the CPU but about 95% of the allocated bytes, through `String.format` on line 200 |
+| `code-n-plus-one` | "Does the order history endpoint have an N+1 query problem?" | `code_callSites` on `jeffrey.JdbcQuery`: order-lines.by-order run once per order (11,926 in 1,090 requests, a median of 11 per request) from findLines in the loop of `OrderService.history`, and one query for all the orders' lines offered |
+| `code-what-runs-at-runtime` | "What does the service actually do at runtime, and where in our code?" | `code_runtimeSurface`: `GET /orders/{customer}`, both statements with the code that issues them, and where the request runs in the service's code, read off the profile |
 | `connector-not-configured` | "Why was checkout slow in production this morning? Its recordings should be on the connector" | `analyze-connector`, `connector_status` read, its `NOT_CONFIGURED` answer passed on: the `jeffrey.microscope.connector.*` properties (Azure file share or local directory) with placeholders and a restart, nothing claimed about production, no catalogue profile read as production's |
 
-Two more cases, under [`../evals-live/`](../evals-live/), ask what only SQL answers and run against a
-real Jeffrey — see [The SQL cases](#the-sql-cases).
+Four more cases, under [`../evals-live/`](../evals-live/), run against a real Jeffrey: two ask what
+only SQL answers, two compare the methods a change touched — see [The SQL cases](#the-sql-cases).
 
 ## Where the answers come from
 
@@ -53,8 +57,16 @@ Jeffrey's answers, recorded by `build/scripts/record-plugin-eval-mocks.py` from 
 [`fixtures/workload/`](fixtures/workload/) — a checkout service in miniature with a CPU hotspot,
 allocation, lock contention, exceptions used as control flow and a slow leak, recorded twice
 (`baseline`, then `candidate` with a deliberate regression in the pricing path) and once as a heap
-dump. `mocks/jeffrey/_tools.json` is that Jeffrey's real `tools/list`, so each mocked tool carries its
-real description and input schema.
+dump — and a second workload, the service's order history (`OrderHistory.java`): every
+`GET /orders/{customer}` traced, one statement for the customer's orders and then one per order (an
+N+1), each through the service's own `Database.query`, which records it as a `jeffrey.JdbcQuery` event
+with its stack — no driver or database. It is the `order history` profile, recorded once. Its file is
+kept in this repository (`build/plugin-evals/order-history.jfr`, outside the plugin directory, so an
+install does not carry it), not in jeffrey-recordings: `--reuse` and `--load` copy it into
+`--work-dir`, and `--reuse --record-missing` records it again when it is missing. The recorder crawls
+it in a pass of its own after the checkout profiles, so it takes none of their budget or fixtures.
+`mocks/jeffrey/_tools.json` is that Jeffrey's real `tools/list`, so each mocked tool carries its real
+description and input schema.
 
 To re-record after a change to what the tools return — the answers describe the build they were
 recorded from — start a Jeffrey with an empty home directory and run the recorder. A recording from
@@ -89,7 +101,13 @@ What the mocks cannot do, so the cases stay away from it:
   are mocked). The SQL cases run against a real Jeffrey for that reason.
 - **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class
   (`Checkout$Order`) can key none: `heap_browseClassInstances` for one answers that the name "is not a
-  plain file-name segment", which a model reads as Jeffrey refusing the class.
+  plain file-name segment", which a model reads as Jeffrey refusing the class. The code tools take the
+  source spelling (`Checkout.PriceCalculator`) and every row of theirs carries it as `reference`, so a
+  model that copies it reaches a fixture; one that spells the runtime name does not.
+- **`code_method` on a whole class.** Its fixtures are addressed by the method too (the recorder's
+  addressing options), so a call without `methodName` has no file to answer it.
+- **A list the agent composes.** `compare_methods` takes the methods a diff touched as a list, which
+  no file name or `expect:` value can pin, so it is unmocked and measured in the live suite instead.
 - **The connector and the IDE.** The recording Jeffrey has no connector and no IntelliJ attached.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
@@ -99,12 +117,25 @@ What the mocks cannot do, so the cases stay away from it:
 `jfr-sql` and `heap-sql` are for the questions no dashboard or report shapes, and a question like that
 takes a query nobody can write down in advance — so no mock can answer it. Their two cases live in
 [`../evals-live/`](../evals-live/) and run with `--mocks off`, against a Jeffrey that holds the very
-recordings the mocks were taken from:
+recordings the mocks were taken from, beside two whose argument no mock can pin either — the
+methods a diff touched, as a list:
 
 | Case | The question | What it holds the plugin to |
 |---|---|---|
 | `exception-inputs-counted-in-sql` | "A handful of bad inputs thrown over and over, or a different one every time?" | `jfr-sql`; the distinct messages counted in SQL over `events` (never `events_raw`): 100 inputs, all `SPRING-` coupons — `jvm_exceptions` lists only the commonest three |
+| `compare-the-methods-my-diff-touched` | "My last change made reprice call formatLine for every line item. Did that make them more expensive?" | `compare_methods` with the two methods in source spelling, the candidate as primary; formatLine new (about 6% of the CPU, 95% of the bytes), reprice up by about 87% of its CPU samples, the growth put on the new call, nothing claimed about latency. Scaffolds the repository, as the code cases do; `compare_methods` takes a list no mock can pin |
+| `did-my-last-commit-make-it-worse` | "Did my last change to the pricing code make checkout more expensive?" (no method named) | the change read from the history (`git diff`/`show`/`log`) and identified as the profiled a9703bf, not HEAD, which is a README commit — its methods passed to `compare_methods`, the checkout said to be past the profiled commit, formatLine new and reprice up |
 | `orders-by-coupon-in-sql` | "How many of the audit log's orders carry a `SPRING-` coupon?" | `heap-sql`; the coupons read without the `string` table (the HPROF name pool), the count and its denominator, as the recording holds them (`figures` in `fixtures/recorded-profiles.json`: 1,427 of 5,775 since the 1.0.17 recording) |
+
+**The commits.** The two code cases scaffold the repository with a fixed history — commit A
+(70686f5: the source without the per-line formatLine call), commit B (a9703bf: the source both runs
+were recorded from), and, for `did-my-last-commit-make-it-worse`, a README commit C past them — with
+fixed author, committer and dates, so the hashes are the same on every machine. `--load` imports the
+baseline at A and the candidate at B (its live commits, pinned in `fixtures/recorded-profiles.json`), so
+`profiles_get` reports them as `recordingCommit` and the skills' commit check has something to check.
+The baseline ran the candidate's source with the call switched off; in commit A the three lines the
+call takes are comments, so every line the baseline's frames name is the same line at A. The mocked
+suite's profiles carry no commit.
 
 ```bash
 git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings /tmp/jeffrey-recordings
@@ -112,8 +143,9 @@ java --add-modules jdk.incubator.vector -Djeffrey.microscope.home.dir=/tmp/jeffr
   -Dserver.port=8585 -jar build/build-microscope/target/microscope.jar &
 python3 build/scripts/record-plugin-eval-mocks.py --url http://localhost:8585/api/mcp \
   --work-dir /tmp/jeffrey-recordings/plugin-evals --load
-claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off \
-  --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp -j 3 \
+claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off --scaffold \
+  --allow-tools 'mcp__plugin_microscope_jeffrey__*' 'Bash(git rev-parse *)' 'Bash(git diff *)' \
+  'Bash(git log *)' 'Bash(git show *)' --ablation none --keep-temp -j 3 \
   --json /tmp/microscope-live-evals.json
 ```
 
@@ -179,6 +211,15 @@ Replayed against the 15 runs of the cases measured on 2026-10-31 (58 Jeffrey cal
 fails none: the first version, which rejected every unrecorded optional argument, failed 9 of 9 runs
 that called Jeffrey — `profiles_list` with `search`, the heap tools with `topN` or `limit`, and
 `flamegraph_export` with `detail: "SUMMARY"`, which the tools page recommends.
+
+Two rules came with the code tools. An optional argument that picks what the answer is about can
+address a fixture beside the required ones (the recorder's addressing options: `code_method`'s `methodName`, one
+fixture per method of a class). And a call that differs from a recorded one only in how the own
+packages were chosen — `framePrefixes` of `com.acme.` rather than `com.acme.checkout.`, or none, so
+Jeffrey suggests them — is accepted with that fixture when the recorder made it and its answer, its
+provenance (`framePrefixes`, `framePrefixesSource`, `suggestedFramePrefixes`, `followUp`) left out,
+carries the same figures; `_inputs.json` lists it beside the call it is equivalent to. A shorter root that took in
+other code would answer other figures and stay rejected.
 
 The checked-in input addresses were reconstructed mechanically from fixture names, recorder seeds
 and the response headers; answer contents and tool schemas were preserved. The recorder saves
@@ -971,3 +1012,179 @@ unmarked replies linked a profile by its baseline name and by its length.
   `analyze-connector` to passing on the configuration — never inventing an address, never answering
   from the catalogue's own profiles.
 - Not measured yet: the cases have not been run on these mocks.
+
+## The code tools measured
+
+The cases had not run on the code tools (`code_hotspots`, `code_method`, `code_callSites`,
+`code_runtimeSurface`, `compare_methods`) or on the `optimize-code` rename. The mocks were re-recorded
+with `--reuse` from the same three files, so every figure stands. The recorder now seeds the code tools
+as the code skills call them, and two new rules let it address and accept their calls (see
+[Current replay and grading contract](#current-replay-and-grading-contract)). Three new cases: two
+mocked, one live.
+
+What the first full pass found, and what changed because of it:
+
+- **The models read the package root as `com.acme.`**, the two-segment root the shared own-code
+  section asks for. The recorder had seeded `com.acme.checkout.`, so `recorded-call-semantics` failed
+  six runs whose calls were right. For this workload both roots answer the same figures. The
+  recorder now repeats each seeded call with `com.acme.` and accepts it when the answers match.
+- **A nested class came back by its runtime name.** `code_hotspots` offered `code_method` with
+  `Checkout$SessionCache`, which no fixture can key and a developer never writes. Now every code-tool
+  row carries `reference` in source spelling (Checkout.SessionCache#busyWait, and a lambda body by
+  the method it is written in), and the offered calls use it. Separately, `code_method`'s flamegraph
+  search was built from the source spelling and never matched the runtime frame. Each class dot in
+  it now matches a `$` too (`[.$]`).
+- **`named-area-cpu` skipped the flamegraph** in two of three runs. With no repository in the working
+  directory, it called `code_hotspots` with guessed prefixes. `analyze-jfr` now says a Code area
+  opens on its graph, and the code tools take packages read off a checkout, never guessed.
+- **`route-write-it-up` read the user's CPU claim back with `code_hotspots`** in all three runs. That
+  ranks methods by the CPU charged to them, which answers "most of the CPU goes to formatLine" at
+  least as directly as the graph. Its grader now accepts either read, still on CPU samples.
+- **The live comparison's judge read only the last message.** In one run that message was just the
+  Implement fixes offer that followed a correct answer. The three code judges now read the agent's
+  replies over the whole trace.
+
+The full pass ran all 22 mocked cases. The cases these changes touch were run again (three runs
+each), and the table takes their re-run:
+
+| | 1.0.28 | Code tools (full pass, then the touched cases again) |
+|---|---|---|
+| Mocked cases at the threshold | 18 of 19 | 19 of 22 |
+| Overall score (mean of the cases) | 1.00 | 0.99 |
+| `code-own-hotspots` | — | 1.00: `code_hotspots` with the package root, busyWait named with its 85% |
+| `code-is-this-method-worth-it` | — | 1.00: `code_method`; about 6% of the CPU but 95% of the bytes, `String.format` on line 200 |
+| Live: `compare-the-methods-my-diff-touched` | — | 1.00: `compare_methods` with both methods; formatLine new, `reprice` +87% |
+| Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
+| Spend, including the judge | $11.11 | $17.67 mocked (full pass $12.29, re-runs $5.38), $2.62 live |
+
+Three cases stay below the threshold, none on a code tool:
+
+- `named-area-cpu`: one unmarked link in its re-run.
+- `connector-not-configured`: one run's configuration advice failed its judge.
+- `slow-requests-from-traces`: one unmarked link.
+
+The skills reached match the routing intended: `code-insight` for both code questions, `compare-jfr`
+for the live comparison, and `optimize-code` for `route-what-to-change` (3 of 3).
+
+
+## The order history, the diff and the commits measured
+
+- **`code_callSites` and `code_runtimeSurface` have questions to answer.** The order-history workload
+  gives the evals an N+1 (`code-n-plus-one`) and a service to describe (`code-what-runs-at-runtime`);
+  the recorder crawls it after the checkout profiles, which keep every fixture they had.
+- **A brace no longer breaks the call contract.** `recorded-call-semantics` looked for a key past
+  `[^{}\n]*`, so a call whose value held a brace — the operation `GET /orders/{customer}` — failed it
+  even when recorded. The lookahead now steps over whole JSON strings.
+- **`compare-jfr` reads the change.** Its skill may run `git rev-parse`, `diff`, `log` and `show`, and its
+  diff step says which range: the two profiles' `recordingCommit`s when they carry them (never
+  `HEAD~1`, with a line when HEAD has moved on), or the commit the user names when they do not.
+- **The live profiles carry commits.** The live scaffolds build a fixed history; `--load` imports the
+  baseline and the candidate at its two commits. `did-my-last-commit-make-it-worse` puts HEAD one README
+  commit past the candidate and names no method.
+- **The link rule names the two places links were left bare**: a profile under **Not assessed**, and a
+  figure's source given as a link.
+- Granting `Bash` to a case makes `claude plugin eval` run it in its sandbox, which needs `bubblewrap`
+  and `socat`; without them every case of the run is refused, the SQL ones included.
+
+One full pass of each suite, on one instrument:
+
+| | Code tools (combined) | This pass |
+|---|---|---|
+| Mocked cases at the threshold | 19 of 22 | 18 of 24 |
+| Overall score | 0.99 | 0.99 |
+| The four mocked code cases | 1.00 each | 1.00 each (12 of 12 runs) |
+| Live cases | 1.00, 1.00, 1.00 | `compare-the-methods-my-diff-touched` 1.00, `did-my-last-commit-make-it-worse` 0.78, SQL 1.00 and 1.00 |
+| Spend, including the judge | $17.67 mocked, $2.62 live | $13.57 mocked, $3.04 live |
+
+The six mocked misses are one run each, none on a code tool: two unmarked links (the analysed profile;
+a next step named by its tool), two calls no fixture holds (`flamegraph_export` with a `search`, and
+with `threadMode`), `compare-finds-the-regression` routed once to `regression-check`, and one
+`connector-not-configured` judge.
+
+`did-my-last-commit-make-it-worse` missed twice, both genuinely:
+
+- One run read `git show HEAD~1` before it had read the profiles' commits. It reached the right change
+  only because HEAD~1 is the candidate's commit here.
+- One run passed `Checkout#formatLine` to `compare_methods`, building it from `compare_movements`' runtime
+  frame (`Checkout$PriceCalculator#formatLine`), whose rows carry no `reference`. It then called the CPU
+  change noise despite `reprice`'s +87%.
+
+The second points at the next server change: `reference` on `compare_movements`' rows too.
+
+## Misspelt methods, entry points, bounded prefixes
+
+What the live diff cases and a security review turned up, and what changed:
+
+- **A misspelt method is corrected by a call, not a hint.** Models passed `compare_methods`
+  `Checkout#formatLine` (the nested class left out) or `Checkout.PriceCalculator#reprice` (the package
+  left out). Both came back `NOT_SEEN`, and the runs then read the method as unchanged. A `NOT_SEEN` move
+  now carries `nearestReferences`, the sampled methods of the same name first, then those of the same
+  class or a class nested in it, compared in source spelling with the package optional. Its first
+  `nextTools` entry is the same comparison with those names. `code_method`'s `nearestFrames` had the same
+  blind spot: its classes were compared by binary name, and it read only the first kind's methods.
+- **Entry points come from the operation's trunk** (`EntryTrunk`). This is the call path 90% of an
+  operation's stacks share. On it, the entry point is the start of the longest run of the service's own
+  frames, so an own filter or worker loop above the handler, and a callback below it, are passed over.
+  `GET /orders/{customer}` now enters through `OrderController#history`, where it entered through the
+  worker loop in `main` before. `POST /checkout` stays on the loop. Only half of the samples Jeffrey
+  places inside its 74 µs spans run under `traced` at all, so no path below the loop carries 90%.
+- **`framePrefixes` is bounded** at 32 packages of at most 200 characters (`FramePrefixes`). Every Java
+  frame of every stack is checked against each prefix, so the list had made a call's cost unbounded.
+- **`compare-jfr` reads both profiles' commits** before saying whether they carry any. One run had said
+  "neither carries a `recordingCommit`" without reading either.
+- **`did-my-last-commit-make-it-worse` grades the outcome, not the spelling.** Two runs found the pricing
+  commit in `git log` and showed it as `HEAD~1`, which is the right change. The grader had wanted the
+  hash typed into the command. The judge already checks that the reply names the profiled commit and not
+  HEAD's README.
+
+| Case | Before | After |
+|---|---|---|
+| The four mocked code cases | 1.00 each | 1.00 each (12 of 12 runs) |
+| `compare-the-methods-my-diff-touched` | 0.83 | 1.00 |
+| `did-my-last-commit-make-it-worse` | 0.78 | 1.00, rescored under the corrected grader from the same three runs (the judge passed all three) |
+| SQL live cases | 1.00 and 1.00 | 1.00 and 1.00 |
+| Spend | — | $5.04 mocked and live, then $1.87 for the two diff cases again |
+
+The security review found the code tools' SQL, regexes and commit tags safe. Its one open finding: a
+high-cardinality `groupBy` (`sql` on a large recording) is held in memory value by value before the
+answer cuts it to 50 rows of 200 characters. The cost is bounded by the recording, not by the caller.
+
+
+## Samples inside their spans, bounded group values, eval noise
+
+- **A span scopes samples to the microsecond.** Span windows and sample instants were both floored to
+  whole milliseconds, so a 113 µs request claimed every sample of the millisecond it touched. On the
+  checkout candidate, `POST /checkout` held 134 samples, of which 68 were taken inside its requests;
+  the other 66 were the worker loop around them. `SpanInterval` now carries microseconds, and the
+  operation windows are derived in SQL to the microsecond. Only windows known to the millisecond (an
+  async-profiler span, a window the UI names) enter through the millisecond factory of `SpanInterval` as the whole
+  milliseconds they meant. With the exact samples, `POST /checkout` enters through `Checkout#checkout`
+  (96%), where it entered through the worker loop before. The span and operation flamegraphs, a
+  request's CPU and the runtime surface all read this scope.
+- **`code_callSites` groups whole values and hands them over cut.** The grouping value is cut in SQL to
+  200 characters, with its length and an MD5 that keeps two long statements alike for 200 characters
+  apart. A whole SQL text per group no longer reaches the server.
+- **Commit A keeps commit B's line numbers.** The three lines the formatLine call takes are comments
+  in A, so the baseline's frames name the same lines at A as at B. The new hashes are 70686f5 (A),
+  a9703bf (B) and 81f53ed (C).
+- **`connector_status` gives placeholders, not example values.** Its `NOT_CONFIGURED` answer had shown
+  `name=Production` and `share=recordings`, and replies copied them in as if they were the user's.
+  `analyze-connector` also calls nothing else on an undeclared connector: an empty `connector_sessions`
+  had been reported as a fact about production.
+
+One full mocked pass on the current code: **22 of 24 cases at the threshold, overall 1.00, $13.38**, up
+from 18 of 24. The cases that had missed before were then run three more times, for six runs each:
+
+| Case | Passed | What missed |
+|---|---|---|
+| `slow-requests-from-traces` | 6 of 6 | — |
+| `compare-finds-the-regression` | 5 of 6 | one honest-verdict judge, on a reply that stated its limits |
+| `exceptions-to-the-throw-site` | 5 of 6 | one unmarked link |
+| `named-area-cpu` | 4 of 6 | one unmarked link, one fix offered without the code |
+| `connector-not-configured` | 4 of 6 on the old answer, then 3 of 3 | the example values (fixed), then the empty-sessions claim (fixed) |
+
+Unmarked links are the steadiest remaining miss: about one run in six, in the cases that link most. On
+this pass the live suite scored 1.00 on three cases. `did-my-last-commit-make-it-worse` scored 0.89:
+one run read the comparison from `compare_movements` and never called `compare_methods`. Spend:
+$13.38 for the full mocked pass, $3.20 for the extra runs, $3.02 live, $0.70 for the connector case
+again.

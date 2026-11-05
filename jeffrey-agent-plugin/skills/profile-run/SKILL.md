@@ -1,7 +1,7 @@
 ---
 name: profile-run
 description: "Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: \"profile this benchmark\", \"record a JFR while the tests run\", \"why is this slow\" with no recording in hand, or when a hotspot needs measuring rather than guessing — and when they ask how to record what a recording lacks: which JFR settings or async-profiler events capture exception types, locks, allocation or wall-clock time, per JDK version (\"how do I record the exception types next time\")."
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Bash(git rev-parse *) Bash(git status *)
 argument-hint: "[what to run] [cpu|wall|alloc|lock]"
 ---
 
@@ -66,15 +66,20 @@ after warm-up. For a JIT-sensitive benchmark, discard the first iterations rathe
 The file has to land where **Jeffrey** can open it, not merely where you can: same machine, absolute
 path. If Jeffrey runs in a container, write into a mounted directory.
 
+**Say which source ran.** Add `-Dgit.commit=$(git rev-parse HEAD)` to the same JVM options, so the
+recording names its commit wherever it is read later, and note whether `git status --porcelain`
+printed anything — a build of uncommitted changes is not the commit it names.
+
 ## 3. Import and analyse
 
 ```
-recordings_analyzeFile(path="/absolute/path/run.jfr", force=true)
+recordings_analyzeFile(path="/absolute/path/run.jfr", force=true, commit="<git rev-parse HEAD>", dirty=<true when git status --porcelain printed anything>)
 ```
 
 `force=true` because this file was just written: a run recorded to the same path as an earlier one
 often has the same name and a size Jeffrey already knows, and without it the import hands back the
-old profile instead of this run.
+old profile instead of this run. `commit` and `dirty` go with it so `profiles_get` can tell every
+later reader whether their checkout is the code that ran.
 
 A small recording comes back with a `profileId`. A large one comes back with a status of `RUNNING`
 and an `operationId` — no `recordingId` yet, because the copy may still be in flight — and
@@ -102,8 +107,9 @@ trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
-a page named in passing ("the exceptions page"), the links most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
 a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
@@ -128,4 +134,4 @@ it: every `](` closes a link text that holds `↗`.**
   produces a profile that answers the wrong question convincingly.
 
 Related skills: `analyze-jfr` for reading what this produced, `compare-jfr` for before and after,
-`advise-jfr` to turn a hotspot into a change in this repository.
+`optimize-code` to turn a hotspot into a change in this repository.

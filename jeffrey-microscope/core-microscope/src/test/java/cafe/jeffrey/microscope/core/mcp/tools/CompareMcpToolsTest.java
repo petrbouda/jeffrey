@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.flamegraph.code.CodeAttribution.FocusCost;
+import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
+import cafe.jeffrey.flamegraph.code.MethodKey;
+import cafe.jeffrey.flamegraph.code.MethodRef;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
@@ -38,6 +43,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -59,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.ArrayList;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -214,6 +222,128 @@ class CompareMcpToolsTest {
                 .findFirst()
                 .orElseThrow();
         return McpSchemaGenerator.schemaOf(tool.getAnnotation(McpOutputSchema.class).value());
+    }
+
+    @Nested
+    class MethodCorrection {
+
+        private static final MethodRef ASKED = MethodRef.parse("com.acme.Orders#save");
+
+        @Test
+        void aHotUnrelatedNamesakeCannotReplaceTheRequestedClass() {
+            JsonNode answer = compareAbsent(List.of(
+                    value("com.other.Worker", "save", 10000),
+                    value("com.acme.Orders$Repository", "save", 10)));
+
+            JsonNode retry = answer.path("followUp").path("nextTools").get(0);
+            assertEquals("compare_methods", retry.path("tool").asString());
+            assertEquals("com.acme.Orders.Repository#save", retry.path("arguments").path("methods").get(0).asString());
+        }
+
+        @Test
+        void anUnrelatedNamesakeIsASuggestionWithoutAnAutomaticRetry() {
+            assertNoAutomaticRetry(compareAbsent(List.of(value("com.other.Worker", "save", 10000))));
+        }
+
+        @Test
+        void aDifferentPackageCannotMasqueradeAsTheRequestedQualifiedClass() {
+            assertNoAutomaticRetry(compareAbsent(List.of(value("other.com.acme.Orders$Repository", "save", 10000))));
+        }
+
+        @Test
+        void aPackageDescendantIsNotANestedClass() {
+            assertNoAutomaticRetry(compareAbsent(List.of(value("com.acme.Orders.repositories.Worker", "save", 10000))));
+        }
+
+        @Test
+        void ambiguousNestedClassesDoNotChooseTheHottestOne() {
+            assertNoAutomaticRetry(compareAbsent(List.of(
+                    value("com.acme.Orders$FirstRepository", "save", 1000),
+                    value("com.acme.Orders$SecondRepository", "save", 10))));
+        }
+
+        @Test
+        void aTruncatedSuggestionPoolCannotManufactureUniqueness() {
+            List<MethodValue> methods = new ArrayList<>();
+            for (int i = 0; i < 20; i++) {
+                methods.add(value("com.other.Worker" + i, "save", 10000));
+            }
+            methods.add(value("com.acme.Orders$FirstRepository", "save", 100));
+            methods.add(value("com.acme.Orders$SecondRepository", "save", 10));
+
+            assertNoAutomaticRetry(compareAbsent(methods));
+        }
+
+        @Test
+        void ordinaryAndLambdaFramesOfOneMethodAreOneCorrection() {
+            JsonNode answer = compareAbsent(List.of(
+                    value("com.acme.Orders$Repository", "save", 100),
+                    value("com.acme.Orders$Repository", "lambda$save$0", 50)));
+
+            JsonNode retry = answer.path("followUp").path("nextTools").get(0);
+            assertEquals("compare_methods", retry.path("tool").asString());
+            assertEquals("com.acme.Orders.Repository#save", retry.path("arguments").path("methods").get(0).asString());
+        }
+
+        private JsonNode compareAbsent(List<MethodValue> methods) {
+            when(primaryFlamegraphManager.graphableEventSummaries()).thenReturn(List.of(exclusive(CPU_EVENT, 100)));
+            when(baselineFlamegraphManager.graphableEventSummaries()).thenReturn(List.of(exclusive(CPU_EVENT, 100)));
+            FocusCost absent = new FocusCost(ASKED, List.of(), 0, 0,
+                    List.of(), List.of(), List.of(), List.of(), List.of());
+            CodeAttribution attribution = new CodeAttribution(100, 0,
+                    List.of(), List.of(), methods, List.of(absent));
+            when(primaryFlamegraphManager.codeAttribution(any(), any())).thenReturn(attribution);
+            when(baselineFlamegraphManager.codeAttribution(any(), any())).thenReturn(attribution);
+            return conforming("methods", tools().methods(BASELINE_ID, List.of(ASKED.displayName()), CPU_EVENT,
+                    null, null, null, null, null));
+        }
+
+        private static MethodValue value(String className, String method, long inclusive) {
+            return new MethodValue(new MethodKey(className, method), inclusive);
+        }
+
+        private static void assertNoAutomaticRetry(JsonNode answer) {
+            assertEquals("NOT_SEEN", answer.path("methods").get(0).path("movement").asString());
+            for (JsonNode call : answer.path("followUp").path("nextTools")) {
+                assertFalse("compare_methods".equals(call.path("tool").asString()), answer::toString);
+            }
+        }
+    }
+
+    @Nested
+    class MethodNormalization {
+
+        @ParameterizedTest
+        @CsvSource({"10, 3600, 1000, 360000", "1, 40000, 100, 4000000"})
+        void identicalRatesRemainUnchanged(long primarySeconds, long baselineSeconds,
+                                          long primarySamples, long baselineSamples) {
+            primaryLasting(primarySeconds);
+            baselineLasting(baselineSeconds);
+            when(primaryFlamegraphManager.graphableEventSummaries())
+                    .thenReturn(List.of(exclusive(CPU_EVENT, primarySamples)));
+            when(baselineFlamegraphManager.graphableEventSummaries())
+                    .thenReturn(List.of(exclusive(CPU_EVENT, baselineSamples)));
+            MethodRef ref = MethodRef.parse("com.acme.Service#run");
+            when(primaryFlamegraphManager.codeAttribution(any(), any()))
+                    .thenReturn(attribution(ref, primarySamples));
+            when(baselineFlamegraphManager.codeAttribution(any(), any()))
+                    .thenReturn(attribution(ref, baselineSamples));
+
+            JsonNode comparison = conforming("methods", tools().methods(BASELINE_ID, List.of(ref.displayName()),
+                    CPU_EVENT, null, null, null, null, null));
+
+            JsonNode move = comparison.path("methods").get(0);
+            assertEquals("UNCHANGED", move.path("movement").asString(), comparison::toString);
+            assertEquals(primarySamples, move.path("baselineInclusiveScaled").asDouble());
+            assertEquals(0.0, move.path("inclusiveDelta").asDouble());
+        }
+
+        private static CodeAttribution attribution(MethodRef ref, long samples) {
+            MethodKey key = new MethodKey(ref.className(), ref.methodName());
+            FocusCost focus = new FocusCost(ref, List.of(new MethodValue(key, samples)), samples, samples,
+                    List.of(), List.of(), List.of(), List.of(), List.of());
+            return new CodeAttribution(samples, 0, List.of(), List.of(), List.of(), List.of(focus));
+        }
     }
 
     private static List<McpToolSpec> reachable() {
@@ -707,7 +837,7 @@ class CompareMcpToolsTest {
             assertEquals(MOVEMENTS_MARKDOWN.length(), out.get("markdownChars").asInt());
             assertEquals(MOVEMENTS_MARKDOWN, out.get("markdown").asString());
             assertEquals(List.of("compare_quality", "compare_flamegraph"), nextTools(out));
-            assertEquals(1, out.get("followUp").get("guidance").size());
+            assertEquals(2, out.get("followUp").get("guidance").size());
             assertEquals(2, McpNextToolConformance.assertFollowable(out, reachable()));
         }
 

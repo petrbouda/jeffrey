@@ -1,7 +1,7 @@
 ---
 name: compare-jfr
 description: Compares two JVM profiles held by a running Jeffrey Microscope — a before and an after — using differential flamegraphs, to answer whether a change made the application slower, faster, or allocate more. Use whenever the user asks if a change regressed performance, what got slower or faster between two runs, to compare two recordings, benchmarks or branches, or mentions a baseline, a before/after or a performance regression. For a single profile, analyze-jfr applies instead; for a heap dump, analyze-heap.
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Read Grep Glob Bash(git rev-parse *) Bash(git diff *) Bash(git log *) Bash(git show *)
 ---
 
 # Comparing two Jeffrey profiles
@@ -157,7 +157,28 @@ each moved method before naming a file or a line — never infer them from a fra
 the movements onto the actual diff. A regression that lines up with a hunk in the change is a
 finding; one that does not is a lead, and often a rename or an unrelated shift in load.
 
-`advise-jfr` carries the full profile-to-code-change workflow once the regression is located.
+**Ask about the diff directly.** Read `recordingCommit` with `profiles_get` on **both** profiles first —
+a commit is never assumed missing — then which change to read:
+
+- **Both profiles carry a `recordingCommit`** (`profiles_get`): the change is
+  `<baseline commit>..<primary commit>` — never `HEAD~1..HEAD`. When `git rev-parse HEAD` is past the
+  primary's commit, say so in one line ("profiled at abc1234, HEAD is def5678, one commit later") and
+  read the source at the primary's commit (`git show <commit>:<path>`) before naming a line.
+- **Neither carries one**, and the user says which change ("my last commit", a branch): read it with
+  `git log -1 --stat` and `git show <that commit>`, and say the pairing is the user's word — nothing
+  in the profiles ties them to those commits.
+
+`git diff --stat` over that range names the changed files; read each hunk and write down the
+methods it changed — the method a hunk sits in, and each method it adds a call to — as
+`Class#method`, in source spelling. `compare_methods` with
+those `methods`, the same `eventType` and window as the ranking, and your `framePrefixes` answers
+for each of them on both sides — `movement` (`NEW`, `GONE`, `MORE`, `LESS`, `UNCHANGED`), the change
+scaled onto the primary's length, the callees that appeared or vanished below it, and the runtime
+names matched on each side. Read `unlistedMovers` before concluding: a method of yours outside the
+diff that moved as much is the finding the diff did not predict. `UNCHANGED` is below 0.1 % of the
+primary, inside the noise of a sampled profile — say so rather than "no effect".
+
+`optimize-code` carries the full profile-to-code-change workflow once the regression is located.
 
 ## Hand the reading to the analyst
 
@@ -200,7 +221,7 @@ list). When the user asks what else there
 is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
 one multi-select **Implement fixes for:** question.
 
-Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
 the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
 the source rather than choosing evidence again, and keeps its own gate: the proposed change per
 finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
@@ -210,6 +231,38 @@ against this profile — so the fix is measured rather than assumed. A heap find
 second dump taken under the same load and put against this one with `heap_diff`, the earlier dump as
 the baseline.
 
+## Your own code
+
+Jeffrey never reads this repository, so it is told which code is the application's own: the root
+packages of the source tree you are in, passed as `framePrefixes`. Work them out once and reuse them
+for every call:
+
+- `Glob` for `**/src/main/java/**/*.java` and `**/src/main/kotlin/**/*.kt` and take the shortest
+  package roots shared by the files (usually two or three segments: `com.acme.orders.`). Fall back to
+  the `groupId` in `pom.xml` or the `group` in `build.gradle(.kts)`. In a multi-module repository
+  where the question is about one service, take that module's packages and the shared ones it uses.
+- Keep the trailing dot, so `com.acme.` does not also match `com.acmecorp.`.
+- Name them in one line — "your code is `com.acme.orders.`" — so the user can correct you before
+  anything depends on it. `code_hotspots` called without them answers with the profile's busiest
+  non-library packages as `suggestedFramePrefixes`; one that differs from yours means the profile is
+  of another application, or the code was shaded or relocated.
+
+A frame comes back by its runtime name, and source and runtime spell code differently: a lambda body
+runs as `Outer#lambda$method$1`, a nested class is `Outer$Inner` at runtime and `Outer.Inner` in
+source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or coroutine is a class named
+after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
+name it merged in `matchedFrames` — read them before you name a line of source for a figure. A row of
+`code_hotspots` or `code_callSites`, and each of `compare_methods`' `unlistedMovers`, carries its
+`reference` in that spelling: pass it on as it is. A method `compare_methods` answers `NOT_SEEN` lists
+`nearestReferences` — most often the same method with its nested class or package spelled out
+(`com.acme.Checkout.PriceCalculator#formatLine` for `Checkout#formatLine`). A `NOT_SEEN` method has
+no figures: if the answer's first `nextTools` entry is `compare_methods`, make that call before you
+read, report or compare any figure of that method. It respells the methods Jeffrey can match without
+doubt. Never stand in an `unlistedMovers` row for a listed method: its `charged` cost leaves out the
+own methods it calls, so it hides the very change a diff added below it. With no such entry, the
+candidates are ambiguous or live in another class; check their classes in the source before you pass
+one yourself.
+
 ## Link what you name
 
 Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
@@ -217,8 +270,9 @@ trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
-a page named in passing ("the exceptions page"), the links most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
 a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
@@ -244,6 +298,6 @@ it: every `](` closes a link text that holds `↗`.**
 - A movement that looks enormous → check the recording lengths in `compare_list` first, then the
   candidate renames, before believing it.
 
-Related skills: `analyze-jfr` for a single profile, `advise-jfr` to turn a located regression into
+Related skills: `analyze-jfr` for a single profile, `optimize-code` to turn a located regression into
 an edit, `jfr-sql` for raw SQL against either profile, `report` for the shape the result is written
 in.

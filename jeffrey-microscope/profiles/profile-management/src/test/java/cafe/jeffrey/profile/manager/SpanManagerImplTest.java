@@ -174,8 +174,8 @@ class SpanManagerImplTest {
 
             assertEquals(2, intervals.size());
             // thread, from (start epoch), to (start + duration in millis)
-            assertEquals(new SpanInterval(1, 100, 120), intervals.get(0));
-            assertEquals(new SpanInterval(2, 5000, 5030), intervals.get(1));
+            assertEquals(SpanInterval.ofMillis(1, 100, 120), intervals.get(0));
+            assertEquals(SpanInterval.ofMillis(2, 5000, 5030), intervals.get(1));
         }
 
         @Test

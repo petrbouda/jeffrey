@@ -216,7 +216,7 @@ list). When the user asks what else there
 is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
 one multi-select **Implement fixes for:** question.
 
-Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
 the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
 the source rather than choosing evidence again, and keeps its own gate: the proposed change per
 finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
@@ -233,8 +233,9 @@ trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
-a page named in passing ("the exceptions page"), the links most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
 a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check

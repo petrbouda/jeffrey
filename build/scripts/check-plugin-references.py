@@ -62,10 +62,12 @@ CLIENT_PREFIXES = ("mcp__plugin_microscope_jeffrey__", "mcp__jeffrey__", "mcp_je
 # `family_toolName` in prose — the same pattern as McpToolsetAssemblerTest.ToolReferences.REFERENCE.
 TOOL_REFERENCE = re.compile(r"\b([a-z][a-z]*_[a-zA-Z][a-zA-Z0-9]*)\b")
 
-# Deliberate counter-examples ("`jfr_listTables`, not `jfr_list_tables`") and a SQL alias — the same
-# set as McpToolsetAssemblerTest.ToolReferences.NOT_REFERENCES.
+# Deliberate counter-examples ("`jfr_listTables`, not `jfr_list_tables`") and two SQL aliases — the same
+# set as McpToolsetAssemblerTest.ToolReferences.NOT_REFERENCES. `code_size` is jfr-sql's alias for a
+# compilation's code size, which reads as a tool of the code family.
 NOT_TOOL_REFERENCES = {
     "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list", "connector_list_sessions", "heap_used",
+    "code_size",
 }
 
 ARGUMENT = re.compile(r"([a-zA-Z]+)\s*[=:]\s*(\"[^\"]*\"|\[[^\]]*\]|[^,)\s]+)")

@@ -204,14 +204,15 @@ class JdbcTraceRepositoryTest {
 
             SpanInterval request = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3001L).findFirst().orElseThrow();
-            assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
+            assertEquals(micros(EPOCH_10_00_00), request.fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 120), request.toEpochMicros(),
                     "the exchange's own window bounds the statements inside it");
 
             SpanInterval forked = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3002L).findFirst().orElseThrow();
-            assertEquals(EPOCH_10_00_00 + 60, forked.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 80, forked.toEpochMillis());
+            assertEquals(micros(EPOCH_10_00_00 + 60) + 750, forked.fromEpochMicros(),
+                    "the forked span starts 750 microseconds into its millisecond, kept rather than floored");
+            assertEquals(micros(EPOCH_10_00_00 + 80) + 750, forked.toEpochMicros());
         }
 
         @Test
@@ -243,8 +244,8 @@ class JdbcTraceRepositoryTest {
             SpanInterval callback = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3003L).findFirst()
                     .orElseThrow(() -> new AssertionError("the re-entered thread must get an interval"));
-            assertEquals(EPOCH_10_00_00 + 90, callback.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 110, callback.toEpochMillis());
+            assertEquals(micros(EPOCH_10_00_00 + 90), callback.fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 110), callback.toEpochMicros());
         }
 
         @Test
@@ -254,8 +255,8 @@ class JdbcTraceRepositoryTest {
 
             SpanInterval request = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3001L).findFirst().orElseThrow();
-            assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
+            assertEquals(micros(EPOCH_10_00_00), request.fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 120), request.toEpochMicros(),
                     "the scope sits inside the exchange, so the exchange still bounds the thread");
         }
 
@@ -278,14 +279,15 @@ class JdbcTraceRepositoryTest {
 
             List<SpanInterval> pool = intervals.stream()
                     .filter(interval -> interval.threadHash() == 3002L)
-                    .sorted(Comparator.comparingLong(SpanInterval::fromEpochMillis))
+                    .sorted(Comparator.comparingLong(SpanInterval::fromEpochMicros))
                     .toList();
 
             assertEquals(2, pool.size(), "one interval per stint, not one spanning the gap");
-            assertEquals(EPOCH_10_00_00 + 60, pool.get(0).fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 80, pool.get(0).toEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 100, pool.get(1).fromEpochMillis());
-            assertEquals(EPOCH_10_00_00 + 110, pool.get(1).toEpochMillis());
+            assertEquals(micros(EPOCH_10_00_00 + 60) + 750, pool.get(0).fromEpochMicros(),
+                    "the forked span starts 750 microseconds into its millisecond, kept rather than floored");
+            assertEquals(micros(EPOCH_10_00_00 + 80) + 750, pool.get(0).toEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 100), pool.get(1).fromEpochMicros());
+            assertEquals(micros(EPOCH_10_00_00 + 110), pool.get(1).toEpochMicros());
         }
 
         @Test
@@ -1290,7 +1292,7 @@ class JdbcTraceRepositoryTest {
             // The window of the root HTTP span on thread 3001, which also carries a JDBC span and
             // an execution sample.
             ThreadWindowEventsPage page = repository.eventsInSpan(
-                    3001, EPOCH_10_00_00, EPOCH_10_00_00 + 120);
+                    3001, micros(EPOCH_10_00_00), wholeMillisecond(EPOCH_10_00_00 + 120));
             List<ThreadWindowEventRecord> events = page.events();
 
             assertTrue(events.stream().noneMatch(event -> event.eventType().startsWith("jeffrey.")),
@@ -1306,9 +1308,9 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = derived(dataSource);
 
             // A different thread has no events of its own in the fixture.
-            assertTrue(repository.eventsInSpan(3002, EPOCH_10_00_00, EPOCH_10_00_00 + 120).events().isEmpty());
+            assertTrue(repository.eventsInSpan(3002, micros(EPOCH_10_00_00), wholeMillisecond(EPOCH_10_00_00 + 120)).events().isEmpty());
             // A window before anything happened is empty too.
-            assertTrue(repository.eventsInSpan(3001, EPOCH_10_00_00 - 500, EPOCH_10_00_00 - 1).events().isEmpty());
+            assertTrue(repository.eventsInSpan(3001, micros(EPOCH_10_00_00 - 500), wholeMillisecond(EPOCH_10_00_00 - 1)).events().isEmpty());
         }
     }
 
@@ -2258,7 +2260,7 @@ class JdbcTraceRepositoryTest {
         void excludesEntriesFromTheDrillDown(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = withEntries(dataSource);
 
-            ThreadWindowEventsPage page = repository.eventsInSpan(3001L, 0L, 200L);
+            ThreadWindowEventsPage page = repository.eventsInSpan(3001L, 0L, wholeMillisecond(200L));
             List<String> types = page.events().stream()
                     .map(ThreadWindowEventRecord::eventType)
                     .distinct()
@@ -2526,7 +2528,7 @@ class JdbcTraceRepositoryTest {
             // are child bars now; listing them here too would show every wait twice. The
             // deoptimization is not promoted and must still be listed.
             ThreadWindowEventsPage page = withBlockingEvents(dataSource)
-                    .eventsInSpan(3002L, EPOCH_11_00_00, EPOCH_11_00_00 + 400);
+                    .eventsInSpan(3002L, micros(EPOCH_11_00_00), wholeMillisecond(EPOCH_11_00_00 + 400));
 
             assertEquals(List.of("jdk.Deoptimization"), page.events().stream()
                     .map(ThreadWindowEventRecord::eventType)
@@ -3210,5 +3212,15 @@ class JdbcTraceRepositoryTest {
             assertEquals(4, groups.get("jdk.FileRead|null").count());
             assertEquals(3, groups.size(), "the recorded spans are not promoted");
         }
+    }
+
+    /** A fixture's milliseconds as the microseconds a derived interval carries. */
+    private static long micros(long millis) {
+        return millis * 1_000L;
+    }
+
+    /** The last microsecond of a fixture's millisecond: a window ending there holds that whole millisecond. */
+    private static long wholeMillisecond(long millis) {
+        return micros(millis) + 999L;
     }
 }

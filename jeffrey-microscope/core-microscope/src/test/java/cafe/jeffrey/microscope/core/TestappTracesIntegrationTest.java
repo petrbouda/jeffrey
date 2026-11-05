@@ -354,8 +354,8 @@ class TestappTracesIntegrationTest extends TestappVolumeMicroscope {
             List<String> busiest = query(recording, "SELECT r.trace_id, r.span_id, count(*) AS samples"
                     + " FROM trace_spans r JOIN traces t ON t.trace_id = r.trace_id AND t.root_span_id = r.span_id"
                     + " JOIN events e ON e.event_type = '" + EXECUTION_SAMPLE + "' AND e.thread_hash = r.thread_hash"
-                    + " AND epoch_us(e.start_timestamp) // 1000 BETWEEN epoch_us(r.start_timestamp) // 1000"
-                    + " AND (epoch_us(r.start_timestamp) + r.duration // 1000) // 1000"
+                    + " AND epoch_us(e.start_timestamp) BETWEEN epoch_us(r.start_timestamp)"
+                    + " AND epoch_us(r.start_timestamp) + r.duration // 1000"
                     + " GROUP BY ALL ORDER BY samples DESC, r.trace_id LIMIT 1").getFirst();
             String traceId = hex(Long.parseLong(busiest.get(0)));
             String spanId = hex(Long.parseLong(busiest.get(1)));

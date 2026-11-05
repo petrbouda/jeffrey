@@ -119,7 +119,10 @@ not-recorded line, and stop.
 
 Every Code area opens on its flamegraph: CPU hotspots and Wall-clock time on the graph alone,
 Allocation and Lock contention on the graph and then their table — hand the graph to the analyst, as
-for CPU, and read the table here. **`moreFlamegraphs`** are the recorded types with stacks no area
+for CPU, and read the table here. The flamegraph comes first even when the question is where "our" code
+spends its time: `code_hotspots` and `code_method` rank the code by the packages read off a checked-out
+repository (the `code-insight` skill), and with no source in the working directory there are none to
+pass — never guess them from the frames. **`moreFlamegraphs`** are the recorded types with stacks no area
 opens (a second sampler, native allocation, method traces, custom events), in the Pages table's last
 line; a pick of one, under Other, sends its `export` unchanged.
 
@@ -261,7 +264,7 @@ ways to reach it:
   grep for the frame name gets wrong, and it does not move the reader's editor. `ide_windows` shows
   which checkouts are open and which is on the commit the recording was built from.
 
-The `advise-jfr` skill carries the full profile-to-code-change workflow.
+The `optimize-code` skill carries the full profile-to-code-change workflow.
 
 ## Write it up
 
@@ -304,7 +307,7 @@ list). When the user asks what else there
 is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
 one multi-select **Implement fixes for:** question.
 
-Picked, it hands over to the `advise-jfr` skill with what this conversation already established —
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
 the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
 the source rather than choosing evidence again, and keeps its own gate: the proposed change per
 finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
@@ -321,8 +324,9 @@ trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
-a page named in passing ("the exceptions page"), the links most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
 a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
@@ -355,5 +359,5 @@ it: every `](` closes a link text that holds `↗`.**
   by default), or the configured URL does not end in `/api/mcp`, the one path it serves.
 
 Related skills: `analyze-heap` for a heap dump, `compare-jfr` when there is a before and an after
-to weigh against each other, `jfr-sql` for raw SQL against the profile, `advise-jfr` to go from a
+to weigh against each other, `jfr-sql` for raw SQL against the profile, `optimize-code` to go from a
 hotspot to an edit in this repository, `report` for the shape every finding is written in.

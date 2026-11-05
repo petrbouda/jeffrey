@@ -32,6 +32,7 @@ module cafe.jeffrey.microscope.profile.flamegraph {
     exports cafe.jeffrey.flamegraph;
     exports cafe.jeffrey.flamegraph.export;
     exports cafe.jeffrey.flamegraph.api;
+    exports cafe.jeffrey.flamegraph.code;
     exports cafe.jeffrey.flamegraph.diff;
     exports cafe.jeffrey.flamegraph.provider;
 }

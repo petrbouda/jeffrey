@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
@@ -172,10 +173,49 @@ class RecordingsMcpToolsTest {
         when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
         when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-        String result = complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ));
+        String result = complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ));
         assertTrue(result.contains("\"operationId\""), result);
         assertTrue(result.contains("\"operation\""), result);
         assertTrue(result.contains("\"status\":\"COMPLETED\""), result);
+    }
+
+    @Nested
+    class SourceRevisionOfAnImport {
+
+        private static final String COMMIT = "0123456789abcdef0123456789abcdef01234567";
+
+        @Test
+        void recordsTheCommitTheCallerBuiltFrom() throws IOException {
+            RecordingCommitResolver revisions = mock(RecordingCommitResolver.class);
+            RecordingsMcpTools tagging = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
+                    .withRevisions(revisions).build();
+            Path file = recordingFile("built.jfr");
+            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+
+            complete(tagging.analyzeFile(file.toString(), null, null, COMMIT, true, RESOURCE_READ));
+
+            verify(revisions).record(RECORDING_ID, COMMIT, true);
+        }
+
+        @Test
+        void refusesACommitThatIsNotAGitObjectIdBeforeImporting() throws IOException {
+            Path file = recordingFile("built.jfr");
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> tools.analyzeFile(file.toString(), null, null, "HEAD", null, RESOURCE_READ));
+            verify(recordingsManager, never()).importRecordingFromPath(any());
+        }
+
+        @Test
+        void refusesDirtyWithoutTheCommitItDescribes() throws IOException {
+            Path file = recordingFile("built.jfr");
+
+            assertThrows(IllegalArgumentException.class,
+                    () -> tools.analyzeFile(file.toString(), null, null, null, true, RESOURCE_READ));
+            verify(recordingsManager, never()).importRecordingFromPath(any());
+        }
     }
 
     @Test
@@ -199,7 +239,7 @@ class RecordingsMcpToolsTest {
         });
         CompletableFuture<String> call = CompletableFuture.supplyAsync(
                 () -> withRequestContext(
-                        () -> complete(bounded.analyzeFile(file.toString(), null, null, RESOURCE_READ))));
+                        () -> complete(bounded.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
         String operationId;
         try {
             assertTrue(entered.await(5, SECONDS));
@@ -224,7 +264,7 @@ class RecordingsMcpToolsTest {
         when(recordingsManager.importRecordingFromPath(file)).thenThrow(new IllegalStateException("copy failed"));
 
         ToolExecutionException e = assertThrows(ToolExecutionException.class,
-                () -> complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
         assertTrue(e.getMessage().contains("copy failed"), e.getMessage());
         assertTrue(e.getMessage().contains("\"status\":\"FAILED\""), e.getMessage());
@@ -256,7 +296,7 @@ class RecordingsMcpToolsTest {
             return PROFILE_ID;
         });
         String operationId =
-                Json.mapper().readTree(complete(bounded.analyzeFile(file.toString(), "Accepted name", null, RESOURCE_READ)))
+                Json.mapper().readTree(complete(bounded.analyzeFile(file.toString(), "Accepted name", null, null, null, RESOURCE_READ)))
                 .path("operationId").asString();
         try {
             assertTrue(entered.await(5, SECONDS));
@@ -299,7 +339,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            String result = complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ));
+            String result = complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains(PROFILE_ID));
             assertTrue(result.contains(RECORDING_ID));
@@ -316,7 +356,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            assertTrue(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ))
+            assertTrue(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))
                     .contains("\"profileId\":\"" + PROFILE_ID + "\""));
         }
 
@@ -328,7 +368,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
             profileIs(true, "Checkout run");
 
-            String result = complete(tools.analyzeFile(file.toString(), "Checkout run", null, RESOURCE_READ));
+            String result = complete(tools.analyzeFile(file.toString(), "Checkout run", null, null, null, RESOURCE_READ));
 
             verify(recordingsManager).updateProfileName(PROFILE_ID, "Checkout run");
             assertTrue(result.contains("Checkout run"));
@@ -353,11 +393,11 @@ class RecordingsMcpToolsTest {
 
             CompletableFuture<String> first = CompletableFuture.supplyAsync(
                     () -> withRequestContext(
-                            () -> complete(concurrent.analyzeFile(file.toString(), "First name", null, RESOURCE_READ))));
+                            () -> complete(concurrent.analyzeFile(file.toString(), "First name", null, null, null, RESOURCE_READ))));
             assertTrue(analysisReached.await(5, SECONDS));
             CompletableFuture<String> second = CompletableFuture.supplyAsync(
                     () -> withRequestContext(
-                            () -> complete(concurrent.analyzeFile(file.toString(), "Second name", null, RESOURCE_READ))));
+                            () -> complete(concurrent.analyzeFile(file.toString(), "Second name", null, null, null, RESOURCE_READ))));
             await().during(Duration.ofMillis(50)).atMost(5, SECONDS).until(() -> !second.isDone());
             releaseAnalysis.countDown();
 
@@ -380,7 +420,7 @@ class RecordingsMcpToolsTest {
             profileIs(true);
 
             var result =
-                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertEquals(PROFILE_ID, result.path("profileId").asString(), result.toString());
             assertEquals(RECORDING_ID, result.path("recordingId").asString(), result.toString());
@@ -402,7 +442,7 @@ class RecordingsMcpToolsTest {
                     .thenReturn(Optional.of(recording(false)), Optional.of(recording(true)));
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
 
-            String result = complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ));
+            String result = complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"profileId\":\"" + PROFILE_ID + "\""), result);
             verify(recordingsManager, never()).importRecordingFromPath(any());
@@ -419,7 +459,7 @@ class RecordingsMcpToolsTest {
                     true, "prof-2", "app.jfr", List.of())));
 
             var result =
-                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, true, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, true, null, null, RESOURCE_READ)));
 
             assertEquals("prof-2", result.path("profileId").asString(), result.toString());
             assertFalse(result.path("reused").asBoolean(), result.toString());
@@ -443,7 +483,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            String result = complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ));
+            String result = complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"reused\":false"), result);
             verify(recordingsManager).findByFileNameAndSize("app.jfr", Files.size(file));
@@ -464,7 +504,7 @@ class RecordingsMcpToolsTest {
             profileIs(true);
 
             var result =
-                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertTrue(result.path("reused").asBoolean(), result.toString());
             verify(recordingsManager, never()).importRecordingFromPath(any());
@@ -477,7 +517,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            complete(tools.analyzeFile(file.toString(), "   ", null, RESOURCE_READ));
+            complete(tools.analyzeFile(file.toString(), "   ", null, null, null, RESOURCE_READ));
 
             verify(recordingsManager, never()).updateProfileName(anyString(), anyString());
         }
@@ -491,7 +531,7 @@ class RecordingsMcpToolsTest {
         void rejectsARelativePathBeforeTouchingTheStore() {
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                    () -> complete(tools.analyzeFile("target/app.jfr", null, null, RESOURCE_READ)));
+                    () -> complete(tools.analyzeFile("target/app.jfr", null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("absolute"));
             verifyNoInteractions(recordingsManager);
@@ -501,7 +541,7 @@ class RecordingsMcpToolsTest {
         void rejectsAMissingFileAndSaysWhoseFilesystemItLookedOn() {
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                    () -> complete(tools.analyzeFile(tempDir.resolve("nowhere.jfr").toString(), null, null, RESOURCE_READ)));
+                    () -> complete(tools.analyzeFile(tempDir.resolve("nowhere.jfr").toString(), null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("Jeffrey"));
             verifyNoInteractions(recordingsManager);
@@ -513,7 +553,7 @@ class RecordingsMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                    () -> complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("Unsupported"));
             verifyNoInteractions(recordingsManager);
@@ -522,7 +562,7 @@ class RecordingsMcpToolsTest {
         @Test
         void rejectsAnAbsentPath() {
             assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.analyzeFile(null, null, null, RESOURCE_READ)));
+                    () -> complete(tools.analyzeFile(null, null, null, null, null, RESOURCE_READ)));
             verifyNoInteractions(recordingsManager);
         }
 
@@ -537,7 +577,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            assertTrue(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)).contains(PROFILE_ID));
+            assertTrue(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)).contains(PROFILE_ID));
         }
     }
 
@@ -578,13 +618,13 @@ class RecordingsMcpToolsTest {
 
             CompletableFuture<String> first = CompletableFuture.supplyAsync(
                     () -> withRequestContext(
-                            () -> complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ))));
+                            () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
             CompletableFuture<String> second;
             try {
                 assertTrue(importing.await(5, SECONDS));
                 second = CompletableFuture.supplyAsync(
                         () -> withRequestContext(
-                                () -> complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ))));
+                                () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
                 // Past the reuse check, which found nothing because the first copy has not landed.
                 verify(recordingsManager, timeout(5_000).times(2)).findByFileNameAndSize("app.jfr", Files.size(file));
                 await().during(Duration.ofMillis(100)).atMost(5, SECONDS).until(() -> !second.isDone());
@@ -627,11 +667,11 @@ class RecordingsMcpToolsTest {
             try {
                 CompletableFuture<String> first = CompletableFuture.supplyAsync(
                         () -> withRequestContext(
-                                () -> complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ))));
+                                () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
                 assertTrue(importing.await(5, SECONDS));
                 firstOperation = Json.mapper().readTree(first.get(5, SECONDS)).path("operationId").asString();
                 forcedOperation = Json.mapper().readTree(withRequestContext(
-                        () -> complete(tools.analyzeFile(file.toString(), null, true, RESOURCE_READ))))
+                        () -> complete(tools.analyzeFile(file.toString(), null, true, null, null, RESOURCE_READ))))
                         .path("operationId").asString();
 
                 assertFalse(firstOperation.equals(forcedOperation), forcedOperation);
@@ -661,9 +701,9 @@ class RecordingsMcpToolsTest {
             profileIs(true);
 
             var imported =
-                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
             var reused =
-                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertEquals(PROFILE_ID, imported.path("profileId").asString(), imported.toString());
             assertFalse(imported.path("reused").asBoolean(), imported.toString());
@@ -690,9 +730,9 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.findRecording(SECOND_RECORDING_ID))
                     .thenReturn(Optional.of(stored(SECOND_RECORDING_ID, SECOND_PROFILE_ID)));
 
-            complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ));
+            complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ));
             deleted.set(true);
-            var again = Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+            var again = Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertEquals(SECOND_PROFILE_ID, again.path("profileId").asString(), again.toString());
             verify(recordingsManager, times(2)).importRecordingFromPath(file);
@@ -713,9 +753,9 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
             assertThrows(ToolExecutionException.class,
-                    () -> complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
             var retried =
-                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+                    Json.mapper().readTree(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertEquals(PROFILE_ID, retried.path("profileId").asString(), retried.toString());
             verify(recordingsManager, times(2)).importRecordingFromPath(file);
@@ -1289,7 +1329,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            JsonNode answer = conforming(complete(tools.analyzeFile(file.toString(), null, null, RESOURCE_READ)));
+            JsonNode answer = conforming(complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
             assertEquals("READY", answer.path("status").asString());
             assertEquals(PROFILE_ID, answer.path("profileId").asString());
@@ -1492,7 +1532,7 @@ class RecordingsMcpToolsTest {
                 return PROFILE_ID;
             });
 
-            assertTrue(complete(slow.analyzeFile(file.toString(), "Checkout run", null, RESOURCE_READ))
+            assertTrue(complete(slow.analyzeFile(file.toString(), "Checkout run", null, null, null, RESOURCE_READ))
                     .contains("\"status\":\"RUNNING\""));
             release.countDown();
 
@@ -1782,7 +1822,7 @@ class RecordingsMcpToolsTest {
 
             RecordingsMcpTools tools = shortTaskWait();
             McpToolOutcome outcome = withinTwentySeconds(
-                    () -> tools.analyzeFile(file.toString(), null, null, TASKS), release);
+                    () -> tools.analyzeFile(file.toString(), null, null, null, null, TASKS), release);
 
             String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
             assertEquals(OperationKind.RECORDING_IMPORT, operations.status(taskId).kind());
@@ -1836,7 +1876,7 @@ class RecordingsMcpToolsTest {
             String expectedLink = UiLinks.profile(PROFILE_ID);
             RecordingsMcpTools tools = shortTaskWait();
             String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, withinTwentySeconds(
-                    () -> tools.analyzeFile(file.toString(), null, null, TASKS), release)).taskId();
+                    () -> tools.analyzeFile(file.toString(), null, null, null, null, TASKS), release)).taskId();
 
             RequestContextHolder.resetRequestAttributes();
             release.countDown();
@@ -1860,7 +1900,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
             profileIs(true);
 
-            McpToolOutcome outcome = tools.analyzeFile(file.toString(), null, null, TASKS);
+            McpToolOutcome outcome = tools.analyzeFile(file.toString(), null, null, null, null, TASKS);
 
             String answer = assertInstanceOf(McpToolResult.class, outcome).text();
             String taskId = Json.readTree(answer).path("operationId").asString();

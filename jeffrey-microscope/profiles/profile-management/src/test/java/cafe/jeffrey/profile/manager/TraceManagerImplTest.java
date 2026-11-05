@@ -66,6 +66,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -840,8 +841,8 @@ class TraceManagerImplTest {
             List<SpanInterval> intervals = manager.spanIntervals(TRACE, 1, false);
 
             assertEquals(1, intervals.size());
-            assertEquals(100, intervals.getFirst().fromEpochMillis());
-            assertEquals(150, intervals.getFirst().toEpochMillis());
+            assertEquals(us(100), intervals.getFirst().fromEpochMicros());
+            assertEquals(us(150), intervals.getFirst().toEpochMicros());
         }
 
         /*
@@ -860,9 +861,9 @@ class TraceManagerImplTest {
             List<SpanInterval> intervals = manager.spanIntervals(TRACE, 1, false);
 
             assertEquals(List.of(
-                            new SpanInterval(THREAD, 100, 150),
-                            new SpanInterval(OTHER_THREAD, 110, 130),
-                            new SpanInterval(THIRD_THREAD, 115, 120)),
+                            new SpanInterval(THREAD, us(100), us(150)),
+                            new SpanInterval(OTHER_THREAD, us(110), us(130)),
+                            new SpanInterval(THIRD_THREAD, us(115), us(120))),
                     intervals,
                     "the span's own window, then one window per thread its descendants ran on");
         }
@@ -873,17 +874,17 @@ class TraceManagerImplTest {
             TraceManagerImpl manager = managerOf(List.of(
                     span(1, null, "root", 100, 50),
                     spanOnThread(2, 1L, "first", 110, 10, OTHER_THREAD),
-                    spanOnThread(3, 1L, "touching", 121, 4, OTHER_THREAD),
+                    spanOnThread(3, 1L, "touching", 120, 5, OTHER_THREAD),
                     spanOnThread(4, 1L, "apart", 140, 5, OTHER_THREAD)));
 
             List<SpanInterval> intervals = manager.spanIntervals(TRACE, 1, false);
 
             assertEquals(List.of(
-                            new SpanInterval(THREAD, 100, 150),
-                            new SpanInterval(OTHER_THREAD, 110, 125),
-                            new SpanInterval(OTHER_THREAD, 140, 145)),
+                            new SpanInterval(THREAD, us(100), us(150)),
+                            new SpanInterval(OTHER_THREAD, us(110), us(125)),
+                            new SpanInterval(OTHER_THREAD, us(140), us(145))),
                     intervals,
-                    "adjacent windows share no millisecond twice; a gap keeps two windows apart");
+                    "adjacent windows share no microsecond twice; a gap keeps two windows apart");
         }
 
         @Test
@@ -893,7 +894,7 @@ class TraceManagerImplTest {
                     span(1, null, "root", 100, 50),
                     span(2, 1L, "child", 120, 10)));
 
-            assertEquals(List.of(new SpanInterval(THREAD, 100, 150)),
+            assertEquals(List.of(new SpanInterval(THREAD, us(100), us(150))),
                     manager.spanIntervals(TRACE, 1, false));
         }
 
@@ -907,16 +908,16 @@ class TraceManagerImplTest {
             List<SpanInterval> intervals = manager.spanIntervals(TRACE, 1, true);
 
             assertEquals(2, intervals.size(), "before the child and after it");
-            assertEquals(100, intervals.get(0).fromEpochMillis());
-            assertEquals(119, intervals.get(0).toEpochMillis(),
-                    "stops a millisecond short of the child, which the sample filter matches inclusively");
-            assertEquals(131, intervals.get(1).fromEpochMillis(),
-                    "resumes a millisecond after the child, for the same reason");
-            assertEquals(150, intervals.get(1).toEpochMillis());
+            assertEquals(us(100), intervals.get(0).fromEpochMicros());
+            assertEquals(us(120) - 1, intervals.get(0).toEpochMicros(),
+                    "stops a microsecond short of the child, which the sample filter matches inclusively");
+            assertEquals(us(130) + 1, intervals.get(1).fromEpochMicros(),
+                    "resumes a microsecond after the child, for the same reason");
+            assertEquals(us(150), intervals.get(1).toEpochMicros());
         }
 
         @Test
-        @DisplayName("the millisecond a child starts and ends on belongs to the child alone")
+        @DisplayName("the microsecond a child starts and ends on belongs to the child alone")
         void childBoundsAreNotSharedWithTheParent() {
             TraceManagerImpl manager = managerOf(List.of(
                     span(1, null, "root", 100, 50),
@@ -926,18 +927,18 @@ class TraceManagerImplTest {
             SpanInterval child = manager.spanIntervals(TRACE, 2, false).getFirst();
 
             assertTrue(parent.stream().noneMatch(interval ->
-                            covers(interval, child.fromEpochMillis()) || covers(interval, child.toEpochMillis())),
+                            covers(interval, child.fromEpochMicros()) || covers(interval, child.toEpochMicros())),
                     "a sample on either boundary would otherwise be counted in both graphs");
         }
 
         @Test
-        @DisplayName("a child ending one millisecond early leaves that millisecond to the parent")
+        @DisplayName("a child ending one millisecond early leaves what is past it to the parent")
         void keepsTheLastUncoveredMillisecond() {
             TraceManagerImpl manager = managerOf(List.of(
                     span(1, null, "root", 100, 50),
                     span(2, 1L, "child", 100, 49)));
 
-            assertEquals(List.of(new SpanInterval(THREAD, 150, 150)),
+            assertEquals(List.of(new SpanInterval(THREAD, us(149) + 1, us(150))),
                     manager.spanIntervals(TRACE, 1, true));
         }
 
@@ -948,7 +949,7 @@ class TraceManagerImplTest {
                     span(1, null, "root", 100, 50),
                     span(2, 1L, "child", 140, 10)));
 
-            assertEquals(List.of(new SpanInterval(THREAD, 100, 139)),
+            assertEquals(List.of(new SpanInterval(THREAD, us(100), us(140) - 1)),
                     manager.spanIntervals(TRACE, 1, true));
         }
 
@@ -959,7 +960,7 @@ class TraceManagerImplTest {
                     span(1, null, "root", 100, 50),
                     spanOnThread(2, 1L, "forked", 120, 10, OTHER_THREAD)));
 
-            assertEquals(List.of(new SpanInterval(THREAD, 100, 150)),
+            assertEquals(List.of(new SpanInterval(THREAD, us(100), us(150))),
                     manager.spanIntervals(TRACE, 1, true),
                     "the parent's thread was busy with its own work the whole time");
         }
@@ -969,7 +970,7 @@ class TraceManagerImplTest {
         void leafSelfIsWholeWindow() {
             TraceManagerImpl manager = managerOf(List.of(span(1, null, "leaf", 100, 50)));
 
-            assertEquals(List.of(new SpanInterval(THREAD, 100, 150)),
+            assertEquals(List.of(new SpanInterval(THREAD, us(100), us(150))),
                     manager.spanIntervals(TRACE, 1, true));
         }
 
@@ -983,8 +984,22 @@ class TraceManagerImplTest {
             assertTrue(manager.spanIntervals(TRACE, 1, true).isEmpty());
         }
 
-        private static boolean covers(SpanInterval interval, long epochMillis) {
-            return epochMillis >= interval.fromEpochMillis() && epochMillis <= interval.toEpochMillis();
+        private static boolean covers(SpanInterval interval, long epochMicros) {
+            return epochMicros >= interval.fromEpochMicros() && epochMicros <= interval.toEpochMicros();
+        }
+
+        /** A fixture's milliseconds as the microseconds the intervals carry. */
+        private static long us(long millis) {
+            return millis * 1_000L;
+        }
+
+        @Test
+        @DisplayName("a sub-millisecond span scopes to its own microseconds, not the millisecond it touched")
+        void subMillisecondSpanKeepsItsMicroseconds() {
+            TraceManagerImpl manager = managerOf(List.of(spanMicros(1, null, "fast", 100_250, 113)));
+
+            assertEquals(List.of(new SpanInterval(THREAD, 100_250, 100_363)),
+                    manager.spanIntervals(TRACE, 1, false));
         }
 
         @Test
@@ -1050,10 +1065,22 @@ class TraceManagerImplTest {
     class EventsInSpan {
 
         @Test
+        @DisplayName("a sub-millisecond span lists the events of its own microseconds, as its flamegraph counts them")
+        void readsTheSpansOwnMicroseconds() {
+            stub(List.of(spanMicros(1, null, "fast", 100_250, 113)));
+            when(traceRepository.eventsInSpan(THREAD, 100_250, 100_363))
+                    .thenReturn(new ThreadWindowEventsPage(List.of(), false));
+
+            new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1);
+
+            verify(traceRepository).eventsInSpan(THREAD, 100_250, 100_363);
+        }
+
+        @Test
         @DisplayName("a truncated window says so rather than passing the page off as complete")
         void propagatesTruncation() {
             stub(List.of(span(1, null, "root", 0, 100)));
-            when(traceRepository.eventsInSpan(THREAD, 0, 100)).thenReturn(new ThreadWindowEventsPage(
+            when(traceRepository.eventsInSpan(THREAD, 0, 100_000)).thenReturn(new ThreadWindowEventsPage(
                     List.of(new ThreadWindowEventRecord("jdk.ExecutionSample", 5, MS, "{}")), true));
 
             TraceSpanEvents events = new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1);

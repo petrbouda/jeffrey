@@ -32,6 +32,7 @@ const headings = [
   { id: 'profiles', text: 'profiles_ — the catalogue', level: 2 },
   { id: 'investigation-areas', text: 'The Menu for an Open Question', level: 3 },
   { id: 'flamegraph', text: 'flamegraph_ — call trees', level: 2 },
+  { id: 'code', text: 'code_ — your code, by the names in your source', level: 2 },
   { id: 'compare', text: 'compare_ — two profiles', level: 2 },
   { id: 'traces', text: 'traces_ — latency', level: 2 },
   { id: 'jvm', text: 'jvm_ — the machine underneath', level: 2 },
@@ -206,7 +207,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
       <h2 id="answers">How an Answer Reads</h2>
-      <p>Every tool but one answers with a typed record: <code>tools/list</code> gives 111 of the 112 an <code>outputSchema</code>, and each call returns the record in <code>structuredContent</code>. The text beside it is the same record as JSON &mdash; or, for the documents written to be read (the flamegraph, comparison and trace exports, the listings), Markdown that ends in a footer rendered from the same record. Some hosts hand the model only <code>structuredContent</code> &mdash; Claude Code does &mdash; so an export whose Markdown is the answer carries that document in the record too, as <code>markdown</code>, cut (and <code>truncated</code>) when the whole record would pass the 120,000-character cap. <code>ide_source</code> is the exception: its answer is a class&rsquo;s source text. The conventions below hold for every tool, so an agent that has read one answer can read them all.</p>
+      <p>Every tool but one answers with a typed record: <code>tools/list</code> gives 116 of the 117 an <code>outputSchema</code>, and each call returns the record in <code>structuredContent</code>. The text beside it is the same record as JSON &mdash; or, for the documents written to be read (the flamegraph, comparison and trace exports, the listings), Markdown that ends in a footer rendered from the same record. Some hosts hand the model only <code>structuredContent</code> &mdash; Claude Code does &mdash; so an export whose Markdown is the answer carries that document in the record too, as <code>markdown</code>, cut (and <code>truncated</code>) when the whole record would pass the 120,000-character cap. <code>ide_source</code> is the exception: its answer is a class&rsquo;s source text. The conventions below hold for every tool, so an agent that has read one answer can read them all.</p>
       <ul>
         <li><strong>Closed schemas.</strong> Each <code>outputSchema</code> is generated from the record the tool returns: every field required, <code>additionalProperties: false</code>, no <code>$ref</code>. A field that can be absent is typed <code>["&lt;type&gt;", "null"]</code> and comes back as an explicit <code>null</code>, never left out &mdash; and a count the tool cannot know is <code>null</code>, not a zero that reads as a measurement. The one open shape is <code>{"type": "object"}</code>, used only where a payload differs by kind: a next call&rsquo;s <code>arguments</code>, a finding&rsquo;s <code>evidence</code>, an operation&rsquo;s <code>result</code>.</li>
         <li><strong>Time is UTC epoch milliseconds.</strong> Every instant and every window bound is named <code>&hellip;EpochMs</code>, in the arguments as in the answers &mdash; <code>startEpochMs</code> and <code>endEpochMs</code> on <code>flamegraph_export</code>, <code>compare_movements</code>, <code>compare_flamegraph</code>, <code>timeline_zoom</code> and <code>connector_download</code>, and on every window an answer hands out. A bound outside the recording is refused naming the recording&rsquo;s own span. Durations carry their unit in the name: <code>durationMs</code>, <code>durationNanos</code>. A comparison window is given on the primary&rsquo;s clock and applied at the same offset into the baseline; the answer reports where it landed on both.</li>
@@ -278,14 +279,19 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
             <td>Which graphs this profile supports, and the call tree as Markdown &mdash; CPU, allocation, lock contention or wall-clock.</td>
           </tr>
           <tr>
+            <td><a href="#code"><code>code_</code></a></td>
+            <td class="map-count">4</td>
+            <td>Your own methods, asked about by the names in your source: which of them the samples are charged to, everything measured about the one you are reading &mdash; callers, callees, lines, exceptions and the requests that run it &mdash; the lines that issue a statement or call, and what the application did at runtime tied back to its code.</td>
+          </tr>
+          <tr>
             <td><a href="#timeline"><code>timeline_</code></a></td>
             <td class="map-count">2</td>
             <td><em>When</em> the samples landed: the busiest windows ranked, and sub-second zoom inside one. A graph of a whole recording averages a spike away.</td>
           </tr>
           <tr>
             <td><a href="#compare"><code>compare_</code></a></td>
-            <td class="map-count">4</td>
-            <td>Two profiles against each other: whether they are comparable at all, what moved, and the differential call tree.</td>
+            <td class="map-count">5</td>
+            <td>Two profiles against each other: whether they are comparable at all, what moved, the methods your diff touched, and the differential call tree.</td>
           </tr>
           <tr class="map-group">
             <th colspan="3">Why a request was slow</th>
@@ -390,7 +396,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>profiles_get</code></td>
             <td><code>profileId</code></td>
-            <td>Identity, the recording window it covers, its size, and the source commit the profiled build came from (<code>recordingCommit</code>, <code>null</code> when the recording carries no commit tag). A timestamp the recording did not carry is <code>null</code>, as is the duration when either end is unknown</td>
+            <td>Identity, the recording window it covers, its size, and the source commit the profiled build came from (<code>recordingCommit</code>, <code>null</code> when nothing names one), where it was read (<code>recordingCommitSource</code>: <code>TAG</code> &mdash; given to <code>recordings_analyzeFile</code> or written by the pipeline &mdash; or <code>SYSTEM_PROPERTY</code>, a <code>-Dgit.commit=&hellip;</code> the profiled JVM ran with), whether its working tree was dirty (<code>recordingDirty</code>) and its branch (<code>recordingBranch</code>), each <code>null</code> when nothing said. A timestamp the recording did not carry is <code>null</code>, as is the duration when either end is unknown</td>
           </tr>
           <tr>
             <td><code>profiles_features</code></td>
@@ -479,6 +485,54 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exFlamegraph" language="json" />
 
+      <h2 id="code">code_ &mdash; your code, by the names in your source</h2>
+      <p>The family for a reader with the source checked out. Jeffrey never reads the repository: you bring what only the checkout knows &mdash; the root packages of your own code, the class and method you have open, the methods a diff touched &mdash; and the answers come back keyed by the same names. Source and runtime disagree more than one expects: a lambda body runs as <code>lambda$checkout$1</code>, a nested class is <code>Outer$Inner</code> at runtime and <code>Outer.Inner</code> in source, a Kotlin lambda or coroutine is a class named after its function, a top-level function lives on <code>FileKt</code>. A reference matches all of them, and every figure lists the runtime names it merged, so the source it counts is never a guess. A row that names one of your methods carries it twice: <code>frame</code> as the runtime names it and <code>reference</code> as the source spells it &mdash; <code>Outer.Inner#method</code>, a lambda body by the method it is written in &mdash; which is what <code>code_method</code> and <code>compare_methods</code> take and what the next calls are offered in. The reads are the flamegraph&rsquo;s own &mdash; the same stacks, window and idle filter &mdash; and each answer links the graph with the method searched.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>code_hotspots</code></td>
+            <td><code>profileId</code>, <code>eventType</code>, <code>framePrefixes?</code>, <code>limit?</code> (15, max 50), <code>startEpochMs?</code>, <code>endEpochMs?</code>, <code>useWeight?</code>, <code>excludeIdle?</code></td>
+            <td>Your methods ranked by the cost <em>charged</em> to them: each sample goes to the deepest frame of your code on its stack, so the library, JDK and JVM work below lands on the method of yours that asked for it. Each row has its <code>reference</code>, <code>charged</code>, <code>self</code> and <code>inclusive</code> with their shares, the <code>lines</code> of the method the cost was taken on, <code>delegatedTo</code> &mdash; the frames below it the cost went into &mdash; its JIT tiers and a <code>uiLink</code>. <code>chargedToOwnCode</code> is what all of them add up to. Without <code>framePrefixes</code> the profile&rsquo;s busiest non-library packages are used and <code>framePrefixesSource</code> says <code>SUGGESTED</code>; <code>NOT_SEEN</code> when no stack held a frame under the prefixes, with the packages that were sampled</td>
+          </tr>
+          <tr>
+            <td><code>code_method</code></td>
+            <td><code>profileId</code>, <code>className</code>, <code>methodName?</code>, <code>framePrefixes?</code>, <code>eventType?</code>, <code>startEpochMs?</code>, <code>endEpochMs?</code></td>
+            <td>Everything measured about one method or class, per sample kind (CPU, wall clock, allocation, locks, method traces &mdash; or the one named): inclusive and self, its <code>callers</code> and <code>callees</code>, <code>ownCallers</code> &mdash; the nearest of your methods above a library method &mdash; the lines it was sampled on and its JIT tiers; the <code>exceptions</code> thrown with it on the stack; and the busiest traced <code>operations</code> whose requests ran it, with their share and p95. <code>NOT_SEEN</code> is a measurement, not an error: no sample ran it, and <code>nearestFrames</code> names the sampled methods of the same class or the same name &mdash; a rename, an overload or a package move shows there</td>
+          </tr>
+        </tbody>
+      </table>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>code_callSites</code></td>
+            <td><code>profileId</code>, <code>eventType</code>, <code>framePrefixes?</code>, <code>groupBy?</code> (<code>name</code> by default for JDBC statements), <code>filterField?</code> + <code>filterValue?</code>, <code>limit?</code> (15, max 50), <code>startEpochMs?</code>, <code>endEpochMs?</code></td>
+            <td>Where events of one type were issued from in your code: the deepest frames of yours on each event&rsquo;s stack as <code>ownPath</code> (<code>Class#method:line</code>, deepest first &mdash; your own database or HTTP wrapper, then the code that called it), split by one of the event&rsquo;s fields, with count, total, mean and longest duration and, for events inside traces, how many requests issued it and how often one did (<code>perTraceMax</code>, <code>perTraceMedian</code>; <code>repeatedPerTrace</code> marks the N+1 shape), with exemplar traces. Events without stacks remain in <code>totalEvents</code> and <code>unattributedEvents</code>; the suggested method read keeps the requested time window. SQL limits the returned sites before Java reads them; the totals and <code>omittedSites</code> still cover the complete filtered read. Any type recorded with stacks: Jeffrey&rsquo;s JDBC statements, the JDK&rsquo;s socket, file and lock events, your own JFR events. <code>NO_STACKS</code> for a type recorded without them &mdash; Jeffrey&rsquo;s HTTP and gRPC exchanges and its trace spans</td>
+          </tr>
+          <tr>
+            <td><code>code_runtimeSurface</code></td>
+            <td><code>profileId</code>, <code>framePrefixes?</code></td>
+            <td>What the application did at runtime, tied to its code: the busiest traced operations with count, errors and p95, the methods of yours they entered through (<code>entryPoints</code> &mdash; the handler: where the longest run of your methods starts on the call path 90% of the operation shares, so an own filter or worker loop above it and a callback below it are passed over; when two runs are equally long, both are named rather than one guessed; their event shares can overlap and need not add up to 100%) and spent most in (<code>topMethods</code>), with <code>entryBasis</code> saying how the handler was read and <code>ownSamples</code> how firmly; the JDBC statements with the paths of yours that issue them; the trace attribute keys, the developer&rsquo;s own first; the notification types raised; the application&rsquo;s own JFR event types. Statement groups rank by their complete duration across every issuing path; SQL returns only their busiest call sites, and <code>omittedStatements</code> and <code>omittedCallSites</code> count the rest without changing the figures. Each section says whether it is read from event stacks or inferred from samples</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>An event recorded with its stack names its call site directly. Jeffrey records its HTTP and gRPC exchanges and its trace spans without one, so an operation&rsquo;s handler is read two ways. Where its requests issued statements, their stacks carry the request&rsquo;s whole path, and the outermost frame of yours there is the handler &mdash; recorded (<code>entryBasis: EVENT_STACK</code>). Otherwise it is the outermost frame of yours in the samples taken inside its spans, wall-clock first &mdash; inferred from where samples landed (<code>SAMPLED_SPANS</code>); a short request a sampler caught twice is placed loosely, which <code>ownSamples</code> shows. <code>topMethods</code> always comes from those samples.</p>
+
+      <p>Charged figures add up across methods, which is what makes them a ranking of the code you can change: a method that calls into Hibernate for 70% of its samples is where the change goes, not Hibernate. Inclusive figures count a recursing method once per stack. A ranking of every window and every per-thread split would repeat one question, so <code>flamegraph_export</code> offers <code>code_hotspots</code> next only for the whole recording; give it a window yourself when one matters.</p>
+
       <h2 id="compare">compare_ &mdash; two profiles</h2>
       <p>The only family scoped to a <strong>pair</strong>. <code>profileId</code> is the run under examination and <code>baselineProfileId</code> is what it is measured against, so a positive delta always means the primary spends more &mdash; a regression. Get the direction wrong and every regression reads as an improvement.</p>
       <table>
@@ -504,6 +558,11 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
             <td><code>compare_flamegraph</code></td>
             <td><code>profileId</code>, <code>baselineProfileId</code>, <code>eventType</code>, <code>thresholdPct?</code> (0-100), <code>startEpochMs?</code>, <code>endEpochMs?</code>, <code>useWeight?</code>, <code>excludeIdle?</code>, <code>excludeNonJava?</code></td>
             <td>The differential call tree as Markdown, every frame carrying both sides and the movement between them</td>
+          </tr>
+          <tr>
+            <td><code>compare_methods</code></td>
+            <td><code>profileId</code>, <code>baselineProfileId</code>, <code>methods</code> (<code>Class#method</code> in source spelling, at most 25), <code>eventType</code>, <code>framePrefixes?</code>, <code>startEpochMs?</code>, <code>endEpochMs?</code>, <code>useWeight?</code>, <code>excludeIdle?</code></td>
+            <td>The methods a source diff touched, side by side: each one&rsquo;s inclusive and self figures with the baseline scaled onto the primary&rsquo;s length (<code>baselineScale</code>), the change and its share of the primary, a <code>movement</code> (<code>NEW</code>, <code>GONE</code>, <code>MORE</code>, <code>LESS</code>, <code>UNCHANGED</code> below 0.1% of the primary, or <code>NOT_SEEN</code>), the callees that appeared or vanished below it, and the runtime names matched on each side. With <code>framePrefixes</code>, <code>unlistedMovers</code>: your methods outside the list whose charged cost moved most, each with its <code>reference</code>. A method nothing ran on either side is <code>NOT_SEEN</code> with <code>nearestReferences</code> &mdash; the sampled methods of that class, a class nested in it or the same name &mdash; ranked by class context before unrelated namesakes. An automatic retry is offered only for a unique best class match across all sampled methods; ambiguous candidates remain suggestions to inspect in source</td>
           </tr>
           <tr>
             <td><code>compare_quality</code></td>
@@ -1357,8 +1416,8 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
         <tbody>
           <tr>
             <td><code>recordings_analyzeFile</code></td>
-            <td><code>path</code>, <code>name?</code>, <code>force?</code></td>
-            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link. A file whose name and size match a recording already in the store is not imported again: its existing profile comes back with <code>reused: true</code>, or its stored recording is analysed when it has no profile yet; <code>force=true</code> imports it again regardless. Perf counters (<code>.hsperfdata</code>) are always imported: every JVM writes its counters to a file of the same name and the same fixed size, so name and size cannot tell two of them apart. The <code>status</code> is <code>READY</code>, <code>RUNNING</code>, <code>NOT_STARTED</code>, <code>FAILED</code> or <code>INTERRUPTED</code>. A large file comes back <code>RUNNING</code> with an <code>operationId</code> instead (a <a href="#tasks">task</a> after about five seconds, for a client that declared the tasks extension), and no <code>recordingId</code>, because the copy itself may not have finished; <code>operations_status</code> follows it from there. A failed import is a tool error that names its <code>operationId</code></td>
+            <td><code>path</code>, <code>name?</code>, <code>force?</code>, <code>commit?</code>, <code>dirty?</code></td>
+            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link. A file whose name and size match a recording already in the store is not imported again: its existing profile comes back with <code>reused: true</code>, or its stored recording is analysed when it has no profile yet; <code>force=true</code> imports it again regardless. Perf counters (<code>.hsperfdata</code>) are always imported: every JVM writes its counters to a file of the same name and the same fixed size, so name and size cannot tell two of them apart. The <code>status</code> is <code>READY</code>, <code>RUNNING</code>, <code>NOT_STARTED</code>, <code>FAILED</code> or <code>INTERRUPTED</code>. A large file comes back <code>RUNNING</code> with an <code>operationId</code> instead (a <a href="#tasks">task</a> after about five seconds, for a client that declared the tasks extension), and no <code>recordingId</code>, because the copy itself may not have finished; <code>operations_status</code> follows it from there. A failed import is a tool error that names its <code>operationId</code>. <code>commit</code> (as <code>git rev-parse HEAD</code> prints it) and <code>dirty</code> record which source a build from your checkout measured; <code>profiles_get</code> reports them back. They apply to a fresh import, not a reused one</td>
           </tr>
           <tr>
             <td><code>recordings_analyzeRecording</code></td>

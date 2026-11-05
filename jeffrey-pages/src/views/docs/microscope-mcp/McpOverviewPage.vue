@@ -63,7 +63,7 @@ onMounted(() => {
 
       <h2 id="the-one-ai-integration">The One AI Integration</h2>
       <p>This is the only way a model reads a Jeffrey profile. Earlier releases also carried an assistant <em>inside</em> the UI &mdash; a chat page over the open profile, an OQL helper on the heap-dump console, and before that a Profile Advisor that read one source folder and proposed a patch. All of it pointed the other way: Jeffrey called out to a provider you configured, saw one profile at a time, and never saw your code.</p>
-      <p>They are gone, and their jobs moved here. The chat pages are the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> and <router-link to="/docs/microscope-mcp/skills#analyze-heap"><code>analyze-heap</code></router-link> skills over the same tools, plus the ninety or so dashboard tools the in-app model never had; the Advisor is the <router-link to="/docs/microscope-mcp/skills#advise-jfr"><code>advise-jfr</code></router-link> skill, the same job done by the agent that can also build, test and re-profile; the OQL helper is <code>heap_oql</code> and the <router-link to="/docs/microscope-mcp/skills#heap-sql"><code>heap-sql</code></router-link> skill. Nothing in Jeffrey holds an API key any more: the client brings its own model, and Jeffrey only ever answers.</p>
+      <p>They are gone, and their jobs moved here. The chat pages are the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> and <router-link to="/docs/microscope-mcp/skills#analyze-heap"><code>analyze-heap</code></router-link> skills over the same tools, plus the ninety or so dashboard tools the in-app model never had; the Advisor is the <router-link to="/docs/microscope-mcp/skills#optimize-code"><code>optimize-code</code></router-link> skill, the same job done by the agent that can also build, test and re-profile; the OQL helper is <code>heap_oql</code> and the <router-link to="/docs/microscope-mcp/skills#heap-sql"><code>heap-sql</code></router-link> skill. Nothing in Jeffrey holds an API key any more: the client brings its own model, and Jeffrey only ever answers.</p>
 
       <h2 id="how-a-request-travels">How a Request Travels</h2>
       <p>The server speaks <strong>MCP over Streamable HTTP</strong> &mdash; JSON-RPC 2.0 against a single endpoint, <code>POST /api/mcp</code>, on the Jeffrey Microscope you already run. There is no separate process to start and no extra port to open.</p>
@@ -71,7 +71,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for the duration of the call, runs the tool, and returns a typed result, with Markdown where the agent reads prose. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and twelve tools in nineteen families:</p>
+      <p>A hundred and seventeen tools in twenty families:</p>
       <table>
         <thead>
           <tr>
@@ -92,9 +92,14 @@ onMounted(() => {
             <td>Which graphs a profile supports, and the call tree as Markdown</td>
           </tr>
           <tr>
-            <td><code>compare_</code></td>
+            <td><code>code_</code></td>
             <td>4</td>
-            <td>Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, and the differential call tree</td>
+            <td>Your own methods by the names in your source: which of them the samples are charged to, everything measured about the one you are reading, the lines that issue a statement or call, and what the application did at runtime tied back to its code</td>
+          </tr>
+          <tr>
+            <td><code>compare_</code></td>
+            <td>5</td>
+            <td>Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, the methods your diff touched, and the differential call tree</td>
           </tr>
           <tr>
             <td><code>traces_</code></td>
@@ -190,7 +195,7 @@ onMounted(() => {
       <h2 id="more-than-tools">More Than Tools</h2>
       <p>Tools are what a model calls. The server offers two other things a client can use, and both exist for the same reason: a hundred tools are only usable if something says which to reach for first.</p>
 
-      <p><strong>Prompts</strong> are the plugin&rsquo;s <router-link to="/docs/microscope-mcp/skills">skills</router-link>, served over the protocol. A plugin user gets them from the plugin; every other MCP client &mdash; Cursor, VS Code, Kiro, anything registered by hand &mdash; cannot install a plugin, and would otherwise have the tools with no account of how to use them. <code>prompts/list</code> names them and <code>prompts/get</code> returns one. A client that speaks the MCP skills extension gets the same twelve as skills instead, from <code>skills/list</code>, and loads them the way a plugin client does. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so the two cannot drift apart.</p>
+      <p><strong>Prompts</strong> are the plugin&rsquo;s <router-link to="/docs/microscope-mcp/skills">skills</router-link>, served over the protocol. A plugin user gets them from the plugin; every other MCP client &mdash; Cursor, VS Code, Kiro, anything registered by hand &mdash; cannot install a plugin, and would otherwise have the tools with no account of how to use them. <code>prompts/list</code> names them and <code>prompts/get</code> returns one. A client that speaks the MCP skills extension gets the same thirteen as skills instead, from <code>skills/list</code>, and loads them the way a plugin client does. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so the two cannot drift apart.</p>
 
       <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for: the paginated catalogue at <code>jeffrey://profiles</code>, server build and capability information at <code>jeffrey://server</code>, runtime health at <code>jeffrey://diagnostics</code>, and templates for a profile&rsquo;s summary, its evidence snapshot, a flamegraph export, its database schema (<code>jeffrey://profile/{profileId}/schema</code>) and the findings it already holds (<code>jeffrey://profile/{profileId}/findings</code>). A tool result scrolls away; a resource a client has attached stays in view. Reading the summary, evidence or flamegraph template runs the tool that would have answered the same question, so the two never disagree; the schema and findings are documents no single tool returns, read from the profile database and the cached analysis. Reading any of them never starts an analysis.</p>
 

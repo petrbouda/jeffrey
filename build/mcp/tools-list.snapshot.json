@@ -482,6 +482,1605 @@
     },
     {
       "_meta": {
+        "jeffrey/cost": "MODERATE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "endEpochMs": {
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "filterField": {
+            "type": "string"
+          },
+          "filterValue": {
+            "type": "string"
+          },
+          "framePrefixes": {
+            "type": "array"
+          },
+          "groupBy": {
+            "type": "string"
+          },
+          "limit": {
+            "default": 15,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "startEpochMs": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "eventType",
+          "profileId"
+        ]
+      },
+      "name": "code_callSites",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "eventType": {
+            "type": "string"
+          },
+          "filterField": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "filterValue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "framePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "framePrefixesSource": {
+            "enum": [
+              "GIVEN",
+              "SUGGESTED"
+            ],
+            "type": "string"
+          },
+          "groupBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "omittedSites": {
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sites": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "callSite": {
+                  "type": "string"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "exemplarTraces": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "traceId": {
+                        "type": "string"
+                      },
+                      "uiLink": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "traceId",
+                      "uiLink"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "groupValue": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "groupValueChars": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "maxNanos": {
+                  "type": "integer"
+                },
+                "meanNanos": {
+                  "type": "integer"
+                },
+                "methodName": {
+                  "type": "string"
+                },
+                "ownPath": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "perTraceMax": {
+                  "type": "integer"
+                },
+                "perTraceMedian": {
+                  "type": "number"
+                },
+                "reference": {
+                  "type": "string"
+                },
+                "repeatedPerTrace": {
+                  "type": "boolean"
+                },
+                "totalNanos": {
+                  "type": "integer"
+                },
+                "traces": {
+                  "type": "integer"
+                },
+                "uiLink": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "callSite",
+                "className",
+                "count",
+                "exemplarTraces",
+                "groupValue",
+                "groupValueChars",
+                "line",
+                "maxNanos",
+                "meanNanos",
+                "methodName",
+                "ownPath",
+                "perTraceMax",
+                "perTraceMedian",
+                "reference",
+                "repeatedPerTrace",
+                "totalNanos",
+                "traces",
+                "uiLink"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED",
+              "NOT_SEEN",
+              "NO_STACKS"
+            ],
+            "type": "string"
+          },
+          "suggestedFramePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "totalEvents": {
+            "type": "integer"
+          },
+          "totalNanos": {
+            "type": "integer"
+          },
+          "uiLink": {
+            "type": "string"
+          },
+          "unattributedEvents": {
+            "type": "integer"
+          },
+          "window": {
+            "additionalProperties": false,
+            "properties": {
+              "endEpochMs": {
+                "type": "integer"
+              },
+              "startEpochMs": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "endEpochMs",
+              "startEpochMs"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "eventType",
+          "filterField",
+          "filterValue",
+          "followUp",
+          "framePrefixes",
+          "framePrefixesSource",
+          "groupBy",
+          "omittedSites",
+          "profileId",
+          "reason",
+          "sites",
+          "status",
+          "suggestedFramePrefixes",
+          "totalEvents",
+          "totalNanos",
+          "uiLink",
+          "unattributedEvents",
+          "window"
+        ],
+        "type": "object"
+      },
+      "title": "Code: Call Sites"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "MODERATE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "endEpochMs": {
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "excludeIdle": {
+            "type": "boolean"
+          },
+          "framePrefixes": {
+            "type": "array"
+          },
+          "limit": {
+            "default": 15,
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "startEpochMs": {
+            "type": "integer"
+          },
+          "useWeight": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "eventType",
+          "profileId"
+        ]
+      },
+      "name": "code_hotspots",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "chargedToOwnCode": {
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "excludeIdle": {
+            "type": "boolean"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "framePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "framePrefixesSource": {
+            "enum": [
+              "GIVEN",
+              "SUGGESTED"
+            ],
+            "type": "string"
+          },
+          "methods": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "charged": {
+                  "type": "integer"
+                },
+                "chargedPct": {
+                  "type": "number"
+                },
+                "className": {
+                  "type": "string"
+                },
+                "delegatedTo": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frame": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frame",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "frame": {
+                  "type": "string"
+                },
+                "inclusive": {
+                  "type": "integer"
+                },
+                "inclusivePct": {
+                  "type": "number"
+                },
+                "lines": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "line": {
+                        "type": "integer"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "line",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "methodName": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "integer"
+                },
+                "reference": {
+                  "type": "string"
+                },
+                "self": {
+                  "type": "integer"
+                },
+                "tiers": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frameType": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "frameType",
+                      "sharePct"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "uiLink": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "charged",
+                "chargedPct",
+                "className",
+                "delegatedTo",
+                "frame",
+                "inclusive",
+                "inclusivePct",
+                "lines",
+                "methodName",
+                "rank",
+                "reference",
+                "self",
+                "tiers",
+                "uiLink"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "omittedMethods": {
+            "type": "integer"
+          },
+          "ownSharePct": {
+            "type": "number"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED",
+              "NOT_SEEN",
+              "NO_STACKS"
+            ],
+            "type": "string"
+          },
+          "suggestedFramePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "uiLink": {
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "SAMPLES",
+              "BYTES",
+              "NANOSECONDS"
+            ],
+            "type": "string"
+          },
+          "weighted": {
+            "type": "boolean"
+          },
+          "window": {
+            "additionalProperties": false,
+            "properties": {
+              "endEpochMs": {
+                "type": "integer"
+              },
+              "startEpochMs": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "endEpochMs",
+              "startEpochMs"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "chargedToOwnCode",
+          "eventType",
+          "excludeIdle",
+          "followUp",
+          "framePrefixes",
+          "framePrefixesSource",
+          "methods",
+          "omittedMethods",
+          "ownSharePct",
+          "profileId",
+          "reason",
+          "status",
+          "suggestedFramePrefixes",
+          "total",
+          "uiLink",
+          "unit",
+          "weighted",
+          "window"
+        ],
+        "type": "object"
+      },
+      "title": "Code: Hotspots"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "EXPENSIVE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "className": {
+            "type": "string"
+          },
+          "endEpochMs": {
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "framePrefixes": {
+            "type": "array"
+          },
+          "methodName": {
+            "type": "string"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "startEpochMs": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "className",
+          "profileId"
+        ]
+      },
+      "name": "code_method",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "className": {
+            "type": "string"
+          },
+          "exceptions": {
+            "additionalProperties": false,
+            "properties": {
+              "omittedClasses": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "READ",
+                  "NOT_RECORDED",
+                  "NOT_READ"
+                ],
+                "type": "string"
+              },
+              "thrown": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "thrownClass": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "thrownClass"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "omittedClasses",
+              "reason",
+              "state",
+              "thrown"
+            ],
+            "type": "object"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "framePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "kinds": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "callees": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frame": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frame",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "callers": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frame": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frame",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "eventType": {
+                  "type": "string"
+                },
+                "inclusive": {
+                  "type": "integer"
+                },
+                "inclusivePct": {
+                  "type": "number"
+                },
+                "lines": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "line": {
+                        "type": "integer"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "line",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "matchedFrames": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frame": {
+                        "type": "string"
+                      },
+                      "inclusive": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frame",
+                      "inclusive"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "ownCallers": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frame": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      },
+                      "value": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "frame",
+                      "sharePct",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "self": {
+                  "type": "integer"
+                },
+                "selfPct": {
+                  "type": "number"
+                },
+                "tiers": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "frameType": {
+                        "type": "string"
+                      },
+                      "sharePct": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "frameType",
+                      "sharePct"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "total": {
+                  "type": "integer"
+                },
+                "uiLink": {
+                  "type": "string"
+                },
+                "unit": {
+                  "enum": [
+                    "SAMPLES",
+                    "BYTES",
+                    "NANOSECONDS"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "callees",
+                "callers",
+                "eventType",
+                "inclusive",
+                "inclusivePct",
+                "lines",
+                "matchedFrames",
+                "ownCallers",
+                "self",
+                "selfPct",
+                "tiers",
+                "total",
+                "uiLink",
+                "unit"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "methodName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nearestFrames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operations": {
+            "additionalProperties": false,
+            "properties": {
+              "operations": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "eventType": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "operation": {
+                      "type": "string"
+                    },
+                    "operationCount": {
+                      "type": "integer"
+                    },
+                    "operationSamples": {
+                      "type": "integer"
+                    },
+                    "p95Nanos": {
+                      "type": "integer"
+                    },
+                    "samples": {
+                      "type": "integer"
+                    },
+                    "sharePct": {
+                      "type": "number"
+                    },
+                    "uiLink": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "eventType",
+                    "kind",
+                    "operation",
+                    "operationCount",
+                    "operationSamples",
+                    "p95Nanos",
+                    "samples",
+                    "sharePct",
+                    "uiLink"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sampledEventType": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "READ",
+                  "NOT_RECORDED",
+                  "NOT_READ"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "operations",
+              "reason",
+              "sampledEventType",
+              "state"
+            ],
+            "type": "object"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reference": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED",
+              "NOT_SEEN",
+              "NO_STACKS"
+            ],
+            "type": "string"
+          },
+          "uiLink": {
+            "type": "string"
+          },
+          "window": {
+            "additionalProperties": false,
+            "properties": {
+              "endEpochMs": {
+                "type": "integer"
+              },
+              "startEpochMs": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "endEpochMs",
+              "startEpochMs"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "className",
+          "exceptions",
+          "followUp",
+          "framePrefixes",
+          "kinds",
+          "methodName",
+          "nearestFrames",
+          "operations",
+          "profileId",
+          "reason",
+          "reference",
+          "status",
+          "uiLink",
+          "window"
+        ],
+        "type": "object"
+      },
+      "title": "Code: Method"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "EXPENSIVE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "framePrefixes": {
+            "type": "array"
+          },
+          "profileId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profileId"
+        ]
+      },
+      "name": "code_runtimeSurface",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "attributeKeys": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "distinctValues": {
+                  "type": "integer"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "traceCount": {
+                  "type": "integer"
+                },
+                "valueKind": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "distinctValues",
+                "key",
+                "source",
+                "traceCount",
+                "valueKind"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "customEventTypes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "eventType": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "withStacks": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "count",
+                "eventType",
+                "label",
+                "withStacks"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "framePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "framePrefixesSource": {
+            "enum": [
+              "GIVEN",
+              "SUGGESTED"
+            ],
+            "type": "string"
+          },
+          "notifications": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "severity": {
+                  "type": "string"
+                },
+                "traceCount": {
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "category",
+                "count",
+                "severity",
+                "traceCount",
+                "type"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "omittedAttributeKeys": {
+            "type": "integer"
+          },
+          "omittedCustomEventTypes": {
+            "type": "integer"
+          },
+          "operations": {
+            "additionalProperties": false,
+            "properties": {
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "omittedOperations": {
+                "type": "integer"
+              },
+              "operations": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "entryBasis": {
+                      "enum": [
+                        "EVENT_STACK",
+                        "SAMPLED_SPANS",
+                        "NONE"
+                      ],
+                      "type": "string"
+                    },
+                    "entryPoints": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "frame": {
+                            "type": "string"
+                          },
+                          "sharePct": {
+                            "type": "number"
+                          },
+                          "value": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "frame",
+                          "sharePct",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "errorCount": {
+                      "type": "integer"
+                    },
+                    "eventType": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "ownSamples": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "p95Nanos": {
+                      "type": "integer"
+                    },
+                    "topMethods": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "frame": {
+                            "type": "string"
+                          },
+                          "sharePct": {
+                            "type": "number"
+                          },
+                          "value": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "frame",
+                          "sharePct",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "uiLink": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "count",
+                    "entryBasis",
+                    "entryPoints",
+                    "errorCount",
+                    "eventType",
+                    "kind",
+                    "name",
+                    "ownSamples",
+                    "p95Nanos",
+                    "topMethods",
+                    "uiLink"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "sampledEventType": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "state": {
+                "enum": [
+                  "READ",
+                  "NOT_RECORDED",
+                  "NOT_READ"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "note",
+              "omittedOperations",
+              "operations",
+              "sampledEventType",
+              "state"
+            ],
+            "type": "object"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "statements": {
+            "additionalProperties": false,
+            "properties": {
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "omittedStatements": {
+                "type": "integer"
+              },
+              "state": {
+                "enum": [
+                  "READ",
+                  "NOT_RECORDED",
+                  "NOT_READ"
+                ],
+                "type": "string"
+              },
+              "statements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "callSites": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "count": {
+                            "type": "integer"
+                          },
+                          "ownPath": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "repeatedPerTrace": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "count",
+                          "ownPath",
+                          "repeatedPerTrace"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "eventType": {
+                      "type": "string"
+                    },
+                    "omittedCallSites": {
+                      "type": "integer"
+                    },
+                    "statement": {
+                      "type": "string"
+                    },
+                    "totalNanos": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "callSites",
+                    "count",
+                    "eventType",
+                    "omittedCallSites",
+                    "statement",
+                    "totalNanos"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "note",
+              "omittedStatements",
+              "state",
+              "statements"
+            ],
+            "type": "object"
+          },
+          "suggestedFramePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "uiLink": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributeKeys",
+          "customEventTypes",
+          "followUp",
+          "framePrefixes",
+          "framePrefixesSource",
+          "notifications",
+          "omittedAttributeKeys",
+          "omittedCustomEventTypes",
+          "operations",
+          "profileId",
+          "statements",
+          "suggestedFramePrefixes",
+          "uiLink"
+        ],
+        "type": "object"
+      },
+      "title": "Code: Runtime Surface"
+    },
+    {
+      "_meta": {
         "anthropic/maxResultSizeChars": 120000,
         "jeffrey/cost": "EXPENSIVE"
       },
@@ -955,6 +2554,363 @@
         "type": "object"
       },
       "title": "Compare: List"
+    },
+    {
+      "_meta": {
+        "jeffrey/cost": "EXPENSIVE"
+      },
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "baselineProfileId": {
+            "type": "string"
+          },
+          "endEpochMs": {
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "excludeIdle": {
+            "type": "boolean"
+          },
+          "framePrefixes": {
+            "type": "array"
+          },
+          "methods": {
+            "type": "array"
+          },
+          "profileId": {
+            "type": "string"
+          },
+          "startEpochMs": {
+            "type": "integer"
+          },
+          "useWeight": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "baselineProfileId",
+          "eventType",
+          "methods",
+          "profileId"
+        ]
+      },
+      "name": "compare_methods",
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "baselineProfileId": {
+            "type": "string"
+          },
+          "baselineScale": {
+            "type": "number"
+          },
+          "baselineTotal": {
+            "type": "integer"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "excludeIdle": {
+            "type": "boolean"
+          },
+          "followUp": {
+            "additionalProperties": false,
+            "properties": {
+              "guidance": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "nextTools": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arguments": {
+                      "type": "object"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "enum": [
+                        "LIGHT",
+                        "MEDIUM",
+                        "HEAVY"
+                      ],
+                      "type": "string"
+                    },
+                    "why": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "arguments",
+                    "tool",
+                    "weight",
+                    "why"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "guidance",
+              "nextTools"
+            ],
+            "type": "object"
+          },
+          "framePrefixes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "methods": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "appearedCallees": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "baselineFrames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "baselineInclusive": {
+                  "type": "integer"
+                },
+                "baselineInclusiveScaled": {
+                  "type": "number"
+                },
+                "baselineSelfScaled": {
+                  "type": "number"
+                },
+                "deltaSharePct": {
+                  "type": "number"
+                },
+                "inclusiveChangePct": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "inclusiveDelta": {
+                  "type": "number"
+                },
+                "movement": {
+                  "enum": [
+                    "NEW",
+                    "GONE",
+                    "MORE",
+                    "LESS",
+                    "UNCHANGED",
+                    "NOT_SEEN"
+                  ],
+                  "type": "string"
+                },
+                "nearestReferences": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "primaryFrames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "primaryInclusive": {
+                  "type": "integer"
+                },
+                "primarySelf": {
+                  "type": "integer"
+                },
+                "reference": {
+                  "type": "string"
+                },
+                "vanishedCallees": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "appearedCallees",
+                "baselineFrames",
+                "baselineInclusive",
+                "baselineInclusiveScaled",
+                "baselineSelfScaled",
+                "deltaSharePct",
+                "inclusiveChangePct",
+                "inclusiveDelta",
+                "movement",
+                "nearestReferences",
+                "primaryFrames",
+                "primaryInclusive",
+                "primarySelf",
+                "reference",
+                "vanishedCallees"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "primaryProfileId": {
+            "type": "string"
+          },
+          "primaryTotal": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "OK",
+              "NOT_RECORDED",
+              "NOT_SEEN",
+              "NO_STACKS"
+            ],
+            "type": "string"
+          },
+          "uiLink": {
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "SAMPLES",
+              "BYTES",
+              "NANOSECONDS"
+            ],
+            "type": "string"
+          },
+          "unlistedMovers": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "baselineChargedScaled": {
+                  "type": "number"
+                },
+                "chargedDelta": {
+                  "type": "number"
+                },
+                "deltaSharePct": {
+                  "type": "number"
+                },
+                "frame": {
+                  "type": "string"
+                },
+                "primaryCharged": {
+                  "type": "integer"
+                },
+                "reference": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "baselineChargedScaled",
+                "chargedDelta",
+                "deltaSharePct",
+                "frame",
+                "primaryCharged",
+                "reference"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "weighted": {
+            "type": "boolean"
+          },
+          "window": {
+            "additionalProperties": false,
+            "properties": {
+              "baseline": {
+                "additionalProperties": false,
+                "properties": {
+                  "endEpochMs": {
+                    "type": "integer"
+                  },
+                  "startEpochMs": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "endEpochMs",
+                  "startEpochMs"
+                ],
+                "type": "object"
+              },
+              "primary": {
+                "additionalProperties": false,
+                "properties": {
+                  "endEpochMs": {
+                    "type": "integer"
+                  },
+                  "startEpochMs": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "endEpochMs",
+                  "startEpochMs"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "baseline",
+              "primary"
+            ],
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "baselineProfileId",
+          "baselineScale",
+          "baselineTotal",
+          "eventType",
+          "excludeIdle",
+          "followUp",
+          "framePrefixes",
+          "methods",
+          "primaryProfileId",
+          "primaryTotal",
+          "reason",
+          "status",
+          "uiLink",
+          "unit",
+          "unlistedMovers",
+          "weighted",
+          "window"
+        ],
+        "type": "object"
+      },
+      "title": "Compare: Methods"
     },
     {
       "_meta": {
@@ -22358,9 +24314,32 @@
               "null"
             ]
           },
+          "recordingBranch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "recordingCommit": {
             "type": [
               "string",
+              "null"
+            ]
+          },
+          "recordingCommitSource": {
+            "enum": [
+              "TAG",
+              "SYSTEM_PROPERTY",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recordingDirty": {
+            "type": [
+              "boolean",
               "null"
             ]
           },
@@ -22400,7 +24379,10 @@
           "name",
           "profileId",
           "projectId",
+          "recordingBranch",
           "recordingCommit",
+          "recordingCommitSource",
+          "recordingDirty",
           "recordingFinishedAtEpochMs",
           "recordingStartedAtEpochMs",
           "sizeInBytes",
@@ -23404,6 +25386,12 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "dirty": {
+            "type": "boolean"
+          },
           "force": {
             "type": "boolean"
           },

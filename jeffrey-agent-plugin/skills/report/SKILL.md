@@ -1,6 +1,6 @@
 ---
 name: report
-description: The shape and the evidence rules for any performance finding drawn from a Jeffrey Microscope profile — what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, what caps a claim at medium confidence, and how the questions a recording cannot answer are reported apart from the findings. Use whenever writing up an analysis, summarising an investigation, answering "what did you find", or handing conclusions to another person or agent — once analyze-jfr, analyze-heap, compare-jfr, regression-check or advise-jfr has done the reading.
+description: The shape and the evidence rules for any performance finding drawn from a Jeffrey Microscope profile — what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, what caps a claim at medium confidence, and how the questions a recording cannot answer are reported apart from the findings. Use whenever writing up an analysis, summarising an investigation, answering "what did you find", or handing conclusions to another person or agent — once analyze-jfr, analyze-heap, compare-jfr, regression-check or optimize-code has done the reading.
 ---
 
 # Reporting a finding
@@ -22,7 +22,7 @@ that each one accounts for — never by how confident the wording sounds. Each i
 >
 > **Recommendation** — the change, at a named location; or "none yet", and what would be needed.
 > When the location is in the repository the agent runs in, end it with "— apply with *Implement
-> fixes*", the option that hands it to `advise-jfr`.
+> fixes*", the option that hands it to `optimize-code`.
 >
 > **Confidence** — high, medium or low, and what would raise it.
 >
@@ -204,7 +204,7 @@ effect with its basis; and how it will be verified.
 Keep **configuration findings** apart from code findings and labelled as such — a pool that ran
 out of connections, a flag left at its ergonomic default, a container quota the scheduler
 enforced. They are real, often the largest single win, and none of them is an edit; they are
-verified on the application's next run, not by a test. The `advise-jfr` skill has the full shape.
+verified on the application's next run, not by a test. The `optimize-code` skill has the full shape.
 
 If you did not locate the code, say so and give the frame rather than inventing a path.
 

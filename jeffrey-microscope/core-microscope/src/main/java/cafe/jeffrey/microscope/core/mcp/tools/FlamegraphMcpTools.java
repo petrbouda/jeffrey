@@ -76,6 +76,7 @@ public class FlamegraphMcpTools {
     private static final String EXPORT_TOOL = "flamegraph_export";
     private static final String LIST_TOOL = "flamegraph_list";
     private static final String HOT_WINDOWS_TOOL = "timeline_hotWindows";
+    private static final String HOTSPOTS_TOOL = "code_hotspots";
     private static final String THREADS_TOOL = "jvm_threads";
     private static final String FEATURES_TOOL = "profiles_features";
     private static final String PROFILE_ID = "profileId";
@@ -94,6 +95,8 @@ public class FlamegraphMcpTools {
             "draws this event type at the defaults listed beside it; any eventType in available works the same way";
     private static final String FEATURES_WHY = "says what this profile holds instead";
     private static final String THREADS_WHY = "names the threads that burned this; a flamegraph aggregates across them";
+    private static final String HOTSPOTS_WHY = "the same samples charged to the application's own methods, "
+            + "with their lines; pass your source tree's root packages as framePrefixes";
     private static final String PER_THREAD_WHY = "the same graph split per thread";
     private static final String HOT_WINDOWS_WHY =
             "finds when these samples landed: the window to re-export with startEpochMs and endEpochMs";
@@ -422,6 +425,16 @@ public class FlamegraphMcpTools {
             perThread.with(EXCLUDE_NON_JAVA, true);
         }
 
+        // Offered from the whole, thread-aggregated graph only: the ranking takes a window itself, and
+        // offering it from every window and every per-thread split repeats one question many times.
+        McpNextTool.Call hotspots = NextCalls.to(HOTSPOTS_TOOL)
+                .with(PROFILE_ID, profileId)
+                .with(EVENT_TYPE, type.code())
+                .with(USE_WEIGHT, weighted);
+        if (Boolean.TRUE.equals(excludeIdle)) {
+            hotspots.with(EXCLUDE_IDLE, true);
+        }
+
         McpNextTool.Call hotWindows = NextCalls.to(HOT_WINDOWS_TOOL)
                 .with(PROFILE_ID, profileId)
                 .with(EVENT_TYPE, type.code())
@@ -430,6 +443,7 @@ public class FlamegraphMcpTools {
         return NextSteps.builder(advertised)
                 .next(NextCalls.to(THREADS_TOOL).with(PROFILE_ID, profileId).why(THREADS_WHY))
                 .nextWhen(!Boolean.TRUE.equals(threadMode), perThread.why(PER_THREAD_WHY))
+                .nextWhen(window == null && !Boolean.TRUE.equals(threadMode), hotspots.why(HOTSPOTS_WHY))
                 .nextWhen(window == null, hotWindows.why(HOT_WINDOWS_WHY))
                 .guidance(advertised.hint(AdvertisedFamilies.COMPARE, COMPARE_GUIDANCE))
                 .followUp();

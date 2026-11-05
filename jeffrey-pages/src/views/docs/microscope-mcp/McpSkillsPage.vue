@@ -34,8 +34,9 @@ const headings = [
   { id: 'compare-jfr', text: 'compare-jfr', level: 2 },
   { id: 'profile-run', text: 'profile-run', level: 2 },
   { id: 'regression-check', text: 'regression-check', level: 2 },
-  { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
+  { id: 'optimize-code', text: 'optimize-code', level: 2 },
   { id: 'analyze-exceptions', text: 'analyze-exceptions', level: 2 },
+  { id: 'code-insight', text: 'code-insight', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
   { id: 'report', text: 'report', level: 2 },
@@ -57,7 +58,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "did my change make it slower?"                          -> compare-jfr
 "profile this benchmark and tell me where it spends time" -> profile-run
 "did the last three commits regress performance?"        -> regression-check
-"what should I change in this repo to fix it?"           -> advise-jfr
+"what should I change in this repo to fix it?"           -> optimize-code
 "analyze the exceptions of orders-service"               -> analyze-exceptions
 "how many events of each type are in the recording?"     -> jfr-sql
 "which threads still reference that classloader?"        -> heap-sql
@@ -71,7 +72,7 @@ const invoke = `# Claude Code
 /microscope:compare-jfr
 /microscope:profile-run
 /microscope:regression-check
-/microscope:advise-jfr
+/microscope:optimize-code
 /microscope:analyze-exceptions
 /microscope:jfr-sql
 /microscope:heap-sql
@@ -85,17 +86,20 @@ $analyze-connector
 $compare-jfr
 $profile-run
 $regression-check
-$advise-jfr
+$optimize-code
 $analyze-exceptions
 $jfr-sql
 $heap-sql
 $report`;
 
 const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?
-/microscope:advise-jfr 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
+/microscope:optimize-code 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
 
 const exceptionsPrompt = `analyze the exceptions of orders-service - which ones are ours, and why?
 /microscope:analyze-exceptions orders-service java.net.SocketTimeoutException`;
+
+const codeInsightPrompt = `is OrderService.reprice hot? who calls it, and which requests run it?
+/microscope:code-insight com.acme.orders.OrderService#reprice`;
 
 const skillFrontmatter = `---
 name: analyze-jfr
@@ -118,12 +122,12 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships twelve skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all twelve from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
+      <p>The plugin ships thirteen skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools, and a client that speaks MCP <code>2026-07-28</code> with the skills extension gets all thirteen from the server as well &mdash; the same files, listed by <code>skills/list</code> (<router-link to="/docs/microscope-mcp/other-clients#prompts-skills-and-resources">Other Clients</router-link> has the call). The agents come only with the plugin.</p>
 
-      <p>The twelve are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
+      <p>The thirteen are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it pre-approves, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
-      <p>The front matter only pre-approves those tools for the turn a skill runs in; it does not hide the others. <code>advise-jfr</code> lists Jeffrey's tools with <code>Read</code>, <code>Grep</code>, <code>Glob</code> and <code>git rev-parse</code> &mdash; the reading it does in your checkout &mdash; and leaves an edit or a build to ask as usual. A skill names each tool without the prefix your client puts in front of it, and says in one sentence what the three prefixes are &mdash; <code>mcp__plugin_microscope_jeffrey__</code> in Claude Code with the plugin, <code>mcp__jeffrey__</code> in Codex or wherever the server is registered by hand, <code>mcp_jeffrey_</code> in Gemini CLI. Each skill is self-contained: nothing in one points into another skill&rsquo;s directory, because a client that loads skills from the server reads only the files a skill lists as its own.</p>
+      <p>The front matter only pre-approves those tools for the turn a skill runs in; it does not hide the others. <code>optimize-code</code> lists Jeffrey's tools with <code>Read</code>, <code>Grep</code>, <code>Glob</code> and <code>git rev-parse</code> &mdash; the reading it does in your checkout &mdash; and leaves an edit or a build to ask as usual. A skill names each tool without the prefix your client puts in front of it, and says in one sentence what the three prefixes are &mdash; <code>mcp__plugin_microscope_jeffrey__</code> in Claude Code with the plugin, <code>mcp__jeffrey__</code> in Codex or wherever the server is registered by hand, <code>mcp_jeffrey_</code> in Gemini CLI. Each skill is self-contained: nothing in one points into another skill&rsquo;s directory, because a client that loads skills from the server reads only the files a skill lists as its own.</p>
 
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
@@ -175,13 +179,18 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           </tr>
           <tr>
             <td>&ldquo;What should I change in this repo to fix it?&rdquo;</td>
-            <td><a href="#advise-jfr"><code>advise-jfr</code></a></td>
+            <td><a href="#optimize-code"><code>optimize-code</code></a></td>
             <td>A profile, and the checkout it was built from</td>
           </tr>
           <tr>
             <td>&ldquo;Analyse the exceptions of orders-service&rdquo; &middot; &ldquo;Why does the app throw so many timeouts?&rdquo;</td>
             <td><a href="#analyze-exceptions"><code>analyze-exceptions</code></a></td>
             <td>A JFR profile with throw events, and the checkout it was built from</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Is this method hot?&rdquo; &middot; &ldquo;Who calls this at runtime, and which requests run it?&rdquo;</td>
+            <td><a href="#code-insight"><code>code-insight</code></a></td>
+            <td>A JFR profile, and the checkout it was built from</td>
           </tr>
           <tr>
             <td>&ldquo;How many events of each type are there?&rdquo; &mdash; anything no purpose-built tool covers</td>
@@ -250,7 +259,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>It asks before it spends.</strong> A question that names an area goes straight there. An open one &mdash; &ldquo;analyse this&rdquo;, &ldquo;review this recording&rdquo; &mdash; gets one cheap call, <code>profiles_summary</code>, and then its <router-link to="/docs/microscope-mcp/tools#investigation-areas"><code>investigationAreas</code></router-link>: the menu Jeffrey builds of what this profile can answer, in four groups, each area with its <router-link to="/docs/microscope-mcp/tools#weight">weight</router-link> &mdash; <code>LIGHT</code>, <code>MEDIUM</code> or <code>HEAVY</code>, by how much text it brings back &mdash; the areas the evidence points at marked as suggested, with that evidence, and what the recording did not capture named in one line with its remedy. In Claude Code the menu is an <code>AskUserQuestion</code> prompt, one multi-select question per group, each option the area&rsquo;s title with its weight, its question and any suggested evidence; on a host without a structured question tool (Codex, Gemini CLI) it is a table grouped the same way. Nothing else runs until you pick, and then only the chosen areas&rsquo; <code>nextTools</code> are sent. After each answer it offers at most two follow-ups from <code>followUp.nextTools</code>, with their weight &mdash; in Claude Code as one question with a <em>Stop here</em> option &mdash; and never runs one unasked.</li>
             <li><strong>It links what it names</strong> &mdash; the profile, each page, flamegraph, trace or ledger entry &mdash; as a link marked with <code>&#8599;</code>: <em>CPU flamegraph &#8599;</em> in a sentence, <em>&#8599; open</em> in a table. A terminal shows the marked text, clickable, with the URL behind it; the mark is what tells the reader it is a link.</li>
             <li><strong>It shows the pages first.</strong> Above the menu for an open question, a table of every area with data &mdash; Traces first whenever the profile has them, then the suggested ones &mdash; each with its <em>&#8599; open</em> link, and the other flamegraphs in one line, so the profile can be clicked through before anything is analysed.</li>
-            <li><strong>It offers to implement the fix</strong> when a finding names code or configuration in the repository the agent runs in &mdash; the hot frame&rsquo;s class, the throw site, a <code>logback.xml</code> &mdash; as an <em>Implement fixes</em> option beside the follow-ups, saying how the checkout relates to the profiled commit. Picked, it hands the findings to <code>advise-jfr</code>, which proposes each change and edits only the ones you accept, then offers to re-profile and compare.</li>
+            <li><strong>It offers to implement the fix</strong> when a finding names code or configuration in the repository the agent runs in &mdash; the hot frame&rsquo;s class, the throw site, a <code>logback.xml</code> &mdash; as an <em>Implement fixes</em> option beside the follow-ups, saying how the checkout relates to the profiled commit. Picked, it hands the findings to <code>optimize-code</code>, which proposes each change and edits only the ones you accept, then offers to re-profile and compare.</li>
             <li><strong>It keeps a ledger</strong> &mdash; <em>Covered</em>, <em>In progress</em>, <em>Open leads</em>, <em>Not assessed</em> &mdash; updated after every answer. Shown again, the menu marks the areas already covered, and the <a href="#report"><code>report</code></a> skill writes its findings from the ledger.</li>
             <li>Every scoped tool takes a <code>profileId</code>, and it is required. A <code>404</code> means the server was switched off, not that something is broken.</li>
           </ul>
@@ -306,7 +315,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>Six reports have to be built before they can be read.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are cached results, and until something computes one its tool says so. The skill maps each to the <code>heap_prepare</code> report that builds it, so the model prepares the dump and carries on rather than sending you to the browser &mdash; and knows to fall back to the UI when the installation has compute switched off.</li>
             <li>That the same question has an on-demand route which does not wait on the UI: the dominator tree into <code>heap_getPathToGCRoot</code>.</li>
             <li><strong>An open question gets the heap&rsquo;s own menu.</strong> &ldquo;Analyse this dump&rdquo; gets <code>profiles_summary</code>&rsquo;s <router-link to="/docs/microscope-mcp/tools#investigation-areas"><code>investigationAreas</code></router-link> for a heap dump &mdash; contents, retention and waste &mdash; with the areas still waiting for <code>heap_prepare</code> marked <code>NEEDS_PREPARATION</code> and prepared only when you choose them.</li>
-            <li><strong>It offers to implement the fix</strong> when a finding names code or configuration in the repository the agent runs in &mdash; the class that holds the retained memory, the cache that never evicts &mdash; as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#advise-jfr"><code>advise-jfr</code></a>, which edits only the changes you accept.</li>
+            <li><strong>It offers to implement the fix</strong> when a finding names code or configuration in the repository the agent runs in &mdash; the class that holds the retained memory, the cache that never evicts &mdash; as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#optimize-code"><code>optimize-code</code></a>, which edits only the changes you accept.</li>
           </ul>
         </section>
 
@@ -384,14 +393,14 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>The direction.</strong> The after run is the <code>profileId</code>; the before run is the <code>baselineProfileId</code>. Backwards, every regression reads as an improvement.</li>
             <li><strong>Ranked first, tree second.</strong> <code>compare_movements</code> attributes by self weight, so a change is charged to the method that moved rather than to every caller above it.</li>
             <li><strong>The limits, stated rather than assumed.</strong> Share and delta answer different questions and must be quoted as the one they are; one pair of recordings cannot separate a 5% move from run-to-run variance; and one event type&rsquo;s distribution is not a wall-clock benchmark, so a shifted CPU profile is never evidence that the application got faster end to end.</li>
-            <li><strong>It offers to implement the fix</strong> when a movement names code or configuration in the repository the agent runs in, as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#advise-jfr"><code>advise-jfr</code></a>, which edits only the changes you accept.</li>
+            <li><strong>It offers to implement the fix</strong> when a movement names code or configuration in the repository the agent runs in, as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#optimize-code"><code>optimize-code</code></a>, which edits only the changes you accept.</li>
           </ul>
         </section>
 
         <section class="skill-block">
           <h4>Routes into</h4>
           <ul>
-            <li><a href="#advise-jfr"><code>advise-jfr</code></a>, which is where it ends: the profile says where, never why, so the located movements are mapped onto the actual diff with the real source read first.</li>
+            <li><a href="#optimize-code"><code>optimize-code</code></a>, which is where it ends: the profile says where, never why, so the located movements are mapped onto the actual diff with the real source read first.</li>
           </ul>
         </section>
 
@@ -431,7 +440,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <section class="skill-block">
           <h4>Routes into</h4>
           <ul>
-            <li><a href="#analyze-jfr"><code>analyze-jfr</code></a> for reading what it produced, <a href="#compare-jfr"><code>compare-jfr</code></a> for the re-profile after a change &mdash; the point of recording rather than opening an old file is that you can do it twice &mdash; and <a href="#advise-jfr"><code>advise-jfr</code></a> to turn a hotspot into an edit in this checkout.</li>
+            <li><a href="#analyze-jfr"><code>analyze-jfr</code></a> for reading what it produced, <a href="#compare-jfr"><code>compare-jfr</code></a> for the re-profile after a change &mdash; the point of recording rather than opening an old file is that you can do it twice &mdash; and <a href="#optimize-code"><code>optimize-code</code></a> to turn a hotspot into an edit in this checkout.</li>
           </ul>
         </section>
 
@@ -465,14 +474,14 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li><strong>The two runs differ in exactly one thing.</strong> Same JVM, same flags, same duration, same machine, same warm-up &mdash; and <strong>never in parallel</strong>, because two profiled JVMs on one machine contend for CPU and each records the other&rsquo;s interference as its own slowness. Alternating repeats when the machine is noisy or the difference is expected to be small.</li>
             <li><strong>The verdict first, then the uncertainty.</strong> One run each on a shared machine supports &ldquo;no obvious change&rdquo;; it does not support &ldquo;3% slower&rdquo;. A movement smaller than the gap between two runs of the <em>same</em> revision is noise, and the honest way to know that is to record the baseline twice.</li>
             <li><strong>Housekeeping is part of the measurement.</strong> The working tree is checked clean before revisions are switched and put back afterwards; a stash left behind is a worse outcome than an unanswered question.</li>
-            <li><strong>It offers to implement the fix</strong> once a regression is confirmed and its movement names code or configuration in the repository the agent runs in, as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#advise-jfr"><code>advise-jfr</code></a>, which edits only the changes you accept.</li>
+            <li><strong>It offers to implement the fix</strong> once a regression is confirmed and its movement names code or configuration in the repository the agent runs in, as an <em>Implement fixes</em> option beside the follow-ups. Picked, it hands the findings to <a href="#optimize-code"><code>optimize-code</code></a>, which edits only the changes you accept.</li>
           </ul>
         </section>
 
         <section class="skill-block">
           <h4>Routes into</h4>
           <ul>
-            <li><a href="#advise-jfr"><code>advise-jfr</code></a> once a regression is confirmed, and <a href="#profile-run"><code>profile-run</code></a> for the recording flags themselves, which this skill does not restate.</li>
+            <li><a href="#optimize-code"><code>optimize-code</code></a> once a regression is confirmed, and <a href="#profile-run"><code>profile-run</code></a> for the recording flags themselves, which this skill does not restate.</li>
           </ul>
         </section>
 
@@ -482,7 +491,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         </aside>
       </div>
 
-      <h2 id="advise-jfr">advise-jfr</h2>
+      <h2 id="optimize-code">optimize-code</h2>
       <div class="skill-card">
         <div class="skill-head">
           <p class="skill-question">&ldquo;What should I change in this repo to fix it?&rdquo;</p>
@@ -536,7 +545,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         </aside>
       </div>
 
-      <p>What <code>advise-jfr</code> deliberately does not carry is how to read a CPU, allocation or blocking graph. Every export already opens with an analysis section written for its event type, so the skill says to follow that document rather than restating it.</p>
+      <p>What <code>optimize-code</code> deliberately does not carry is how to read a CPU, allocation or blocking graph. Every export already opens with an analysis section written for its event type, so the skill says to follow that document rather than restating it.</p>
 
       <h2 id="analyze-exceptions">analyze-exceptions</h2>
       <div class="skill-card">
@@ -551,7 +560,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <section class="skill-block">
           <h4>Entry sequence</h4>
           <ul>
-            <li>An application name is matched against the profiles in <code>profiles_list</code>; a deployed service with no local profile is handed to <code>analyze-connector</code>, a named file to <code>recordings_analyzeFile</code>. <code>profiles_get</code> then compares the recording&rsquo;s commit with <code>HEAD</code>, as <code>advise-jfr</code> does.</li>
+            <li>An application name is matched against the profiles in <code>profiles_list</code>; a deployed service with no local profile is handed to <code>analyze-connector</code>, a named file to <code>recordings_analyzeFile</code>. <code>profiles_get</code> then compares the recording&rsquo;s commit with <code>HEAD</code>, as <code>optimize-code</code> does.</li>
             <li>The application&rsquo;s own packages are read off the checkout &mdash; the package roots under <code>src/main/java</code> and <code>src/main/kotlin</code>, else the build&rsquo;s group id &mdash; and named in one line so they can be corrected. Jeffrey stores no setting for them: the agent passes them on each call.</li>
             <li><code>jvm_exceptions</code> for the split &mdash; application throws, libraries included, against the JVM&rsquo;s own class-loading, reflection and linking noise &mdash; and the top application throw sites. With no throw events recorded it stops and names the recording setting that would capture them.</li>
             <li><code>jvm_exceptionSites</code> with those packages as <code>framePrefixes</code>: each site&rsquo;s stack and its <code>ownFrame</code>, the topmost frame of the application&rsquo;s own &mdash; the line to open even when a library threw.</li>
@@ -562,7 +571,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <h4>What it decides for you</h4>
           <ul>
             <li><strong>Every site is classified from the code that was read:</strong> exception-as-control-flow, caught and swallowed, a retry or timeout storm, a real failure, or JVM noise that leaked &mdash; each with its typical fix.</li>
-            <li><strong>Configuration findings kept apart from code</strong> &mdash; a timeout, a pool size, a retry policy &mdash; exactly as <code>advise-jfr</code> keeps them.</li>
+            <li><strong>Configuration findings kept apart from code</strong> &mdash; a timeout, a pool size, a retry policy &mdash; exactly as <code>optimize-code</code> keeps them.</li>
             <li><strong>Recommend, then stop</strong>: nothing is edited until a finding is accepted; a change is verified by re-recording and comparing the same site&rsquo;s count.</li>
           </ul>
         </section>
@@ -570,6 +579,39 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
           <p>A site with no <code>ownFrame</code> threw entirely inside the JDK or a library. The skill says so and reads the stack&rsquo;s deepest frames for what started the work, rather than blaming a line of the repository it never found.</p>
+        </aside>
+      </div>
+
+      <h2 id="code-insight">code-insight</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Is this method hot, and who calls it?&rdquo;</p>
+          <span class="skill-role">From the code you are reading to what the profile measured of it</span>
+        </div>
+
+        <p>The other skills start from a profile and work towards the code. This one starts from the code &mdash; a method open in the editor, a class about to change &mdash; and asks the profile about it by the names in the source. Jeffrey never reads the repository: the skill brings the package roots and the method, and the answer comes back keyed by the same names.</p>
+        <DocsCodeBlock :code="codeInsightPrompt" language="bash" />
+
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><code>profiles_get</code> compares the recording&rsquo;s commit with <code>HEAD</code> &mdash; and says when the build was dirty or the commit is unknown &mdash; before any figure is mapped onto the checkout.</li>
+            <li>The application&rsquo;s own packages are read off the checkout and passed as <code>framePrefixes</code>; the code is named as the JVM runs it (<code>Outer.Inner</code> for a nested class, <code>FileKt</code> for a Kotlin top-level function).</li>
+            <li><code>code_method</code> for one method or class: its inclusive and self figures per sample kind, callers, callees, the nearest own callers of a library method, the lines it was sampled on, the exceptions thrown under it and the traced requests that run it. <code>code_hotspots</code> when the question is the whole repository: its methods ranked by the cost charged to them. <code>code_callSites</code> for which line issues a statement or call and how often one request does; <code>code_runtimeSurface</code> for what the application did at runtime &mdash; operations, statements, attribute keys, its own events &mdash; tied back to its code.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>Every figure is tied to source that was read</strong>, at the lines the samples landed on, with the runtime names merged into it listed.</li>
+            <li><strong><code>NOT_SEEN</code> is a measurement</strong>, read against <code>nearestFrames</code> and the commit check before it is reported as &ldquo;not hot&rdquo;.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>A lambda body runs under its own name. A figure that counts <code>lambda$checkout$1</code> belongs to the lambda&rsquo;s body, not to the line that created it; the skill reads <code>matchedFrames</code> before naming a line.</p>
         </aside>
       </div>
 
@@ -673,7 +715,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       </div>
 
       <h2 id="the-analyst">The Agents They Delegate To</h2>
-      <p>Four of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
+      <p>Four of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>optimize-code</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
 
       <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in. When a question needs two or more exports, the skill sends one to each analyst in a single message, so they run at once. An analyst runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 

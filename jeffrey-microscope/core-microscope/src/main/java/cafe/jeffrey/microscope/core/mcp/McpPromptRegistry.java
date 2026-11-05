@@ -69,8 +69,9 @@ public class McpPromptRegistry implements McpPromptProvider {
     private static final Map<String, List<McpPrompt.Argument>> ARGUMENTS_BY_SKILL = Map.ofEntries(
             Map.entry("analyze-jfr", PROFILE_ID_ONLY),
             Map.entry("analyze-heap", PROFILE_ID_ONLY),
-            Map.entry("advise-jfr", PROFILE_ID_ONLY),
+            Map.entry("optimize-code", PROFILE_ID_ONLY),
             Map.entry("analyze-exceptions", PROFILE_ID_ONLY),
+            Map.entry("code-insight", PROFILE_ID_ONLY),
             Map.entry("jfr-sql", PROFILE_ID_ONLY),
             Map.entry("heap-sql", PROFILE_ID_ONLY),
             Map.entry("compare-jfr", PROFILE_AND_BASELINE),
@@ -82,7 +83,7 @@ public class McpPromptRegistry implements McpPromptProvider {
 
     /**
      * The menu title for each skill. A small, explicit map rather than {@link #title(String)}'s
-     * word-split for the twelve skills this server actually ships, because splitting on {@code -} alone
+     * word-split for the thirteen skills this server actually ships, because splitting on {@code -} alone
      * reads {@code jfr} and {@code sql} as ordinary words ("Analyze Jfr", "Jfr Sql") instead of the
      * acronyms they are.
      */
@@ -90,8 +91,9 @@ public class McpPromptRegistry implements McpPromptProvider {
             Map.entry("analyze-jfr", "Analyze a JFR Profile"),
             Map.entry("analyze-heap", "Analyze a Heap Dump"),
             Map.entry("analyze-connector", "Analyze a Connector Session"),
-            Map.entry("advise-jfr", "Advise on a Profile"),
+            Map.entry("optimize-code", "Optimize Code from a Profile"),
             Map.entry("analyze-exceptions", "Analyze Exceptions"),
+            Map.entry("code-insight", "Ask a Profile About Your Code"),
             Map.entry("compare-jfr", "Compare Two Profiles"),
             Map.entry("jfr-sql", "Query a Profile with SQL"),
             Map.entry("heap-sql", "Query a Heap Dump with SQL"),

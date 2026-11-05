@@ -100,15 +100,7 @@ public class FlamegraphDataProvider {
      * @return flamegraph data.
      */
     public Frame provideFrame() {
-        EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventType(graphParameters.eventType())
-                .withTimeRange(graphParameters.timeRange())
-                .filterStacktraceTypes(graphParameters.stacktraceTypes())
-                .filterStacktraceTags(graphParameters.stacktraceTags())
-                .withThreads(graphParameters.threadMode())
-                .withSpecifiedThreads(graphParameters.threads())
-                .withWeight(graphParameters.useWeight())
-                .withSpanScope(graphParameters.spanScope());
+        EventQueryConfigurer configurer = configurer(graphParameters);
 
         // The query is its own span so a slow flamegraph can be attributed: time under
         // flamegraph.query is DuckDB, the remainder of flamegraph.generate is frame building.
@@ -146,5 +138,25 @@ public class FlamegraphDataProvider {
         } else {
             return FlameGraphProtoBuilder.simple(minFrameThresholdPct);
         }
+    }
+
+    /**
+     * The query a flamegraph of these parameters reads: event type, window, stacktrace types and tags,
+     * threads, weight and span scope. Shared with every reader that has to see exactly the stacks the
+     * graph would -- the per-method code reads among them.
+     *
+     * @param graphParameters what the graph is drawn from
+     * @return the configured query
+     */
+    public static EventQueryConfigurer configurer(GraphParameters graphParameters) {
+        return new EventQueryConfigurer()
+                .withEventType(graphParameters.eventType())
+                .withTimeRange(graphParameters.timeRange())
+                .filterStacktraceTypes(graphParameters.stacktraceTypes())
+                .filterStacktraceTags(graphParameters.stacktraceTags())
+                .withThreads(graphParameters.threadMode())
+                .withSpecifiedThreads(graphParameters.threads())
+                .withWeight(graphParameters.useWeight())
+                .withSpanScope(graphParameters.spanScope());
     }
 }

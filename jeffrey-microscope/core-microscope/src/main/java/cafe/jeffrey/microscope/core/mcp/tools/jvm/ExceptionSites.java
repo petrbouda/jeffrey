@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
+import cafe.jeffrey.microscope.core.mcp.tools.FramePrefixes;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.profile.common.exceptions.ThrowFrame;
@@ -58,7 +59,7 @@ public final class ExceptionSites {
     }
 
     /**
-     * What the caller asked for, its prefixes already trimmed of blanks.
+     * What the caller asked for, its prefixes trimmed of blanks and bounded ({@link FramePrefixes}).
      *
      * @param framePrefixes      the caller's own packages; empty when it gave none
      * @param thrownClass        only this class; null for every class
@@ -67,11 +68,7 @@ public final class ExceptionSites {
     public record Selection(List<String> framePrefixes, String thrownClass, boolean includeJvmInternal) {
 
         public Selection {
-            framePrefixes = framePrefixes == null ? List.of() : framePrefixes.stream()
-                    .filter(prefix -> prefix != null && !prefix.isBlank())
-                    .map(String::strip)
-                    .distinct()
-                    .toList();
+            framePrefixes = FramePrefixes.of(framePrefixes);
             thrownClass = thrownClass == null || thrownClass.isBlank() ? null : thrownClass.strip();
         }
 

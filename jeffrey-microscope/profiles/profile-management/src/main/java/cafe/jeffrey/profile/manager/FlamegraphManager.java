@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.flamegraph.code.CallSites;
+import cafe.jeffrey.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.flamegraph.code.CodeQuery;
 import cafe.jeffrey.flamegraph.export.AiExportConfig;
 
 import cafe.jeffrey.profile.common.config.GraphParameters;
@@ -95,4 +99,26 @@ public interface FlamegraphManager {
      * @throws UnsupportedOperationException for graph modes that do not support AI export
      */
     String generateAiExport(GraphParameters graphParameters, AiExportConfig aiExportConfig);
+
+    /**
+     * What these stacks measured of the code, method by method: the application's own methods ranked by
+     * the cost charged to them, and each referenced method's callers, callees, lines and tiers. Reads
+     * exactly the stacks a graph of the same parameters would draw.
+     *
+     * @param graphParameters the stacks to read: event type, window, filters, weight
+     * @param query           whose code is own and which methods to describe
+     * @return the per-method reading
+     */
+    CodeAttribution codeAttribution(GraphParameters graphParameters, CodeQuery query);
+
+    /**
+     * Where the events of these parameters' type were issued from in the reader's own code: each event's
+     * deepest own frame and line, split by one field's value, counted per trace. Only event types recorded
+     * with stack traces have call sites.
+     *
+     * @param graphParameters the event type, window and filters to read
+     * @param query           whose code is own, the field to split by and an optional field filter
+     * @return the call sites
+     */
+    CallSites callSites(GraphParameters graphParameters, CallSiteQuery query);
 }

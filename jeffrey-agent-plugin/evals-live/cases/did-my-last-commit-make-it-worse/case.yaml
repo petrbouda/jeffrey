@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: did-my-last-commit-make-it-worse
+context:
+  scaffold_script: setup.sh

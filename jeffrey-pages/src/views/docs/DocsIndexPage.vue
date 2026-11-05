@@ -28,7 +28,7 @@ const serverComponents = ['Retention', 'Compression', 'Scheduler', 'Storage dash
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
-const mcpComponents = ['101 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
+const mcpComponents = ['106 read-only tools', 'MCP 2026-07-28', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 const connectorsComponents = ['Pluggable kinds', 'Azure File Share', 'Read-only mode', 'Session download'];
 

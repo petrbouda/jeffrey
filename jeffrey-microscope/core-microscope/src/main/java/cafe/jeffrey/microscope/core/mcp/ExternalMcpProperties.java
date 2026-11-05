@@ -67,12 +67,12 @@ public record ExternalMcpProperties(
     private static final String DEFAULT_PRESET = "all";
 
     private static final Map<String, Set<String>> PRESETS = Map.of(
-            DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "compare", "traces",
+            DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
                     "memory", "heap", "connector", "ide", "operations"),
             // Everything analyze-jfr routes to: the per-domain families it hands a trace, an HTTP,
             // JDBC, gRPC, method-tracing, I/O, blocking, timeline or memory question to.
-            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare", "traces",
+            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "jvm", "compare", "traces",
                     "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory",
                     "operations"),
             "heap", Set.of("profiles", "recordings", "heap", "operations"),

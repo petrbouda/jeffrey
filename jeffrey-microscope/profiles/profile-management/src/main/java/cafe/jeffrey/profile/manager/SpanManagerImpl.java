@@ -120,7 +120,7 @@ public class SpanManagerImpl implements SpanManager {
         String wanted = tagOrEmpty(tag);
         return repository.listSpans().stream()
                 .filter(span -> tagOrEmpty(span.tag()).equals(wanted))
-                .map(span -> new SpanInterval(
+                .map(span -> SpanInterval.ofMillis(
                         span.threadHash(),
                         span.startEpochMillis(),
                         span.startEpochMillis() + span.durationNanos() / NANOS_PER_MILLI))

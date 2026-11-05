@@ -62,6 +62,9 @@ public class JdbcMcpTools {
     private static final MicroscopeView STATEMENTS_VIEW = MicroscopeView.JDBC_STATEMENTS;
     private static final MicroscopeView STATEMENT_GROUPS_VIEW = MicroscopeView.JDBC_STATEMENT_GROUPS;
     private static final MicroscopeView POOL_VIEW = MicroscopeView.JDBC_POOL;
+    private static final String CALL_SITES_GUIDANCE = "Which line of your code issues a statement, and how often "
+            + "one request does: code_callSites with the statement's event type (jeffrey.JdbcQuery and its "
+            + "siblings carry their caller's stack) and your framePrefixes.";
     private static final String GROUP_PARAM = "group";
 
     private static final int MAX_GROUPS = 40;
@@ -126,6 +129,7 @@ public class JdbcMcpTools {
                     .with(FollowUpCalls.GROUP, shown.getFirst().group())
                     .why(GROUP_WHY));
         }
+        steps.guidance(advertised.hint(AdvertisedFamilies.CODE, CALL_SITES_GUIDANCE));
         return McpToolResult.of(dashboard(data, null, shown, steps, uiLink));
     }
 

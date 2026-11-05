@@ -61,7 +61,7 @@ an area waiting for it is offered as `NEEDS_PREPARATION`:
 
 **Beyond one profile:** comparing two recordings (**compare-jfr**), deciding whether a change
 regressed (**regression-check**), SQL over a profile's events (**jfr-sql**) or a heap dump's index
-(**heap-sql**), and turning a hotspot into a change in this repository (**advise-jfr**).
+(**heap-sql**), and turning a hotspot into a change in this repository (**optimize-code**).
 
 ## 3. What is here now
 
@@ -88,11 +88,12 @@ Nothing here? Say so, and offer the two ways in: a recording file on this machin
 |---|---|
 | Read a recording: where the time, CPU, allocations or waits went; GC, JIT, threads, the container | **analyze-jfr** |
 | Understand what an application threw | **analyze-exceptions** |
+| Ask what a profile measured of the code you are reading — is it hot, who calls it, which requests run it, which line issues a query, what the service did at runtime | **code-insight** |
 | Read a heap dump: what holds the memory | **analyze-heap** |
 | Compare two recordings, or check a change for a regression | **compare-jfr**, **regression-check** |
 | Analyse what a deployed environment recorded | **analyze-connector** |
 | Record this project first | **profile-run** |
-| Fix what a profile found, in this repository | **advise-jfr** |
+| Fix what a profile found, in this repository | **optimize-code** |
 | Ask a question no dashboard answers | **jfr-sql**, **heap-sql** |
 | Write the findings up | **report** |
 
@@ -103,8 +104,9 @@ trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or
 differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
-a page named in passing ("the exceptions page"), the links most often left bare:
-`[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
 a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check

@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.manager.recordings.SourceRevision;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
@@ -49,9 +50,11 @@ import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,6 +104,11 @@ public class ProfileMcpTools {
     private static final MicroscopeView GC_ROOT_PATH_VIEW = MicroscopeView.HEAP_DUMP_GC_ROOT_PATH;
     private static final String OBJECT_ID_PARAM = "objectId";
 
+    /** The JDK's event for the JVM's initial system properties, and its two fields. */
+    private static final Type INITIAL_SYSTEM_PROPERTY = Type.fromCode("jdk.InitialSystemProperty");
+    private static final String PROPERTY_KEY = "key";
+    private static final String PROPERTY_VALUE = "value";
+
     /** The page that lists what the profile recorded, behind profiles_features. */
     static final MicroscopeView EVENT_TYPES_VIEW = MicroscopeView.EVENT_TYPES;
 
@@ -148,6 +156,9 @@ public class ProfileMcpTools {
     @McpToolMeta(cost = McpToolCost.CHEAP)
     public McpToolResult get() {
         ProfileInfo info = profileManager.info();
+        SourceRevision revision = recordingCommitResolver
+                .revision(info.recordingId(), this::initialSystemProperties)
+                .orElse(null);
         return McpToolResult.of(new ProfileDetail(
                 info.id(),
                 info.name(),
@@ -161,11 +172,30 @@ public class ProfileMcpTools {
                 info.enabled(),
                 info.modified(),
                 profileManager.sizeInBytes(),
-                recordingCommitResolver.resolve(info.recordingId()).orElse(null),
+                revision == null ? null : revision.commit(),
+                revision == null ? null : revision.source(),
+                revision == null ? null : revision.dirty(),
+                revision == null ? null : revision.branch(),
                 NextSteps.builder(advertised)
                         .next(NextCalls.to(PROFILES_SUMMARY).with(PROFILE_ID, info.id()).why(SUMMARY_WHY))
                         .followUp(),
                 UiLinks.profile(info.id())));
+    }
+
+    /**
+     * The profiled JVM's initial system properties, by name, read only when no tag names the commit: a
+     * build started with {@code -Dgit.commit=…} carries its revision there.
+     */
+    private Map<String, String> initialSystemProperties() {
+        Map<String, String> properties = new HashMap<>();
+        for (JsonNode event : profileManager.eventViewerManager().events(INITIAL_SYSTEM_PROPERTY)) {
+            JsonNode key = event.path(PROPERTY_KEY);
+            JsonNode value = event.path(PROPERTY_VALUE);
+            if (key.isString() && value.isString()) {
+                properties.putIfAbsent(key.asString(), value.asString());
+            }
+        }
+        return properties;
     }
 
     /** An instant as UTC epoch milliseconds, or null for a profile whose recording did not carry it. */
@@ -506,6 +536,16 @@ public class ProfileMcpTools {
             @McpNullable
             @McpDescription("The source commit the profiled build came from; null when unknown")
             String recordingCommit,
+            @McpNullable
+            @McpDescription("Where recordingCommit was read: TAG (given at import, or by the pipeline) or "
+                    + "SYSTEM_PROPERTY (-Dgit.commit on the profiled JVM); null when unknown")
+            SourceRevision.Source recordingCommitSource,
+            @McpNullable
+            @McpDescription("Whether the build's working tree had uncommitted changes; null when nothing said")
+            Boolean recordingDirty,
+            @McpNullable
+            @McpDescription("The branch the build was made on; null when nothing said")
+            String recordingBranch,
             McpFollowUp followUp,
             @McpDescription("The profile's page in the Microscope UI, for the user")
             String uiLink) {

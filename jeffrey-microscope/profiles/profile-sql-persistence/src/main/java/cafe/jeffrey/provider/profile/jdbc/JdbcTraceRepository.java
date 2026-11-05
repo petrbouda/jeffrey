@@ -133,7 +133,6 @@ public class JdbcTraceRepository implements TraceRepository {
      * keyed on. Flooring rather than rounding is what puts the bound on the millisecond a sample
      * taken at that instant was filed under.
      */
-    private static final long MICROS_PER_MILLI = 1_000L;
 
     /**
      * The keys every traced event carries as plumbing rather than as detail: the columns JFR fills in
@@ -2264,8 +2263,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 operationParams(operation),
                 (rs, _) -> new SpanInterval(
                         rs.getLong("thread_hash"),
-                        Math.floorDiv(rs.getLong("from_epoch_us"), MICROS_PER_MILLI),
-                        Math.floorDiv(rs.getLong("to_epoch_us"), MICROS_PER_MILLI)));
+                        rs.getLong("from_epoch_us"),
+                        rs.getLong("to_epoch_us")));
     }
 
     private static MapSqlParameterSource operationParams(TraceOperationId operation) {
@@ -2543,14 +2542,14 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
-    public ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis) {
+    public ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMicros, long toEpochMicros) {
         // One row past the cap: an extra row means the window held more than the page carries, and
         // saying so is the difference between a truncated list and a list passed off as complete.
         List<ThreadWindowEventRecord> rows = databaseClient.query(
                 StatementLabel.TRACE_SPAN_EVENTS,
                 EVENTS_IN_SPAN,
-                ThreadWindowEvents.params(
-                        threadHash, fromEpochMillis, toEpochMillis, ThreadWindowEvents.ROW_LIMIT + 1),
+                ThreadWindowEvents.micros(
+                        threadHash, fromEpochMicros, toEpochMicros, ThreadWindowEvents.ROW_LIMIT + 1),
                 ThreadWindowEvents.mapper());
 
         if (rows.size() <= ThreadWindowEvents.ROW_LIMIT) {

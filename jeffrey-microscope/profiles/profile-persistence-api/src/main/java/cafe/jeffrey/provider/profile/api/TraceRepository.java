@@ -253,10 +253,11 @@ public interface TraceRepository {
      *
      * @param threadHash      identity hash of the span's thread; used rather than the OS id so the
      *                        lookup also resolves for virtual threads
-     * @param fromEpochMillis window start, inclusive
-     * @param toEpochMillis   window end, inclusive
+     * @param fromEpochMicros the span's start, in microseconds, inclusive
+     * @param toEpochMicros   the span's end, in microseconds, inclusive — its own window, not the whole
+     *                        milliseconds it touched, as the span's flamegraph scopes it
      */
-    ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
+    ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMicros, long toEpochMicros);
 
     /**
      * The stop-the-world stretches overlapping a window — collection pauses and safepoints.
