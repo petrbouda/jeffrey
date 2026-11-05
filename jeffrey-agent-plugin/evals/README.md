@@ -215,11 +215,12 @@ What the mocks cannot do, so the cases stay away from it:
 - **The connector and the IDE.** The recording Jeffrey has no connector and no IntelliJ attached.
 - **An exploring variant of a call.** A fixture answers a call whatever its optional arguments say, so a variant
   that changes what the figures are — the wall clock with idle threads left out (`excludeIdle`), statements
-  grouped or filtered on `code_callSites` (`groupBy`, `filterField`), a library's package roots as
-  `framePrefixes`, a `search` or thread split on a flamegraph — fails the call-contract grader unless the
+  grouped or filtered on `code_callSites` (`groupBy`, `filterField`), a `search` or thread split on a
+  flamegraph — fails the call-contract grader unless the
   recorder made exactly it, and two variants of one call cannot both be its fixture. Real data invites such
   exploration where a planted workload did not, so an open question whose good answers take it is a live case
-  (`count-queries`, `endpoint-cpu`, `wall-vs-cpu`), not a mocked one.
+  (`count-queries`, `endpoint-cpu`, `wall-vs-cpu`), not a mocked one. A library's or the JDK's package roots
+  as `framePrefixes` are no variant: the skills pass only the source tree's own.
 - **Arguments the recorder did not reach.** A call with arguments nothing in the recording offered
   answers `no such fixture` as a tool error.
 
@@ -1298,3 +1299,24 @@ this pass the live suite scored 1.00 on three cases. `did-my-last-commit-make-it
 one run read the comparison from `compare_movements` and never called `compare_methods`. Spend:
 $13.38 for the full mocked pass, $3.20 for the extra runs, $3.02 live, $0.70 for the connector case
 again.
+
+## The slowest tail offered, own packages only, the client's agents apart
+
+- **`traces_operations` offers the slowest tail.** Next to the first row's calls it offers
+  `traces_slowestTraces` for the operation with the highest p95 over at least 20 requests (below that the
+  p95 is the slowest request itself), so a page sorted by total time still points at the tail;
+  `references/latency.md` says so.
+- **`framePrefixes` are the source tree's own packages only**, in the code skills and in `jfr-analyst`,
+  which had passed library and JDK packages to `code_hotspots` (`fix-it`: none since).
+- **The usage map counts only the plugin's agents.** A hand-off to the client's own (Explore) is an `other`
+  step with a lane of its own.
+
+On the mocks re-recorded with the relays, three runs each:
+
+| Case | Before | Now | What missed |
+|---|---|---|---|
+| `slow-endpoints` | 0 of 3 (0.60) | 1 of 3 (0.87) | every run read slow traces; two judged short of the span breakdown |
+| `fix-it` | 0 of 3 (0.73) | 1 of 3 (0.73) | no **Implement fixes** offer after an export the client saved to a file; `flamegraph_export` with `excludeIdle`, which no relay answers |
+| `dom-regression`, `what-runs`, `what-to-change`, `why-slow`, `pool-latency` | — | 3 of 3 each (1.00) | — |
+
+Spend: $7.41.

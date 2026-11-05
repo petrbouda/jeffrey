@@ -157,6 +157,12 @@ public class TracesMcpTools {
     private static final String OPERATION_EXPORT_WHY =
             "the operation's latency, where its time went by span, and its exemplar traces";
     private static final String SLOWEST_WHY = "the operation's individual traces, slowest first";
+    /** Below 20 requests the 95th percentile is the slowest one (ceil(0.95 n) = n), so there is no tail to read. */
+    private static final int TAIL_MIN_REQUESTS = 20;
+    private static final String SLOWEST_TAIL_WHY =
+            "the traces of the operation with the slowest tail on this page (highest p95 over "
+                    + TAIL_MIN_REQUESTS + " or more requests), "
+                    + "slowest first";
     private static final String TRACE_EXPORT_WHY = "this trace span by span, with the JVM underneath it";
     private static final String EXEMPLAR_WHY = "the trace that exemplifies this, span by span";
     private static final String POPULATION_WHY = "whether this trace is typical of its operation or an outlier";
@@ -262,6 +268,11 @@ public class TracesMcpTools {
                                 first.eventType()).why(OPERATION_EXPORT_WHY))
                         .next(operationCall(FollowUpCalls.TRACES_SLOWEST, first.name(), first.kind(),
                                 first.eventType()).why(SLOWEST_WHY));
+                TraceOperationRow slowestTail = slowestTail(rowsShown);
+                if (slowestTail != first) {
+                    steps.next(operationCall(FollowUpCalls.TRACES_SLOWEST, slowestTail.name(), slowestTail.kind(),
+                            slowestTail.eventType()).why(SLOWEST_TAIL_WHY));
+                }
             }
             steps.nextWhen(next.hasMore(), call(FollowUpCalls.TRACES_OPERATIONS)
                     .with(FollowUpCalls.SEARCH, searchText)
@@ -686,6 +697,21 @@ public class TracesMcpTools {
             call.with(FollowUpCalls.USE_WEIGHT, useWeight);
         }
         return call;
+    }
+
+    /**
+     * The row with the highest p95 among those with a tail at all — at least {@link #TAIL_MIN_REQUESTS} requests,
+     * since below that the p95 is the slowest request itself — or the first row when none has one. The first such
+     * row on a tie, so a page sorted by p95 gives its first row.
+     */
+    private static TraceOperationRow slowestTail(List<TraceOperationRow> rows) {
+        TraceOperationRow slowest = null;
+        for (TraceOperationRow row : rows) {
+            if (row.count() >= TAIL_MIN_REQUESTS && (slowest == null || row.p95Nanos() > slowest.p95Nanos())) {
+                slowest = row;
+            }
+        }
+        return slowest == null ? rows.getFirst() : slowest;
     }
 
     private McpNextTool.Call operationCall(String tool, String name, String kind, String eventType) {

@@ -16,7 +16,10 @@ technology families below. With traces, they answer it request by request:
    the span tree only shows the cost of, and its exemplar trace ids are the ones worth exporting.
 2. `traces_operations` — sorted by `TOTAL_TIME` by default, which is where the wall-clock went.
    An operation is the triple `(name, kind, eventType)`, not a name alone: an inbound
-   `GET /orders` and an outbound call to the same path are different operations.
+   `GET /orders` and an outbound call to the same path are different operations. That order leads
+   with the busiest operation, not the slowest: its `followUp` also offers `traces_slowestTraces` of
+   the one with the slowest tail (the highest p95 over 20 or more requests), and `sort: P95` lists them
+   by it.
 3. `traces_slowestTraces` for each operation with the slow tail, then `traces_traceExport` of its
    slowest trace: the span tree says what that one request spent its time on — its own spans, the
    statements, a GC pause or a lock wait that crossed it — which is the *why* the question asks. An

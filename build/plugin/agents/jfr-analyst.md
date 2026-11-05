@@ -260,6 +260,10 @@ the marked name as the link and hides the URL.
 <!-- end -->
 - **No recommendations.** Report what the profile shows. Whether to change anything, and what,
   belongs to the caller and its user.
+- **No guessed packages.** `framePrefixes` are the application's own packages, which only the caller
+  can read off the checkout: pass the ones you were given, or none, and `code_hotspots` suggests its
+  own as `suggestedFramePrefixes`. Never a library's or the JDK's (`java.`, `org.springframework.`):
+  their work is already charged to the own method that called them.
 <!-- claude -->
 - **No heap dumps.** The `heap_` tools are withheld: a heap dump is `heap-analyst`'s, so say the
   profile is one and stop.

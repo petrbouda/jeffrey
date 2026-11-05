@@ -83,6 +83,10 @@ AREAS = [
      "skills": ["analyze-connector", "help", "report"],
      "families": ["connector", "operations", "profiles", "recordings"]},
 ]
+# The agents the plugin ships, under their current and their historical names. A run may also hand work to
+# one of the client's own (Claude Code's Explore, general-purpose): that is a call like any other tool's,
+# not a use of the plugin's agents.
+PLUGIN_AGENTS = {area["agent"] for area in AREAS if area.get("agent")} | set(AGENT_ALIASES)
 
 # What each eval case runs on, declared as one tag in its prompt's frontmatter: a real service's recorded
 # runs, or the made-up workload written for the evals. The page marks every case with it; a case that reads
@@ -207,9 +211,10 @@ def steps_of(lines) -> tuple[list[dict], dict[str, str]]:
 
     Each Skill, Agent and Jeffrey call carries `by`: the skill active in its lane before it, or the lane's
     agent. A lane's skill is the last Skill called in it. Agent names stay as recorded; aliases belong
-    to the current wiring, not the historical steps or lanes.
+    to the current wiring, not the historical steps or lanes. A hand-off to an agent the plugin does not ship
+    is an `other` step, and its lane carries no agent.
     """
-    steps, start, agent_lanes = [], None, {}
+    steps, start, agent_lanes, client_lanes = [], None, {}, {}
     for line in lines:
         try:
             event = json.loads(line)
@@ -229,10 +234,14 @@ def steps_of(lines) -> tuple[list[dict], dict[str, str]]:
             if name == SKILL_TOOL:
                 step |= {"kind": "skill", "name": without_namespace(arguments.get("skill", "?")),
                          "input": short(arguments.get("args", ""))}
-            elif name == AGENT_TOOL:
-                agent = without_namespace(arguments.get("subagent_type", DEFAULT_AGENT))
+            elif name == AGENT_TOOL and without_namespace(arguments.get("subagent_type", DEFAULT_AGENT)) in PLUGIN_AGENTS:
+                agent = without_namespace(arguments["subagent_type"])
                 agent_lanes[block.get("id")] = agent
                 step |= {"kind": "agent", "name": agent, "input": short(arguments.get("description", ""))}
+            elif name == AGENT_TOOL:
+                agent = without_namespace(arguments.get("subagent_type", DEFAULT_AGENT))
+                client_lanes[block.get("id")] = agent
+                step |= {"kind": "other", "name": f"{AGENT_TOOL}({agent})", "input": short(arguments.get("description", ""))}
             elif name.startswith(JEFFREY_PREFIX):
                 step |= {"kind": "jeffrey", "name": name[len(JEFFREY_PREFIX):], "input": short(arguments)}
             else:
@@ -245,7 +254,7 @@ def steps_of(lines) -> tuple[list[dict], dict[str, str]]:
             step["by"] = active.get(step["lane"]) or owner
         if step["kind"] == "skill":
             active[step["lane"]] = ["skill", step["name"]]
-    return steps, {MAIN_LANE: MAIN_LANE} | agent_lanes
+    return steps, {MAIN_LANE: MAIN_LANE} | client_lanes | agent_lanes
 
 
 def node_of(by: list[str]) -> str:

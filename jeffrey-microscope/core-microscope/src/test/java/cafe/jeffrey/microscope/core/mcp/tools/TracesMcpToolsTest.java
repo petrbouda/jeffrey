@@ -171,7 +171,16 @@ class TracesMcpToolsTest {
     }
 
     private static TraceOperationRow operation(String name) {
-        return new TraceOperationRow(name, KIND, EVENT_TYPE, 10, 0, 0, 0, 30, 1_000, 100, 200, 300, 400);
+        return operation(name, 200);
+    }
+
+    private static TraceOperationRow operation(String name, long p95Nanos) {
+        return operation(name, 10, p95Nanos);
+    }
+
+    private static TraceOperationRow operation(String name, long count, long p95Nanos) {
+        return new TraceOperationRow(name, KIND, EVENT_TYPE, count, 0, 0, 0, 30, 1_000, 100, p95Nanos, p95Nanos + 100,
+                p95Nanos + 200);
     }
 
     private static TraceRow trace(String traceId) {
@@ -362,6 +371,58 @@ class TracesMcpToolsTest {
             assertEquals(EVENT_TYPE, call.get("eventType").asString());
             assertFalse(out.get("hasMore").asBoolean());
             assertTrue(out.get("nextCursor").isNull());
+        }
+
+        /** The busiest operation leads a page by total time; the one with the slow tail is offered too. */
+        @Test
+        void offersTheSlowestTailWhenTheFirstRowIsNotIt() {
+            when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(
+                    List.of(operation("GET /busy", 7_161, 2_400), operation("GET /tail", 664, 29_000),
+                            operation("GET /c", 3_316, 5_700)), 3));
+
+            JsonNode out = json("operations", tools().operations(null, null, null, null, null));
+
+            assertEquals(List.of("traces_operationExport", "traces_slowestTraces", "traces_slowestTraces"),
+                    StructuredAnswers.nextTools(out));
+            JsonNode tail = out.get("followUp").get("nextTools").get(2).get("arguments");
+            assertEquals("GET /tail", tail.get("name").asString());
+            assertEquals(KIND, tail.get("kind").asString());
+            assertEquals(EVENT_TYPE, tail.get("eventType").asString());
+        }
+
+        /** Below 20 requests the p95 is the slowest request itself: twelve health checks have no tail to read. */
+        @Test
+        void passesOverAnOperationTooRareToHaveATail() {
+            when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(
+                    List.of(operation("GET /busy", 7_161, 2_400), operation("GET /tail", 664, 29_000),
+                            operation("GET /health", 12, 78_000)), 3));
+
+            JsonNode out = json("operations", tools().operations(null, null, null, null, null));
+
+            JsonNode tail = out.get("followUp").get("nextTools").get(2).get("arguments");
+            assertEquals("GET /tail", tail.get("name").asString());
+        }
+
+        @Test
+        void offersOneSlowestCallWhenNoOperationHasEnoughRequestsForATail() {
+            when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(
+                    List.of(operation("GET /a", 5, 2_400), operation("GET /b", 12, 78_000)), 2));
+
+            JsonNode out = json("operations", tools().operations(null, null, null, null, null));
+
+            assertEquals(List.of("traces_operationExport", "traces_slowestTraces"), StructuredAnswers.nextTools(out));
+        }
+
+        @Test
+        void offersOneSlowestCallWhenTheFirstRowHasTheSlowestTail() {
+            when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(
+                    List.of(operation("GET /tail", 664, 29_000), operation("GET /b", 664, 29_000),
+                            operation("GET /c", 3_316, 5_700)), 3));
+
+            JsonNode out = json("operations", tools().operations(null, null, TraceOperationSortField.P95, null, null));
+
+            assertEquals(List.of("traces_operationExport", "traces_slowestTraces"), StructuredAnswers.nextTools(out));
+            assertEquals("GET /tail", StructuredAnswers.call(out, "traces_slowestTraces").get("name").asString());
         }
 
         @Test

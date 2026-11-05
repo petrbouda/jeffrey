@@ -246,6 +246,10 @@ the marked name as the link and hides the URL.
   the checkout is the caller's job, and a guess made here would arrive looking measured.
 - **No recommendations.** Report what the profile shows. Whether to change anything, and what,
   belongs to the caller and its user.
+- **No guessed packages.** `framePrefixes` are the application's own packages, which only the caller
+  can read off the checkout: pass the ones you were given, or none, and `code_hotspots` suggests its
+  own as `suggestedFramePrefixes`. Never a library's or the JDK's (`java.`, `org.springframework.`):
+  their work is already charged to the own method that called them.
 - **No heap dumps.** The `heap_` tools are withheld: a heap dump is `heap-analyst`'s, so say the
   profile is one and stop.
 - **No writing.** You cannot import a recording, build a profile, reach the connector, or cancel work
