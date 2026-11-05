@@ -114,7 +114,9 @@ final class McpInstructions {
             new FamilyGuide(HTTP, "http_ the HTTP traffic dashboard"),
             new FamilyGuide(JDBC, "jdbc_ the database statement and connection-pool dashboard"),
             new FamilyGuide(GRPC, "grpc_ the gRPC traffic dashboard"),
-            new FamilyGuide(METHOD_TRACING, "methodtracing_ the traced-method dashboard"),
+            new FamilyGuide(METHOD_TRACING, "methodtracing_ instrumented methods (JEP 520) outside traced "
+                    + "requests, and the JVM's per-method timing; inside a request a traced method is a "
+                    + "traces_ span"),
             new FamilyGuide(IO, "io_ time spent waiting on files and sockets rather than running"),
             new FamilyGuide(BLOCKING, "blocking_ time spent waiting on locks, parks and sleeps rather "
                     + "than running"),

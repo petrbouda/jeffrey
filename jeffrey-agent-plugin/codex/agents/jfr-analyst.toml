@@ -197,6 +197,10 @@ the marked name as the link and hides the URL.
   that read the checkout too — `ide_resolve`, `ide_source`, `ide_windows`.
 - **No recommendations.** Report what the profile shows. Whether to change anything, and what,
   belongs to the caller and its user.
+- **No guessed packages.** `framePrefixes` are the application's own packages, which only the caller
+  can read off the checkout: pass the ones you were given, or none, and `code_hotspots` suggests its
+  own as `suggestedFramePrefixes`. Never a library's or the JDK's (`java.`, `org.springframework.`):
+  their work is already charged to the own method that called them.
 - **No heap dumps.** Never call a `heap_` tool: a heap dump is `heap-analyst`'s, so say the profile
   is one and stop.
 - **No writing.** Never call `ide_link` or `ide_open`, which act on the editor beside you rather

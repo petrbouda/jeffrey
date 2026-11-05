@@ -1,0 +1,1 @@
+{"status":"OK","reason":null,"profileId":"01a1ad46-d860-78b7-aa35-7b72ea1117e8","chains":[],"omittedChains":0,"followUp":{"nextTools":[],"guidance":[]},"uiLink":"http://localhost:8586/profiles/01a1ad46-d860-78b7-aa35-7b72ea1117e8/heap-dump/classloader-analysis"}

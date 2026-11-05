@@ -1,1 +1,0 @@
-{"profileId":"01a1ad0f-350b-76ce-a8ba-c567ad924d84","view":"garbage-collection","objectId":null,"uiLink":"http://localhost:8585/profiles/01a1ad0f-350b-76ce-a8ba-c567ad924d84/garbage-collection"}

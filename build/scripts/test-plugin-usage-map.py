@@ -74,6 +74,18 @@ class StepsOfATrace(unittest.TestCase):
         by = [s.get("by") for s in self.steps]
         self.assertEqual(by, [None, ["skill", "analyze-heap"], ["skill", "analyze-heap"], ["agent", "heap-analyst"], None])
 
+    def test_a_hand_off_to_the_clients_own_agent_is_no_use_of_the_plugins(self):
+        steps, lanes = usage_map.steps_of([
+            assistant("2026-11-04T10:00:00Z", ("u1", "Skill", {"skill": "microscope:code-insight"})),
+            assistant("2026-11-04T10:00:01Z", ("u2", "Agent", {"subagent_type": "Explore", "description": "Find it"})),
+            assistant("2026-11-04T10:00:02Z", ("u3", "Grep", {"pattern": "count"}), parent="u2"),
+            assistant("2026-11-04T10:00:03Z", ("u4", "Agent", {"description": "No type given"}))])
+        self.assertEqual([(s["kind"], s["name"]) for s in steps], [
+            ("skill", "code-insight"), ("other", "Agent(Explore)"), ("other", "Grep"),
+            ("other", "Agent(general-purpose)")])
+        self.assertEqual(lanes, {"main": "main", "u2": "Explore", "u4": "general-purpose"})
+        self.assertNotIn("by", steps[1])
+
     def test_cuts_long_inputs(self):
         steps, _ = usage_map.steps_of([assistant("2026-11-04T10:00:00Z", ("u1", "Bash", {"command": "x" * 500}))])
         self.assertEqual(len(steps[0]["input"]), usage_map.INPUT_CHARS)
@@ -294,8 +306,11 @@ class CommittedMap(unittest.TestCase):
                     self.assertIn(node[2:], recorded)
         for case in self.data["replays"]:
             for run in case["runs"]:
+                # The client's own agents a run handed work to (Explore): their lanes, not the plugin's agents.
+                client = {step["name"][len("Agent("):-1] for step in run["steps"]
+                          if step["kind"] == "other" and step["name"].startswith("Agent(")}
                 for name in run["lanes"].values():
-                    if name != "main":
+                    if name != "main" and name not in client:
                         self.assertIn(name, recorded)
                         self.assertIn(aliases.get(name, name), agents)
                 for step in run["steps"]:

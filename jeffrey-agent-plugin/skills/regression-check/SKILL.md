@@ -177,6 +177,9 @@ for every call:
   the `groupId` in `pom.xml` or the `group` in `build.gradle(.kts)`. In a multi-module repository
   where the question is about one service, take that module's packages and the shared ones it uses.
 - Keep the trailing dot, so `com.acme.` does not also match `com.acmecorp.`.
+- Only the source tree's own packages, never a library's or the JDK's (`java.`, `org.springframework.`):
+  library and JDK work is already charged to the own method that called it. What a library costs on
+  its own is read from `flamegraph_export`.
 - Name them in one line — "your code is `com.acme.orders.`" — so the user can correct you before
   anything depends on it. `code_hotspots` called without them answers with the profile's busiest
   non-library packages as `suggestedFramePrefixes`; one that differs from yours means the profile is
