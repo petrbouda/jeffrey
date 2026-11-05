@@ -17,8 +17,13 @@ technology families below. With traces, they answer it request by request:
 2. `traces_operations` — sorted by `TOTAL_TIME` by default, which is where the wall-clock went.
    An operation is the triple `(name, kind, eventType)`, not a name alone: an inbound
    `GET /orders` and an outbound call to the same path are different operations.
-3. `traces_operationExport` for the population, then `traces_slowestTraces` → `traces_traceExport`
-   for one exemplar, then `traces_spanFlamegraphExport` for the frames inside a single slow span.
+3. `traces_slowestTraces` for each operation with the slow tail, then `traces_traceExport` of its
+   slowest trace: the span tree says what that one request spent its time on — its own spans, the
+   statements, a GC pause or a lock wait that crossed it — which is the *why* the question asks. An
+   answer to "why are these slow" that has read no slow trace has not answered it, however well the
+   dashboards rule things out. `traces_operationExport` adds the population (where the operation's
+   time goes span by span across all its traces) when one trace may not be typical, and
+   `traces_spanFlamegraphExport` the frames inside a single slow span.
 
 ## The edges of the application: `http_`, `jdbc_`, `grpc_`, `methodtracing_`
 
@@ -41,10 +46,11 @@ one endpoint, service or statement group.
 
 Three things worth knowing before reading them:
 
-- **"This endpoint is slow" starts here, not in a flamegraph.** `http_overview` names the endpoint
-  and `jdbc_overview` says whether the database is the reason, in two calls. Go to `traces_` when
-  the question is *which request* and what it did span by span, and to `flamegraph_export` once the
-  question is which frames burned the time.
+- **Without traces, "this endpoint is slow" starts here, not in a flamegraph.** `http_overview` names
+  the endpoint and `jdbc_overview` says whether the database is the reason, in two calls. With traces,
+  the traces come first (above) and these dashboards check what a slow trace points at — the pool, a
+  statement — beside it, never instead of it; `flamegraph_export` once the question is which frames
+  burned the time.
 - **Slow requests whose statements are all fast are usually waiting for a connection.** That is
   `jdbc_pools`, and nothing in the statement view can show it — a pool with acquisition timeouts
   makes every query look fine while the request waits in front of them.
