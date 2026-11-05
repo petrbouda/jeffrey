@@ -29,6 +29,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pages:
+    name: Documentation site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install documentation frontend dependencies
+        working-directory: jeffrey-pages
+        run: npm install --no-audit --no-fund
+      - name: Test documentation frontend
+        working-directory: jeffrey-pages
+        run: npm test
+      - name: Build documentation frontend
+        working-directory: jeffrey-pages
+        run: npm run build
+
   test:
     name: ${{ matrix.component }}
     runs-on: ubuntu-latest

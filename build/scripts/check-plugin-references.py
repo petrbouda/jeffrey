@@ -94,6 +94,8 @@ NAMES_OUTSIDE_THE_SCHEMAS = {
     "disallowedTools", "excludeTools", "groupId", "httpUrl", "jvmArgs", "mcpServers",
     # MCP protocol fields of every result, not of one tool's schema
     "outputSchema", "structuredContent",
+    # Offline plugin usage-map metadata, not MCP response fields
+    "agentAliases", "wiringPlugin",
 }
 
 # UPPER_CASE tokens the plugin quotes that are not enum values of any Jeffrey answer, by what they are.

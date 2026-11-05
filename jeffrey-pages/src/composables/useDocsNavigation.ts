@@ -276,13 +276,25 @@ const microscopeMcpNavigation: DocSection[] = [
     ]
   },
   {
-    title: 'Reference',
-    path: '_microscope-mcp-reference',
-    icon: 'bi-list-columns',
+    title: 'Tools',
+    path: '_microscope-mcp-tools',
+    icon: 'bi-tools',
+    children: [{ title: 'Tool Reference', to: '/docs/microscope-mcp/tools' }]
+  },
+  {
+    title: 'Skills',
+    path: '_microscope-mcp-skills',
+    icon: 'bi-lightning-charge',
+    children: [{ title: 'Skills', to: '/docs/microscope-mcp/skills' }]
+  },
+  {
+    title: 'Analysis Agents',
+    path: '_microscope-mcp-agents',
+    icon: 'bi-person-badge',
     children: [
-      { title: 'Tool Reference', to: '/docs/microscope-mcp/tools' },
-      { title: 'Skills', to: '/docs/microscope-mcp/skills' },
-      { title: 'Analysis Agents', to: '/docs/microscope-mcp/agent' }
+      { title: 'Overview', to: '/docs/microscope-mcp/agent' },
+      { title: 'jfr-analyst', to: '/docs/microscope-mcp/agent/jfr-analyst' },
+      { title: 'heap-analyst', to: '/docs/microscope-mcp/agent/heap-analyst' }
     ]
   },
   {

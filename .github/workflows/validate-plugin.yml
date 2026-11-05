@@ -38,6 +38,9 @@ on:
       - 'build/scripts/test-status-hook.py'
       - 'build/scripts/record-plugin-eval-mocks.py'
       - 'build/scripts/test-plugin-eval-mocks.py'
+      - 'build/scripts/plugin-usage-map.py'
+      - 'build/scripts/test-plugin-usage-map.py'
+      - 'jeffrey-pages/src/data/plugin-usage.json'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
@@ -53,6 +56,9 @@ on:
       - 'build/scripts/test-status-hook.py'
       - 'build/scripts/record-plugin-eval-mocks.py'
       - 'build/scripts/test-plugin-eval-mocks.py'
+      - 'build/scripts/plugin-usage-map.py'
+      - 'build/scripts/test-plugin-usage-map.py'
+      - 'jeffrey-pages/src/data/plugin-usage.json'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
       - '.github/workflows/validate-plugin.yml'
@@ -115,3 +121,9 @@ jobs:
     # Offline: fixture semantics, async import replay and semantic-rubric shape. No model calls.
     - name: Test recorded eval contracts
       run: python3 build/scripts/test-plugin-eval-mocks.py
+
+    # Offline: the usage map's trace reading and wiring, and that the committed map's wiring is the
+    # plugin's and the snapshot's now (`--wiring-only` refreshes it). Its runs need eval traces, which CI
+    # does not keep.
+    - name: Test the plugin usage map
+      run: python3 build/scripts/test-plugin-usage-map.py

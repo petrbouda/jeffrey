@@ -238,19 +238,23 @@ def check_versions(root: Path) -> None:
 def check_agent_contracts(root: Path) -> None:
     """Cross-check permissions and copied defaults against their source of truth."""
     plugin = root / PLUGIN_DIR
-    analyst = plugin / "agents/profile-analyst.md"
+    # jfr-analyst reads JFR recordings only: every heap tool is heap-analyst's, heap_prepare among them.
+    analyst = plugin / "agents/jfr-analyst.md"
     frontmatter = analyst.read_text().split("---", 2)[1]
     denied_section = re.search(r"^disallowedTools:\n((?:  - .+\n)+)", frontmatter, re.M)
     denied = set(re.findall(r"^  - (.+)$", denied_section.group(1), re.M)) if denied_section else set()
+    snapshot = json.loads((root / "build/mcp/tools-list.snapshot.json").read_text())
+    heap_tools = sorted(tool["name"] for tool in snapshot["tools"] if tool["name"].startswith("heap_"))
     for prefix in ("mcp__plugin_microscope_jeffrey__", "mcp__jeffrey__"):
-        if prefix + "heap_prepare" not in denied:
-            fail(str(analyst), f"read-only analyst must deny {prefix}heap_prepare")
+        missing = [tool for tool in heap_tools if prefix + tool not in denied]
+        if missing:
+            fail(str(analyst), f"the JFR analyst must deny every heap tool, {prefix}{missing[0]} among them")
 
-    for relative in ("codex/agents/profile-analyst.toml", "gemini/agents/profile-analyst.md"):
+    for relative in ("codex/agents/jfr-analyst.toml", "gemini/agents/jfr-analyst.md"):
         path = plugin / relative
         rules = path.read_text().split("## What you never do", 1)[-1]
-        if "Never call `heap_prepare`" not in rules:
-            fail(str(path), "read-only analyst must explicitly forbid heap_prepare")
+        if "Never call a `heap_` tool" not in rules:
+            fail(str(path), "the JFR analyst must explicitly forbid the heap_ tools")
 
     connector_source = root / "jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/ConnectorMcpTools.java"
     default = re.search(r"DEFAULT_LIMIT\s*=\s*(\d+)", connector_source.read_text())

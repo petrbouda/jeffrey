@@ -1,0 +1,320 @@
+#!/usr/bin/env python3
+#
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""Offline tests for plugin-usage-map.py: trace reading, wiring and the committed map; no eval traces needed."""
+import contextlib
+import importlib.util
+import io
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from plugin_layout import PLUGIN_DIR
+
+ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location("usage_map", ROOT / "build/scripts/plugin-usage-map.py")
+usage_map = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = usage_map
+spec.loader.exec_module(usage_map)
+COMMITTED = usage_map.DEFAULT_OUT
+
+J = usage_map.JEFFREY_PREFIX
+
+
+def assistant(at: str, *calls, parent=None) -> str:
+    content = [{"type": "tool_use", "id": call_id, "name": name, "input": arguments} for call_id, name, arguments in calls]
+    return json.dumps({"type": "assistant", "timestamp": at, "parent_tool_use_id": parent, "message": {"content": content}})
+
+
+TRACE = [
+    json.dumps({"type": "system", "subtype": "init"}),
+    assistant("2026-11-04T10:00:00.000Z", ("u1", "Skill", {"skill": "microscope:analyze-heap", "args": "/tmp/a.hprof"})),
+    assistant("2026-11-04T10:00:01.000Z", ("u2", "ToolSearch", {"query": "select:x"})),
+    assistant("2026-11-04T10:00:02.500Z", ("u3", J + "recordings_analyzeFile", {"path": "/tmp/a.hprof"})),
+    assistant("2026-11-04T10:00:03.000Z", ("u4", "Agent", {"subagent_type": "microscope:heap-analyst", "description": "Triage"})),
+    assistant("2026-11-04T10:00:04.000Z", ("u5", J + "heap_getHeapSummary", {"profileId": "p"}), parent="u4"),
+    assistant("2026-11-04T10:00:09.000Z", ("u6", "Grep", {"pattern": "AuditLog"})),
+    "not json",
+]
+
+
+class StepsOfATrace(unittest.TestCase):
+
+    def setUp(self):
+        self.steps, self.lanes = usage_map.steps_of(TRACE)
+
+    def test_keeps_the_calls_in_order_without_the_tool_search(self):
+        self.assertEqual([(s["kind"], s["name"]) for s in self.steps], [
+            ("skill", "analyze-heap"), ("jeffrey", "recordings_analyzeFile"), ("agent", "heap-analyst"),
+            ("jeffrey", "heap_getHeapSummary"), ("other", "Grep")])
+        self.assertEqual([s["t"] for s in self.steps], [0, 2500, 3000, 4000, 9000])
+
+    def test_puts_an_agents_calls_in_its_own_lane(self):
+        self.assertEqual(self.lanes, {"main": "main", "u4": "heap-analyst"})
+        self.assertEqual([s["lane"] for s in self.steps], ["main", "main", "main", "u4", "main"])
+
+    def test_charges_each_call_to_the_active_skill_or_to_its_agent(self):
+        by = [s.get("by") for s in self.steps]
+        self.assertEqual(by, [None, ["skill", "analyze-heap"], ["skill", "analyze-heap"], ["agent", "heap-analyst"], None])
+
+    def test_cuts_long_inputs(self):
+        steps, _ = usage_map.steps_of([assistant("2026-11-04T10:00:00Z", ("u1", "Bash", {"command": "x" * 500}))])
+        self.assertEqual(len(steps[0]["input"]), usage_map.INPUT_CHARS)
+        self.assertTrue(steps[0]["input"].endswith("…"))
+
+
+class Wiring(unittest.TestCase):
+
+    def test_reads_a_skills_tools_hand_overs_and_references(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            skill = Path(tmp) / "skills/analyze-heap"
+            (skill / "references").mkdir(parents=True)
+            (skill / "SKILL.md").write_text("---\nname: analyze-heap\ndescription: Heap dumps\n---\n"
+                                            "Call `heap_prepare`, then hand over to `microscope:heap-analyst` "
+                                            "or `report`.\n```\nheap_oql\n```\n")
+            (skill / "references/more.md").write_text("Also `mcp__jeffrey__heap_status`.\n")
+            (Path(tmp) / "skills/report").mkdir()
+            (Path(tmp) / "skills/report/SKILL.md").write_text("---\nname: report\n---\nBack to `analyze-heap`.\n")
+            skills = usage_map.skills_of(Path(tmp), {"heap_prepare", "heap_oql", "heap_status"},
+                                         ["analyze-heap", "report"], ["heap-analyst"])
+        self.assertEqual(skills[0]["tools"], {"heap_prepare": 1, "heap_status": 1})
+        self.assertEqual(skills[0]["agents"], {"heap-analyst": 1})
+        self.assertEqual(skills[0]["skills"], {"report": 1})
+        self.assertEqual(skills[0]["description"], "Heap dumps")
+
+    def test_expands_an_agents_wildcards_and_withholds_its_denied_tools(self):
+        front = ("tools: mcp__plugin_microscope_jeffrey__heap_*\n"
+                 "disallowedTools:\n  - mcp__plugin_microscope_jeffrey__heap_prepare\n")
+        names = {"heap_prepare", "heap_oql", "jvm_gc"}
+        self.assertEqual(usage_map.agent_tools(front, "tools", names), ["heap_oql", "heap_prepare"])
+        self.assertEqual(usage_map.agent_tools(front, "disallowedTools", names), ["heap_prepare"])
+
+
+class HistoricalRuns(unittest.TestCase):
+
+    def test_keeps_recorded_agent_names_in_totals_edges_and_replays(self):
+        trace = [
+            assistant("2026-11-04T10:00:00Z", ("a1", "Agent", {"subagent_type": "microscope:profile-analyst"})),
+            assistant("2026-11-04T10:00:01Z", ("t1", J + "jvm_gc", {}), parent="a1"),
+            assistant("2026-11-04T10:00:02Z", ("a2", "Agent", {"subagent_type": "microscope:heap-triage"}), parent="a1"),
+            assistant("2026-11-04T10:00:03Z", ("t2", J + "heap_getHeapSummary", {}), parent="a2"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            trace_path = plugin / "trace.jsonl"
+            trace_path.write_text("\n".join(trace))
+            result = plugin / "evals/results/old/aggregate-result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps({"cases": [{"name": "delegation", "arms": {"with": [
+                {"tracePath": str(trace_path)}]}}]}))
+            data = usage_map.usage_of(plugin)
+            out = plugin / "map.json"
+            out.write_text(usage_map.to_json({"plugin": "1.0.30"} | data))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
+            refreshed = json.loads(out.read_text())
+        self.assertEqual(data["usage"]["agent"], {"profile-analyst": 1, "heap-triage": 1})
+        self.assertEqual(data["observed"], {
+            "a:profile-analyst": {"t:jvm_gc": 1, "a:heap-triage": 1},
+            "a:heap-triage": {"t:heap_getHeapSummary": 1}})
+        replay = data["replays"][0]["runs"][0]
+        self.assertEqual(replay["lanes"], {"main": "main", "a1": "profile-analyst", "a2": "heap-triage"})
+        self.assertEqual([s["name"] for s in replay["steps"]],
+                         ["profile-analyst", "jvm_gc", "heap-triage", "heap_getHeapSummary"])
+        self.assertEqual([s.get("by") for s in replay["steps"]],
+                         [None, ["agent", "profile-analyst"], ["agent", "profile-analyst"], ["agent", "heap-triage"]])
+        for key, value in data.items():
+            self.assertEqual(refreshed[key], value)
+        self.assertEqual(refreshed.get("agentAliases"), {"profile-analyst": "jfr-analyst", "heap-triage": "heap-analyst"})
+
+
+class RecordedVersion(unittest.TestCase):
+
+    def run_main(self, args):
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            try:
+                code = usage_map.main(args)
+            except SystemExit as error:
+                code = error.code
+        return code, stderr.getvalue()
+
+    def test_requires_a_recorded_version_before_touching_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "map.json"
+            out.write_text("existing output")
+            code, error = self.run_main(["--out", str(out)])
+            self.assertNotEqual(code, 0)
+            self.assertIn("--recorded-version is required", error)
+            self.assertEqual(out.read_text(), "existing output")
+
+    def test_wiring_refresh_rejects_a_recorded_version_without_touching_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "map.json"
+            out.write_text(usage_map.to_json({"plugin": "1.0.30"}))
+            before = out.read_bytes()
+            code, error = self.run_main(["--wiring-only", "--recorded-version", "1.0.31", "--out", str(out)])
+            self.assertNotEqual(code, 0)
+            self.assertIn("--recorded-version cannot be combined with --wiring-only", error)
+            self.assertEqual(out.read_bytes(), before)
+
+    def test_full_generation_uses_declared_version_and_current_wiring_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            (plugin / "plugin.json").write_text(json.dumps({"version": "1.0.31"}))
+            trace = plugin / "trace.jsonl"
+            trace.write_text(assistant("2026-11-04T10:00:00Z", ("a1", "Agent", {
+                "subagent_type": "microscope:profile-analyst"})))
+            result = plugin / "evals/results/old/aggregate-result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps({"cases": [{"name": "delegation", "arms": {"with": [
+                {"tracePath": str(trace)}]}}]}))
+            out = plugin / "map.json"
+            with patch.object(usage_map, "PLUGIN", plugin):
+                code, error = self.run_main(["--recorded-version", "1.0.30", "--out", str(out)])
+            self.assertEqual(code, 0, error)
+            generated = json.loads(out.read_text())
+        self.assertEqual(generated["plugin"], "1.0.30")
+        self.assertEqual(generated["wiringPlugin"], "1.0.31")
+        self.assertEqual(generated["usage"]["agent"], {"profile-analyst": 1})
+
+
+class CommittedMap(unittest.TestCase):
+    """The committed map names what the plugin and the server have now; a rename fails here, traces or not."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data = json.loads(COMMITTED.read_text())
+
+    def test_names_every_tool_of_the_snapshot(self):
+        snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
+        self.assertEqual(sorted(t["name"] for t in self.data["tools"]), sorted(t["name"] for t in snapshot["tools"]))
+
+    def test_names_every_skill_and_agent_of_the_plugin(self):
+        plugin = ROOT / PLUGIN_DIR
+        self.assertEqual(sorted(s["name"] for s in self.data["skills"]),
+                         sorted(p.parent.name for p in (plugin / "skills").glob("*/SKILL.md")))
+        self.assertEqual(sorted(a["name"] for a in self.data["agents"]),
+                         sorted(p.stem for p in (plugin / "agents").glob("*.md")))
+
+    def test_its_runs_only_call_tools_skills_and_agents_it_names(self):
+        tools = {t["name"] for t in self.data["tools"]}
+        skills = {s["name"] for s in self.data["skills"]}
+        agents = {a["name"] for a in self.data["agents"]}
+        self.assertLessEqual(set(self.data["usage"]["jeffrey"]), tools)
+        self.assertLessEqual(set(self.data["usage"]["skill"]), skills)
+        aliases = self.data.get("agentAliases", {})
+        self.assertLessEqual({aliases.get(name, name) for name in self.data["usage"]["agent"]}, agents)
+
+    def test_historical_agent_references_resolve_to_current_wiring(self):
+        agents = {a["name"] for a in self.data["agents"]}
+        aliases = self.data.get("agentAliases", {})
+        self.assertLessEqual(set(aliases.values()), agents)
+        recorded = set(self.data["usage"]["agent"])
+        for source, targets in self.data["observed"].items():
+            for node in [source, *targets]:
+                if node.startswith("a:"):
+                    self.assertIn(node[2:], recorded)
+        for case in self.data["replays"]:
+            for run in case["runs"]:
+                for name in run["lanes"].values():
+                    if name != "main":
+                        self.assertIn(name, recorded)
+                        self.assertIn(aliases.get(name, name), agents)
+                for step in run["steps"]:
+                    if step["kind"] == "agent":
+                        self.assertIn(step["name"], recorded)
+                    if step.get("by") and step["by"][0] == "agent":
+                        self.assertIn(step["by"][1], recorded)
+                        self.assertEqual(step["by"][1], run["lanes"][step["lane"]])
+
+    def test_holds_the_wiring_the_plugin_and_the_snapshot_describe_now(self):
+        snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
+        fresh = usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot)
+        for key, value in fresh.items():
+            self.assertEqual(self.data.get(key), value, f"the committed map's {key} is stale: "
+                                                       "run `python3 build/scripts/plugin-usage-map.py --wiring-only`")
+
+
+class Areas(unittest.TestCase):
+    """Each skill and tool family sits in exactly one area, and each area's agent is one of the plugin's."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.data = json.loads(COMMITTED.read_text())
+
+    def assert_partitions(self, key, names):
+        placed = [name for area in usage_map.AREAS for name in area[key]]
+        twice = sorted({name for name in placed if placed.count(name) > 1})
+        self.assertEqual(twice, [], f"{key} in more than one area")
+        self.assertEqual(sorted(set(placed) - names), [], f"{key} in an area but not in the plugin or snapshot")
+        self.assertEqual(sorted(names - set(placed)), [], f"{key} in no area: add each to one in AREAS")
+
+    def test_every_skill_is_in_one_area(self):
+        self.assert_partitions("skills", {s["name"] for s in self.data["skills"]})
+
+    def test_every_tool_family_is_in_one_area(self):
+        self.assert_partitions("families", {t["family"] for t in self.data["tools"]})
+
+    def test_each_area_is_worked_by_one_of_the_plugins_agents(self):
+        agents = {a["name"] for a in self.data["agents"]}
+        worked = [area["agent"] for area in usage_map.AREAS if area["agent"]]
+        self.assertLessEqual(set(worked), agents)
+        self.assertEqual(len(worked), len(set(worked)))
+
+
+class WiringOnly(unittest.TestCase):
+    """`--wiring-only` refreshes the documented wiring of a map and keeps its runs, without any trace."""
+
+    def test_rewrites_the_wiring_and_keeps_the_runs(self):
+        committed = json.loads(COMMITTED.read_text())
+        stale = json.loads(COMMITTED.read_text())
+        stale["skills"][0]["tools"] = {}
+        stale["agents"] = []
+        stale["plugin"] = "0.0.1"
+        stale["wiringPlugin"] = "0.0.2"
+        stale["agentAliases"] = {"wrong": "alias"}
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "plugin-usage.json"
+            out.write_text(usage_map.to_json(stale))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
+            refreshed = json.loads(out.read_text())
+            first = out.read_bytes()
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(out)]), 0)
+            self.assertEqual(out.read_bytes(), first)
+        snapshot = json.loads((ROOT / usage_map.references.TOOLS_SNAPSHOT).read_text())
+        for key, value in usage_map.wiring_of(ROOT / PLUGIN_DIR, snapshot).items():
+            self.assertEqual(refreshed[key], value)
+        for key in ("usage", "observed", "replays"):
+            self.assertEqual(refreshed[key], committed[key])
+        self.assertEqual(refreshed["plugin"], "0.0.1")
+        self.assertEqual(refreshed["wiringPlugin"], json.loads((ROOT / PLUGIN_DIR / "plugin.json").read_text())["version"])
+        self.assertEqual(refreshed["agentAliases"], {"profile-analyst": "jfr-analyst", "heap-triage": "heap-analyst"})
+
+    def test_needs_a_map_to_refresh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(usage_map.main(["--wiring-only", "--out", str(Path(tmp) / "none.json")]), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

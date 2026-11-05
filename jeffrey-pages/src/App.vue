@@ -20,7 +20,7 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 
 // How a header link decides it is the current page: Home only on "/", Docs on every docs page,
-// and an in-page anchor (Products) never.
+// Agent Plugin on its own page, and an in-page anchor (Products) never.
 type NavMatch = 'exact' | 'prefix' | 'never';
 
 interface NavLink {
@@ -45,6 +45,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Home', path: '/', match: 'exact' },
   { label: 'Products', path: '/', hash: '#products', match: 'never' },
   { label: 'Docs', path: '/docs', match: 'prefix' },
+  { label: 'Agent Plugin', path: '/agent-plugin', match: 'prefix' },
   { label: 'Release Notes', path: '/release-notes', match: 'prefix' }
 ];
 

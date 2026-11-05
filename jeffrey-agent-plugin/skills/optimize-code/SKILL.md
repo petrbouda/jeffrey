@@ -131,9 +131,9 @@ counts as a hotspot, what the frame tags mean, what to skip. That document gover
 flamegraph lore. Lower `thresholdPct` only to chase one specific path deeper.
 
 One picked group: call `flamegraph_export` here, so the document is in front of you for step 4 and
-for the user's follow-up questions. Several picked groups: send each to a **`profile-analyst`**
-agent — `microscope:profile-analyst` from the Claude Code plugin, or the Codex custom agent from
-`codex/agents/profile-analyst.toml` — one delegation per group, all in a single message so they run
+for the user's follow-up questions. Several picked groups: send each to a **`jfr-analyst`**
+agent — `microscope:jfr-analyst` from the Claude Code plugin, or the Codex custom agent from
+`codex/agents/jfr-analyst.toml` — one delegation per group, all in a single message so they run
 at once. Each returns the hot frames with their shares; several raw exports would otherwise crowd
 out the source reading that step 4 depends on. Without an agent, export the picked groups here one
 after another. A group the user did not pick is not exported, and is not delegated either.

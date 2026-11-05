@@ -69,10 +69,9 @@ explicitly by `heap_prepare` with report `DOMINATOR`. Until one of them has run,
 before anything that ranks by retained size — skipping it is the usual reason a heap session stalls
 on empty results.
 
-**Cached reports, which the caller or heap-triage can build.** These are computed once and stored.
+**Cached reports, which the caller or heap-analyst can build.** These are computed once and stored.
 Until something computes one it answers `status: NOT_RUN_YET`, and its `followUp.nextTools` carries
-the `heap_prepare` call that computes it. If you are `profile-analyst`, report the missing report to the caller and stop that
-part of the analysis; never call `heap_prepare`. For a caller or `heap-triage`, use this mapping:
+the `heap_prepare` call that computes it, with this mapping:
 
 | Tool | `heap_prepare` report |
 |---|---|
@@ -145,14 +144,14 @@ shows no path — that is the answer, not an error.
 
 ## Hand the reading to an agent
 
-Two agents can take a heap route and return only the findings — class, retained bytes, GC-root path —
-with everything they read left in their own context. **`heap-triage`** is the one built for this: it
-carries a handbook cut from this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
-missing rather than reporting an empty result. **`profile-analyst`** does the same reading but never
-runs `heap_prepare`, which suits a dump that is already prepared. The Claude Code plugin ships both; in
-Codex they are the custom agents under `codex/agents/`. Without one, read here.
+The **`heap-analyst`** agent takes a heap route and returns only the findings — class, retained
+bytes, GC-root path — with everything it read left in its own context. It carries a handbook cut from
+this skill and `heap-sql`, and it runs `heap_prepare` when a report or a retained size is missing
+rather than reporting an empty result. It is the plugin's one heap agent; the JFR one never reads a
+dump. The Claude Code plugin ships it as `microscope:heap-analyst`; in Codex it
+is the custom agent from `codex/agents/heap-analyst.toml`. Without one, read here.
 
-Delegate only with a `profileId` in hand. Neither agent may import, so a dump the user named as a
+Delegate only with a `profileId` in hand. The agent may not import, so a dump the user named as a
 file is imported here first — `recordings_analyzeFile` with its absolute path, followed to the
 `profileId` as step 1 describes. An agent handed a path or a name instead looks a profile up in
 the catalogue, which can be another dump of the same name rather than the file the user meant.

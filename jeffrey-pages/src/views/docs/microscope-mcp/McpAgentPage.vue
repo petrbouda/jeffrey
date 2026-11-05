@@ -26,14 +26,10 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'why-a-separate-agent', text: 'Why a Separate Agent', level: 2 },
-  { id: 'installing-it', text: 'Installing It', level: 2 },
-  { id: 'what-it-is-given', text: 'What It Is Given', level: 2 },
-  { id: 'what-it-returns', text: 'What It Returns', level: 2 },
-  { id: 'what-it-never-does', text: 'What It Never Does', level: 2 },
-  { id: 'open-ended-questions', text: 'Open-Ended Questions', level: 2 },
-  { id: 'delegating-to-it', text: 'Delegating to It', level: 2 },
-  { id: 'when-not-to', text: 'When Not To', level: 2 }
+  { id: 'the-agents', text: 'The Agents', level: 2 },
+  { id: 'installing', text: 'Installing', level: 2 },
+  { id: 'what-they-never-do', text: 'What They Never Do', level: 2 },
+  { id: 'delegating', text: 'Delegating', level: 2 }
 ];
 
 onMounted(() => {
@@ -49,15 +45,6 @@ CPU:        jdk.ExecutionSample
 wall-clock: profiler.WallClockSample
 allocation: jdk.ObjectAllocationSample, useWeight
 lock:       jdk.JavaMonitorEnter, useWeight`;
-
-const report = `## jdk.ObjectAllocationSample - 5.2 GiB over 2724 samples
-
-1. \`com.example.OrderMapper.toDto\` - total 34.1% (1.8 GiB), self 31.2%
-   Reached from OrderService.list through a stream collector; allocating a
-   new DTO plus an ArrayList per row.
-2. ...
-
-Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
 </script>
 
 <template>
@@ -68,68 +55,58 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
     />
 
     <div class="docs-content">
-      <p><code>profile-analyst</code> reads a Jeffrey export end to end and returns only the findings. <code>heap-triage</code> does the same for a heap dump, and will build a missing dominator tree or report with <code>heap_prepare</code> rather than reporting an empty result. A question that names no dimension needs no agent of its own: <a href="#open-ended-questions">the skill coordinates it in your session</a> and sends what you pick to these two at once. Every finding they return carries the Microscope link of the page that shows it &mdash; a flamegraph, a trace, a heap class &mdash; exactly as the tool returned it, and the skill keeps those links when it puts the findings together, so each one in the report opens in a click. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not these.</p>
+      <p>The <code>microscope</code> plugin has two agents: <code>jfr-analyst</code> for JFR recordings and <code>heap-analyst</code> for heap dumps. A skill hands an agent a <code>profileId</code> and one question; the agent works the profile end to end and returns only the findings, each with the Microscope link of the page that shows it. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not the agents.</p>
 
-      <h2 id="why-a-separate-agent">Why a Separate Agent</h2>
-      <p><code>profile-analyst</code> never calls <code>heap_prepare</code>, including when a shared skill recommends preparing a missing report. It reports the missing evidence to the caller; preparation belongs to the caller or <code>heap-triage</code>. Claude Code enforces that restriction through both supported tool prefixes. The Codex and Gemini analyst copies state it in their instructions.</p>
-      <p>Neither agent imports a recording, so each is handed a <code>profileId</code>, never a file. When you name a dump by its path, the <code>analyze-heap</code> skill imports it in your session first and delegates with the profile that came back; an agent given only a path or a name would look a profile up in the catalogue, which can hold another dump of the same name.</p>
-      <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four in <code>optimize-code</code>, one per group. Pulled into your session, they crowd out the thing that has to happen next: reading the actual source behind the frames, and holding the conversation about what to change.</p>
+      <h2 id="the-agents">The Agents</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Reads</th>
+            <th>Handed work by</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><router-link to="/docs/microscope-mcp/agent/jfr-analyst"><code>jfr-analyst</code></router-link></td>
+            <td>One JFR recording: flamegraphs, traces, the JVM&rsquo;s own views, comparisons of two runs</td>
+            <td><code>analyze-jfr</code>, <code>compare-jfr</code>, <code>optimize-code</code></td>
+          </tr>
+          <tr>
+            <td><router-link to="/docs/microscope-mcp/agent/heap-analyst"><code>heap-analyst</code></router-link></td>
+            <td>One heap dump: what holds the memory, what leaks, where the waste is</td>
+            <td><code>analyze-heap</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Both return findings only, about forty lines at most, and stop when handed no <code>profileId</code> or the other kind of profile.</p>
 
-      <p>So the reading happens somewhere else. The analyst runs the sequence, follows the profile where it leads &mdash; deeper into a heavy subtree, a lower <code>thresholdPct</code> on one path, the GC-root path of the class the histogram named &mdash; and returns a report. Everything it read stays in its context, not yours. Extra reads cost you nothing, which is why it is told to keep going until it can name the causes rather than stopping at the first export.</p>
-
-      <h2 id="installing-it">Installing It</h2>
-      <p>In <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> they arrive with the plugin as <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code>, and there is nothing to do.</p>
-
-      <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. They ship as <code>codex/agents/profile-analyst.toml</code> and <code>codex/agents/heap-triage.toml</code>; copy them to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
-
-      <p>In <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> both are files to copy as well &mdash; <code>gemini/agents/profile-analyst.md</code> and <code>gemini/agents/heap-triage.md</code> to <code>~/.gemini/agents/</code>, or <code>.gemini/agents/</code> for one repository. Gemini reads an extension's <code>agents/</code>, but validates that frontmatter strictly and rejects the keys Claude Code's agents carry, so the copies are written in its own dialect.</p>
-
-      <p>The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
-
-      <h2 id="what-it-is-given">What It Is Given</h2>
-      <p>A <code>profileId</code> and one question. For a comparison, a second id as the <strong>baseline</strong>: the <code>profileId</code> is the run under examination and the baseline is what it is measured against, and it never swaps them to make a result read better.</p>
-
-      <p>It carries a handbook of its own, a few kilobytes cut from the <router-link to="/docs/microscope-mcp/skills"><code>analyze-jfr</code>, <code>analyze-heap</code> and <code>compare-jfr</code></router-link> skills rather than the skills themselves, and the <code>report</code> skill&rsquo;s evidence rules beside it &mdash; nothing is preloaded in Claude Code, and in Codex and Gemini it reads those skills on demand as well &mdash; so it carries which flamegraph answers which question, the order to work a latency question in traces, the heap rules (shallow versus retained, the lazily built dominator tree, which reports have to be built before they can be read), and &mdash; for a comparison &mdash; that <code>compare_list</code> runs first and &ldquo;these two runs are not comparable&rdquo; is a finding to report rather than an obstacle to work around.</p>
-
-      <DocsCallout type="info" title="It will not pick a profile for you">
-        If the request names no <code>profileId</code>, it says so and stops. The caller knows which profile the conversation is about and the analyst does not &mdash; guessing would produce a confident report about the wrong run.
-      </DocsCallout>
-
-      <h2 id="what-it-returns">What It Returns</h2>
-      <p>Findings only, in the units the export used, so a reader who never saw the document can check every claim against it. Roughly forty lines:</p>
-      <DocsCodeBlock :code="report" language="markdown" />
-
-      <p>For a heap dump the same shape, with the class name, retained bytes and the GC-root path together &mdash; those three are what make a heap claim checkable.</p>
-
-      <p>Two rules decide whether the report is usable. <strong>Every figure comes from a tool result:</strong> it never estimates, rounds a number it did not see, or carries a total between event types. And <strong>it says what is missing</strong> &mdash; a group the profiler never recorded, a report only the UI can compute, an empty result. A gap reported is useful; a gap papered over sends you down a path with no data under it.</p>
-
-      <h2 id="what-it-never-does">What It Never Does</h2>
-      <p>What it is not allowed to do is as much of the design as what it does.</p>
+      <h2 id="installing">Installing</h2>
       <ul>
-        <li><strong>No source.</strong> It has no file tools and cannot read your repository. It names the frame, never a file or a line &mdash; mapping frames onto the checkout is yours, and a guess made there would arrive looking measured.</li>
-        <li><strong>No recommendations.</strong> It reports what the profile shows. Whether to change anything, and what, stays in your session where you can be asked.</li>
-        <li><strong>No writing.</strong> It can neither import a recording from this machine nor pull one off the configured connector, so it cannot build a profile either way; nor can it delete a recording, or cancel work your session started. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
-        <li><strong>No nesting.</strong> The skills it carries tell <em>their</em> reader to delegate export reading to the analyst; that instruction is written for your session, not for it. It does the reading itself and never spawns another agent.</li>
+        <li><strong><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link></strong> &mdash; installed with the plugin, as <code>microscope:jfr-analyst</code> and <code>microscope:heap-analyst</code>.</li>
+        <li><strong><router-link to="/docs/microscope-mcp/codex">Codex</router-link></strong> &mdash; copy <code>codex/agents/jfr-analyst.toml</code> and <code>codex/agents/heap-analyst.toml</code> to <code>~/.codex/agents/</code>, or to <code>.codex/agents/</code> for one repository. A Codex plugin cannot carry agents.</li>
+        <li><strong><router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link></strong> &mdash; copy <code>gemini/agents/jfr-analyst.md</code> and <code>gemini/agents/heap-analyst.md</code> to <code>~/.gemini/agents/</code>, or to <code>.gemini/agents/</code> for one repository.</li>
+      </ul>
+      <p>Without the agents, the skills read the exports in your conversation instead.</p>
+
+      <h2 id="what-they-never-do">What They Never Do</h2>
+      <ul>
+        <li><strong>Read your source.</strong> They name frames and classes, never a file or a line; mapping them onto the checkout stays in your conversation.</li>
+        <li><strong>Recommend changes.</strong> They report what the profile shows.</li>
+        <li><strong>Import or delete.</strong> They cannot import a recording, pull one from the connector, delete one, act on your editor or cancel work your session started.</li>
+        <li><strong>Spawn another agent.</strong> They do the reading themselves.</li>
       </ul>
 
       <DocsCallout type="warning" title="Enforced in Claude Code, instructed elsewhere">
-        The Claude Code subagent is denied file tools and, tool by tool, the writers &mdash; the <code>connector_</code> family whole, every <code>recordings_</code> tool but <code>recordings_status</code> and <code>recordings_list</code>, <code>operations_cancel</code>, and the whole <code>ide_</code> family, since mapping a frame onto the checkout is the caller&rsquo;s job &mdash; in its own definition, so the first two rules hold whatever the model decides. It is denied <code>heap_prepare</code> too; the cache that tool builds belongs to <code>heap-triage</code>, the one agent that keeps it, because the heap questions it is given cannot be answered without one. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. Gemini has no deny-list either, only an allow-list its wildcards widen. To make it a wall in either, keep those families away from the whole session &mdash; <code>disabled_tools</code> on the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page, <code>excludeTools</code> on the <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> one. The other two of the <router-link to="/docs/microscope-mcp/clients#what-writes">eleven writers</router-link>, <code>jvm_autoAnalysis</code> with <code>compute</code> and <code>heap_oql</code> with <code>includeRetainedSize</code>, stay open to the analysts on every client: they only fill a cache, and they are bounded &mdash; forty-five seconds, then an <code>operationId</code>.
+        In Claude Code each agent&rsquo;s own definition withholds those tools, under both tool prefixes &mdash; and <code>jfr-analyst</code> is denied every <code>heap_</code> tool. Codex and Gemini have no per-agent deny-list, so there the limits are instructions; to enforce them, withhold the tools for the whole session (<code>disabled_tools</code> on the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page, <code>excludeTools</code> on the <router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> one). The writers each agent keeps, which only fill a cache, are on its own page.
       </DocsCallout>
 
-      <h2 id="open-ended-questions">Open-Ended Questions</h2>
-      <p>&ldquo;Why is this service slow&rdquo; and &ldquo;review this recording&rdquo; are not one question, and there is no agent for them: the <router-link to="/docs/microscope-mcp/skills"><code>analyze-jfr</code></router-link> skill coordinates them in your session, where it can still ask you. It reads the profile&rsquo;s summary, puts its menu of investigation areas to you, and sends the areas you pick to the analysts in a single message, so they run at once &mdash; two or more exports are never read in your conversation. On the eval suite&rsquo;s two-area question that keeps your conversation to 39k tokens instead of 199k, at the price of more model time in the analysts.</p>
-
-      <h2 id="delegating-to-it">Delegating to It</h2>
-      <p>Usually you do not: the skills delegate on your behalf when more than one export is in play. To do it yourself, give it the id and the one question.</p>
+      <h2 id="delegating">Delegating</h2>
+      <p>The skills delegate for you whenever more than one export is in play. To do it yourself, give the agent the id and the question:</p>
       <DocsCodeBlock :code="delegate" language="bash" />
-
-      <p>Independent questions go out in a single message so they run at once. This is how <code>optimize-code</code> uses it when you pick several flamegraph groups &mdash; one parallel delegation per group, and documents that never enter your context. A group nobody picked is not delegated:</p>
+      <p>Independent questions go out in one message and run at once &mdash; <code>optimize-code</code> sends one per flamegraph group you pick:</p>
       <DocsCodeBlock :code="parallel" language="text" />
-
-      <h2 id="when-not-to">When Not To</h2>
-      <p>Read the export in your own session when there is exactly one and its result will be discussed turn by turn. The analyst returns a report and then the document is gone: it cannot answer a follow-up about a passage the conversation never saw, and asking it again re-reads from scratch.</p>
-
-      <p>The division that makes the whole thing work: the analyst holds the documents, and your session holds everything that needs you &mdash; mapping frames onto the checkout, the recommendation, and every question put to you.</p>
+      <p>For a single export you will discuss turn by turn, read it in your own conversation: an agent keeps no document after it reports.</p>
     </div>
 
     <DocsNavFooter />

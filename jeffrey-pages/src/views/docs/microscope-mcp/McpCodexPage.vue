@@ -81,8 +81,8 @@ const disablePluginServer = `[plugins."microscope@jeffrey"]
 mcp_servers.jeffrey.enabled = false`;
 
 const agentInstall = `mkdir -p ~/.codex/agents
-cp jeffrey/jeffrey-agent-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
-cp jeffrey/jeffrey-agent-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
+cp jeffrey/jeffrey-agent-plugin/codex/agents/jfr-analyst.toml ~/.codex/agents/
+cp jeffrey/jeffrey-agent-plugin/codex/agents/heap-analyst.toml ~/.codex/agents/`;
 
 const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
@@ -167,7 +167,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p><code>~/.codex/agents/</code> makes them available in every repository; <code>.codex/agents/</code> inside a checkout scopes them to that one. The skills look for an agent by name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
 
-      <p>One difference worth knowing: the Claude Code <code>profile-analyst</code> is denied the writing tools one by one in its own definition &mdash; the <code>recordings_</code> writers, the whole <code>connector_</code> family, <code>heap_prepare</code>, <code>operations_cancel</code> and the whole <code>ide_</code> family &mdash; and <code>heap-triage</code> is held to an allow-list, so neither can create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny nine of the eleven writers at the server instead &mdash; <code>jvm_autoAnalysis</code> and <code>heap_oql</code> only fill a cache and stay open:</p>
+      <p>One difference worth knowing: the Claude Code <code>jfr-analyst</code> is denied the writing tools one by one in its own definition &mdash; the <code>recordings_</code> writers, the whole <code>connector_</code> family, the whole <code>heap_</code> family (heap dumps are <code>heap-analyst</code>&rsquo;s), <code>operations_cancel</code> and the whole <code>ide_</code> family &mdash; and <code>heap-analyst</code> is held to an allow-list, so neither can create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny nine of the eleven writers at the server instead &mdash; <code>jvm_autoAnalysis</code> and <code>heap_oql</code> only fill a cache and stay open:</p>
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>

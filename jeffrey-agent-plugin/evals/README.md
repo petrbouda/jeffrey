@@ -23,6 +23,38 @@ Each case runs three times by default (`runs` in its `prompt.md`). A full pass c
 model time at list price; `--max-cost-usd` stops it at a ceiling.
 The explicit `--threshold 1` requires every scored check to pass, including the recorded-call semantics guard.
 
+## Seeing the runs
+
+```bash
+python3 build/scripts/plugin-usage-map.py --recorded-version 1.0.31
+```
+
+This reads the traces `--keep-temp` left behind, through every `results/*/aggregate-result.json` in
+`evals/` and `evals-live/`, and writes `jeffrey-pages/src/data/plugin-usage.json`. The documentation
+site shows it on its **Agent Plugin** page (`/agent-plugin`, next to Docs in the header).
+Set `--recorded-version` to the plugin version used by the runs. All ingested traces must share
+that version; the generator requires this declaration because traces do not identify it reliably.
+
+The page has three tabs:
+- **Replay.** Each case's latest runs, picked from a list with a pass/fail dot per run. Every Skill,
+  Agent and tool call appears in order, in its lane: the main conversation, or the agent it was
+  handed to. Play, step or scrub through them.
+- **Map.** Skills, agents and tool families, wired either as the skills' instructions name them or
+  as the runs called them. Each Jeffrey call is charged to the skill active in its lane, or to that
+  agent.
+- **Tools.** Every tool: which skills name it, which agents may call it, and how often the runs did.
+
+The traces are temporary, so regenerate the map after a suite run, before the directories go.
+A change to a skill, an agent or a tool needs no suite run: `--wiring-only` rewrites only the
+documented wiring of the committed map and keeps its runs.
+Run it without `--recorded-version`; combining the two flags is rejected to preserve the recorded version.
+The map keeps the recorded plugin version in `plugin` and the current wiring's version in
+`wiringPlugin`. Historical agent names remain in usage totals, observed edges, replay steps and
+lanes; `agentAliases` links renamed agents to their current wiring for the map and replay.
+`build/scripts/test-plugin-usage-map.py` checks the reading offline, and checks that the committed
+map's wiring is what the skills, agents and tools snapshot say now; it fails until `--wiring-only`
+has been run.
+
 ## The cases
 
 | Case | The question | What it holds the plugin to |
@@ -34,7 +66,7 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 | `heap-dump-what-holds-memory` | "What holds the memory in this .hprof?" | the import, a GC-root path behind the leak claim, one dump read as a state |
 | `help-what-is-here` | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
 | `record-exceptions-next-time` | "How do I record the exception types?" | `jdk.JavaExceptionThrow#enabled=true`, and that `settings=profile` alone does not name every throw (off on JDK 21, throttled on 25) |
-| `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `profile-analyst` |
+| `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `jfr-analyst` |
 | `gc-pauses-in-proportion` | "Are GC pauses hurting it?" | `jvm_gc`, the pauses measured against the recording (about 0.4% of it), no tuning from one fired rule |
 | `lock-contention-not-wall-clock` | "Which locks hold the threads back?" | `blocking_monitors`, `SessionCache` named, its ~81 s of blocked time read as thread-time, never as a share of the recording |
 | `route-why-slow-no-profile-named`, `route-what-to-change`, `route-did-my-change-regress`, `route-record-first` | four prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `optimize-code`, `compare-jfr`, `profile-run`) and makes that skill's first call |
@@ -177,7 +209,7 @@ Reading the figures:
 
 - **Tokens and calls are the main conversation's and its subagents' calls, but only the main
   conversation's tokens**: a trace counts a delegated agent's tool calls, not what that agent read.
-  A case that delegates — the heap case hands its route to `heap-triage` — reads as cheap on tokens.
+  A case that delegates — the heap case hands its route to `heap-analyst` — reads as cheap on tokens.
 - **An LLM judge is noisy at three runs**: one dissenting run in three moves a case's score by about
   0.1. Where a rule can be checked deterministically (a frame named, a denominator stated), a
   `regex` or `tool_used` grader is used instead.
@@ -270,7 +302,7 @@ What it says:
 
 - **Every case reaches the skill it should**, and the open question stops at the menu.
 - **`heap-dump-what-holds-memory` is the one failing rule:** `analyze-heap` hands the route to
-  `heap-triage` before importing the file the user named, and `heap-triage` — which may not import —
+  `heap-analyst` before importing the file the user named, and `heap-analyst` — which may not import —
   picks the catalogue's existing heap-dump profile instead. It happened in seven of ten runs across
   the four passes taken while the suite was written, and the answer says so itself ("could not
   confirm that this profile came from …"). The skill's delegation section should import first.
@@ -283,8 +315,8 @@ What it says:
 
 | Change | Case | Before | After | What moved |
 |---|---|---|---|---|
-| `analyze-heap` imports a named dump before delegating; `heap-triage` never looks a profile up by name (plugin 1.0.6) | `heap-dump-what-holds-memory` | 0.87 — the named file not imported in 7 of 10 runs | 1.00 — imported in 3 of 3, in the main conversation before the hand-off | `recordings_analyzeFile` → `Agent(heap-triage)` with its `profileId`; tool calls, tokens and cost unchanged (18 calls, 30k tokens in, $0.26) |
-| `analyze-jfr` cut to its entry, menu, routing and answer rules (490 → 271 lines); the family tables and per-area detail moved to `references/`; `profile-analyst` given a 4.6 KB handbook and only `report` preloaded, instead of four skills (plugin 1.0.7) | the `analyze-jfr` cases | see below | see below | tokens down on every case that loads the skill, no score lost |
+| `analyze-heap` imports a named dump before delegating; `heap-analyst` never looks a profile up by name (plugin 1.0.6) | `heap-dump-what-holds-memory` | 0.87 — the named file not imported in 7 of 10 runs | 1.00 — imported in 3 of 3, in the main conversation before the hand-off | `recordings_analyzeFile` → `Agent(heap-analyst)` with its `profileId`; tool calls, tokens and cost unchanged (18 calls, 30k tokens in, $0.26) |
+| `analyze-jfr` cut to its entry, menu, routing and answer rules (490 → 271 lines); the family tables and per-area detail moved to `references/`; `jfr-analyst` given a 4.6 KB handbook and only `report` preloaded, instead of four skills (plugin 1.0.7) | the `analyze-jfr` cases | see below | see below | tokens down on every case that loads the skill, no score lost |
 
 Measured on 2026-10-31, three runs a case, before (the plugin at 1.0.6) and after:
 
@@ -301,7 +333,7 @@ What the traces add:
 - **The references were never opened** — 0 of 18 runs of the new version read one, including the
   GC and lock cases whose detail moved there. The tool answers and their `followUp` carried what
   the detail used to, which is the case for moving more of it out of the skills.
-- **Two areas are not handed to `profile-analyst`** — in 0 of 6 runs, before or after, although
+- **Two areas are not handed to `jfr-analyst`** — in 0 of 6 runs, before or after, although
   `analyze-jfr` says to delegate when more than one export is in play. The main conversation reads
   both exports itself. The analyst's handbook is therefore not exercised by any case yet: the 79 KB
   of preloads it replaces were not being paid either. Whether delegation should be a rule the skill
@@ -315,7 +347,7 @@ What the traces add:
   fix routing would fix nothing these cases can see.
 
 **Delegation enforced** (plugin 1.0.8). `analyze-jfr`'s "delegate when more than one export is in
-play" became "two or more exports are never read here": one `profile-analyst` call per export, all
+play" became "two or more exports are never read here": one `jfr-analyst` call per export, all
 in one message. Measured against 1.0.7 on 2026-10-31, three runs each:
 
 | `two-areas-delegated` | Read in the main conversation (1.0.7) | Delegated (1.0.8) |
@@ -332,16 +364,16 @@ first case to exercise it. `named-area-cpu`, one export, still reads it in the m
 follow-up question in the same conversation pays for; these single-question cases do not measure
 that second turn.
 
-**The agents carry handbooks, not skills** (plugin 1.0.10). `profile-analyst` no longer preloads
-`report` and `heap-triage` no longer preloads `analyze-heap`, `heap-sql` and `report` (38 KB): each
-carries what it works by inline — the heap handbook for `heap-triage`, and for both the evidence
+**The agents carry handbooks, not skills** (plugin 1.0.10). `jfr-analyst` no longer preloads
+`report` and `heap-analyst` no longer preloads `analyze-heap`, `heap-sql` and `report` (38 KB): each
+carries what it works by inline — the heap handbook for `heap-analyst`, and for both the evidence
 rules, one shared fragment (`build/plugin/shared/evidence-rules.md`). Measured on 2026-10-31, three
 runs each:
 
 | Case | Score | Agents' tokens in | Cost per answer |
 |---|---|---|---|
-| `two-areas-delegated` (two `profile-analyst`) | 1.00 → 1.00 | 202k → 159k (−21%) | $0.36 → $0.27 |
-| `heap-dump-what-holds-memory` (`heap-triage`) | 1.00 → 1.00 | 123k → 119k (−3%) | $0.26 → $0.25 |
+| `two-areas-delegated` (two `jfr-analyst`) | 1.00 → 1.00 | 202k → 159k (−21%) | $0.36 → $0.27 |
+| `heap-dump-what-holds-memory` (`heap-analyst`) | 1.00 → 1.00 | 123k → 119k (−3%) | $0.26 → $0.25 |
 
 **Where the main conversation's tokens go**, read off the per-request usage in a trace: every request
 starts from about 18k tokens — Claude Code's system prompt and the tool list — before the skill or
@@ -380,7 +412,7 @@ three runs:
 
 | Case | Score | What the answer names | Cost per answer |
 |---|---|---|---|
-| `heap-dump-what-holds-memory` (`heap-triage`) | 1.00 → 1.00 | `Checkout$AuditLog`, 45.5% of the heap, held by a Java frame, through its `ArrayList` and `Object[]` to the `Checkout$Order` elements — one suspect; the old mocks offered two `java.lang.Long` and a `byte[]`, "analyzing" 20.3 MiB of a 10.6 MiB heap | $0.25 → $0.24 |
+| `heap-dump-what-holds-memory` (`heap-analyst`) | 1.00 → 1.00 | `Checkout$AuditLog`, 45.5% of the heap, held by a Java frame, through its `ArrayList` and `Object[]` to the `Checkout$Order` elements — one suspect; the old mocks offered two `java.lang.Long` and a `byte[]`, "analyzing" 20.3 MiB of a 10.6 MiB heap | $0.25 → $0.24 |
 
 ## Baseline on plugin 1.0.11
 
@@ -424,7 +456,7 @@ what keeps it alive (`gcRootPath`: the shortest strong path from a GC root, or, 
 a root itself, its root type with the thread and the frame holding it), its accumulation point (the
 deepest object down its largest dominated child that still retains 80% of it) and the classes that
 point holds. The follow-up stops offering `heap_getPathToGCRoot` for a suspect that has its path.
-`analyze-heap` passes the user's question to `heap-triage` as asked instead of a list of reports to
+`analyze-heap` passes the user's question to `heap-analyst` as asked instead of a list of reports to
 cover. Measured on 2026-10-31, three runs, against the baseline above:
 
 | Case | Score | Heap calls per run | Tokens in (main / agent) | Cost | The answer names the code that holds the leak |
@@ -600,8 +632,8 @@ The SQL cases, against the real Jeffrey (`evals-live/`), three runs each:
   `field_id` is an `Order`'s coupon by experiment — grouping by it, or looking one reference up. It is
   the field's position in the object's whole layout, superclasses and primitive fields included
   (`HprofPassBWalker`), so it equals `field_index` only for a field the object's own class declares.
-  `heap-sql` and the `heap-triage` handbook say so now, with `field_kind`'s three values.
-- **One `heap-triage` run read the `string` table first** — the name pool, which the handbook now
+  `heap-sql` and the `heap-analyst` handbook say so now, with `field_kind`'s three values.
+- **One `heap-analyst` run read the `string` table first** — the name pool, which the handbook now
   names as such — got no rows, and switched to `string_content`; `not-the-string-pool` fails it.
 - `reads-string-contents` was dropped before scoring: one run counted the coupons with `heap_oql`
   (`o.coupon.toString().startsWith("SPRING-")`), which `analyze-heap` names for a filter over an
@@ -649,7 +681,7 @@ The live SQL cases, against a Jeffrey loaded with the same recording (`--load`):
 
 What the two misses were:
 
-- **`two-areas-delegated`, 2 of 3 runs:** `profile-analyst` asked for the allocation export with
+- **`two-areas-delegated`, 2 of 3 runs:** `jfr-analyst` asked for the allocation export with
   `threadMode: true`, a per-thread split no fixture holds, so it read the aggregated tree for the
   split it asked for — `recorded-call-semantics` failed both, as it should: nothing in the plugin
   asks for `threadMode` there, and a mock cannot answer it. The answers themselves name the right
@@ -679,7 +711,7 @@ What changed since 1.0.16, each measured where it applies:
   before a new driver is trusted with result order.
 
 **The analyst leaves `threadMode` off** (plugin 1.0.18). The 1.0.17 baseline's one real miss: in 2 of
-3 runs of `two-areas-delegated`, `profile-analyst` asked for the allocation export split per thread,
+3 runs of `two-areas-delegated`, `jfr-analyst` asked for the allocation export split per thread,
 which nothing in the plugin asked for — the split repeats every path once per thread — and which
 `recorded-call-semantics` fails, no fixture holding it. The handbook now leaves `threadMode` off
 unless the question is about threads. Three runs:
@@ -749,7 +781,7 @@ an assumption, which `not-a-share-of-wall-clock` reads as a share of the recordi
 | Cost, including the judge | $7.56 | $7.44 |
 | Live SQL cases | 1.00 and 1.00 | 1.00 and 1.00 |
 
-The miss this time is a run of `two-areas-delegated` in which `profile-analyst` asked for the CPU
+The miss this time is a run of `two-areas-delegated` in which `jfr-analyst` asked for the CPU
 export with `excludeIdle: true`, a call no fixture holds; `lock-contention-not-wall-clock`, the 1.0.19
 miss, passed all three runs.
 
