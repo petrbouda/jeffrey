@@ -264,9 +264,13 @@ name it merged in `matchedFrames` — read them before you name a line of source
 `code_hotspots` or `code_callSites`, and each of `compare_methods`' `unlistedMovers`, carries its
 `reference` in that spelling: pass it on as it is. A method `compare_methods` answers `NOT_SEEN` lists
 `nearestReferences` — most often the same method with its nested class or package spelled out
-(`com.acme.Checkout.PriceCalculator#formatLine` for `Checkout#formatLine`) — and its first `nextTools`
-entry is the same comparison with those names: make that call before reading the method as unchanged
-or gone.
+(`com.acme.Checkout.PriceCalculator#formatLine` for `Checkout#formatLine`). A `NOT_SEEN` method has
+no figures: if the answer's first `nextTools` entry is `compare_methods`, make that call before you
+read, report or compare any figure of that method. It respells the methods Jeffrey can match without
+doubt. Never stand in an `unlistedMovers` row for a listed method: its `charged` cost leaves out the
+own methods it calls, so it hides the very change a diff added below it. With no such entry, the
+candidates are ambiguous or live in another class; check their classes in the source before you pass
+one yourself.
 
 ## Link what you name
 

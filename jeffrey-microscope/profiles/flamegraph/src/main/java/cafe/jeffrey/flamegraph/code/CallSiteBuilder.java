@@ -26,6 +26,8 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.provider.profile.api.CallSiteReader;
 import cafe.jeffrey.provider.profile.api.CallSiteRow;
+import cafe.jeffrey.provider.profile.api.CallSiteGroupRow;
+import cafe.jeffrey.provider.profile.api.CallSiteTotals;
 import cafe.jeffrey.provider.profile.api.OperationStackRow;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 
@@ -42,9 +44,9 @@ import java.util.Set;
  * Reads a call-site read into {@link CallSites}, by the protocol {@link CallSiteReader} names: each distinct
  * stack is charged to its own path — the deepest own frame and the own frames that called it, with the
  * lines they were on, the line of the reader's code that issued the statement, the call or the lock — and
- * the database's rows per path and grouping value, per-trace figures included (what shows one request
- * issuing the same statement many times), become the sites. What is held here is bounded by the distinct
- * stacks and sites, never by the events or the traces.
+ * complete database aggregates and selected ranked rows become the sites and groups, including per-trace
+ * figures (what shows one request issuing the same statement many times). Site and group collections are
+ * bounded by the selection, independently of the number of grouping values in the recording.
  */
 public final class CallSiteBuilder implements CallSiteReader<CallSites> {
 
@@ -55,12 +57,12 @@ public final class CallSiteBuilder implements CallSiteReader<CallSites> {
     private final List<List<PathFrame>> paths = new ArrayList<>();
     private final Set<Long> attributedStacks = new HashSet<>();
     private final List<CallSite> sites = new ArrayList<>();
+    private final Map<String, CallSiteGroupRow> groups = new HashMap<>();
+    private final Map<String, List<CallSite>> sitesByGroup = new HashMap<>();
     private final Map<EntryKey, Long> outermostOwnEntries = new HashMap<>();
     private final Map<TraceOperationId, EntryTrunk> trunks = new HashMap<>();
 
-    private long totalEvents;
-    private long totalNanos;
-    private long unattributedEvents;
+    private CallSiteTotals totals = CallSiteTotals.EMPTY;
 
     public CallSiteBuilder(FrameScope scope) {
         this.scope = scope;
@@ -80,18 +82,27 @@ public final class CallSiteBuilder implements CallSiteReader<CallSites> {
     }
 
     @Override
+    public void onTotals(CallSiteTotals totals) {
+        this.totals = totals;
+    }
+
+    @Override
+    public void onGroup(CallSiteGroupRow group) {
+        groups.put(group.key(), group);
+    }
+
+    @Override
     public void onSite(CallSiteRow row) {
-        totalEvents += row.count();
-        totalNanos += row.totalNanos();
         if (row.pathId() == UNATTRIBUTED) {
-            unattributedEvents += row.count();
             return;
         }
         List<PathFrame> path = paths.get(row.pathId());
         PathFrame site = path.getFirst();
-        sites.add(new CallSite(site.method(), site.line(), path, row.groupValue(), row.groupValueChars(),
+        CallSite built = new CallSite(site.method(), site.line(), path, row.groupValue(), row.groupValueChars(),
                 row.count(), row.totalNanos(), row.maxNanos(), row.traces(), row.perTraceMax(), row.perTraceMedian(),
-                row.exemplarTraceIds()));
+                row.exemplarTraceIds());
+        sites.add(built);
+        sitesByGroup.computeIfAbsent(row.groupKey(), _ -> new ArrayList<>()).add(built);
     }
 
     @Override
@@ -117,7 +128,15 @@ public final class CallSiteBuilder implements CallSiteReader<CallSites> {
                 .sorted(Comparator.comparingLong(OperationEntry::events).reversed()
                         .thenComparing(OperationEntry::method))
                 .toList();
-        return new CallSites(totalEvents, totalNanos, unattributedEvents, built, operationEntries);
+        List<CallSites.Group> builtGroups = groups.values().stream()
+                .map(group -> new CallSites.Group(group.key(), group.value(), group.valueChars(), group.count(),
+                        group.totalNanos(), group.sites(), sitesByGroup.getOrDefault(group.key(), List.of())))
+                .sorted(Comparator.comparingLong(CallSites.Group::totalNanos).reversed()
+                        .thenComparing(CallSites.Group::value, Comparator.nullsFirst(Comparator.naturalOrder()))
+                        .thenComparing(CallSites.Group::key, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .toList();
+        return new CallSites(totals.totalEvents(), totals.totalNanos(), totals.unattributedEvents(),
+                totals.sites(), totals.groups(), built, builtGroups, operationEntries);
     }
 
     /**
@@ -156,15 +175,16 @@ public final class CallSiteBuilder implements CallSiteReader<CallSites> {
     private List<OperationEntry> operationEntries() {
         List<OperationEntry> entries = new ArrayList<>();
         for (Map.Entry<TraceOperationId, EntryTrunk> operation : trunks.entrySet()) {
+            long totalEvents = operation.getValue().weight();
             List<EntryTrunk.Entry> onTrunk = operation.getValue().entries();
             if (!onTrunk.isEmpty()) {
                 onTrunk.forEach(entry ->
-                        entries.add(new OperationEntry(operation.getKey(), entry.method(), entry.value())));
+                        entries.add(new OperationEntry(operation.getKey(), entry.method(), entry.value(), totalEvents)));
                 continue;
             }
             outermostOwnEntries.forEach((key, events) -> {
                 if (key.operation().equals(operation.getKey())) {
-                    entries.add(new OperationEntry(key.operation(), key.method(), events));
+                    entries.add(new OperationEntry(key.operation(), key.method(), events, totalEvents));
                 }
             });
         }

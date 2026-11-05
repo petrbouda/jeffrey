@@ -24,6 +24,7 @@ import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.provider.profile.api.CallSiteReader;
 import cafe.jeffrey.provider.profile.api.CallSiteRow;
+import cafe.jeffrey.provider.profile.api.CallSiteTotals;
 import cafe.jeffrey.provider.profile.api.OperationStackRow;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import org.junit.jupiter.api.Nested;
@@ -138,7 +139,7 @@ class CallSiteBuilderTest {
         void aStackWithoutOwnCodeIsCountedButNotASite() {
             CallSiteBuilder builder = builder(OWN);
             int path = builder.pathOf(stack(1, RUN, EMIT, COMMIT));
-            builder.onSite(row(path, FIND_ORDER, 4, 100));
+            builder.onTotals(new CallSiteTotals(4, 100, 4, 0, 0));
 
             assertEquals(CallSiteReader.UNATTRIBUTED, path);
             CallSites sites = builder.build();
@@ -194,7 +195,43 @@ class CallSiteBuilderTest {
             builder.onOperationStack(new OperationStackRow(lines, SHOW_ORDER, 24));
 
             assertEquals(List.of(new CallSites.OperationEntry(SHOW_ORDER,
-                    new MethodKey("com.acme.web.OrderController", "show"), 25)), builder.build().operationEntries());
+                    new MethodKey("com.acme.web.OrderController", "show"), 25, 25)), builder.build().operationEntries());
+        }
+
+        @Test
+        void tiedCandidatesKeepTheDistinctOperationEventTotal() {
+            CallSiteBuilder builder = builder(OWN);
+            JfrStackFrame filter = frame("com.acme.web.Filter", "filter", 20);
+            JfrStackTrace main = stack(1, RUN, filter, EMIT, HANDLER, COMMIT);
+            JfrStackTrace other = stack(2, RUN, filter, EMIT, COMMIT);
+            builder.pathOf(main);
+            builder.pathOf(other);
+            builder.onOperationStack(new OperationStackRow(main, SHOW_ORDER, 95));
+            builder.onOperationStack(new OperationStackRow(other, SHOW_ORDER, 5));
+
+            List<CallSites.OperationEntry> entries = builder.build().operationEntries();
+
+            assertEquals(List.of(
+                    new CallSites.OperationEntry(SHOW_ORDER, new MethodKey("com.acme.web.Filter", "filter"), 100, 100),
+                    new CallSites.OperationEntry(SHOW_ORDER, new MethodKey("com.acme.web.OrderController", "show"),
+                            95, 100)), entries);
+        }
+
+        @Test
+        void fallbackEntriesShareTheDistinctOperationEventTotal() {
+            CallSiteBuilder builder = builder(OWN);
+            JfrStackTrace first = stack(1, RUN, HANDLER, COMMIT);
+            JfrStackTrace second = stack(2, RUN, FIND, EMIT);
+            builder.pathOf(first);
+            builder.pathOf(second);
+            builder.onOperationStack(new OperationStackRow(first, SHOW_ORDER, 40));
+            builder.onOperationStack(new OperationStackRow(second, SHOW_ORDER, 60));
+
+            assertEquals(List.of(
+                    new CallSites.OperationEntry(SHOW_ORDER, new MethodKey("com.acme.orders.OrderRepository", "findById"),
+                            60, 100),
+                    new CallSites.OperationEntry(SHOW_ORDER, new MethodKey("com.acme.web.OrderController", "show"),
+                            40, 100)), builder.build().operationEntries());
         }
 
         @Test

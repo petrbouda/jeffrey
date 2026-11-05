@@ -478,10 +478,17 @@ git -c init.defaultBranch=main init -q
 # Commit A: the same source without the per-line formatting in reprice. The three lines the call takes in
 # B are comments here, so every other line is where it is in B and the baseline's frames name A's lines.
 cp src/main/java/com/acme/checkout/Checkout.java .checkout-b.java
-sed -i '/^                if (candidate) {$/,+2c\
-                // Receipt lines are priced but not formatted yet:\
-                // formatLine is written, and joins the loop once the\
-                // receipt layout is settled.' src/main/java/com/acme/checkout/Checkout.java
+awk '
+    /^                if \(candidate\) \{$/ {
+        print "                // Receipt lines are priced but not formatted yet:"
+        print "                // formatLine is written, and joins the loop once the"
+        print "                // receipt layout is settled."
+        skip = 2
+        next
+    }
+    skip > 0 { skip--; next }
+    { print }
+' .checkout-b.java > src/main/java/com/acme/checkout/Checkout.java
 git add src
 commit "2026-10-20T09:00:00+00:00" "Price each checkout line"
 # Commit B: the source both runs were recorded from.

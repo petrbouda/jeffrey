@@ -130,6 +130,7 @@ public class CompareMcpTools {
     private static final int MAX_UNLISTED_MOVERS = 8;
     private static final int MAX_CALLEE_CHANGES = 5;
     private static final double HUNDREDTHS = 100.0;
+    /** The reported scale's precision; every figure is computed with the exact ratio. */
     private static final double SCALE_PRECISION = 10_000.0;
 
     /**
@@ -142,7 +143,7 @@ public class CompareMcpTools {
     private static final String COMPARE_METHODS_TOOL = "compare_methods";
     private static final String METHODS = "methods";
     private static final String RESPELLED_WHY = "the same comparison with each method nothing ran spelled as the "
-            + "profile runs it - the method of the same name nearestReferences found";
+            + "profile runs it - the one sampled method of that name in the class you named";
     private static final String CODE_METHOD_TOOL = "code_method";
     private static final String CLASS_NAME = "className";
     private static final String METHOD_NAME = "methodName";
@@ -491,7 +492,7 @@ public class CompareMcpTools {
                 .filter(move -> move.inclusiveDelta() > 0)
                 .max(Comparator.comparingDouble(MethodMove::inclusiveDelta))
                 .orElse(null);
-        List<String> respelled = respelled(refs, moves);
+        List<String> respelled = respelled(refs, moves, primary.inclusiveByMethod());
         McpFollowUp followUp = NextSteps.builder(advertised)
                 .nextWhen(!respelled.isEmpty(), () -> {
                     McpNextTool.Call call = request.applyTo(NextCalls.to(COMPARE_METHODS_TOOL)
@@ -513,8 +514,9 @@ public class CompareMcpTools {
                 .guidance(RENAME_GUIDANCE)
                 .followUp();
         return McpToolResult.of(new MethodComparison(CodeStatus.OK, null, primaryId, baselineId,
-                request.type().code(), unit, window.compared(), weighted, request.excludesIdle(), prefixes, scale,
-                primary.total(), base.total(), moves, movers, followUp, uiLink));
+                request.type().code(), unit, window.compared(), weighted, request.excludesIdle(), prefixes,
+                Math.round(scale * SCALE_PRECISION) / SCALE_PRECISION, primary.total(), base.total(), moves, movers,
+                followUp, uiLink));
     }
 
     @Tool(description = "Assesses the recording evidence behind a comparison: both identities and "
@@ -583,7 +585,7 @@ public class CompareMcpTools {
         if (primaryMs <= 0 || baselineMs <= 0) {
             return 1.0;
         }
-        return Math.round((double) primaryMs / baselineMs * SCALE_PRECISION) / SCALE_PRECISION;
+        return (double) primaryMs / baselineMs;
     }
 
     /**
@@ -615,11 +617,11 @@ public class CompareMcpTools {
     }
 
     /**
-     * The references again, each one nothing ran replaced by the nearest sampled method of the same name — the
-     * spelling a reader most often gets wrong is the class (a nested class left out, the package dropped), not
-     * the method; empty when no reference needs it.
+     * The references again, correcting only a unique best class-context match of the same method. A
+     * namesake elsewhere or several equally plausible classes remain suggestions, never an automatic retry.
      */
-    private static List<String> respelled(List<MethodRef> refs, List<MethodMove> moves) {
+    private static List<String> respelled(
+            List<MethodRef> refs, List<MethodMove> moves, List<MethodValue> primaryMethods) {
         List<String> references = new ArrayList<>(refs.size());
         boolean changed = false;
         for (int i = 0; i < refs.size(); i++) {
@@ -627,9 +629,8 @@ public class CompareMcpTools {
             MethodMove move = moves.get(i);
             String sameName = move.movement() != Movement.NOT_SEEN || ref.methodName() == null
                     ? null
-                    : move.nearestReferences().stream()
-                            .filter(nearest -> ref.methodName().equals(MethodRef.parse(nearest).methodName()))
-                            .findFirst()
+                    : CodeAnswers.correction(ref, primaryMethods)
+                            .map(MethodRef::displayName)
                             .orElse(null);
             references.add(sameName == null ? ref.displayName() : sameName);
             changed |= sameName != null;

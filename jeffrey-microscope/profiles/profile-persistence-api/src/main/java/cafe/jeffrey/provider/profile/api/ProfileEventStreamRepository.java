@@ -44,12 +44,14 @@ public interface ProfileEventStreamRepository {
 
     /**
      * Where the events of the configured type were issued from, by the protocol {@link CallSiteReader} names:
-     * the distinct stacks first, each charged to a path by the reader, then the events of each path and
-     * grouping value aggregated in the database — per trace included — and each operation's events per
-     * stack. Only the configurer's single event type, time range, span scope, stacktrace filters and JSON
-     * field filter apply.
+     * the distinct stacks first, each charged to a path by the reader, then complete totals and group
+     * figures with only the selected sites — per trace included — and each operation's events per stack.
+     * Only the configurer's single event type, time range, span scope, stacktrace filters and JSON field
+     * filter apply. Selection caps never change the complete aggregates.
      *
      * @param groupField the event field whose value the sites are split by, or {@code null} for none
+     * @param selection  the ranked sites, or ranked groups with a cap on each group's sites
      */
-    <T> T callSites(EventQueryConfigurer configurer, String groupField, CallSiteReader<T> reader);
+    <T> T callSites(EventQueryConfigurer configurer, String groupField,
+                    CallSiteSelection selection, CallSiteReader<T> reader);
 }

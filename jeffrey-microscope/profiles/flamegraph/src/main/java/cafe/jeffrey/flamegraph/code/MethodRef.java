@@ -146,21 +146,17 @@ public record MethodRef(String className, String methodName) {
      */
     public static final class Matcher {
 
-        private final String className;
         private final String sourceClassName;
-        private final String nestedPrefix;
         private final String kotlinFacade;
         private final String methodName;
-        private final String methodHolderPrefix;
+        private final String methodHolderSuffix;
         private final Pattern syntheticNames;
 
         private Matcher(MethodRef ref) {
-            this.className = ref.className();
             this.sourceClassName = sourceName(ref.className());
-            this.nestedPrefix = ref.className() + NESTED_SEPARATOR;
-            this.kotlinFacade = ref.className() + KOTLIN_FACADE_SUFFIX;
+            this.kotlinFacade = sourceClassName + KOTLIN_FACADE_SUFFIX;
             this.methodName = ref.methodName();
-            this.methodHolderPrefix = methodName == null ? null : nestedPrefix + methodName + NESTED_SEPARATOR;
+            this.methodHolderSuffix = methodName == null ? null : methodName + NESTED_SEPARATOR;
             this.syntheticNames = methodName == null
                     ? null
                     : Pattern.compile(SYNTHETIC_NAMES.formatted(Pattern.quote(methodName)));
@@ -172,18 +168,48 @@ public record MethodRef(String className, String methodName) {
             if (frameClass.isEmpty()) {
                 return false;
             }
-            boolean declaringClass = frameClass.equals(className)
-                    || frameClass.equals(kotlinFacade)
-                    || sourceName(frameClass).equals(sourceClassName);
+            String sourceFrameClass = sourceName(frameClass);
+            boolean declaringClass = sourceFrameClass.equals(sourceClassName)
+                    || sourceFrameClass.equals(kotlinFacade);
             if (methodName == null) {
-                return declaringClass || frameClass.startsWith(nestedPrefix);
+                return declaringClass || matchesNestedClass(frameClass);
             }
             if (declaringClass) {
                 String frameMethod = frame.methodName();
                 return frameMethod.equals(methodName) || syntheticNames.matcher(frameMethod).matches();
             }
-            // A Kotlin lambda or coroutine body is a class named after the function that holds it.
-            return frameClass.startsWith(methodHolderPrefix);
+            return matchesNestedClass(frameClass);
+        }
+
+        /** Normalize enclosing class names at actual nesting boundaries, keeping method names as recorded. */
+        private boolean matchesNestedClass(String binaryName) {
+            for (int boundary = binaryName.indexOf(NESTED_SEPARATOR); boundary >= 0;
+                 boundary = binaryName.indexOf(NESTED_SEPARATOR, boundary + 1)) {
+                boolean enclosedByReference = spelledAs(binaryName, boundary, sourceClassName)
+                        || spelledAs(binaryName, boundary, kotlinFacade);
+                if (enclosedByReference
+                        && (methodName == null || binaryName.startsWith(methodHolderSuffix, boundary + 1))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Whether the binary name's first {@code length} characters spell the source name, each {@code $}
+         * read as a dot: {@link #sourceName} of that prefix compared, without building it for every frame.
+         */
+        private static boolean spelledAs(String binaryName, int length, String source) {
+            if (source.length() != length) {
+                return false;
+            }
+            for (int i = 0; i < length; i++) {
+                char c = binaryName.charAt(i);
+                if ((c == NESTED_SEPARATOR ? SOURCE_SEPARATOR : c) != source.charAt(i)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static String sourceName(String binaryName) {

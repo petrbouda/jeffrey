@@ -32,8 +32,12 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -199,36 +203,89 @@ final class CodeAnswers {
 
     /**
      * Sampled methods whose name says they may be the one a reference meant: those of the same class or a
-     * class nested in it, and those with the same method name, the same name first, each list as the
-     * attribution ranks it (highest inclusive first). Classes are compared as source spells them, so a
+     * class nested in it, and those with the same method name. Class context ranks before unrelated
+     * namesakes; within that context the same method name ranks first, then inclusive cost. Classes are
+     * compared as source spells them, so a
      * reference written {@code Outer.Inner} finds {@code Outer$Inner}'s methods, one that left out the nested
      * class ({@code Outer#method}) finds the nested method of that name, and one that left out the package
      * ({@code Outer.Inner#method}) finds the class in whatever package it is.
      */
     static List<MethodValue> nearest(MethodRef ref, List<MethodValue> inclusiveByMethod) {
-        String refClass = sourceClass(ref.className());
-        String nestedPrefix = refClass + SOURCE_SEPARATOR;
-        List<MethodValue> sameName = new ArrayList<>();
-        List<MethodValue> sameClass = new ArrayList<>();
+        Map<Proximity, List<MethodValue>> byProximity = new EnumMap<>(Proximity.class);
         for (MethodValue value : inclusiveByMethod) {
-            MethodKey method = value.method();
-            if (method.className().isEmpty()) {
+            if (value.method().className().isEmpty()) {
                 continue;
             }
-            String candidate = sourceClass(method.className());
-            if (ref.methodName() != null && method.methodName().equals(ref.methodName())) {
-                sameName.add(value);
-            } else if (candidate.equals(refClass) || candidate.startsWith(nestedPrefix)
-                    || candidate.endsWith(SOURCE_SEPARATOR + refClass)
-                    || candidate.contains(SOURCE_SEPARATOR + nestedPrefix)) {
-                sameClass.add(value);
+            Proximity proximity = proximity(ref, value.method());
+            if (proximity != Proximity.UNRELATED) {
+                byProximity.computeIfAbsent(proximity, _ -> new ArrayList<>()).add(value);
             }
         }
-        sameName.addAll(sameClass);
-        return sameName.stream()
+        List<MethodValue> ranked = byProximity.values().stream().flatMap(List::stream)
                 .filter(distinctMethods())
-                .limit(MAX_NEAREST)
                 .toList();
+        if (ranked.size() <= MAX_NEAREST) {
+            return ranked;
+        }
+        List<MethodValue> shown = new ArrayList<>(ranked.subList(0, MAX_NEAREST));
+        // A class with many sampled methods must not push out the method itself, written in another class.
+        Set<MethodKey> listed = new HashSet<>();
+        shown.forEach(value -> listed.add(value.method()));
+        List<MethodValue> namesakes = byProximity.getOrDefault(Proximity.SAME_METHOD, List.of());
+        if (!namesakes.isEmpty() && namesakes.stream().noneMatch(value -> listed.contains(value.method()))) {
+            shown.set(MAX_NEAREST - 1, namesakes.getFirst());
+        }
+        return List.copyOf(shown);
+    }
+
+    /** A unique best source reference from the complete pool, never from a capped suggestion list. */
+    static Optional<MethodRef> correction(MethodRef ref, List<MethodValue> inclusiveByMethod) {
+        Map<Proximity, Set<MethodRef>> candidates = new EnumMap<>(Proximity.class);
+        for (MethodValue value : inclusiveByMethod) {
+            if (value.method().className().isEmpty()) {
+                continue;
+            }
+            MethodRef candidate = MethodRef.of(value.method());
+            Proximity proximity = proximity(ref, value.method());
+            if (proximity == Proximity.SAME_METHOD_AND_CLASS || proximity == Proximity.SAME_METHOD_AND_NESTED_CLASS) {
+                candidates.computeIfAbsent(proximity, _ -> new LinkedHashSet<>()).add(candidate);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
+        Set<MethodRef> best = candidates.values().iterator().next();
+        return best.size() == 1 ? Optional.of(best.iterator().next()) : Optional.empty();
+    }
+
+    /** In preference order; enum ordering keeps each original inclusive-cost ranking stable. */
+    private enum Proximity {
+        SAME_METHOD_AND_CLASS,
+        SAME_METHOD_AND_NESTED_CLASS,
+        SAME_CLASS,
+        NESTED_CLASS,
+        SAME_METHOD,
+        UNRELATED
+    }
+
+    private static Proximity proximity(MethodRef ref, MethodKey frame) {
+        String refClass = sourceClass(ref.className());
+        String binaryName = frame.className();
+        int packageEnd = binaryName.lastIndexOf(SOURCE_SEPARATOR);
+        String candidateClass = sourceClass(binaryName);
+        String simpleClass = sourceClass(binaryName.substring(packageEnd + 1));
+        boolean sameName = ref.methodName() != null && ref.methodName().equals(MethodRef.of(frame).methodName());
+        if (candidateClass.equals(refClass) || simpleClass.equals(refClass)) {
+            return sameName ? Proximity.SAME_METHOD_AND_CLASS : Proximity.SAME_CLASS;
+        }
+        for (int boundary = binaryName.indexOf(NESTED_SEPARATOR, packageEnd + 1); boundary >= 0;
+             boundary = binaryName.indexOf(NESTED_SEPARATOR, boundary + 1)) {
+            if (sourceClass(binaryName.substring(0, boundary)).equals(refClass)
+                    || sourceClass(binaryName.substring(packageEnd + 1, boundary)).equals(refClass)) {
+                return sameName ? Proximity.SAME_METHOD_AND_NESTED_CLASS : Proximity.NESTED_CLASS;
+            }
+        }
+        return sameName ? Proximity.SAME_METHOD : Proximity.UNRELATED;
     }
 
     /** Keeps the first value of each method, for a pool gathered from several reads. */
