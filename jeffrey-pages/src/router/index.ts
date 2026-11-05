@@ -44,6 +44,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ReleaseNotesView.vue')
   },
   {
+    path: '/agent-plugin',
+    name: 'AgentPlugin',
+    component: () => import('@/views/AgentPluginView.vue')
+  },
+  {
     path: '/docs',
     component: () => import('@/views/docs/DocsLayout.vue'),
     children: [
@@ -757,9 +762,13 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(to, _from, savedPosition) {
+  scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition;
+    }
+    // A query-only change (the Agent Plugin page's tab, case and run) keeps the reader where they are.
+    if (to.path === from.path && !to.hash) {
+      return false;
     }
     if (to.hash) {
       return {

@@ -26,21 +26,21 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 ## Seeing the runs
 
 ```bash
-python3 build/scripts/plugin-usage-map.py --render /tmp/plugin-usage.html
+python3 build/scripts/plugin-usage-map.py
 ```
 
 This reads the traces `--keep-temp` left behind, through every `results/*/aggregate-result.json` in
-`evals/` and `evals-live/`. It writes `build/plugin-evals/plugin-usage.json`, and with `--render` a
-self-contained page from `plugin-usage.template.html`.
+`evals/` and `evals-live/`, and writes `jeffrey-pages/src/data/plugin-usage.json`. The documentation
+site shows it on its **Agent Plugin** page (`/agent-plugin`, next to Docs in the header).
 
-The page has three parts:
-- **A replay of each case's latest runs.** Every Skill, Agent and tool call appears in order, in its
-  lane: the main conversation, or the agent it was handed to.
-- **A map.** Skills, agents and tool families, wired either as the skills' instructions name them or
+The page has three tabs:
+- **Replay.** Each case's latest runs, picked from a list with a pass/fail dot per run. Every Skill,
+  Agent and tool call appears in order, in its lane: the main conversation, or the agent it was
+  handed to. Play, step or scrub through them.
+- **Map.** Skills, agents and tool families, wired either as the skills' instructions name them or
   as the runs called them. Each Jeffrey call is charged to the skill active in its lane, or to that
   agent.
-- **A table of all the tools.** It shows which skills name each one, which agents may call it, and
-  how often the runs did.
+- **Tools.** Every tool: which skills name it, which agents may call it, and how often the runs did.
 
 The traces are temporary, so regenerate the map after a suite run, before the directories go.
 A change to a skill, an agent or a tool needs no suite run: `--wiring-only` rewrites only the

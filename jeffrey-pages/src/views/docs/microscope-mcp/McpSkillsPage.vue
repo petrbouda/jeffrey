@@ -131,6 +131,8 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
+      <p>To watch them at work, the <router-link to="/agent-plugin">Agent Plugin</router-link> page replays the plugin&rsquo;s recorded eval runs call by call &mdash; which skill took the question, which agent it handed over to, and every Jeffrey tool they called &mdash; and maps the tools each skill names against the ones the runs actually used.</p>
+
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
       <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the twelve cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">

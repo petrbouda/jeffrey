@@ -26,17 +26,17 @@ Two sources go into one JSON:
   Agent and tool call becomes an ordered step in its lane: the main conversation, or the agent whose
   call spawned it. Each Jeffrey call is charged to the skill active in its lane, or to that agent.
 
-The JSON keeps every run's totals and, for each eval case, the latest results' runs step by step;
-`--render` inlines it into `plugin-usage.template.html`, a self-contained page that replays them over
-a map of the wiring. Traces live in temporary directories, so a run whose trace is gone is skipped.
+The JSON keeps every run's totals and, for each eval case, the latest results' runs step by step. It
+is written into jeffrey-pages, whose Agent Plugin page (`/agent-plugin`) replays the runs over a map
+of the wiring. Traces live in temporary directories, so a run whose trace is gone is skipped.
 
 `--wiring-only` needs no traces: it rewrites only the documented wiring (`tools`, `skills`, `agents`)
 of the map at `--out` and keeps its runs, so a skill, agent or tool change updates the committed map
 without a suite run. `test-plugin-usage-map.py` fails until it does.
 
 Usage:
-    python3 build/scripts/plugin-usage-map.py [--out build/plugin-evals/plugin-usage.json] [--render page.html]
-    python3 build/scripts/plugin-usage-map.py --wiring-only [--out …] [--render page.html]
+    python3 build/scripts/plugin-usage-map.py [--out jeffrey-pages/src/data/plugin-usage.json]
+    python3 build/scripts/plugin-usage-map.py --wiring-only [--out …]
 """
 import argparse
 import importlib.util
@@ -51,9 +51,7 @@ from plugin_layout import PLUGIN_DIR
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / PLUGIN_DIR
-DEFAULT_OUT = ROOT / "build/plugin-evals/plugin-usage.json"
-TEMPLATE = ROOT / "build/plugin-evals/plugin-usage.template.html"
-DATA_SLOT = "/*DATA*/"
+DEFAULT_OUT = ROOT / "jeffrey-pages/src/data/plugin-usage.json"
 SUITES = {"evals": "mocked", "evals-live": "live"}
 RESULTS_GLOB = "results/*/aggregate-result.json"
 
@@ -274,14 +272,9 @@ def to_json(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
-def render(data: str, template: Path, page: Path) -> None:
-    page.write_text(template.read_text().replace(DATA_SLOT, data.replace("</", "<\\/")))
-
-
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="the JSON to write")
-    parser.add_argument("--render", type=Path, help="also write the self-contained page here")
     parser.add_argument("--wiring-only", action="store_true",
                         help="rewrite only the documented wiring of --out, keeping its runs; needs no traces")
     args = parser.parse_args(argv)
@@ -299,10 +292,7 @@ def main(argv: list[str]) -> int:
                   f"({data['usage']['missingTraces']} runs had their traces removed).", file=sys.stderr)
             return 1
     usage = data["usage"]
-    text = to_json(data)
-    args.out.write_text(text)
-    if args.render:
-        render(text, TEMPLATE, args.render)
+    args.out.write_text(to_json(data))
     print(f"{len(data['skills'])} skills, {len(data['agents'])} agents, {len(data['tools'])} tools in "
           f"{len({t['family'] for t in data['tools']})} families; {usage['runs']} runs "
           f"({usage['missingTraces']} without a trace), {sum(usage['skill'].values())} skill invocations, "

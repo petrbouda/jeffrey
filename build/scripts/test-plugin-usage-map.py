@@ -28,11 +28,11 @@ import unittest
 from plugin_layout import PLUGIN_DIR
 
 ROOT = Path(__file__).resolve().parents[2]
-COMMITTED = ROOT / "build/plugin-evals/plugin-usage.json"
 spec = importlib.util.spec_from_file_location("usage_map", ROOT / "build/scripts/plugin-usage-map.py")
 usage_map = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = usage_map
 spec.loader.exec_module(usage_map)
+COMMITTED = usage_map.DEFAULT_OUT
 
 J = usage_map.JEFFREY_PREFIX
 
@@ -140,9 +140,6 @@ class CommittedMap(unittest.TestCase):
             stale = sorted(entry["name"] for entry in entries if committed.get(entry["name"]) != entry)
             self.assertEqual(stale, [], f"the committed map's {key} are stale: "
                                         "run `python3 build/scripts/plugin-usage-map.py --wiring-only`")
-
-    def test_the_page_template_has_the_data_slot(self):
-        self.assertIn(usage_map.DATA_SLOT, usage_map.TEMPLATE.read_text())
 
 
 class WiringOnly(unittest.TestCase):
