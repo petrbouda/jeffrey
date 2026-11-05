@@ -173,19 +173,30 @@ function expand(family: string | undefined): void {
   }
 }
 
-/** A family opens or closes; a tool opens its family; anything else toggles its selection. */
+const CALLER_KINDS = new Set(['skill', 'agent']);
+
+/** A picked skill or agent stays picked while its families are opened and closed to follow its lines. */
+const callerPinned = (): boolean => selected.value !== null && CALLER_KINDS.has(parseNodeId(selected.value).kind);
+
+/**
+ * A family opens or closes (and is picked, unless a skill or agent is pinned); a tool opens its family;
+ * anything else toggles its selection.
+ */
 function select(id: string): void {
   revealArea(model.areaOfNode(id));
   const { kind, name } = parseNodeId(id);
   if (kind === 'family') {
+    const keepsPin = callerPinned();
     const next = new Set(expanded.value);
-    if (next.has(name) && selected.value === id) {
+    if (next.has(name) && (keepsPin || selected.value === id)) {
       next.delete(name);
     } else {
       next.add(name);
     }
     expanded.value = next;
-    selected.value = id;
+    if (!keepsPin) {
+      selected.value = id;
+    }
   } else {
     if (kind === 'tool') {
       expand(model.familyOf(name));

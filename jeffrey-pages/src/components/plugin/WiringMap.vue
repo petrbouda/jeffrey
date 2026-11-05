@@ -16,7 +16,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
   formatCount,
   nodeId,
@@ -63,19 +63,32 @@ interface MapEdge {
   path: string;
 }
 
-const WIDTH = 780;
-const TOP = 34;
-// Two columns: who calls (the area's agent first, then its skills) and the tools. The agent is a helper the
-// skills hand work to, not a stage between them and the tools, so it has no column of its own.
-const COLUMN_X = { caller: 52, tool: 380 } as const;
-const COLUMN_W = { caller: 200, tool: 392 } as const;
-const AGENT_ROW = 26;
+// Drawn one unit to one pixel, as wide as its card (never narrower than MIN_WIDTH: a phone scrolls it
+// sideways), so its text stays the size of the page's.
+const MIN_WIDTH = 720;
+const DEFAULT_WIDTH = 1000;
+const TOP = 36;
+// Two columns: who calls (the area's agent first, then its skills) and the tools, right-aligned; the lines
+// run between them. The agent is a helper the skills hand work to, not a stage between them and the tools,
+// so it has no column of its own.
+const CALLER_X = 56;
+const CALLER_W = 240;
+const TOOL_W = { min: 360, max: 520 } as const;
+const COLUMN_GAP_MIN = 200;
+const EDGE_RIGHT = 20;
+const AGENT_ROW = 28;
 const AGENT_GAP = 8;
-const AGENT_GLYPH_PX = 16;
+const AGENT_GLYPH_PX = 18;
 const SHARE_BAR_PX = 3;
-const SKILL_PITCH = 32;
-const FAMILY_PITCH = 27;
-const TOOL_PITCH = 22;
+// Inside the row, clear of the outline a picked or traced row gets.
+const SHARE_INSET = 2;
+const SKILL_ROW = 28;
+const SKILL_PITCH = 34;
+const FAMILY_ROW = 26;
+const FAMILY_PITCH = 31;
+const TOOL_ROW = 24;
+const TOOL_PITCH = 28;
+const TEXT_DROP = 4.5;
 const TOOL_INDENT = 14;
 const MIN_QUERY = 2;
 const BAND_HEAD = 28;
@@ -84,6 +97,36 @@ const BAND_GAP = 10;
 
 const model = usePluginUsage();
 const hover = ref<string | null>(null);
+
+const scroller = ref<HTMLElement | null>(null);
+const measured = ref(0);
+let observer: ResizeObserver | null = null;
+
+function measure(): void {
+  measured.value = scroller.value?.clientWidth ?? 0;
+}
+
+onMounted(() => {
+  measure();
+  if (typeof ResizeObserver !== 'undefined' && scroller.value) {
+    observer = new ResizeObserver(measure);
+    observer.observe(scroller.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  observer?.disconnect();
+});
+
+const width = computed(() => Math.max(MIN_WIDTH, measured.value || DEFAULT_WIDTH));
+
+const columns = computed(() => {
+  const toolW = Math.min(TOOL_W.max, Math.max(TOOL_W.min, width.value - CALLER_X - CALLER_W - COLUMN_GAP_MIN - EDGE_RIGHT));
+  return {
+    caller: { x: CALLER_X, w: CALLER_W },
+    tool: { x: width.value - EDGE_RIGHT - toolW, w: toolW }
+  };
+});
 
 /** A tool shows as its family until the family is open. */
 function visible(id: string): string {
@@ -106,6 +149,7 @@ interface MapBand {
 const layout = computed(() => {
   const nodes = new Map<string, MapNode>();
   const bands: MapBand[] = [];
+  const { caller, tool: toolColumn } = columns.value;
   let y = TOP;
   for (const area of model.areasFor(props.lens)) {
     const bandTop = y;
@@ -113,14 +157,14 @@ const layout = computed(() => {
     let firstSkill = rowTop;
     if (area.agent) {
       const id = nodeId('agent', area.agent);
-      nodes.set(id, { id, kind: 'agent', x: COLUMN_X.caller, y: rowTop, w: COLUMN_W.caller, h: AGENT_ROW,
+      nodes.set(id, { id, kind: 'agent', x: caller.x, y: rowTop, w: caller.w, h: AGENT_ROW,
         label: area.agent, count: model.agentSpawns(area.agent) });
       firstSkill = rowTop + AGENT_ROW + AGENT_GAP;
     }
     const skills = model.skillsByUse.filter((skill) => area.skills.includes(skill.name));
     skills.forEach((skill, i) => {
       const id = nodeId('skill', skill.name);
-      nodes.set(id, { id, kind: 'skill', x: COLUMN_X.caller, y: firstSkill + i * SKILL_PITCH, w: COLUMN_W.caller, h: 24,
+      nodes.set(id, { id, kind: 'skill', x: caller.x, y: firstSkill + i * SKILL_PITCH, w: caller.w, h: SKILL_ROW,
         label: skill.name, count: model.skillInvocations(skill.name) });
     });
     const skillBottom = firstSkill + skills.length * SKILL_PITCH;
@@ -129,13 +173,13 @@ const layout = computed(() => {
       const open = props.expanded.has(family);
       const id = nodeId('family', family);
       const tools = model.familyTools.get(family) ?? [];
-      nodes.set(id, { id, kind: 'family', x: COLUMN_X.tool, y: familyY, w: COLUMN_W.tool, h: 22,
+      nodes.set(id, { id, kind: 'family', x: toolColumn.x, y: familyY, w: toolColumn.w, h: FAMILY_ROW,
         label: `${open ? '▾' : '▸'} ${family}_*  (${tools.length})`, count: model.familyCalls(family) });
       familyY += FAMILY_PITCH;
       if (open) {
         for (const tool of tools) {
           const toolId = nodeId('tool', tool);
-          nodes.set(toolId, { id: toolId, kind: 'tool', x: COLUMN_X.tool + TOOL_INDENT, y: familyY, w: COLUMN_W.tool - TOOL_INDENT, h: 19,
+          nodes.set(toolId, { id: toolId, kind: 'tool', x: toolColumn.x + TOOL_INDENT, y: familyY, w: toolColumn.w - TOOL_INDENT, h: TOOL_ROW,
             label: tool, count: model.toolCalls(tool) });
           familyY += TOOL_PITCH;
         }
@@ -189,7 +233,9 @@ const visibleTrail = computed(() => new Set(props.trail.nodes.map(visible)));
 const visibleTrailEdges = computed(() => new Set(props.trail.edges.map((edge) =>
   `${visible(edge.from)}|${visible(edge.to)}`
 )));
-const focus = computed(() => hover.value ?? props.selected);
+// A picked node holds the focus while the pointer moves on to look at its tools; hovering previews only
+// while nothing is picked.
+const focus = computed(() => props.selected ?? hover.value);
 
 /** An agent's calls to the tools: drawn only for the agent in focus, or where the replayed run made them. */
 const edges = computed<MapEdge[]>(() => allEdges.value.filter((edge) =>
@@ -218,7 +264,7 @@ function agentSummary(node: MapNode): string {
 }
 
 const shareWidth = (node: MapNode): number =>
-  node.count ? Math.max(4, ((node.w - 2) * (viaAgent.value.get(node.id) ?? 0)) / node.count) : 0;
+  node.count ? Math.max(4, ((node.w - 2 * SHARE_INSET) * (viaAgent.value.get(node.id) ?? 0)) / node.count) : 0;
 
 const neighbours = computed(() => {
   const near = new Set<string>();
@@ -278,20 +324,21 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 </script>
 
 <template>
-  <div class="map-scroll">
+  <div ref="scroller" class="map-scroll">
     <svg
       class="map"
-      :viewBox="`0 0 ${WIDTH} ${layout.height}`"
-      :style="{ aspectRatio: `${WIDTH} / ${layout.height}` }"
+      :width="width"
+      :height="layout.height"
+      :viewBox="`0 0 ${width} ${layout.height}`"
       role="group"
       aria-label="Skills, agents and tool families"
       @mouseleave="hover = null"
     >
-      <text class="map-column" :x="COLUMN_X.caller" y="18">Who calls · invocations / spawns</text>
-      <text class="map-column" :x="COLUMN_X.tool" y="18">Tools · calls</text>
+      <text class="map-column" :x="columns.caller.x" y="20">Who calls · invocations / spawns</text>
+      <text class="map-column" :x="columns.tool.x" y="20">Tools · calls</text>
       <g v-for="band in layout.bands" :key="band.area" class="map-band" :class="`map-band--${band.area}`">
-        <rect x="4" :y="band.y" :width="WIDTH - 8" :height="band.h" rx="10" />
-        <text class="map-band-title" :x="COLUMN_X.caller - 36" :y="band.y + 18">{{ band.title }}</text>
+        <rect x="4" :y="band.y" :width="width - 8" :height="band.h" rx="10" />
+        <text class="map-band-title" :x="columns.caller.x - 36" :y="band.y + 19">{{ band.title }}</text>
       </g>
       <path
         v-for="edge in edges"
@@ -317,19 +364,19 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
         @keydown.enter.prevent="emit('select', node.id)"
         @keydown.space.prevent="emit('select', node.id)"
       >
-        <rect :x="node.x" :y="node.y" :width="node.w" :height="node.h" rx="6" />
-        <text v-if="node.kind === 'agent'" class="map-agent-glyph" :x="node.x + 8" :y="node.y + node.h / 2 + 4" aria-hidden="true">⤷</text>
-        <text class="map-label" :x="node.x + 8 + (node.kind === 'agent' ? AGENT_GLYPH_PX : 0)" :y="node.y + node.h / 2 + 4">{{ node.label }}</text>
-        <text class="map-count" :x="node.x + node.w - 8" :y="node.y + node.h / 2 + 4">{{ node.count ? formatCount(node.count) : '–' }}</text>
+        <rect class="map-box" :x="node.x" :y="node.y" :width="node.w" :height="node.h" rx="6" />
+        <text v-if="node.kind === 'agent'" class="map-agent-glyph" :x="node.x + 8" :y="node.y + node.h / 2 + TEXT_DROP" aria-hidden="true">⤷</text>
+        <text class="map-label" :x="node.x + 8 + (node.kind === 'agent' ? AGENT_GLYPH_PX : 0)" :y="node.y + node.h / 2 + TEXT_DROP">{{ node.label }}</text>
+        <text class="map-count" :x="node.x + node.w - 8" :y="node.y + node.h / 2 + TEXT_DROP">{{ node.count ? formatCount(node.count) : '–' }}</text>
         <template v-if="viaAgent.has(node.id)">
-          <rect class="map-share" :x="node.x + 1" :y="node.y + node.h - SHARE_BAR_PX - 1" :width="shareWidth(node)" :height="SHARE_BAR_PX" rx="1.5" />
-          <text class="map-share-text" :x="node.x + node.w - 44" :y="node.y + node.h / 2 + 4">{{ formatCount(viaAgent.get(node.id) ?? 0) }} via agent</text>
+          <rect class="map-share" :x="node.x + SHARE_INSET" :y="node.y + node.h - SHARE_BAR_PX - SHARE_INSET" :width="shareWidth(node)" :height="SHARE_BAR_PX" rx="1.5" />
+          <text class="map-share-text" :x="node.x + node.w - 52" :y="node.y + node.h / 2 + TEXT_DROP">{{ formatCount(viaAgent.get(node.id) ?? 0) }} via agent</text>
         </template>
         <text
           v-if="node.kind === 'agent' && node.id !== focus && agentSummary(node)"
           class="map-agent-note"
           :x="node.x + node.w + 10"
-          :y="node.y + node.h / 2 + 4"
+          :y="node.y + node.h / 2 + TEXT_DROP"
         >{{ agentSummary(node) }}</text>
       </g>
     </svg>
@@ -344,13 +391,10 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 
 .map {
   display: block;
-  width: 100%;
-  min-width: 640px;
-  height: auto;
 }
 
 .map-column {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -370,7 +414,7 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 }
 
 .map-band-title {
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
   fill: var(--site-muted);
@@ -415,7 +459,7 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 
 .map-share-text,
 .map-agent-note {
-  font-size: 10.5px;
+  font-size: 12px;
   fill: var(--ap-agent);
 }
 
@@ -424,7 +468,7 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 }
 
 .map-agent-glyph {
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--ap-agent);
 }
 
@@ -438,55 +482,55 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
   transition: opacity 0.15s;
 }
 
-.map-node rect {
+.map-node .map-box {
   stroke: transparent;
   stroke-width: 1.6;
 }
 
-.map-node--skill rect {
+.map-node--skill .map-box {
   fill: var(--ap-skill-bg);
 }
 
-.map-node--agent rect {
+.map-node--agent .map-box {
   fill: var(--ap-agent-bg);
 }
 
-.map-node--family rect,
-.map-node--tool rect {
+.map-node--family .map-box,
+.map-node--tool .map-box {
   fill: var(--ap-tool-bg);
 }
 
-.map-node--tool rect {
+.map-node--tool .map-box {
   fill: var(--site-surface);
   stroke: var(--ap-tool-bg);
 }
 
-.map-node--skill.map-node--trail rect,
-.map-node--skill.map-node--selected rect,
-.map-node--skill:focus-visible rect {
+.map-node--skill.map-node--trail .map-box,
+.map-node--skill.map-node--selected .map-box,
+.map-node--skill:focus-visible .map-box {
   stroke: var(--ap-skill);
 }
 
-.map-node--agent.map-node--trail rect,
-.map-node--agent.map-node--selected rect,
-.map-node--agent:focus-visible rect {
+.map-node--agent.map-node--trail .map-box,
+.map-node--agent.map-node--selected .map-box,
+.map-node--agent:focus-visible .map-box {
   stroke: var(--ap-agent);
 }
 
-.map-node--family.map-node--trail rect,
-.map-node--family.map-node--selected rect,
-.map-node--family:focus-visible rect,
-.map-node--tool.map-node--trail rect,
-.map-node--tool.map-node--selected rect,
-.map-node--tool:focus-visible rect {
+.map-node--family.map-node--trail .map-box,
+.map-node--family.map-node--selected .map-box,
+.map-node--family:focus-visible .map-box,
+.map-node--tool.map-node--trail .map-box,
+.map-node--tool.map-node--selected .map-box,
+.map-node--tool:focus-visible .map-box {
   stroke: var(--ap-tool);
 }
 
-.map-node--selected rect {
+.map-node--selected .map-box {
   stroke-width: 2.4;
 }
 
-.map-node--match rect {
+.map-node--match .map-box {
   stroke: var(--site-flame);
   stroke-dasharray: 4 3;
 }
@@ -497,7 +541,7 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 
 .map-label {
   font-family: var(--site-font-mono);
-  font-size: 11.5px;
+  font-size: 13px;
   fill: var(--site-ink);
 }
 
@@ -506,7 +550,7 @@ const ariaLabel = (node: MapNode): string => `${node.kind} ${node.label.replace(
 }
 
 .map-count {
-  font-size: 11px;
+  font-size: 12.5px;
   text-anchor: end;
   fill: var(--site-faint);
   font-variant-numeric: tabular-nums;

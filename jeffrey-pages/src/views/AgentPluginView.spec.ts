@@ -119,6 +119,24 @@ describe('The agent on the map', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: /^agent jfr-analyst,/ }));
     expect(agentCalls(map).length).toBeGreaterThan(0);
   });
+
+  it('keeps a picked skill and its lines while the pointer moves on and its families open', async () => {
+    await openPage('/agent-plugin?tab=map&area=jfr');
+    const user = userEvent.setup();
+    const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });
+    const hotFrom = (name: string) =>
+      Array.from(map.querySelectorAll('path.map-edge--hot')).filter((path) => path.textContent?.startsWith(`${name} → `));
+    const skill = screen.getByRole('button', { name: /^skill analyze-jfr,/ });
+    await user.click(skill);
+    const lines = hotFrom('analyze-jfr').length;
+    expect(lines).toBeGreaterThan(0);
+    await user.hover(screen.getByRole('button', { name: /^family code_\*/ }));
+    expect(hotFrom('analyze-jfr')).toHaveLength(lines);
+    await user.click(screen.getByRole('button', { name: /^family code_\*/ }));
+    expect(skill.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /^tool code_hotspots,/ })).toBeTruthy();
+    expect(hotFrom('analyze-jfr').length).toBeGreaterThan(0);
+  });
 });
 
 describe('Replay trail', () => {
