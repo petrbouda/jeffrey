@@ -40,6 +40,8 @@ on:
       - 'build/scripts/test-plugin-eval-mocks.py'
       - 'build/scripts/plugin-usage-map.py'
       - 'build/scripts/test-plugin-usage-map.py'
+      - 'build/scripts/refresh-plugin-evals.py'
+      - 'build/scripts/test-refresh-plugin-evals.py'
       - 'jeffrey-pages/src/data/plugin-usage.json'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
@@ -58,6 +60,8 @@ on:
       - 'build/scripts/test-plugin-eval-mocks.py'
       - 'build/scripts/plugin-usage-map.py'
       - 'build/scripts/test-plugin-usage-map.py'
+      - 'build/scripts/refresh-plugin-evals.py'
+      - 'build/scripts/test-refresh-plugin-evals.py'
       - 'jeffrey-pages/src/data/plugin-usage.json'
       - 'build/plugin/**'
       - 'build/mcp/tools-list.snapshot.json'
@@ -127,3 +131,8 @@ jobs:
     # does not keep.
     - name: Test the plugin usage map
       run: python3 build/scripts/test-plugin-usage-map.py
+
+    # Offline: what refresh-plugin-evals.py plans — the stale cases, a re-recording, the estimate — and what its
+    # cleanup removes. It never runs a case here.
+    - name: Test the eval refresh plan
+      run: python3 build/scripts/test-refresh-plugin-evals.py

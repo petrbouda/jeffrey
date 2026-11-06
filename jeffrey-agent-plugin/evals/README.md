@@ -23,6 +23,29 @@ Each case runs three times by default (`runs` in its `prompt.md`). A full pass c
 model time at list price; `--max-cost-usd` stops it at a ceiling.
 The explicit `--threshold 1` requires every scored check to pass, including the recorded-call semantics guard.
 
+## Keeping the Agent Plugin page up to date
+
+After a change to the server or the plugin, `/refresh-agent-plugin-page` (`.claude/commands/`) does the round:
+
+```bash
+python3 build/scripts/plugin-usage-map.py --stale             # which replays no longer describe the plugin, and why
+python3 build/scripts/refresh-plugin-evals.py                 # the plan and its estimated cost — nothing is spent
+python3 build/scripts/refresh-plugin-evals.py --run           # re-record if needed, run, regenerate, report
+```
+
+Every replay keeps a digest of what its runs depended on: the skills they reached, the plugin agents they handed
+work to, every skill's description (routing), the case's own files, and the recorded answers (the mocks; the tools
+snapshot for a live case). A replay is stale once one of them changes. A change to the server's main sources or to
+the recorder since the mocks were last recorded means re-recording them, and since a re-recording gives every
+profile a new id, every case runs again. `refresh-plugin-evals.py --run` builds the jar and boots an empty Jeffrey
+for the recording when that is needed (regenerating the tools snapshot from it when it drifted), records into the
+directory the heap cases name, runs the planned cases with `--keep-temp --no-publish` under `--max-cost-usd`,
+regenerates the map with the version in `identity.json` straight after the runs — refusing when the plugin changed
+while they ran, since the digests would then describe files the runs never saw — prints each case's failed graders
+with their reasons, and removes the harness's run directories. It covers the mocked suite; the live cases stay
+stale until they are run against a loaded Jeffrey (below). On a pull request the **Agent Plugin Page Freshness**
+workflow posts the same plan as warnings, never a failure, since the runs cost model time.
+
 ## Seeing the runs
 
 ```bash
