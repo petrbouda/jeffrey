@@ -77,6 +77,15 @@ public record GcSection(ProfileManager profileManager) implements JvmSection<GcS
     private static final String FEATURES_WHY =
             "says whether this profile has a heap dump, for what is retained rather than churned";
 
+    /**
+     * Below this share of the recording spent in collections, the pauses are the answer to "does GC hurt",
+     * not a lead: no collector, heap or metaspace setting follows from them.
+     */
+    static final double NEGLIGIBLE_OVERHEAD_PCT = 1.0;
+    private static final String NEGLIGIBLE_OVERHEAD = "Collections took %s%% of the recording: GC is not what "
+            + "holds the application back, and no collector, heap or metaspace setting follows from these pauses. "
+            + "A cause such as Metadata GC Threshold is context, not a reason to change one.";
+
     @Override
     public String id() {
         return ID;
@@ -103,6 +112,9 @@ public record GcSection(ProfileManager profileManager) implements JvmSection<GcS
         SectionCalls.allocationPaths(next, profileManager, ALLOCATION_PATHS_WHY);
         next.next(SectionCalls.on(SectionCalls.JVM_SAFEPOINTS, profileId).why(SAFEPOINTS_WHY))
                 .next(SectionCalls.on(SectionCalls.PROFILES_FEATURES, profileId).why(FEATURES_WHY));
+        Double overhead = dashboard.pauseBudget().overheadPct();
+        next.guidanceWhen(overhead != null && overhead < NEGLIGIBLE_OVERHEAD_PCT,
+                () -> NEGLIGIBLE_OVERHEAD.formatted(BigDecimal.valueOf(overhead).stripTrailingZeros().toPlainString()));
     }
 
     @Override

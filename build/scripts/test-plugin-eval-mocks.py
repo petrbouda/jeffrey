@@ -350,6 +350,13 @@ class RelayTest(RecorderSandbox):
         recorder.write_mocks(tools, recorded)
         return recorded
 
+    def test_the_first_slowest_traces_of_an_operation_are_each_exported(self):
+        # The answer offers its slowest trace's export; a model often reads the second or third instead.
+        traces = [{'traceId': f't{i}'} for i in range(5)]
+        calls = recorder.row_calls('traces_slowestTraces', {'profileId': 'pd', 'name': 'GET /x'}, {'traces': traces})
+        self.assertEqual([('traces_traceExport', {'profileId': 'pd', 'traceId': f't{i}'})
+                          for i in range(recorder.SLOWEST_EXPORTED)], calls)
+
     def test_every_operation_a_listing_names_is_recorded(self):
         recorded = self.record()
         self.assertEqual({(operation['eventType'], operation['kind'], operation['name'], profile)

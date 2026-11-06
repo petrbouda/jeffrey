@@ -239,10 +239,10 @@ PERSONS_OPERATIONS = ("GET /persons/{count}", "GET /persons")
 # The persons runs' event types a code case groups by call site: its statements and its monitors.
 PERSONS_CALL_SITE_EVENT_TYPES = (JDBC_QUERY, "jdk.JavaMonitorEnter")
 # A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings;
-# each traced operation and HTTP endpoint of every profile (`ROW_CALLS`), and the slowest trace each operation names
-# with its span frames.
+# each traced operation and HTTP endpoint of every profile (`ROW_CALLS`), and the slowest traces each operation names.
 MAX_OPERATION_FIXTURES = 64
-MAX_TRACE_FIXTURES = 32
+# The first SLOWEST_EXPORTED traces of every operation a profile's listing names, with their span frames.
+MAX_TRACE_FIXTURES = 64
 MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_METHODS)) + MAX_FIXTURES_PER_TOOL,
                    "traces_slowestTraces": MAX_OPERATION_FIXTURES, "traces_operationExport": MAX_OPERATION_FIXTURES,
                    "traces_traceExport": MAX_TRACE_FIXTURES, "traces_spanFlamegraphExport": MAX_TRACE_FIXTURES,
@@ -251,16 +251,22 @@ MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_MET
 
 @dataclass(frozen=True)
 class RowCalls:
-    """The calls each row of an answer stands for: `tools`, called with the answer's profile and the row's `fields`."""
+    """The calls each row of an answer stands for: `tools`, called with the answer's profile and the row's `fields`;
+    with `first`, only for that many rows from the top."""
     rows: str
     tools: tuple[str, ...]
     fields: tuple[str, ...]
+    first: int | None = None
 
 
 # An answer that lists subjects offers its follow-ups for the first one only, and a model asks about the one its
 # question is about: every operation's slowest traces and export, and every endpoint's dashboard, are recorded.
+# A slowest-traces answer offers the export of its slowest trace, and a model often reads the next one or two
+# instead — the export of each of the first SLOWEST_EXPORTED traces is recorded, so the one it picks is answered.
+SLOWEST_EXPORTED = 3
 ROW_CALLS = {"traces_operations": RowCalls("operations", ("traces_slowestTraces", "traces_operationExport"),
                                            ("name", "kind", "eventType")),
+             "traces_slowestTraces": RowCalls("traces", ("traces_traceExport",), ("traceId",), SLOWEST_EXPORTED),
              "http_overview": RowCalls("endpoints", ("http_endpoint",), ("uri",))}
 # The arguments a relay's fixture is chosen by, where a tool takes them: its answers are kept one file per profile.
 RELAY_FILE_ARGUMENTS = (PROFILE_ID, BASELINE_PROFILE_ID)
@@ -726,7 +732,7 @@ def row_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, d
         return []
     profile = {name: arguments[name] for name in RELAY_FILE_ARGUMENTS if name in arguments}
     calls = []
-    for row in structured.get(expansion.rows) or []:
+    for row in (structured.get(expansion.rows) or [])[:expansion.first]:
         if all(isinstance(row.get(name), str) for name in expansion.fields):
             subject = {name: row[name] for name in expansion.fields}
             calls += [(each, {**profile, **subject}) for each in expansion.tools]

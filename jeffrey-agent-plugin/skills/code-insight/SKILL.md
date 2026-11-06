@@ -134,9 +134,11 @@ describes, a custom event recorded without stacks cannot name its caller. Read `
 naming a handler: `EVENT_STACK` is recorded (the stacks of the statements the requests issued),
 `SAMPLED_SPANS` is inferred from where samples landed — read `ownSamples`, two samples place an
 operation loosely — and say which. When the question is what one request runs step by step, its steps
-and their order come from the profile, not from reading the handler: `traces_operationExport` lists
-the operation's spans, each with its share of the operation's time. Name each step as the profile records it
-(the span's name) beside the code that runs it, and mark anything taken from the source alone as such.
+and their order come from the profile, not from reading the handler: one request's span tree —
+`traces_traceExport` of a trace from `traces_slowestTraces` — nests each step under the one that started
+it, in the order they ran, and `traces_operationExport` adds each span's share across every request.
+Name each step as the profile records it (the span's name), in that order, beside the code that runs it;
+the source says which line runs a step, never in what order the steps ran.
 
 **Who issues a statement or a call** — "which line runs this query", "where is the N+1" —
 `code_callSites` with the event type (`jeffrey.JdbcQuery` and its siblings; `jdk.SocketRead`,

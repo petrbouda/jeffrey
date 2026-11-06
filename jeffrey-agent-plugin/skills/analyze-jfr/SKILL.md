@@ -177,7 +177,7 @@ from the menu, read three things from it and route:
 | The question is about slow requests — "this endpoint is slow", "which requests are slower than the rest", "why do some calls take so long" — and `TRACES` is not in `disabledFeatures` | `traces_operations`, then `traces_slowestTraces` → `traces_traceExport` of a slow request before any dashboard — `references/latency.md`. The dashboards (`http_overview`, `jdbc_overview`, `blocking_overview`) rule a cause in or out beside a slow trace, never instead of one, and are the route only when traces are disabled |
 | Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
 | Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
-| Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
+| Allocation samples are large, or GC is in `topFindings`, or the question is whether GC hurts | `jvm_gc` for whether it hurts, measured against the recording; a fraction of a percent is the answer, with no flag or setting to change — not even an optional one. Then the allocation flamegraph for why, when it does hurt |
 | A memory warning is in `topFindings` (usage near 100%, a container limit) | `jvm_configuration` (`GC_HEAP_CONFIGURATION`) and `jvm_container` before reading it — a pre-touched heap reads as full; `references/jvm.md` |
 | `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
 | Two profiles of the same workload | `compare-jfr` |

@@ -694,7 +694,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
           <tr>
             <td><code>jvm_gc</code></td>
             <td><code>profileId</code></td>
-            <td>The stop-the-world budget, collections by generation and cause, bytes freed, the longest collections</td>
+            <td>The stop-the-world budget, collections by generation and cause, bytes freed, the longest collections; when collections took under 1% of the recording, its guidance says GC is not what holds the application back and that no collector, heap or metaspace setting follows</td>
           </tr>
           <tr>
             <td><code>jvm_safepoints</code></td>

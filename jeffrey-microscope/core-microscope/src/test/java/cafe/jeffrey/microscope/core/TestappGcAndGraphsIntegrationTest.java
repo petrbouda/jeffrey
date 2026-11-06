@@ -99,6 +99,19 @@ class TestappGcAndGraphsIntegrationTest extends TestappVolumeMicroscope {
                     longest.path("freedBytes").asLong());
         }
 
+        /** A fraction of a percent spent in collections is the answer: the follow-up says so, and that no setting follows. */
+        @ParameterizedTest
+        @EnumSource(TestappRecording.class)
+        void negligiblePausesAreSaidToBeTheAnswer(TestappRecording recording) {
+            JsonNode answer = gc(recording);
+            double overhead = answer.path("dashboard").path("pauseBudget").path("overheadPct").asDouble();
+            JsonNode guidance = answer.path("followUp").path("guidance");
+
+            assertTrue(overhead < 1.0, "the persons runs spend well under a percent in collections: " + overhead);
+            assertTrue(guidance.toString().contains("GC is not what holds the application back"), guidance::toString);
+            assertTrue(guidance.toString().contains("no collector, heap or metaspace setting follows"), guidance::toString);
+        }
+
         private JsonNode gc(TestappRecording recording) {
             return answer("jvm_gc", recording, Json.createObject());
         }
