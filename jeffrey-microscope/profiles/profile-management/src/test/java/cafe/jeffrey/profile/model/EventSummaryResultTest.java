@@ -34,7 +34,7 @@ class EventSummaryResultTest {
 
     private static EventSummaryResult.SingleResult withSettings(Map<String, String> settings) {
         return new EventSummaryResult.SingleResult(
-                CODE, LABEL, null, null, 10, 10, false, Map.of(), settings);
+                CODE, LABEL, null, 10, 10, false, Map.of(), settings);
     }
 
     @Nested

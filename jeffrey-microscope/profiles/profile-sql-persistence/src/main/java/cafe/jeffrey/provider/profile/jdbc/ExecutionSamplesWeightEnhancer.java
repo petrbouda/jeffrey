@@ -21,7 +21,6 @@ import cafe.jeffrey.provider.profile.api.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.EventSubtype;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.shared.common.DurationUtils;
@@ -37,6 +36,8 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExecutionSamplesWeightEnhancer.class);
     private static final Duration ASYNC_PROFILER_DEFAULT_INTERVAL = Duration.ofMillis(10);
+    private static final String PERIOD_PARAM = "period";
+    private static final String INTERVAL_PARAM = "interval";
 
     private final ActiveSettings settings;
 
@@ -58,19 +59,16 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
         }
         ActiveSetting execSettings = execSettingsOpt.get();
 
-        RecordingEventSource eventSource = settings.executionSampleType()
-                .map(EventSubtype::getSource)
-                .orElse(null);
-
-        Optional<Duration> periodOpt = switch (eventSource) {
-            case JDK -> execSettings.getParam("period").map(DurationUtils::parse);
-            case ASYNC_PROFILER -> {
-                yield execSettings.getParam("interval")
-                        .map(Long::parseLong)
-                        .map(Duration::ofNanos)
-                        .map(interval -> interval == Duration.ZERO ? ASYNC_PROFILER_DEFAULT_INTERVAL : interval);
-            }
-            case null, default -> Optional.empty();
+        // The JDK's own method profiling samples keep their period as a duration (`period`); async-profiler's
+        // profiling modes keep it as an interval in nanoseconds (`interval`), where zero means its default.
+        EventSubtype executionSampleType = settings.executionSampleType().orElse(null);
+        Optional<Duration> periodOpt = switch (executionSampleType) {
+            case null -> Optional.empty();
+            case EXECUTION_SAMPLE -> execSettings.getParam(PERIOD_PARAM).map(DurationUtils::parse);
+            case CPU, CTIMER, ITIMER, WALL, METHOD -> execSettings.getParam(INTERVAL_PARAM)
+                    .map(Long::parseLong)
+                    .map(Duration::ofNanos)
+                    .map(interval -> interval.isZero() ? ASYNC_PROFILER_DEFAULT_INTERVAL : interval);
         };
 
         if (periodOpt.isEmpty()) {
@@ -78,7 +76,7 @@ public class ExecutionSamplesWeightEnhancer implements EventTypeEnhancer {
             return builder;
         }
 
-        // Every sample is weighted by the period of the interval/period (depending on the source)
+        // Every sample is weighted by its sampling period
         long periodInNanos = periodOpt.get().toNanos();
         return builder.putExtras(Map.of("sample_interval", String.valueOf(periodInNanos)));
     }

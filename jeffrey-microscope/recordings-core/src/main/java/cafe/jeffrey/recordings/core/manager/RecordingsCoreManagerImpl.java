@@ -303,7 +303,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
     /**
      * The recording a set of stored files becomes, ready to insert: an upload of one file, or one item
      * of a bundle. Its kind is read off the first file — a recording is one format throughout — and,
-     * for a recording that is parsed into events, refined by its metadata along with its window.
+     * for a recording that is parsed into events, its window is read off its metadata.
      *
      * @param recordingName what the recording is called in the list — the file's own name for an
      *                      upload, the session's name for a bundle's recording item
@@ -319,7 +319,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
 
         RecordingEventSource eventSource = ManagedFile.of(files.getFirst().filename())
                 .profileSource()
-                .orElse(RecordingEventSource.UNKNOWN);
+                .orElse(RecordingEventSource.JFR);
         Instant uploadedAt = clock.instant();
 
         Instant profilingStartedAt = null;
@@ -329,7 +329,6 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
             Optional<RecordingMetadata> metadata = metadataParser.parse(files.stream().map(StoredFile::path).toList());
             if (metadata.isPresent()) {
                 RecordingMetadata recordingInfo = metadata.get();
-                eventSource = recordingInfo.eventSource();
                 profilingStartedAt = recordingInfo.recordingStartedAt();
                 profilingFinishedAt = recordingInfo.recordingFinishedAt();
             }

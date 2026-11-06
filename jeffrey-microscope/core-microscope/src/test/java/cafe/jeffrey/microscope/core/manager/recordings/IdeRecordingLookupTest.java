@@ -334,7 +334,7 @@ class IdeRecordingLookupTest {
         @Test
         void resolvesADumpToItsBundlesHeapItem() {
             Recording session = new Recording(
-                    "rec-jfr", "checkout", null, RecordingEventSource.JDK,
+                    "rec-jfr", "checkout", null, RecordingEventSource.JFR,
                     Instant.parse("2026-09-04T18:02:00Z"), Instant.parse("2026-09-04T18:01:00Z"),
                     Instant.parse("2026-09-04T18:01:42Z"), true, "p-jfr", "checkout",
                     List.of(new RecordingFile("file-1", "rec-jfr", "chunk-1.jfr", ManagedFile.JFR,
@@ -391,7 +391,7 @@ class IdeRecordingLookupTest {
 
     private static Recording recordingNamed(String filename) {
         return new Recording(
-                "rec-1", filename, null, RecordingEventSource.JDK,
+                "rec-1", filename, null, RecordingEventSource.JFR,
                 Instant.parse("2026-09-04T18:02:00Z"),
                 Instant.parse("2026-09-04T18:01:00Z"),
                 Instant.parse("2026-09-04T18:01:42Z"),
@@ -402,7 +402,7 @@ class IdeRecordingLookupTest {
 
     private static ProfileManager readyProfile() {
         ProfileManager profileManager = mock(ProfileManager.class, RETURNS_DEEP_STUBS);
-        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JDK));
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JFR));
         when(profileManager.samplerHealthManager().cpuTimeSampleLoss())
                 .thenReturn(new CpuTimeSampleLoss(980_000L, 0L, 0L));
         when(profileManager.autoAnalysisManager().analysisResults()).thenReturn(List.of(
@@ -437,7 +437,7 @@ class IdeRecordingLookupTest {
 
     private static EventSummaryResult eventSummary(String code, long samples) {
         return new EventSummaryResult(
-                code, code, new SingleResult(code, code, null, null, samples, 0L, false, Map.of()), null);
+                code, code, new SingleResult(code, code, null, samples, 0L, false, Map.of()), null);
     }
 
     private static Recording recording(String id, boolean hasProfile, long sizeInBytes) {
@@ -449,7 +449,7 @@ class IdeRecordingLookupTest {
                 id,
                 FILENAME,
                 null,
-                RecordingEventSource.JDK,
+                RecordingEventSource.JFR,
                 createdAt,
                 Instant.parse("2026-09-04T18:01:00Z"),
                 Instant.parse("2026-09-04T18:01:42Z"),

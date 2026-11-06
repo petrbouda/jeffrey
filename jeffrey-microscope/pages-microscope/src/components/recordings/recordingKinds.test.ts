@@ -20,8 +20,8 @@ import { HEAP_DUMP_INIT_CHIPS, PROFILE_INIT_CHIPS } from './profileInitChips';
 import { recordingKindOf } from './recordingKinds';
 
 describe('recordingKindOf', () => {
-  it('reads every JFR event source, and a missing one, as a JFR recording', () => {
-    for (const source of ['JDK', 'ASYNC_PROFILER', 'UNKNOWN', null, undefined]) {
+  it('reads a JFR event source, and a missing one, as a JFR recording', () => {
+    for (const source of ['JFR', null, undefined]) {
       const kind = recordingKindOf(source);
       expect(kind.key).toBe('JFR');
       expect(kind.cardClass).toBeNull();
@@ -50,7 +50,7 @@ describe('recordingKindOf', () => {
   });
 
   it('gives every kind a distinct filter key and badge colour', () => {
-    const kinds = ['JDK', 'HEAP_DUMP', 'PPROF', 'OPEN_TELEMETRY', 'PERF_COUNTERS'].map(
+    const kinds = ['JFR', 'HEAP_DUMP', 'PPROF', 'OPEN_TELEMETRY', 'PERF_COUNTERS'].map(
       recordingKindOf
     );
     expect(new Set(kinds.map(kind => kind.key)).size).toBe(kinds.length);

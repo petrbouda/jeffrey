@@ -20,7 +20,7 @@ import { profileKindOf } from '@/services/ProfileKind';
 
 describe('profileKindOf', () => {
   it('offers a JFR profile every recording mode', () => {
-    const jfr = profileKindOf('JDK');
+    const jfr = profileKindOf('JFR');
 
     for (const mode of [
       'Overview',
@@ -35,7 +35,6 @@ describe('profileKindOf', () => {
     expect(jfr.modes.has('PerfCounters')).toBe(false);
     // Heap dumps are profiles of their own; a recording never offers one.
     expect(jfr.modes.has('HeapDump')).toBe(false);
-    expect(profileKindOf('ASYNC_PROFILER')).toBe(jfr);
   });
 
   it('gives a heap dump and a perf-counters snapshot one mode each', () => {
@@ -55,7 +54,7 @@ describe('profileKindOf', () => {
   });
 
   it('offers a secondary profile to every kind but a perf-counters snapshot', () => {
-    for (const source of ['JDK', 'PPROF', 'OPEN_TELEMETRY', 'HEAP_DUMP']) {
+    for (const source of ['JFR', 'PPROF', 'OPEN_TELEMETRY', 'HEAP_DUMP']) {
       expect(profileKindOf(source).comparable).toBe(true);
     }
     expect(profileKindOf('PERF_COUNTERS').comparable).toBe(false);
@@ -63,7 +62,7 @@ describe('profileKindOf', () => {
 
   // A profile is opened before its event source is known; until then it is treated as JFR.
   it('reads an unknown or missing source as JFR', () => {
-    expect(profileKindOf(undefined)).toBe(profileKindOf('JDK'));
-    expect(profileKindOf('SOMETHING_NEW')).toBe(profileKindOf('JDK'));
+    expect(profileKindOf(undefined)).toBe(profileKindOf('JFR'));
+    expect(profileKindOf('SOMETHING_NEW')).toBe(profileKindOf('JFR'));
   });
 });

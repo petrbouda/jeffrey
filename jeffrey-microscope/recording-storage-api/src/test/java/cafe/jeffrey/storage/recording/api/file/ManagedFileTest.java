@@ -161,8 +161,8 @@ class ManagedFileTest {
 
         @Test
         void recordingsHeapDumpsAndPerfCountersAreInitializable() {
-            assertEquals(Optional.of(RecordingEventSource.UNKNOWN), ManagedFile.JFR.profileSource());
-            assertEquals(Optional.of(RecordingEventSource.UNKNOWN), ManagedFile.JFR_LZ4.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.JFR), ManagedFile.JFR.profileSource());
+            assertEquals(Optional.of(RecordingEventSource.JFR), ManagedFile.JFR_LZ4.profileSource());
             assertEquals(Optional.of(RecordingEventSource.PPROF), ManagedFile.PPROF.profileSource());
             assertEquals(Optional.of(RecordingEventSource.OPEN_TELEMETRY), ManagedFile.OTLP_PROFILE.profileSource());
             assertEquals(Optional.of(RecordingEventSource.HEAP_DUMP), ManagedFile.HEAP_DUMP.profileSource());

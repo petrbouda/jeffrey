@@ -58,7 +58,7 @@ class ProfileFeaturesControllerTest {
     void aRecordingHasNoHeapDumpViews() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);
-        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JDK));
+        when(profileManager.info()).thenReturn(profileInfo(RecordingEventSource.JFR));
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
 
         MockMvcTester mvc = mockMvcTesterFor(new ProfileFeaturesController(resolver));

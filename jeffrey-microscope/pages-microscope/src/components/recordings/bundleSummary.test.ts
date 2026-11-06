@@ -64,20 +64,20 @@ const bundle = (files: Partial<RecordingFile>[] = []): Bundle => ({
 
 describe('memberState', () => {
   it('reads an item with a profile as built and one without as new', () => {
-    expect(memberState(member('a', 'JDK', { hasProfile: true }), false)).toBe('built');
-    expect(memberState(member('a', 'JDK'), false)).toBe('new');
+    expect(memberState(member('a', 'JFR', { hasProfile: true }), false)).toBe('built');
+    expect(memberState(member('a', 'JFR'), false)).toBe('new');
   });
 
   it('reads a running or just-requested initialization as running, before anything else', () => {
     expect(
-      memberState(member('a', 'JDK', { initProgress: { state: 'running', stages: [] } }), false)
+      memberState(member('a', 'JFR', { initProgress: { state: 'running', stages: [] } }), false)
     ).toBe('running');
     expect(memberState(member('a', 'HEAP_DUMP', { hasProfile: true }), true)).toBe('running');
   });
 
   it('reads a failed initialization as failed', () => {
     expect(
-      memberState(member('a', 'JDK', { initProgress: { state: 'failed', stages: [] } }), false)
+      memberState(member('a', 'JFR', { initProgress: { state: 'failed', stages: [] } }), false)
     ).toBe('failed');
   });
 });
@@ -88,7 +88,7 @@ describe('compareMembers', () => {
       member('heap-b.hprof', 'HEAP_DUMP'),
       member('perf-counters.hsperfdata', 'PERF_COUNTERS'),
       member('heap-a.hprof', 'HEAP_DUMP'),
-      member('zeta-session', 'JDK')
+      member('zeta-session', 'JFR')
     ];
 
     expect(members.sort(compareMembers).map(m => m.id)).toEqual([
@@ -104,7 +104,7 @@ describe('memberBadges', () => {
   it('gives each item a badge in its kind colour, naming the kind and the state', () => {
     const badges = memberBadges(
       [
-        member('jfr', 'JDK', { hasProfile: true }),
+        member('jfr', 'JFR', { hasProfile: true }),
         member('heap', 'HEAP_DUMP'),
         member('perf', 'PERF_COUNTERS')
       ],
@@ -120,7 +120,7 @@ describe('memberBadges', () => {
 
 describe('bundle summary', () => {
   it('counts the items and the download-only files, leaving out files when there are none', () => {
-    const members = [member('a', 'JDK'), member('b', 'HEAP_DUMP')];
+    const members = [member('a', 'JFR'), member('b', 'HEAP_DUMP')];
 
     expect(bundleItemsLabel(bundle(), members)).toBe('2 items');
     expect(bundleItemsLabel(bundle([{ sizeInBytes: 10 }]), [members[0]])).toBe('1 item · 1 file');
@@ -128,7 +128,7 @@ describe('bundle summary', () => {
 
   it('sizes the bundle as every item plus its own files', () => {
     expect(
-      bundleSize(bundle([{ sizeInBytes: 500 }]), [member('a', 'JDK'), member('b', 'HEAP_DUMP')])
+      bundleSize(bundle([{ sizeInBytes: 500 }]), [member('a', 'JFR'), member('b', 'HEAP_DUMP')])
     ).toBe(2_500);
   });
 });

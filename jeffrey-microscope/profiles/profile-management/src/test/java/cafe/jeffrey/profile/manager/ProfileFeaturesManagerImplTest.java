@@ -52,7 +52,7 @@ class ProfileFeaturesManagerImplTest {
     TraceRepository traceRepository;
 
     private static EventSummary summary(Type type, long samples) {
-        return new EventSummary(type.code(), type.code(), null, null, samples, 0, false, false, List.of(), Map.of(), Map.of());
+        return new EventSummary(type.code(), type.code(), null, samples, 0, false, false, List.of(), Map.of(), Map.of());
     }
 
     @Nested

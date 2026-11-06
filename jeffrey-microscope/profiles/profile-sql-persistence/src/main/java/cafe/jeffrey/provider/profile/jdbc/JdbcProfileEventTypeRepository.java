@@ -23,7 +23,6 @@ import tools.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.EventSubtype;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.SpanScope;
@@ -66,7 +65,6 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
         return new EventSummary(
                 rs.getString("name"),
                 rs.getString("label"),
-                RecordingEventSource.byId(rs.getInt("source")),
                 EventSubtype.resolve(rs.getString("subtype")),
                 rs.getLong("samples"),
                 rs.getLong("weight"),
@@ -113,7 +111,6 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             SELECT
                 et.name,
                 et.label,
-                et.source,
                 et.subtype,
                 COALESCE(ae.samples, 0) as samples,
                 COALESCE(ae.weight, 0) as weight,
@@ -138,7 +135,6 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             SELECT
                 et.name,
                 et.label,
-                et.source,
                 et.subtype,
                 COALESCE(ae.samples, 0) as samples,
                 COALESCE(ae.weight, 0) as weight,

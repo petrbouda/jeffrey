@@ -36,7 +36,7 @@ class JfrFlamegraphPanelProviderTest {
 
     private static EventSummaryResult summary(String code, long samples) {
         EventSummaryResult.SingleResult primary =
-                new EventSummaryResult.SingleResult(code, code, null, null, samples, 0L, false, Map.of());
+                new EventSummaryResult.SingleResult(code, code, null, samples, 0L, false, Map.of());
         return new EventSummaryResult(code, code, primary, null);
     }
 

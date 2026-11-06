@@ -245,7 +245,7 @@ class ProfileEvidenceMcpToolsTest {
     void qualityOfAProfileWithAnUnknownSpanHasNoScaleFactor() {
         ProfileManager primary = manager("primary");
         ProfileManager baseline = manager("baseline");
-        when(baseline.info()).thenReturn(new ProfileInfo("baseline", null, null, null, RecordingEventSource.JDK,
+        when(baseline.info()).thenReturn(new ProfileInfo("baseline", null, null, null, RecordingEventSource.JFR,
                 Instant.EPOCH, null, Instant.EPOCH, true, false, null));
 
         JsonNode result = new CompareMcpTools(primary, id -> baseline, CLOCK, EVERY_FAMILY)
@@ -462,19 +462,19 @@ class ProfileEvidenceMcpToolsTest {
     }
 
     private static EventSummaryResult configured(String eventType, String throttle) {
-        return new EventSummaryResult(new EventSummary(eventType, "Allocation", RecordingEventSource.JDK,
+        return new EventSummaryResult(new EventSummary(eventType, "Allocation",
                 null, 500, 0, true, false, List.of(), Map.of(), Map.of("throttle", throttle)));
     }
 
     private static EventSummaryResult configured(String period) {
-        return new EventSummaryResult(new EventSummary("jdk.ExecutionSample", "CPU", RecordingEventSource.JDK,
+        return new EventSummaryResult(new EventSummary("jdk.ExecutionSample", "CPU",
                 null, 1000, 0, true, false, List.of(), Map.of(), Map.of("period", period)));
     }
 
     static ProfileManager manager(String id) {
         ProfileManager manager = mock(ProfileManager.class, RETURNS_DEEP_STUBS);
         when(manager.info()).thenReturn(new ProfileInfo(id, "project", "workspace", id,
-                RecordingEventSource.JDK, Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
+                RecordingEventSource.JFR, Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
                 Instant.EPOCH, true, false, "recording-" + id));
         when(manager.samplerHealthManager().cpuTimeSampleLoss()).thenReturn(CpuTimeSampleLoss.EMPTY);
         when(manager.featuresManager().getDisabledFeatures()).thenReturn(List.of());
@@ -487,7 +487,7 @@ class ProfileEvidenceMcpToolsTest {
 
     static EventSummaryResult event(String code, long samples, long weight) {
         return new EventSummaryResult(code, code,
-                new EventSummaryResult.SingleResult(code, code, "JDK", null, samples, weight, false, Map.of()), null);
+                new EventSummaryResult.SingleResult(code, code, null, samples, weight, false, Map.of()), null);
     }
 
     private static ProfileEvidenceMcpTools tools(ProfileManager manager, RecordingCommitResolver commits) {

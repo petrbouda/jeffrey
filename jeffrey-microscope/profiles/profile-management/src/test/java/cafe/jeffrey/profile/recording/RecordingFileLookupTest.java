@@ -196,7 +196,7 @@ class RecordingFileLookupTest {
 
     private void recording(RecordingFile... files) {
         Recording recording = new Recording(
-                RECORDING_ID, "app", null, RecordingEventSource.JDK, UPLOADED_AT, UPLOADED_AT, UPLOADED_AT,
+                RECORDING_ID, "app", null, RecordingEventSource.JFR, UPLOADED_AT, UPLOADED_AT, UPLOADED_AT,
                 false, null, null, Arrays.asList(files));
         when(recordingRepository.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording));
     }

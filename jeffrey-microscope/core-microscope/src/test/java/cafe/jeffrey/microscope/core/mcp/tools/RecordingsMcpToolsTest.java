@@ -154,7 +154,7 @@ class RecordingsMcpToolsTest {
     private void profileIs(boolean enabled, String name) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, null, null, name, RecordingEventSource.JDK,
+                PROFILE_ID, null, null, name, RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, enabled, false,
                 RECORDING_ID));
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.of(profileManager));
@@ -162,7 +162,7 @@ class RecordingsMcpToolsTest {
 
     private static Recording recording(boolean hasProfile) {
         return new Recording(
-                RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK,
+                RECORDING_ID, "app.jfr", null, RecordingEventSource.JFR,
                 START, START, START.plusSeconds(60),
                 hasProfile, hasProfile ? PROFILE_ID : null, hasProfile ? "app.jfr" : null, List.of());
     }
@@ -321,7 +321,7 @@ class RecordingsMcpToolsTest {
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
         ProfileManager replacement = mock(ProfileManager.class);
         when(replacement.info()).thenReturn(new ProfileInfo(
-                "replacement-profile", null, null, "app.jfr", RecordingEventSource.JDK,
+                "replacement-profile", null, null, "app.jfr", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, RECORDING_ID));
         when(recordingsManager.profile("replacement-profile")).thenReturn(Optional.of(replacement));
         String response = complete(tools.analyzeRecording(RECORDING_ID, true, RESOURCE_READ));
@@ -455,7 +455,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.importRecordingFromPath(file)).thenReturn("rec-2");
             when(recordingsManager.analyzeRecording("rec-2")).thenReturn("prof-2");
             when(recordingsManager.findRecording("rec-2")).thenReturn(Optional.of(new Recording(
-                    "rec-2", "app.jfr", null, RecordingEventSource.JDK, START, START, START.plusSeconds(60),
+                    "rec-2", "app.jfr", null, RecordingEventSource.JFR, START, START, START.plusSeconds(60),
                     true, "prof-2", "app.jfr", List.of())));
 
             var result =
@@ -598,7 +598,7 @@ class RecordingsMcpToolsTest {
         }
 
         private Recording stored(String recordingId, String profileId) {
-            return new Recording(recordingId, "app.jfr", null, RecordingEventSource.JDK,
+            return new Recording(recordingId, "app.jfr", null, RecordingEventSource.JFR,
                     START, START, START.plusSeconds(60), true, profileId, "app.jfr", List.of());
         }
 
@@ -1087,11 +1087,11 @@ class RecordingsMcpToolsTest {
                     .findFirst()
                     .orElseThrow();
 
-            assertEquals("| " + RECORDING_ID + " | app.jfr | JDK | " + START + " |  |", row);
+            assertEquals("| " + RECORDING_ID + " | app.jfr | JFR | " + START + " |  |", row);
             JsonNode structured = page(null, null).path("recordings").get(0);
             assertTrue(structured.path("profileId").isNull());
             assertEquals(START.toEpochMilli(), structured.path("recordedEpochMs").asLong());
-            assertEquals("JDK", structured.path("eventSource").asString());
+            assertEquals("JFR", structured.path("eventSource").asString());
         }
 
         /** An unanalysed recording is followed by the call that analyses it, ready to pass on. */
@@ -1201,11 +1201,11 @@ class RecordingsMcpToolsTest {
         @Test
         void aTieOnTheCreationTimeIsBrokenByTheId() {
             when(recordingsManager.listRecordings()).thenReturn(List.of(
-                    new Recording("rec-b", "b.jfr", null, RecordingEventSource.JDK, START, START, START, false, null,
+                    new Recording("rec-b", "b.jfr", null, RecordingEventSource.JFR, START, START, START, false, null,
                             null, List.of()),
-                    new Recording("rec-a", "a.jfr", null, RecordingEventSource.JDK, START, START, START, false, null,
+                    new Recording("rec-a", "a.jfr", null, RecordingEventSource.JFR, START, START, START, false, null,
                             null, List.of()),
-                    new Recording("rec-n", "n.jfr", null, RecordingEventSource.JDK, null, START, START, false, null,
+                    new Recording("rec-n", "n.jfr", null, RecordingEventSource.JFR, null, START, START, false, null,
                             null, List.of())));
 
             JsonNode first = page(1, null);
@@ -1291,7 +1291,7 @@ class RecordingsMcpToolsTest {
         @Test
         void keepsAPipeInANameOffTheColumnBoundaries() {
             Recording piped = new Recording(
-                    RECORDING_ID, "before|after", null, RecordingEventSource.JDK,
+                    RECORDING_ID, "before|after", null, RecordingEventSource.JFR,
                     START, START, START, false, null, null, List.of());
             when(recordingsManager.listRecordings()).thenReturn(List.of(piped));
 
@@ -1941,7 +1941,7 @@ class RecordingsMcpToolsTest {
 
     private static List<Recording> recordings(int count) {
         return IntStream.range(0, count)
-                .mapToObj(i -> new Recording("rec-" + i, "app-" + i + ".jfr", null, RecordingEventSource.JDK,
+                .mapToObj(i -> new Recording("rec-" + i, "app-" + i + ".jfr", null, RecordingEventSource.JFR,
                         START.plusSeconds(i), START, START, false, null, null, List.of()))
                 .toList();
     }

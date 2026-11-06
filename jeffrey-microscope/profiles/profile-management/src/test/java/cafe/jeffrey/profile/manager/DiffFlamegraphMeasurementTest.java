@@ -95,7 +95,7 @@ class DiffFlamegraphMeasurementTest {
     }
 
     private static ProfileInfo info(String id, long seconds) {
-        return new ProfileInfo(id, null, null, id, RecordingEventSource.JDK,
+        return new ProfileInfo(id, null, null, id, RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(seconds), Instant.EPOCH,
                 true, false, "recording-" + id);
     }

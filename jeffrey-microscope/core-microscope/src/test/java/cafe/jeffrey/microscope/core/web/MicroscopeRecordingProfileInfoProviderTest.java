@@ -89,7 +89,7 @@ class MicroscopeRecordingProfileInfoProviderTest {
     }
 
     private static ProfileInfo profileRow(String profileId) {
-        return new ProfileInfo(profileId, null, null, "name-" + profileId, RecordingEventSource.JDK,
+        return new ProfileInfo(profileId, null, null, "name-" + profileId, RecordingEventSource.JFR,
                 null, null, CLOCK.instant(), false, false, RECORDING_ID);
     }
 

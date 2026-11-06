@@ -31,8 +31,8 @@ VALUES
     (1003, 'worker-2', 12347, 3, false);
 
 -- Event types
-INSERT INTO event_types (name, label, type_id, description, categories, source, has_stacktrace, columns)
-VALUES ('jdk.ExecutionSample', 'Execution Sample', 1, 'CPU execution sample', '["Profiling"]', '1', true, '[]');
+INSERT INTO event_types (name, label, type_id, description, categories, has_stacktrace, columns)
+VALUES ('jdk.ExecutionSample', 'Execution Sample', 1, 'CPU execution sample', '["Profiling"]', true, '[]');
 
 -- Stacktraces referencing frames
 -- ST 2001: UserService.getUser -> ConnectionPool.getConnection -> Thread.run

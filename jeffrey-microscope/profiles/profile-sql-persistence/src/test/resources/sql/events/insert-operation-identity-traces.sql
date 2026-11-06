@@ -21,9 +21,9 @@
 -- 2. A `POST /orders` that calls itself, so the trace holds a nested span named exactly like its
 --    root. Excluding the root from the breakdown by name dropped the recursion with it.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jeffrey.HttpClientExchange', 'HTTP Client Exchange', 5, 'http client', '["Application","HTTP"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.HttpClientExchange', 'HTTP Client Exchange', 5, 'http client', '["Application","HTTP"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"method","header":"HTTP Method"},{"field":"uri","header":"HTTP Uri"},{"field":"statusCode","header":"Response Status"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

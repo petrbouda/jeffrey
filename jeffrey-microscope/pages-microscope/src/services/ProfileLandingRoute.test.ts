@@ -30,7 +30,7 @@ describe('profileLandingRoute', () => {
   // The regression this guards: a JFR profile used to land on /overview, which since the Summary
   // dashboard shipped renders the Configuration page instead of the dashboard.
   it('lands a JFR profile on the Summary dashboard', () => {
-    expect(profileLandingRoute(PROFILE_ID, 'JDK')).toBe('/profiles/abc123/dashboard');
+    expect(profileLandingRoute(PROFILE_ID, 'JFR')).toBe('/profiles/abc123/dashboard');
   });
 
   // Stack-sample-only profiles carry none of the GC/safepoint/thread data the dashboard is built

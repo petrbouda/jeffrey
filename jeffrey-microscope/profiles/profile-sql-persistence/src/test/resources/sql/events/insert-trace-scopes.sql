@@ -23,9 +23,9 @@
 -- A scope declares `scopedSpanId`, deliberately not `spanId`: the derivation recognises spans by a
 -- declared `spanId` field, and a scope is not a span -- it has no name, kind or outcome, and would
 -- otherwise be drawn in the waterfall as a duplicate of the span it merely locates.
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jeffrey.TraceScope', 'Trace Scope', 5, 'trace scope', '["Application","Tracing"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.TraceScope', 'Trace Scope', 5, 'trace scope', '["Application","Tracing"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"scopedSpanId","header":"Scoped Span Id"}]');
 
 -- The thread the callback landed on. Platform, like any transport thread.

@@ -122,7 +122,7 @@ class FlamegraphMcpToolsTest {
             String code, long samples, long weight, Map<String, String> extras) {
 
         EventSummaryResult.SingleResult primary =
-                new EventSummaryResult.SingleResult(code, code, null, null, samples, weight, false, extras);
+                new EventSummaryResult.SingleResult(code, code, null, samples, weight, false, extras);
         return new EventSummaryResult(code, code, primary, null);
     }
 
@@ -191,7 +191,7 @@ class FlamegraphMcpToolsTest {
          */
         @Test
         void separatesRecordedTypesFromTheSectionsWithNoSamples() {
-            profileOf(RecordingEventSource.JDK, List.of(
+            profileOf(RecordingEventSource.JFR, List.of(
                     summary(EventTypeName.EXECUTION_SAMPLE, 4200, 0L),
                     summary(EventTypeName.OBJECT_ALLOCATION_SAMPLE, 130, 9_000_000L)));
 
@@ -217,7 +217,7 @@ class FlamegraphMcpToolsTest {
 
         @Test
         void carriesTheExportArgumentDefaultsOfEachEventType() {
-            profileOf(RecordingEventSource.JDK, List.of(
+            profileOf(RecordingEventSource.JFR, List.of(
                     summary(EventTypeName.EXECUTION_SAMPLE, 4200, 0L),
                     summary(EventTypeName.OBJECT_ALLOCATION_SAMPLE, 130, 9_000_000L),
                     summary(EventTypeName.JAVA_MONITOR_ENTER, 12, 5_000_000_000L)));
@@ -244,7 +244,7 @@ class FlamegraphMcpToolsTest {
         /** The first recorded type, drawn at the defaults the list itself advertises for it. */
         @Test
         void namesTheExportOfARecordedTypeAtItsDefaults() {
-            profileOf(RecordingEventSource.JDK, List.of(
+            profileOf(RecordingEventSource.JFR, List.of(
                     summary(EventTypeName.OBJECT_ALLOCATION_SAMPLE, 130, 9_000_000L)));
 
             JsonNode result = conforming("list", tools().list());
@@ -317,7 +317,7 @@ class FlamegraphMcpToolsTest {
 
         @BeforeEach
         void exportableProfile() {
-            when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
+            when(profileManager.info()).thenReturn(info(RecordingEventSource.JFR));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
@@ -388,7 +388,7 @@ class FlamegraphMcpToolsTest {
         /** Lenient: a refused window never reaches the generator. */
         @BeforeEach
         void exportableProfile() {
-            when(profileManager.info()).thenReturn(info(RecordingEventSource.JDK));
+            when(profileManager.info()).thenReturn(info(RecordingEventSource.JFR));
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             lenient().when(flamegraphManager.graphableEventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
             lenient().when(flamegraphManager.generateAiExport(any(), any())).thenReturn(TREE);
@@ -692,7 +692,7 @@ class FlamegraphMcpToolsTest {
         @BeforeEach
         void subMillisecondRecording() {
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                     SUB_MS_START, SUB_MS_END, SUB_MS_START, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));
@@ -734,7 +734,7 @@ class FlamegraphMcpToolsTest {
 
         @Test
         void answersNotRecordedNamingWhatWasRecordedInsteadOfAnEmptyTree() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0), summary(ALLOCATION, 300, 9_000)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(CPU_TIME, 500, 0), summary(ALLOCATION, 300, 9_000)));
 
             McpToolResult result = exportCpu();
             JsonNode export = conforming("export", result);
@@ -752,7 +752,7 @@ class FlamegraphMcpToolsTest {
         /** JDK 25's CPU-time sampler writes CPUTimeSample instead: the export that answers "where is the CPU". */
         @Test
         void offersTheRecordedTypeThatAnswersTheSameQuestion() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(ALLOCATION, 300, 9_000), summary(CPU_TIME, 500, 0)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(ALLOCATION, 300, 9_000), summary(CPU_TIME, 500, 0)));
 
             JsonNode export = conforming("export", exportCpu());
 
@@ -764,7 +764,7 @@ class FlamegraphMcpToolsTest {
 
         @Test
         void alternativeKeepsTheRequestedWindowFiltersDetailAndWeight() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(CPU_TIME, 500, 0)));
 
             JsonNode export = conforming("export", tools().export(CPU, "FULL", 3.0,
                     START_MS + 10_000, START_MS + 20_000, true, false, "  Checkout  ", true, true));
@@ -786,7 +786,7 @@ class FlamegraphMcpToolsTest {
         /** Weighting and threshold are per type: unasked, the alternative takes its own type's defaults. */
         @Test
         void alternativeLeavesTheWeightingAndThresholdNobodyAskedForToItsOwnType() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(CPU_TIME, 500, 0)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(CPU_TIME, 500, 0)));
 
             JsonNode export = conforming("export", exportCpu());
 
@@ -799,7 +799,7 @@ class FlamegraphMcpToolsTest {
 
         @Test
         void lockContentionIsNotReplacedWithSleepingParkingOrMonitorWaiting() {
-            profileOf(RecordingEventSource.JDK, List.of(
+            profileOf(RecordingEventSource.JFR, List.of(
                     summary(EventTypeName.THREAD_SLEEP, 100, 1_000),
                     summary(EventTypeName.THREAD_PARK, 100, 1_000),
                     summary(EventTypeName.JAVA_MONITOR_WAIT, 100, 1_000)));
@@ -813,7 +813,7 @@ class FlamegraphMcpToolsTest {
 
         @Test
         void parkingIsNotReplacedWithSleeping() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(EventTypeName.THREAD_SLEEP, 100, 1_000)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(EventTypeName.THREAD_SLEEP, 100, 1_000)));
 
             JsonNode export = conforming("export", tools().export(EventTypeName.THREAD_PARK,
                     null, null, null, null, null, null, null, null, null));
@@ -823,21 +823,21 @@ class FlamegraphMcpToolsTest {
 
         @Test
         void offersNoGraphOfSomethingElse() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(ALLOCATION, 300, 9_000)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(ALLOCATION, 300, 9_000)));
 
             assertEquals(List.of("flamegraph_list"), nextTools(conforming("export", exportCpu())));
         }
 
         @Test
         void aTypeWithNoSamplesIsNotRecorded() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(CPU, 0, 0), summary(CPU_TIME, 500, 0)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(CPU, 0, 0), summary(CPU_TIME, 500, 0)));
 
             assertEquals("NOT_RECORDED", conforming("export", exportCpu()).get("status").asString());
         }
 
         @Test
         void aRecordedTypeIsDrawnAsBefore() {
-            profileOf(RecordingEventSource.JDK, List.of(summary(CPU, 500, 0)));
+            profileOf(RecordingEventSource.JFR, List.of(summary(CPU, 500, 0)));
             when(flamegraphManager.generateAiExport(any(), any())).thenReturn("## Call tree");
 
             JsonNode export = conforming("export", exportCpu());

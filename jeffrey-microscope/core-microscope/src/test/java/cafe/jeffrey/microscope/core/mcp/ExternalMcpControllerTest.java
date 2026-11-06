@@ -930,11 +930,11 @@ class ExternalMcpControllerTest {
                 return PROFILE_ID;
             });
             when(recordings.findRecording(RECORDING_ID)).thenReturn(Optional.of(new Recording(
-                    RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK, Instant.EPOCH, Instant.EPOCH,
+                    RECORDING_ID, "app.jfr", null, RecordingEventSource.JFR, Instant.EPOCH, Instant.EPOCH,
                     Instant.EPOCH.plusSeconds(60), true, PROFILE_ID, "app.jfr", List.of())));
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, null, null, "app.jfr", RecordingEventSource.JDK, Instant.EPOCH,
+                    PROFILE_ID, null, null, "app.jfr", RecordingEventSource.JFR, Instant.EPOCH,
                     Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, RECORDING_ID));
             when(recordings.profile(PROFILE_ID)).thenReturn(Optional.of(profile));
             // The standard 45 s budget, and the task handed back after a tenth of a second.
@@ -1037,7 +1037,7 @@ class ExternalMcpControllerTest {
 
         private MockMvcTester servingDelete() {
             when(recordings.findRecording(RECORDING_ID)).thenReturn(Optional.of(new Recording(
-                    RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK, Instant.EPOCH, Instant.EPOCH,
+                    RECORDING_ID, "app.jfr", null, RecordingEventSource.JFR, Instant.EPOCH, Instant.EPOCH,
                     Instant.EPOCH.plusSeconds(60), true, PROFILE_ID, "app.jfr", List.of())));
             RecordingsMcpTools tools = RecordingsMcpToolsFixture.of(recordings, new PipelineRunRegistry<>(
                     ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), FIXED_CLOCK),

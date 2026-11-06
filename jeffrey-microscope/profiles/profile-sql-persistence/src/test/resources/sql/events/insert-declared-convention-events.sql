@@ -25,16 +25,16 @@
 --
 -- Loaded on its own.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('com.acme.KafkaPublish', 'Kafka Publish', 1, 'third-party publish', '["Application"]', '1', NULL, false,
+    ('com.acme.KafkaPublish', 'Kafka Publish', 1, 'third-party publish', '["Application"]', NULL, false,
      '{"spanName":"PUBLISH {topic}"}', NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"topic","header":"Topic"},{"field":"deliveryCode","header":"Delivery Code"}]'),
 
     -- The shape of a Jeffrey statement in a new recording: the identity template @Span("{name}")
     -- declares that the event names itself. The declared arm must agree with the recorded-name
     -- fallback it shadows -- the template exists for the invariant, not to change any answer.
-    ('jeffrey.JdbcQuery', 'JDBC Query', 2, 'jdbc', '["Application","JDBC"]', '1', NULL, false,
+    ('jeffrey.JdbcQuery', 'JDBC Query', 2, 'jdbc', '["Application","JDBC"]', NULL, false,
      '{"spanName":"{name}"}', NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Statement Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"sql","header":"SQL Query"}]');
 

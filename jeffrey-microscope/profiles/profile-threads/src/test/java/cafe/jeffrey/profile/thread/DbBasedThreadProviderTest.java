@@ -87,7 +87,7 @@ class DbBasedThreadProviderTest {
                 "project-1",
                 "workspace-1",
                 "recording",
-                RecordingEventSource.JDK,
+                RecordingEventSource.JFR,
                 RECORDING_START,
                 RECORDING_START.plus(RECORDING_LENGTH),
                 RECORDING_START,

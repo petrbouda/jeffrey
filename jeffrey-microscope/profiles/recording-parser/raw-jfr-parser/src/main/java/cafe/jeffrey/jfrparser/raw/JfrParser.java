@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.EventSourceResolver;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.notification.NotificationCategory;
 import cafe.jeffrey.shared.notification.NotificationType;
@@ -256,7 +255,7 @@ public abstract class JfrParser {
             // two want completely different next steps from whoever is looking at it.
             Notifications.of(NotificationType.RECORDING_HAS_NO_CHUNKS)
                     .emit();
-            return new RecordingInformation(0, RecordingEventSource.JDK, null, null);
+            return new RecordingInformation(0, RecordingEventSource.JFR, null, null);
         }
 
         long bytes = chunks.stream().mapToLong(JfrChunk::sizeInBytes).sum();
@@ -271,13 +270,7 @@ public abstract class JfrParser {
                 .max(Instant::compareTo)
                 .orElse(null);
 
-        List<String> eventTypeNames = chunks.stream()
-                .flatMap(chunk -> chunk.eventTypes().stream())
-                .toList();
-
-        RecordingEventSource source = EventSourceResolver.fromEventTypeNames(eventTypeNames);
-
-        return new RecordingInformation(bytes, source, startTime, endTime);
+        return new RecordingInformation(bytes, RecordingEventSource.JFR, startTime, endTime);
     }
 
     /**

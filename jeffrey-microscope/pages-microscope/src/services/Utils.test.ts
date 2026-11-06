@@ -127,24 +127,6 @@ describe('Utils', () => {
     });
   });
 
-  describe('formatEventSource', () => {
-    it('formats ASYNC_PROFILER', () => {
-      expect(Utils.formatEventSource('ASYNC_PROFILER')).toBe('Async Profiler');
-    });
-
-    it('formats HEAP_DUMP', () => {
-      expect(Utils.formatEventSource('HEAP_DUMP')).toBe('Heap Dump');
-    });
-
-    it('formats UNKNOWN', () => {
-      expect(Utils.formatEventSource('UNKNOWN')).toBe('Unknown');
-    });
-
-    it('returns raw value for unrecognized source', () => {
-      expect(Utils.formatEventSource('JDK')).toBe('JDK');
-    });
-  });
-
   describe('formatFileType', () => {
     it('formats JFR_LZ4', () => {
       expect(Utils.formatFileType('JFR_LZ4')).toBe('JFR (LZ4)');

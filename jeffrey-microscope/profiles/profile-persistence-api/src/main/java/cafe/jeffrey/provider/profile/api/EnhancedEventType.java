@@ -17,13 +17,11 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.util.Map;
 
 public record EnhancedEventType(
         EventType eventType,
-        RecordingEventSource source,
         String subtype,
         boolean containsStackTraces,
         Map<String, String> extras,

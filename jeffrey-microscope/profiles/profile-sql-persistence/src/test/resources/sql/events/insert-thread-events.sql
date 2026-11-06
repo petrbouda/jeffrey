@@ -17,11 +17,11 @@
 -- Mixed events: in-window same-thread (kept), a profiler.Span (excluded), out-of-window (excluded),
 -- and another thread in-window (excluded).
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.ExecutionSample', 'Execution Sample', 1, 'CPU sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL),
-    ('jdk.JavaMonitorEnter', 'Java Monitor Enter', 2, 'Monitor enter', '["Java Application"]', '1', NULL, true, NULL, NULL, NULL),
-    ('profiler.Span', 'Span', 3, 'async-profiler span', '["Profiler"]', '1', NULL, false, NULL, NULL, NULL);
+    ('jdk.ExecutionSample', 'Execution Sample', 1, 'CPU sample', '["Profiling"]', NULL, true, NULL, NULL, NULL),
+    ('jdk.JavaMonitorEnter', 'Java Monitor Enter', 2, 'Monitor enter', '["Java Application"]', NULL, true, NULL, NULL, NULL),
+    ('profiler.Span', 'Span', 3, 'async-profiler span', '["Profiler"]', NULL, false, NULL, NULL, NULL);
 
 -- vt-worker is a VIRTUAL thread: os_id is NULL (the JVM reports -1 for virtual threads). Pairing
 -- must therefore key on thread_hash, not os_id — os_id-based matching can never resolve this thread.

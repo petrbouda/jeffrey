@@ -80,7 +80,7 @@ class EventTypeMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.eventViewerManager()).thenReturn(eventViewerManager);
     }
@@ -100,7 +100,7 @@ class EventTypeMcpToolsTest {
 
     private void recorded(String code) {
         when(eventViewerManager.eventTypes()).thenReturn(List.of(new EventViewerData(
-                List.of("Java Virtual Machine", "GC"), RECORDED_LABEL, code, 128, "JDK", true)));
+                List.of("Java Virtual Machine", "GC"), RECORDED_LABEL, code, 128, true)));
         when(eventViewerManager.eventColumns(Type.fromCode(code))).thenReturn(List.of(
                 new FieldDescription(SUM_OF_PAUSES_FIELD, "Sum of Pauses", "DURATION",
                         "Sum of all the times in which Java execution was paused during the collection"),
@@ -209,7 +209,7 @@ class EventTypeMcpToolsTest {
         @Test
         void aFieldWithoutLabelTypeOrDescriptionConformsWithNulls() {
             when(eventViewerManager.eventTypes()).thenReturn(List.of(new EventViewerData(
-                    List.of("GC"), RECORDED_LABEL, RECORDED_TYPE, 1, "JDK", false)));
+                    List.of("GC"), RECORDED_LABEL, RECORDED_TYPE, 1, false)));
             when(eventViewerManager.eventColumns(Type.fromCode(RECORDED_TYPE))).thenReturn(List.of(
                     new FieldDescription(SUM_OF_PAUSES_FIELD, null, null, null)));
 

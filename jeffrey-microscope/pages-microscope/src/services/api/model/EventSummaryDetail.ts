@@ -19,7 +19,6 @@ export default class EventSummaryDetail {
   constructor(
     public code: string,
     public label: string,
-    public source: string,
     public subtype: string,
     public samples: number,
     public weight: number,

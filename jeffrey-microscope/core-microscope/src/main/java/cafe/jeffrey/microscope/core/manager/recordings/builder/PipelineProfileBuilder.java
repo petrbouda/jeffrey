@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.manager.recordings.builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
@@ -178,13 +177,12 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
     }
 
     /**
-     * Prefers the recording metadata persisted at upload time (event source + profiling start/end)
+     * Prefers the recording metadata persisted at upload time (format + profiling start/end)
      * and re-parses the JFR file only when any of them is missing — e.g. when the metadata parse
      * failed during the upload.
      */
     private RecordingInformation resolveRecordingInformation(Recording recording, RecordingSources sources) {
         boolean persistedInfoComplete = recording.eventSource() != null
-                && recording.eventSource() != RecordingEventSource.UNKNOWN
                 && recording.recordingStartedAt() != null
                 && recording.recordingFinishedAt() != null;
 

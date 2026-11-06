@@ -14,12 +14,12 @@
 -- limitations under the License.
 
 -- Insert event types
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.ExecutionSample', 'Execution Sample', 1, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL, '[{"field":"state","header":"State","type":"string","description":"Thread state"}]'),
-    ('jdk.ThreadAllocationStatistics', 'Thread Allocation Statistics', 2, 'Thread allocation stats', '["Memory"]', '1', NULL, false, NULL, NULL, '[]'),
-    ('jdk.ObjectAllocationInNewTLAB', 'Allocation in new TLAB', 3, 'Object allocation in new TLAB', '["Memory"]', '1', NULL, true, NULL, NULL, NULL),
-    ('jdk.GCPhasePause', 'GC Phase Pause', 4, 'GC pause phase', '["GC"]', '1', NULL, false, NULL, NULL, NULL);
+    ('jdk.ExecutionSample', 'Execution Sample', 1, 'CPU execution sample', '["Profiling"]', NULL, true, NULL, NULL, '[{"field":"state","header":"State","type":"string","description":"Thread state"}]'),
+    ('jdk.ThreadAllocationStatistics', 'Thread Allocation Statistics', 2, 'Thread allocation stats', '["Memory"]', NULL, false, NULL, NULL, '[]'),
+    ('jdk.ObjectAllocationInNewTLAB', 'Allocation in new TLAB', 3, 'Object allocation in new TLAB', '["Memory"]', NULL, true, NULL, NULL, NULL),
+    ('jdk.GCPhasePause', 'GC Phase Pause', 4, 'GC pause phase', '["GC"]', NULL, false, NULL, NULL, NULL);
 
 -- Insert threads
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)

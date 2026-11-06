@@ -156,7 +156,7 @@ const exConnector = `connector_sessions { "workspace": "production", "withinLast
 connector_download { "sessionRef": "h1Y2ZnLX...",
                    "startEpochMs": 1772365260000, "endEpochMs": 1772368860000 }
 #  -> { "status": "DOWNLOADED", "recordingId": "019f885e-...", "bundleId": "01a0e3b1-...",
-#       "items": [ { "recordingId": "019f885e-...", "eventSource": "ASYNC_PROFILER",
+#       "items": [ { "recordingId": "019f885e-...", "eventSource": "JFR",
 #                    "name": "checkout-7f9c", "profileId": null },
 #                  { "recordingId": "01a06c53-...", "eventSource": "HEAP_DUMP",
 #                    "name": "heap-dump.hprof.gz", "profileId": null } ],

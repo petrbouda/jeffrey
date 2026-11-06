@@ -31,11 +31,11 @@
 -- the event's own `method` field.
 --
 -- Timings below are the probe's, shifted onto the 10:10:00 span the other trace fixtures use.
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.MethodTrace', 'Method Trace', 40, 'method tracing', '["Java Virtual Machine","Method Tracing"]', '1', NULL, true, NULL, NULL,
+    ('jdk.MethodTrace', 'Method Trace', 40, 'method tracing', '["Java Virtual Machine","Method Tracing"]', NULL, true, NULL, NULL,
      '[{"field":"method","header":"Method"}]'),
-    ('jdk.SocketRead', 'Socket Read', 41, 'socket read', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.SocketRead', 'Socket Read', 41, 'socket read', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"host","header":"Remote Host"},{"field":"bytesRead","header":"Bytes Read"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

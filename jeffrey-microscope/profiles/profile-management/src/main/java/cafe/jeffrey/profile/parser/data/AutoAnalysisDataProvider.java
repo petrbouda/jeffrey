@@ -26,7 +26,6 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
@@ -127,18 +126,16 @@ public final class AutoAnalysisDataProvider implements Function<List<Path>, List
     }
 
     /**
-     * One chain as one collection; several, each loaded on its own and merged — the JDK's own
-     * recording first. Some rules take the first recording's facts they meet (its start, its
-     * length), and they were written against the JVM's own recording: met after async-profiler's,
-     * the CPU-load rules find too few samples in a recording holding nearly nine hundred.
+     * One chain as one collection; several, each loaded on its own and merged — in {@link
+     * RecordingChains.Producer} order, the JDK's own recording first. Some rules take the first
+     * recording's facts they meet (its start, its length), and they were written against the JVM's own
+     * recording: met after async-profiler's, the CPU-load rules find too few samples in a recording
+     * holding nearly nine hundred.
      */
-    private static IItemCollection load(Map<RecordingEventSource, List<Path>> chains) throws Exception {
+    private static IItemCollection load(Map<RecordingChains.Producer, List<Path>> chains) throws Exception {
         List<IItemCollection> collections = new ArrayList<>();
-        List<RecordingEventSource> order = chains.keySet().stream()
-                .sorted(Comparator.comparing((RecordingEventSource producer) -> producer != RecordingEventSource.JDK))
-                .toList();
-        for (RecordingEventSource producer : order) {
-            collections.add(JfrLoaderToolkit.loadEvents(chains.get(producer).stream().map(Path::toFile).toList()));
+        for (List<Path> chain : chains.values()) {
+            collections.add(JfrLoaderToolkit.loadEvents(chain.stream().map(Path::toFile).toList()));
         }
         if (collections.size() == 1) {
             return collections.getFirst();

@@ -30,17 +30,17 @@
 -- Notifications carry their own ids, so every case here is about what those ids resolve to.
 -- Exceptions carry none, so every case there is about which window wins.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
     -- Note what is NOT here: a field called spanId. Span discovery is structural, so a notification
     -- naming its field that way would be built into a nameless, durationless span under everything
     -- that ever said anything. It declares enclosingSpanId instead, and one of the tests proves the
     -- discovery leaves it alone.
-    ('jeffrey.Notification', 'Notification', 40, 'application notification', '["Application","Notification"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.Notification', 'Notification', 40, 'application notification', '["Application","Notification"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"enclosingSpanId","header":"Enclosing Span Id"},{"field":"type","header":"Type"},{"field":"message","header":"Message"},{"field":"severity","header":"Severity"},{"field":"category","header":"Category"},{"field":"source","header":"Source"},{"field":"attributes","header":"Attributes"}]'),
-    ('jdk.JavaExceptionThrow', 'Java Exception Throw', 41, 'exception thrown', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.JavaExceptionThrow', 'Java Exception Throw', 41, 'exception thrown', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"message","header":"Message"},{"field":"thrownClass","header":"Class"}]'),
-    ('jdk.JavaErrorThrow', 'Java Error Throw', 42, 'error thrown', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.JavaErrorThrow', 'Java Error Throw', 42, 'error thrown', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"message","header":"Message"},{"field":"thrownClass","header":"Class"}]');
 
 -- Frames for the one throw the exceptions above give a stack to. Stored ROOT-FIRST, because the

@@ -37,7 +37,7 @@ class RecordingSpanTest {
     private static final long END_MS = START_MS + 60_000;
 
     private static ProfileInfo info(String id, Instant start, Instant end) {
-        return new ProfileInfo(id, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+        return new ProfileInfo(id, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 start, end, START, true, false, "recording-" + id);
     }
 

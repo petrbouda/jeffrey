@@ -28,15 +28,15 @@
 -- `columns` is what the parser copied out of the recording's metadata, and it is how the derivation
 -- recognises a span: an event type is one if it declares a `spanId` field. jdk.ExecutionSample
 -- declares none, which is the whole reason it stays out of the trace tables.
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jeffrey.TraceSpan', 'Trace Span', 1, 'trace span', '["Application","Tracing"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.TraceSpan', 'Trace Span', 1, 'trace span', '["Application","Tracing"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"errorType","header":"Error Type"},{"field":"attributes","header":"Attributes"}]'),
-    ('jeffrey.HttpServerExchange', 'HTTP Server Exchange', 2, 'http', '["Application","HTTP"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.HttpServerExchange', 'HTTP Server Exchange', 2, 'http', '["Application","HTTP"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"method","header":"HTTP Method"},{"field":"uri","header":"HTTP Uri"},{"field":"statusCode","header":"Response Status"}]'),
-    ('jeffrey.JdbcQuery', 'JDBC Query', 3, 'jdbc', '["Application","JDBC"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.JdbcQuery', 'JDBC Query', 3, 'jdbc', '["Application","JDBC"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"sql","header":"SQL Query"},{"field":"group","header":"Label for Statement Grouping"},{"field":"rows","header":"Affected/Returned Rows"}]'),
-    ('jdk.ExecutionSample', 'Execution Sample', 4, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL,
+    ('jdk.ExecutionSample', 'Execution Sample', 4, 'CPU execution sample', '["Profiling"]', NULL, true, NULL, NULL,
      '[{"field":"sampledThread","header":"Thread"},{"field":"state","header":"Thread State"}]');
 
 -- The request thread is virtual, as it is in any application serving requests on virtual threads,

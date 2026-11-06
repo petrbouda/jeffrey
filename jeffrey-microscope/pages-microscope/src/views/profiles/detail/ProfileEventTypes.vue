@@ -130,29 +130,6 @@
                         class="ms-2"
                       />
 
-                      <!-- Event type badge -->
-                      <Badge
-                        v-if="node.leaf && node.data.source === 'JDK'"
-                        value="JDK"
-                        variant="info"
-                        size="xs"
-                        class="ms-2"
-                      />
-                      <Badge
-                        v-else-if="node.leaf && node.data.source === 'Async-Profiler'"
-                        value="Async-Profiler"
-                        variant="purple"
-                        size="xs"
-                        class="ms-2"
-                      />
-                      <Badge
-                        v-else-if="node.leaf && node.data.code"
-                        value="Custom"
-                        variant="secondary"
-                        size="xs"
-                        class="ms-2"
-                      />
-
                       <!-- Stack trace indicator -->
                       <i
                         v-if="node.leaf && node.data.withStackTrace"

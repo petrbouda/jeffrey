@@ -36,7 +36,7 @@ class StackSampleFlamegraphPanelProviderTest {
     private static EventSummaryResult event(String code, String sampleType) {
         Map<String, String> extras = sampleType == null ? Map.of() : Map.of("sampleType", sampleType);
         EventSummaryResult.SingleResult primary =
-                new EventSummaryResult.SingleResult(code, code, null, null, 10L, 0L, false, extras);
+                new EventSummaryResult.SingleResult(code, code, null, 10L, 0L, false, extras);
         return new EventSummaryResult(code, code, primary, null);
     }
 

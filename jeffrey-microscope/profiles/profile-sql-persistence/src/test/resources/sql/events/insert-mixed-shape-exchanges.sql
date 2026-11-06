@@ -28,9 +28,9 @@
 --   605  399, the last response code that is not a failure
 --   606  400, the first that is
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jeffrey.HttpServerExchange', 'HTTP Server Exchange', 1, 'http', '["Application","HTTP"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.HttpServerExchange', 'HTTP Server Exchange', 1, 'http', '["Application","HTTP"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"errorType","header":"Error Type"},{"field":"method","header":"HTTP Method"},{"field":"uri","header":"HTTP Uri"},{"field":"statusCode","header":"Response Status"}]');
 
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)

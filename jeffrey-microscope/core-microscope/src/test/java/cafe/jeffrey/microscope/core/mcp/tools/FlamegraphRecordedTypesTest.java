@@ -61,20 +61,20 @@ class FlamegraphRecordedTypesTest {
 
     @Test
     void recordedJfrSocketReadMustStillExport() {
-        assertExportsRecordedType("jdk.SocketRead", RecordingEventSource.JDK);
+        assertExportsRecordedType("jdk.SocketRead", RecordingEventSource.JFR);
     }
 
     @Test
     void recordedTypeWithoutStacksIsNotGraphedAsAnEmptyTree() {
-        EventSummary samples = new EventSummary(EXECUTION_SAMPLE, EXECUTION_SAMPLE, RecordingEventSource.JDK, null,
+        EventSummary samples = new EventSummary(EXECUTION_SAMPLE, EXECUTION_SAMPLE, null,
                 3108, 0, true, false, List.of(), Map.of(), Map.of());
-        EventSummary heapSummary = new EventSummary(HEAP_SUMMARY, HEAP_SUMMARY, RecordingEventSource.JDK, null,
+        EventSummary heapSummary = new EventSummary(HEAP_SUMMARY, HEAP_SUMMARY, null,
                 94, 0, false, false, List.of(), Map.of(), Map.of());
         ProfileEventTypeRepository repository = mock(ProfileEventTypeRepository.class);
         when(repository.eventSummaries()).thenReturn(List.of(samples, heapSummary));
         when(repository.eventSummaries(any(List.class))).thenReturn(List.of(samples));
         DbBasedFlamegraphGenerator generator = mock(DbBasedFlamegraphGenerator.class);
-        FlamegraphMcpTools tools = toolsOver(new PrimaryFlamegraphManager(repository, generator), RecordingEventSource.JDK);
+        FlamegraphMcpTools tools = toolsOver(new PrimaryFlamegraphManager(repository, generator, false), RecordingEventSource.JFR);
 
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
         try {
@@ -100,7 +100,7 @@ class FlamegraphRecordedTypesTest {
     }
 
     private void assertExportsRecordedType(String code, RecordingEventSource source) {
-        EventSummary summary = new EventSummary(code, code, source, null, 12, 200, true, false,
+        EventSummary summary = new EventSummary(code, code, null, 12, 200, true, false,
                 List.of(), Map.of(), Map.of());
         ProfileEventTypeRepository repository = mock(ProfileEventTypeRepository.class);
         when(repository.eventSummaries()).thenReturn(List.of(summary));
@@ -111,7 +111,7 @@ class FlamegraphRecordedTypesTest {
         });
         DbBasedFlamegraphGenerator generator = mock(DbBasedFlamegraphGenerator.class);
         when(generator.generateAiExport(any(), any())).thenReturn("## Call tree\n");
-        PrimaryFlamegraphManager manager = new PrimaryFlamegraphManager(repository, generator);
+        PrimaryFlamegraphManager manager = new PrimaryFlamegraphManager(repository, generator, source.isFlamegraphOnlyImport());
         assertEquals(1, manager.allEventSummaries().size(), "the type is recorded");
         assertEquals(0, manager.eventSummaries().size(), "the presentation catalog omits this type");
 

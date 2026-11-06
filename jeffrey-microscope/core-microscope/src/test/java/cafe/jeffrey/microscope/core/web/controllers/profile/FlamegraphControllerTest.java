@@ -57,7 +57,7 @@ class FlamegraphControllerTest {
             new ThreadInfo(43, -1, "oracleApp:connection-adder"));
 
     private static final ProfileInfo PROFILE = new ProfileInfo(
-            "p-1", "proj-1", "ws-1", "profile", RecordingEventSource.JDK,
+            "p-1", "proj-1", "ws-1", "profile", RecordingEventSource.JFR,
             Instant.parse("2025-01-15T10:00:00Z"), Instant.parse("2025-01-15T10:01:00Z"),
             Instant.parse("2025-01-15T10:02:00Z"), true, false, "rec-1");
 

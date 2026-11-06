@@ -21,9 +21,9 @@
 --
 -- Loaded on top of insert-trace-spans.sql, joining the slow trace as a child of its root span.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jeffrey.ThirdPartyEvent', 'Third Party Event', 5, 'stamped by someone else', '["Application"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.ThirdPartyEvent', 'Third Party Event', 5, 'stamped by someone else', '["Application"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"payload","header":"Payload"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

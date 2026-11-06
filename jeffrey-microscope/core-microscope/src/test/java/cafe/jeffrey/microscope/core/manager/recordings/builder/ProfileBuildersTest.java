@@ -39,9 +39,7 @@ class ProfileBuildersTest {
 
     @Test
     void picksTheBuilderOfTheSourcesKind() {
-        assertSame(pipeline, builders.of(RecordingEventSource.JDK));
-        assertSame(pipeline, builders.of(RecordingEventSource.ASYNC_PROFILER));
-        assertSame(pipeline, builders.of(RecordingEventSource.UNKNOWN));
+        assertSame(pipeline, builders.of(RecordingEventSource.JFR));
         assertSame(pipeline, builders.of(RecordingEventSource.PPROF));
         assertSame(pipeline, builders.of(RecordingEventSource.OPEN_TELEMETRY));
         assertSame(heapDump, builders.of(RecordingEventSource.HEAP_DUMP));

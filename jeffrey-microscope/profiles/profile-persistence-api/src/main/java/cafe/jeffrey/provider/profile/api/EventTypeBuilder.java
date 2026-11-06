@@ -18,7 +18,6 @@
 package cafe.jeffrey.provider.profile.api;
 
 
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +25,6 @@ import java.util.Map;
 public class EventTypeBuilder {
 
     private EventType eventType;
-    private RecordingEventSource source = RecordingEventSource.JDK;
     private String subtype;
     private boolean calculated = false;
     private boolean containsStackTraces = false;
@@ -53,11 +51,6 @@ public class EventTypeBuilder {
         return this;
     }
 
-    public EventTypeBuilder withSource(RecordingEventSource source) {
-        this.source = source;
-        return this;
-    }
-
     public EventTypeBuilder withSubtype(String subtype) {
         this.subtype = subtype;
         return this;
@@ -75,6 +68,6 @@ public class EventTypeBuilder {
 
     public EnhancedEventType build() {
         return new EnhancedEventType(
-                eventType, source, subtype, containsStackTraces, extras, params);
+                eventType, subtype, containsStackTraces, extras, params);
     }
 }

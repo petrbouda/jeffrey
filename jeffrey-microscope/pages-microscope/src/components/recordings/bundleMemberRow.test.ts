@@ -35,7 +35,7 @@ const file = (name: string, type: RecordingFileType) => new RecordingFile(name, 
 describe('memberRowLook', () => {
   it('names an item read from several files after their type', () => {
     const look = memberRowLook(
-      member('JDK', [
+      member('JFR', [
         file('chunk-1.jfr.lz4', RecordingFileType.JFR_LZ4),
         file('chunk-2.jfr.lz4', RecordingFileType.JFR_LZ4)
       ])

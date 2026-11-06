@@ -96,7 +96,7 @@ class ProfilesMcpToolsTest {
      */
     private static ProfileInfo profile(String id, String name, String projectId, boolean enabled) {
         return new ProfileInfo(
-                id, projectId, projectId == null ? null : "ws-1", name, RecordingEventSource.JDK,
+                id, projectId, projectId == null ? null : "ws-1", name, RecordingEventSource.JFR,
                 START, START.plusSeconds(120), START, enabled, false, "rec-" + id);
     }
 
@@ -199,7 +199,7 @@ class ProfilesMcpToolsTest {
         @Test
         void everyPageConformsToTheGeneratedSchema() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    new ProfileInfo("p-3", null, null, null, RecordingEventSource.JDK,
+                    new ProfileInfo("p-3", null, null, null, RecordingEventSource.JFR,
                             null, null, START, false, false, null),
                     profile("p-2", "N".repeat(4_000), null),
                     profile("p-1", "Checkout run", "proj-1")));

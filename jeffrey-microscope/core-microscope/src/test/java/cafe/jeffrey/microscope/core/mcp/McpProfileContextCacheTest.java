@@ -84,7 +84,7 @@ class McpProfileContextCacheTest {
     private ProfileManager stubProfile(String profileId) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                profileId, "proj", "ws", "Profile", RecordingEventSource.JDK,
+                profileId, "proj", "ws", "Profile", RecordingEventSource.JFR,
                 start, start.plusSeconds(60), start, true, false, "rec-1"));
         when(profileManagerResolver.resolve(profileId)).thenReturn(profileManager);
         when(databaseManagerResolver.acquire(profileManager.info())).thenAnswer(invocation ->
@@ -95,7 +95,7 @@ class McpProfileContextCacheTest {
     private void stubProfileWhoseReleaseFails(String profileId) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                profileId, "proj", "ws", "Profile", RecordingEventSource.JDK,
+                profileId, "proj", "ws", "Profile", RecordingEventSource.JFR,
                 start, start.plusSeconds(60), start, true, false, "rec-1"));
         when(profileManagerResolver.resolve(profileId)).thenReturn(profileManager);
         when(databaseManagerResolver.acquire(profileManager.info())).thenAnswer(invocation ->
@@ -388,7 +388,7 @@ class McpProfileContextCacheTest {
         void closingWhileAProfileIsBeingResolvedClosesTheCandidateAndRefusesTheCall() throws Exception {
             ProfileManager profileManager = mock(ProfileManager.class);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE, "proj", "ws", "Profile", RecordingEventSource.JDK,
+                    PROFILE, "proj", "ws", "Profile", RecordingEventSource.JFR,
                     start, start.plusSeconds(60), start, true, false, "rec-1"));
             CountDownLatch resolving = new CountDownLatch(1);
             CountDownLatch continueResolving = new CountDownLatch(1);

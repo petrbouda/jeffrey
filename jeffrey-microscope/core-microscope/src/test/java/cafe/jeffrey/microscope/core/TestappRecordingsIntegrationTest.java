@@ -65,7 +65,6 @@ class TestappRecordingsIntegrationTest extends TestappVolumeMicroscope {
     private static final Pattern SEARCH_MATCHES = Pattern.compile("(?m)^search_matches: (\\d+)");
 
     /** async-profiler's samplers, as the profile records them: the CPU by its timer, both every 10 ms. */
-    private static final String ASYNC_PROFILER_SOURCE = "0";
     private static final String CPU_TIMER = "CTIMER";
     private static final String TEN_MILLIS = "{\"sample_interval\":\"10000000\"}";
 
@@ -103,17 +102,17 @@ class TestappRecordingsIntegrationTest extends TestappVolumeMicroscope {
 
         /**
          * The samplers are async-profiler's, read from the settings its chain recorded — the CPU by its
-         * timer — both at their 10 ms interval, though the JDK's chain recorded settings of its own for
-         * the same event types.
+         * timer, the profiling mode async-profiler names — both at their 10 ms interval, though the JDK's
+         * chain recorded settings of its own for the same event types.
          */
         @ParameterizedTest
         @EnumSource(TestappRecording.class)
         void theSamplersAreAsyncProfilersAtTheirInterval(TestappRecording recording) {
             for (String profileId : List.of(profile(recording), splitProfile(recording))) {
                 assertEquals(List.of(
-                                List.of(EXECUTION_SAMPLE, ASYNC_PROFILER_SOURCE, CPU_TIMER, TEN_MILLIS),
-                                List.of(WALL_CLOCK_SAMPLE, ASYNC_PROFILER_SOURCE, "null", TEN_MILLIS)),
-                        query(profileId, "SELECT name, source, COALESCE(subtype, 'null'), extras FROM event_types"
+                                List.of(EXECUTION_SAMPLE, CPU_TIMER, TEN_MILLIS),
+                                List.of(WALL_CLOCK_SAMPLE, "null", TEN_MILLIS)),
+                        query(profileId, "SELECT name, COALESCE(subtype, 'null'), extras FROM event_types"
                                 + " WHERE name IN ('" + EXECUTION_SAMPLE + "', '" + WALL_CLOCK_SAMPLE + "') ORDER BY name"));
             }
         }

@@ -164,7 +164,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
         return new Recording(
                 RECORDING_ID, FILENAME, null,
-                RecordingEventSource.JDK,
+                RecordingEventSource.JFR,
                 NOW,
                 NOW.minusSeconds(60), NOW,
                 false, null, null,
@@ -220,7 +220,7 @@ class ProfileRecordingsManagerAnalyzeTest {
     private static Recording sessionRecording() {
         return new Recording(
                 RECORDING_ID, "checkout_2026-03-01T12-00-00Z", null,
-                RecordingEventSource.JDK,
+                RecordingEventSource.JFR,
                 NOW,
                 NOW.minusSeconds(60), NOW,
                 false, null, null,
@@ -458,7 +458,7 @@ class ProfileRecordingsManagerAnalyzeTest {
         @Test
         void refusesAProfileOfAnotherRecording() {
             when(profileRepository.find()).thenReturn(Optional.of(new ProfileInfo(
-                    "foreign-profile", null, null, FILENAME, RecordingEventSource.JDK,
+                    "foreign-profile", null, null, FILENAME, RecordingEventSource.JFR,
                     NOW, NOW, NOW, true, false, "another-recording")));
 
             assertThrows(RuntimeException.class, () -> manager.deleteProfile(RECORDING_ID, "foreign-profile"));
@@ -572,7 +572,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
     private static ProfileInfo profileInfo(String profileId, boolean enabled) {
         return new ProfileInfo(
-                profileId, null, null, FILENAME, RecordingEventSource.JDK,
+                profileId, null, null, FILENAME, RecordingEventSource.JFR,
                 NOW.minusSeconds(60), NOW, NOW, enabled, false, RECORDING_ID);
     }
 

@@ -163,7 +163,7 @@ class RecordingsControllerTest {
         private static final Instant NOW = Instant.parse("2026-10-24T08:00:00Z");
 
         private Recording member(String id, String bundleId, String groupId) {
-            return new Recording(id, id, groupId, RecordingEventSource.JDK, NOW, NOW, NOW,
+            return new Recording(id, id, groupId, RecordingEventSource.JFR, NOW, NOW, NOW,
                     false, null, null, List.of(), bundleId);
         }
 
@@ -263,7 +263,7 @@ class RecordingsControllerTest {
             Path chunk = Files.writeString(dir.resolve("rec-1-rec-20260220-120500.jfr"), "chunk");
             when(recordingsManager.findRecordingFile("rec-1", "rf-1")).thenReturn(Optional.of(chunk));
             when(recordingsManager.findRecording("rec-1")).thenReturn(Optional.of(new Recording(
-                    "rec-1", "checkout", null, RecordingEventSource.JDK, Instant.EPOCH, null, null,
+                    "rec-1", "checkout", null, RecordingEventSource.JFR, Instant.EPOCH, null, null,
                     false, null, null, List.of(new RecordingFile(
                             "rf-1", "rec-1", "rec-20260220-120500.jfr", ManagedFile.JFR, Instant.EPOCH, 5L)))));
 

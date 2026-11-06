@@ -4233,9 +4233,7 @@
               "properties": {
                 "eventSource": {
                   "enum": [
-                    "ASYNC_PROFILER",
-                    "JDK",
-                    "UNKNOWN",
+                    "JFR",
                     "HEAP_DUMP",
                     "PPROF",
                     "OPEN_TELEMETRY",
@@ -23653,12 +23651,6 @@
                   },
                   "type": "object"
                 },
-                "source": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
                 "weight": {
                   "type": [
                     "integer",
@@ -23679,7 +23671,6 @@
                 "label",
                 "samples",
                 "settings",
-                "source",
                 "weight",
                 "weightUnit"
               ],

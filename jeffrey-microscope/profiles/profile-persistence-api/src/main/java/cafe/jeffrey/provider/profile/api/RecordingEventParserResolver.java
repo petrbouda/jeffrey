@@ -23,7 +23,7 @@ import java.util.Map;
 
 /**
  * Resolves the {@link RecordingEventParser} for the event source of the recording being analyzed —
- * JFR-based sources (JDK, async-profiler) and pprof profiles use different parsers over the same
+ * JFR recordings, pprof and OTLP profiles use different parsers over the same
  * event-writing pipeline.
  */
 @FunctionalInterface

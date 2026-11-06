@@ -53,7 +53,7 @@ class DownloadedSessionIndexTest {
 
     private static Recording recording(String id, String profileId, Instant createdAt) {
         return new Recording(
-                id, id, null, RecordingEventSource.JDK, createdAt, CREATED_AT, CREATED_AT,
+                id, id, null, RecordingEventSource.JFR, createdAt, CREATED_AT, CREATED_AT,
                 profileId != null, profileId, profileId, List.of());
     }
 
@@ -130,7 +130,7 @@ class DownloadedSessionIndexTest {
                 "rec-heap", "app.hprof", null, RecordingEventSource.HEAP_DUMP, CREATED_AT.plusSeconds(60),
                 null, null, true, "profile-heap", "app.hprof", List.of(), "bundle-1");
         Recording session = new Recording(
-                "rec-jfr", "session", null, RecordingEventSource.JDK, CREATED_AT, CREATED_AT, CREATED_AT,
+                "rec-jfr", "session", null, RecordingEventSource.JFR, CREATED_AT, CREATED_AT, CREATED_AT,
                 false, null, null, List.of(), "bundle-1");
         DownloadedSessionIndex index = indexOf(
                 List.of(heapItem, session),

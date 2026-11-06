@@ -103,7 +103,8 @@ public class ProfileVisualizationConfiguration {
             ProfileEventStreamRepository eventRepository = profileRepositories.newEventStreamRepository(profileDb);
             return new PrimaryFlamegraphManager(eventTypeRepository,
                     new DbBasedFlamegraphGenerator(
-                            eventRepository, minFrameThresholdPct, aiExportConfig));
+                            eventRepository, minFrameThresholdPct, aiExportConfig),
+                    profileInfo.eventSource().isFlamegraphOnlyImport());
         };
     }
 

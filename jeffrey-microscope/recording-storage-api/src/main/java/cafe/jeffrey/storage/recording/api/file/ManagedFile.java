@@ -48,14 +48,14 @@ public enum ManagedFile {
             FileExtensions.JFR_LZ4,
             filename -> filename.endsWith("." + FileExtensions.JFR_LZ4),
             FileCategory.RECORDING,
-            RecordingEventSource.UNKNOWN
+            RecordingEventSource.JFR
     ),
     JFR(
             "JDK Flight Recording",
             FileExtensions.JFR,
             filename -> filename.endsWith("." + FileExtensions.JFR),
             FileCategory.RECORDING,
-            RecordingEventSource.UNKNOWN
+            RecordingEventSource.JFR
     ),
     ASPROF_TEMP(
             "Async Profiler Cache File",
@@ -223,9 +223,6 @@ public enum ManagedFile {
      * What a recording of this one file is initialized as, or empty when a file of this type is never
      * made into a profile — a log, a crash file, a profiler's scratch file. Those travel in a bundle as
      * download-only files and are refused as an upload of their own.
-     *
-     * <p>A JFR file answers {@link RecordingEventSource#UNKNOWN}: whether it came from the JDK or from
-     * async-profiler is read from its metadata once it is stored.
      */
     public Optional<RecordingEventSource> profileSource() {
         return Optional.ofNullable(profileSource);

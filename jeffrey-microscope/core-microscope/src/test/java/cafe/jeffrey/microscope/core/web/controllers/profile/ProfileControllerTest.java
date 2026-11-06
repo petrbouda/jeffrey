@@ -101,7 +101,7 @@ class ProfileControllerTest {
                 "project-1",
                 "ws-1",
                 "Demo profile",
-                RecordingEventSource.JDK,
+                RecordingEventSource.JFR,
                 Instant.parse("2026-04-01T10:00:00Z"),
                 Instant.parse("2026-04-01T10:05:00Z"),
                 Instant.parse("2026-04-01T10:10:00Z"),

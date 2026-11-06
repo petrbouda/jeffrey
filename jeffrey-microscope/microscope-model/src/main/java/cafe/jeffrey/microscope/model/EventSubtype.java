@@ -17,31 +17,22 @@
 
 package cafe.jeffrey.microscope.model;
 
-import static cafe.jeffrey.microscope.model.RecordingEventSource.ASYNC_PROFILER;
-import static cafe.jeffrey.microscope.model.RecordingEventSource.JDK;
-
 public enum EventSubtype {
-    CPU("cpu", ASYNC_PROFILER, "CPU Profiling (perf_events)"),
-    CTIMER("ctimer", ASYNC_PROFILER, "CPU Profiling (ctimer)"),
-    ITIMER("itimer", ASYNC_PROFILER, "CPU Profiling (itimer)"),
-    WALL("wall", ASYNC_PROFILER, "Wall-Clock Profiling"),
-    METHOD(null, ASYNC_PROFILER, "Method Tracing"),
-    EXECUTION_SAMPLE(null, JDK, "Method Profiling Sample");
+    CPU("cpu", "CPU Profiling (perf_events)"),
+    CTIMER("ctimer", "CPU Profiling (ctimer)"),
+    ITIMER("itimer", "CPU Profiling (itimer)"),
+    WALL("wall", "Wall-Clock Profiling"),
+    METHOD(null, "Method Tracing"),
+    EXECUTION_SAMPLE(null, "Method Profiling Sample");
 
     private static final EventSubtype[] TYPES = EventSubtype.values();
 
     private final String name;
-    private final RecordingEventSource source;
     private final String label;
 
-    EventSubtype(String name, RecordingEventSource source, String label) {
+    EventSubtype(String name, String label) {
         this.name = name;
-        this.source = source;
         this.label = label;
-    }
-
-    public RecordingEventSource getSource() {
-        return source;
     }
 
     public String getLabel() {
@@ -59,7 +50,7 @@ public enum EventSubtype {
 
     public static EventSubtype resolveAsyncProfilerType(String eventType) {
         for (EventSubtype type : TYPES) {
-            if (type.source == ASYNC_PROFILER && type.name != null && type.name.equals(eventType)) {
+            if (type.name != null && type.name.equals(eventType)) {
                 return type;
             }
         }

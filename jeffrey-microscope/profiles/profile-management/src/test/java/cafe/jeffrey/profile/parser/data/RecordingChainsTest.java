@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.parser.data;
 
 import cafe.jeffrey.jfrparser.raw.JfrParser;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.test.recording.RecordedSession;
 import cafe.jeffrey.test.recording.TestappRecording;
 import org.junit.jupiter.api.Test;
@@ -44,9 +43,9 @@ class RecordingChainsTest {
     void oneProfilersFileIsOneChainKeptAsItLies() throws IOException {
         Path file = Files.write(dir.resolve("chunk.jfr"), RecordedSession.CHUNKS.getFirst().bytes());
 
-        Map<RecordingEventSource, List<Path>> chains = RecordingChains.of(List.of(file), dir.resolve("scratch"));
+        Map<RecordingChains.Producer, List<Path>> chains = RecordingChains.of(List.of(file), dir.resolve("scratch"));
 
-        assertEquals(Map.of(RecordingEventSource.ASYNC_PROFILER, List.of(file)), chains);
+        assertEquals(Map.of(RecordingChains.Producer.ASYNC_PROFILER, List.of(file)), chains);
         assertFalse(Files.exists(dir.resolve("scratch")));
     }
 
@@ -59,12 +58,12 @@ class RecordingChainsTest {
         TestappRecording recording = TestappRecording.DIRECT;
         Path file = Files.write(dir.resolve(TestappRecording.RECORDING_FILE), recording.bytes());
 
-        Map<RecordingEventSource, List<Path>> chains = RecordingChains.of(List.of(file), dir.resolve("scratch"));
+        Map<RecordingChains.Producer, List<Path>> chains = RecordingChains.of(List.of(file), dir.resolve("scratch"));
 
         List<Instant> starts = recording.chunkStarts();
-        assertEquals(List.of(starts.get(0), starts.get(1)), startsOf(chains.get(RecordingEventSource.JDK)));
+        assertEquals(List.of(starts.get(0), starts.get(1)), startsOf(chains.get(RecordingChains.Producer.JDK)));
         assertEquals(List.of(starts.get(TestappRecording.PROFILER_CHUNK)),
-                startsOf(chains.get(RecordingEventSource.ASYNC_PROFILER)));
+                startsOf(chains.get(RecordingChains.Producer.ASYNC_PROFILER)));
     }
 
     private static List<Instant> startsOf(List<Path> files) {

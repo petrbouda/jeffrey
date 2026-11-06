@@ -14,9 +14,9 @@
 -- limitations under the License.
 
 -- Insert event type for ThreadAllocationStatistics
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.ThreadAllocationStatistics', 'Thread Allocation Statistics', 2, 'Thread allocation stats', '["Memory"]', '1', NULL, false, NULL, NULL, NULL);
+    ('jdk.ThreadAllocationStatistics', 'Thread Allocation Statistics', 2, 'Thread allocation stats', '["Memory"]', NULL, false, NULL, NULL, NULL);
 
 -- Insert threads
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)

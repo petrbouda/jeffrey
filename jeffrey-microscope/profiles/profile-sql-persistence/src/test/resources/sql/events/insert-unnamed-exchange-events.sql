@@ -30,13 +30,13 @@
 -- `columns` is what the parser copied out of the recording's metadata, and it is how the derivation
 -- recognises a span: an event type is one if it declares a `spanId` field. That much these types
 -- always declared -- it is the span shape around it that is missing.
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jeffrey.HttpServerExchange', 'HTTP Server Exchange', 1, 'http', '["Application","HTTP"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.HttpServerExchange', 'HTTP Server Exchange', 1, 'http', '["Application","HTTP"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"method","header":"HTTP Method"},{"field":"uri","header":"HTTP Uri"},{"field":"status","header":"Response Status"}]'),
-    ('jeffrey.GrpcServerExchange', 'gRPC Server Exchange', 2, 'grpc', '["Application","gRPC"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.GrpcServerExchange', 'gRPC Server Exchange', 2, 'grpc', '["Application","gRPC"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"service","header":"Service Name"},{"field":"method","header":"Method Name"},{"field":"status","header":"Status Code"}]'),
-    ('jeffrey.JdbcQuery', 'JDBC Query', 3, 'jdbc', '["Application","JDBC"]', '1', NULL, false, NULL, NULL,
+    ('jeffrey.JdbcQuery', 'JDBC Query', 3, 'jdbc', '["Application","JDBC"]', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Statement Name"},{"field":"sql","header":"SQL Query"},{"field":"isSuccess","header":"Successful Execution"}]');
 
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)

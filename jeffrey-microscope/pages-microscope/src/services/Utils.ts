@@ -16,7 +16,6 @@
  */
 
 import TimeRange from '@/services/api/model/TimeRange';
-import type { Variant } from '@shared/types/ui';
 
 export default class Utils {
   static capitalize(str: string) {
@@ -64,36 +63,6 @@ export default class Utils {
 
   static isNotNull(value: any) {
     return value != null;
-  }
-
-  /**
-   * Format file type names for display
-   * Converts technical file type names to more readable formats
-   * @param fileType The file type string to format
-   * @returns Formatted file type string for display
-   */
-  static formatEventSource(source: string): string {
-    switch (source) {
-      case 'ASYNC_PROFILER':
-        return 'Async Profiler';
-      case 'HEAP_DUMP':
-        return 'Heap Dump';
-      case 'UNKNOWN':
-        return 'Unknown';
-      default:
-        return source;
-    }
-  }
-
-  static getEventSourceVariant(source: string): Variant {
-    switch (source) {
-      case 'ASYNC_PROFILER':
-        return 'purple';
-      case 'JDK':
-        return 'info';
-      default:
-        return 'grey';
-    }
   }
 
   static formatFileType(fileType: string): string {

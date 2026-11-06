@@ -74,7 +74,7 @@ class JdbcProfileRepositoryTest {
 
             ProfileRepository.InsertProfile insertProfile = new ProfileRepository.InsertProfile(
                     "New Profile",
-                    RecordingEventSource.JDK,
+                    RecordingEventSource.JFR,
                     Instant.parse("2025-01-15T12:00:00Z"),
                     "rec-001",
                     Instant.parse("2025-01-15T11:00:00Z"),

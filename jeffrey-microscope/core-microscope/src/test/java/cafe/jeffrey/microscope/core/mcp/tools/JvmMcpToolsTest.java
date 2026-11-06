@@ -273,7 +273,7 @@ class JvmMcpToolsTest {
 
     private JvmMcpTools tools(AdvertisedFamilies advertised) {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 START, START.plusSeconds(60), START, true, false, "recording-1"));
         BoundedOperation<AutoAnalysisSection.AutoAnalysisDashboard> autoAnalysis = new BoundedOperation<>(
                 OperationKind.JVM_AUTO_ANALYSIS,
@@ -323,7 +323,7 @@ class JvmMcpToolsTest {
 
     private static EventSummaryResult summary(String eventType) {
         return new EventSummaryResult(new EventSummary(
-                eventType, eventType, null, null, 1, 0, false, false, List.of(), null, null));
+                eventType, eventType, null, 1, 0, false, false, List.of(), null, null));
     }
 
     /** The answer's structured content, checked against the schema the tool advertises and its link. */

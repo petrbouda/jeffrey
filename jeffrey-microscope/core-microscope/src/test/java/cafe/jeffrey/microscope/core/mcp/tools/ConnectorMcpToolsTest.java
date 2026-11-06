@@ -239,7 +239,7 @@ class ConnectorMcpToolsTest {
     /** The recording a download landed as: a JFR recording outside any bundle. */
     private static Recording landedRecording() {
         Recording recording = mock(Recording.class);
-        when(recording.eventSource()).thenReturn(RecordingEventSource.JDK);
+        when(recording.eventSource()).thenReturn(RecordingEventSource.JFR);
         return recording;
     }
 
@@ -268,7 +268,7 @@ class ConnectorMcpToolsTest {
         when(connector.info()).thenReturn(connectorInfo("production"));
         when(resolver.currentConnector()).thenReturn(Optional.of(connector));
         Recording recording = new Recording(
-                recordingId, recordingId, null, RecordingEventSource.JDK, NOW, NOW, NOW,
+                recordingId, recordingId, null, RecordingEventSource.JFR, NOW, NOW, NOW,
                 profileId != null, profileId, profileId, List.of());
         when(recordingsManager.listRecordings()).thenReturn(List.of(recording));
         when(recordingsManager.findRecording(recordingId)).thenReturn(Optional.of(recording));
@@ -911,7 +911,7 @@ class ConnectorMcpToolsTest {
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-existing");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             when(recordingsManager.profile("profile-building").orElseThrow().info().enabled()).thenReturn(false);
-            Recording stored = new Recording("rec-existing", "checkout", null, RecordingEventSource.JDK,
+            Recording stored = new Recording("rec-existing", "checkout", null, RecordingEventSource.JFR,
                     NOW, NOW, NOW, true, "profile-building", "checkout", List.of());
             when(recordingsManager.findRecording("rec-existing")).thenReturn(Optional.of(stored));
 
@@ -928,7 +928,7 @@ class ConnectorMcpToolsTest {
         void aProfileThatBecomesUnavailableDuringPreflightIsNotOffered(boolean deleted) {
             localRecording("rec-existing", "profile-1", REF);
             ProfileInfo profileInfo = recordingsManager.profile("profile-1").orElseThrow().info();
-            Recording stored = new Recording("rec-existing", "checkout", null, RecordingEventSource.JDK,
+            Recording stored = new Recording("rec-existing", "checkout", null, RecordingEventSource.JFR,
                     NOW, NOW, NOW, true, "profile-1", "checkout", List.of());
             when(recordingsManager.findRecording("rec-existing")).thenReturn(Optional.of(stored));
             RecordingSession session = jfrSession(SESSION_ID, NOW);

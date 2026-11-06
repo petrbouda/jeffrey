@@ -42,7 +42,6 @@ import cafe.jeffrey.provider.profile.api.EventSetting;
 import cafe.jeffrey.provider.profile.api.EventStacktrace;
 import cafe.jeffrey.provider.profile.api.EventThread;
 import cafe.jeffrey.provider.profile.api.EventType;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.provider.profile.api.SingleThreadedEventWriter;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
@@ -396,8 +395,7 @@ public class OtlpProfileReader {
                     describe(state),
                     List.of(),
                     buildColumns(state),
-                    Map.of(EXTRA_SAMPLE_TYPE, state.sampleType + SAMPLE_TYPE_SEPARATOR + state.sampleUnit),
-                    RecordingEventSource.OPEN_TELEMETRY));
+                    Map.of(EXTRA_SAMPLE_TYPE, state.sampleType + SAMPLE_TYPE_SEPARATOR + state.sampleUnit)));
         }
     }
 

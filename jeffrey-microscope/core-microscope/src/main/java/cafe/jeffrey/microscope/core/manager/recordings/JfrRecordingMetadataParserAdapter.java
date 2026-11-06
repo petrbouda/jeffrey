@@ -48,7 +48,6 @@ public class JfrRecordingMetadataParserAdapter implements RecordingMetadataParse
         try {
             RecordingInformation info = delegate.provide(new RecordingSources(recordingFiles));
             return Optional.of(new RecordingMetadata(
-                    info.eventSource(),
                     info.recordingStartedAt(),
                     info.recordingFinishedAt()));
         } catch (Exception e) {

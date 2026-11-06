@@ -83,7 +83,7 @@ class IdeMcpToolsTest {
     @BeforeEach
     void setUp() {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 RECORDED_AT, RECORDED_AT.plusSeconds(60), RECORDED_AT, true, false, RECORDING_ID));
         when(recordingCommitResolver.resolve(any())).thenReturn(Optional.empty());
         tools = new IdeMcpTools(ideBridge, profileManager, recordingCommitResolver, PROFILE_ID, EVERY_FAMILY);

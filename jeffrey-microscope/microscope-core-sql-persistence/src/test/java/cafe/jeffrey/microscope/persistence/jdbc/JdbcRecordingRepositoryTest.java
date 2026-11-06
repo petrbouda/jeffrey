@@ -133,7 +133,7 @@ class JdbcRecordingRepositoryTest {
             JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
 
             repository.insertRecording(
-                    new Recording("new-rec", "New", null, RecordingEventSource.JDK, FIXED_TIME,
+                    new Recording("new-rec", "New", null, RecordingEventSource.JFR, FIXED_TIME,
                             FIXED_TIME, FIXED_TIME, false, null, null, List.of()),
                     new RecordingFile("new-file", "new-rec", "new.jfr", ManagedFile.JFR, FIXED_TIME, 1));
             String groupId = repository.insertGroup("Group");
@@ -196,7 +196,7 @@ class JdbcRecordingRepositoryTest {
 
             Recording recording = new Recording(
                     "new-rec-001", "New Recording", null,
-                    RecordingEventSource.JDK, Instant.parse("2025-01-15T12:00:00Z"),
+                    RecordingEventSource.JFR, Instant.parse("2025-01-15T12:00:00Z"),
                     Instant.parse("2025-01-15T11:00:00Z"), Instant.parse("2025-01-15T11:30:00Z"),
                     false, null, null, List.of());
             RecordingFile recordingFile = new RecordingFile(
@@ -221,10 +221,10 @@ class JdbcRecordingRepositoryTest {
         private static final String FILE_NAME = "app.jfr";
         private static final long SIZE = 2048;
         private static final String INSERT_PROFILE = "INSERT INTO profiles (profile_id, profile_name, event_source, "
-                + "created_at, recording_id) VALUES (?, 'app', 'JDK', TIMESTAMPTZ '2026-01-15 12:00:00+00', ?)";
+                + "created_at, recording_id) VALUES (?, 'app', 'JFR', TIMESTAMPTZ '2026-01-15 12:00:00+00', ?)";
 
         private static Recording recording(String id, Instant createdAt) {
-            return new Recording(id, FILE_NAME, null, RecordingEventSource.JDK, createdAt,
+            return new Recording(id, FILE_NAME, null, RecordingEventSource.JFR, createdAt,
                     createdAt, createdAt, false, null, null, List.of());
         }
 
@@ -340,7 +340,7 @@ class JdbcRecordingRepositoryTest {
 
         private static final String RECORDING_ID = "rec-multi";
         private static final String INSERT_PROFILE = "INSERT INTO profiles (profile_id, profile_name, event_source, "
-                + "created_at, recording_id) VALUES (?, ?, 'JDK', ?, ?)";
+                + "created_at, recording_id) VALUES (?, ?, 'JFR', ?, ?)";
 
         @Test
         void isListedOnceWithItsNewestProfile(DataSource dataSource) throws SQLException {
@@ -367,7 +367,7 @@ class JdbcRecordingRepositoryTest {
         private static JdbcRecordingRepository initializedTwice(DataSource dataSource) throws SQLException {
             JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
             repository.insertRecording(
-                    new Recording(RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK, FIXED_TIME,
+                    new Recording(RECORDING_ID, "app.jfr", null, RecordingEventSource.JFR, FIXED_TIME,
                             FIXED_TIME, FIXED_TIME, false, null, null, List.of()),
                     new RecordingFile("file-multi", RECORDING_ID, "app.jfr", ManagedFile.JFR, FIXED_TIME, 1024));
             insertProfile(dataSource, "prof-older", "app.jfr", FIXED_TIME);
@@ -550,7 +550,7 @@ class JdbcRecordingRepositoryTest {
 
         private static void insertBundle(JdbcRecordingRepository repository, String groupId) {
             repository.insertBundle(bundle(groupId), List.of(
-                    member("rec-jfr", "checkout", RecordingEventSource.JDK, "chunk-1.jfr", "chunk-2.jfr"),
+                    member("rec-jfr", "checkout", RecordingEventSource.JFR, "chunk-1.jfr", "chunk-2.jfr"),
                     member("rec-heap", "heap.hprof", RecordingEventSource.HEAP_DUMP, "heap.hprof")));
         }
 
@@ -576,7 +576,7 @@ class JdbcRecordingRepositoryTest {
             JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
             String groupId = repository.insertGroup("incident");
             RecordingFile file = new RecordingFile("jfr-file", "rec-legacy", "chunk.jfr", ManagedFile.JFR, FIXED_TIME, 1024);
-            repository.insertRecording(new Recording("rec-legacy", "checkout", groupId, RecordingEventSource.JDK,
+            repository.insertRecording(new Recording("rec-legacy", "checkout", groupId, RecordingEventSource.JFR,
                     FIXED_TIME, null, null, false, null, null, List.of(file)), file);
 
             repository.attachRecordingToBundle("rec-legacy", new Bundle(BUNDLE_ID, "checkout", groupId, FIXED_TIME, List.of()));
@@ -647,7 +647,7 @@ class JdbcRecordingRepositoryTest {
             JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
 
             assertThrows(IllegalArgumentException.class, () -> repository.insertBundle(bundle(null), List.of(
-                    member("rec-jfr", "checkout", RecordingEventSource.JDK, "chunk-1.jfr"),
+                    member("rec-jfr", "checkout", RecordingEventSource.JFR, "chunk-1.jfr"),
                     member("rec-empty", "empty", RecordingEventSource.HEAP_DUMP))));
 
             assertTrue(repository.findBundle(BUNDLE_ID).isEmpty());

@@ -110,9 +110,9 @@ class McpCatalogueIntegrationTest {
         when(repositories.findAllProfiles()).thenReturn(List.of(
                 // A row with every nullable field null and a name past the display bound, which is
                 // where the ["string","null"] unions and the shortened name are the parts worth checking.
-                new ProfileInfo("p2", null, null, "N".repeat(4_000), RecordingEventSource.JDK,
+                new ProfileInfo("p2", null, null, "N".repeat(4_000), RecordingEventSource.JFR,
                         null, null, time, true, true, null),
-                new ProfileInfo("p1", "proj-1", "ws-1", "First", RecordingEventSource.JDK,
+                new ProfileInfo("p1", "proj-1", "ws-1", "First", RecordingEventSource.JFR,
                         time, time.plusSeconds(60), time, false, false, "r1")));
 
         assertConforms(call("profiles_list", Json.createObject().put("limit", 1)),
@@ -156,9 +156,9 @@ class McpCatalogueIntegrationTest {
     void realProfileCatalogueContinuesThroughTheEndpointWithoutLosingRecordingIdentity() {
         Instant time = Instant.parse("2026-01-01T00:00:00Z");
         when(repositories.findAllProfiles()).thenReturn(List.of(
-                new ProfileInfo("p2", null, null, "Second", RecordingEventSource.JDK,
+                new ProfileInfo("p2", null, null, "Second", RecordingEventSource.JFR,
                         time, time.plusSeconds(60), time, true, false, "r2"),
-                new ProfileInfo("p1", null, null, "First", RecordingEventSource.JDK,
+                new ProfileInfo("p1", null, null, "First", RecordingEventSource.JFR,
                         time, time.plusSeconds(60), time, false, false, "r1")));
         // Newest first, so p2 leads and the still-building p1 is what the cursor has to carry across.
         JsonNode first = call("profiles_list", Json.createObject().put("limit", 1));
