@@ -99,6 +99,9 @@ analysed. One row per area with data (`AVAILABLE` or `NEEDS_PREPARATION`), in th
 2. the suggested ones, marked ★;
 3. the rest.
 
+**Before you send it, check the first row: when the profile has traces it is Traces, and a ★ row
+comes second at the earliest.** The ★ is evidence; it never moves a row above Traces.
+
 Each row has its `title`, what its page shows in a few words, and `[↗ open](<its uiLink>)` — for a
 profile with traces and a suggested lock area, it starts:
 
@@ -257,8 +260,9 @@ lost, and you do not stop to ask. A question about where the application's code 
 its repository checked out here, is answered by `code_hotspots` with the checkout's `framePrefixes` (see
 the `code-insight` skill): a small answer that ranks your methods by the cost charged to them, and whose
 `calledFrom` names the code behind a wrapper. Answer from it, say the graph itself was not read, and link
-it. Whatever you could answer, the close is the same: when a finding names code this repository holds,
-offer **Implement fixes** by that name (see *Implement fixes* below), never "I can look into it".
+it. Then `Glob` for the files of the classes it names — the check *Implement fixes* below needs — and
+close the same way whatever you could answer: when a finding names code this repository holds, offer
+**Implement fixes** by that name, never "I can read it and suggest changes".
 
 ## Grounding claims
 
@@ -296,6 +300,9 @@ can become a change to its code. When it can, offer that as an option labelled e
 answer. In Claude Code close with `AskUserQuestion` whenever this option is on offer, a named area's
 answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
 starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
+Before you send a reply whose findings name code this repository holds, check its close: the option
+reads **Implement fixes**, word for word. "Fix `count()`: I can propose changes" is the same offer
+without its name, and the user cannot pick it.
 
 Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
 no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before

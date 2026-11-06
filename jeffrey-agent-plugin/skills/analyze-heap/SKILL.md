@@ -193,6 +193,9 @@ can become a change to its code. When it can, offer that as an option labelled e
 answer. In Claude Code close with `AskUserQuestion` whenever this option is on offer, a named area's
 answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
 starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
+Before you send a reply whose findings name code this repository holds, check its close: the option
+reads **Implement fixes**, word for word. "Fix `count()`: I can propose changes" is the same offer
+without its name, and the user cannot pick it.
 
 Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
 no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before

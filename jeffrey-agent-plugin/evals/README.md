@@ -1387,17 +1387,46 @@ closed with "If you'd like, I can look at…". `analyze-jfr` now answers a code 
 with the checkout's `framePrefixes` when no one here can open the export, and closes with **Implement fixes**
 by that name whatever it could answer.
 
-One full mocked pass on plugin 1.0.32, three runs each: **20 of 25 cases at the threshold, overall 0.96,
-$15.89**.
+The first pass on these mocks (plugin 1.0.32, three runs each) put 20 of 25 cases at the threshold (overall
+0.96): `fix-it` 3 of 3, both heap cases 3 of 3, `slow-endpoints` 2 of 3. Its misses, read from the replies the
+map now keeps, and what each took:
 
-| Case | 1.0.31 | 1.0.32 | What missed |
-|---|---|---|---|
-| `fix-it` | 1 of 3 (0.73) | 3 of 3 (1.00) | — |
-| `slow-endpoints` | 1 of 3 (0.87) | 2 of 3 (0.87) | one run read only the dashboards, no slow trace, and blamed the lock |
-| `heap-dump-what-holds-memory`, `heap-offers-implement-fixes` | — | 3 of 3 each | — |
-| `write-report` | 0 of 3 | 0 of 3 (0.39) | two runs wrote the report from the prompt, reaching no skill and no tool; one called `code_callSites` grouped by name, which no recording holds |
-| `gc-pauses` | 3 of 3 | 0 of 3 (0.83) | two runs left a link unmarked, one failed the proportion judge |
-| `exception-sites`, `what-runs` | — | 2 of 3 each (0.96, 0.92) | the check before parsing not named; a reply not tied to the code |
+- **`write-report`: two runs never reached the `report` skill.** Its description said "once analyze-jfr … has
+  done the reading"; the case brings findings from an earlier analysis. The description now covers that, the
+  figures read back before they are written. The third run failed `recorded-call-semantics` on
+  `code_callSites` with `groupBy: name`, the server's own default for a JDBC statement: the recorder now knows
+  that default, so the grader and the relay accept it.
+- **`gc-pauses`: a run proposed `-XX:MetaspaceSize`** at 0.33% overhead, and two left a tool's name linked to the
+  profile's page without ↗. `jvm_gc`'s guidance now says, below 1% of the recording, that GC is not what holds the
+  application back and that no collector, heap or metaspace setting follows (the skill rule alone did not
+  hold); a tool not called is named in backticks and never linked.
+- **`what-runs`: the steps came from the source.** The recorder exported only the slowest trace of an
+  operation, and a run that read the second-slowest got an error: it now exports the first three
+  (trace fixtures 217 → 411), and `code-insight` takes a request's steps in order from one
+  trace's span tree.
+- **`open-question`: ★ rows above Traces.** The skill now checks the Pages table's first row before sending.
+- **`exception-sites`: the grader missed the right fix.** "Check first whether the string is all digits"
+  matched none of `checks-before-parsing`'s phrasings; two were added (a check first … digits/format, "without a
+  throw"), and catching or rewriting the input still fail it. The skill names the behaviour-preserving check
+  and puts a rewrite second.
+- **`fix-it` and the heap cases: the offer without its name** ("Fix `count()`: I can propose changes"). The
+  shared *Implement fixes* section now checks the close names **Implement fixes** word for word, and the
+  unreadable-export fallback `Glob`s for the classes the offer needs.
+- **`slow-endpoints`: one run read only the dashboards.** The traces route covers any question about slow
+  requests, the dashboards beside a slow trace and never instead of one.
 
-The live suite (`evals-live/`) was not run on 1.0.32: its cases keep their earlier replays on the Agent Plugin
-page.
+Measured on the final mocks (1,921 fixtures): a full pass, then the cases routed through a skill changed after
+it, three runs each.
+
+| | 1.0.31 | 1.0.32 |
+|---|---|---|
+| Runs passed | — | **73 of 75** |
+| Cases at 3 of 3 | — | **23 of 25** |
+| `fix-it` | 1 of 3 (0.73) | 3 of 3 |
+| `slow-endpoints` | 1 of 3 (0.87) | 2 of 3 (0.93): one judge split 1–2 on a reply that named the throttling, the shared stall and the off-CPU residual |
+| `write-report` | 0 of 3 | 2 of 3 (0.94): `flamegraph_export` of `jeffrey.JdbcQuery` with a `search`, which no fixture holds |
+| `gc-pauses`, `what-runs`, `exception-sites`, `open-question`, heap cases | — | 3 of 3 each |
+
+Spend for this round: $81.44 — four full passes ($17.00, the first on a mock recorded at the wrong dump path;
+$15.89; $16.97; $17.53 on the final mocks) and $14.05 of case re-runs. The live suite (`evals-live/`) was not
+run on 1.0.32: its cases keep their earlier replays on the Agent Plugin page.
